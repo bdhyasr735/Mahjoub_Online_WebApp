@@ -1,18 +1,31 @@
 import os
+from dotenv import load_dotenv
+
+# تحميل ملف .env إذا كان موجوداً (للعمل محلياً)
+load_dotenv()
 
 class Config:
-    # جلب رابط قاعدة البيانات من رويال
-    db_url = os.environ.get('DATABASE_URL')
+    # 1. إعدادات قاعدة البيانات (ريندر)
+    database_url = os.environ.get('DATABASE_URL')
     
-    # تصحيح الرابط برمجياً (حل مشكلة postgres://)
-    if db_url and db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    
-    SQLALCHEMY_DATABASE_URI = db_url
+    # تصحيح الرابط ليتوافق مع SQLAlchemy 3.x وإضافة SSL
+    if database_url:
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        
+        # التأكد من وجود sslmode إذا لم يكن موجوداً في الرابط الأصلي
+        if "sslmode=" not in database_url:
+            if "?" in database_url:
+                database_url += "&sslmode=require"
+            else:
+                database_url += "?sslmode=require"
+                
+    SQLALCHEMY_DATABASE_URI = database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # إعدادات قمرة (المفاتيح التي ظهرت في صورتك)
-    QUMRA_API_URL = os.environ.get('QUMRA_API_URL')
+    # 2. إعدادات "قمرة" (Qumra)
     QUMRA_API_KEY = os.environ.get('QUMRA_API_KEY')
+    QUMRA_API_URL = os.environ.get('QUMRA_API_URL')
     
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'mahjoub_2026_top_secret')
+    # 3. مفتاح الأمان للتطبيق
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'default_secret_key_123')
