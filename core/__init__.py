@@ -1,19 +1,14 @@
-from core import create_app, db
-import os
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from config import Config
 
-# إنشاء نسخة التطبيق
-app = create_app()
+db = SQLAlchemy()
 
-# كود اختياري: إنشاء الجداول في قاعدة البيانات إذا لم تكن موجودة
-with app.app_context():
-    try:
-        db.create_all()
-        print("✅ Database tables checked/created successfully.")
-    except Exception as e:
-        print(f"⚠️ Note: Database connection failed during startup: {e}")
-
-if __name__ == "__main__":
-    # الحصول على المنفذ من إعدادات البيئة (مهم لـ Railway)
-    port = int(os.environ.get("PORT", 8080))
-    # تشغيل التطبيق محلياً للتجربة
-    app.run(host='0.0.0.0', port=port)
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    
+    db.init_app(app)
+    
+    # استدعاء الـ Blueprints هنا (مثل admin_panel, webhooks...)
+    return app
