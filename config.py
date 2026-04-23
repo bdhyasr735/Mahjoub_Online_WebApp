@@ -1,23 +1,18 @@
 import os
 
 class Config:
-    # 1. جلب الرابط من متغيرات بيئة رويال (Railway)
-    # نستخدم get للحصول على الرابط أو None إذا لم يكن موجوداً
-    database_url = os.environ.get('DATABASE_URL')
+    # جلب رابط قاعدة البيانات من رويال
+    db_url = os.environ.get('DATABASE_URL')
     
-    # 2. التصحيح الذكي للرابط (Critical Fix)
-    # هذا الجزء يحل مشكلة الانهيار بسبب اختلاف تسمية البروتوكول
-    if database_url:
-        if database_url.startswith("postgres://"):
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
+    # تصحيح الرابط برمجياً (حل مشكلة postgres://)
+    if db_url and db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
     
-    # 3. إسناد الرابط المصحح للمحرك
-    SQLALCHEMY_DATABASE_URI = database_url
-    
-    # 4. إعدادات إضافية لضمان استقرار الأداء
+    SQLALCHEMY_DATABASE_URI = db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # 5. مفاتيح الأمان وقمرة (تأكد أن الأسماء تطابق ما في صورة رويال)
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'mahjoub_online_2026_secret')
+    # إعدادات قمرة (المفاتيح التي ظهرت في صورتك)
     QUMRA_API_URL = os.environ.get('QUMRA_API_URL')
     QUMRA_API_KEY = os.environ.get('QUMRA_API_KEY')
+    
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'mahjoub_2026_top_secret')
