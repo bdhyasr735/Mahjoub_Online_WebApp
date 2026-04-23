@@ -1,0 +1,11 @@
+# منع رفع ملف الأسرار
+.env
+
+# منع رفع المجلدات المؤقتة (الصور المرفوعة)
+static/img/temp_uploads/*
+!static/img/temp_uploads/.gitkeep
+
+# ملفات النظام المؤقتة
+__pycache__/
+*.pyc
+instance/
