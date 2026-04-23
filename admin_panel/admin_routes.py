@@ -1,66 +1,37 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from core.models import db, Supplier, Product, Wallet
-from core.qumra_connector import QumraEngine
+from core.models import db, Supplier, Product
 
-admin_bp = Blueprint('admin', __name__)
+# تعريف البلوبرنت الخاص بلوحة الإدارة
+admin_bp = Blueprint('admin', __name__, template_folder='templates')
 
-@admin_bp.route('/dashboard')
+@admin_bp.route('/')
 def dashboard():
-    """لوحة المعلومات الرئيسية للإدارة"""
-    pending_suppliers = Supplier.query.filter_by(status='pending').count()
-    total_products = Product.query.count()
-    # حساب إجمالي الديون للموردين (Confirmed Balance)
-    total_debts = db.session.query(db.func.sum(Wallet.balance_confirmed)).scalar() or 0
-    return render_template('admin/dashboard.html', 
-                           pending_count=pending_suppliers, 
-                           products_count=total_products,
-                           debts=total_debts)
+    """الصفحة الرئيسية للوحة الإدارة - عرض الإحصائيات"""
+    suppliers_count = Supplier.query.count()
+    products_count = Product.query.count()
+    return f"<h1>لوحة إدارة محجوب أونلاين</h1><p>الموردين: {suppliers_count}</p><p>المنتجات: {products_count}</p>"
 
-@admin_bp.route('/approve_suppliers')
-def approve_suppliers():
-    """عرض طلبات الانضمام المعلقة"""
-    suppliers = Supplier.query.filter_by(status='pending').all()
-    return render_template('admin/suppliers_review.html', suppliers=suppliers)
+@admin_bp.route('/suppliers')
+def list_suppliers():
+    """عرض قائمة الموردين"""
+    all_suppliers = Supplier.query.all()
+    return "قائمة الموردين قيد التطوير - تم الاتصال بقاعدة البيانات بنجاح"
 
-@admin_bp.route('/verify_supplier/<int:id>', methods=['POST'])
-def verify_supplier(id):
-    """تعميد المورد وإنشاء محفظته فوراً"""
-    supplier = Supplier.query.get_or_404(id)
-    action = request.form.get('action') # 'approve' or 'reject'
+@admin_bp.route('/add_supplier', methods=['POST'])
+def add_supplier():
+    """إضافة مورد جديد يدوياً للاختبار"""
+    name = request.form.get('name')
+    phone = request.form.get('phone')
     
-    if action == 'approve':
-        supplier.status = 'active'
-        # إنشاء المحفظة تلقائياً عند التفعيل
-        if not supplier.wallet:
-            new_wallet = Wallet(supplier_id=supplier.id)
-            db.session.add(new_wallet)
+    if name and phone:
+        new_supplier = Supplier(name=name, phone=phone, status='active')
+        db.session.add(new_supplier)
         db.session.commit()
-        # هنا سيتم استدعاء كود إرسال الواتساب للمورد لاحقاً
-        flash(f"تم اعتماد المورد {supplier.name} بنجاح")
-    return redirect(url_for('admin.approve_suppliers'))
-
-@admin_bp.route('/sync_products')
-def sync_products():
-    """سحب المنتجات الجديدة من قمرة لعرضها للتعميد"""
-    external_products = QumraEngine.fetch_products()
-    return render_template('admin/sync_products.html', products=external_products)
-
-@admin_bp.route('/finalize_product', methods=['POST'])
-def finalize_product():
-    """اعتماد المنتج النهائي وتحديد سعر البيع"""
-    # هذا الكود يستقبل التكلفة (يمني) وسعر البيع (سعودي)
-    # ويقوم بحساب الربح وتخزينه في جدول المنتجات
-    qumra_id = request.form.get('qumra_id')
-    cost_yem = float(request.form.get('cost_yem'))
-    price_sar = float(request.form.get('price_sar'))
+        return f"تم إضافة المورد {name} بنجاح في قاعدة بيانات Render!"
     
-    product = Product(
-        qumra_id=qumra_id,
-        cost_yemeni=cost_yem,
-        price_saudi=price_sar,
-        approval_status='approved'
-    )
-    db.session.add(product)
-    db.session.commit()
-    flash("تم تعميد المنتج ونشره بنجاح")
-    return redirect(url_for('admin.sync_products'))
+    return "خطأ في البيانات", 400
+
+@admin_bp.route('/sync_qumra')
+def sync_with_qumra():
+    """هذا المسار سيتم ربطه لاحقاً بمجلد الـ webhooks لجلب المنتجات"""
+    return "سيتم هنا تنفيذ عملية المزامنة مع قمرة باستخدام مفاتيح API الخاصة بك"
