@@ -9,17 +9,19 @@ def create_app(config_class=Config):
     # تهيئة قاعدة البيانات مع التطبيق
     db.init_app(app)
 
-    # استدعاء الموديولات (Blueprints) بشكل رشيق عند الحاجة
+    # استدعاء الموديولات (Blueprints) بشكل رشيق
     with app.app_context():
-        # هنا سيتم استدعاء لوحات التحكم لاحقاً
-        # from admin_panel.routes import admin_bp
-        # from supplier_panel.routes import supplier_bp
+        # استدعاء لوحة الإدارة
+        from admin_panel.routes import admin_bp
         
-        # تسجيل الموديولات
-        # app.register_blueprint(admin_bp, url_prefix='/admin')
+        # تسجيل الموديول في النظام
+        app.register_blueprint(admin_bp, url_prefix='/admin')
+        
+        # ملاحظة: سنفعل لوحة المورد (supplier_bp) في الخطوة القادمة
+        # from supplier_panel.routes import supplier_bp
         # app.register_blueprint(supplier_bp, url_prefix='/supplier')
 
-        # إنشاء الجداول في قاعدة البيانات إذا لم تكن موجودة
+        # إنشاء الجداول تلقائياً (المحافظ، الموردين، المنتجات)
         db.create_all()
 
     return app
