@@ -1,56 +1,66 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash
-# نفترض أن اسم الموديل الخاص بك هو User في ملف models
-from .models import User 
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from core.models import db, Supplier, Product, Wallet
+from core.qumra_connector import QumraEngine
 
-# تعريف الـ Blueprint الخاص بالإدارة
-admin_bp = Blueprint('admin', __name__, template_folder='templates')
+admin_bp = Blueprint('admin', __name__)
 
-# 1. مسار تسجيل الدخول (بوابة الدخول)
-@admin_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        # استقبال البيانات (اسم المستخدم بالعربي: علي محجوب)
-        username = request.form.get('username')
-        password = request.form.get('password')
-
-        # البحث عن القائد في قاعدة البيانات
-        user = User.query.filter_by(username=username).first()
-
-        # التحقق من الهوية وكلمة المرور المشفرة
-        if user and check_password_hash(user.password, password):
-            login_user(user) # تفعيل الجلسة الآمنة
-            flash('مرحباً بك يا قائد، تم الدخول إلى برج الرقابة بنجاح', 'success')
-            return redirect(url_for('admin.dashboard'))
-        else:
-            flash('بيانات الدخول غير صحيحة، الوصول مرفوض', 'danger')
-            
-    return render_template('login.html')
-
-# 2. لوحة الإحصائيات (محمية بـ login_required)
 @admin_bp.route('/dashboard')
-@login_required
 def dashboard():
-    return render_template('dashboard.html')
+    """لوحة المعلومات الرئيسية للإدارة"""
+    pending_suppliers = Supplier.query.filter_by(status='pending').count()
+    total_products = Product.query.count()
+    # حساب إجمالي الديون للموردين (Confirmed Balance)
+    total_debts = db.session.query(db.func.sum(Wallet.balance_confirmed)).scalar() or 0
+    return render_template('admin/dashboard.html', 
+                           pending_count=pending_suppliers, 
+                           products_count=total_products,
+                           debts=total_debts)
 
-# 3. مراجعة منتجات المورد (محطة العبور اللحظية)
-@admin_bp.route('/product-review')
-@login_required
-def product_review():
-    # هنا سيتم لاحقاً جلب البيانات لحظياً من قمرة دون حفظها
-    return render_template('product_review.html')
+@admin_bp.route('/approve_suppliers')
+def approve_suppliers():
+    """عرض طلبات الانضمام المعلقة"""
+    suppliers = Supplier.query.filter_by(status='pending').all()
+    return render_template('admin/suppliers_review.html', suppliers=suppliers)
 
-# 4. إدارة المحافظ المالية
-@admin_bp.route('/wallets')
-@login_required
-def wallets():
-    return render_template('wallets.html')
+@admin_bp.route('/verify_supplier/<int:id>', methods=['POST'])
+def verify_supplier(id):
+    """تعميد المورد وإنشاء محفظته فوراً"""
+    supplier = Supplier.query.get_or_404(id)
+    action = request.form.get('action') # 'approve' or 'reject'
+    
+    if action == 'approve':
+        supplier.status = 'active'
+        # إنشاء المحفظة تلقائياً عند التفعيل
+        if not supplier.wallet:
+            new_wallet = Wallet(supplier_id=supplier.id)
+            db.session.add(new_wallet)
+        db.session.commit()
+        # هنا سيتم استدعاء كود إرسال الواتساب للمورد لاحقاً
+        flash(f"تم اعتماد المورد {supplier.name} بنجاح")
+    return redirect(url_for('admin.approve_suppliers'))
 
-# 5. تسجيل الخروج الآمن
-@admin_bp.route('/logout')
-@login_required
-def logout():
-    logout_user() # تدمير الجلسة
-    flash('تم تسجيل الخروج وإغلاق بوابة العبور بنجاح', 'info')
-    return redirect(url_for('admin.login'))
+@admin_bp.route('/sync_products')
+def sync_products():
+    """سحب المنتجات الجديدة من قمرة لعرضها للتعميد"""
+    external_products = QumraEngine.fetch_products()
+    return render_template('admin/sync_products.html', products=external_products)
+
+@admin_bp.route('/finalize_product', methods=['POST'])
+def finalize_product():
+    """اعتماد المنتج النهائي وتحديد سعر البيع"""
+    # هذا الكود يستقبل التكلفة (يمني) وسعر البيع (سعودي)
+    # ويقوم بحساب الربح وتخزينه في جدول المنتجات
+    qumra_id = request.form.get('qumra_id')
+    cost_yem = float(request.form.get('cost_yem'))
+    price_sar = float(request.form.get('price_sar'))
+    
+    product = Product(
+        qumra_id=qumra_id,
+        cost_yemeni=cost_yem,
+        price_saudi=price_sar,
+        approval_status='approved'
+    )
+    db.session.add(product)
+    db.session.commit()
+    flash("تم تعميد المنتج ونشره بنجاح")
+    return redirect(url_for('admin.sync_products'))
