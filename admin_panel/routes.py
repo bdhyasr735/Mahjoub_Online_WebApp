@@ -1,31 +1,32 @@
 from flask import Blueprint, render_template, request
-from core.qumra_sync import qumra_manager  # استيراد المحرك اللحظي
 
-# تعريف البلوبرنت
+# 1. تعريف البلوبرنت
 admin_bp = Blueprint('admin_panel', __name__, template_folder='templates')
 
-# 1. لوحة التحكم (الرئيسية)
+# 2. مسار لوحة التحكم (Dashboard)
 @admin_bp.route('/', strict_slashes=False)
 def dashboard():
-    # نقل الاستيراد إلى هنا يمنع الخطأ (Circular Import)
+    # استيراد المودلز هنا يكسر الحلقة الدائرية (Circular Import)
     from core.models import Supplier, Product
     try:
-        suppliers_count = Supplier.query.count()
-        products_count = Product.query.count()
-        return render_template('dashboard.html', s_count=suppliers_count, p_count=products_count)
+        s_count = Supplier.query.count()
+        p_count = Product.query.count()
+        return render_template('dashboard.html', s_count=s_count, p_count=p_count)
     except Exception:
         return render_template('dashboard.html', s_count=0, p_count=0)
 
-# 2. عرض المنتجات اللحظي القادم من قمرة
+# 3. مسار عرض المنتجات (الذي صممناه)
 @admin_bp.route('/sync_now', strict_slashes=False)
 def sync_now():
-    # جلب البيانات مباشرة من قمرة لعرضها في لوحة إدارتك
-    live_products = qumra_manager.fetch_live_products(limit=15)
-    return render_template('product_review.html', products=live_products)
+    # استيراد المحرك هنا يحل مشكلة (No module named core.qumra_sync)
+    try:
+        from core.qumra_sync import qumra_manager
+        live_products = qumra_manager.fetch_live_products(limit=15)
+        return render_template('product_review.html', products=live_products)
+    except ImportError:
+        return "⚠️ خطأ: تأكد من وجود ملف core/qumra_sync.py"
 
-# 3. عرض قائمة الموردين
-@admin_bp.route('/suppliers', strict_slashes=False)
-def list_suppliers():
-    from core.models import Supplier
-    suppliers = Supplier.query.all()
-    return render_template('suppliers_list.html', suppliers=suppliers)
+# 4. مسار الدخول (Login)
+@admin_bp.route('/login', strict_slashes=False)
+def login():
+    return render_template('login.html')
