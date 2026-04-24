@@ -1,56 +1,22 @@
-import requests
-import os
-from core.models import db, Product
+from core import db
+from datetime import datetime
 
-class QumraSyncManager:
-    def __init__(self):
-        # هذه المتغيرات سيقرأها من رويال تلقائياً
-        self.api_url = "https://mahjoub.online/admin/graphql"
-        self.token = os.environ.get("QUMRA_API_KEY")
+class Supplier(db.Model):
+    __tablename__ = 'supplier'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    phone = db.Column(db.String(20), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def fetch_and_sync(self):
-        if not self.token:
-            return False, "API Key missing in Railway variables"
+    # علاقة مع المنتجات
+    products = db.relationship('Product', backref='owner', lazy=True)
 
-        # الاستعلام الذي رأيناه في صور Apollo
-        query = """
-        query {
-          products(first: 10) {
-            data {
-              _id
-              title
-              handle
-            }
-          }
-        }
-        """
-        
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json"
-        }
-
-        try:
-            response = requests.post(self.api_url, json={'query': query}, headers=headers)
-            result = response.json()
-            
-            products_data = result.get('data', {}).get('products', {}).get('data', [])
-            
-            for p in products_data:
-                # التأكد من عدم تكرار المنتج
-                existing = Product.query.filter_by(qumra_id=p['_id']).first()
-                if not existing:
-                    new_product = Product(
-                        qumra_id=p['_id'],
-                        name=p['title'],
-                        handle=p['handle']
-                    )
-                    db.session.add(new_product)
-            
-            db.session.commit()
-            return True, f"تمت مزامنة {len(products_data)} منتجات بنجاح!"
-            
-        except Exception as e:
-            return False, str(e)
-
-qumra_manager = QumraSyncManager()
+class Product(db.Model):
+    __tablename__ = 'product'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    image_url = db.Column(db.String(500), nullable=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
