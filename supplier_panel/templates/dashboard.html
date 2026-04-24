@@ -1,35 +1,41 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h3 class="fw-bold">مرحباً بشريك النجاح: <span style="color: var(--g-color);">{{ current_user.name }}</span></h3>
-            <p class="text-muted small">تتبع مبيعاتك وحالة رصيدك في منصة محجوب أونلاين.</p>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>لوحة تحكم <span style="color: var(--m-gold);">المورد</span></h2>
+    <div class="stat-card py-2 px-4 border-success">
+        <small class="text-muted d-block">رصيد المحفظة الحالي</small>
+        <span class="h4 fw-bold text-success">{{ current_user.wallet_balance }} $</span>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col-md-4 mb-4">
-            <div class="stat-card p-4 text-center border-start border-4 border-warning">
-                <h6 class="text-muted">رصيد المحفظة المتاح</h6>
-                <h2 class="fw-bold text-white">{{ current_user.wallet_balance }} $</h2>
-                <i class="fas fa-wallet text-warning mt-2" style="font-size: 2rem;"></i>
-            </div>
-        </div>
-        <div class="col-md-4 mb-4">
-            <div class="stat-card p-4 text-center border-start border-4 border-success">
-                <h6 class="text-muted">منتجاتي المعروضة</h6>
-                <h2 class="fw-bold text-white">24</h2>
-                <i class="fas fa-box-open text-success mt-2" style="font-size: 2rem;"></i>
-            </div>
-        </div>
-        <div class="col-md-4 mb-4">
-            <div class="stat-card p-4 text-center border-start border-4 border-primary">
-                <h6 class="text-muted">إجمالي المبيعات</h6>
-                <h2 class="fw-bold text-white">1,420 $</h2>
-                <i class="fas fa-chart-line text-primary mt-2" style="font-size: 2rem;"></i>
-            </div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="stat-card">
+            <h5 class="mb-3">أحدث المنتجات المرفوعة</h5>
+            <table class="table table-dark table-hover">
+                <thead>
+                    <tr>
+                        <th>المنتج</th>
+                        <th>سعر التكلفة</th>
+                        <th>الحالة</th>
+                        <th>التاريخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>{{ product.name }}</td>
+                        <td class="text-warning">{{ product.original_price }} $</td>
+                        <td>
+                            <span class="badge {% if product.status == 'pending' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                {{ 'قيد المراجعة' if product.status == 'pending' else 'معتمد' }}
+                            </span>
+                        </td>
+                        <td>{{ product.created_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
