@@ -1,42 +1,57 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
+import os
 
-# تعريف db هنا ليكون متاحاً للمودلز
+# تعريف الكائن المركزي لقاعدة البيانات
 db = SQLAlchemy()
 
 def create_app():
+    # إعداد التطبيق وتحديد مجلد الملفات الثابتة
     app = Flask(__name__, static_folder='../static')
     app.config.from_object(Config)
     
-    # تهيئة القاعدة
+    # تهيئة قاعدة البيانات
     db.init_app(app)
     
     with app.app_context():
-        # كسر الحلقة الدائرية: الاستيراد داخل الـ context
+        # كسر الحلقة الدائرية عبر الاستيراد المتأخر داخل الـ context
         try:
+            # 1. استيراد المودلز
             from core import models
-            from admin_panel.routes import admin_bp
-            from supplier_panel.routes import supplier_bp
             
+            # 2. استيراد وتسجيل البلوبرنت للإدارة (وهو الأهم الآن)
+            from admin_panel.routes import admin_bp
             app.register_blueprint(admin_bp, url_prefix='/admin')
+            
+            # 3. استيراد وتسجيل بلوبرنت الموردين
+            from supplier_panel.routes import supplier_bp
             app.register_blueprint(supplier_bp, url_prefix='/supplier')
             
-            print("✅ تم تسجيل بوابات الإدارة والموردين بنجاح.")
+            print("✅ تم تسجيل جميع البوابات (admin & supplier) بنجاح.")
         except Exception as e:
-            print(f"❌ خطأ في الربط: {e}")
+            # في حال وجود خطأ في ملف واحد، لا ينهار السيرفر بالكامل
+            print(f"⚠️ تنبيه: حدث خطأ أثناء تحميل بعض المسارات: {e}")
 
+    # الصفحة الرئيسية الترحيبية
     @app.route('/')
     def index():
         return """
         <div style="text-align:center; margin-top:50px; font-family: sans-serif; direction:rtl;">
-            <h1 style="color: #6a0dad;">🚀 نظام محجوب أونلاين يعمل بنجاح!</h1>
-            <p>المحرك متصل الآن بقاعدة بيانات رندر وبوابة قمرة.</p>
-            <div style="margin-top: 30px;">
+            <h1 style="color: #6a0dad;">🚀 منصة محجوب أونلاين</h1>
+            <p>المحرك يعمل الآن. للدخول إلى الإدارة، اضغط على الزر أدناه:</p>
+            <div style="margin-top: 20px;">
                 <a href="/admin/" style="display:inline-block; padding:15px 30px; background:#6a0dad; color:white; text-decoration:none; border-radius:25px; font-weight:bold;">
                     دخول لوحة الإدارة ⬅️
                 </a>
             </div>
         </div>
         """
+
+    # طباعة المسارات في السجلات للتشخيص
+    with app.app_context():
+        print("🔗 قائمة المسارات المتاحة حالياً في Railway:")
+        for rule in app.url_map.iter_rules():
+            print(f"-> {rule}")
+
     return app
