@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>دخول الموردين | محجوب أونلاين</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <style>
+        body { background: #050505; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Cairo'; }
+        .login-box { width: 400px; padding: 40px; background: #0a0a0a; border: 1px solid #632C8F; border-radius: 20px; text-align: center; }
+        .btn-supplier { background: #632C8F; color: white; border: 1px solid #D4AF37; width: 100%; padding: 12px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h3 class="text-white fw-bold mb-4">دخول <span style="color: #D4AF37;">شركاء النجاح</span></h3>
+        <form action="{{ url_for('supplier_panel.login') }}" method="POST">
+            <div class="mb-3 text-start">
+                <label class="text-muted small">البريد الإلكتروني</label>
+                <input type="email" name="email" class="form-control bg-dark text-white border-secondary" required>
+            </div>
+            <div class="mb-4 text-start">
+                <label class="text-muted small">كلمة المرور</label>
+                <input type="password" name="password" class="form-control bg-dark text-white border-secondary" required>
+            </div>
+            <button type="submit" class="btn-supplier fw-bold">ولوج البوابة</button>
+        </form>
+    </div>
+</body>
+</html>
