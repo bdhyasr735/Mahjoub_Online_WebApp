@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="stat-card p-3 text-center" style="border: 1px solid var(--mahjoub-gold);">
+                <img src="{{ product.image_url }}" class="img-fluid rounded shadow-lg mb-3" alt="{{ product.name }}" onerror="this.src='https://via.placeholder.com/400x400?text=No+Image'">
+                <div class="p-2 bg-dark rounded border border-secondary">
+                    <small class="text-muted d-block">رابط الصورة الحالي</small>
+                    <code class="text-warning" style="font-size: 0.7rem; word-break: break-all;">{{ product.image_url }}</code>
+                </div>
+            </div>
+            
+            <div class="stat-card mt-3 p-3 bg-opacity-10 bg-success" style="border-right: 4px solid #10b981;">
+                <h6 class="text-white fw-bold"><i class="fas fa-wallet me-2 text-success"></i> محفظة المورد</h6>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="text-muted small">ID المورد: {{ supplier.id }}</span>
+                    <span class="text-white fw-bold">{{ supplier.wallet_balance }} $</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="stat-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="text-white fw-bold mb-0">تعديل مواصفات القطعة</h4>
+                    <span class="badge {% if product.is_synced %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                        {{ 'متزامن مع قمرة' if product.is_synced else 'قيد المراجعة' }}
+                    </span>
+                </div>
+
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted">اسم المنتج (العنوان التسويقي)</label>
+                            <input type="text" name="name" class="form-control bg-dark text-white border-secondary" value="{{ product.name }}">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-warning">سعر التكلفة (المورد) $</label>
+                            <input type="number" step="0.01" name="original_price" class="form-control bg-dark text-warning border-warning" value="{{ product.original_price }}">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-success">سعر البيع (قمرة) $</label>
+                            <input type="number" step="0.01" name="sale_price" class="form-control bg-dark text-success border-success" value="{{ product.sale_price }}">
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted">رابط الصورة الجديد</label>
+                            <input type="url" name="image_url" class="form-control bg-dark text-white border-secondary" value="{{ product.image_url }}">
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted">وصف المنتج الفني</label>
+                            <textarea name="description" rows="5" class="form-control bg-dark text-white border-secondary">{{ product.description }}</textarea>
+                        </div>
+
+                        <div class="col-md-12 mb-4">
+                            <div class="form-check form-switch p-3 bg-dark rounded border border-secondary">
+                                <input class="form-check-input ms-2" type="checkbox" name="is_synced" id="syncSwitch" {% if product.is_synced %}checked{% endif %}>
+                                <label class="form-check-label text-white fw-bold" for="syncSwitch">نشر المنتج ومزامنته مع متجر قمرة</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 d-flex gap-3">
+                            <button type="submit" class="btn btn-lg w-100" style="background: var(--mahjoub-purple); color: white; border: 1px solid var(--mahjoub-gold);">
+                                <i class="fas fa-save me-2"></i> حفظ التعديلات السيادية
+                            </button>
+                            <a href="{{ url_for('admin_panel.dashboard') }}" class="btn btn-lg btn-outline-secondary w-50">إلغاء</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
