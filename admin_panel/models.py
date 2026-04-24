@@ -1,14 +1,25 @@
-# admin_panel/models.py
+from flask_sqlalchemy import SQLAlchemy
 
-# نحن لا نعرف الجداول هنا من الصفر، بل نستوردها من المركز 
-# لضمان أن النظام يقرأ من نفس قاعدة بيانات Render
-from core.models import db, Supplier, Product
+# تعريف قاعدة البيانات
+db = SQLAlchemy()
 
-# يمكنك إضافة جداول خاصة فقط بالإدارة هنا مستقبلاً
-# مثل جداول سجلات عمليات المدير (AdminLogs)
-class AdminLog(db.Model):
-    __tablename__ = 'admin_logs'
+# 1. جدول الموردين (ضروري لأن لوحة التحكم تعتمد عليه)
+class Supplier(db.Model):
+    __tablename__ = 'suppliers'
     id = db.Column(db.Integer, primary_key=True)
-    action = db.Column(db.String(255))
-    admin_id = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+    name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(20), nullable=True)
+    status = db.Column(db.String(20), default='active')
+
+# 2. جدول المنتجات (مطابق لبيانات قمرة في الصور)
+class Product(db.Model):
+    __tablename__ = 'products'
+    id = db.Column(db.Integer, primary_key=True)
+    qumra_id = db.Column(db.String(100), unique=True) # الـ _id من قمرة
+    name = db.Column(db.String(200))                  # الـ title من قمرة
+    handle = db.Column(db.String(200))                # الـ handle من قمرة
+    price = db.Column(db.Float, default=0.0)
+    stock = db.Column(db.Integer, default=0)
+    
+    # ربط المنتج بالمورد (اختياري ولكن يفضل وجوده)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'))
