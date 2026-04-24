@@ -2,46 +2,35 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}بوابة المورد | محجوب أونلاين{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>بوابة الموردين | محجوب أونلاين</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/all.min.css">
     <style>
-        :root { --p-color: #632C8F; --g-color: #D4AF37; --dark: #0a0a0a; }
-        body { font-family: 'Cairo', sans-serif; background-color: #050505; color: #e0e0e0; }
-        .sidebar { width: 260px; height: 100vh; background: var(--dark); position: fixed; border-left: 1px solid rgba(212,175,55,0.1); }
-        .main-content { margin-right: 260px; padding: 30px; }
-        .nav-link { color: #94a3b8; padding: 12px 20px; display: block; text-decoration: none; transition: 0.3s; }
-        .nav-link:hover, .nav-link.active { background: rgba(99, 44, 143, 0.1); color: var(--g-color); }
-        .stat-card { background: rgba(20,20,20,0.6); border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        :root { --p-purple: #632C8F; --m-gold: #D4AF37; }
+        body { background-color: #0d0d0d; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .sidebar { background: #1a1a1a; min-height: 100vh; border-left: 1px solid var(--m-gold); }
+        .nav-link { color: #ccc; transition: 0.3s; border-radius: 8px; margin-bottom: 5px; }
+        .nav-link:hover, .nav-link.active { background: var(--p-purple); color: white; }
+        .stat-card { background: #1a1a1a; border: 1px solid #333; border-radius: 15px; padding: 20px; }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="p-4 text-center">
-            <h5 class="fw-bold text-white">بوابة <span style="color: var(--g-color);">الموردين</span></h5>
-            <hr class="border-secondary">
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-2 d-none d-md-block sidebar p-3">
+                <h4 class="text-center fw-bold mb-4" style="color: var(--m-gold);">شريك النجاح</h4>
+                <div class="nav flex-column">
+                    <a class="nav-link active" href="{{ url_for('supplier_panel.dashboard') }}"><i class="fas fa-home me-2"></i> الإحصائيات</a>
+                    <a class="nav-link" href="{{ url_for('supplier_panel.add_product') }}"><i class="fas fa-plus-circle me-2"></i> إضافة منتج</a>
+                    <a class="nav-link" href="#"><i class="fas fa-boxes me-2"></i> منتجاتي</a>
+                    <hr>
+                    <a class="nav-link text-danger" href="{{ url_for('supplier_panel.logout') }}"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a>
+                </div>
+            </nav>
+            <main class="col-md-10 ms-sm-auto p-4">
+                {% block content %}{% endblock %}
+            </main>
         </div>
-        <nav>
-            <a href="{{ url_for('supplier_panel.dashboard') }}" class="nav-link active"><i class="fas fa-th-large me-2"></i> الإحصائيات</a>
-            <a href="{{ url_for('supplier_panel.add_product') }}" class="nav-link"><i class="fas fa-plus-circle me-2"></i> رفع منتج جديد</a>
-            <a href="#" class="nav-link"><i class="fas fa-box me-2"></i> منتجاتي</a>
-            <a href="#" class="nav-link"><i class="fas fa-wallet me-2"></i> كشف المحفظة</a>
-            <hr class="border-secondary">
-            <a href="{{ url_for('supplier_panel.logout') }}" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a>
-        </nav>
-    </div>
-
-    <div class="main-content">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} rounded-pill border-0 shadow-sm">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
     </div>
 </body>
 </html>
