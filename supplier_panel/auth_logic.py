@@ -1,4 +1,5 @@
-from core.models import Supplier
+# التعديل: استيراد الموديل مباشرة من ملفه لضمان الاستقرار
+from core.models.supplier import Supplier
 
 def verify_supplier_credentials(username, password):
     """
@@ -7,24 +8,23 @@ def verify_supplier_credentials(username, password):
     إرجاع: (الرسالة، نوع التنبيه، كائن المورد أو None)
     """
     try:
-        # 1. البحث عن المورد عبر "اسم الدخول" (الذي سجلناه في التعميد السيادي)
-        # نستخدم الحقل name ليتوافق مع واجهة الدخول
+        # 1. البحث عن المورد عبر "اسم الدخول" 
+        # ملاحظة سيادية: تأكد أن حقل الاسم في قاعدة البيانات هو 'name' وليس 'username'
         supplier = Supplier.query.filter_by(name=username).first()
 
-        # 2. فحص الوجود: إذا كان الاسم غير مسجل نهائياً في قاعدة البيانات
+        # 2. فحص الوجود
         if not supplier:
             return '⚠️ عذراً، هذا الاسم غير مسجل في المنصة اللامركزية لمحجوب أونلاين.', 'danger', None
 
-        # 3. فحص كلمة المرور: التحقق من التطابق (سياسة الـ 123 أو المشفرة لاحقاً)
-        # قمت بإضافة strip() لإزالة أي فراغات زائدة قد يكتبها المستخدم بالخطأ
-        if supplier.password != str(password).strip():
+        # 3. فحص كلمة المرور
+        # ملاحظة أمنية: لاحقاً سنستخدم check_password_hash للأمان العالي
+        if str(supplier.password).strip() != str(password).strip():
             return '❌ كلمة المرور غير صحيحة، يرجى إعادة التثبت من مفاتيح الدخول.', 'warning', None
 
-        # 4. النجاح المطلق: المورد معتمد وجاهز لدخول لوحته الملكية
-        # يرجع الكائن supplier كاملاً ليتم تمريره لـ login_user في الملف الأساسي
+        # 4. النجاح المطلق
         return f'✅ مرحباً بك يا {supplier.name}.. تم التحقق من الهوية السيادية بنجاح.', 'success', supplier
 
     except Exception as e:
-        # في حال حدوث خطأ غير متوقع في قاعدة البيانات (مثل نقص الحقول)
+        # تسجيل الخطأ في السيرفر للمراجعة
         print(f"❌ [Logic Error] فشل في عملية التحقق السيادي: {e}")
-        return '⚠️ حدث خطأ تقني في نظام التحقق، يرجى مراجعة الإدارة العليا.', 'danger', None
+        return f'⚠️ حدث خطأ تقني في نظام التحقق: {str(e)}', 'danger', None
