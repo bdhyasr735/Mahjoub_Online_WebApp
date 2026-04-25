@@ -12,14 +12,12 @@
         --glass-white: rgba(255, 255, 255, 0.03);
     }
 
-    /* تحسين الخلفية العامة للمحتوى */
     .dashboard-wrapper {
         padding: 20px;
         min-height: 100vh;
         background: linear-gradient(135deg, #0f081a 0%, #1a0b2e 100%);
     }
 
-    /* هيدر الترحيب السيادي */
     .welcome-banner {
         background: linear-gradient(135deg, var(--royal-purple) 0%, #3b185f 100%);
         border-radius: 25px;
@@ -31,7 +29,6 @@
         box-shadow: 0 15px 35px rgba(0,0,0,0.3);
     }
 
-    /* بطاقة المحفظة الديناميكية */
     .wallet-card-main {
         min-height: 260px;
         background: linear-gradient(145deg, #130722 0%, #2e114d 100%);
@@ -49,7 +46,6 @@
         border-color: var(--mahjoub-gold);
     }
 
-    /* أيقونة الميزان الخلفية (Masonic Style) */
     .masonic-bg {
         position: absolute;
         top: -20px;
@@ -62,9 +58,7 @@
     }
 
     .currency-container { position: relative; z-index: 2; padding: 35px; }
-    
-    /* أنيميشن التبديل */
-    .animate-fade { transition: all 0.5s ease-in-out; }
+    .animate-fade { transition: all 0.4s ease-in-out; }
     .fade-out { opacity: 0; transform: scale(0.95) translateX(20px); }
     .fade-in { opacity: 1; transform: scale(1) translateX(0); }
 
@@ -74,7 +68,6 @@
     }
     .dot-indicator.active { background: var(--mahjoub-gold); width: 30px; border-radius: 10px; box-shadow: 0 0 10px var(--mahjoub-gold); }
 
-    /* الكروت الزجاجية */
     .glass-card {
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
@@ -83,12 +76,6 @@
         padding: 30px;
         height: 100%;
         color: white;
-        transition: 0.3s;
-    }
-    
-    .glass-card:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.2);
     }
 
     .btn-gold {
@@ -111,8 +98,8 @@
         <div class="welcome-banner shadow">
             <div class="row align-items-center">
                 <div class="col-md-7">
-                    <h1 class="fw-black mb-2" style="font-size: 2.5rem;">مرحباً بالقائد، {{ current_user.full_name or current_user.name }}</h1>
-                    <p class="opacity-75 fs-5">نظام إدارة الأصول والترسانة الرقمية MAH-9046 جاهز للعمل.</p>
+                    <h1 class="fw-black mb-2" style="font-size: 2.5rem;">مرحباً بالقائد، {{ current_user.name }}</h1>
+                    <p class="opacity-75 fs-5">نظام إدارة الأصول والترسانة الرقمية <span class="text-warning">MAH-9046</span> جاهز للعمل.</p>
                 </div>
                 <div class="col-md-5 text-md-start">
                     <div class="badge p-3 rounded-pill bg-white text-dark shadow-sm">
@@ -145,7 +132,7 @@
                     <div class="col-md-6">
                         <div class="glass-card shadow-sm">
                             <h6 class="text-white-50 fw-bold mb-3 uppercase tracking-wider">إجمالي المنتجات في الترسانة</h6>
-                            <h2 class="fw-black text-white" style="font-size: 3rem;">{{ current_user.products|length }} <small class="fs-6 opacity-50">قطعة</small></h2>
+                            <h2 class="fw-black text-white" style="font-size: 3rem;">{{ current_user.products|length if current_user.products else 0 }} <small class="fs-6 opacity-50">قطعة</small></h2>
                             <hr class="opacity-20">
                             <a href="#" class="btn btn-gold w-100 rounded-pill py-2">
                                 <i class="fas fa-plus-circle me-2"></i> إضافة منتج جديد
@@ -170,26 +157,27 @@
 </div>
 
 <script>
+    // جلب بيانات المحفظة مع حماية ضد قيم None/Null
     const walletData = [
         { 
             label: "الدولار الأمريكي", 
             code: "USD", 
             symbol: "$", 
-            balance: {{ current_user.wallet_usd|default(0.0, true) }}, 
+            balance: {{ current_user.wallet_usd|default(0.0) }}, 
             color: "#27ae60" 
         },
         { 
             label: "الريال السعودي", 
             code: "SAR", 
             symbol: "ر.س", 
-            balance: {{ current_user.wallet_sar|default(0.0, true) }}, 
+            balance: {{ current_user.wallet_sar|default(0.0) }}, 
             color: "#2980b9" 
         },
         { 
             label: "الريال اليمني", 
             code: "YER", 
             symbol: "ر.ي", 
-            balance: {{ current_user.wallet_yer|default(0.0, true) }}, 
+            balance: {{ current_user.wallet_yer|default(0.0) }}, 
             color: "#e67e22" 
         }
     ];
@@ -215,7 +203,7 @@
                 <h1 class="display-3 fw-black mb-2 text-white tabular-nums">${data.balance.toLocaleString('en-US', {minimumFractionDigits: 2})} <small style="font-size: 1.5rem" class="text-white-50">${data.symbol}</small></h1>
                 <div class="mt-4 d-flex align-items-center">
                     <div class="bg-success rounded-circle me-2" style="width: 10px; height: 10px; box-shadow: 0 0 10px #27ae60;"></div>
-                    <span class="small fw-bold text-white-50">محفظة مشفرة سيادياً بموجب MAH-9046</span>
+                    <span class="small fw-bold text-white-50">محفظة سيادية مشفرة بموجب MAH-9046</span>
                 </div>
             `;
             walletDiv.classList.remove('fade-out');
