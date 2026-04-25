@@ -18,7 +18,6 @@ def create_app():
     login_manager.init_app(app)
     
     # 3. إعدادات نظام الحماية وتسجيل الدخول
-    # تم تركه كـ 'admin_panel.login' كافتراضي، وسيتم التعامل مع الموردين داخلياً
     login_manager.login_view = 'admin_panel.login'  
     login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى هذه المنطقة السيادية."
     login_manager.login_message_category = "info"
@@ -33,14 +32,20 @@ def create_app():
         @login_manager.user_loader
         def load_user(user_id):
             try:
-                # التحقق من الهوية عبر البحث المتسلسل في الجداول
+                # محاولة البحث في جدول الأدمن (القائد)
                 admin = User.query.get(int(user_id))
                 if admin:
                     return admin
                 
-                # البحث في حسابات شركاء النجاح (Supplier)
-                return Supplier.query.get(int(user_id))
+                # البحث في حسابات الموردين (شركاء النجاح)
+                # هذا السطر هو المسؤول عن تفعيل (current_user.name) للموردين
+                supplier = Supplier.query.get(int(user_id))
+                if supplier:
+                    return supplier
+                
+                return None
             except Exception as e:
+                print(f"⚠️ [Auth Error] فشل تحميل الهوية: {e}")
                 return None
 
         # --- 🔗 تسجيل بوابات النظام (Blueprints) ---
@@ -49,11 +54,11 @@ def create_app():
             from admin_panel.routes import admin_bp
             app.register_blueprint(admin_bp, url_prefix='/admin')
             
-            # 🛡️ التصحيح الجوهري: استيراد البلوبرنت من مجلد الموردين مباشرة
+            # تسجيل بوابة الموردين المحدثة
             from supplier_panel import supplier_bp
             app.register_blueprint(supplier_bp, url_prefix='/supplier')
             
-            print("✅ [System] تم ربط جميع المسارات السيادية بنجاح.")
+            print("✅ [System] تم ربط جميع المسارات السيادية (الآدمن والموردين) بنجاح.")
         except Exception as e:
             print(f"❌ [Critical Error] فشل في تحميل بوابات النظام: {e}")
 
@@ -61,13 +66,10 @@ def create_app():
         @app.context_processor
         def inject_global_data():
             try:
-                # حساب عدد الموردين الذين ينتظرون الاعتماد (لإظهار الإشعارات للآدمن)
+                # إتاحة عدد الطلبات المعلقة في كافة القوالب (للتنبيهات)
                 p_suppliers = Supplier.query.filter_by(is_approved=False).count()
                 return dict(pending_suppliers_count=p_suppliers)
             except:
                 return dict(pending_suppliers_count=0)
-
-        # 4. مزامنة قاعدة البيانات (اختياري إذا كنت تستخدم Migrations)
-        # db.create_all() 
 
     return app
