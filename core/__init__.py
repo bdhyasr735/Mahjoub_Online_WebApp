@@ -28,20 +28,20 @@ def create_app():
         from core.models.supplier import Supplier
         from core.models.product import Product
         
-        # --- 🔐 نظام التعرف الذكي على الهوية (أدمن أو مورد) ---
+        # --- 🔐 نظام التعرف الذكي والمطور على الهوية ---
         @login_manager.user_loader
         def load_user(user_id):
             try:
-                # محاولة البحث في جدول الأدمن (القائد)
-                admin = User.query.get(int(user_id))
-                if admin:
-                    return admin
-                
-                # البحث في حسابات الموردين (شركاء النجاح)
-                # هذا السطر هو المسؤول عن تفعيل (current_user.name) للموردين
+                # التعديل الجوهري: نبحث في الجدولين ونتأكد من هوية الكائن المسجل حالياً
+                # نبدأ بالمورد أولاً لأن مشكلة "الفراغ" تظهر دائماً في بوابة الموردين
                 supplier = Supplier.query.get(int(user_id))
                 if supplier:
                     return supplier
+                
+                # إذا لم يكن مورداً، نبحث في جدول الأدمن (القائد)
+                admin = User.query.get(int(user_id))
+                if admin:
+                    return admin
                 
                 return None
             except Exception as e:
@@ -66,7 +66,6 @@ def create_app():
         @app.context_processor
         def inject_global_data():
             try:
-                # إتاحة عدد الطلبات المعلقة في كافة القوالب (للتنبيهات)
                 p_suppliers = Supplier.query.filter_by(is_approved=False).count()
                 return dict(pending_suppliers_count=p_suppliers)
             except:
