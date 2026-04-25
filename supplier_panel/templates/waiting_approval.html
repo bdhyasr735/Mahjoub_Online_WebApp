@@ -14,7 +14,6 @@
             --mahjoub-gold: #D4AF37;
         }
 
-        /* إلغاء أي هوامش وضمان ملء الشاشة لمنع ظهور أي بقايا للهيكل */
         body { 
             background: radial-gradient(circle at center, #2e114d 0%, var(--royal-purple) 100%); 
             color: white; 
@@ -24,7 +23,7 @@
             justify-content: center; 
             height: 100vh; 
             margin: 0;
-            overflow: hidden; /* يمنع التمرير لضمان عزل الواجهة */
+            overflow: hidden;
         }
 
         .card { 
@@ -92,27 +91,39 @@
         <i class="fa-solid fa-shield-halved shield-icon gold-glow"></i>
         
         <h1>مرحباً بك يا <span class="gold-glow">
-            {{ current_user.name if current_user.is_authenticated else "شريكنا" }}
+            {# حماية ضد الخطأ: نتحقق من وجود الاسم أولاً #}
+            {% if current_user.is_authenticated and current_user.name %}
+                {{ current_user.name }}
+            {% else %}
+                شريكنا
+            {% endif %}
         </span></h1>
         
         <p>لقد دخلت عبر بوابة <b>محجوب أونلاين</b>.<br>حسابك حالياً يخضع لعملية التدقيق لضمان أمان الترسانة الرقمية.</p>
         
         <div class="status-box">
-            <i class="fa-solid fa-hourglass-start me-2"></i> الحالة: {{ current_user.approval_label or "قيد المراجعة" }}
+            <i class="fa-solid fa-hourglass-start me-2"></i> الحالة: 
+            {# حماية ضد الخطأ في حال كانت الدالة غير موجودة #}
+            {% if current_user.approval_label %}
+                {{ current_user.approval_label }}
+            {% else %}
+                قيد المراجعة ⏳
+            {% endif %}
         </div>
 
         <br>
         
+        {# تأكد أن اسم المسار 'logout' صحيح في ملف routes.py #}
         <a href="{{ url_for('supplier_panel.logout') }}" class="btn-logout">
             <i class="fa-solid fa-power-off me-1"></i> تسجيل الخروج وتأمين الجلسة
         </a>
     </div>
 
     <script>
-        // تحديث تلقائي كل 15 ثانية للتحقق من حالة التعميد
+        // تحديث كل 30 ثانية لتخفيف الضغط على السيرفر
         setTimeout(function(){
             location.reload();
-        }, 15000);
+        }, 30000);
     </script>
 </body>
 </html>
