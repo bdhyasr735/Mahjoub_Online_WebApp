@@ -11,23 +11,27 @@ class Supplier(db.Model, UserMixin):
     password = db.Column(db.String(200), nullable=False)
     activity_type = db.Column(db.String(100))
     
-    # 🛡️ نظام الرقابة والاعتماد (تم الإضافة هنا)
-    is_approved = db.Column(db.Boolean, default=False) # False = بانتظار الاعتماد السيادي
-    status = db.Column(db.String(20), default='pending') # pending, active, suspended
+    # 🛡️ نظام الرقابة والاعتماد
+    is_approved = db.Column(db.Boolean, default=False) 
+    status = db.Column(db.String(20), default='pending') 
     
     # تفاصيل المنشأة والموقع التيهامي
     trade_name = db.Column(db.String(200))
     full_name = db.Column(db.String(200))
-    province = db.Column(db.String(100)) # المحافظة (مثلاً: الحديدة)
-    district = db.Column(db.String(100)) # المديرية (مثلاً: الخوخة)
+    province = db.Column(db.String(100)) 
+    district = db.Column(db.String(100)) 
     phone = db.Column(db.String(20))
     email = db.Column(db.String(120), unique=True, nullable=False)
 
-    # النظام المالي والمحفظة
-    fin_type = db.Column(db.String(50))
+    # 💰 النظام المالي المتعدد (تم التعديل ليتوافق مع الداشبورد)
+    wallet_balance = db.Column(db.Float, default=0.0) # الرصيد الإجمالي
+    wallet_usd = db.Column(db.Float, default=0.0)    # محفظة الدولار
+    wallet_sar = db.Column(db.Float, default=0.0)    # محفظة السعودي
+    wallet_yer = db.Column(db.Float, default=0.0)    # محفظة اليمني
+    
     bank_name = db.Column(db.String(100))
     bank_acc = db.Column(db.String(100))
-    wallet_balance = db.Column(db.Float, default=0.0)
+    fin_type = db.Column(db.String(50))
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -41,8 +45,7 @@ class Supplier(db.Model, UserMixin):
 
     @property
     def approval_label(self):
-        """إرجاع حالة الاعتماد نصياً للوحة الإدارة"""
         return "معتمد ✅" if self.is_approved else "بانتظار المراجعة ⏳"
 
     def __repr__(self):
-        return f'<Supplier: {self.name} | Status: {self.status} | Wallet: {self.sovereign_id}>'
+        return f'<Supplier: {self.name} | Wallet: {self.sovereign_id}>'
