@@ -9,8 +9,17 @@
         --deep-black: #08020d;
         --mahjoub-gold: #D4AF37;
         --gold-glow: rgba(212, 175, 55, 0.15);
+        --glass-white: rgba(255, 255, 255, 0.03);
     }
 
+    /* تحسين الخلفية العامة للمحتوى */
+    .dashboard-wrapper {
+        padding: 20px;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #0f081a 0%, #1a0b2e 100%);
+    }
+
+    /* هيدر الترحيب السيادي */
     .welcome-banner {
         background: linear-gradient(135deg, var(--royal-purple) 0%, #3b185f 100%);
         border-radius: 25px;
@@ -19,87 +28,140 @@
         margin-bottom: 40px;
         border-right: 6px solid var(--mahjoub-gold);
         position: relative;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.3);
     }
 
+    /* بطاقة المحفظة الديناميكية */
     .wallet-card-main {
-        min-height: 240px;
+        min-height: 260px;
         background: linear-gradient(145deg, #130722 0%, #2e114d 100%);
         border-radius: 30px;
-        border: 1px solid var(--mahjoub-gold);
+        border: 1px solid rgba(212, 175, 55, 0.3);
         position: relative;
         overflow: hidden;
-        transition: 0.4s;
+        transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         cursor: pointer;
     }
     
+    .wallet-card-main:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 20px var(--gold-glow);
+        border-color: var(--mahjoub-gold);
+    }
+
+    /* أيقونة الميزان الخلفية (Masonic Style) */
+    .masonic-bg {
+        position: absolute;
+        top: -20px;
+        left: -20px;
+        font-size: 12rem;
+        color: var(--mahjoub-gold);
+        opacity: 0.05;
+        transform: rotate(-15deg);
+        pointer-events: none;
+    }
+
     .currency-container { position: relative; z-index: 2; padding: 35px; }
-    .animate-fade { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-    .fade-out { opacity: 0; transform: scale(0.9) translateY(20px); }
-    .fade-in { opacity: 1; transform: scale(1) translateY(0); }
+    
+    /* أنيميشن التبديل */
+    .animate-fade { transition: all 0.5s ease-in-out; }
+    .fade-out { opacity: 0; transform: scale(0.95) translateX(20px); }
+    .fade-in { opacity: 1; transform: scale(1) translateX(0); }
 
     .dot-indicator {
-        height: 6px; width: 6px; background: rgba(255,255,255,0.2);
-        border-radius: 50%; display: inline-block; margin: 0 5px; transition: 0.3s;
+        height: 8px; width: 8px; background: rgba(255,255,255,0.1);
+        border-radius: 50%; display: inline-block; margin: 0 6px; transition: 0.4s;
     }
-    .dot-indicator.active { background: var(--mahjoub-gold); width: 25px; border-radius: 10px; }
+    .dot-indicator.active { background: var(--mahjoub-gold); width: 30px; border-radius: 10px; box-shadow: 0 0 10px var(--mahjoub-gold); }
 
+    /* الكروت الزجاجية */
     .glass-card {
-        background: white;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
         border-radius: 25px;
-        border: 1px solid #f0f0f0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         padding: 30px;
         height: 100%;
+        color: white;
+        transition: 0.3s;
+    }
+    
+    .glass-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-gold {
+        background: var(--mahjoub-gold);
+        color: var(--royal-purple);
+        font-weight: 800;
+        border: none;
+        transition: 0.3s;
+    }
+    
+    .btn-gold:hover {
+        background: #fff;
+        transform: scale(1.05);
+        box-shadow: 0 0 15px var(--mahjoub-gold);
     }
 </style>
 
-<div class="container-fluid">
-    <div class="welcome-banner shadow">
-        <div class="row align-items-center">
-            <div class="col-md-7">
-                <h1 class="fw-black mb-2">مرحباً بالقائد، {{ current_user.full_name or current_user.name }}</h1>
-                <p class="opacity-75 fs-5">أهلاً بك في الترسانة الرقمية لـ "محجوب أونلاين".</p>
-            </div>
-            <div class="col-md-5 text-md-start">
-                <div class="badge p-3 rounded-pill bg-white text-dark shadow-sm">
-                    <i class="fas fa-id-card-alt me-2 text-primary"></i> المعرف السيادي: {{ current_user.sovereign_id }}
+<div class="dashboard-wrapper">
+    <div class="container-fluid">
+        <div class="welcome-banner shadow">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <h1 class="fw-black mb-2" style="font-size: 2.5rem;">مرحباً بالقائد، {{ current_user.full_name or current_user.name }}</h1>
+                    <p class="opacity-75 fs-5">نظام إدارة الأصول والترسانة الرقمية MAH-9046 جاهز للعمل.</p>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-        <div class="col-lg-5">
-            <div class="wallet-card-main shadow-lg" onclick="forceNextCurrency()">
-                <div id="wallet-content" class="currency-container animate-fade">
+                <div class="col-md-5 text-md-start">
+                    <div class="badge p-3 rounded-pill bg-white text-dark shadow-sm">
+                        <i class="fas fa-fingerprint me-2 text-primary"></i> المعرف السيادي: <span class="fw-bold text-primary">{{ current_user.sovereign_id }}</span>
                     </div>
-
-                <div class="text-center pb-4" style="position: relative; z-index: 3;">
-                    <span class="dot-indicator active" onclick="showCurrency(0)"></span>
-                    <span class="dot-indicator" onclick="showCurrency(1)"></span>
-                    <span class="dot-indicator" onclick="showCurrency(2)"></span>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-7">
-            <div class="row g-3 h-100">
-                <div class="col-md-6">
-                    <div class="glass-card shadow-sm">
-                        <h6 class="text-muted fw-bold mb-3">إجمالي المنتجات</h6>
-                        <h2 class="fw-black text-primary">{{ current_user.products|length }} <small class="fs-6">منتج</small></h2>
-                        <hr>
-                        <a href="#" class="btn btn-sm btn-primary rounded-pill">إضافة منتج جديد</a>
+        <div class="row g-4">
+            <div class="col-lg-5">
+                <div class="wallet-card-main shadow-lg" onclick="forceNextCurrency()">
+                    <div class="masonic-bg">
+                        <i class="fas fa-balance-scale"></i>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="glass-card shadow-sm border-start border-4 border-success">
-                        <h6 class="text-muted fw-bold mb-3">حالة الحساب</h6>
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            <span class="fw-bold">{{ current_user.approval_label }}</span>
+                    
+                    <div id="wallet-content" class="currency-container animate-fade">
                         </div>
-                        <hr>
-                        <p class="small text-muted">حسابك يعمل بكامل صلاحيات المنصة.</p>
+
+                    <div class="text-center pb-4" style="position: relative; z-index: 3;">
+                        <span class="dot-indicator active" onclick="showCurrency(0)"></span>
+                        <span class="dot-indicator" onclick="showCurrency(1)"></span>
+                        <span class="dot-indicator" onclick="showCurrency(2)"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="row g-4 h-100">
+                    <div class="col-md-6">
+                        <div class="glass-card shadow-sm">
+                            <h6 class="text-white-50 fw-bold mb-3 uppercase tracking-wider">إجمالي المنتجات في الترسانة</h6>
+                            <h2 class="fw-black text-white" style="font-size: 3rem;">{{ current_user.products|length }} <small class="fs-6 opacity-50">قطعة</small></h2>
+                            <hr class="opacity-20">
+                            <a href="#" class="btn btn-gold w-100 rounded-pill py-2">
+                                <i class="fas fa-plus-circle me-2"></i> إضافة منتج جديد
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="glass-card shadow-sm border-start border-4 border-warning">
+                            <h6 class="text-white-50 fw-bold mb-3 uppercase tracking-wider">الحالة السيادية للحساب</h6>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="spinner-grow spinner-grow-sm text-success me-3"></div>
+                                <h3 class="fw-bold text-success mb-0">{{ current_user.approval_label }}</h3>
+                            </div>
+                            <hr class="opacity-20">
+                            <p class="small text-white-50">الحساب مؤمن بالكامل ومرتبط بالشبكة المركزية لـ "محجوب أونلاين".</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -108,7 +170,6 @@
 </div>
 
 <script>
-    // ربط حقيقي ببيانات قاعدة البيانات السيادية
     const walletData = [
         { 
             label: "الدولار الأمريكي", 
@@ -146,20 +207,26 @@
         setTimeout(() => {
             walletDiv.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <span style="color: var(--mahjoub-gold); font-weight: 900; letter-spacing: 1px;">${data.label}</span>
-                    <div style="background: ${data.color}22; color: ${data.color}; padding: 5px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: bold;">
+                    <span style="color: var(--mahjoub-gold); font-weight: 900; letter-spacing: 2px; font-size: 1.1rem;">${data.label}</span>
+                    <div style="background: ${data.color}33; color: white; border: 1px solid ${data.color}; padding: 5px 15px; border-radius: 12px; font-size: 0.85rem; font-weight: bold;">
                         ${data.code}
                     </div>
                 </div>
-                <h1 class="display-4 fw-black mb-2 text-white">${data.balance.toLocaleString()} <small style="font-size: 1.5rem">${data.symbol}</small></h1>
-                <div class="mt-4 opacity-50 small fw-bold text-white">
-                    <i class="fas fa-shield-alt me-1"></i> حماية سيادية نشطة
+                <h1 class="display-3 fw-black mb-2 text-white tabular-nums">${data.balance.toLocaleString('en-US', {minimumFractionDigits: 2})} <small style="font-size: 1.5rem" class="text-white-50">${data.symbol}</small></h1>
+                <div class="mt-4 d-flex align-items-center">
+                    <div class="bg-success rounded-circle me-2" style="width: 10px; height: 10px; box-shadow: 0 0 10px #27ae60;"></div>
+                    <span class="small fw-bold text-white-50">محفظة مشفرة سيادياً بموجب MAH-9046</span>
                 </div>
             `;
             walletDiv.classList.remove('fade-out');
             walletDiv.classList.add('fade-in');
             dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
         }, 300);
+    }
+
+    function showCurrency(index) {
+        currentIndex = index;
+        updateWalletUI(index);
     }
 
     function forceNextCurrency() {
@@ -169,7 +236,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         updateWalletUI(0);
-        setInterval(forceNextCurrency, 5000);
+        setInterval(forceNextCurrency, 6000);
     });
 </script>
 {% endblock %}
