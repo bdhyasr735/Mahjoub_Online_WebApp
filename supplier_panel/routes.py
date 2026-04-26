@@ -7,13 +7,12 @@ from .decorators import sovereign_approval_required
 # --- 1. مسار تسجيل الدخول اللامركزي ---
 @supplier_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    # منع التداخل: إذا كان المستخدم مسجل دخوله بالفعل
+    # منع التداخل السيادي: إذا كان المستخدم مسجل دخوله بالفعل
     if current_user.is_authenticated:
-        # الفحص يعتمد الآن على "نوع المستخدم" في الجلسة لضمان الدقة
         if session.get('user_type') == 'supplier':
             return redirect(url_for('supplier_panel.dashboard'))
         else:
-            # إذا كان أدمن أو مستخدم بنوع مختلف، يتم تطهير الجلسة قبل دخول المورد
+            # تطهير أي جلسة سابقة (أدمن أو غيره) لفتح مسار المورد
             logout_user()
             session.clear()
 
@@ -23,13 +22,13 @@ def login():
 
         if not username or not password:
             flash('يرجى ملء كافة الحقول السيادية للدخول.', 'warning')
-            return render_template('supplier_login.html')
+            return render_template('supplier_panel/supplier_login.html') # تحديد المجلد
 
         # التحقق من الهوية عبر المحقق الخارجي
         message, category, supplier = verify_supplier_credentials(username, password)
         
         if supplier: 
-            # 🛡️ الختم السيادي: تحديد نوع الهوية في الجلسة قبل الربط
+            # 🛡️ الختم السيادي: تحديد نوع الهوية في الجلسة لضمان التوجيه الصحيح
             session.permanent = True
             session['user_type'] = 'supplier'
             
@@ -40,7 +39,8 @@ def login():
         else:
             flash(message, category)
             
-    return render_template('supplier_login.html')
+    # تأكد أن ملف supplier_login.html موجود داخل supplier_panel/templates/supplier_panel/
+    return render_template('supplier_panel/supplier_login.html')
 
 # --- 2. لوحة التحكم (الترسانة الرقمية) ---
 @supplier_bp.route('/dashboard')
@@ -50,7 +50,7 @@ def dashboard():
     from core.models.product import Product
     
     try:
-        # التأكد قطعيًا أن المستخدم يحمل وسم "مورد" في جلسته
+        # تأمين المسار: التأكد أن المستخدم يحمل وسم "مورد" حصراً
         if session.get('user_type') != 'supplier':
             session.clear()
             logout_user()
@@ -64,7 +64,8 @@ def dashboard():
             print(f"⚠️ تنبيه في قاعدة البيانات: {db_error}")
             my_products = []
             
-        return render_template('dashboard.html', products=my_products)
+        # التعديل الجوهري: تحديد المسار الكامل للقالب لمنع تداخل الإدارة
+        return render_template('supplier_panel/dashboard.html', products=my_products)
         
     except Exception as e:
         print(f"❌ خطأ داخلي في لوحة المورد: {e}")
@@ -75,26 +76,24 @@ def dashboard():
 @login_required
 def waiting_room():
     """
-    هنا يتم كسر التناقض: يتم فحص حالة المورد من قاعدة البيانات مباشرة 
-    وليس من البيانات المخزنة في الجلسة، لضمان العبور الفوري بعد الاعتماد.
+    كسر التناقض: فحص الحالة من قاعدة البيانات مباشرة لتجاوز "كاش" الجلسة
     """
     from core.models.supplier import Supplier
     
-    # جلب نسخة طازجة من بيانات المورد من قاعدة البيانات
+    # جلب بيانات طازجة للتأكد من حالة الاعتماد الحالية
     fresh_data = Supplier.query.get(current_user.id)
     
     if fresh_data and fresh_data.is_approved:
-        # إذا تغيرت الحالة في الإدارة، يتم توجيهه للداشبورد فوراً
-        flash('تهانينا! تم تفعيل حسابك سيادياً.', 'success')
+        flash('تهانينا! تم تفعيل حسابك سيادياً من قبل الإدارة.', 'success')
         return redirect(url_for('supplier_panel.dashboard'))
     
-    return render_template('waiting_approval.html')
+    return render_template('supplier_panel/waiting_approval.html')
 
 # --- 4. خروج المورد وتأمين الجلسة ---
 @supplier_bp.route('/logout')
 @login_required
 def logout():
-    # تطهير كامل للجلسة والوسم السيادي
+    # إنهاء الجلسة وتطهير الوسم السيادي تماماً
     session.pop('user_type', None)
     session.clear()
     logout_user()
