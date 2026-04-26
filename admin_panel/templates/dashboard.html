@@ -1,154 +1,201 @@
-{% extends "base.html" %}
+{% extends "admin_panel/base.html" %}
 
-{% block title %}لوحة التحكم | محجوب أونلاين{% endblock %}
+{% block title %}برج الرقابة المركزية | محجوب أونلاين{% endblock %}
 
 {% block content %}
 <style>
     .stat-card {
         background: rgba(10, 10, 10, 0.6);
         border: 1px solid rgba(212, 175, 55, 0.1);
-        border-radius: 15px;
-        transition: all 0.3s ease;
+        border-radius: 20px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         position: relative;
         overflow: hidden;
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(15px);
     }
     .stat-card:hover {
-        transform: translateY(-5px);
+        transform: translateY(-8px);
         border-color: var(--mahjoub-gold);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.6), 0 0 15px rgba(212, 175, 55, 0.1);
     }
     .stat-card::before {
         content: "";
         position: absolute;
         top: 0; right: 0;
-        width: 4px; height: 100%;
+        width: 5px; height: 100%;
+        transition: 0.3s;
     }
     .card-orders::before { background: var(--mahjoub-purple); }
     .card-suppliers::before { background: #10b981; }
     .card-balance::before { background: var(--mahjoub-gold); }
     .card-review::before { background: #3b82f6; }
 
-    .icon-shape {
-        width: 50px;
-        height: 50px;
+    .icon-box {
+        width: 55px;
+        height: 55px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 12px;
-        font-size: 1.5rem;
-    }
-    
-    .table-dark-custom {
-        background: rgba(10, 10, 10, 0.4);
         border-radius: 15px;
+        font-size: 1.4rem;
+        background: rgba(255,255,255,0.03);
         border: 1px solid rgba(255,255,255,0.05);
     }
-    .table-dark-custom thead {
-        background: rgba(99, 44, 143, 0.2);
+    
+    .table-sovereign {
+        background: rgba(10, 10, 10, 0.3);
+        border-radius: 20px;
+        overflow: hidden;
     }
-    .table-dark-custom th { color: var(--mahjoub-gold); border: none; padding: 15px; }
-    .table-dark-custom td { color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.05); padding: 15px; }
+    .table-sovereign thead {
+        background: linear-gradient(to left, rgba(99, 44, 143, 0.3), transparent);
+    }
+    .table-sovereign th { 
+        color: var(--mahjoub-gold) !important; 
+        font-weight: 900; 
+        text-transform: uppercase; 
+        letter-spacing: 1px;
+        font-size: 0.8rem;
+        padding: 20px !important;
+    }
+    .table-sovereign td { 
+        padding: 18px 20px !important; 
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .pulse-indicator {
+        width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+        margin-left: 8px; animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
 </style>
 
 <div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="fw-bold text-white mb-1">مرحباً بالقائد، {{ current_user.username }}</h2>
-            <p style="color: var(--mahjoub-gold); font-weight: 600;">نظرة عامة على أداء محرك "سوقك الذكي"</p>
+    <div class="row mb-5">
+        <div class="col-md-8">
+            <h1 class="fw-black text-white mb-2" style="font-size: 2.2rem;">نظام الرقابة العليا</h1>
+            <div class="d-flex align-items-center">
+                <span class="pulse-indicator bg-success"></span>
+                <p class="mb-0 opacity-75 fw-bold text-white">المحرك الرقمي "سوقك الذكي" يعمل بكفاءة قصوى</p>
+            </div>
+        </div>
+        <div class="col-md-4 text-md-start d-flex align-items-center justify-content-md-end mt-3 mt-md-0">
+            <div class="text-white bg-white bg-opacity-5 p-3 rounded-4 border border-white border-opacity-10">
+                <small class="d-block opacity-50 fw-bold">توقيت البرج المركزي</small>
+                <span class="fw-black" id="liveClock">--:--:--</span>
+            </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-xl-3 col-md-6 mb-4">
+    <div class="row g-4">
+        <div class="col-xl-3 col-md-6">
             <div class="stat-card card-orders p-4">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between">
                     <div>
-                        <p class="text-muted small fw-bold mb-1">إجمالي الطلبات</p>
-                        <h3 class="text-white fw-bold mb-0">1,250</h3>
+                        <p class="text-white-50 small fw-bold mb-1">إجمالي المبيعات</p>
+                        <h2 class="text-white fw-black mb-0">{{ orders_count|default('1,250') }}</h2>
                     </div>
-                    <div class="icon-shape bg-primary bg-opacity-10 text-primary">
-                        <i class="fas fa-shopping-bag"></i>
+                    <div class="icon-box text-primary shadow-sm">
+                        <i class="fas fa-rocket"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-3 col-md-6">
             <div class="stat-card card-suppliers p-4">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between">
                     <div>
-                        <p class="text-muted small fw-bold mb-1">شركاء النجاح</p>
-                        <h3 class="text-white fw-bold mb-0">{{ s_count if s_count else '48' }}</h3>
+                        <p class="text-white-50 small fw-bold mb-1">شركاء الترسانة</p>
+                        <h2 class="text-white fw-black mb-0">{{ s_count|default('48') }}</h2>
                     </div>
-                    <div class="icon-shape bg-success bg-opacity-10 text-success">
-                        <i class="fas fa-handshake"></i>
+                    <div class="icon-box text-success">
+                        <i class="fas fa-shield-halved"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-3 col-md-6">
             <div class="stat-card card-balance p-4">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between">
                     <div>
-                        <p class="text-muted small fw-bold mb-1">رصيد النظام</p>
-                        <h3 class="text-white fw-bold mb-0">15.5K</h3>
+                        <p class="text-white-50 small fw-bold mb-1">السيولة المركزية</p>
+                        <h2 class="text-white fw-black mb-0" style="color: var(--mahjoub-gold) !important;">{{ total_balance|default('15.5K') }}</h2>
                     </div>
-                    <div class="icon-shape bg-warning bg-opacity-10 text-warning">
-                        <i class="fas fa-vault"></i>
+                    <div class="icon-box text-warning">
+                        <i class="fas fa-coins"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-3 col-md-6">
             <div class="stat-card card-review p-4">
-                <div class="d-flex justify-content-between align-items-start">
+                <div class="d-flex justify-content-between">
                     <div>
-                        <p class="text-muted small fw-bold mb-1">قيد المراجعة</p>
-                        <h3 class="text-white fw-bold mb-0">{{ p_count if p_count else '12' }}</h3>
+                        <p class="text-white-50 small fw-bold mb-1">طلبات قيد التدقيق</p>
+                        <h2 class="text-white fw-black mb-0">{{ p_count|default('12') }}</h2>
                     </div>
-                    <div class="icon-shape bg-info bg-opacity-10 text-info">
-                        <i class="fas fa-hourglass-half"></i>
+                    <div class="icon-box text-info">
+                        <i class="fas fa-microchip"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mt-3">
+    <div class="row mt-5">
         <div class="col-12">
             <div class="stat-card p-0">
-                <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-secondary border-opacity-10">
-                    <h5 class="mb-0 text-white fw-bold"><i class="fas fa-history me-2 text-warning"></i> آخر الحركات المالية</h5>
-                    <button class="btn btn-sm btn-outline-warning rounded-pill px-3">عرض السجل الكامل</button>
+                <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-white border-opacity-5">
+                    <h5 class="mb-0 text-white fw-black"><i class="fas fa-stream me-2 text-warning"></i> سجل العمليات السيادية</h5>
+                    <a href="#" class="btn btn-sm btn-gold rounded-pill px-4 fw-bold">تحميل التقرير الكامل</a>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0 text-right" dir="rtl">
+                    <table class="table table-sovereign align-middle mb-0" dir="rtl">
                         <thead>
                             <tr>
-                                <th>شريك النجاح</th>
-                                <th>العملية</th>
-                                <th>المبلغ</th>
-                                <th>التوقيت</th>
-                                <th>الحالة</th>
+                                <th>الشريك الاستراتيجي</th>
+                                <th>نوع العملية</th>
+                                <th>القيمة</th>
+                                <th>التوقيت الرقمي</th>
+                                <th>حالة الاعتماد</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="text-white fw-bold">مؤسسة الأمل للتوريد</td>
-                                <td>سحب رصيد</td>
-                                <td class="text-danger fw-bold">500$ -</td>
-                                <td>منذ ساعتين</td>
-                                <td><span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25">مكتمل</span></td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-purple p-2 me-3 d-flex align-items-center justify-content-center" style="width:35px; height:35px; background: var(--mahjoub-purple);">
+                                            <i class="fas fa-store-alt text-white" style="font-size: 0.8rem;"></i>
+                                        </div>
+                                        <span class="text-white fw-bold">مؤسسة الأمل للتوريد</span>
+                                    </div>
+                                </td>
+                                <td class="text-white-50 fw-bold">سحب رصيد</td>
+                                <td class="text-danger fw-black">500.00$ -</td>
+                                <td class="text-white-50 small">اليوم | 02:45 PM</td>
+                                <td><span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">مكتمل</span></td>
                             </tr>
                             <tr>
-                                <td class="text-white fw-bold">متجر السعادة الرقمي</td>
-                                <td>إيداع عمولة</td>
-                                <td class="text-success fw-bold">120$ +</td>
-                                <td>منذ 5 ساعات</td>
-                                <td><span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">قيد الانتظار</span></td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-warning p-2 me-3 d-flex align-items-center justify-content-center" style="width:35px; height:35px;">
+                                            <i class="fas fa-wallet text-dark" style="font-size: 0.8rem;"></i>
+                                        </div>
+                                        <span class="text-white fw-bold">متجر السعادة الرقمي</span>
+                                    </div>
+                                </td>
+                                <td class="text-white-50 fw-bold">إيداع عمولة</td>
+                                <td class="text-success fw-black">120.50$ +</td>
+                                <td class="text-white-50 small">اليوم | 11:20 AM</td>
+                                <td><span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">قيد المعالجة</span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -157,4 +204,14 @@
         </div>
     </div>
 </div>
+
+<script>
+    // تحديث الساعة الحية للبرج المركزي
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('liveClock').innerText = now.toLocaleTimeString('ar-YE');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+</script>
 {% endblock %}
