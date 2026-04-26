@@ -1,1 +1,231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>محجوب أونلاين | دخول الشركاء</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --p-deep: #2d1144;
+            --p-neon: #8A2BE2;
+            --gold: #D4AF37;
+            --white: #ffffff;
+            --bg-soft: #f4f7fa;
+            --error-red: #c53030;
+        }
 
+        html, body {
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-soft);
+        }
+
+        ::-webkit-scrollbar { display: none; }
+        body { -ms-overflow-style: none; scrollbar-width: none; }
+
+        * { box-sizing: border-box; transition: all 0.3s ease; }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: clamp(10px, 3vw, 20px);
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1050px;
+            min-height: 620px;
+            background: var(--white);
+            box-shadow: 0 40px 100px rgba(45, 17, 68, 0.15);
+            border-radius: clamp(20px, 4vw, 40px);
+            overflow: hidden;
+            animation: slideUp 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .marketing-side {
+            flex: 1;
+            background: linear-gradient(145deg, var(--p-deep) 0%, #0c0512 100%);
+            padding: clamp(30px, 5vw, 50px);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hero-logo { 
+            width: 90px; 
+            margin-bottom: 20px; 
+            filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.4)); 
+        }
+
+        h1 { font-size: clamp(20px, 3vw, 28px); font-weight: 900; line-height: 1.3; margin: 0; }
+        h1 span { color: var(--gold); }
+
+        .benefits-list { margin-top: 30px; }
+        .benefit-item {
+            display: flex; align-items: flex-start; gap: 15px; margin-bottom: 15px;
+            background: rgba(255,255,255,0.05); padding: 15px; border-radius: 18px;
+            border-right: 4px solid var(--p-neon);
+        }
+        .benefit-item i { color: var(--gold); font-size: 18px; margin-top: 4px; }
+        .benefit-item h4 { margin: 0; font-size: 14px; font-weight: 700; }
+        .benefit-item p { margin: 5px 0 0; font-size: 11px; color: rgba(255,255,255,0.7); }
+
+        .login-side {
+            flex: 0.9;
+            padding: clamp(30px, 5vw, 50px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: var(--white);
+        }
+
+        .form-header { text-align: center; margin-bottom: 30px; }
+        .form-header h2 { color: var(--p-deep); font-weight: 900; font-size: 24px; }
+
+        .input-box { position: relative; margin-bottom: 20px; text-align: right; }
+        .input-box label { display: block; margin-bottom: 8px; font-weight: 700; color: var(--p-deep); font-size: 13px; }
+        .input-box input {
+            width: 100%; padding: 14px 45px 14px 15px; border: 2px solid #f1f3f7;
+            border-radius: 15px; outline: none; font-family: 'Cairo'; font-size: 15px;
+        }
+        .input-box input:focus { border-color: var(--p-neon); box-shadow: 0 0 10px rgba(138, 43, 226, 0.1); }
+        .input-box i { position: absolute; right: 15px; top: 40px; color: #bdc3c7; }
+
+        .auth-actions {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; font-size: 12px; font-weight: 700;
+        }
+        .auth-actions a { color: var(--p-deep); text-decoration: none; }
+
+        .submit-btn {
+            width: 100%; padding: 16px; background: var(--p-deep); color: var(--white);
+            border: none; border-radius: 15px; font-weight: 800; font-size: 16px;
+            cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .submit-btn:hover { background: var(--p-neon); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(138, 43, 226, 0.2); }
+
+        .join-options {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 25px;
+        }
+        .join-btn {
+            text-align: center; padding: 12px; border-radius: 12px; text-decoration: none;
+            font-size: 13px; font-weight: 800; border: 2px solid #eef2f6;
+        }
+        .btn-vendor { color: var(--p-neon); border-color: var(--p-neon); }
+        .btn-affiliate { color: var(--gold); border-color: var(--gold); }
+
+        .alert-error {
+            background: #fff1f2; color: var(--error-red); padding: 12px; border-radius: 12px;
+            font-size: 13px; margin-bottom: 20px; border-right: 4px solid var(--error-red);
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        @media (max-width: 992px) {
+            body { align-items: flex-start; overflow-y: auto; }
+            .main-container { flex-direction: column; border-radius: 25px; max-width: 500px; height: auto; min-height: auto; }
+            .marketing-side { padding: 40px 25px; text-align: center; }
+            .benefit-item { text-align: right; }
+            .login-side { padding: 40px 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container shadow-lg">
+        
+        <div class="marketing-side">
+            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="لوجو محجوب" class="hero-logo">
+            <h1>عزز مبيعاتك عبر<br><span>اللامركزية المطلقة 🚀</span></h1>
+            <p style="color: var(--gold); font-weight: 800; margin-top: 10px; font-size: 14px;">محجوب أونلاين | سوقك الذكي</p>
+
+            <div class="benefits-list">
+                <div class="benefit-item">
+                    <i class="fa-solid fa-microchip"></i>
+                    <div>
+                        <h4>حوكمة ذكية 🛡️</h4>
+                        <p>نظام اللامركزية يضمن لك إدارة مستقلة تماماً لأعمالك التجارية.</p>
+                    </div>
+                </div>
+
+                <div class="benefit-item">
+                    <i class="fa-solid fa-users-rays"></i>
+                    <div>
+                        <h4>جيش من المسوقين 👥</h4>
+                        <p>الآلاف من المسوقين جاهزون لنشر منتجاتك في كل بيت يمني.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="login-side">
+            <div class="form-header">
+                <h2>دخول الشركاء 💎</h2>
+                <p style="font-size: 12px; color: #888;">مرحباً بك في نظام الحوكمة اللامركزية</p>
+            </div>
+
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert-error">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>{{ message }}</span>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('supplier_panel.login') }}" method="POST">
+                <div class="input-box">
+                    <label>هوية الشريك (التاجر)</label>
+                    <i class="fa-solid fa-id-card-clip"></i>
+                    <input type="text" name="username" placeholder="اسم المستخدم" required autocomplete="username">
+                </div>
+
+                <div class="input-box">
+                    <label>شفرة العبور</label>
+                    <i class="fa-solid fa-vault"></i>
+                    <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+
+                <div class="auth-actions">
+                    <a href="#">نسيت كلمة المرور؟</a>
+                    <label style="cursor:pointer"><input type="checkbox" name="remember"> تذكرني</label>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    تفعيل النفاذ <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                </button>
+            </form>
+
+            <div style="text-align:center; margin-top:25px; font-size:12px; color:#cbd5e1; font-weight:700;">— أو —</div>
+
+            <div class="join-options">
+                <a href="#" class="join-btn btn-vendor">انضم كتاجر 📦</a>
+                <a href="#" class="join-btn btn-affiliate">انضم كمسوق 📣</a>
+            </div>
+            
+            <p style="text-align: center; margin-top: 30px; font-size: 10px; color: #cbd5e1;">
+                جميع الحقوق محفوظة لمحجوب أونلاين © 2026
+            </p>
+        </div>
+
+    </div>
+
+</body>
+</html>
