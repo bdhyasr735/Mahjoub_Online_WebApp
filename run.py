@@ -2,48 +2,47 @@ import os
 from core import create_app, db
 from flask import redirect, url_for
 
-# 1. إنشاء نسخة التطبيق عبر دالة المصنع
+# 1. إنشاء نسخة التطبيق عبر دالة المصنع السيادية
 app = create_app()
 
-# --- مسار الإيقاظ السيادي (لحل مشكلة عدم الاستجابة) ---
+# --- مسار الإيقاظ المركزي (توجيه الحركة عند فتح الرابط الرئيسي) ---
 @app.route('/')
 def index():
-    # توجيه المستخدم تلقائياً إلى صفحة دخول الموردين بدلاً من إظهار صفحة فارغة
+    # توجيه الزائر تلقائياً لبوابة دخول الموردين لضمان استمرارية الحركة
     return redirect(url_for('supplier_panel.login'))
 
-# 2. إدارة قاعدة البيانات وإنشاء الحسابات السيادية
+# 2. إدارة هيكل البيانات والتعميد الأولي للحسابات
 with app.app_context():
     try:
-        # ⚠️ الإجراء الجراحي: مسح شامل لضمان تطابق الحقول الجديدة
-        # سيتم مسح قاعدة البيانات القديمة تماماً لإنهاء أي تعارض في الهيكل
-        # ملاحظة: احذف سطر drop_all بعد التأكد من عمل النظام لاستقرار البيانات
+        # ⚠️ الإجراء الجراحي: تصفير الهيكل (يستخدم عند تحديث أعمدة قاعدة البيانات)
+        # ملاحظة: قم بإزالة db.drop_all() بعد أول تشغيل ناجح للحفاظ على بياناتك مستقبلاً
         db.drop_all() 
         
-        # إنشاء الجداول بناءً على الهيكل السيادي المطور
+        # إنشاء الجداول وفقاً للموديلات المحدثة (بما في ذلك q_product_id)
         db.create_all()
-        print("✅ [Database] تم تصفير الهيكل ومزامنة الأعمدة الجديدة (q_product_id) بنجاح.")
+        print("✅ [Database] تم تصفير الهيكل ومزامنة الأعمدة السيادية بنجاح.")
 
-        # استيراد الموديلات لضمان تسجيلها في الجلسة الحالية
+        # استيراد النماذج داخل السياق لضمان تسجيلها بدقة
         from core.models.user import User
         from core.models.supplier import Supplier
         from core.models.product import Product
         
-        # --- إنشاء حساب القائد السيادي (Admin) ---
+        # --- تعميد حساب القائد (علي محجوب) ---
         admin_username = 'علي محجوب'
         if not User.query.filter_by(username=admin_username).first():
             new_admin = User(
                 username=admin_username, 
-                password='123', 
+                password='123', # تذكر تغيير كلمة المرور بعد أول دخول
                 role='admin'
             )
             db.session.add(new_admin)
-            print(f"👤 [Security] تم تعميد حساب القائد '{admin_username}'.")
+            print(f"👤 [Security] تم إنشاء حساب القائد: '{admin_username}'.")
 
-        # --- إنشاء حساب شريك النجاح (المورد العربي المطور) ---
-        supplier_display_name = 'مورد تجريبي'
-        if not Supplier.query.filter_by(name=supplier_display_name).first():
+        # --- تعميد حساب المورد الأول (شريك النجاح التجريبي) ---
+        supplier_name = 'مورد تجريبي'
+        if not Supplier.query.filter_by(name=supplier_name).first():
             test_supplier = Supplier(
-                name=supplier_display_name, 
+                name=supplier_name, 
                 email='test@supplier.com',
                 password='123',
                 activity_type='إلكترونيات وتقنية',
@@ -57,40 +56,42 @@ with app.app_context():
                 bank_acc='MAH-ACC-9046',
                 is_approved=True, 
                 status='active',
-                # المحفظة المالية السيادية
+                # أرصدة المحفظة السيادية الافتراضية
                 wallet_balance=100.0,
                 wallet_usd=50.0,
                 wallet_sar=150.0,
                 wallet_yer=35000.0
             )
             db.session.add(test_supplier)
-            db.session.flush() # للحصول على ID المورد
+            db.session.flush() # الحصول على ID المورد لربط المنتجات
 
-            # --- إضافة منتج تجريبي مرتبط بـ "قمرة" ---
+            # --- إضافة المنتج التجريبي لربط دورة العمل ---
             test_product = Product(
                 name="منتج تجريبي سيادي",
-                q_product_id="Q-TEST-9046", 
+                description="وصف تجريبي للمنتج المرتبط بقمرة",
+                q_collection_id="Q-COL-123", # معرف قسم تجريبي
                 cost_price=10.0,
                 currency="USD",
-                status="active",
+                status="pending", # بانتظار تعميد الإدارة
                 supplier_id=test_supplier.id
             )
             db.session.add(test_product)
-            print(f"📦 [Sourcing] تم إنشاء حساب المورد '{supplier_display_name}' ومنتج تجريبي بنجاح.")
+            print(f"📦 [Sourcing] تم إنشاء حساب المورد '{supplier_name}' ومنتج تجريبي بنجاح.")
 
         db.session.commit()
-        print("✅ [System] تم حفظ جميع البيانات وتجهيز النظام السيادي للإقلاع.")
+        print("✅ [System] تم حفظ جميع البيانات وتجهيز النظام للإقلاع.")
 
     except Exception as e:
-        print(f"⚠️ [Critical] تنبيه أثناء الإقلاع السيادي: {e}")
+        print(f"⚠️ [Critical Error] فشل الإقلاع السيادي: {e}")
         db.session.rollback()
 
 if __name__ == "__main__":
-    # 3. إعدادات المنفذ لـ Railway (هام جداً للرد على السيرفر)
+    # 3. إعدادات المنفذ لبيئة Railway السحابية
+    # نستخدم 8080 أو المنفذ الذي يحدده Railway ديناميكياً
     port = int(os.environ.get("PORT", 8080))
     
-    # 4. الإقلاع الرسمي لمنصة محجوب أونلاين
-    print(f"🚀 [Mahjoub Online] المنصة تعمل الآن على المنفذ {port}...")
+    # 4. الإقلاع الرسمي للمنصة
+    print(f"🚀 [Mahjoub Online] السيرفر يعمل الآن على المنفذ {port}...")
     
-    # استخدام host='0.0.0.0' ضروري جداً ليتمكن Railway من توجيه حركة المرور للتطبيق
+    # host='0.0.0.0' ضروري جداً لاستقبال الطلبات الخارجية على Railway
     app.run(host='0.0.0.0', port=port, debug=False)
