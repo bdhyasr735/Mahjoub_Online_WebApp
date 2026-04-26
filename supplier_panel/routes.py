@@ -33,7 +33,7 @@ def login():
         else:
             flash(message, category)
             
-    # تأكد أن اسم الملف supplier_login.html وليس login.html
+    # التأكد من المسار الصحيح للقالب لتجنب خطأ 500
     return render_template('supplier_panel/supplier_login.html')
 
 # --- 2. لوحة التحكم ---
@@ -50,11 +50,11 @@ def dashboard():
             
         my_products = Product.query.filter_by(supplier_id=current_user.id).all()
         
-        # استدعاء من المجلد الفرعي لضمان عدم تداخل الإدارة
+        # استدعاء القالب من المجلد الفرعي المخصص للموردين
         return render_template('supplier_panel/dashboard.html', products=my_products)
         
     except Exception as e:
-        return f"خطأ في النظام: {str(e)}", 500
+        return f"خطأ في النظام السيادي: {str(e)}", 500
 
 # --- 3. صفحة الانتظار ---
 @supplier_bp.route('/waiting-room')
@@ -66,7 +66,6 @@ def waiting_room():
     if fresh_data and fresh_data.is_approved:
         return redirect(url_for('supplier_panel.dashboard'))
     
-    # تأكد من وجود الملف waiting_approval.html في المجلد
     return render_template('supplier_panel/waiting_approval.html')
 
 # --- 4. خروج المورد ---
@@ -76,5 +75,4 @@ def logout():
     session.pop('user_type', None)
     session.clear()
     logout_user()
-    return redirect(url_for('supplier_panel.login'))
     return redirect(url_for('supplier_panel.login'))
