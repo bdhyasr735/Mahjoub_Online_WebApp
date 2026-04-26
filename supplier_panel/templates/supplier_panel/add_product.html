@@ -1,1 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>بوابة التدقيق السيادي | محجوب أونلاين</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body { 
+            background: #1a0b2e; 
+            color: white; 
+            font-family: 'Cairo', sans-serif;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .card { 
+            background: rgba(255, 255, 255, 0.05); 
+            padding: 50px; 
+            border-radius: 30px; 
+            text-align: center; 
+            border: 1px solid #D4AF37;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 450px;
+        }
+        .gold { color: #D4AF37; }
+        .shield-icon { font-size: 50px; margin-bottom: 20px; display: block; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="shield-icon gold">
+            <i class="fas fa-shield-halved"></i>
+        </div>
 
+        <h1>مرحباً بك يا 
+            <span class="gold">
+                {{ current_user.name or current_user.username or "شريكنا العزيز" }}
+            </span>
+        </h1>
+        
+        <p>حسابك الآن في مرحلة التدقيق السيادي لـ "محجوب أونلاين".</p>
+        
+        <div style="border: 1px solid #D4AF37; padding: 10px; border-radius: 10px; background: rgba(212, 175, 55, 0.1);">
+            الحالة الحالية: <b class="gold text-uppercase">قيد الانتظار</b>
+        </div>
+        
+        <br>
+        <a href="{{ url_for('supplier_panel.logout') }}" style="color: #ff7675; text-decoration: none; font-weight: bold;">
+            <i class="fas fa-power-off"></i> تسجيل الخروج
+        </a>
+    </div>
+
+    <script>
+        // تحديث ذكي كل 15 ثانية
+        setTimeout(function(){ location.reload(); }, 15000);
+    </script>
+</body>
+</html>
