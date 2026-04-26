@@ -3,9 +3,8 @@
 
 from flask import Blueprint
 
-# 1. تعريف البلوبرنت (Blueprint) مع تحديد الموارد الخاصة به
-# تم ضبط template_folder ليكون 'templates' ليشير للمجلد الداخلي للموردين
-# هذا يضمن استدعاء صفحة login.html الخاصة بالموردين وليس الإدارة
+# 1. تعريف البلوبرنت (Blueprint)
+# بما أن القوالب داخل templates/supplier_panel، نترك template_folder='templates'
 supplier_bp = Blueprint(
     'supplier_panel', 
     __name__, 
@@ -14,20 +13,17 @@ supplier_bp = Blueprint(
 )
 
 # 2. ربط المسارات والمكونات الحيوية بالبلوبرنت
-# ملاحظة سيادية: الاستيراد هنا بعد تعريف supplier_bp هو "مفتاح التشغيل"
-# لضمان تسجيل المسارات داخل الكائن دون حدوث استيراد دائم (Circular Import)
+# ملاحظة سيادية: يجب التأكد من استيراد routes هنا لضمان تفعيل الروابط
 try:
-    # استيراد ملف المسارات (routes) لكي يتم تسجيل @supplier_bp.route فيه
+    # نقوم بالاستيراد النسبي لضمان تسجيل @supplier_bp.route
     from . import routes 
-    
-    # استيراد المنطق الأمني والتحقق
     from . import auth_logic
-    
-    # استيراد الملحقات (Decorators) مثل فحص الاعتماد
     from . import decorators
     
-    # رسالة نجاح تظهر في سجلات Railway عند الإقلاع للتأكيد الفني
-    print("🚀 [System] تم تسجيل مسارات بوابة الموردين بنجاح.")
+    print("🚀 [System] تم تسجيل مسارات بوابة الموردين (Supplier Panel) بنجاح.")
     
 except ImportError as e:
-    # في حال وجود
+    print(f"⚠️ [Critical Error] فشل في تحميل مكونات بوابة الموردين: {e}")
+
+# تصدير الكائن ليكون متاحاً لملف core/__init__.py
+__all__ = ['supplier_bp']
