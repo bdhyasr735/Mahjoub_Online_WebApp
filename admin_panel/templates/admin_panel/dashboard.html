@@ -4,6 +4,9 @@
 
 {% block content %}
 <style>
+    /* تحسين الخطوط والأوزان */
+    .fw-black { font-weight: 900 !important; }
+    
     .stat-card {
         background: rgba(10, 10, 10, 0.6);
         border: 1px solid rgba(212, 175, 55, 0.1);
@@ -57,11 +60,24 @@
         letter-spacing: 1px;
         font-size: 0.8rem;
         padding: 20px !important;
+        border: none;
     }
     .table-sovereign td { 
         padding: 18px 20px !important; 
         vertical-align: middle;
         border-bottom: 1px solid rgba(255,255,255,0.03);
+        color: #cbd5e1;
+    }
+
+    .btn-gold {
+        background: var(--mahjoub-gold);
+        color: #000;
+        border: none;
+        transition: 0.3s;
+    }
+    .btn-gold:hover {
+        background: #fff;
+        box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
     }
 
     .pulse-indicator {
@@ -76,18 +92,18 @@
 </style>
 
 <div class="container-fluid py-4">
-    <div class="row mb-5">
+    <div class="row mb-5 align-items-center">
         <div class="col-md-8">
             <h1 class="fw-black text-white mb-2" style="font-size: 2.2rem;">نظام الرقابة العليا</h1>
             <div class="d-flex align-items-center">
                 <span class="pulse-indicator bg-success"></span>
-                <p class="mb-0 opacity-75 fw-bold text-white">المحرك الرقمي "سوقك الذكي" يعمل بكفاءة قصوى</p>
+                <p class="mb-0 opacity-75 fw-bold text-white">المحرك الرقمي "محجوب أونلاين" يعمل بكفاءة قصوى</p>
             </div>
         </div>
         <div class="col-md-4 text-md-start d-flex align-items-center justify-content-md-end mt-3 mt-md-0">
-            <div class="text-white bg-white bg-opacity-5 p-3 rounded-4 border border-white border-opacity-10">
+            <div class="text-white bg-white bg-opacity-5 p-3 rounded-4 border border-white border-opacity-10 shadow-lg">
                 <small class="d-block opacity-50 fw-bold">توقيت البرج المركزي</small>
-                <span class="fw-black" id="liveClock">--:--:--</span>
+                <span class="fw-black" id="liveClock" style="font-size: 1.2rem; color: var(--mahjoub-gold);">--:--:--</span>
             </div>
         </div>
     </div>
@@ -97,10 +113,10 @@
             <div class="stat-card card-orders p-4">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <p class="text-white-50 small fw-bold mb-1">إجمالي المبيعات</p>
+                        <p class="text-white-50 small fw-bold mb-1 text-uppercase">إجمالي المبيعات</p>
                         <h2 class="text-white fw-black mb-0">{{ orders_count|default('1,250') }}</h2>
                     </div>
-                    <div class="icon-box text-primary shadow-sm">
+                    <div class="icon-box text-primary shadow-sm" style="color: var(--mahjoub-purple) !important;">
                         <i class="fas fa-rocket"></i>
                     </div>
                 </div>
@@ -111,7 +127,7 @@
             <div class="stat-card card-suppliers p-4">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <p class="text-white-50 small fw-bold mb-1">شركاء الترسانة</p>
+                        <p class="text-white-50 small fw-bold mb-1 text-uppercase">شركاء الترسانة</p>
                         <h2 class="text-white fw-black mb-0">{{ s_count|default('48') }}</h2>
                     </div>
                     <div class="icon-box text-success">
@@ -125,8 +141,8 @@
             <div class="stat-card card-balance p-4">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <p class="text-white-50 small fw-bold mb-1">السيولة المركزية</p>
-                        <h2 class="text-white fw-black mb-0" style="color: var(--mahjoub-gold) !important;">{{ total_balance|default('15.5K') }}</h2>
+                        <p class="text-white-50 small fw-bold mb-1 text-uppercase">السيولة المركزية</p>
+                        <h2 class="text-white fw-black mb-0" style="color: var(--mahjoub-gold) !important;">{{ total_balance|default('15.5K') }} $</h2>
                     </div>
                     <div class="icon-box text-warning">
                         <i class="fas fa-coins"></i>
@@ -139,7 +155,7 @@
             <div class="stat-card card-review p-4">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <p class="text-white-50 small fw-bold mb-1">طلبات قيد التدقيق</p>
+                        <p class="text-white-50 small fw-bold mb-1 text-uppercase">طلبات قيد التدقيق</p>
                         <h2 class="text-white fw-black mb-0">{{ p_count|default('12') }}</h2>
                     </div>
                     <div class="icon-box text-info">
@@ -152,10 +168,12 @@
 
     <div class="row mt-5">
         <div class="col-12">
-            <div class="stat-card p-0">
+            <div class="stat-card p-0 shadow-2xl">
                 <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-white border-opacity-5">
-                    <h5 class="mb-0 text-white fw-black"><i class="fas fa-stream me-2 text-warning"></i> سجل العمليات السيادية</h5>
-                    <a href="#" class="btn btn-sm btn-gold rounded-pill px-4 fw-bold">تحميل التقرير الكامل</a>
+                    <h5 class="mb-0 text-white fw-black">
+                        <i class="fas fa-bolt me-2" style="color: var(--mahjoub-gold);"></i> سجل العمليات السيادية
+                    </h5>
+                    <a href="#" class="btn btn-sm btn-gold rounded-pill px-4 fw-bold">تحميل التقرير</a>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sovereign align-middle mb-0" dir="rtl">
@@ -169,34 +187,35 @@
                             </tr>
                         </thead>
                         <tbody>
+                            {% for transaction in transactions|default([]) %}
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-purple p-2 me-3 d-flex align-items-center justify-content-center" style="width:35px; height:35px; background: var(--mahjoub-purple);">
+                                        <div class="rounded-circle p-2 me-3 d-flex align-items-center justify-content-center shadow-inner" style="width:35px; height:35px; background: rgba(99, 44, 143, 0.2); border: 1px solid var(--mahjoub-purple);">
                                             <i class="fas fa-store-alt text-white" style="font-size: 0.8rem;"></i>
                                         </div>
-                                        <span class="text-white fw-bold">مؤسسة الأمل للتوريد</span>
+                                        <span class="text-white fw-bold">{{ transaction.supplier_name }}</span>
                                     </div>
                                 </td>
-                                <td class="text-white-50 fw-bold">سحب رصيد</td>
-                                <td class="text-danger fw-black">500.00$ -</td>
-                                <td class="text-white-50 small">اليوم | 02:45 PM</td>
-                                <td><span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">مكتمل</span></td>
-                            </tr>
-                            <tr>
+                                <td class="text-white-50 fw-bold">{{ transaction.type }}</td>
+                                <td class="{% if transaction.amount < 0 %}text-danger{% else %}text-success{% endif %} fw-black">
+                                    {{ transaction.amount }}$
+                                </td>
+                                <td class="text-white-50 small">{{ transaction.date }}</td>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-warning p-2 me-3 d-flex align-items-center justify-content-center" style="width:35px; height:35px;">
-                                            <i class="fas fa-wallet text-dark" style="font-size: 0.8rem;"></i>
-                                        </div>
-                                        <span class="text-white fw-bold">متجر السعادة الرقمي</span>
-                                    </div>
+                                    <span class="badge rounded-pill {% if transaction.status == 'مكتمل' %}bg-success{% else %}bg-warning{% endif %} bg-opacity-10 text-{% if transaction.status == 'مكتمل' %}success{% else %}warning{% endif %} border border-{% if transaction.status == 'مكتمل' %}success{% else %}warning{% endif %} border-opacity-25 px-3">
+                                        {{ transaction.status }}
+                                    </span>
                                 </td>
-                                <td class="text-white-50 fw-bold">إيداع عمولة</td>
-                                <td class="text-success fw-black">120.50$ +</td>
-                                <td class="text-white-50 small">اليوم | 11:20 AM</td>
-                                <td><span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">قيد المعالجة</span></td>
                             </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 opacity-50">
+                                    <i class="fas fa-database mb-3 d-block" style="font-size: 2rem;"></i>
+                                    لا توجد عمليات مسجلة حالياً في قاعدة البيانات
+                                </td>
+                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -206,10 +225,11 @@
 </div>
 
 <script>
-    // تحديث الساعة الحية للبرج المركزي
+    // تحديث الساعة الحية للبرج المركزي بتوقيت اليمن
     function updateClock() {
+        const options = { timeZone: 'Asia/Aden', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
         const now = new Date();
-        document.getElementById('liveClock').innerText = now.toLocaleTimeString('ar-YE');
+        document.getElementById('liveClock').innerText = now.toLocaleTimeString('ar-YE', options);
     }
     setInterval(updateClock, 1000);
     updateClock();
