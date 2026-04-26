@@ -1,4 +1,4 @@
-{% extends "supplier_panel/base.html" %}  {# 👈 التعديل الجوهري هنا: تحديد المسار الكامل #}
+{% extends "supplier_panel/base.html" %}
 
 {% block title %}لوحة التحكم السيادية | إدارة الترسانة{% endblock %}
 
@@ -13,9 +13,7 @@
     }
 
     .dashboard-wrapper {
-        padding: 20px;
-        min-height: 100vh;
-        background: linear-gradient(135deg, #0f081a 0%, #1a0b2e 100%);
+        padding: 10px;
         color: white;
     }
 
@@ -31,7 +29,7 @@
     }
 
     .wallet-card-main {
-        min-height: 260px;
+        min-height: 280px;
         background: linear-gradient(145deg, #130722 0%, #2e114d 100%);
         border-radius: 30px;
         border: 1px solid rgba(212, 175, 55, 0.3);
@@ -99,12 +97,12 @@
         <div class="welcome-banner shadow">
             <div class="row align-items-center">
                 <div class="col-md-7">
-                    <h1 class="fw-black mb-2" style="font-size: 2.5rem;">مرحباً بالقائد، {{ current_user.name }}</h1>
-                    <p class="opacity-75 fs-5">نظام إدارة الأصول والترسانة الرقمية <span class="text-warning">MAH-9046</span> جاهز للعمل.</p>
+                    <h1 class="fw-black mb-2" style="font-size: 2.2rem;">مرحباً بالقائد، {{ current_user.name }}</h1>
+                    <p class="opacity-75 fs-5">نظام إدارة الأصول الرقمية <span class="text-warning">MAH-9046</span> قيد التشغيل.</p>
                 </div>
                 <div class="col-md-5 text-md-start">
                     <div class="badge p-3 rounded-pill bg-white text-dark shadow-sm">
-                        <i class="fas fa-id-badge me-2 text-primary"></i> الحالة: <span class="fw-bold text-success">نشط سيادياً</span>
+                        <i class="fas fa-shield-alt me-2 text-primary"></i> الحالة الجارية: <span class="fw-bold text-success">مؤمن سيادياً</span>
                     </div>
                 </div>
             </div>
@@ -114,17 +112,16 @@
             <div class="col-lg-5">
                 <div class="wallet-card-main shadow-lg" onclick="forceNextCurrency()">
                     <div class="masonic-bg">
-                        <i class="fas fa-balance-scale"></i>
+                        <i class="fas fa-gem"></i>
                     </div>
                     
                     <div id="wallet-content" class="currency-container animate-fade">
-                        {# المحتوى يتم تحميله عبر JS #}
-                    </div>
+                        </div>
 
                     <div class="text-center pb-4" style="position: relative; z-index: 3;">
-                        <span class="dot-indicator active" onclick="showCurrency(0)"></span>
-                        <span class="dot-indicator" onclick="showCurrency(1)"></span>
-                        <span class="dot-indicator" onclick="showCurrency(2)"></span>
+                        <span class="dot-indicator active" onclick="event.stopPropagation(); showCurrency(0)"></span>
+                        <span class="dot-indicator" onclick="event.stopPropagation(); showCurrency(1)"></span>
+                        <span class="dot-indicator" onclick="event.stopPropagation(); showCurrency(2)"></span>
                     </div>
                 </div>
             </div>
@@ -132,24 +129,27 @@
             <div class="col-lg-7">
                 <div class="row g-4 h-100">
                     <div class="col-md-6">
-                        <div class="glass-card shadow-sm">
-                            <h6 class="text-white-50 fw-bold mb-3 uppercase tracking-wider">إجمالي المنتجات في الترسانة</h6>
-                            <h2 class="fw-black text-white" style="font-size: 3rem;">{{ products|length if products else 0 }} <small class="fs-6 opacity-50">قطعة</small></h2>
+                        <div class="glass-card shadow-sm text-center">
+                            <h6 class="text-white-50 fw-bold mb-3">إجمالي المنتجات في الترسانة</h6>
+                            <h2 class="fw-black text-white" style="font-size: 3rem;">
+                                {{ products|length if products else 0 }} 
+                                <small class="fs-6 opacity-50">عنصر</small>
+                            </h2>
                             <hr class="opacity-20">
-                            <a href="#" class="btn btn-gold w-100 rounded-pill py-2">
+                            <a href="{{ url_for('supplier_panel.add_product') }}" class="btn btn-gold w-100 rounded-pill py-2">
                                 <i class="fas fa-plus-circle me-2"></i> إضافة منتج جديد
                             </a>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="glass-card shadow-sm border-start border-4 border-warning">
-                            <h6 class="text-white-50 fw-bold mb-3 uppercase tracking-wider">الحالة السيادية</h6>
+                            <h6 class="text-white-50 fw-bold mb-3 uppercase">الاعتماد التقني</h6>
                             <div class="d-flex align-items-center mb-3">
                                 <div class="spinner-grow spinner-grow-sm text-success me-3"></div>
-                                <h3 class="fw-bold text-success mb-0">معتمد كلياً</h3>
+                                <h3 class="fw-bold text-success mb-0">نظام معتمد</h3>
                             </div>
                             <hr class="opacity-20">
-                            <p class="small text-white-50">الحساب مرتبط بالشبكة اللامركزية لـ "محجوب أونلاين" وتحت حماية التشفير العميق.</p>
+                            <p class="small text-white-50">قاعدة البيانات مرتبطة الآن بمحرك "قمرة" عبر القناة المشفرة MAH-9046.</p>
                         </div>
                     </div>
                 </div>
@@ -159,6 +159,7 @@
 </div>
 
 <script>
+    // البيانات القادمة من قاعدة البيانات السيادية
     const walletData = [
         { 
             label: "الدولار الأمريكي", code: "USD", symbol: "$", 
@@ -182,6 +183,7 @@
         if (!walletDiv) return;
         const data = walletData[index];
         walletDiv.classList.add('fade-out');
+        
         setTimeout(() => {
             walletDiv.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -190,7 +192,10 @@
                         ${data.code}
                     </div>
                 </div>
-                <h1 class="display-3 fw-black mb-2 text-white tabular-nums">${data.balance.toLocaleString('en-US', {minimumFractionDigits: 2})} <small style="font-size: 1.5rem" class="text-white-50">${data.symbol}</small></h1>
+                <h1 class="display-4 fw-black mb-2 text-white tabular-nums">
+                    ${data.balance.toLocaleString('en-US', {minimumFractionDigits: 2})} 
+                    <small style="font-size: 1.5rem" class="text-white-50">${data.symbol}</small>
+                </h1>
                 <div class="mt-4 d-flex align-items-center">
                     <div class="bg-success rounded-circle me-2" style="width: 10px; height: 10px; box-shadow: 0 0 10px #27ae60;"></div>
                     <span class="small fw-bold text-white-50">تشفير سيادي MAH-9046</span>
@@ -207,7 +212,8 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         updateWalletUI(0);
-        setInterval(forceNextCurrency, 6000);
+        // التغيير التلقائي للعملات كل 7 ثوانٍ لإظهار السيولة
+        setInterval(forceNextCurrency, 7000);
     });
 </script>
 {% endblock %}
