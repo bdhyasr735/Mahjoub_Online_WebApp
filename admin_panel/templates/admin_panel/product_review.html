@@ -1,65 +1,88 @@
-{% extends "base.html" %}
+{% extends "admin_panel/base.html" %}
+
+{% block title %}مختبر فحص وتعيد المنتجات | محجوب أونلاين{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4" dir="rtl">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass-header p-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-white fw-black mb-1"><i class="fas fa-microscope text-gold me-2"></i> مختبر فحص المنتجات</h2>
+                    <p class="text-white-50 mb-0">تحليل التكاليف، ضبط الهوامش، وإصدار قرارات النشر السيادي</p>
+                </div>
+                <div class="stats-pill">
+                    <span class="label">بانتظار التعميد</span>
+                    <span class="value">{{ products|length }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
-            <div class="card bg-dark text-white border-gold shadow-lg">
-                <div class="card-header border-bottom-gold d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0 fw-black"><i class="fas fa-microscope text-gold"></i> مراجعة وتعيد المنتجات</h4>
-                    <span class="badge bg-purple border-gold p-2">عدد المنتجات بانتظار المراجعة: {{ products|length }}</span>
-                </div>
-                <div class="card-body">
+            <div class="card sovereign-card">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle border-secondary text-center">
-                            <thead class="text-gold">
+                        <table class="table table-custom align-middle text-center mb-0">
+                            <thead>
                                 <tr>
-                                    <th>المنتج</th>
-                                    <th>المورد</th>
-                                    <th>التكلفة المحلية</th>
-                                    <th>التحويل التقديري</th>
-                                    <th>السعر النهائي (SAR)</th>
-                                    <th>السيادة والقرار</th>
+                                    <th>هوية المنتج</th>
+                                    <th>المورد المصدر</th>
+                                    <th>تكلفة المنشأ</th>
+                                    <th>المعادل (SAR)</th>
+                                    <th style="width: 200px;">تحديد سعر البيع الرسمي</th>
+                                    <th>القرار النهائي</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for product in products %}
-                                <tr id="row-{{ product.id }}">
-                                    <td>
-                                        <div class="d-flex align-items-center justify-content-center">
-                                            <div class="ms-3 text-start">
-                                                <div class="fw-bold">{{ product.name }}</div>
-                                                <small class="text-muted">القسم: {{ product.q_collection_id or 'غير محدد' }}</small>
+                                <tr id="row-{{ product.id }}" class="product-row">
+                                    <td class="text-start ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="product-icon-box me-3">
+                                                <i class="fas fa-box-open"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-white fw-bold">{{ product.name }}</div>
+                                                <small class="text-gold opacity-75">ID: {{ product.id }} | {{ product.q_collection_id or 'عام' }}</small>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge border-purple">{{ product.supplier_owner.name }}</span>
-                                    </td>
-                                    <td>
-                                        <span class="cost-value fw-bold text-info" data-cost="{{ product.cost_price }}" data-currency="{{ product.currency }}">
-                                            {{ "{:,.2f}".format(product.cost_price) }} {{ product.currency }}
+                                        <span class="supplier-tag">
+                                            <i class="fas fa-truck-loading me-1"></i> {{ product.supplier_owner.name }}
                                         </span>
                                     </td>
                                     <td>
-                                        <div class="calculation-box bg-black p-1 rounded border-secondary">
-                                            <small class="d-block text-muted">المعادل التقريبي</small>
-                                            <span class="estimated-sar text-gold fw-bold">...</span> <small>SAR</small>
+                                        <div class="cost-badge" data-cost="{{ product.cost_price }}" data-currency="{{ product.currency }}">
+                                            <span class="num">{{ "{:,.2f}".format(product.cost_price) }}</span>
+                                            <span class="unit">{{ product.currency }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="sar-conversion-box">
+                                            <span class="estimated-sar">...</span>
+                                            <small>ر.س</small>
                                         </div>
                                     </td>
                                     <form action="{{ url_for('admin_panel.approve_product', product_id=product.id) }}" method="POST">
                                         <td>
-                                            <input type="number" step="0.01" name="final_price" class="form-control bg-dark text-white border-gold text-center sale-input" 
-                                                   placeholder="أدخل سعر البيع" required>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" name="final_price" 
+                                                       class="form-control sale-input text-center" 
+                                                       placeholder="0.00" required>
+                                                <span class="input-group-text bg-gold text-dark fw-bold">SAR</span>
+                                            </div>
                                         </td>
                                         <td>
-                                            <div class="btn-group">
-                                                <button type="submit" class="btn btn-success btn-sm">
-                                                    <i class="fas fa-check-double"></i> تعميد ونشر
+                                            <div class="btn-group-sovereign">
+                                                <button type="submit" class="btn-approve" title="تعميد ونشر فورياً">
+                                                    <i class="fas fa-check-circle"></i> تعميد
                                                 </button>
-                                                <a href="#" class="btn btn-danger btn-sm">
-                                                    <i class="fas fa-trash"></i> رفض
-                                                </a>
+                                                <button type="button" class="btn-reject" title="رفض المنتج">
+                                                    <i class="fas fa-times-circle"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </form>
@@ -75,36 +98,166 @@
 </div>
 
 <style>
+    /* التنسيقات السيادية الخاصة بالمختبر */
     :root {
         --mahjoub-purple: #632C8F;
         --mahjoub-gold: #D4AF37;
+        --dark-surface: #0a0a0a;
     }
-    .border-gold { border: 1px solid var(--mahjoub-gold) !important; }
-    .border-bottom-gold { border-bottom: 2px solid var(--mahjoub-gold) !important; }
-    .bg-purple { background-color: var(--mahjoub-purple) !important; }
-    .text-gold { color: var(--mahjoub-gold) !important; }
-    .fw-black { font-weight: 900; }
-    .sale-input:focus { box-shadow: 0 0 10px var(--mahjoub-gold); border-color: white; }
+
+    .glass-header {
+        background: linear-gradient(135deg, rgba(99, 44, 143, 0.2), rgba(20, 20, 20, 0.8));
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+    }
+
+    .stats-pill {
+        background: var(--mahjoub-purple);
+        border: 1px solid var(--mahjoub-gold);
+        border-radius: 50px;
+        padding: 5px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .stats-pill .label { font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.7); }
+    .stats-pill .value { font-size: 1.2rem; font-weight: 900; color: var(--mahjoub-gold); }
+
+    .sovereign-card {
+        background: var(--dark-surface);
+        border: 1px solid rgba(212, 175, 55, 0.1);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .table-custom thead {
+        background: rgba(212, 175, 55, 0.05);
+    }
+
+    .table-custom th {
+        color: var(--mahjoub-gold);
+        font-weight: 800;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        padding: 20px;
+        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    }
+
+    .product-row {
+        transition: all 0.3s ease;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .product-row:hover {
+        background: rgba(99, 44, 143, 0.05);
+    }
+
+    .product-icon-box {
+        width: 40px; height: 40px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--mahjoub-gold);
+    }
+
+    .supplier-tag {
+        background: rgba(255,255,255,0.05);
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        color: #ddd;
+    }
+
+    .cost-badge {
+        color: #00d4ff;
+        font-family: 'Monaco', monospace;
+    }
+
+    .cost-badge .num { font-weight: 900; font-size: 1.1rem; }
+    .cost-badge .unit { font-size: 0.7rem; opacity: 0.7; margin-right: 4px; }
+
+    .sar-conversion-box {
+        background: rgba(0,0,0,0.3);
+        padding: 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(212, 175, 55, 0.1);
+        color: var(--mahjoub-gold);
+    }
+
+    .estimated-sar { font-weight: 900; font-size: 1.1rem; }
+
+    .sale-input {
+        background: #000 !important;
+        border: 1px solid var(--mahjoub-gold) !important;
+        color: #fff !important;
+        font-weight: 900;
+    }
+
+    .btn-group-sovereign {
+        display: flex;
+        gap: 5px;
+        justify-content: center;
+    }
+
+    .btn-approve {
+        background: var(--mahjoub-purple);
+        border: 1px solid var(--mahjoub-gold);
+        color: white;
+        padding: 6px 15px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        transition: 0.3s;
+    }
+
+    .btn-approve:hover {
+        background: var(--mahjoub-gold);
+        color: #000;
+        transform: translateY(-2px);
+    }
+
+    .btn-reject {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+        padding: 6px 10px;
+        border-radius: 8px;
+    }
+
+    .btn-reject:hover { background: #ef4444; color: white; }
 </style>
 
 <script>
-    // أسعار الصرف (يمكنك تعديلها يدوياً هنا أو جلبها من الـ API)
-    const rates = {
+    // نظام تحويل العملات الذكي (تحديث 2026)
+    const exchangeRates = {
         'SAR': 1.0,
         'USD': 3.75,
-        'YER': 0.0062 // مثال لـ 1 ريال يمني مقابل السعودي
+        'YER': 0.0065,  // سعر افتراضي للريال اليمني مقابل السعودي
+        'AED': 1.02
     };
 
-    document.querySelectorAll('tr[id^="row-"]').forEach(row => {
-        const costElement = row.querySelector('.cost-value');
-        const cost = parseFloat(costElement.dataset.cost);
-        const currency = costElement.dataset.currency;
+    document.querySelectorAll('.product-row').forEach(row => {
+        const costBadge = row.querySelector('.cost-badge');
         const estDisplay = row.querySelector('.estimated-sar');
+        const saleInput = row.querySelector('.sale-input');
+        
+        const cost = parseFloat(costBadge.dataset.cost);
+        const currency = costBadge.dataset.currency;
 
-        // حساب القيمة المعادلة بالسعودي فور تحميل الصفحة
-        if (rates[currency]) {
-            const sarEquivalent = cost * rates[currency];
-            estDisplay.innerText = sarEquivalent.toLocaleString('en-US', {minimumFractionDigits: 2});
+        if (exchangeRates[currency]) {
+            const sarVal = cost * exchangeRates[currency];
+            estDisplay.innerText = sarVal.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            
+            // اقتراح سعر بيع أولي (تكلفة + 15% هامش ربح كمثال)
+            const suggestedPrice = (sarVal * 1.15).toFixed(2);
+            saleInput.placeholder = suggestedPrice;
         }
     });
 </script>
