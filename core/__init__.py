@@ -9,7 +9,7 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 
 def create_app():
-    # 1. إنشاء نسخة التطبيق وتحديد مسارات الموارد
+    # 1. إنشاء نسخة التطبيق وتحديد مسارات الموارد المركزية
     app = Flask(__name__, 
                 static_folder='../static', 
                 template_folder='../templates')
@@ -26,20 +26,21 @@ def create_app():
     login_manager.login_message_category = "info"
 
     with app.app_context():
-        # --- 📦 استيراد النماذج (Models) داخل السياق لمنع التداخل ---
+        # --- 📦 استيراد النماذج (Models) لضمان تسجيلها في قاعدة البيانات ---
         from core.models.user import User
         from core.models.supplier import Supplier
         from core.models.product import Product
         
-        # --- 🔐 نظام الفصل الذكي بين الهويات (Advanced Multi-Auth) ---
+        # --- 🔐 نظام الفصل الذكي بين الهويات (Multi-Auth System) ---
         @login_manager.user_loader
         def load_user(user_id):
             try:
+                # التحقق من نوع الجلسة لتحديد أي جدول نبحث فيه
                 user_type = session.get('user_type')
                 if user_type == 'supplier':
                     return Supplier.query.get(int(user_id))
                 return User.query.get(int(user_id))
-            except Exception as e:
+            except Exception:
                 return None
 
         # --- 🔗 تسجيل بوابات النظام (Blueprints Registration) ---
@@ -48,16 +49,18 @@ def create_app():
             from admin_panel.routes import admin_bp
             app.register_blueprint(admin_bp, url_prefix='/admin')
             
-            # 2. بوابة الموردين (التصحيح هنا)
-            # نستورد البلوبرنت من المجلد مباشرة لأننا عرفناه في __init__.py الخاص بالمجلد
+            # 2. بوابة الموردين (الحل النهائي لخطأ 404)
+            # استيراد البلوبرنت من ملف __init__ الخاص بمجلد الموردين
             from supplier_panel import supplier_bp
             app.register_blueprint(supplier_bp, url_prefix='/supplier')
             
-            print("✅ [System] تم تفعيل بوابة الموردين على المسار /supplier بنجاح.")
+            print("✅ [System] تم ربط بوابة الموردين بنجاح على المسار /supplier")
+            
         except Exception as e:
-            print(f"❌ [Critical Error] خطأ في ربط بوابات النظام: {e}")
+            print(f"❌ [Critical Error] فشل في ربط البوابات: {e}")
 
         # --- 📊 معالج البيانات الشامل (Context Processor) ---
+        # لجعل التنبيهات (مثل عدد الموردين الجدد) تظهر في كل الصفحات
         @app.context_processor
         def inject_global_data():
             try:
@@ -66,7 +69,7 @@ def create_app():
             except Exception:
                 return dict(pending_suppliers_count=0)
 
-        # إنشاء الجداول إذا لم تكن موجودة
+        # إنشاء الجداول السيادية إذا لم تكن موجودة
         db.create_all()
 
     return app
