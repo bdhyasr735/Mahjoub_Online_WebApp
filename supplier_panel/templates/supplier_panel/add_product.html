@@ -1,62 +1,51 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>بوابة التدقيق السيادي | محجوب أونلاين</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <style>
-        body { 
-            background: #1a0b2e; 
-            color: white; 
-            font-family: 'Cairo', sans-serif;
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            margin: 0; 
-        }
-        .card { 
-            background: rgba(255, 255, 255, 0.05); 
-            padding: 50px; 
-            border-radius: 30px; 
-            text-align: center; 
-            border: 1px solid #D4AF37;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 450px;
-        }
-        .gold { color: #D4AF37; }
-        .shield-icon { font-size: 50px; margin-bottom: 20px; display: block; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="shield-icon gold">
-            <i class="fas fa-shield-halved"></i>
+{% extends "supplier_panel/base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg" style="border: 2px solid #632C8F;">
+        <div class="card-header text-white" style="background: linear-gradient(45deg, #632C8F, #4B338A);">
+            <h4 class="mb-0">🚀 إضافة منتج جديد للترسانة</h4>
         </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>اسم المنتج (كما يظهر في قمرة)</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>معرف المنتج في قمرة (Product ID)</label>
+                        <input type="text" name="q_product_id" class="form-control" placeholder="مثلاً: 650..." required>
+                    </div>
+                </div>
 
-        <h1>مرحباً بك يا 
-            <span class="gold">
-                {{ current_user.name or current_user.username or "شريكنا العزيز" }}
-            </span>
-        </h1>
-        
-        <p>حسابك الآن في مرحلة التدقيق السيادي لـ "محجوب أونلاين".</p>
-        
-        <div style="border: 1px solid #D4AF37; padding: 10px; border-radius: 10px; background: rgba(212, 175, 55, 0.1);">
-            الحالة الحالية: <b class="gold text-uppercase">قيد الانتظار</b>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label>فئة المنتج (من قمرة)</label>
+                        <select class="form-control" name="collection_id">
+                            {% for col in collections %}
+                                <option value="{{ col.id }}">{{ col.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>تكلفة المورد (الصافي)</label>
+                        <input type="number" step="0.01" name="cost_price" class="form-control" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>العملة</label>
+                        <select class="form-control" name="currency">
+                            <option value="SAR">ريال سعودي</option>
+                            <option value="USD">دولار أمريكي</option>
+                            <option value="YER">ريال يمني</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn text-white w-100" style="background-color: #632C8F;">
+                    تعميد المنتج وإرساله للمراجعة
+                </button>
+            </form>
         </div>
-        
-        <br>
-        <a href="{{ url_for('supplier_panel.logout') }}" style="color: #ff7675; text-decoration: none; font-weight: bold;">
-            <i class="fas fa-power-off"></i> تسجيل الخروج
-        </a>
     </div>
-
-    <script>
-        // تحديث ذكي كل 15 ثانية
-        setTimeout(function(){ location.reload(); }, 15000);
-    </script>
-</body>
-</html>
+</div>
+{% endblock %}
