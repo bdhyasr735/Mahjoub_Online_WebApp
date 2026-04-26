@@ -6,16 +6,18 @@ from .decorators import sovereign_approval_required
 from core import db
 from core.models.product import Product
 from core.models.supplier import Supplier
-# استخدام المحرك الجديد والخفيف
+# استيراد محرك جلب الأقسام من قمرة ليعرضها للمورد عند إضافة منتج
 from services.qumra_handler import fetch_qumra_collections
 
-# --- 1. مسار تسجيل الدخول السيادي ---
+# --- 1. بوابة الدخول للموردين ---
 @supplier_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # منع التداخل: إذا كان المستخدم "أدمن" يحاول دخول بوابة المورد، نقوم بتطهير جلسته
     if current_user.is_authenticated:
         if session.get('user_type') == 'supplier':
             return redirect(url_for('supplier_panel.dashboard'))
         else:
+            # إذا كان أدمن يحاول الدخول هنا، نسجل خروجه ليدخل بهوية مورد
             logout_user()
             session.clear()
 
@@ -24,46 +26,47 @@ def login():
         password = request.form.get('password')
 
         if not username or not password:
-            flash('يرجى ملء كافة الحقول السيادية للدخول.', 'warning')
+            flash('يرجى إدخال بيانات الهوية السيادية للمورد.', 'warning')
             return render_template('supplier_login.html')
 
+        # استخدام المحرك الذي راجعناه سابقاً للتحقق من المورد
         message, category, supplier = verify_supplier_credentials(username, password)
         
         if supplier: 
             session.permanent = True
-            session['user_type'] = 'supplier'
+            session['user_type'] = 'supplier' # الختم السيادي للمورد
             login_user(supplier)
-            flash(f'تم الولوج بنجاح.. أهلاً بك يا {supplier.name}', 'success')
+            flash(f'مرحباً بك يا {supplier.name} في منصة محجوب أونلاين.', 'success')
             return redirect(url_for('supplier_panel.dashboard'))
         else:
             flash(message, category)
             
     return render_template('supplier_login.html')
 
-# --- 2. لوحة التحكم ---
+# --- 2. لوحة تحكم المورد (الترسانة الخاصة) ---
 @supplier_bp.route('/dashboard')
 @login_required
 @sovereign_approval_required 
 def dashboard():
+    # التأكد من الهوية: منع الأدمن من رؤية لوحة المورد (والعكس)
+    if session.get('user_type') != 'supplier':
+        session.clear()
+        logout_user()
+        return redirect(url_for('supplier_panel.login'))
+        
     try:
-        if session.get('user_type') != 'supplier':
-            session.clear()
-            logout_user()
-            return redirect(url_for('supplier_panel.login'))
-            
-        # جلب منتجات المورد الحالي فقط
+        # جلب المنتجات التابعة لهذا المورد فقط
         my_products = Product.query.filter_by(supplier_id=current_user.id).all()
         return render_template('dashboard.html', products=my_products)
-        
     except Exception as e:
-        return f"خطأ في النظام السيادي: {str(e)}", 500
+        return f"خطأ في استعراض البيانات: {str(e)}", 500
 
-# --- 3. إضافة منتج جديد (الربط الخفيف مع قمرة) ---
+# --- 3. إضافة منتج جديد (الربط مع قمرة) ---
 @supplier_bp.route('/add-product', methods=['GET', 'POST'])
 @login_required
 @sovereign_approval_required
 def add_product():
-    # سحب الأقسام "لحظياً" من قمرة دون تخزينها محلياً
+    # جلب الأقسام (Collections) من قمرة لحظياً ليختار المورد القسم المناسب
     collections = fetch_qumra_collections()
 
     if request.method == 'POST':
@@ -71,14 +74,14 @@ def add_product():
         description = request.form.get('description')
         collection_id = request.form.get('collection_id')
         cost_price = request.form.get('cost_price')
-        currency = request.form.get('currency')
+        currency = request.form.get('currency', 'YER') # الافتراضي ريال يمني
         
         if not name or not cost_price:
-            flash('يرجى إدخال اسم المنتج وسعر التكلفة لضمان الحوكمة.', 'danger')
+            flash('اسم المنتج وسعر التكلفة حقول إلزامية للتعميد.', 'danger')
             return redirect(request.url)
 
         try:
-            # إنشاء كائن المنتج في الترسانة المحلية (حالة الانتظار)
+            # إنشاء المنتج محلياً في حالة "Pending" بانتظار مراجعة القائد علي محجوب
             new_product = Product(
                 name=name,
                 description=description,
@@ -86,35 +89,34 @@ def add_product():
                 cost_price=float(cost_price),
                 currency=currency,
                 supplier_id=current_user.id,
-                status='pending' # يبقى معلقاً حتى تعميده من "برج الرقابة"
+                status='pending' 
             )
             
             db.session.add(new_product)
             db.session.commit()
-            flash('✅ تم رفع المنتج بنجاح وهو بانتظار المراجعة السيادية في برج الرقابة.', 'success')
+            flash('✅ تم رفع المنتج بنجاح. سيتم إشعارك فور تعميده ونشره من قبل الإدارة.', 'success')
             return redirect(url_for('supplier_panel.dashboard'))
         except Exception as e:
             db.session.rollback()
-            flash(f'⚠️ حدث خطأ أثناء المعالجة: {str(e)}', 'danger')
+            flash(f'⚠️ فشل الحفظ: {str(e)}', 'danger')
 
     return render_template('add_product.html', collections=collections)
 
-# --- 4. صفحة الانتظار (للموردين غير المعتمدين) ---
+# --- 4. غرفة الانتظار (للموردين الجدد) ---
 @supplier_bp.route('/waiting-room')
 @login_required
 def waiting_room():
-    # التحقق من الحالة اللحظية للمورد من قاعدة البيانات
+    # التحقق من قاعدة البيانات مباشرة لرؤية ما إذا كان الأدمن قد وافق على المورد
     supplier = Supplier.query.get(current_user.id)
     if supplier and supplier.is_approved:
         return redirect(url_for('supplier_panel.dashboard'))
     
     return render_template('waiting_approval.html')
 
-# --- 5. خروج آمن ---
+# --- 5. خروج المورد وتطهير الهوية ---
 @supplier_bp.route('/logout')
 @login_required
 def logout():
-    session.pop('user_type', None)
-    session.clear()
+    session.clear() # مسح وسم 'supplier' من الجلسة
     logout_user()
     return redirect(url_for('supplier_panel.login'))
