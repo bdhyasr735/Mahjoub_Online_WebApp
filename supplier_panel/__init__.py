@@ -1,10 +1,11 @@
-# --- الترسانة السيادية: بوابة شركاء النجاح (الموردين) ---
+# --- الترسانة السيادية لشركاء النجاح ---
 # الموقع: supplier_panel/__init__.py
 
 from flask import Blueprint
 
-# 1. تعريف البلوبرنت (Blueprint) الخاص بقطاع الموردين
-# تم تحديد 'templates' و 'static' لضمان استدعاء التصميمات الخاصة بالموردين
+# 1. تعريف البلوبرنت (Blueprint) مع تحديد الموارد الخاصة به
+# تم ضبط template_folder ليكون 'templates' ليشير للمجلد الداخلي للموردين
+# هذا يضمن استدعاء صفحة login.html الخاصة بالموردين وليس الإدارة
 supplier_bp = Blueprint(
     'supplier_panel', 
     __name__, 
@@ -12,19 +13,21 @@ supplier_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. ربط المكونات الوظيفية بالبلوبرنت
-# يتم الاستيراد في الأسفل لتجنب خطأ "الاستيراد الدائري" (Circular Import)
+# 2. ربط المسارات والمكونات الحيوية بالبلوبرنت
+# ملاحظة سيادية: الاستيراد هنا بعد تعريف supplier_bp هو "مفتاح التشغيل"
+# لضمان تسجيل المسارات داخل الكائن دون حدوث استيراد دائم (Circular Import)
 try:
-    from . import routes
+    # استيراد ملف المسارات (routes) لكي يتم تسجيل @supplier_bp.route فيه
+    from . import routes 
+    
+    # استيراد المنطق الأمني والتحقق
     from . import auth_logic
+    
+    # استيراد الملحقات (Decorators) مثل فحص الاعتماد
     from . import decorators
     
-    # رسالة فنية تظهر في سجلات السيرفر (Railway/Render) لتأكيد النجاح
-    print("🚀 [System] تم تفعيل بوابة الموردين (Supplier Panel) بنجاح.")
+    # رسالة نجاح تظهر في سجلات Railway عند الإقلاع للتأكيد الفني
+    print("🚀 [System] تم تسجيل مسارات بوابة الموردين بنجاح.")
     
 except ImportError as e:
-    print(f"⚠️ [Critical Error] فشل في تحميل مكونات بوابة الموردين: {e}")
-
-# ملاحظة للقائد علي: 
-# تأكد أن مجلد supplier_panel يحتوي على مجلد داخلي باسم templates
-# لضمان عمل render_template('dashboard.html') بشكل صحيح.
+    # في حال وجود
