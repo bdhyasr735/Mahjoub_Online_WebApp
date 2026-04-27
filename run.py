@@ -21,8 +21,9 @@ def initialize_sovereign_system():
             db.create_all() 
             
             # --- 🔐 1. تعميد حساب القائد العام (علي محجوب) ---
+            # ملاحظة: نستخدم اسم مستخدم بالإنجليزية لضمان استقرار روابط الـ URL
             admin_user = User(
-                username='علي محجوب', 
+                username='Ali_Mahjoub', 
                 password=generate_password_hash('123'), 
                 role='admin'
             )
@@ -36,7 +37,7 @@ def initialize_sovereign_system():
                 role='supplier'
             )
             db.session.add(supplier_user)
-            db.session.flush() # لاستخراج الـ ID قبل الحفظ النهائي
+            db.session.flush() # لاستخراج الـ ID قبل الحفظ النهائي لربطه بالبروفايل
 
             # --- 📦 3. إنشاء بروفايل المورد (التفاصيل المالية والجغرافية) ---
             test_supplier_profile = Supplier(
@@ -46,6 +47,7 @@ def initialize_sovereign_system():
                 phone='770000000',
                 is_approved=True,
                 status='active',
+                # تصفير المحافظ لبدء عهد مالي جديد
                 wallet_balance=0.00,
                 wallet_sar=0.00,
                 wallet_usd=0.00,
@@ -64,12 +66,13 @@ def initialize_sovereign_system():
 
 if __name__ == "__main__":
     # تشغيل عملية التهيئة (تتم تلقائياً عند كل Deployment)
-    # ملاحظة: بمجرد استقرار البيانات الحقيقية، يجب تعطيل هذا السطر
+    # ⚠️ تنبيه: بمجرد أن تبدأ باستقبال موردين حقيقيين، قم بتعطيل هذا السطر 
+    # لكي لا يتم حذف بياناتهم عند كل إعادة تشغيل.
     initialize_sovereign_system()
     
     # ضبط المنفذ لضمان العمل على Railway
     port = int(os.environ.get("PORT", 8080))
     
-    # الانطلاق بالمنصة
-    print(f"📡 المنصة تعمل الآن على المنفذ: {port}")
-    app.run(host='0.0.0.0', port=port)
+    # الانطلاق بالمنصة بالترددات السيادية
+    print(f"📡 منصة محجوب أونلاين تعمل الآن على المنفذ: {port}")
+    app.run(host='0.0.0.0', port=port, debug=False)
