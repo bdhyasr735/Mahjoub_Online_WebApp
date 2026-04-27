@@ -1,6 +1,6 @@
 from flask import Blueprint
 
-# 1. تعريف البلوبرنت (هذا هو السطر الذي يبحث عنه السيرفر وفشل في إيجاده)
+# تعريف البوابة البرمجية للإدارة
 admin_bp = Blueprint(
     'admin_panel', 
     __name__, 
@@ -8,6 +8,5 @@ admin_bp = Blueprint(
     static_folder='static'
 )
 
-# 2. استيراد المسارات (routes) لربطها بالبلوبرنت
-# ملاحظة: يجب أن يكون الاستيراد بعد تعريف admin_bp لتجنب الأخطاء
+# استيراد المسارات لربطها بالبوابة
 from . import routes
