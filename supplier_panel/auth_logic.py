@@ -43,3 +43,7 @@ def verify_supplier_credentials(username, password):
     except Exception as e:
         print(f"❌ [Logic Error]: {e}")
         return f'⚠️ عطل فني في بوابة العبور: {str(e)}', 'danger', None
+with app.app_context():
+    # هذا السطر سيقوم بإنشاء الجداول التي لا تزال ناقصة في قاعدة البيانات
+    db.create_all()
+    print("✅ تم تحديث جداول قاعدة البيانات لتطابق الهيكل السيادي الجديد.")
