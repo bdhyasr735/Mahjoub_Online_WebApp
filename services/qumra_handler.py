@@ -7,6 +7,10 @@ QUMRA_TOKEN = os.getenv("QUMRA_API_KEY")    # التوكن qmr_...
 
 def query_qumra(query, variables=None):
     """المحرك الأساسي لإرسال استعلامات GraphQL إلى قمرة"""
+    if not QUMRA_API_URL or not QUMRA_TOKEN:
+        print("🔴 خطأ: مفاتيح QUMRA غير معرفة في متغيرات البيئة.")
+        return None
+
     headers = {
         "Authorization": f"Bearer {QUMRA_TOKEN}",
         "Content-Type": "application/json"
@@ -14,7 +18,7 @@ def query_qumra(query, variables=None):
     payload = {"query": query, "variables": variables}
     
     try:
-        response = requests.post(QUMRA_API_URL, json=payload, headers=headers)
+        response = requests.post(QUMRA_API_URL, json=payload, headers=headers, timeout=15)
         if response.status_code == 200:
             return response.json()
         else:
@@ -47,10 +51,7 @@ def fetch_qumra_collections():
     return []
 
 def create_qumra_product(name, description, price, collection_id, image_urls=None):
-    """
-    إرسال المنتج نهائياً إلى قمرة (النشر السيادي).
-    يستلم البيانات من الإدارة ويطير بها إلى السحابة فوراً.
-    """
+    """إرسال المنتج نهائياً إلى قمرة (النشر السيادي)"""
     mutation = """
     mutation CreateProduct($input: ProductInput!) {
       productCreate(input: $input) {
@@ -74,13 +75,12 @@ def create_qumra_product(name, description, price, collection_id, image_urls=Non
             "variants": [
                 {
                     "price": float(price),
-                    "inventoryQuantity": 10 # كمية افتراضية أولية
+                    "inventoryQuantity": 10
                 }
             ]
         }
     }
     
-    # إضافة الصور إذا وُجدت روابط مباشرة (بدون تخزين محلي)
     if image_urls:
         variables["input"]["images"] = [{"src": url} for url in image_urls]
 
