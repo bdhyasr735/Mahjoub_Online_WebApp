@@ -1,12 +1,10 @@
 from flask import Blueprint
 
-# تعريف البوابة السيادية للإدارة
 admin_bp = Blueprint(
     'admin_panel', 
     __name__, 
-    template_folder='templates',
+    template_folder='templates', # يشير إلى مجلد templates الداخلي
     static_folder='static'
 )
 
-# استيراد المسارات لربطها بالبوابة
 from . import routes
