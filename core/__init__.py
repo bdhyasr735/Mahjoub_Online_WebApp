@@ -5,6 +5,7 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 
 # 1. تعريف الكائنات الأساسية للنظام (Globally)
+# ملاحظة: نتركها هنا فارغة ليتم ربطها داخل create_app لاحقاً
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
@@ -17,12 +18,12 @@ def create_app():
         from config import Config
         app.config.from_object(Config)
     except ImportError:
-        # إعدادات افتراضية في حال عدم وجود ملف config
+        # إعدادات طوارئ في حال فقدان ملف التكوين
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mahjoub_online.db'
         app.config['SECRET_KEY'] = 'mahjoub-secret-key-123'
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # 3. تهيئة الإضافات وربطها بالتطبيق
+    # 3. تهيئة الإضافات وربطها بالتطبيق فعلياً
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
@@ -34,19 +35,19 @@ def create_app():
 
     @login_manager.unauthorized_handler
     def unauthorized():
-        # التوجيه التلقائي لبرج الرقابة عند محاولة الدخول غير المصرح به
+        # التوجيه التلقائي لبرج الرقابة عند محاولة الوصول غير المصرح به
         return redirect(url_for('admin_panel.admin_login'))
 
     with app.app_context():
-        # 5. استيراد الموديلات (لضمان بناء قاعدة البيانات بشكل سليم)
+        # 5. استيراد الموديلات داخل السياق لضمان ربط الجداول
         from core.models.user import User
         from core.models.product import Product
         from core.models.supplier import Supplier
         
         # 6. تسجيل بوابة الموردين (Supplier Panel)
+        # تم وضع الاستيراد هنا لحل مشكلة Circular Import وخطأ "cannot import name app"
         try:
             from supplier_panel.routes import supplier_bp
-            # نتحقق مما إذا كان البلوبرينت مسجلاً مسبقاً لمنع التكرار
             if 'supplier_panel' not in app.blueprints:
                 app.register_blueprint(supplier_bp, url_prefix='/supplier')
                 print("✅ تم تفعيل بوابة الموردين بنجاح")
@@ -62,18 +63,18 @@ def create_app():
         except Exception as e:
             print(f"⚠️ خطأ في بوابة الإدارة: {e}")
 
-        # 8. إنشاء الجداول في قاعدة البيانات (سيقوم بإنشاء الملف إذا لم يكن موجوداً)
+        # 8. إنشاء الجداول (في حال عدم وجود قاعدة البيانات)
         db.create_all()
 
-    # 9. إرجاع كائن التطبيق لملف run.py و setup_supplier.py
+    # 9. إرجاع كائن التطبيق (المحرك الرئيسي)
     return app
 
-# 10. محمل المستخدم (User Loader) - خارج create_app ليعمل عالمياً
+# 10. محمل المستخدم (User Loader)
 @login_manager.user_loader
 def load_user(user_id):
     from core.models.user import User
     try:
-        # استخدام الطريقة الحديثة والمستقرة لجلب بيانات المستخدم
+        # الطريقة الآمنة لجلب الهوية السيادية للمستخدم
         return db.session.get(User, int(user_id))
     except Exception as e:
         print(f"❌ خطأ في نظام التحقق من الهوية: {e}")
