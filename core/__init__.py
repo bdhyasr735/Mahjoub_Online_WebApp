@@ -1,81 +1,57 @@
-import os
-from flask import Flask, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from flask_migrate import Migrate
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask_login import login_user, logout_user, login_required, current_user
+from core import db
+from core.models.user import User
+# استيراد المنطق البرمجي للتحقق من الهوية
+from .auth_logic import handle_supplier_auth
 
-# 1. تعريف الكائنات الأساسية للنظام (Globally)
-# ملاحظة: نتركها هنا فارغة ليتم ربطها داخل create_app لاحقاً
-db = SQLAlchemy()
-login_manager = LoginManager()
-migrate = Migrate()
+# 1. تعريف البلوبرينت الخاص ببوابة الموردين
+supplier_bp = Blueprint('supplier_panel', __name__, template_folder='templates')
 
-def create_app():
-    app = Flask(__name__)
+# 2. مسار تسجيل الدخول للموردين
+@supplier_bp.route('/login', methods=['GET', 'POST'])
+def supplier_login():
+    # إذا كان المورد مسجلاً دخوله بالفعل، يتم توجيهه للوحة التحكم
+    if current_user.is_authenticated and current_user.role == 'supplier':
+        return redirect(url_for('supplier_panel.supplier_dashboard'))
 
-    # 2. جلب الإعدادات من ملف config.py
-    try:
-        from config import Config
-        app.config.from_object(Config)
-    except ImportError:
-        # إعدادات طوارئ في حال فقدان ملف التكوين
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mahjoub_online.db'
-        app.config['SECRET_KEY'] = 'mahjoub-secret-key-123'
-        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-    # 3. تهيئة الإضافات وربطها بالتطبيق فعلياً
-    db.init_app(app)
-    login_manager.init_app(app)
-    migrate.init_app(app, db)
-
-    # 4. إعدادات إدارة الدخول والوصول السيادي
-    login_manager.login_view = 'admin_panel.admin_login'
-    login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى النظام السيادي."
-    login_manager.login_message_category = "info"
-
-    @login_manager.unauthorized_handler
-    def unauthorized():
-        # التوجيه التلقائي لبرج الرقابة عند محاولة الوصول غير المصرح به
-        return redirect(url_for('admin_panel.admin_login'))
-
-    with app.app_context():
-        # 5. استيراد الموديلات داخل السياق لضمان ربط الجداول
-        from core.models.user import User
-        from core.models.product import Product
-        from core.models.supplier import Supplier
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
         
-        # 6. تسجيل بوابة الموردين (Supplier Panel)
-        # تم وضع الاستيراد هنا لحل مشكلة Circular Import وخطأ "cannot import name app"
-        try:
-            from supplier_panel.routes import supplier_bp
-            if 'supplier_panel' not in app.blueprints:
-                app.register_blueprint(supplier_bp, url_prefix='/supplier')
-                print("✅ تم تفعيل بوابة الموردين بنجاح")
-        except Exception as e:
-            print(f"⚠️ تنبيه: بوابة الموردين لم تفعل بعد: {e}")
+        # استخدام وظيفة التحقق السيادية
+        user = handle_supplier_auth(username, password)
+        
+        if user:
+            # تم التحقق بنجاح
+            flash(f'أهلاً بك يا {user.username} في المنصة اللامركزية', 'success')
+            return redirect(url_for('supplier_panel.supplier_dashboard'))
+        # في حال الفشل، الرسالة تظهر من داخل handle_supplier_auth عبر flash
 
-        # 7. تسجيل بوابة الإدارة (Admin Panel - برج الرقابة 🏛️)
-        try:
-            from admin_panel.routes import admin_bp 
-            if 'admin_panel' not in app.blueprints:
-                app.register_blueprint(admin_bp, url_prefix='/admin')
-                print("✅ تم تفعيل برج الرقابة المركزية بنجاح")
-        except Exception as e:
-            print(f"⚠️ خطأ في بوابة الإدارة: {e}")
+    return render_template('supplier_login.html')
 
-        # 8. إنشاء الجداول (في حال عدم وجود قاعدة البيانات)
-        db.create_all()
+# 3. لوحة تحكم المورد (محمية)
+@supplier_bp.route('/dashboard')
+@login_required
+def supplier_dashboard():
+    # التأكد من أن الداخل هو مورد وليس رتبة أخرى
+    if current_user.role != 'supplier':
+        flash('عذراً، هذه المنطقة مخصصة للموردين فقط.', 'error')
+        return redirect(url_for('admin_panel.admin_login'))
+        
+    return render_template('supplier_dashboard.html', user=current_user)
 
-    # 9. إرجاع كائن التطبيق (المحرك الرئيسي)
-    return app
+# 4. تسجيل الخروج
+@supplier_bp.route('/logout')
+@login_required
+def supplier_logout():
+    logout_user()
+    flash('تم تسجيل الخروج من بوابة الموردين بنجاح.', 'info')
+    return redirect(url_for('supplier_panel.supplier_login'))
 
-# 10. محمل المستخدم (User Loader)
-@login_manager.user_loader
-def load_user(user_id):
-    from core.models.user import User
-    try:
-        # الطريقة الآمنة لجلب الهوية السيادية للمستخدم
-        return db.session.get(User, int(user_id))
-    except Exception as e:
-        print(f"❌ خطأ في نظام التحقق من الهوية: {e}")
-        return None
+# 5. مسار تجريبي للتأكد من ربط القاعدة (اختياري)
+@supplier_bp.route('/status')
+def system_status():
+    # هنا نستخدم current_app بدلاً من استيراد app مباشرة
+    app_name = current_app.config.get('SITE_NAME', 'منصة محجوب أونلاين')
+    return f"بوابة الموردين تعمل ضمن نظام: {app_name}"
