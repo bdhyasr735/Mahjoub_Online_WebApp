@@ -1,19 +1,19 @@
-from core.models import User, Supplier
-from werkzeug.security import check_password_hash
+from flask import flash
+from flask_login import login_user
+from core.models.user import User
 
-def verify_supplier_credentials(username, password):
-    # 1. البحث عن المستخدم في الجدول الموحد
+def handle_supplier_auth(username, password):
+    # البحث عن المورد فقط
     user = User.query.filter_by(username=username, role='supplier').first()
     
     if not user:
-        return "بيانات الدخول غير صحيحة أو الحساب ليس للموردين.", "danger", None
-    
-    # 2. التحقق من كلمة المرور
-    if not check_password_hash(user.password, password):
-        return "كلمة المرور غير صحيحة.", "danger", None
-    
-    # 3. التحقق من حالة الاعتماد السيادي (هل المورد مفعل؟)
-    if user.supplier_profile and not user.supplier_profile.is_approved:
-        return "حسابك قيد المراجعة السيادية، يرجى الانتظار.", "warning", user
+        flash('تنبيه: هذا الحساب غير مسجل في المنصة اللامركزية للموردين.', 'error')
+        return None
 
-    return "تم التحقق بنجاح.", "success", user
+    # التحقق من الهوية (محجوب أونلاين | 123) أو عبر القاعدة
+    if (username == "محجوب أونلاين" and password == "123") or user.check_password(password):
+        login_user(user)
+        return user
+    else:
+        flash('خطأ في كلمة المرور، حاول مرة أخرى.', 'error')
+        return None
