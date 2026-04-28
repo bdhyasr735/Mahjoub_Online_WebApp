@@ -1,19 +1,24 @@
-from flask import flash
-from flask_login import login_user
+from core import app, db
 from core.models.user import User
 
-def handle_supplier_auth(username, password):
-    # البحث عن المورد فقط
-    user = User.query.filter_by(username=username, role='supplier').first()
-    
-    if not user:
-        flash('تنبيه: هذا الحساب غير مسجل في المنصة اللامركزية للموردين.', 'error')
-        return None
+def create_supplier():
+    with app.app_context():
+        # التأكد من عدم تكرار الحساب
+        user = User.query.filter_by(username="محجوب أونلاين").first()
+        
+        if not user:
+            # إنشاء الحساب في السجلات اللامركزية
+            new_supplier = User(
+                username="محجوب أونلاين",
+                role="supplier",
+                status="approved"
+            )
+            new_supplier.set_password("123")
+            db.session.add(new_supplier)
+            db.session.commit()
+            print("✅ تم تعميد 'محجوب أونلاين' في قاعدة البيانات.")
+        else:
+            print("⚠️ الحساب موجود بالفعل في السجلات.")
 
-    # التحقق من الهوية (محجوب أونلاين | 123) أو عبر القاعدة
-    if (username == "محجوب أونلاين" and password == "123") or user.check_password(password):
-        login_user(user)
-        return user
-    else:
-        flash('خطأ في كلمة المرور، حاول مرة أخرى.', 'error')
-        return None
+if __name__ == "__main__":
+    create_supplier()
