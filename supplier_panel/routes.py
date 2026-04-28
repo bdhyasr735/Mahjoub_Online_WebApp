@@ -1,61 +1,50 @@
 from flask import render_template, request, redirect, url_for, flash
-from flask_login import login_required, current_user, logout_user, login_user
+from flask_login import login_required, logout_user, current_user
 from . import supplier_bp
-from core import db
-from core.models.user import User 
-from core.models.product import Product
+from .auth_logic import handle_supplier_auth
+from .decorators import supplier_required
+from core.models.product import Product # تأكد من استيراد موديل المنتجات
 
-# --- بوابة الدخول ---
+# --- 1. مسار تسجيل الدخول ---
 @supplier_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        if current_user.role == 'supplier':
-            if current_user.status == 'approved':
+    # إذا كان المورد مسجلاً بالفعل، وجهه لمكانه الصحيح
+    if current_user.is_authenticated and current_user.role == 'supplier':
+        if current_user.status == 'approved':
+            return redirect(url_for('supplier_panel.dashboard'))
+        return redirect(url_for('supplier_panel.waiting_approval'))
+
+    if request.method == 'POST':
+        # استدعاء المنطق من ملف auth_logic.py المنفصل
+        user = handle_supplier_auth(request.form.get('username'), request.form.get('password'))
+        if user:
+            if user.status == 'approved':
                 return redirect(url_for('supplier_panel.dashboard'))
             return redirect(url_for('supplier_panel.waiting_approval'))
-        
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        # البحث عن المستخدم أولاً في السجلات
-        user = User.query.filter_by(username=username, role='supplier').first()
-        
-        if not user:
-            # الحالة 1: المستخدم غير موجود أصلاً في النظام
-            flash('تنبيه: هذا الحساب غير مسجل في المنصة اللامركزية للموردين.', 'error')
-        else:
-            # الحالة 2: المستخدم موجود، نتحقق من كلمة المرور
-            if user.check_password(password) or (username == "محجوب أونلاين" and password == "123"):
-                login_user(user)
-                if user.status == 'approved':
-                    return redirect(url_for('supplier_panel.dashboard'))
-                else:
-                    return redirect(url_for('supplier_panel.waiting_approval'))
-            else:
-                # الحالة 3: كلمة المرور خطأ
-                flash('خطأ في كلمة المرور، حاول مرة أخرى.', 'error')
             
     return render_template('supplier_panel/supplier_login.html')
 
-# --- باقي المسارات (غرفة الانتظار، الداشبورد، الخروج) تبقى كما هي ---
+# --- 2. مسار غرفة الانتظار (المنصة اللامركزية) ---
 @supplier_bp.route('/waiting-approval')
 @login_required
 def waiting_approval():
+    # إذا وافق علي محجوب على المورد وهو فاتح هذه الصفحة، يتم توجيهه تلقائياً
     if current_user.status == 'approved':
         return redirect(url_for('supplier_panel.dashboard'))
     return render_template('supplier_panel/waiting_approval.html')
 
+# --- 3. لوحة تحكم المورد (محمية بالديكوريتور) ---
 @supplier_bp.route('/dashboard')
-@login_required
+@supplier_required # الحماية من ملف decorators.py
 def dashboard():
-    if current_user.status != 'approved':
-        return redirect(url_for('supplier_panel.waiting_approval'))
+    # جلب منتجات المورد الخاص بـ "محجوب أونلاين"
     products = Product.query.filter_by(supplier_id=current_user.id).all()
     return render_template('supplier_panel/dashboard.html', products=products)
 
+# --- 4. تسجيل الخروج الآمن ---
 @supplier_bp.route('/logout')
+@login_required
 def logout():
     logout_user()
-    flash('🔒 تم تأمين الجلسة والخروج بنجاح.')
+    flash('🔒 تم تأمين الجلسة والخروج من المنصة اللامركزية بنجاح.', 'info')
     return redirect(url_for('supplier_panel.login'))
