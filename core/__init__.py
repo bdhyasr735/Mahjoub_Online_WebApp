@@ -1,36 +1,39 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-import os
+from flask import Blueprint, render_template
+from flask_login import login_required
+from .auth_controller import AdminAuthController
 
-db = SQLAlchemy()
-login_manager = LoginManager()
+# تعريف البلوبرينت مع تحديد مسار القوالب بدقة
+admin_bp = Blueprint('admin_panel', __name__, template_folder='templates')
 
-def create_app():
-    app = Flask(__name__)
+# إنشاء نسخة من المتحكم لضمان استمرارية الجلسة والمنطق البرمجي
+auth_controller = AdminAuthController()
 
-    # إعدادات التكوين
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'mahjoub_online_2026')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mahjoub.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+@admin_bp.route('/login', methods=['GET', 'POST'])
+def admin_login():
+    # تأكد أن الدالة في Controller ترجع render_template أو redirect
+    return auth_controller.login_logic()
 
-    db.init_app(app)
-    login_manager.init_app(app)
-    login_manager.login_view = 'admin_panel.admin_login'
+@admin_bp.route('/dashboard')
+@login_required
+def admin_dashboard():
+    return auth_controller.dashboard_logic()
 
-    with app.app_context():
-        from admin_panel.routes import admin_bp
-        from supplier_panel.routes import supplier_bp
-        from core.models.user import User
+@admin_bp.route('/suppliers-management')
+@login_required
+def manage_suppliers():
+    return auth_controller.suppliers_logic()
 
-        # تسجيل البلوبرينتس بمسارات واضحة
-        app.register_blueprint(admin_bp, url_prefix='/admin')
-        app.register_blueprint(supplier_bp, url_prefix='/supplier')
+@admin_bp.route('/product-review')
+@login_required
+def sync_now():
+    return auth_controller.sync_logic()
 
-        db.create_all()
+@admin_bp.route('/wallets')
+@login_required
+def wallets():
+    return auth_controller.wallets_logic()
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        return User.query.get(int(user_id))
-
-    return app
+@admin_bp.route('/logout')
+@login_required
+def logout():
+    return auth_controller.logout_logic()
