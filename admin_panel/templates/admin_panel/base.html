@@ -1,46 +1,244 @@
-<!-- الجزء المصحح من القائمة الجانبية (Navigation) -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}القيادة المركزية | محجوب أونلاين{% endblock %}</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --royal-purple: #1a0b2e;
+            --deep-black: #08020d;
+            --mahjoub-gold: #D4AF37;
+            --sidebar-width: 280px;
+            --sidebar-mini: 85px;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-<div class="nav-label">الرقابة السيادية</div>
-<a href="{{ url_for('admin_panel.admin_dashboard') }}" class="nav-item {% if request.endpoint == 'admin_panel.admin_dashboard' %}active{% endif %}">
-    <i class="fas fa-th-large"></i> <span>لوحة الإحصائيات</span>
-</a>
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background: #f8f9fa; 
+            margin: 0; display: flex; direction: rtl; min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-<div class="nav-label">العمليات التشغيلية</div>
-<div class="nav-dropdown" id="productsDropdown"> 
-    <div class="nav-item" onclick="toggleDropdown('productsDropdown')">
-        <i class="fas fa-boxes-stacked"></i> <span>إدارة المنتجات</span>
-        <i class="fas fa-chevron-down chevron" style="margin-right: auto; font-size: 0.7rem;"></i>
-    </div>
-    <div class="dropdown-container">
-        <a href="#" class="sub-nav-item">
-            <i class="fas fa-plus-circle"></i> <span>رفع منتج</span>
-        </a>
-        <!-- تم تعديل الرابط ليتوافق مع الدالة sync_now -->
-        <a href="{{ url_for('admin_panel.sync_now') }}" class="sub-nav-item {% if request.endpoint == 'admin_panel.sync_now' %}active{% endif %}">
-            <i class="fas fa-clipboard-check"></i> <span>مراجعة المنتجات</span>
-        </a>
-    </div>
-</div>
+        /* --- السايدبار الإداري (The Command Fortress) --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
+            height: 100vh; position: fixed; right: 0; top: 0;
+            z-index: 1100; display: flex; flex-direction: column;
+            transition: var(--transition);
+            box-shadow: -5px 0 20px rgba(0,0,0,0.4);
+        }
 
-<div class="nav-label">إدارة الشركاء</div>
-<div class="nav-dropdown" id="vendorsDropdown"> 
-    <div class="nav-item" onclick="toggleDropdown('vendorsDropdown')">
-        <i class="fas fa-store"></i> <span>الموردين</span>
-        <i class="fas fa-chevron-down chevron" style="margin-right: auto; font-size: 0.7rem;"></i>
-    </div>
-    <div class="dropdown-container">
-        <!-- تم تعديل الرابط ليتوافق مع الدالة manage_suppliers -->
-        <a href="{{ url_for('admin_panel.manage_suppliers') }}" class="sub-nav-item {% if request.endpoint == 'admin_panel.manage_suppliers' %}active{% endif %}">
-            <i class="fas fa-user-clock" style="color: var(--mahjoub-gold);"></i> 
-            <span>طلبات الانتظار</span>
-        </a>
-        <a href="{{ url_for('admin_panel.wallets') }}" class="sub-nav-item">
-            <i class="fas fa-wallet"></i> <span>المحافظ المالية</span>
-        </a>
-    </div>
-</div>
+        .sidebar-header { 
+            padding: 2rem 1rem; text-align: center; 
+            border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+        }
+        
+        .logo-img { 
+            width: 65px; height: auto; 
+            filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(212, 175, 55, 0.4));
+            margin-bottom: 15px; 
+        }
+        
+        .sidebar-header h2 { color: white; font-size: 1.15rem; margin: 0; font-weight: 900; letter-spacing: 1px; }
+        .platform-desc { color: var(--mahjoub-gold); font-size: 0.75rem; font-weight: 700; margin-top: 5px; opacity: 0.9; }
 
-<div class="nav-label" style="margin-top: 20px;">النظام</div>
-<a href="{{ url_for('admin_panel.logout') }}" class="nav-item" style="color: #ef4444;">
-    <i class="fas fa-power-off"></i> <span>إنهاء الجلسة</span>
-</a>
+        .nav-menu { padding: 1.5rem 0.8rem; flex-grow: 1; overflow-y: auto; }
+        
+        .nav-link {
+            display: flex; align-items: center; padding: 12px 15px;
+            color: rgba(255, 255, 255, 0.7); text-decoration: none;
+            border-radius: 12px; margin-bottom: 8px; transition: var(--transition);
+            cursor: pointer; white-space: nowrap;
+        }
+
+        .nav-link i { min-width: 35px; font-size: 1.2rem; text-align: center; }
+        
+        .nav-link:hover, .nav-link.active {
+            background: rgba(212, 175, 55, 0.15); color: var(--mahjoub-gold);
+            transform: translateX(-8px);
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* المنسدلات الإدارية */
+        .dropdown-content {
+            display: none; list-style: none; padding: 0; margin-right: 2.5rem;
+            border-right: 2px solid rgba(212, 175, 55, 0.3);
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-content li a {
+            padding: 10px 15px; color: rgba(255,255,255,0.5);
+            display: flex; align-items: center; gap: 10px; text-decoration: none; font-size: 0.85rem;
+            transition: 0.3s;
+        }
+        .dropdown-content li a:hover { color: var(--mahjoub-gold); padding-right: 20px; background: rgba(255,255,255,0.03); }
+
+        .main-wrapper { 
+            margin-right: var(--sidebar-width); width: 100%; 
+            transition: var(--transition); display: flex; flex-direction: column;
+        }
+
+        .top-bar {
+            background: white; height: 80px; display: flex; align-items: center;
+            justify-content: space-between; padding: 0 2.5rem;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.04);
+            position: sticky; top: 0; z-index: 1000;
+        }
+
+        .admin-badge {
+            background: rgba(26, 11, 46, 0.04); padding: 10px 25px; border-radius: 50px;
+            border: 1.5px solid var(--mahjoub-gold); display: flex; align-items: center; gap: 12px;
+        }
+
+        .user-profile { display: flex; align-items: center; gap: 15px; }
+        .user-avatar { 
+            width: 45px; height: 45px; background: var(--royal-purple); 
+            border-radius: 14px; display: flex; align-items: center; 
+            justify-content: center; color: var(--mahjoub-gold);
+            box-shadow: 0 5px 15px rgba(26, 11, 46, 0.25);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .content-area { padding: 2.5rem; min-height: calc(100vh - 80px); }
+
+        @media (max-width: 992px) {
+            .sidebar { width: var(--sidebar-mini); }
+            .sidebar-header h2, .platform-desc, .nav-link span, .chevron, .dropdown-content { display: none !important; }
+            .main-wrapper { margin-right: var(--sidebar-mini); }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar shadow">
+        <div class="sidebar-header">
+            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="logo-img" alt="Mahjoub Online">
+            <h2>محجوب أونلاين</h2>
+            <div class="platform-desc">القيادة المركزية | السلطة العليا</div>
+        </div>
+
+        <nav class="nav-menu">
+            <!-- نظرة عامة -->
+            <a href="{{ url_for('admin_panel.admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_panel.admin_dashboard' %}active{% endif %}">
+                <i class="fas fa-tower-observation"></i>
+                <span>مركز المراقبة</span>
+            </a>
+
+            <!-- حوكمة الموردين -->
+            <div class="nav-item">
+                <div class="nav-link" onclick="toggleDropdown(this)">
+                    <i class="fas fa-handshake-angle"></i>
+                    <span>حوكمة الموردين</span>
+                    <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s;"></i>
+                </div>
+                <ul class="dropdown-content">
+                    <li><a href="{{ url_for('admin_panel.manage_suppliers') }}"><i class="fas fa-list-check"></i> إدارة الموردين المعتمدين</a></li>
+                    <li><a href="#"><i class="fas fa-user-clock"></i> طلبات اعتماد معلقة</a></li>
+                </ul>
+            </div>
+
+            <!-- الهندسة المالية -->
+            <div class="nav-item">
+                <div class="nav-link" onclick="toggleDropdown(this)">
+                    <i class="fas fa-vault"></i>
+                    <span>الهندسة المالية</span>
+                    <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s;"></i>
+                </div>
+                <ul class="dropdown-content">
+                    <li><a href="#"><i class="fas fa-money-bill-transfer"></i> تسويات الأرصدة</a></li>
+                    <li><a href="#"><i class="fas fa-chart-pie"></i> تقارير الأرباح</a></li>
+                </ul>
+            </div>
+
+            <!-- التحكم بالنظام -->
+            <div class="nav-item">
+                <div class="nav-link" onclick="toggleDropdown(this)">
+                    <i class="fas fa-gears"></i>
+                    <span>إعدادات السيادة</span>
+                    <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s;"></i>
+                </div>
+                <ul class="dropdown-content">
+                    <li><a href="#"><i class="fas fa-users-crown"></i> إدارة المدراء</a></li>
+                    <li><a href="#"><i class="fas fa-database"></i> النسخ الاحتياطي</a></li>
+                </ul>
+            </div>
+
+            <!-- تسجيل الخروج -->
+            <a href="{{ url_for('admin_panel.logout') }}" class="nav-link mt-auto" style="color: #ff7675; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                <i class="fas fa-power-off"></i>
+                <span>إنهاء الجلسة الآمنة</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-wrapper">
+        <header class="top-bar">
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 900; color: var(--royal-purple); line-height: 1.2;">علي محجوب</div>
+                    <small style="color: #888; font-size: 0.75rem; font-weight: 600;">المسؤول الأعلى للقرار</small>
+                </div>
+            </div>
+
+            <div class="admin-badge d-none d-md-flex">
+                <i class="fas fa-shield-halved" style="color: var(--mahjoub-gold);"></i>
+                <strong style="color: var(--royal-purple); font-size: 0.95rem;">نظام الحوكمة المركزية</strong>
+            </div>
+        </header>
+
+        <div class="content-area">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm border-0 mb-4" style="border-right: 5px solid var(--mahjoub-gold) !important;">
+                      <i class="fas fa-shield-check me-2"></i> {{ message }}
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleDropdown(element) {
+            const content = element.nextElementSibling;
+            const chevron = element.querySelector('.chevron');
+            
+            document.querySelectorAll('.dropdown-content').forEach(el => {
+                if (el !== content) el.style.display = 'none';
+            });
+            document.querySelectorAll('.chevron').forEach(ch => {
+                if (ch !== chevron) ch.style.transform = "rotate(0deg)";
+            });
+
+            const isOpen = content.style.display === "block";
+            content.style.display = isOpen ? "none" : "block";
+            if(chevron) {
+                chevron.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
+            }
+        }
+    </script>
+</body>
+</html>
