@@ -1,17 +1,13 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-
-# التصحيح الجوهري: استيراد البلوبرنت من ملف التعريف المحلي (__init__.py) داخل المجلد
-from . import admin_panel 
-
-# استيراد النماذج وأدوات الأمان
+from . import admin_panel
 from core.models import User, Supplier, Product, db
 from core.utils.security import admin_required
 
 # --- 1. بوابة الولوج السيادي ---
 @admin_panel.route('/login', methods=['GET', 'POST'])
 def admin_login():
-    # منع الدخول المتكرر للقائد إذا كانت الجلسة نشطة
+    # منع الدخول المتكرر إذا كانت الجلسة نشطة لعلي محجوب
     if current_user.is_authenticated and hasattr(current_user, 'role') and current_user.role == 'admin':
         return redirect(url_for('admin_panel.admin_dashboard'))
 
@@ -19,7 +15,7 @@ def admin_login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # التحقق من الهوية الرقمية لعلي محجوب
+        # التحقق من الهوية الرقمية
         user = User.query.filter_by(username=username, role='admin').first()
 
         if user and user.check_password(password):
@@ -29,7 +25,6 @@ def admin_login():
         else:
             flash('فشل في التحقق من الهوية.. تأكد من المعرف أو مفتاح التشفير.', 'danger')
 
-    # Flask سيبحث تلقائياً داخل admin_panel/templates عن login.html
     return render_template('login.html')
 
 # --- 2. برج الرقابة المركزية (Dashboard) ---
