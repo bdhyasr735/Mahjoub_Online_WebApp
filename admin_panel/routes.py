@@ -1,6 +1,5 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-# تأمين الاستيراد النسبي لضمان قراءة البلوبرنت من __init__.py المجاور
 from . import admin_panel 
 from core.models import User, Supplier, Product, db
 from core.utils.security import admin_required
@@ -8,7 +7,6 @@ from core.utils.security import admin_required
 # --- 1. بوابة الولوج السيادي ---
 @admin_panel.route('/login', methods=['GET', 'POST'])
 def admin_login():
-    # منع الدخول المتكرر إذا كانت الجلسة نشطة لعلي محجوب
     if current_user.is_authenticated and hasattr(current_user, 'role') and current_user.role == 'admin':
         return redirect(url_for('admin_panel.admin_dashboard'))
 
@@ -16,7 +14,6 @@ def admin_login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # البحث عن المستخدم في قاعدة بيانات محجوب أونلاين
         user = User.query.filter_by(username=username, role='admin').first()
 
         if user and user.check_password(password):
@@ -33,44 +30,15 @@ def admin_login():
 @login_required
 @admin_required
 def admin_dashboard():
-    # إحصائيات الترسانة المحدثة لعام 2026
     stats = {
         'orders_count': 0, 
         's_count': Supplier.query.count(),
         'total_balance': 0.00, 
         'p_count': Product.query.count()
     }
-    
-    recent_transactions = []
-    
-    return render_template('dashboard.html', 
-                           orders_count=stats['orders_count'],
-                           s_count=stats['s_count'],
-                           total_balance=stats['total_balance'],
-                           p_count=stats['p_count'],
-                           transactions=recent_transactions)
+    return render_template('dashboard.html', **stats, transactions=[])
 
-# --- 3. إدارة حوكمة الموردين ---
-@admin_panel.route('/manage-suppliers')
-@login_required
-@admin_required
-def manage_suppliers():
-    all_suppliers = Supplier.query.all()
-    return render_template('manage_suppliers.html', suppliers=all_suppliers)
-
-# --- 4. نظام الاعتماد السيادي ---
-@admin_panel.route('/verify-supplier/<int:supplier_id>')
-@login_required
-@admin_required
-def verify_supplier(supplier_id):
-    # استخدام معرف المورد لتفعيل حسابه رسمياً في المنصة
-    supplier = Supplier.query.get_or_404(supplier_id)
-    supplier.is_verified = True
-    db.session.commit()
-    flash(f'تم منح الاعتماد الرسمي لمتجر: {supplier.store_name}.', 'success')
-    return redirect(url_for('admin_panel.manage_suppliers'))
-
-# --- 5. إنهاء الجلسة الآمنة ---
+# --- 3. إنهاء الجلسة الآمنة ---
 @admin_panel.route('/logout')
 @login_required
 def logout():
