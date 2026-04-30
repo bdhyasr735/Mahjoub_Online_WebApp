@@ -1,39 +1,49 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from config import Config
+from flask_migrate import Migrate
 
-# تهيئة الأدوات الأساسية
+# تهيئة الكائنات الأساسية خارج الدالة لمنع التكرار
 db = SQLAlchemy()
+migrate = Migrate()
 login_manager = LoginManager()
 
 def create_app():
+    """
+    دالة بناء التطبيق (Application Factory)
+    تجمع النواة، الموديلات، وبوابات الإدارة في كيان واحد.
+    """
     app = Flask(__name__)
-    app.config.from_object(Config)
 
-    # ربط الأدوات بالتطبيق
+    # إعدادات المحرك (تأكد من ضبط قاعدة البيانات لتدعم UTF-8 للأسماء العربية)
+    app.config['SECRET_KEY'] = 'Mahjoub_Sovereign_2026_Key'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:password@localhost/mahjoub_db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # تفعيل الإضافات داخل سياق التطبيق
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
-    
-    # إعدادات الحماية والدخول
-    login_manager.login_view = 'admin_panel.admin_login' # المسار الافتراضي لمنع المتسللين
-    login_manager.login_message_category = 'info'
 
-    # تحميل النماذج (Models) لضمان بناء الجداول
-    from core.models import User
+    # توجيه المستخدمين غير المسجلين إلى بوابة الولوج السيادي
+    login_manager.login_view = 'admin_panel.admin_login'
+    login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى برج الرقابة."
+    login_manager.login_message_category = "info"
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        return User.query.get(int(user_id))
+    with app.app_context():
+        # تسجيل بوابة الإدارة (Blueprint)
+        from admin_panel.routes import admin_panel
+        app.register_blueprint(admin_panel, url_prefix='/admin')
 
-    # تسجيل البوابات (Blueprints) - ربط الخيوط الثلاثة
-    from core.main.routes import main_bp
-    from admin_panel.routes import admin_panel as admin_bp
-    from supplier_panel.routes import supplier_bp
-    
-    # تفعيل المسارات في المتصفح
-    app.register_blueprint(main_bp) # الواجهة العامة (بدون سابقة)
-    app.register_blueprint(admin_bp, url_prefix='/admin-central') # برج الرقابة
-    app.register_blueprint(supplier_bp, url_prefix='/supplier-portal') # بوابة الموردين
+        # استدعاء الموديلات لضمان بناء الجداول (User, Supplier, Product)
+        from core import models
 
     return app
+
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    محرك التحقق من الهوية: يقوم باستعادة المستخدم من قاعدة البيانات عبر معرفه.
+    """
+    from core.models.user import User
+    return User.query.get(int(user_id))
