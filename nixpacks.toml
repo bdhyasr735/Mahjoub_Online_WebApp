@@ -1,8 +1,11 @@
 [phases.setup]
-nixPkgs = ["python", "postgresql"]
+# نكتفي بتعريف بايثون وقاعدة البيانات
+nixPkgs = ["python311", "postgresql"]
 
 [phases.install]
-cmds = ["python -m venv .venv", ".venv/bin/pip install --upgrade pip", ".venv/bin/pip install -r requirements.txt"]
+# نستخدم pip مباشرة لتثبيت المكتبات دون محاولة إنشاء venv يدوياً
+cmds = ["pip install -r requirements.txt"]
 
 [start]
-cmd = "gunicorn run:app"
+# أمر التشغيل المباشر
+cmd = "gunicorn -b 0.0.0.0:8080 run:app"
