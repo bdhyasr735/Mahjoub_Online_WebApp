@@ -1,6 +1,10 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from admin_panel import admin_panel
+
+# التصحيح الجوهري: استيراد البلوبرنت من ملف التعريف المحلي (__init__.py) داخل المجلد
+from . import admin_panel 
+
+# استيراد النماذج وأدوات الأمان
 from core.models import User, Supplier, Product, db
 from core.utils.security import admin_required
 
@@ -8,14 +12,14 @@ from core.utils.security import admin_required
 @admin_panel.route('/login', methods=['GET', 'POST'])
 def admin_login():
     # منع الدخول المتكرر للقائد إذا كانت الجلسة نشطة
-    if current_user.is_authenticated and current_user.role == 'admin':
+    if current_user.is_authenticated and hasattr(current_user, 'role') and current_user.role == 'admin':
         return redirect(url_for('admin_panel.admin_dashboard'))
 
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # التحقق من الهوية الرقمية
+        # التحقق من الهوية الرقمية لعلي محجوب
         user = User.query.filter_by(username=username, role='admin').first()
 
         if user and user.check_password(password):
@@ -25,7 +29,7 @@ def admin_login():
         else:
             flash('فشل في التحقق من الهوية.. تأكد من المعرف أو مفتاح التشفير.', 'danger')
 
-    # استدعاء مباشر من admin_panel/templates/login.html
+    # Flask سيبحث تلقائياً داخل admin_panel/templates عن login.html
     return render_template('login.html')
 
 # --- 2. برج الرقابة المركزية (Dashboard) ---
@@ -43,7 +47,6 @@ def admin_dashboard():
     
     recent_transactions = []
     
-    # استدعاء مباشر من admin_panel/templates/dashboard.html كما حددت
     return render_template('dashboard.html', 
                            orders_count=stats['orders_count'],
                            s_count=stats['s_count'],
@@ -57,7 +60,6 @@ def admin_dashboard():
 @admin_required
 def manage_suppliers():
     all_suppliers = Supplier.query.all()
-    # استدعاء مباشر من admin_panel/templates/manage_suppliers.html
     return render_template('manage_suppliers.html', suppliers=all_suppliers)
 
 # --- 4. نظام الاعتماد السيادي ---
