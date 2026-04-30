@@ -2,41 +2,25 @@ from core import db
 from datetime import datetime
 
 class Product(db.Model):
-    """
-    موديل المنتج - نظام محجوب أونلاين
-    يربط بين سعر التكلفة للمورد وسعر البيع في قمرة مع تتبع الرقم التسلسلي.
-    """
-    __tablename__ = 'product'
+    __tablename__ = 'products'
     
     id = db.Column(db.Integer, primary_key=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'), nullable=False)
+    # ربط المنتج بالمورد (صاحب المنتج)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     
-    # --- بيانات المنتج الأساسية ---
-    name = db.Column(db.String(255), nullable=False)
+    # تفاصيل المنتج الأساسية
+    name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
-    category = db.Column(db.String(100))
+    price = db.Column(db.Float, nullable=False, default=0.0)
+    stock = db.Column(db.Integer, default=0)
     
-    # --- الربط السيادي مع قمرة ---
-    qumra_id = db.Column(db.String(100), unique=True) # المعرف الفريد في منصة قمرة
-    sku = db.Column(db.String(100), unique=True)      # وحدة حفظ المخزون
+    # إدارة المحتوى (الصور والتصنيفات)
+    image_url = db.Column(db.String(500)) # رابط الصورة من "قمرة" أو السيرفر
+    category = db.Column(db.String(50))
     
-    # --- الحوكمة المالية ---
-    cost_price = db.Column(db.Float, nullable=False)  # سعر التكلفة (حق المورد)
-    sale_price = db.Column(db.Float)                 # سعر البيع النهائي للزبون
-    commission = db.Column(db.Float, default=0.0)    # صافي ربح المنصة من هذا المنتج
-    
-    # --- حالة المخزون ---
-    stock_quantity = db.Column(db.Integer, default=0)
-    is_active = db.Column(db.Boolean, default=True)
-    
+    # التوقيت والحالة
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    def calculate_profit(self):
-        """حساب الربح الصافي للمنصة من هذا المنتج"""
-        if self.sale_price and self.cost_price:
-            return self.sale_price - self.cost_price
-        return 0.0
+    is_active = db.Column(db.Boolean, default=True) # متاح للبيع أو مخفي
 
     def __repr__(self):
-        return f'<Product: {self.name} | Supplier ID: {self.supplier_id}>'
+        return f'<Product {self.name} - Price: {self.price}>'
