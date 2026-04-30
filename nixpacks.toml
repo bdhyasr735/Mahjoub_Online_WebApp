@@ -1,12 +1,8 @@
-# إعدادات بناء بيئة التشغيل لمنصة محجوب أونلاين
 [phases.setup]
-# إجبار النظام على تثبيت بايثون ومكتبات PostgreSQL الأساسية
-nixPkgs = ["python312", "postgresql"]
+nixPkgs = ["python", "postgresql"]
 
 [phases.install]
-# التأكد من تثبيت المكتبات من ملف requirements.txt
-cmds = ["python -m venv .venv", ".venv/bin/pip install -r requirements.txt"]
+cmds = ["python -m venv .venv", ".venv/bin/pip install --upgrade pip", ".venv/bin/pip install -r requirements.txt"]
 
 [start]
-# أمر التشغيل النهائي لضمان استقرار السيرفر
 cmd = "gunicorn run:app"
