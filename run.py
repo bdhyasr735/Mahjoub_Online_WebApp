@@ -6,4 +6,4 @@ app = create_app()
 if __name__ == '__main__':
     # تشغيل السيرفر المحلي على المنفذ 5000
     # ملاحظة: سيقوم التطبيق تلقائياً بالاتصال بقاعدة Render السحابية
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=8080)
