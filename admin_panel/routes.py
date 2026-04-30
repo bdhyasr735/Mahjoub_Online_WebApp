@@ -4,11 +4,10 @@ from admin_panel import admin_panel
 from core.models import User, Supplier, Product, db
 from core.utils.security import admin_required
 
-# --- 1. بوابه الولوج السيادي (Login) ---
-# المسار المرتبط بملف admin_panel/templates/login.html
+# --- 1. بوابة الولوج السيادي ---
 @admin_panel.route('/login', methods=['GET', 'POST'])
 def admin_login():
-    # التحقق من الجلسة النشطة للقائد علي محجوب
+    # منع الدخول المتكرر للقائد إذا كانت الجلسة نشطة
     if current_user.is_authenticated and current_user.role == 'admin':
         return redirect(url_for('admin_panel.admin_dashboard'))
 
@@ -16,10 +15,9 @@ def admin_login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # استعلام الهوية من قاعدة بيانات الترسانة
+        # التحقق من الهوية الرقمية
         user = User.query.filter_by(username=username, role='admin').first()
 
-        # التحقق من مفتاح التشفير (Password)
         if user and user.check_password(password):
             login_user(user)
             flash('تم تفعيل الولوج السيادي بنجاح.. أهلاً بك أيها القائد.', 'success')
@@ -27,25 +25,25 @@ def admin_login():
         else:
             flash('فشل في التحقق من الهوية.. تأكد من المعرف أو مفتاح التشفير.', 'danger')
 
+    # استدعاء مباشر من admin_panel/templates/login.html
     return render_template('login.html')
 
 # --- 2. برج الرقابة المركزية (Dashboard) ---
-# المسار المرتبط بملف admin_panel/templates/dashboard.html والهيكل base.html
 @admin_panel.route('/dashboard')
 @login_required
 @admin_required
 def admin_dashboard():
-    # جلب الإحصائيات الحية لتغذية نوافذ الإدارة
+    # إحصائيات الترسانة لعام 2026
     stats = {
-        'orders_count': 0, # سيتم ربطه بمحرك الطلبات لاحقاً
-        's_count': Supplier.query.count(), # عدد شركاء الترسانة
-        'total_balance': 0.00, # السيولة المركزية
-        'p_count': Product.query.count() # طلبات قيد التدقيق
+        'orders_count': 0, 
+        's_count': Supplier.query.count(),
+        'total_balance': 0.00, 
+        'p_count': Product.query.count()
     }
     
-    # سجل العمليات السيادية (Transactions) - فارغ حالياً للتهيئة
     recent_transactions = []
     
+    # استدعاء مباشر من admin_panel/templates/dashboard.html كما حددت
     return render_template('dashboard.html', 
                            orders_count=stats['orders_count'],
                            s_count=stats['s_count'],
@@ -53,18 +51,16 @@ def admin_dashboard():
                            p_count=stats['p_count'],
                            transactions=recent_transactions)
 
-# --- 3. نافذة حوكمة الموردين (Manage Suppliers) ---
-# المسار المرتبط بملف admin_panel/templates/manage_suppliers.html
+# --- 3. إدارة حوكمة الموردين ---
 @admin_panel.route('/manage-suppliers')
 @login_required
 @admin_required
 def manage_suppliers():
-    # استعراض كافة الموردين للرقابة عليهم
     all_suppliers = Supplier.query.all()
+    # استدعاء مباشر من admin_panel/templates/manage_suppliers.html
     return render_template('manage_suppliers.html', suppliers=all_suppliers)
 
-# --- 4. نافذة الاعتماد والتحقق (Supplier Verification) ---
-# تفعيل الموردين ومنحهم صلاحية العرض في محجوب أونلاين
+# --- 4. نظام الاعتماد السيادي ---
 @admin_panel.route('/verify-supplier/<int:supplier_id>')
 @login_required
 @admin_required
@@ -75,7 +71,7 @@ def verify_supplier(supplier_id):
     flash(f'تم منح الاعتماد الرسمي لمتجر: {supplier.store_name}.', 'success')
     return redirect(url_for('admin_panel.manage_suppliers'))
 
-# --- 5. إنهاء الجلسة الآمنة (Logout) ---
+# --- 5. إنهاء الجلسة الآمنة ---
 @admin_panel.route('/logout')
 @login_required
 def logout():
