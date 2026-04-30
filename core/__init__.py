@@ -4,54 +4,39 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
 
-# تهيئة الإضافات (Extensions)
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 
 def create_app():
-    """
-    دالة بناء التطبيق - المهندس والمحرك لمنصة محجوب أونلاين.
-    """
     app = Flask(__name__)
 
-    # إعدادات قاعدة البيانات والأمان من متغيرات بيئة Railway
+    # إعدادات قاعدة البيانات والأمان لعام 2026
     database_url = os.getenv("DATABASE_URL")
-    
-    # تصحيح الرابط ليتوافق مع SQLAlchemy (تبديل postgres بـ postgresql)
     if database_url and database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
         
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    # استخدام مفتاح الأمان السيادي الخاص بعلي محجوب
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "Ali_Mahjoub_Sovereign_2026")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # تفعيل الإضافات داخل سياق التطبيق
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
-    # إعدادات نظام الولوج السيادي
     login_manager.login_view = 'admin_panel.admin_login'
-    login_manager.login_message = "الدخول يتطلب صلاحيات القائد."
 
     with app.app_context():
-        # --- التصحيح الجوهري لـ Railway ---
-        # نستورد المسار الكامل للمتغير لضمان عدم حدوث ImportError
-        from admin_panel import admin_panel
-        app.register_blueprint(admin_panel, url_prefix='/admin')
+        # التصحيح النهائي لـ Railway: استيراد الكائن والمسارات معاً
+        from admin_panel import admin_panel as admin_bp
+        from admin_panel import routes # شحن المسارات يدوياً
+        app.register_blueprint(admin_bp, url_prefix='/admin')
 
-        # استدعاء الموديلات لضمان بناء الجداول
         from core import models
 
     return app
 
 @login_manager.user_loader
 def load_user(user_id):
-    """
-    محرك التحقق من الهوية الرقمية.
-    """
-    # استيراد محلي لتجنب المشاكل الدائرية
     from core.models import User
     return User.query.get(int(user_id))
