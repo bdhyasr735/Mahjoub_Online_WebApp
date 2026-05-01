@@ -27,22 +27,24 @@ def create_app(config_class=Config):
         return User.query.get(int(user_id))
 
     with app.app_context():
-        # --- منطق الترميم التلقائي الشامل لقاعدة البيانات ---
+        # --- منطق الترميم التلقائي الشامل لقاعدة البيانات (نسخة علي محجوب السيادية) ---
         try:
-            # إضافة كافة الأعمدة المحتمل نقصها لضمان استقرار "محجوب أونلاين"
+            # 1. فحص وترميم الأعمدة الأساسية فقط لضمان عمل "محجوب أونلاين"
+            # تم حذف عمود الـ email نهائياً تماشياً مع طلبك
             db.session.execute(text('ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(150) UNIQUE;'))
             db.session.execute(text('ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);'))
-            db.session.execute(text('ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(120) UNIQUE;'))
-            db.session.execute(text('ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT \'supplier\';'))
+            db.session.execute(text('ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT \'admin\';'))
             db.session.execute(text('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active_account BOOLEAN DEFAULT TRUE;'))
+            
             db.session.commit()
             print("✅ تم فحص وترميم أعمدة قاعدة البيانات بنجاح.")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ تنبيه: قاعدة البيانات محدثة أو هناك خطأ بسيط في الربط: {e}")
+            print(f"⚠️ تنبيه: قاعدة البيانات محدثة أو هناك تداخل بسيط: {e}")
         # --------------------------------------------------
 
-        from admin_panel import admin_bp
+        # تسجيل Blueprints (التأكد من الربط الصحيح بالمسارات)
+        from admin_panel.routes import admin_bp
         app.register_blueprint(admin_bp, url_prefix='/admin')
 
         @app.route('/')
