@@ -5,48 +5,45 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model, UserMixin):
     """
-    موديل المستخدمين - النواة السيادية للهوية الرقمية في منصة محجوب أونلاين.
-    يدعم الأسماء بالعربية وتعدد الأدوار (قائد، مورد، عميل).
+    موديل المستخدمين - التركيز الكامل على 'اسم المستخدم' كمعرف سيادي.
+    تم ضبط الحقول الأخرى لتكون مرنة لمنع انهيار السيرفر بسبب نقص الأعمدة.
     """
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
     
-    # اسم المستخدم: تم رفع الطول لـ 150 لدعم الأسماء العربية المركبة بسلاسة
+    # اسم المستخدم: المعرف الأساسي والوحيد المطلوب للدخول (يدعم العربية)
     username = db.Column(db.String(150), unique=True, nullable=False)
     
-    # البريد الإلكتروني للارتباط الرسمي وتوثيق الحساب
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    # البريد الإلكتروني: اختياري (Nullable) لحل مشكلة UndefinedColumn في الجداول القديمة
+    email = db.Column(db.String(120), unique=True, nullable=True)
     
-    # تخزين مفتاح التشفير بدلاً من كلمة المرور الصريحة لتعزيز الأمان
+    # مفتاح التشفير لكلمة المرور
     password_hash = db.Column(db.String(255), nullable=False)
     
-    # حوكمة الأدوار: 
-    # 'admin' -> القائد علي محجوب (تحكم كامل)
-    # 'supplier' -> شركاء الترسانة (إدارة منتجاتهم)
-    # 'user' -> العملاء والمتسوقين
+    # حوكمة الأدوار: (admin للقيادة، supplier للموردين)
     role = db.Column(db.String(20), nullable=False, default='supplier')
     
-    # حالة الحساب السيادية: تتيح للقائد إيقاف أو تفعيل أي حساب في المنصة
+    # الحالة التشغيلية للحساب: تفعيل أو إيقاف بقرار من القائد
     is_active_account = db.Column(db.Boolean, default=True)
     
     # تاريخ الانضمام للمنصة
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    @property
+    def is_admin(self):
+        """التحقق السريع من صلاحيات الإدارة"""
+        return self.role == 'admin'
+
     def set_password(self, password):
-        """
-        تحويل كلمة المرور النصية إلى هاش مشفر غير قابل للكسر.
-        """
+        """توليد الهاش المشفر لضمان أمان الترسانة الرقمية"""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """
-        التحقق من مطابقة كلمة المرور المدخلة مع الهاش المخزن عند الولوج.
-        """
+        """المقارنة الذكية عند تسجيل الدخول"""
+        if not self.password_hash:
+            return False
         return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
-        """
-        التمثيل النصي للكائن داخل بيئة التطوير (برج الرقابة).
-        """
-        return f'<User {self.username} - Role: {self.role} - Status: {"Active" if self.is_active_account else "Blocked"}>'
+        return f'<User {self.username} - Role: {self.role}>'
