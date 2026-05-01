@@ -29,7 +29,6 @@
             overflow: hidden;
         }
 
-        /* تأثير الخلفية المتحركة */
         body::before {
             content: "";
             position: absolute;
@@ -84,7 +83,6 @@
             opacity: 0.9;
         }
 
-        /* تنسيق رسائل الخطأ الديناميكي */
         .flash-msg {
             padding: 12px;
             border-radius: 10px;
@@ -96,23 +94,9 @@
             text-align: center;
         }
 
-        .flash-danger {
-            background: rgba(255, 77, 77, 0.15);
-            color: var(--danger);
-            border-color: rgba(255, 77, 77, 0.3);
-        }
-
-        .flash-warning {
-            background: rgba(255, 204, 0, 0.1);
-            color: var(--warning);
-            border-color: rgba(255, 204, 0, 0.3);
-        }
-
-        .flash-success {
-            background: rgba(0, 255, 204, 0.1);
-            color: var(--success);
-            border-color: rgba(0, 255, 204, 0.3);
-        }
+        .flash-danger { background: rgba(255, 77, 77, 0.15); color: var(--danger); border-color: rgba(255, 77, 77, 0.3); }
+        .flash-warning { background: rgba(255, 204, 0, 0.1); color: var(--warning); border-color: rgba(255, 204, 0, 0.3); }
+        .flash-success { background: rgba(0, 255, 204, 0.1); color: var(--success); border-color: rgba(0, 255, 204, 0.3); }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -157,7 +141,7 @@
             border-radius: 12px;
             color: white;
             font-family: 'Cairo';
-            font-size: 0.95rem;
+            font-size: 1rem;
             box-sizing: border-box;
             transition: all 0.3s ease;
         }
@@ -228,13 +212,7 @@
           {% if messages %}
             {% for category, message in messages %}
               <div class="flash-msg flash-{{ category }}">
-                {% if category == 'danger' %}
-                    <i class="fas fa-exclamation-triangle"></i>
-                {% elif category == 'warning' %}
-                    <i class="fas fa-user-lock"></i>
-                {% else %}
-                    <i class="fas fa-check-circle"></i>
-                {% endif %}
+                <i class="fas {% if category == 'danger' %}fa-exclamation-triangle{% elif category == 'warning' %}fa-user-lock{% else %}fa-check-circle{% endif %}"></i>
                 {{ message }}
               </div>
             {% endfor %}
@@ -243,9 +221,10 @@
 
         <form action="{{ url_for('admin.admin_login') }}" method="POST">
             <div class="form-group">
-                <label>معرف القائد</label>
+                <label>معرف القائد (بالعربي)</label>
                 <div class="input-wrapper">
-                    <input type="text" name="username" class="form-control" placeholder="اسم المستخدم" required autofocus autocomplete="off">
+                    <!-- تم ضبط الحقل لاستقبال اسم المستخدم بالعربي -->
+                    <input type="text" name="username" class="form-control" placeholder="علي" required autofocus autocomplete="off">
                     <i class="fas fa-user-shield"></i>
                 </div>
             </div>
@@ -259,13 +238,13 @@
             </div>
 
             <button type="submit" class="btn-login">
-                <span>ولوج آمن</span>
+                <span>فتح الترسانة الرقمية</span>
                 <i class="fas fa-unlock-alt"></i>
             </button>
         </form>
 
         <div class="footer-text">
-            &copy; 2026 محجوب أونلاين | برج الرقابة المركزية
+            &copy; 2026 محجوب أونلاين | سيادة التجارة الإلكترونية في اليمن
         </div>
     </div>
 
