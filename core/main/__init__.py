@@ -1,6 +1,10 @@
 from flask import Blueprint
 
-# تعريف البلوبرنت الرئيسي للمنصة
-main_bp = Blueprint('main', __name__)
+# 1. إنشاء البلوبرنت (Blueprint)
+# هذا السطر يعرّف "هوية" الجزء الرئيسي للمتجر ويحدد مجلد القوالب (templates)
+main_bp = Blueprint('main', __name__, template_folder='templates')
 
-from . import routes  # استيراد المسارات بعد تعريف البلوبرنت
+# 2. ربط المسارات (Routes)
+# نقوم باستيراد ملف routes هنا (في الأسفل) لتجنب مشكلة "التضارب الدائري"
+# لكي يتم تسجيل جميع الروابط (مثل الصفحة الرئيسية والمتجر) تحت هذا البلوبرنت
+from . import routes
