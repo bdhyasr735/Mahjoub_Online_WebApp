@@ -1,8 +1,8 @@
-from core import db
+# core/models/__init__.py
+# هذا الملف ينظم عملية استيراد الموديلات لضمان رؤيتها من قبل Flask-SQLAlchemy
+
 from core.models.user import User
-from core.models.supplier import Supplier
 from core.models.product import Product
 
-# تعريف القائمة التي تسمح بالاستيراد النظيف من خارج المجلد
-# هذا يمنع تكرار أسطر الاستيراد (Import redundancy) في الـ routes
-__all__ = ['User', 'Supplier', 'Product']
+# تعريف __all__ يضمن تصدير الكلاسات بشكل صحيح عند استخدام استيراد النجمة
+__all__ = ['User', 'Product']
