@@ -78,12 +78,6 @@
         color: var(--gov-purple);
     }
 
-    .manual-input {
-        margin-top: 8px;
-        border-color: var(--gov-gold);
-        display: none;
-    }
-
     .btn-gov {
         background: var(--gov-purple);
         color: white;
@@ -97,44 +91,24 @@
     }
 
     .btn-copy-mini {
-        background: none;
+        background: var(--gov-gold);
         border: none;
-        color: var(--gov-gold);
+        color: white;
         cursor: pointer;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
         margin-right: 8px;
-        transition: 0.2s;
     }
     
-    .btn-copy-mini:hover { color: var(--gov-purple); transform: scale(1.2); }
-
-    .fin-card {
-        background: #fff;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
+    .welcome-msg {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
         padding: 15px;
+        border-radius: 8px;
+        color: #166534;
+        margin-bottom: 20px;
         text-align: center;
-        cursor: pointer;
-        transition: 0.3s;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .fin-card.active {
-        border-color: var(--gov-purple);
-        background: #f5f3ff;
-        color: var(--gov-purple);
-    }
-
-    input[type="file"]::file-selector-button {
-        background: var(--gov-purple);
-        color: white;
-        border: none;
-        padding: 5px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-left: 10px;
     }
 </style>
 
@@ -142,64 +116,50 @@
     <div class="form-header">
         <h2 style="margin:0;">🛡️ تعميد مورد جديد</h2>
         <div style="text-align:left;">
-            <small>الهوية السيادية (ID/Wallet)</small><br>
-            <strong id="sovereign_id_display" style="font-size:1.2rem; color:var(--gov-gold);">{{ next_id if next_id else '---' }}</strong>
+            <small>المعرف السيادي والمحفظة</small><br>
+            <strong id="sovereign_id_display" style="font-size:1.4rem; color:var(--gov-gold);">{{ next_id }}</strong>
         </div>
     </div>
 
-    <!-- تم تعديل المعرف وربط دالة الجافاسكريبت المحدثة -->
     <form id="sovereignForm" action="{{ url_for('admin.add_supplier') }}" method="POST" enctype="multipart/form-data">
         
-        <div class="section-banner">👤 بيانات الحساب والنشاط التجاري</div>
+        <div class="section-banner">👤 بيانات الحساب والنشاط</div>
         <div class="grid-layout">
             <div class="input-box">
                 <label>اسم المستخدم</label>
                 <input type="text" name="username" id="form_username" class="form-control-gov" placeholder="مثال: ali_2026" required>
             </div>
             <div class="input-box">
-                <label>كلمة المرور</label>
-                <input type="text" name="password" value="123" class="form-control-gov" required>
+                <label>كلمة المرور المؤقتة</label>
+                <input type="text" name="password" id="form_pass" value="123" class="form-control-gov" required>
             </div>
             <div class="input-box">
                 <label>نوع النشاط</label>
-                <select name="activity_type" id="activity_select" class="form-control-gov" onchange="toggleManualInput(this, 'manual_activity')" required>
+                <select name="activity_type" class="form-control-gov" required>
                     <option value="مواد غذائية">مواد غذائية</option>
                     <option value="إلكترونيات">إلكترونيات وتقنية</option>
                     <option value="ملابس">ملابس ومنسوجات</option>
-                    <option value="أدوية">أدوية ومستلزمات</option>
-                    <option value="manual">أخرى (إدخال يدوي)...</option>
+                    <option value="manual">أخرى...</option>
                 </select>
-                <input type="text" name="manual_activity" id="manual_activity" class="form-control-gov manual-input" placeholder="اكتب نوع النشاط هنا">
             </div>
         </div>
 
-        <div class="section-banner">📍 بيانات المالك والمنشأة والوثائق</div>
+        <div class="section-banner">📍 بيانات الهوية والمنشأة</div>
         <div class="grid-layout">
             <div class="input-box">
                 <label>اسم المالك الكامل</label>
-                <input type="text" name="owner_name" class="form-control-gov" placeholder="الاسم الرباعي كما في الهوية" required>
-            </div>
-            <div class="input-box">
-                <label>نوع الهوية</label>
-                <select name="id_type" id="id_type_select" class="form-control-gov" onchange="toggleManualInput(this, 'manual_id_type')" required>
-                    <option value="بطاقة شخصية">بطاقة شخصية (ذكية)</option>
-                    <option value="بطاقة شخصية قديمة">بطاقة شخصية (قديمة)</option>
-                    <option value="جواز سفر">جواز سفر</option>
-                    <option value="سجل تجاري">سجل تجاري (للمؤسسات)</option>
-                    <option value="manual">أخرى (إدخال يدوي)...</option>
-                </select>
-                <input type="text" name="manual_id_type" id="manual_id_type" class="form-control-gov manual-input" placeholder="اكتب نوع الهوية هنا">
+                <input type="text" name="owner_name" class="form-control-gov" required>
             </div>
             <div class="input-box">
                 <label>رقم الهوية / السجل</label>
-                <input type="text" name="id_card_number" class="form-control-gov" placeholder="رقم البطاقة أو السجل" required>
+                <input type="text" name="id_card_number" class="form-control-gov" required>
             </div>
             <div class="input-box">
-                <label>صورة الهوية / السجل (أرشفة ضوئية)</label>
+                <label>صورة الوثيقة (أرشفة سيادية)</label>
                 <input type="file" name="id_image" class="form-control-gov" accept="image/*" required>
             </div>
             <div class="input-box">
-                <label>الاسم التجاري للمنشأة</label>
+                <label>الاسم التجاري</label>
                 <input type="text" name="trade_name" class="form-control-gov" required>
             </div>
             <div class="input-box">
@@ -214,190 +174,98 @@
                     <option value="">حدد المحافظة أولاً</option>
                 </select>
             </div>
-            <div class="input-box">
-                <label>العنوان الكامل</label>
-                <input type="text" name="address_detail" class="form-control-gov" placeholder="الشارع - الحي - أقرب معلم" required>
-            </div>
-            <div class="input-box">
-                <label>رقم الهاتف (الأساسي)</label>
-                <input type="text" name="phone" class="form-control-gov" placeholder="7xxxxxxxx" required>
-            </div>
         </div>
 
-        <div class="section-banner">🏦 الربط المالي والمحفظة السيادية</div>
+        <div class="section-banner">🏦 الربط المالي (المحفظة الذكية)</div>
         <div class="grid-layout">
             <div class="input-box">
-                <label>رقم المحفظة / الأيدي (تلقائي)</label>
+                <label>رقم الأيدي والمحفظة (تلقائي)</label>
                 <input type="text" name="e_wallet" id="e_wallet_input" class="form-control-gov form-control-readonly" readonly>
-            </div>
-            <div class="input-box" style="grid-column: 1 / -1;">
-                <label>تصنيف الجهة المالية</label>
-                <div class="finance-selector" style="display: flex; gap: 15px;">
-                    <div class="fin-card active" id="btn_banks" onclick="setFinance('banks')" style="flex:1;">
-                        <span>بنوك إسلامية</span>
-                    </div>
-                    <div class="fin-card" id="btn_exchange" onclick="setFinance('exchange')" style="flex:1;">
-                        <span>شركات صرافة</span>
-                    </div>
-                </div>
-                <input type="hidden" name="fin_type" id="fin_type_hidden" value="banks">
             </div>
             <div class="input-box">
                 <label>اسم البنك / شركة الصرافة</label>
-                <select name="bank_name" id="bank_select" class="form-control-gov" onchange="toggleManualInput(this, 'manual_bank')" required>
-                    <option value="">اختر من القائمة...</option>
-                </select>
-                <input type="text" name="manual_bank" id="manual_bank" class="form-control-gov manual-input" placeholder="اكتب اسم البنك/الشركة هنا">
+                <input type="text" name="bank_name" class="form-control-gov" placeholder="مثال: بنك الكريمي" required>
             </div>
             <div class="input-box">
-                <label>رقم الحساب البنكي</label>
+                <label>رقم الحساب المالي</label>
                 <input type="text" name="bank_acc" class="form-control-gov" required>
             </div>
         </div>
 
-        <div class="btn-submit-container" style="text-align: center; padding: 40px;">
-            <button type="submit" id="submitBtn" class="btn-gov">🛡️ إتمام التعميد والأرشفة السيادية</button>
+        <div style="text-align: center; padding: 40px;">
+            <button type="submit" id="submitBtn" class="btn-gov">🛡️ إتمام التعميد والأرشفة</button>
         </div>
     </form>
 </div>
 
 <script>
     const geoData = {
-        "أمانة العاصمة": ["السبعين", "التحرير", "الثورة", "صنعاء القديمة", "بني الحارث", "وحدة", "معين", "شعوب"],
-        "عدن": ["المنصورة", "كريتر", "الشيخ عثمان", "البريقة", "المعلا", "التواهي", "خور مكسر", "دار سعد"],
-        "تعز": ["المخاء", "القاهرة", "المظفر", "صالة", "ذباب", "صبر الموادم", "التربة"],
-        "الحديدة": ["الخوخة", "الحوك", "الميناء", "باجل", "زبيد", "بيت الفقيه", "القناوص"],
-        "حضرموت": ["المكلا", "سيئون", "الشحر", "تريم", "القطن", "شبام"],
-        "إب": ["الظهار", "المشنة", "جبلة", "يريم", "العدين"],
-        "مأرب": ["مأرب المدينة", "مأرب الوادي", "حريب"],
-        "لحج": ["الحوطة", "تبن", "يافع"],
-        "أبين": ["زنجبار", "خنفار", "لودر"],
-        "شبوة": ["عتق", "بيحان", "عسيلان"],
-        "المهرة": ["الغيضة", "شحن"],
-        "صعدة": ["صعدة المدينة", "سحار"],
-        "حجة": ["حجة المدينة", "عبس"],
-        "البيضاء": ["البيضاء المدينة", "رداع"],
-        "ذمار": ["ذمار المدينة", "معبر"],
-        "عمران": ["عمران المدينة", "خمر"],
-        "الجوف": ["الحزم"],
-        "المحويت": ["المحويت المدينة"],
-        "الضالع": ["الضالع المدينة", "قعطبة"],
-        "ريمة": ["الجبين"],
-        "سقطرى": ["حديبو", "قلنسية"]
+        "عدن": ["المنصورة", "كريتر", "الشيخ عثمان", "البريقة"],
+        "الحديدة": ["الخوخة", "الحوك", "الميناء", "زبيد"],
+        "تعز": ["المخاء", "القاهرة", "المظفر"],
+        "حضرموت": ["المكلا", "سيئون"]
     };
-
-    const finData = {
-        "banks": ["بنك الكريمي الإسلامي", "بنك القطيبي الإسلامي", "بنك التضامن", "بنك اليمن والبحرين", "بنك الشمول", "بنك سبأ"],
-        "exchange": ["شركة المريسي للصرافة", "شركة سويد", "شركة النجم", "شركة العامري", "شركة الصيفي"]
-    };
-
-    function toggleManualInput(selectObj, inputId) {
-        const manualInput = document.getElementById(inputId);
-        if (selectObj.value === 'manual' || selectObj.value === 'other') {
-            manualInput.style.display = 'block';
-            manualInput.required = true;
-        } else {
-            manualInput.style.display = 'none';
-            manualInput.required = false;
-        }
-    }
 
     function loadDistricts(prov) {
         const dSelect = document.getElementById('dist_select');
         dSelect.innerHTML = '<option value="">اختر المديرية...</option>';
-        if(geoData[prov]) {
-            geoData[prov].forEach(d => dSelect.add(new Option(d, d)));
-        }
+        if(geoData[prov]) geoData[prov].forEach(d => dSelect.add(new Option(d, d)));
     }
 
-    function setFinance(type) {
-        document.getElementById('fin_type_hidden').value = type;
-        document.getElementById('btn_banks').classList.toggle('active', type === 'banks');
-        document.getElementById('btn_exchange').classList.toggle('active', type === 'exchange');
-        
-        const bSelect = document.getElementById('bank_select');
-        bSelect.innerHTML = '<option value="">اختر من القائمة...</option>';
-        if(finData[type]) {
-            finData[type].forEach(item => bSelect.add(new Option(item, item)));
-        }
-        bSelect.add(new Option("أخرى (إدخال يدوي)...", "other"));
-    }
-
-    // دالة نسخ النص
-    function copyText(elementId) {
-        const text = document.getElementById(elementId).innerText;
-        navigator.clipboard.writeText(text);
-        Swal.fire({
-            title: 'تم النسخ!',
-            text: text,
-            icon: 'info',
-            timer: 1000,
-            showConfirmButton: false,
-            toast: true,
-            position: 'top-end'
+    function copyToClipboard(text, label) {
+        navigator.clipboard.writeText(text).then(() => {
+            Swal.fire({ title: 'تم النسخ!', text: `نسخت ${label}: ${text}`, icon: 'success', timer: 800, showConfirmButton: false, toast: true, position: 'top-end' });
         });
     }
 
-    // معالجة النموذج بنظام AJAX لإظهار التنبيه
     document.getElementById('sovereignForm').onsubmit = async function(e) {
         e.preventDefault();
-        const submitBtn = document.getElementById('submitBtn');
-        const sovereignID = document.getElementById('sovereign_id_display').innerText.trim();
-        const username = document.getElementById('form_username').value;
-        
-        submitBtn.innerHTML = "⏳ جاري الأرشفة والتعميد...";
-        submitBtn.disabled = true;
+        const btn = document.getElementById('submitBtn');
+        const sID = document.getElementById('sovereign_id_display').innerText;
+        const uName = document.getElementById('form_username').value;
+        const pass = document.getElementById('form_pass').value;
 
-        const formData = new FormData(this);
+        btn.innerHTML = "⏳ جاري الأرشفة السيادية...";
+        btn.disabled = true;
 
         try {
-            const response = await fetch(this.action, {
-                method: 'POST',
-                body: formData
-            });
-
+            const response = await fetch(this.action, { method: 'POST', body: new FormData(this) });
             if (response.ok) {
                 Swal.fire({
-                    title: '✅ تم التعميد بنجاح',
+                    title: '✅ تم التعميد بنجاح يا عظيم!',
                     html: `
-                        <div style="text-align: right; direction: rtl; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                            <p><strong>الرقم السيادي/المحفظة:</strong> <span id="res_wallet">${sovereignID}</span> 
-                                <button type="button" onclick="copyText('res_wallet')" class="btn-copy-mini"><i class="fas fa-copy"></i></button></p>
-                            <p><strong>اسم المستخدم:</strong> <span id="res_user">${username}</span>
-                                <button type="button" onclick="copyText('res_user')" class="btn-copy-mini"><i class="fas fa-copy"></i></button></p>
-                            <p><strong>كلمة المرور:</strong> 123</p>
+                        <div class="welcome-msg">
+                            أهلاً بك في منصة محجوب أونلاين، نحن نؤمن بأن النجاح يُبنى بالثقة.
+                        </div>
+                        <div style="text-align: right; direction: rtl; line-height: 2;">
+                            <b>🆔 الرقم السيادي (المحفظة):</b> <code id="copy_sid">${sID}</code> 
+                            <button onclick="copyToClipboard('${sID}', 'الرقم السيادي')" class="btn-copy-mini">نسخ</button><br>
+                            
+                            <b>👤 اسم المستخدم:</b> <code id="copy_user">${uName}</code> 
+                            <button onclick="copyToClipboard('${uName}', 'اسم المستخدم')" class="btn-copy-mini">نسخ</button><br>
+                            
+                            <b>🔑 كلمة المرور:</b> <code>${pass}</code> 
+                            <button onclick="copyToClipboard('${pass}', 'كلمة المرور')" class="btn-copy-mini">نسخ</button><br>
                             <hr>
-                            <small style="color: var(--gov-purple);">انسخ هذه البيانات وزود بها المورد فوراً.</small>
+                            <p style="color:red; font-size:0.8rem;">⚠️ يرجى الطلب من المورد تغيير كلمة المرور فور الدخول.</p>
                         </div>
                     `,
                     icon: 'success',
                     confirmButtonText: 'حسناً، الانتقال للمراقبة',
-                    confirmButtonColor: '#632C8F',
-                    allowOutsideClick: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = "{{ url_for('admin.admin_dashboard') }}";
-                    }
-                });
-            } else {
-                throw new Error();
+                    confirmButtonColor: '#632C8F'
+                }).then(() => window.location.href = "{{ url_for('admin.admin_dashboard') }}");
             }
         } catch (err) {
-            Swal.fire('خطأ!', 'حدثت مشكلة في الاتصال بالترسانة الرقمية.', 'error');
-            submitBtn.innerHTML = "🛡️ إعادة محاولة التعميد";
-            submitBtn.disabled = false;
+            Swal.fire('خطأ!', 'فشل الاتصال بالترسانة الرقمية.', 'error');
+            btn.disabled = false;
         }
     };
 
     window.onload = () => {
         const pSelect = document.getElementById('prov_select');
-        Object.keys(geoData).sort().forEach(p => pSelect.add(new Option(p, p)));
-        setFinance('banks');
-
-        const sovereignID = document.getElementById('sovereign_id_display').innerText.trim();
-        if(sovereignID && sovereignID !== '---') {
-            document.getElementById('e_wallet_input').value = sovereignID;
-        }
+        Object.keys(geoData).forEach(p => pSelect.add(new Option(p, p)));
+        // ربط المحفظة بالايدي تلقائياً
+        document.getElementById('e_wallet_input').value = document.getElementById('sovereign_id_display').innerText;
     }
 </script>
 {% endblock %}
