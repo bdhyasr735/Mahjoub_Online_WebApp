@@ -15,7 +15,7 @@ class Vendor(db.Model):
     id_type = db.Column(db.String(100), nullable=False)
     id_card_number = db.Column(db.String(50), nullable=False)
     
-    # الحقل الجديد: تخزين مسار صورة الهوية أو السجل التجاري
+    # الحقل المحدث: تخزين مسار صورة الهوية أو السجل التجاري (أرشفة ضوئية)
     id_image_path = db.Column(db.String(500), nullable=True) 
     
     # --- بيانات المنشأة والنشاط ---
@@ -27,18 +27,20 @@ class Vendor(db.Model):
     province = db.Column(db.String(100), nullable=False)
     district = db.Column(db.String(100), nullable=False)
     address_detail = db.Column(db.String(500), nullable=False)
-    phone = db.Column(db.String(15), nullable=False) # تم زيادة الطول لمرونة أكبر مع المفاتيح الدولية
+    phone = db.Column(db.String(20), nullable=False) # طول مرن للمفاتيح الدولية
 
     # --- الربط المالي والسيادي ---
-    # يعكس هذا القسم رؤيتك لبناء النجاح على الثقة والأنظمة الرقمية
-    e_wallet = db.Column(db.String(50), unique=True, nullable=True)
-    fin_type = db.Column(db.String(20), default='banks')
-    bank_name = db.Column(db.String(150), nullable=False)
-    bank_acc = db.Column(db.String(100), nullable=False)
+    # يعكس هذا القسم رؤية "محجوب أونلاين" لبناء النجاح على الثقة والأنظمة الرقمية
+    # e_wallet هنا يمثل "رقم المحفظة السيادي" المولد تلقائياً
+    e_wallet = db.Column(db.String(100), unique=True, nullable=False)
+    fin_type = db.Column(db.String(50), default='banks') # تصنيف: بنوك أو شركات صرافة
+    bank_name = db.Column(db.String(150), nullable=False) # اسم البنك أو شركة الصرافة المختارة
+    bank_acc = db.Column(db.String(100), nullable=False) # رقم الحساب المالي للمورد
 
     # --- بيانات النظام ---
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # يتم التفعيل تلقائياً عند إتمام "التعميد" من لوحة الإدارة
     is_verified = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
-        return f"<Vendor {self.trade_name} - {self.e_wallet}>"
+        return f"<Vendor {self.trade_name} - Sovereign ID: {self.e_wallet}>"
