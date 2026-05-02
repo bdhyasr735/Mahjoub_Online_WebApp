@@ -75,3 +75,52 @@ def logout():
     logout_user()
     flash('تم إنهاء الجلسة الآمنة بنجاح. ننتظر عودتك يا قائد.', 'info')
     return redirect(url_for('admin.admin_login'))
+
+from flask import render_template, request, redirect, url_for, flash
+from . import admin_bp
+from core import db
+from core.models.vendor import Vendor
+from core.models.user import User # تأكد من مسار نموذج المستخدم لديك
+
+@admin_bp.route('/add_vendor', methods=['POST'])
+def add_vendor():
+    # 1. استقبال البيانات وتجهيز الحقول اليدوية
+    activity = request.form.get('manual_activity') if request.form.get('activity_type') == 'manual' else request.form.get('activity_type')
+    id_type = request.form.get('manual_id_type') if request.form.get('id_type') == 'manual' else request.form.get('id_type')
+    bank = request.form.get('manual_bank') if request.form.get('bank_name') == 'other' else request.form.get('bank_name')
+
+    try:
+        # 2. إنشاء حساب المستخدم أولاً
+        new_user = User(username=request.form.get('username'), role='vendor')
+        new_user.set_password(request.form.get('password')) # نفترض وجود دالة التشفير
+        db.session.add(new_user)
+        db.session.flush() # للحصول على user.id قبل الحفظ النهائي
+
+        # 3. إنشاء سجل المورد
+        new_vendor = Vendor(
+            user_id=new_user.id,
+            owner_name=request.form.get('owner_name'),
+            id_type=id_type,
+            id_card_number=request.form.get('id_card_number'),
+            trade_name=request.form.get('trade_name'),
+            activity_type=activity,
+            province=request.form.get('province'),
+            district=request.form.get('district'),
+            address_detail=request.form.get('address_detail'),
+            phone=request.form.get('phone'),
+            e_wallet=request.form.get('e_wallet'), # القادم من الواجهة كـ next_id
+            fin_type=request.form.get('fin_type'),
+            bank_name=bank,
+            bank_acc=request.form.get('bank_acc')
+        )
+        
+        db.session.add(new_vendor)
+        db.session.commit()
+        
+        flash(f"تم تعميد المورد {new_vendor.trade_name} بنجاح", "success")
+        return redirect(url_for('admin.add_supplier_page')) # أو صفحة القائمة
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"خطأ في النظام: {str(e)}", "danger")
+        return redirect(url_for('admin.add_supplier_page'))
