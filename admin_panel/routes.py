@@ -1,13 +1,16 @@
 import os
 from flask import render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash
 from sqlalchemy import text
 from core import db 
 
-# استيراد النماذج (تأكد من مطابقة الأسماء في مجلد core/models)
-from core.models.user import User
-from core.models.vendor import Vendor # النموذج الجديد الذي ظهر في الخطأ
+# استيراد النماذج بحذر شديد
+try:
+    from core.models.user import User
+    from core.models.vendor import Vendor
+except ImportError:
+    User = None
+    Vendor = None
 
 try:
     from core.models.vendor import WithdrawRequest 
@@ -17,21 +20,17 @@ except ImportError:
 from . import admin_bp
 from .auth import handle_admin_login
 
-# متغير للتحكم في ظهور رابط الإصلاح
-SHOW_REPAIR_LINK = True
-
-# --- 1. نظام الإصلاح التلقائي (لحل مشكلة العمود المفقود) ---
+# --- 1. نظام الإصلاح التلقائي ---
 @admin_bp.route('/system-repair-sovereign')
 @login_required
 def auto_repair():
-    global SHOW_REPAIR_LINK
     db.session.rollback()
     try:
-        # إضافة العمود الذي تسبب في ظهور الخطأ 500
-        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS user_id INTEGER;"))
+        # تنفيذ الأمر مباشرة على محرك القاعدة لتجنب مشاكل الـ ORM
+        db.engine.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS user_id INTEGER;"))
         db.session.commit()
-        SHOW_REPAIR_LINK = False
-        flash("تم تفعيل الترميم السيادي.. الترسانة الآن مكتملة.", "success")
+        session['repair_done'] = True # حفظ حالة الإصلاح في الجلسة
+        flash("تم تفعيل الترميم السيادي بنجاح.", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"فشل الإصلاح: {str(e)}", "danger")
@@ -41,9 +40,11 @@ def auto_repair():
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
     db.session.rollback()
-    # إذا كان علي محجوب مسجل دخول بالفعل، توجه للداشبورد
-    if current_user.is_authenticated and getattr(current_user, 'role', None) == 'admin':
-        return redirect(url_for('admin.admin_dashboard'))
+    if current_user.is_authenticated:
+        # استخدام getattr لتجنب الأخطاء إذا كان الكائن ناقصاً
+        role = getattr(current_user, 'role', None)
+        if role == 'admin':
+            return redirect(url_for('admin.admin_dashboard'))
     return handle_admin_login()
 
 # --- 3. لوحة التحكم المركزية (الداشبورد) ---
@@ -51,9 +52,10 @@ def login():
 @admin_bp.route('/dashboard')
 @login_required
 def admin_dashboard():
-    db.session.rollback() # تنظيف أي خطأ سابق لضمان تحميل الصفحة
+    # 🛡️ تنظيف فوري للجلسة
+    db.session.rollback()
     
-    # إحصائيات افتراضية لضمان عدم انهيار الواجهة
+    # تحضير الإحصائيات (قيم صفرية افتراضية)
     stats = {
         'suppliers_count': 0,
         'pending_withdrawals': 0,
@@ -61,33 +63,33 @@ def admin_dashboard():
         'total_balance': "0.00"
     }
 
+    show_repair = not session.get('repair_done', False)
+
     try:
-        # محاولة جلب البيانات الحقيقية من الترسانة
-        stats['suppliers_count'] = Vendor.query.count()
+        # محاولة جلب الأرقام فقط إذا كان الموديل متاحاً والقاعدة مستقرة
+        if Vendor:
+            stats['suppliers_count'] = db.session.query(Vendor).count()
         if WithdrawRequest:
-            stats['pending_withdrawals'] = WithdrawRequest.query.filter_by(status='pending').count()
+            stats['pending_withdrawals'] = db.session.query(WithdrawRequest).filter_by(status='pending').count()
     except Exception as e:
-        print(f"Database Alert: {str(e)}")
+        # إذا حدث خطأ هنا، فهذا يؤكد وجود مشكلة في هيكل الجدول
         db.session.rollback()
-        # في حال الفشل، ستظل الإحصائيات 0 ويظهر زر الإصلاح
+        show_repair = True 
+        print(f"⚠️ Dashboard SQL Error: {str(e)}")
 
+    # إرجاع القالب مهما حدث
     return render_template('dashboard.html', 
-                           **stats, 
-                           show_repair=SHOW_REPAIR_LINK)
+                           suppliers_count=stats['suppliers_count'],
+                           pending_withdrawals=stats['pending_withdrawals'],
+                           orders_count=stats['orders_count'],
+                           total_balance=stats['total_balance'],
+                           show_repair=show_repair)
 
-# --- 4. إدارة الموردين ---
-@admin_bp.route('/suppliers')
-@login_required
-def manage_suppliers():
-    db.session.rollback()
-    suppliers = Vendor.query.all()
-    return render_template('manage_suppliers.html', suppliers=suppliers)
-
-# --- 5. تسجيل الخروج الآمن ---
+# --- 4. تسجيل الخروج ---
 @admin_bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     session.clear()
-    flash('تم إغلاق الجلسة الآمنة للقيادة.', 'info')
+    flash('تم إغلاق الجلسة الآمنة.', 'info')
     return redirect(url_for('admin.login'))
