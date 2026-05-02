@@ -1,237 +1,136 @@
 {% extends "base.html" %}
 
-{% block title %}برج الرقابة المركزية | محجوب أونلاين{% endblock %}
+{% block title %}نظام الرقابة العليا | محجوب أونلاين{% endblock %}
 
 {% block content %}
 <style>
-    /* تحسين الخطوط والأوزان لتعزيز الهوية البصرية */
-    .fw-black { font-weight: 900 !important; }
-    
     .stat-card {
-        background: rgba(10, 10, 10, 0.6);
-        border: 1px solid rgba(212, 175, 55, 0.1);
         border-radius: 20px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        padding: 25px;
+        color: white;
+        transition: transform 0.3s ease;
+        border: none;
         position: relative;
         overflow: hidden;
-        backdrop-filter: blur(15px);
     }
-    .stat-card:hover {
-        transform: translateY(-8px);
-        border-color: var(--mahjoub-gold);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.6), 0 0 15px rgba(212, 175, 55, 0.1);
-    }
-    .stat-card::before {
-        content: "";
-        position: absolute;
-        top: 0; right: 0;
-        width: 5px; height: 100%;
-        transition: 0.3s;
-    }
-    /* تعريف المتغيرات اللونية في حال عدم وجودها في base.html */
-    .card-orders::before { background: #632C8F; } /* الأرجواني الملكي الخاص بك */
-    .card-suppliers::before { background: #10b981; }
-    .card-balance::before { background: #D4AF37; } /* الذهبي الملكي */
-    .card-review::before { background: #3b82f6; }
-
-    .icon-box {
-        width: 55px;
-        height: 55px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 15px;
-        font-size: 1.4rem;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.05);
-    }
+    .stat-card:hover { transform: translateY(-10px); }
+    .bg-purple-grad { background: linear-gradient(135deg, #632C8F 0%, #3a1a54 100%); }
+    .bg-gold-grad { background: linear-gradient(135deg, #D4AF37 0%, #aa8b2c 100%); color: #1a0b2e; }
+    .bg-dark-grad { background: linear-gradient(135deg, #2d3436 0%, #000000 100%); }
     
-    .table-sovereign {
-        background: rgba(10, 10, 10, 0.3);
-        border-radius: 20px;
-        overflow: hidden;
-    }
-    .table-sovereign thead {
-        background: linear-gradient(to left, rgba(99, 44, 143, 0.3), transparent);
-    }
-    .table-sovereign th { 
-        color: #D4AF37 !important; 
-        font-weight: 900; 
-        text-transform: uppercase; 
-        letter-spacing: 1px;
-        font-size: 0.8rem;
-        padding: 20px !important;
-        border: none;
-    }
-    .table-sovereign td { 
-        padding: 18px 20px !important; 
-        vertical-align: middle;
-        border-bottom: 1px solid rgba(255,255,255,0.03);
-        color: #cbd5e1;
-    }
-
-    .btn-gold {
-        background: #D4AF37;
-        color: #000;
-        border: none;
-        transition: 0.3s;
-    }
-    .btn-gold:hover {
-        background: #fff;
-        box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
-    }
-
-    .pulse-indicator {
-        width: 8px; height: 8px; border-radius: 50%; display: inline-block;
-        margin-left: 8px; animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    .status-indicator {
+        width: 10px; height: 10px; background: #2ecc71;
+        border-radius: 50%; display: inline-block; margin-left: 10px;
+        box-shadow: 0 0 10px #2ecc71;
     }
 </style>
 
-<div class="container-fluid py-4">
+<div class="container-fluid">
+    <!-- الترويسة العلوية -->
     <div class="row mb-5 align-items-center">
         <div class="col-md-8">
-            <h1 class="fw-black text-dark mb-2" style="font-size: 2.2rem;">نظام الرقابة العليا</h1>
-            <div class="d-flex align-items-center">
-                <span class="pulse-indicator bg-success"></span>
-                <p class="mb-0 opacity-75 fw-bold text-secondary">المحرك الرقمي "محجوب أونلاين" يعمل بكفاءة قصوى</p>
-            </div>
+            <h1 style="font-weight: 900; color: #1a0b2e; font-size: 2.5rem;">نظام الرقابة العليا</h1>
+            <p class="text-muted">
+                <span class="status-indicator"></span>
+                المحرك الرقمي "محجوب أونلاين" يعمل بكفاءة قصوى
+            </p>
         </div>
-        <div class="col-md-4 text-md-start d-flex align-items-center justify-content-md-end mt-3 mt-md-0">
-            <div class="bg-dark p-3 rounded-4 border border-warning border-opacity-10 shadow-lg">
-                <small class="d-block opacity-50 fw-bold text-white">توقيت البرج المركزي</small>
-                <span class="fw-black" id="liveClock" style="font-size: 1.2rem; color: #D4AF37;">--:--:--</span>
+        <div class="col-md-4 text-start">
+            <div class="p-3 rounded-4 bg-dark text-white text-center shadow-lg" style="border-right: 4px solid #D4AF37;">
+                <small class="d-block opacity-75">توقيت البرج المركزي</small>
+                <div id="digital-clock" style="font-size: 1.5rem; font-weight: 700; color: #D4AF37;">00:00:00 م</div>
             </div>
         </div>
     </div>
 
-    <!-- بطاقات البيانات الرقمية -->
+    <!-- بطاقات الإحصائيات السيادية -->
     <div class="row g-4">
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card card-orders p-4">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <p class="text-white-50 small fw-bold mb-1 text-uppercase">إجمالي المبيعات</p>
-                        <h2 class="text-white fw-black mb-0">{{ orders_count|default('1,250') }}</h2>
-                    </div>
-                    <div class="icon-box shadow-sm" style="color: #632C8F !important;">
-                        <i class="fas fa-rocket"></i>
-                    </div>
+        <!-- إجمالي المبيعات -->
+        <div class="col-md-3">
+            <div class="stat-card bg-purple-grad shadow">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <i class="fas fa-rocket fa-2x opacity-50"></i>
+                    <small class="fw-bold">إجمالي المبيعات</small>
                 </div>
+                <h2 class="mb-0 fw-black">{{ orders_count }}</h2>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card card-suppliers p-4">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <p class="text-white-50 small fw-bold mb-1 text-uppercase">شركاء الترسانة</p>
-                        <h2 class="text-white fw-black mb-0">{{ s_count|default('48') }}</h2>
-                    </div>
-                    <div class="icon-box text-success">
-                        <i class="fas fa-shield-halved"></i>
-                    </div>
+        <!-- شركاء الترسانة -->
+        <div class="col-md-3">
+            <div class="stat-card bg-dark-grad shadow">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <i class="fas fa-shield-halved fa-2x opacity-50 text-success"></i>
+                    <small class="fw-bold text-success">شركاء الترسانة</small>
                 </div>
+                <h2 class="mb-0 fw-black">{{ suppliers_count }}</h2>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card card-balance p-4">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <p class="text-white-50 small fw-bold mb-1 text-uppercase">السيولة المركزية</p>
-                        <h2 class="text-white fw-black mb-0" style="color: #D4AF37 !important;">{{ total_balance|default('15.5K') }} $</h2>
-                    </div>
-                    <div class="icon-box text-warning">
-                        <i class="fas fa-coins"></i>
-                    </div>
+        <!-- السيولة المركزية -->
+        <div class="col-md-3">
+            <div class="stat-card bg-gold-grad shadow">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <i class="fas fa-coins fa-2x opacity-50"></i>
+                    <small class="fw-bold">السيولة المركزية</small>
                 </div>
+                <h2 class="mb-0 fw-black text-white">${{ total_balance }}</h2>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card card-review p-4">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <p class="text-white-50 small fw-bold mb-1 text-uppercase">طلبات قيد التدقيق</p>
-                        <h2 class="text-white fw-black mb-0">{{ p_count|default('12') }}</h2>
-                    </div>
-                    <div class="icon-box text-info">
-                        <i class="fas fa-microchip"></i>
-                    </div>
+        <!-- طلبات قيد التدقيق -->
+        <div class="col-md-3">
+            <div class="stat-card bg-primary shadow" style="background: linear-gradient(135deg, #0984e3 0%, #00cec9 100%);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <i class="fas fa-microchip fa-2x opacity-50"></i>
+                    <small class="fw-bold">طلبات قيد التدقيق</small>
                 </div>
+                <h2 class="mb-0 fw-black">{{ pending_requests }}</h2>
             </div>
         </div>
     </div>
 
-    <!-- سجل العمليات -->
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="stat-card p-0 shadow-2xl">
-                <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-white border-opacity-5">
-                    <h5 class="mb-0 text-white fw-black">
-                        <i class="fas fa-bolt me-2" style="color: #D4AF37;"></i> سجل العمليات السيادية
-                    </h5>
-                    <a href="#" class="btn btn-sm btn-gold rounded-pill px-4 fw-bold">تحميل التقرير</a>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-sovereign align-middle mb-0" dir="rtl">
-                        <thead>
-                            <tr>
-                                <th>الشريك الاستراتيجي</th>
-                                <th>نوع العملية</th>
-                                <th>القيمة</th>
-                                <th>التوقيت الرقمي</th>
-                                <th>حالة الاعتماد</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for transaction in transactions|default([]) %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle p-2 me-3 d-flex align-items-center justify-content-center shadow-inner" style="width:35px; height:35px; background: rgba(99, 44, 143, 0.2); border: 1px solid #632C8F;">
-                                            <i class="fas fa-store-alt text-white" style="font-size: 0.8rem;"></i>
-                                        </div>
-                                        <span class="text-white fw-bold">{{ transaction.supplier_name }}</span>
-                                    </div>
-                                </td>
-                                <td class="text-white-50 fw-bold">{{ transaction.type }}</td>
-                                <td class="{% if transaction.amount < 0 %}text-danger{% else %}text-success{% endif %} fw-black">
-                                    {{ transaction.amount }}$
-                                </td>
-                                <td class="text-white-50 small">{{ transaction.date }}</td>
-                                <td>
-                                    <span class="badge rounded-pill {% if transaction.status == 'مكتمل' %}bg-success{% else %}bg-warning{% endif %} bg-opacity-10 text-{% if transaction.status == 'مكتمل' %}success{% else %}warning{% endif %} border border-{% if transaction.status == 'مكتمل' %}success{% else %}warning{% endif %} border-opacity-25 px-3">
-                                        {{ transaction.status }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center py-5 opacity-50 text-white">
-                                    <i class="fas fa-database mb-3 d-block" style="font-size: 2rem;"></i>
-                                    لا توجد عمليات مسجلة حالياً في قاعدة البيانات
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- سجل العمليات السيادية (الجدول السفلي كما في الصورة) -->
+    <div class="mt-5 p-4 bg-white rounded-4 shadow-sm border-0">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 style="font-weight: 800; color: #1a0b2e;">
+                <i class="fas fa-bolt text-warning me-2"></i> سجل العمليات السيادية
+            </h4>
+            <button class="btn btn-warning fw-bold rounded-pill px-4" style="background: #D4AF37; color: #1a0b2e;">
+                تحميل التقرير
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>الشريك الاستراتيجي</th>
+                        <th>نوع العملية</th>
+                        <th>القيمة</th>
+                        <th>التوقيت الرقمي</th>
+                        <th>حالة الاعتماد</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- سيتم تعبئة البيانات برمجياً من الـ database لاحقاً -->
+                    <tr>
+                        <td>مورد معتمد #1</td>
+                        <td>تحديث مخزون</td>
+                        <td class="fw-bold text-purple">$540</td>
+                        <td>2026-05-02 | 14:30</td>
+                        <td><span class="badge bg-success rounded-pill">تم التنفيذ</span></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
 <script>
     function updateClock() {
-        const options = { timeZone: 'Asia/Aden', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
         const now = new Date();
-        document.getElementById('liveClock').innerText = now.toLocaleTimeString('ar-YE', options);
+        const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        document.getElementById('digital-clock').innerText = now.toLocaleTimeString('ar-YE', options);
     }
     setInterval(updateClock, 1000);
     updateClock();
