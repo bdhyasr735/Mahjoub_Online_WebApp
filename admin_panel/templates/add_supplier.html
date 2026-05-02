@@ -94,18 +94,26 @@
         font-size: 1.1rem;
         cursor: pointer;
         transition: 0.3s;
+        width: 100%;
+    }
+
+    .btn-gov:hover {
+        background: #4a1d6d;
+        transform: translateY(-2px);
     }
 
     .btn-copy-mini {
-        background: none;
-        border: none;
-        color: var(--gov-gold);
+        background: #eee;
+        border: 1px solid #ccc;
+        color: var(--gov-purple);
         cursor: pointer;
+        padding: 2px 8px;
+        border-radius: 4px;
         margin-right: 8px;
         transition: 0.2s;
     }
     
-    .btn-copy-mini:hover { color: var(--gov-purple); transform: scale(1.2); }
+    .btn-copy-mini:hover { background: var(--gov-gold); color: white; }
 
     .fin-card {
         background: #fff;
@@ -125,6 +133,7 @@
         border-color: var(--gov-purple);
         background: #f5f3ff;
         color: var(--gov-purple);
+        font-weight: bold;
     }
 
     input[type="file"]::file-selector-button {
@@ -143,11 +152,10 @@
         <h2 style="margin:0;">🛡️ تعميد مورد جديد</h2>
         <div style="text-align:left;">
             <small>الهوية السيادية (ID/Wallet)</small><br>
-            <strong id="sovereign_id_display" style="font-size:1.2rem; color:var(--gov-gold);">{{ next_id if next_id else '---' }}</strong>
+            <strong id="sovereign_id_display" style="font-size:1.2rem; color:var(--gov-gold);">{{ next_id if next_id else 'MAH-9631' }}</strong>
         </div>
     </div>
 
-    <!-- تم تعديل المعرف وربط دالة الجافاسكريبت المحدثة -->
     <form id="sovereignForm" action="{{ url_for('admin.add_supplier') }}" method="POST" enctype="multipart/form-data">
         
         <div class="section-banner">👤 بيانات الحساب والنشاط التجاري</div>
@@ -158,7 +166,7 @@
             </div>
             <div class="input-box">
                 <label>كلمة المرور</label>
-                <input type="text" name="password" value="123" class="form-control-gov" required>
+                <input type="text" name="password" id="form_password" value="123" class="form-control-gov" required>
             </div>
             <div class="input-box">
                 <label>نوع النشاط</label>
@@ -177,7 +185,7 @@
         <div class="grid-layout">
             <div class="input-box">
                 <label>اسم المالك الكامل</label>
-                <input type="text" name="owner_name" class="form-control-gov" placeholder="الاسم الرباعي كما في الهوية" required>
+                <input type="text" name="owner_name" id="form_trade_name" class="form-control-gov" placeholder="الاسم الرباعي كما في الهوية" required>
             </div>
             <div class="input-box">
                 <label>نوع الهوية</label>
@@ -200,7 +208,7 @@
             </div>
             <div class="input-box">
                 <label>الاسم التجاري للمنشأة</label>
-                <input type="text" name="trade_name" class="form-control-gov" required>
+                <input type="text" name="trade_name" id="form_store_name" class="form-control-gov" placeholder="اسم المحل أو الشركة" required>
             </div>
             <div class="input-box">
                 <label>المحافظة</label>
@@ -323,29 +331,24 @@
         bSelect.add(new Option("أخرى (إدخال يدوي)...", "other"));
     }
 
-    // دالة نسخ النص
-    function copyText(elementId) {
-        const text = document.getElementById(elementId).innerText;
-        navigator.clipboard.writeText(text);
-        Swal.fire({
-            title: 'تم النسخ!',
-            text: text,
-            icon: 'info',
-            timer: 1000,
-            showConfirmButton: false,
-            toast: true,
-            position: 'top-end'
+    // دالة نسخ النص المحسنة
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            Swal.showValidationMessage(`تم نسخ: ${text}`);
+            setTimeout(() => Swal.resetValidationMessage(), 1500);
         });
     }
 
-    // معالجة النموذج بنظام AJAX لإظهار التنبيه
+    // معالجة النموذج بنظام AJAX لإظهار التنبيه السيادي
     document.getElementById('sovereignForm').onsubmit = async function(e) {
         e.preventDefault();
         const submitBtn = document.getElementById('submitBtn');
         const sovereignID = document.getElementById('sovereign_id_display').innerText.trim();
         const username = document.getElementById('form_username').value;
+        const password = document.getElementById('form_password').value;
+        const storeName = document.getElementById('form_store_name').value;
         
-        submitBtn.innerHTML = "⏳ جاري الأرشفة والتعميد...";
+        submitBtn.innerHTML = "⏳ جاري الأرشفة والتعميد السيادي...";
         submitBtn.disabled = true;
 
         const formData = new FormData(this);
@@ -356,34 +359,34 @@
                 body: formData
             });
 
-            if (response.ok) {
+            const resultData = await response.json();
+
+            if (response.ok && resultData.status === 'success') {
                 Swal.fire({
                     title: '✅ تم التعميد بنجاح',
                     html: `
-                        <div style="text-align: right; direction: rtl; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                            <p><strong>الرقم السيادي/المحفظة:</strong> <span id="res_wallet">${sovereignID}</span> 
-                                <button type="button" onclick="copyText('res_wallet')" class="btn-copy-mini"><i class="fas fa-copy"></i></button></p>
-                            <p><strong>اسم المستخدم:</strong> <span id="res_user">${username}</span>
-                                <button type="button" onclick="copyText('res_user')" class="btn-copy-mini"><i class="fas fa-copy"></i></button></p>
-                            <p><strong>كلمة المرور:</strong> 123</p>
+                        <div style="text-align: right; direction: rtl; background: #fdfdfd; padding: 20px; border-radius: 12px; border: 2px solid var(--gov-gold); font-family: sans-serif;">
+                            <h4 style="color: var(--gov-purple); border-bottom: 1px solid #eee; padding-bottom: 10px;">بطاقة اعتماد المنشأة</h4>
+                            <p><strong>المنشأة:</strong> ${storeName}</p>
+                            <p><strong>الرقم السيادي:</strong> <code id="c_wallet">${sovereignID}</code> <button onclick="copyToClipboard('${sovereignID}')" class="btn-copy-mini">نسخ</button></p>
+                            <p><strong>اسم المستخدم:</strong> <code id="c_user">${username}</code> <button onclick="copyToClipboard('${username}')" class="btn-copy-mini">نسخ</button></p>
+                            <p><strong>كلمة المرور:</strong> <code id="c_pass">${password}</code> <button onclick="copyToClipboard('${password}')" class="btn-copy-mini">نسخ</button></p>
                             <hr>
-                            <small style="color: var(--gov-purple);">انسخ هذه البيانات وزود بها المورد فوراً.</small>
+                            <p style="font-size: 0.9rem; color: #555;">شكراً لثقتكم بمنصة محجوب أونلاين. تم حفظ البيانات وأرشفة الوثائق في الترسانة الرقمية بنجاح.</p>
                         </div>
                     `,
                     icon: 'success',
-                    confirmButtonText: 'حسناً، الانتقال للمراقبة',
+                    confirmButtonText: 'إغلاق والذهاب للمراقبة',
                     confirmButtonColor: '#632C8F',
                     allowOutsideClick: false
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = "{{ url_for('admin.admin_dashboard') }}";
-                    }
+                    window.location.href = "{{ url_for('admin.admin_dashboard') }}";
                 });
             } else {
-                throw new Error();
+                throw new Error(resultData.message || 'فشل التعميد');
             }
         } catch (err) {
-            Swal.fire('خطأ!', 'حدثت مشكلة في الاتصال بالترسانة الرقمية.', 'error');
+            Swal.fire('تعثر في الترسانة!', err.message || 'حدثت مشكلة في الاتصال بقاعدة البيانات أو أرشفة GitHub.', 'error');
             submitBtn.innerHTML = "🛡️ إعادة محاولة التعميد";
             submitBtn.disabled = false;
         }
