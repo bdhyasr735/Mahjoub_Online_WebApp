@@ -80,23 +80,52 @@ from flask import render_template, request, redirect, url_for, flash
 from . import admin_bp
 from core import db
 from core.models.vendor import Vendor
-from core.models.user import User # تأكد من مسار نموذج المستخدم لديك
+from core.models.user import User
+from werkzeug.security import generate_password_hash
 
-@admin_bp.route('/add_vendor', methods=['POST'])
-def add_vendor():
-    # 1. استقبال البيانات وتجهيز الحقول اليدوية
-    activity = request.form.get('manual_activity') if request.form.get('activity_type') == 'manual' else request.form.get('activity_type')
-    id_type = request.form.get('manual_id_type') if request.form.get('id_type') == 'manual' else request.form.get('id_type')
-    bank = request.form.get('manual_bank') if request.form.get('bank_name') == 'other' else request.form.get('bank_name')
+# البادئة السيادية الثابتة لمحجوب أونلاين
+MAH_PREFIX = "MAH-936"
 
+# --- 1. مسار عرض صفحة إضافة مورد ---
+@admin_bp.route('/add_supplier')
+def add_supplier_page():
+    # جلب آخر مورد مسجل للحصول على الرقم التسلسلي التالي من قاعدة البيانات
+    last_vendor = Vendor.query.order_by(Vendor.id.desc()).first()
+    
+    # تحديد الرقم المتغير (ID + 1)
+    next_serial = (last_vendor.id + 1) if last_vendor else 1
+    
+    # دمج البادئة مع الرقم التسلسلي (مثلاً: MAH-9361)
+    next_id = f"{MAH_PREFIX}{next_serial}"
+    
+    return render_template('add_supplier.html', next_id=next_id)
+
+# --- 2. مسار معالجة بيانات التعميد والحفظ ---
+@admin_bp.route('/add_vendor_action', methods=['POST'])
+def add_vendor_action():
     try:
-        # 2. إنشاء حساب المستخدم أولاً
-        new_user = User(username=request.form.get('username'), role='vendor')
-        new_user.set_password(request.form.get('password')) # نفترض وجود دالة التشفير
-        db.session.add(new_user)
-        db.session.flush() # للحصول على user.id قبل الحفظ النهائي
+        # معالجة الحقول التي تدعم الإدخال اليدوي (Activity, ID Type, Bank)
+        activity = request.form.get('manual_activity') if request.form.get('activity_type') == 'manual' else request.form.get('activity_type')
+        id_type = request.form.get('manual_id_type') if request.form.get('id_type') == 'manual' else request.form.get('id_type')
+        bank = request.form.get('manual_bank') if request.form.get('bank_name') == 'other' else request.form.get('bank_name')
 
-        # 3. إنشاء سجل المورد
+        # أ. إنشاء حساب المستخدم (User)
+        # نستخدم اسم المستخدم المدخل في النموذج
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # التأكد من عدم تكرار اسم المستخدم
+        if User.query.filter_by(username=username).first():
+            flash("اسم المستخدم موجود مسبقاً، اختر اسماً آخر", "danger")
+            return redirect(url_for('admin.add_supplier_page'))
+
+        new_user = User(username=username)
+        new_user.set_password(password) # تأكد من وجود الدالة في نموذج User
+        db.session.add(new_user)
+        db.session.flush() # لحجز ID المستخدم لربطه بالمورد
+
+        # ب. إنشاء سجل المورد (Vendor) بالرقم السيادي الكامل
+        # e_wallet تستقبل القيمة المدمجة (البادئة + الرقم) من النموذج
         new_vendor = Vendor(
             user_id=new_user.id,
             owner_name=request.form.get('owner_name'),
@@ -108,19 +137,20 @@ def add_vendor():
             district=request.form.get('district'),
             address_detail=request.form.get('address_detail'),
             phone=request.form.get('phone'),
-            e_wallet=request.form.get('e_wallet'), # القادم من الواجهة كـ next_id
+            e_wallet=request.form.get('e_wallet'), # القيمة المدمجة مثل MAH-9361
             fin_type=request.form.get('fin_type'),
             bank_name=bank,
-            bank_acc=request.form.get('bank_acc')
+            bank_acc=request.form.get('bank_acc'),
+            is_verified=True # تعميد سيادي فوري عند الإضافة من الإدارة
         )
-        
+
         db.session.add(new_vendor)
         db.session.commit()
-        
-        flash(f"تم تعميد المورد {new_vendor.trade_name} بنجاح", "success")
-        return redirect(url_for('admin.add_supplier_page')) # أو صفحة القائمة
+
+        flash(f"تم تعميد المورد {new_vendor.trade_name} بنجاح بالرقم: {new_vendor.e_wallet}", "success")
+        return redirect(url_for('admin.add_supplier_page'))
 
     except Exception as e:
         db.session.rollback()
-        flash(f"خطأ في النظام: {str(e)}", "danger")
+        flash(f"حدث خطأ أثناء عملية التعميد: {str(e)}", "danger")
         return redirect(url_for('admin.add_supplier_page'))
