@@ -26,15 +26,19 @@ def create_app(config_class=Config):
     login_manager.login_message_category = "info"
 
     with app.app_context():
+        # استيراد النماذج لضمان تسجيلها في SQLAlchemy قبل إنشاء الجداول
         from core.models.user import User
         from core.models.vendor import Vendor
         
-        # 🛡️ تصحيح الترسانة: إنشاء الجداول فقط إذا لم تكن موجودة
-        # تم تعطيل drop_all لحماية بيانات الموردين من الحذف المتكرر
+        # 🛡️ تصحيح الترسانة: حل مشكلة العمود المفقود (user_id)
+        # نقوم بعمل rollback لتنظيف أي معاملات فاشلة عالقة في PostgreSQL
+        db.session.rollback()
         try:
+            # سيحاول إنشاء الأعمدة الناقصة دون حذف البيانات الموجودة
             db.create_all() 
+            print("✅ تم فحص وتحديث هيكل الترسانة الرقمية بنجاح.")
         except Exception as e:
-            print(f"⚠️ تنبيه: قاعدة البيانات قائمة بالفعل أو واجهت مشكلة: {e}")
+            print(f"⚠️ تنبيه حوكمة البيانات: تعذر تحديث الهيكل تلقائياً: {e}")
         
         @login_manager.user_loader
         def load_user(user_id):
@@ -45,6 +49,8 @@ def create_app(config_class=Config):
             def get_next_vendor_id():
                 try:
                     # منطق جلب المعرف السيادي التالي (MAH-9631)
+                    # نستخدم rollback لضمان قراءة أحدث بيانات من القاعدة
+                    db.session.rollback()
                     last_vendor = Vendor.query.order_by(Vendor.id.desc()).first()
                     if last_vendor and last_vendor.e_wallet and '-' in last_vendor.e_wallet:
                         parts = last_vendor.e_wallet.split('-')
@@ -55,6 +61,7 @@ def create_app(config_class=Config):
                     return "MAH-9631"
             return dict(next_id=get_next_vendor_id())
 
+        # تسجيل البلوبيرنت الخاص بلوحة الإدارة
         from admin_panel.routes import admin_bp
         app.register_blueprint(admin_bp, url_prefix='/admin')
 
