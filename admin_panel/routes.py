@@ -1,27 +1,52 @@
-from flask import render_template
-from flask_login import login_required, current_user
+from flask import render_template, redirect, url_for, flash, request
+from flask_login import login_required, current_user, login_user, logout_user
 from . import admin_bp
-# استيراد الموديلات من الحزمة المركزية لضمان عمل الربط مع قاعدة البيانات
-from core.models import User, Supplier, Order 
+
+# استيراد الموديلات بشكل آمن لتجنب تضارب MetaData
+# يفضل الاستيراد من المسار المباشر للموديل
+from core.models.user import User
+
+@admin_bp.route('/login', methods=['GET', 'POST'])
+def admin_login():
+    """بوابة الدخول لسيادة القائد"""
+    if current_user.is_authenticated:
+        return redirect(url_for('admin.admin_dashboard'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # البحث عن القائد علي محجوب في الترسانة
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            # التأكد من رتبة المسؤول وحالة الحساب قبل السماح بالدخول
+            if user.role == 'admin' and user.is_active_account:
+                login_user(user)
+                return redirect(url_for('admin.admin_dashboard'))
+            else:
+                flash("⚠️ تنبيه: الحساب لا يملك صلاحيات سيادية.")
+        else:
+            flash("❌ خطأ في بيانات الدخول.")
+            
+    return render_template('login.html')
 
 @admin_bp.route('/dashboard')
-@login_required  # حماية السيادة: الوصول للقائد فقط
+@login_required
 def admin_dashboard():
-    """
-    لوحة التحكم المركزية (نظام الرقابة العليا) لمنصة محجوب أونلاين
-    إدارة العمليات التجارية في الخوخة، عدن، المخا، وحيس
-    """
+    """لوحة التحكم المركزية لمنصة محجوب أونلاين"""
     
-    # تجهيز البيانات لتتوافق تماماً مع تصميم dashboard.html المهيب
-    # تم تحديث القيم لتطابق المتغيرات التي صممتها في الواجهة
+    # التحقق الإضافي لضمان وصول القائد فقط
+    if current_user.role != 'admin':
+        return "غير مسموح بالدخول لغير القائد", 403
+
     context = {
-        'orders_count': "1,250",       # إجمالي المبيعات (تظهر في بطاقة الصاروخ)
-        's_count': "48",              # شركاء الترسانة - الموردين
-        'total_balance': "15.5K",      # السيولة المركزية (بالدولار)
-        'p_count': "12",               # طلبات قيد التدقيق (تظهر في بطاقة الميكروتشيب)
-        'admin_name': current_user.username, # تحية القائد (علي محجوب)
+        'orders_count': "1,250",      
+        's_count': "48",              
+        'total_balance': "15.5K",     
+        'p_count': "12",               
+        'admin_name': current_user.username,
         
-        # بيانات سجل العمليات السيادية التي تملأ الجدول في أسفل الصفحة
         'transactions': [
             {
                 'supplier_name': 'مورد عدن المركزي',
@@ -47,5 +72,10 @@ def admin_dashboard():
         ]
     }
     
-    # تمرير البيانات كمتغيرات مستقلة ليفهمها قالب Jinja2
     return render_template('dashboard.html', **context)
+
+@admin_bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('admin.admin_login'))
