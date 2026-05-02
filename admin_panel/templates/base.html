@@ -39,7 +39,7 @@
         }
 
         .sidebar-header { 
-            padding: 2rem 1rem; text-align: center; 
+            padding: 2.2rem 1rem; text-align: center; 
             border-bottom: 1px solid rgba(212, 175, 55, 0.15);
         }
         
@@ -142,33 +142,32 @@
 
             <!-- حوكمة الموردين -->
             <div class="nav-item">
-                <div class="nav-link" onclick="toggleDropdown(this)">
+                <div class="nav-link {% if request.endpoint in ['admin.add_vendor', 'admin.manage_suppliers'] %}active{% endif %}" onclick="toggleDropdown(this)">
                     <i class="fas fa-handshake-angle"></i>
                     <span>حوكمة الموردين</span>
                     <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s;"></i>
                 </div>
-                <ul class="dropdown-content">
-                    <!-- تم إضافة: تعميد مورد جديد لدعم التوسع الميداني -->
+                <ul class="dropdown-content" style="{% if request.endpoint in ['admin.add_vendor', 'admin.manage_suppliers'] %}display: block;{% endif %}">
                     <li>
-                        <a href="{{ url_for('add_vendor') }}" style="color: var(--mahjoub-gold); font-weight: 800;">
+                        <a href="{{ url_for('admin.add_vendor') }}" style="color: var(--mahjoub-gold); font-weight: 800;">
                             <i class="fas fa-user-plus"></i> تعميد مورد جديد
                         </a>
                     </li>
-                    <li><a href="#"><i class="fas fa-list-check"></i> إدارة الموردين المعتمدين</a></li>
+                    <li><a href="{{ url_for('admin.manage_suppliers') }}"><i class="fas fa-list-check"></i> إدارة الموردين المعتمدين</a></li>
                     <li><a href="#"><i class="fas fa-user-clock"></i> طلبات اعتماد معلقة</a></li>
                 </ul>
             </div>
 
             <!-- الهندسة المالية -->
             <div class="nav-item">
-                <div class="nav-link" onclick="toggleDropdown(this)">
+                <div class="nav-link {% if request.endpoint == 'admin.withdraw_requests' %}active{% endif %}" onclick="toggleDropdown(this)">
                     <i class="fas fa-vault"></i>
                     <span>الهندسة المالية</span>
                     <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s;"></i>
                 </div>
-                <ul class="dropdown-content">
-                    <li><a href="#"><i class="fas fa-money-bill-transfer"></i> تسويات الأرصدة</a></li>
-                    <li><a href="#"><i class="fas fa-chart-pie"></i> تقارير الأرباح</a></li>
+                <ul class="dropdown-content" style="{% if request.endpoint == 'admin.withdraw_requests' %}display: block;{% endif %}">
+                    <li><a href="{{ url_for('admin.withdraw_requests') }}"><i class="fas fa-money-bill-transfer"></i> طلبات السحب</a></li>
+                    <li><a href="{{ url_for('admin.financial_reports') }}"><i class="fas fa-chart-pie"></i> تقارير الأرباح</a></li>
                 </ul>
             </div>
 
@@ -180,7 +179,7 @@
                     <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s;"></i>
                 </div>
                 <ul class="dropdown-content">
-                    <li><a href="#"><i class="fas fa-users-crown"></i> إدارة المدراء</a></li>
+                    <li><a href="{{ url_for('admin.system_settings') }}"><i class="fas fa-users-crown"></i> إدارة المدراء</a></li>
                     <li><a href="#"><i class="fas fa-database"></i> النسخ الاحتياطي</a></li>
                 </ul>
             </div>
@@ -237,6 +236,8 @@
             const content = element.nextElementSibling;
             const chevron = element.querySelector('.chevron');
             
+            const isOpen = content.style.display === "block";
+            
             // إغلاق أي قائمة مفتوحة أخرى للحفاظ على التنظيم
             document.querySelectorAll('.dropdown-content').forEach(el => {
                 if (el !== content) el.style.display = 'none';
@@ -245,7 +246,6 @@
                 if (ch !== chevron) ch.style.transform = "rotate(0deg)";
             });
 
-            const isOpen = content.style.display === "block";
             content.style.display = isOpen ? "none" : "block";
             if(chevron) {
                 chevron.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
