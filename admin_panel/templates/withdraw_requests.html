@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}طلبات السحب والسيادة المالية{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- ترويسة إدارة التدفقات -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 style="font-weight: 900; color: #1a0b2e;">إدارة طلبات تصفية الأرصدة</h2>
+            <p class="text-muted">مراجعة طلبات الشركاء وتوليد إشعارات التحويل الرسمية</p>
+        </div>
+        <div class="text-start">
+            <button class="btn btn-dark rounded-pill px-4" onclick="location.reload()">
+                <i class="fas fa-sync-alt me-2"></i>تحديث البيانات
+            </button>
+        </div>
+    </div>
+
+    <!-- جدول الطلبات المعلقة -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>المورد / العلامة التجارية</th>
+                        <th>المبلغ المطلوب</th>
+                        <th>الرصيد المتاح</th>
+                        <th>تاريخ الطلب</th>
+                        <th class="text-center">الإجراء المالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- مثال لطلب معلق من بيانات الموردين -->
+                    <tr>
+                        <td>
+                            <div class="fw-bold">معامل عدن للمعاوز</div>
+                            <small class="text-muted">مالك الحساب: محمد عبده خالد</small>
+                        </td>
+                        <td class="fw-bold text-danger">420 SAR</td>
+                        <td class="text-success">1,250 SAR</td>
+                        <td>2026-05-02</td>
+                        <td class="text-center">
+                            <button class="btn btn-purple btn-sm rounded-pill px-4" 
+                                    onclick="openTransferModal('10497', 'محمد عبده خالد', 'معامل عدن للمعاوز', '420 SAR')">
+                                <i class="fas fa-file-invoice-dollar me-1"></i> معالجة وصرف
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: نموذج التحويل والكليشة الرسمية -->
+<div class="modal fade" id="transferModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-4 border-0">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">إتمام عملية التحويل الرقمي</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="transferForm">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">جهة التحويل (البنك/الصراف)</label>
+                            <select class="form-select rounded-3" id="bankName" required>
+                                <option value="" selected disabled>اختر الجهة...</option>
+                                <option value="بنك القطيبي">بنك القطيبي</option>
+                                <option value="الكريمي اكسبرس">الكريمي اكسبرس</option>
+                                <option value="النجم للحوالات">النجم للحوالات</option>
+                                <option value="الامتياز">الامتياز</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">رقم الحوالة (المرجع)</label>
+                            <input type="text" class="form-control rounded-3" id="transferId" placeholder="أدخل رقم الحوالة هنا..." required>
+                        </div>
+                    </div>
+
+                    <!-- معاينة الإشعار قبل الاعتماد -->
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <p class="small text-muted mb-2"><i class="fas fa-eye me-1"></i> معاينة بيانات الإشعار المعتمد:</p>
+                        <div id="previewBox" class="bg-white p-3 border rounded shadow-sm" style="font-size: 13px;">
+                            <!-- سيتم تعبئتها ديناميكياً -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal"> إلغاء</button>
+                <button type="button" class="btn btn-purple rounded-pill px-4" onclick="confirmAndArchive()">
+                    <i class="fas fa-check-double me-1"></i> اعتماد وأرشفة في كشف الحساب
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-purple { background-color: #4b0082; color: #d4af37; font-weight: 700; }
+    .btn-purple:hover { background-color: #310055; color: #d4af37; }
+    .fw-black { font-weight: 900; }
+</style>
+
+<script>
+let currentData = {};
+
+function openTransferModal(invoice, owner, brand, amount) {
+    currentData = { invoice, owner, brand, amount };
+    const previewHtml = `
+        <strong>المستفيد:</strong> ${brand} (${owner})<br>
+        <strong>المبلغ:</strong> <span class="text-primary">${amount}</span><br>
+        <strong>رقم الفاتورة:</strong> ${invoice}<br>
+        <hr>
+        <span class="text-muted">سيتم إضافة رقم الحوالة وجهة التحويل فور إدخالك لها أعلاه.</span>
+    `;
+    document.getElementById('previewBox').innerHTML = previewHtml;
+    new bootstrap.Modal(document.getElementById('transferModal')).show();
+}
+
+function confirmAndArchive() {
+    const bank = document.getElementById('bankName').value;
+    const tId = document.getElementById('transferId').value;
+
+    if(!bank || !tId) {
+        alert("يرجى إكمال بيانات التحويل أولاً ياقائد.");
+        return;
+    }
+
+    // هنا يتم إرسال البيانات للخلفية (Backend) للأرشفة في كشف الحساب
+    console.log("جاري الأرشفة في قاعدة البيانات...", { ...currentData, bank, tId });
+    
+    alert(`تم اعتماد الحوالة رقم ${tId} بنجاح. تم نقل البيانات إلى كشف الحساب والأرشيف.`);
+    location.reload();
+}
+</script>
+{% endblock %}
