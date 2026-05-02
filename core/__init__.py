@@ -3,9 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from config import Config
-from sqlalchemy import text
 
-# تعريف الأدوات الأساسية للترسانة
+# تعريف الأدوات الأساسية للترسانة الرقمية
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
@@ -20,51 +19,24 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     
     # تحديد بوابة الدخول الرئيسية للإدارة
+    # تأكد أن اسم الـ endpoint هو 'admin_login' داخل 'admin_bp'
     login_manager.login_view = 'admin.admin_login'
+    login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى الترسانة."
 
-    # --- الاستيراد المركزي للموديلات ---
-    # نستخدم الاستيراد من core.models لضمان قراءة ملف __init__ الخاص بالموديلات أولاً
-    from core.models import User, Supplier, Order 
-    
+    # الاستيراد داخل الدالة لمنع التكرار وخطأ "MetaData instance"
+    from core.models.user import User
+
     @login_manager.user_loader
     def load_user(user_id):
+        # البحث عن القائد في قاعدة البيانات
         return User.query.get(int(user_id))
 
-    with app.app_context():
-        try:
-            print("🚨 جاري تصفير الترسانة الرقمية وإعادة الهيكلة...")
-            
-            # تنفيذ مسح شامل للجداول بالترتيب الصحيح (من التابع إلى الأساس)
-            # ترتيب الحذف مهم جداً لتجنب قيود المفاتيح الخارجية
-            db.session.execute(text('DROP TABLE IF EXISTS orders CASCADE;'))
-            db.session.execute(text('DROP TABLE IF EXISTS suppliers CASCADE;'))
-            db.session.execute(text('DROP TABLE IF EXISTS products CASCADE;'))
-            db.session.execute(text('DROP TABLE IF EXISTS users CASCADE;'))
-            db.session.commit()
-            
-            # إعادة بناء الهيكل النظيف بناءً على الموديلات الحالية
-            db.create_all() 
-            print("✅ تم إعادة بناء الجداول بنظافة تامة.")
-
-            # زرع حساب القائد (علي محجوب) في الهيكل الجديد
-            # ملاحظة: تأكد أن موديل User يدعم حقول role و is_active_account
-            admin_user = User(
-                username="علي محجوب", 
-                role='admin', 
-                is_active_account=True
-            )
-            admin_user.set_password('123')
-            db.session.add(admin_user)
-            db.session.commit()
-            print("👑 تم زرع حساب القائد بنجاح: علي محجوب / 123")
-
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ خطأ حرج أثناء التصفير أو الزرع: {e}")
-
-    # تسجيل Blueprint الإدارة لربط مجلد admin_panel بالمنصة
-    # تأكد من أن الملف موجود في admin_panel/routes.py
-    from admin_panel.routes import admin_bp
-    app.register_blueprint(admin_bp, url_prefix='/admin')
+    # تسجيل الـ Blueprints
+    # تأكد من استيراد admin_bp من المسار الصحيح
+    try:
+        from admin_panel.routes import admin_bp
+        app.register_blueprint(admin_bp, url_prefix='/admin')
+    except ImportError as e:
+        print(f"⚠️ تحذير: فشل تحميل Blueprint الإدارة: {e}")
 
     return app
