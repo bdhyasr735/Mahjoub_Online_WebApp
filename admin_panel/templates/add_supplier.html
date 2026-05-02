@@ -152,7 +152,8 @@
         <h2 style="margin:0;">🛡️ تعميد مورد جديد</h2>
         <div style="text-align:left;">
             <small>الهوية السيادية (ID/Wallet)</small><br>
-            <strong id="sovereign_id_display" style="font-size:1.2rem; color:var(--gov-gold);">{{ next_id if next_id else 'MAH-9631' }}</strong>
+            <!-- استخدام next_id القادم من السيرفر حصراً لضمان عدم التكرار -->
+            <strong id="sovereign_id_display" style="font-size:1.2rem; color:var(--gov-gold);">{{ next_id }}</strong>
         </div>
     </div>
 
@@ -235,8 +236,10 @@
         <div class="section-banner">🏦 الربط المالي والمحفظة السيادية</div>
         <div class="grid-layout">
             <div class="input-box">
-                <label>رقم المحفظة / الأيدي (تلقائي)</label>
-                <input type="text" name="e_wallet" id="e_wallet_input" class="form-control-gov form-control-readonly" readonly>
+                <label>رقم المحفظة / الأيدي (تلقائي مستمد من القاعدة)</label>
+                <!-- القيمة تأتي من next_id وتُرسل كـ hidden لضمان المطابقة -->
+                <input type="text" id="e_wallet_display" value="{{ next_id }}" class="form-control-gov form-control-readonly" readonly>
+                <input type="hidden" name="e_wallet" value="{{ next_id }}">
             </div>
             <div class="input-box" style="grid-column: 1 / -1;">
                 <label>تصنيف الجهة المالية</label>
@@ -331,7 +334,6 @@
         bSelect.add(new Option("أخرى (إدخال يدوي)...", "other"));
     }
 
-    // دالة نسخ النص المحسنة
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
             Swal.showValidationMessage(`تم نسخ: ${text}`);
@@ -339,11 +341,10 @@
         });
     }
 
-    // معالجة النموذج بنظام AJAX لإظهار التنبيه السيادي
     document.getElementById('sovereignForm').onsubmit = async function(e) {
         e.preventDefault();
         const submitBtn = document.getElementById('submitBtn');
-        const sovereignID = document.getElementById('sovereign_id_display').innerText.trim();
+        const sovereignID = "{{ next_id }}";
         const username = document.getElementById('form_username').value;
         const password = document.getElementById('form_password').value;
         const storeName = document.getElementById('form_store_name').value;
@@ -372,7 +373,7 @@
                             <p><strong>اسم المستخدم:</strong> <code id="c_user">${username}</code> <button onclick="copyToClipboard('${username}')" class="btn-copy-mini">نسخ</button></p>
                             <p><strong>كلمة المرور:</strong> <code id="c_pass">${password}</code> <button onclick="copyToClipboard('${password}')" class="btn-copy-mini">نسخ</button></p>
                             <hr>
-                            <p style="font-size: 0.9rem; color: #555;">شكراً لثقتكم بمنصة محجوب أونلاين. تم حفظ البيانات وأرشفة الوثائق في الترسانة الرقمية بنجاح.</p>
+                            <p style="font-size: 0.9rem; color: #555;">تم حفظ البيانات وأرشفة الوثائق بنجاح في الترسانة الرقمية لمحجوب أونلاين.</p>
                         </div>
                     `,
                     icon: 'success',
@@ -386,7 +387,7 @@
                 throw new Error(resultData.message || 'فشل التعميد');
             }
         } catch (err) {
-            Swal.fire('تعثر في الترسانة!', err.message || 'حدثت مشكلة في الاتصال بقاعدة البيانات أو أرشفة GitHub.', 'error');
+            Swal.fire('تعثر في الترسانة!', err.message, 'error');
             submitBtn.innerHTML = "🛡️ إعادة محاولة التعميد";
             submitBtn.disabled = false;
         }
@@ -396,11 +397,6 @@
         const pSelect = document.getElementById('prov_select');
         Object.keys(geoData).sort().forEach(p => pSelect.add(new Option(p, p)));
         setFinance('banks');
-
-        const sovereignID = document.getElementById('sovereign_id_display').innerText.trim();
-        if(sovereignID && sovereignID !== '---') {
-            document.getElementById('e_wallet_input').value = sovereignID;
-        }
     }
 </script>
 {% endblock %}
