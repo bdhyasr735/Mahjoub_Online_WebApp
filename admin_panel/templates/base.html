@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}القيادة المركزية | محجوب أونلاين{% endblock %}</title>
     
+    <!-- الخطوط والأيقونات -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,9 +13,9 @@
     
     <style>
         :root {
-            --royal-purple: #1a0b2e;
+            --royal-purple: #1a0b2e; /* الأرجواني الداكن لسيادة الواجهة */
             --deep-black: #08020d;
-            --mahjoub-gold: #D4AF37;
+            --mahjoub-gold: #D4AF37; /* الذهبي الملكي */
             --sidebar-width: 280px;
             --sidebar-mini: 85px;
             --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -22,7 +23,7 @@
 
         body { 
             font-family: 'Cairo', sans-serif; 
-            background: #f8f9fa; 
+            background: #f4f4f9; 
             margin: 0; display: flex; direction: rtl; min-height: 100vh;
             overflow-x: hidden;
         }
@@ -101,8 +102,8 @@
         }
 
         .admin-badge {
-            background: rgba(26, 11, 46, 0.04); padding: 10px 25px; border-radius: 50px;
-            border: 1.5px solid var(--mahjoub-gold); display: flex; align-items: center; gap: 12px;
+            background: rgba(26, 11, 46, 0.04); padding: 8px 20px; border-radius: 50px;
+            border: 1.5px solid var(--mahjoub-gold); display: flex; align-items: center; gap: 10px;
         }
 
         .user-profile { display: flex; align-items: center; gap: 15px; }
@@ -134,7 +135,7 @@
 
         <nav class="nav-menu">
             <!-- نظرة عامة -->
-            <a href="{{ url_for('admin_panel.admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_panel.admin_dashboard' %}active{% endif %}">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin.admin_dashboard' %}active{% endif %}">
                 <i class="fas fa-tower-observation"></i>
                 <span>مركز المراقبة</span>
             </a>
@@ -147,7 +148,7 @@
                     <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s;"></i>
                 </div>
                 <ul class="dropdown-content">
-                    <li><a href="{{ url_for('admin_panel.manage_suppliers') }}"><i class="fas fa-list-check"></i> إدارة الموردين المعتمدين</a></li>
+                    <li><a href="#"><i class="fas fa-list-check"></i> إدارة الموردين المعتمدين</a></li>
                     <li><a href="#"><i class="fas fa-user-clock"></i> طلبات اعتماد معلقة</a></li>
                 </ul>
             </div>
@@ -179,7 +180,7 @@
             </div>
 
             <!-- تسجيل الخروج -->
-            <a href="{{ url_for('admin_panel.logout') }}" class="nav-link mt-auto" style="color: #ff7675; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+            <a href="{{ url_for('admin.logout') }}" class="nav-link mt-auto" style="color: #ff7675; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
                 <i class="fas fa-power-off"></i>
                 <span>إنهاء الجلسة الآمنة</span>
             </a>
@@ -193,23 +194,26 @@
                     <i class="fas fa-crown"></i>
                 </div>
                 <div>
-                    <div style="font-weight: 900; color: var(--royal-purple); line-height: 1.2;">علي محجوب</div>
+                    <div style="font-weight: 900; color: var(--royal-purple); line-height: 1.2;">
+                        {{ current_user.username if current_user.is_authenticated else 'القائد علي' }}
+                    </div>
                     <small style="color: #888; font-size: 0.75rem; font-weight: 600;">المسؤول الأعلى للقرار</small>
                 </div>
             </div>
 
             <div class="admin-badge d-none d-md-flex">
                 <i class="fas fa-shield-halved" style="color: var(--mahjoub-gold);"></i>
-                <strong style="color: var(--royal-purple); font-size: 0.95rem;">نظام الحوكمة المركزية</strong>
+                <strong style="color: var(--royal-purple); font-size: 0.9rem;">نظام الحوكمة المركزية</strong>
             </div>
         </header>
 
         <div class="content-area">
+            <!-- نظام التنبيهات (Flash Messages) -->
             {% with messages = get_flashed_messages(with_categories=true) %}
               {% if messages %}
                 {% for category, message in messages %}
-                  <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm border-0 mb-4" style="border-right: 5px solid var(--mahjoub-gold) !important;">
-                      <i class="fas fa-shield-check me-2"></i> {{ message }}
+                  <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm border-0 mb-4" style="border-right: 5px solid var(--mahjoub-gold) !important; background: white; color: var(--royal-purple);">
+                      <i class="fas fa-info-circle me-2" style="color: var(--mahjoub-gold);"></i> {{ message }}
                       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                   </div>
                 {% endfor %}
@@ -222,10 +226,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // دالة التحكم في القوائم المنسدلة للسايدبار
         function toggleDropdown(element) {
             const content = element.nextElementSibling;
             const chevron = element.querySelector('.chevron');
             
+            // إغلاق أي قائمة مفتوحة أخرى للحفاظ على التنظيم
             document.querySelectorAll('.dropdown-content').forEach(el => {
                 if (el !== content) el.style.display = 'none';
             });
