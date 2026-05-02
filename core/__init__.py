@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from config import Config
-from sqlalchemy import text
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -19,7 +18,6 @@ def create_app(config_class=Config):
     
     login_manager.login_view = 'admin.admin_login'
 
-    # استيراد الموديلات هنا داخل الدالة لمنع الانهيار الدائري
     from core.models.user import User 
     
     @login_manager.user_loader
@@ -27,31 +25,28 @@ def create_app(config_class=Config):
         return User.query.get(int(user_id))
 
     with app.app_context():
-        # المرحلة 1: تنظيف القيود والترميم
         try:
-            db.create_all()
-            db.session.execute(text('ALTER TABLE users ALTER COLUMN password DROP NOT NULL;'))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
+            # --- الإجراء الحاسم: تصفير شامل للبيانات والجداول ---
+            print("🚨 جاري تصفير قاعدة البيانات وإعادة التهيئة...")
+            db.drop_all() 
+            db.create_all() 
+            print("✅ تم إعادة بناء الجداول بنجاح.")
 
-        # المرحلة 2: الزرع القسري للقائد "علي محجوب"
-        try:
-            admin_user = User.query.filter_by(username="علي محجوب").first()
-            if not admin_user:
-                admin_user = User(username="علي محجوب", role='admin', is_active_account=True)
-                admin_user.set_password('123')
-                db.session.add(admin_user)
-            else:
-                admin_user.set_password('123')
-                admin_user.is_active_account = True
+            # --- زرع حساب القائد علي محجوب ---
+            admin_user = User(
+                username="علي محجوب", 
+                role='admin', 
+                is_active_account=True
+            )
+            admin_user.set_password('123')
+            db.session.add(admin_user)
             db.session.commit()
-            print("✅ تم تأمين حساب القائد بنجاح.")
+            print("👑 تم زرع حساب القائد بنجاح: علي محجوب / 123")
+
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ خطأ في الزرع: {e}")
+            print(f"⚠️ خطأ أثناء التصفير أو الزرع: {e}")
 
-        # تسجيل المسارات
         from admin_panel.routes import admin_bp
         app.register_blueprint(admin_bp, url_prefix='/admin')
 
