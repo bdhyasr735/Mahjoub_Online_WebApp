@@ -16,7 +16,6 @@ except ImportError:
     WithdrawRequest = None
 
 # --- استيراد مدير الأرشفة السيادي (GitHub Archive) ---
-# ملاحظة: إذا فشل استيراد الأرشيف، سيعمل النظام محلياً فقط ولن ينهار
 try:
     from .archive_manager import ArchiveManager
     archiver = ArchiveManager()
@@ -56,35 +55,39 @@ def admin_dashboard():
 @login_required
 def add_supplier():
     """
-    إدارة عملية التعميد السيادي الكاملة
+    إدارة عملية التعميد السيادي الكاملة وتوليد الرقم MAH-9631 وتوابعه
     """
-    # توليد المعرف السيادي التالي
-    next_id = 1001
+    # أ- توليد المعرف السيادي التالي (تلقائي للعرض في GET)
+    next_id = "MAH-9631"
     try:
         if Vendor:
             last_vendor = Vendor.query.order_by(Vendor.id.desc()).first()
-            if last_vendor:
-                next_id = last_vendor.id + 1
+            if last_vendor and last_vendor.e_wallet:
+                # استخراج الرقم وزيادته (مثلاً من MAH-9631 إلى MAH-9632)
+                current_num = int(last_vendor.e_wallet.split('-')[1])
+                next_id = f"MAH-{current_num + 1}"
     except Exception:
-        next_id = "Auto"
+        next_id = "MAH-9631"
 
     if request.method == 'POST':
         try:
-            # أ- استلام البيانات من النموذج الملكي
+            # 1. استلام البيانات الأساسية
             username = request.form.get('username')
             password = request.form.get('password', '123')
-            e_wallet = request.form.get('e_wallet')
+            e_wallet = request.form.get('e_wallet') # الرقم الذي تم تأكيده في الواجهة
             
+            # معالجة نوع النشاط (يدوي أو من القائمة)
             activity = request.form.get('manual_activity') if request.form.get('activity_type') == 'manual' else request.form.get('activity_type')
             
-            # ب- الأرشفة السيادية (GitHub) - تعمل فقط إذا كان الموديل متاحاً
-            github_path = "Local_Only"
+            # 2. الأرشفة السيادية الضوئية (GitHub)
+            github_path = "Local_Archive_Only"
             id_file = request.files.get('id_image')
             
             if archiver and id_file and id_file.filename:
                 ext = os.path.splitext(id_file.filename)[1]
                 file_data = id_file.read()
                 
+                # رفع الوثيقة للأرشيف العالمي
                 github_path = archiver.upload_document(
                     s_id=e_wallet, 
                     u_id=username, 
@@ -93,35 +96,41 @@ def add_supplier():
                     ext=ext
                 )
                 
+                # توثيق بيانات المورد في سجل الأرشفة
                 archiver.upload_full_package(
                     data={
                         'sovereign_id': e_wallet,
                         'owner_name': request.form.get('owner_name'),
                         'trade_name': request.form.get('trade_name'),
+                        'verification_date': os.popen('date').read().strip(),
                         'status': 'Verified_By_Ali_Mahjoub'
-                    },
-                    files=[]
+                    }
                 )
 
-            # ج- الحفظ في قاعدة البيانات المحلية
+            # 3. إنشاء حساب المستخدم (User)
             new_user = User(
                 username=username,
                 password=generate_password_hash(password),
                 role='vendor'
             )
             db.session.add(new_user)
-            db.session.flush()
+            db.session.flush() # الحصول على ID المستخدم قبل الحفظ النهائي
 
+            # 4. إنشاء سجل المورد (Vendor) وربطه بالحساب والأرشيف
             new_vendor = Vendor(
                 user_id=new_user.id,
                 owner_name=request.form.get('owner_name'),
+                id_type=request.form.get('id_type'),
                 id_card_number=request.form.get('id_card_number'),
-                id_image_path=github_path,
+                id_image_path=github_path, # مسار الأرشيف في GitHub
                 trade_name=request.form.get('trade_name'),
                 activity_type=activity,
                 province=request.form.get('province'),
                 district=request.form.get('district'),
+                address_detail=request.form.get('address_detail'),
+                phone=request.form.get('phone'),
                 e_wallet=e_wallet,
+                fin_type=request.form.get('fin_type'),
                 bank_name=request.form.get('bank_name'),
                 bank_acc=request.form.get('bank_acc'),
                 is_verified=True
@@ -134,7 +143,7 @@ def add_supplier():
 
         except Exception as e:
             db.session.rollback()
-            return jsonify({"status": "error", "message": f"خطأ في البيانات: {str(e)}"}), 500
+            return jsonify({"status": "error", "message": f"فشل النظام السيادي: {str(e)}"}), 500
 
     return render_template('add_supplier.html', next_id=next_id)
 
@@ -142,11 +151,13 @@ def add_supplier():
 @admin_bp.route('/withdraw-requests')
 @login_required
 def withdraw_requests():
+    """مراقبة طلبات سحب الأرباح"""
     requests_list = WithdrawRequest.query.filter_by(status='pending').all() if WithdrawRequest else []
     return render_template('withdraw_requests.html', requests=requests_list)
 
 @admin_bp.route('/wallets')
 @login_required
 def wallets():
+    """كشف المحافظ السيادية للموردين"""
     all_vendors = Vendor.query.all() if Vendor else []
     return render_template('wallets.html', vendors=all_vendors)
