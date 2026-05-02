@@ -3,50 +3,35 @@ from sqlalchemy import text
 from core import create_app, db
 from core.models.user import User
 
-# 1. إنشاء التطبيق (البلوبرنت يتم تسجيله تلقائياً داخل create_app)
+# 1. إنشاء التطبيق
 app = create_app()
 
-def reset_and_build_database():
-    """مسح الجداول القديمة وبناء الهيكل الجديد لضمان سيادة البيانات"""
+def initialize_system():
+    """تهيئة النظام السيادي وقاعدة البيانات عند الإقلاع"""
     with app.app_context():
         try:
-            print("🚨 جاري فحص الترسانة الرقمية للقاعدة...")
-            
-            # فحص وجود الجداول قبل المسح لتجنب الأخطاء في التشغيل المتكرر
-            db.session.execute(text('DROP TABLE IF EXISTS "user" CASCADE;'))
-            db.session.commit()
-            
-            # بناء الجداول من جديد بالمعايير العالمية للمرحلة الثانية
+            # التأكد من وجود الجداول (بدون مسح البيانات لضمان الاستقرار)
             db.create_all()
-            print("🏗️ تم بناء الهيكل البرمجي بنجاح.")
-
-            # تنصيب القائد "علي محجوب" كمسؤول أعلى للنظام
-            admin_username = "علي محجوب"
-            existing_admin = User.query.filter_by(username=admin_username).first()
             
-            if not existing_admin:
-                new_admin = User(
-                    username=admin_username, 
-                    role='admin' 
-                )
-                new_admin.set_password('123') 
+            # التأكد من وجود الحساب الإداري للقائد علي محجوب
+            admin_username = "علي محجوب"
+            admin = User.query.filter_by(username=admin_username).first()
+            if not admin:
+                new_admin = User(username=admin_username, role='admin')
+                new_admin.set_password('123')
                 db.session.add(new_admin)
                 db.session.commit()
-                print(f"👑 تم تنصيب القائد {admin_username} بنجاح.")
-            
+                print("✅ تم تأكيد صلاحيات القائد في النظام.")
         except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ ملاحظة: استمر السيرفر رغم تعثر التهيئة الجزئي: {str(e)}")
+            print(f"⚠️ تنبيه النظام: {str(e)}")
 
-# تنفيذ التهيئة عند تشغيل الملف مباشرة
-# وضعناها خارج __main__ لضمان تنفيذها عند استدعاء Gunicorn للتطبيق
-with app.app_context():
-    # يمكنك تفعيل السطر التالي إذا كنت تريد مسح البيانات في كل مرة ترفع فيها كود جديد
-    # reset_and_build_database() 
-    db.create_all() # هذا السطر يضمن وجود الجداول دون مسح البيانات القديمة
+# تنفيذ التهيئة قبل بدء استقبال الطلبات
+initialize_system()
 
 if __name__ == "__main__":
-    # الحصول على المنفذ من بيئة Railway
-    # Railway يستخدم غالباً المنفذ 5000 أو متغير PORT ديناميكي
+    # Railway يتطلب الربط مع المنفذ الديناميكي PORT
+    # إذا لم يجد PORT، سيستخدم 5000 كافتراضي
     port = int(os.environ.get("PORT", 5000))
+    
+    # host='0.0.0.0' ضروري جداً لجعل السيرفر مرئياً للخارج
     app.run(host='0.0.0.0', port=port, debug=False)
