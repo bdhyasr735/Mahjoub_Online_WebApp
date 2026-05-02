@@ -122,7 +122,8 @@
         </div>
     </div>
 
-    <form id="sovereignForm" action="{{ url_for('admin.add_vendor') }}" method="POST" enctype="multipart/form-data" onsubmit="return startLoading()">
+    <!-- تأكد من أن action يطابق المسار في routes.py -->
+    <form id="sovereignForm" action="{{ url_for('admin.add_vendor_action') }}" method="POST" enctype="multipart/form-data" onsubmit="return startLoading()">
         
         <div class="section-banner">👤 بيانات الحساب والنشاط التجاري</div>
         <div class="grid-layout">
@@ -198,6 +199,7 @@
         <div class="grid-layout">
             <div class="input-box">
                 <label>رقم المحفظة السيادي (تلقائي)</label>
+                <!-- يتم تعبئة القيمة تلقائياً من الـ next_id لضمان الربط -->
                 <input type="text" name="e_wallet" id="e_wallet_input" class="form-control-gov form-control-readonly" readonly>
             </div>
             <div class="input-box" style="grid-column: 1 / -1;">
@@ -232,6 +234,7 @@
 </div>
 
 <script>
+    // البيانات الجغرافية لنطاق العمل في اليمن
     const geoData = {
         "أمانة العاصمة": ["السبعين", "التحرير", "الثورة", "صنعاء القديمة", "بني الحارث", "وحدة", "معين", "شعوب"],
         "عدن": ["المنصورة", "كريتر", "الشيخ عثمان", "البريقة", "المعلا", "التواهي", "خور مكسر", "دار سعد"],
@@ -298,6 +301,7 @@
         Object.keys(geoData).sort().forEach(p => pSelect.add(new Option(p, p)));
         setFinance('banks');
 
+        // سحب الرقم السيادي المولد من الـ Backend ووضعه في خانة المحفظة
         const sovereignID = document.getElementById('sovereign_id_display').innerText.trim();
         if(sovereignID && sovereignID !== '---') {
             document.getElementById('e_wallet_input').value = sovereignID;
@@ -305,7 +309,9 @@
     }
 
     function startLoading() {
-        document.getElementById('submitBtn').innerHTML = "⏳ جاري المعالجة...";
+        document.getElementById('submitBtn').innerHTML = "⏳ جاري المعالجة والتعميد...";
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('sovereignForm').submit();
         return true;
     }
 </script>
