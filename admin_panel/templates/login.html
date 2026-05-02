@@ -83,15 +83,19 @@
             opacity: 0.9;
         }
 
+        /* تحسين صندوق الرسائل التنبيهية */
         .flash-msg {
-            padding: 12px;
-            border-radius: 10px;
-            font-size: 0.85rem;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 0.9rem;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             border: 1px solid transparent;
             animation: shake 0.5s ease-in-out;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
         .flash-danger { background: rgba(255, 77, 77, 0.15); color: var(--danger); border-color: rgba(255, 77, 77, 0.3); }
@@ -100,8 +104,8 @@
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
         }
 
         .form-group {
@@ -208,11 +212,12 @@
             <p>نظام الولوج السيادي</p>
         </div>
 
+        <!-- قسم عرض رسائل الخطأ والتحقق -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
-              <div class="flash-msg flash-{{ category }}">
-                <i class="fas {% if category == 'danger' %}fa-exclamation-triangle{% elif category == 'warning' %}fa-user-lock{% else %}fa-check-circle{% endif %}"></i>
+              <div class="flash-msg flash-{{ 'danger' if category == 'error' else category }}">
+                <i class="fas {% if category == 'error' or category == 'danger' %}fa-exclamation-circle{% elif category == 'warning' %}fa-user-slash{% else %}fa-info-circle{% endif %}"></i>
                 {{ message }}
               </div>
             {% endfor %}
@@ -221,10 +226,9 @@
 
         <form action="{{ url_for('admin.admin_login') }}" method="POST">
             <div class="form-group">
-                <label>معرف القائد (بالعربي)</label>
+                <label>معرف القائد</label>
                 <div class="input-wrapper">
-                    <!-- تم ضبط الحقل لاستقبال اسم المستخدم بالعربي -->
-                    <input type="text" name="username" class="form-control" placeholder="علي" required autofocus autocomplete="off">
+                    <input type="text" name="username" class="form-control" placeholder="ادخل اسم المستخدم" required autofocus autocomplete="off">
                     <i class="fas fa-user-shield"></i>
                 </div>
             </div>
