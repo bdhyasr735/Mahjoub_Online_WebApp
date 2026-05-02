@@ -1,6 +1,5 @@
-from core import db  # استيراد كائن db المعرف في __init__.py الخاص بـ core
+from core import db  
 from datetime import datetime
-from sqlalchemy import inspect
 
 class Vendor(db.Model):
     __tablename__ = 'vendors'
@@ -9,8 +8,8 @@ class Vendor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     
     # الربط مع المستخدم (User Model)
-    # هذا هو العمود الذي تسبب في الخطأ لأنه مفقود في قاعدة البيانات الحالية
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    # تم إزالة unique=True مؤقتاً لضمان مرونة النظام السيادي في مرحلة التأسيس
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # --- بيانات الهوية والملك والوثائق ---
     owner_name = db.Column(db.String(255), nullable=False)
@@ -38,32 +37,8 @@ class Vendor(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_verified = db.Column(db.Boolean, default=True)
 
+    # علاقة عكسية اختيارية للوصول لبيانات المستخدم بسهولة
+    user = db.relationship('User', backref=db.backref('vendors', lazy=True))
+
     def __repr__(self):
         return f"<Vendor {self.trade_name} - Sovereign ID: {self.e_wallet}>"
-
-# --- وظيفة إصلاح الترسانة تلقائياً ---
-def check_and_upgrade_vendor_table():
-    """
-    تقوم هذه الدالة بفحص جدول الموردين وإضافة الأعمدة الناقصة تلقائياً
-    لتجنب خطأ UndefinedColumn
-    """
-    with db.engine.connect() as conn:
-        inspector = inspect(db.engine)
-        existing_columns = [c['name'] for c in inspector.get_columns('vendors')]
-        
-        # قائمة بالأعمدة الحساسة التي قد تكون مفقودة
-        required_columns = {
-            'user_id': 'INTEGER',
-            'province': 'VARCHAR(100)',
-            'district': 'VARCHAR(100)',
-            'id_type': 'VARCHAR(100)',
-            'fin_type': 'VARCHAR(50)',
-            'address_detail': 'VARCHAR(500)',
-            'phone': 'VARCHAR(20)'
-        }
-        
-        for col, col_type in required_columns.items():
-            if col not in existing_columns:
-                print(f"🛠️ جاري ترقية الترسانة: إضافة عمود {col}...")
-                conn.execute(db.text(f'ALTER TABLE vendors ADD COLUMN {col} {col_type};'))
-                conn.commit()
