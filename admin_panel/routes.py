@@ -186,3 +186,10 @@ def logout():
     session.clear()
     flash('تم إغلاق الجلسة الآمنة بنجاح.', 'info')
     return redirect(url_for('admin.login'))
+
+@admin.route('/wallets')
+@login_required
+def manage_wallets():
+    # جلب جميع الموردين من قاعدة البيانات لعرضهم في الجدول
+    vendors = Vendor.query.all() 
+    return render_template('wallets.html', vendors=vendors)
