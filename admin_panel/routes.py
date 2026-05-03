@@ -26,7 +26,7 @@ def force_repair():
     db.session.rollback() # إنهاء أي ترانزاكشن معلق
     try:
         # تنفيذ أوامر الترميم المباشرة لإضافة الأعمدة الناقصة المكتشفة في السجلات
-        db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'admin';"))
+        db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'admin';"))
         db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active_account BOOLEAN DEFAULT TRUE;"))
         db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS user_id INTEGER;"))
         
@@ -34,7 +34,7 @@ def force_repair():
         session['repair_done'] = True
         return """
         <div style="text-align:center; margin-top:50px; font-family:sans-serif; direction:rtl;">
-            <h1 style="color: #D4AF37;">✨ تم اكتمال الترميم الهيكلي بنجاح!</h1>
+            <h1 style="color: #632C8F;">✨ تم اكتمال الترميم الهيكلي بنجاح!</h1>
             <p style="color: #1a0b2e;">تم تحديث الجداول (Users & Vendors) لتتوافق مع معايير محجوب أونلاين.</p>
             <a href="/admin/dashboard" style="padding:12px 25px; background:#632C8F; color:white; text-decoration:none; border-radius:10px;">دخول مركز القيادة (Dashboard)</a>
         </div>
@@ -48,7 +48,7 @@ def force_repair():
 @admin_bp.route('/dashboard')
 @login_required
 def admin_dashboard():
-    db.session.rollback()
+    db.session.rollback() # تطهير الجلسة من أي مخلفات سابقة لضمان عرض البيانات
     stats = {'suppliers_count': 0, 'pending_withdrawals': 0, 'orders_count': 0, 'total_balance': "0.00"}
     show_repair = not session.get('repair_done', False)
 
@@ -68,25 +68,25 @@ def admin_dashboard():
 @login_required
 def withdraw_requests():
     db.session.rollback()
-    requests = []
+    requests_list = []
     if WithdrawRequest:
         try:
-            requests = WithdrawRequest.query.order_by(WithdrawRequest.id.desc()).all()
+            requests_list = WithdrawRequest.query.order_by(WithdrawRequest.id.desc()).all()
         except:
             db.session.rollback()
-    return render_template('withdraw_requests.html', requests=requests)
+    return render_template('withdraw_requests.html', requests=requests_list)
 
 # --- 4. حوكمة الموردين ---
 @admin_bp.route('/suppliers')
 @login_required
 def manage_suppliers():
     db.session.rollback()
-    suppliers = []
+    suppliers_list = []
     try:
-        suppliers = Vendor.query.all() if Vendor else []
+        suppliers_list = Vendor.query.all() if Vendor else []
     except:
         db.session.rollback()
-    return render_template('manage_suppliers.html', suppliers=suppliers)
+    return render_template('manage_suppliers.html', suppliers=suppliers_list)
 
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
 @login_required
@@ -103,9 +103,12 @@ def login():
     db.session.rollback()
     # التحقق من الصلاحيات بناءً على العمود الجديد 'role'
     if current_user.is_authenticated:
-        user_role = getattr(current_user, 'role', None)
-        if user_role == 'admin':
-            return redirect(url_for('admin.admin_dashboard'))
+        try:
+            user_role = getattr(current_user, 'role', 'admin')
+            if user_role == 'admin':
+                return redirect(url_for('admin.admin_dashboard'))
+        except:
+            db.session.rollback()
     return handle_admin_login()
 
 @admin_bp.route('/logout')
@@ -115,9 +118,3 @@ def logout():
     session.clear()
     flash('تم إغلاق الجلسة الآمنة بنجاح.', 'info')
     return redirect(url_for('admin.login'))
-
-@admin_bp.route('/dashboard')
-@login_required
-def admin_dashboard():
-    db.session.rollback() # تطهير الجلسة من أي مخلفات سابقة
-    # ... بقية الكود
