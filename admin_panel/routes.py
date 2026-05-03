@@ -77,7 +77,7 @@ def admin_dashboard():
         db.session.rollback()
         return render_template('dashboard.html', suppliers_count=0, pending_withdrawals=0, show_repair=True)
 
-# --- 3. حوكمة الموردين وتعيدهم (مع دمج خدمة المحفظة) ---
+# --- 3. حوكمة الموردين (مع دمج خدمة المحفظة لـ سوقك الذكي) ---
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
 @login_required
 def add_supplier():
@@ -88,18 +88,18 @@ def add_supplier():
     
     if request.method == 'POST':
         try:
-            # استخراج البيانات من نموذج سوقك الذكي
+            # استخراج البيانات
             username = request.form.get('username')
             password = request.form.get('password')
             trade_name = request.form.get('trade_name')
             owner_name = request.form.get('owner_name')
             phone = request.form.get('phone')
-            wallet_id = request.form.get('e_wallet') # القيمة القادمة من الواجهة
+            wallet_id = request.form.get('e_wallet')
 
             if not User or not Vendor:
-                return jsonify({"status": "error", "message": "نماذج البيانات غير محملة بشكل صحيح"}), 500
+                return jsonify({"status": "error", "message": "نماذج البيانات غير محملة"}), 500
 
-            # فحص التكرار لضمان عدم تعطل الترسانة
+            # فحص التكرار
             if User.query.filter_by(username=username).first():
                 return jsonify({"status": "error", "message": f"اسم المستخدم ({username}) مسجل مسبقاً."})
             
@@ -112,7 +112,7 @@ def add_supplier():
             db.session.add(new_user)
             db.session.flush() 
 
-            # 2. إنشاء بيانات المورد (التعميد الأبدي)
+            # 2. إنشاء بيانات المورد
             new_vendor = Vendor(
                 user_id=new_user.id,
                 owner_name=owner_name,
@@ -138,9 +138,7 @@ def add_supplier():
             db.session.rollback()
             return jsonify({"status": "error", "message": f"تعثر في الترسانة: {str(e)}"}), 500
 
-    # منطق GET: استدعاء "خدمة المحفظة" لتوليد الرقم الجديد تلقائياً
     next_id = generate_wallet_id() 
-    
     return render_template('add_supplier.html', next_id=next_id)
 
 @admin_bp.route('/suppliers')
@@ -154,7 +152,7 @@ def manage_suppliers():
         db.session.rollback()
         return render_template('manage_suppliers.html', suppliers=[])
 
-# --- 4. الهندسة المالية (طلبات السحب) ---
+# --- 4. الهندسة المالية (طلبات السحب والمحافظ) ---
 @admin_bp.route('/withdraw-requests')
 @login_required
 def withdraw_requests():
@@ -165,6 +163,19 @@ def withdraw_requests():
     except:
         db.session.rollback()
         return render_template('withdraw_requests.html', requests=[])
+
+@admin_bp.route('/wallets')
+@login_required
+def manage_wallets():
+    try:
+        db.session.rollback()
+        # جلب جميع الموردين لعرض محافظهم في جدول سوقك الذكي
+        vendors_list = Vendor.query.all() if Vendor else []
+        return render_template('wallets.html', vendors=vendors_list)
+    except Exception as e:
+        db.session.rollback()
+        flash(f"خطأ في الوصول للمحافظ: {str(e)}", "danger")
+        return redirect(url_for('admin.admin_dashboard'))
 
 # --- 5. إدارة الجلسات السيادية ---
 @admin_bp.route('/login', methods=['GET', 'POST'])
@@ -186,10 +197,3 @@ def logout():
     session.clear()
     flash('تم إغلاق الجلسة الآمنة بنجاح.', 'info')
     return redirect(url_for('admin.login'))
-
-@admin.route('/wallets')
-@login_required
-def manage_wallets():
-    # جلب جميع الموردين من قاعدة البيانات لعرضهم في الجدول
-    vendors = Vendor.query.all() 
-    return render_template('wallets.html', vendors=vendors)
