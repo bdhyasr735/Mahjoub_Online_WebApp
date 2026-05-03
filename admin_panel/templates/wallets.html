@@ -1,184 +1,52 @@
-{% extends "admin_panel/base.html" %}
-
-{% block title %}إدارة الخزينة المركزية | محجوب أونلاين{% endblock %}
-
+{% extends "base.html" %}
 {% block content %}
-<div class="container-fluid py-4" dir="rtl">
-    <div class="row mb-4">
+<div class="container-fluid" style="direction: rtl; text-align: right;">
+    <div class="row">
         <div class="col-12">
-            <div class="glass-header p-4 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(10, 10, 10, 0.9)); border: 1px solid var(--mahjoub-gold);">
-                <div>
-                    <h2 class="text-white fw-black mb-1"><i class="fas fa-vault text-gold me-2"></i> الرقابة المالية للموردين</h2>
-                    <p class="text-white-50 mb-0">إدارة الأرصدة السيادية، تسوية المستحقات، ومراقبة التدفقات النقدية</p>
-                </div>
-                <div class="total-vault-badge">
-                    <small>إجمالي الأرصدة المودعة</small>
-                    <h3 class="mb-0 text-gold fw-black" id="total-balance">0.00 $</h3>
-                </div>
-            </div>
+            <h2 style="color: #632C8F; border-bottom: 2px solid #632C8F; padding-bottom: 10px;">
+                <i class="fas fa-wallet"></i> إدارة المحافظ السيادية - سوقك الذكي
+            </h2>
         </div>
     </div>
 
-    <div class="row g-4">
-        {% for supplier in suppliers %}
-        <div class="col-xl-4 col-md-6 supplier-wallet-card" data-balance="{{ supplier.wallet_balance }}">
-            <div class="wallet-card-inner p-4 shadow-lg">
-                <div class="d-flex justify-content-between align-items-start mb-4">
-                    <div class="supplier-info">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-circle me-3">
-                                {{ supplier.name[0]|upper }}
-                            </div>
-                            <div>
-                                <h5 class="text-white fw-bold mb-0">{{ supplier.name }}</h5>
-                                <small class="text-muted">ID: {{ supplier.id }} | نشط</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="status-indicator">
-                        <span class="dot pulse-green"></span>
-                    </div>
-                </div>
-
-                <div class="balance-display text-center py-3 mb-4 rounded-4" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);">
-                    <small class="text-white-50 d-block mb-1">الرصيد المتاح حالياً</small>
-                    <h2 class="text-gold fw-black mb-0 display-6">{{ "{:,.2f}".format(supplier.wallet_balance) }} $</h2>
-                </div>
-
-                <form action="{{ url_for('admin_panel.update_wallet', supplier_id=supplier.id) }}" method="POST">
-                    <div class="row g-2">
-                        <div class="col-8">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-dark border-secondary text-gold">$</span>
-                                <input type="number" step="0.01" name="amount" class="form-control bg-black text-white border-secondary" placeholder="أضف أو اخصم مبلغ">
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <button type="submit" class="btn btn-gold-outline w-100 fw-bold">تحديث</button>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2 mt-3">
-                        <button type="submit" name="action" value="add" class="btn btn-success-sovereign flex-grow-1">
-                            <i class="fas fa-plus-circle me-1"></i> إيداع
-                        </button>
-                        <button type="submit" name="action" value="subtract" class="btn btn-danger-sovereign flex-grow-1">
-                            <i class="fas fa-minus-circle me-1"></i> سحب
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <div class="card mt-4 shadow-sm">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead style="background-color: #632C8F; color: white;">
+                    <tr>
+                        <th>المورد / الاسم التجاري</th>
+                        <th>رقم المحفظة</th>
+                        <th>رصيد (YER)</th>
+                        <th>رصيد (SAR)</th>
+                        <th>رصيد (USD)</th>
+                        <th>تاريخ التعميد</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vendor in vendors %}
+                    <tr>
+                        <td>
+                            <strong>{{ vendor.trade_name }}</strong><br>
+                            <small class="text-muted">{{ vendor.owner_name }}</small>
+                        </td>
+                        <td><span class="badge bg-light text-dark" style="border: 1px solid #632C8F;">{{ vendor.e_wallet }}</span></td>
+                        <td class="fw-bold text-success">{{ "{:,.2f}".format(vendor.balance_yer) }}</td>
+                        <td class="fw-bold text-primary">{{ "{:,.2f}".format(vendor.balance_sar) }}</td>
+                        <td class="fw-bold text-info">{{ "{:,.2f}".format(vendor.balance_usd) }}</td>
+                        <td>{{ vendor.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <a href="#" class="btn btn-sm btn-outline-secondary">التفاصيل</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">لا يوجد موردين مسجلين في الترسانة حالياً.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        {% endfor %}
     </div>
 </div>
-
-<style>
-    /* تصميم المحفظة */
-    .supplier-wallet-card {
-        perspective: 1000px;
-    }
-
-    .wallet-card-inner {
-        background: #111;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 25px;
-        position: relative;
-        overflow: hidden;
-        transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .wallet-card-inner:hover {
-        transform: translateY(-10px);
-        border-color: var(--mahjoub-gold);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-    }
-
-    .wallet-card-inner::before {
-        content: '';
-        position: absolute;
-        top: 0; right: 0;
-        width: 100px; height: 100px;
-        background: linear-gradient(135deg, var(--mahjoub-gold), transparent);
-        opacity: 0.05;
-        border-radius: 0 0 0 100%;
-    }
-
-    .avatar-circle {
-        width: 45px; height: 45px;
-        background: var(--mahjoub-purple);
-        color: white;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 900;
-        font-size: 1.2rem;
-        box-shadow: 0 5px 15px rgba(99, 44, 143, 0.3);
-    }
-
-    .btn-gold-outline {
-        border: 1px solid var(--mahjoub-gold);
-        color: var(--mahjoub-gold);
-        font-size: 0.8rem;
-    }
-
-    .btn-gold-outline:hover {
-        background: var(--mahjoub-gold);
-        color: #000;
-    }
-
-    .btn-success-sovereign {
-        background: rgba(16, 185, 129, 0.1);
-        border: 1px solid #10b981;
-        color: #10b981;
-        font-weight: 800;
-        font-size: 0.8rem;
-    }
-
-    .btn-success-sovereign:hover { background: #10b981; color: white; }
-
-    .btn-danger-sovereign {
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid #ef4444;
-        color: #ef4444;
-        font-weight: 800;
-        font-size: 0.8rem;
-    }
-
-    .btn-danger-sovereign:hover { background: #ef4444; color: white; }
-
-    .pulse-green {
-        width: 10px; height: 10px;
-        background: #10b981;
-        border-radius: 50%;
-        display: inline-block;
-        box-shadow: 0 0 10px #10b981;
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-    }
-
-    .total-vault-badge {
-        text-align: left;
-        background: rgba(0,0,0,0.4);
-        padding: 10px 25px;
-        border-radius: 15px;
-        border-left: 4px solid var(--mahjoub-gold);
-    }
-</style>
-
-<script>
-    // حساب إجمالي الخزينة ديناميكياً
-    document.addEventListener('DOMContentLoaded', function() {
-        let total = 0;
-        document.querySelectorAll('.supplier-wallet-card').forEach(card => {
-            total += parseFloat(card.dataset.balance);
-        });
-        document.getElementById('total-balance').innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' $';
-    });
-</script>
 {% endblock %}
