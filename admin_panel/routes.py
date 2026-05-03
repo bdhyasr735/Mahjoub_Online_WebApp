@@ -1,10 +1,11 @@
 import os
+import re
 from flask import render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import text
 from core import db 
 
-# استيراد النماذج بحذر شديد لضمان استقرار النظام
+# --- استيراد النماذج بحذر شديد لضمان استقرار النظام ---
 try:
     from core.models.user import User
     from core.models.vendor import Vendor
@@ -17,6 +18,15 @@ try:
 except ImportError:
     WithdrawRequest = None
 
+# --- الربط السيادي مع ملف الخدمات (عقل المحفظة) ---
+try:
+    from services.wallet_service import generate_wallet_id
+except ImportError:
+    # دالة احتياطية في حال تعثر استيراد الملف المنفصل
+    def generate_wallet_id(prefix="W-MAH-"):
+        import random
+        return f"{prefix}{random.randint(1000, 9999)}"
+
 from . import admin_bp
 from .auth import handle_admin_login
 
@@ -24,11 +34,15 @@ from .auth import handle_admin_login
 @admin_bp.route('/force-repair-now')
 def force_repair():
     try:
-        db.session.rollback() # إنهاء أي ترانزاكشن معلق
-        # تنفيذ أوامر الترميم المباشرة لإضافة الأعمدة الناقصة
+        db.session.rollback() 
+        # تنفيذ أوامر الترميم لضمان وجود كافة الأعمدة التي تسببت في التعثر سابقاً
         db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'admin';"))
         db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active_account BOOLEAN DEFAULT TRUE;"))
         db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS user_id INTEGER;"))
+        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS e_wallet VARCHAR(100);"))
+        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS owner_name VARCHAR(150);"))
+        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS trade_name VARCHAR(150);"))
+        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
         
         db.session.commit()
         session['repair_done'] = True
@@ -63,7 +77,7 @@ def admin_dashboard():
         db.session.rollback()
         return render_template('dashboard.html', suppliers_count=0, pending_withdrawals=0, show_repair=True)
 
-# --- 3. حوكمة الموردين وتعيدهم ---
+# --- 3. حوكمة الموردين وتعيدهم (مع دمج خدمة المحفظة) ---
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
 @login_required
 def add_supplier():
@@ -74,31 +88,31 @@ def add_supplier():
     
     if request.method == 'POST':
         try:
-            # استخراج البيانات من النموذج
+            # استخراج البيانات من نموذج سوقك الذكي
             username = request.form.get('username')
             password = request.form.get('password')
             trade_name = request.form.get('trade_name')
             owner_name = request.form.get('owner_name')
             phone = request.form.get('phone')
-            wallet_id = request.form.get('e_wallet') # يستقبل الرمز الجديد W-MAH-XXXX
+            wallet_id = request.form.get('e_wallet') # القيمة القادمة من الواجهة
 
             if not User or not Vendor:
                 return jsonify({"status": "error", "message": "نماذج البيانات غير محملة بشكل صحيح"}), 500
 
-            # --- رادار فحص التكرار السيادي ---
+            # فحص التكرار لضمان عدم تعطل الترسانة
             if User.query.filter_by(username=username).first():
-                return jsonify({"status": "error", "message": f"عذراً، اسم المستخدم ({username}) مسجل مسبقاً في الترسانة."})
+                return jsonify({"status": "error", "message": f"اسم المستخدم ({username}) مسجل مسبقاً."})
             
             if Vendor.query.filter_by(e_wallet=wallet_id).first():
-                return jsonify({"status": "error", "message": f"الرقم السيادي ({wallet_id}) مستخدم بالفعل لمورد آخر."})
+                return jsonify({"status": "error", "message": f"الرقم السيادي ({wallet_id}) مستخدم بالفعل."})
 
-            # 1. إنشاء حساب المستخدم المرتبط بالمورد
+            # 1. إنشاء حساب المستخدم
             new_user = User(username=username, role='vendor')
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.flush() 
 
-            # 2. إنشاء بيانات المورد (مطابقة تماماً لملف core/models/vendor.py)
+            # 2. إنشاء بيانات المورد (التعميد الأبدي)
             new_vendor = Vendor(
                 user_id=new_user.id,
                 owner_name=owner_name,
@@ -124,26 +138,8 @@ def add_supplier():
             db.session.rollback()
             return jsonify({"status": "error", "message": f"تعثر في الترسانة: {str(e)}"}), 500
 
-    # منطق GET: توليد الرقم السيادي ليكون رمز المحفظة الموحد (W-MAH-9631)
-    try:
-        if Vendor:
-            last_vendor = Vendor.query.order_by(Vendor.id.desc()).first()
-            if last_vendor and last_vendor.e_wallet:
-                # استخراج الجزء الرقمي فقط من الرمز (مثلاً من W-MAH-9631 يستخرج 9631)
-                import re
-                match = re.search(r'\d+', str(last_vendor.e_wallet))
-                if match:
-                    next_id_num = int(match.group()) + 1
-                else:
-                    next_id_num = 9631
-            else:
-                next_id_num = 9631 # البداية المحددة للمورد الأول
-        else:
-            next_id_num = 9631
-    except:
-        next_id_num = 9631
-        
-    next_id = f"W-MAH-{next_id_num}"
+    # منطق GET: استدعاء "خدمة المحفظة" لتوليد الرقم الجديد تلقائياً
+    next_id = generate_wallet_id() 
     
     return render_template('add_supplier.html', next_id=next_id)
 
