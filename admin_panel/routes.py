@@ -80,7 +80,7 @@ def add_supplier():
             trade_name = request.form.get('trade_name')
             owner_name = request.form.get('owner_name')
             phone = request.form.get('phone')
-            wallet_id = request.form.get('e_wallet')
+            wallet_id = request.form.get('e_wallet') # يستقبل الرمز الجديد W-MAH-XXXX
 
             if not User or not Vendor:
                 return jsonify({"status": "error", "message": "نماذج البيانات غير محملة بشكل صحيح"}), 500
@@ -124,14 +124,18 @@ def add_supplier():
             db.session.rollback()
             return jsonify({"status": "error", "message": f"تعثر في الترسانة: {str(e)}"}), 500
 
-    # منطق GET: توليد الرقم السيادي ليبدأ من MAH-9631
+    # منطق GET: توليد الرقم السيادي ليكون رمز المحفظة الموحد (W-MAH-9631)
     try:
         if Vendor:
             last_vendor = Vendor.query.order_by(Vendor.id.desc()).first()
             if last_vendor and last_vendor.e_wallet:
-                # استخراج الرقم الأخير وزيادة 1
-                last_id_str = str(last_vendor.e_wallet).replace("MAH-", "")
-                next_id_num = int(last_id_str) + 1
+                # استخراج الجزء الرقمي فقط من الرمز (مثلاً من W-MAH-9631 يستخرج 9631)
+                import re
+                match = re.search(r'\d+', str(last_vendor.e_wallet))
+                if match:
+                    next_id_num = int(match.group()) + 1
+                else:
+                    next_id_num = 9631
             else:
                 next_id_num = 9631 # البداية المحددة للمورد الأول
         else:
@@ -139,7 +143,7 @@ def add_supplier():
     except:
         next_id_num = 9631
         
-    next_id = f"MAH-{next_id_num}"
+    next_id = f"W-MAH-{next_id_num}"
     
     return render_template('add_supplier.html', next_id=next_id)
 
