@@ -3,6 +3,7 @@
 {% block title %}نظام الرقابة العليا | محجوب أونلاين{% endblock %}
 
 {% block content %}
+<!-- محتويات لوحة التحكم كما هي -->
 <style>
     .stat-card {
         border-radius: 20px;
@@ -13,31 +14,11 @@
         position: relative;
         overflow: hidden;
     }
-    .stat-card:hover { transform: translateY(-10px); }
-    .bg-purple-grad { background: linear-gradient(135deg, #632C8F 0%, #3a1a54 100%); }
-    .bg-gold-grad { background: linear-gradient(135deg, #D4AF37 0%, #aa8b2c 100%); color: #1a0b2e; }
-    .bg-dark-grad { background: linear-gradient(135deg, #2d3436 0%, #000000 100%); }
-    
-    .status-indicator {
-        width: 10px; height: 10px; background: #2ecc71;
-        border-radius: 50%; display: inline-block; margin-left: 10px;
-        box-shadow: 0 0 10px #2ecc71;
-    }
-
-    /* أنيميشن لنبض زر الإصلاح */
-    @keyframes pulse-red {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
-        70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
-    }
-    .repair-btn {
-        animation: pulse-red 2s infinite;
-        border: 2px solid white;
-    }
+    /* ... باقي التنسيقات الملكية ... */
 </style>
 
 <div class="container-fluid">
-    <!-- الترويسة العلوية -->
+    <!-- هيكل لوحة التحكم السيادي -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-8 text-end">
             <h1 style="font-weight: 900; color: #1a0b2e; font-size: 2.5rem;">نظام الرقابة العليا</h1>
@@ -46,121 +27,9 @@
                 المحرك الرقمي "محجوب أونلاين" يعمل بكفاءة قصوى
             </p>
         </div>
-        <div class="col-md-4 text-start">
-            <div class="p-3 rounded-4 bg-dark text-white text-center shadow-lg" style="border-right: 4px solid #D4AF37;">
-                <small class="d-block opacity-75">توقيت البرج المركزي</small>
-                <div id="digital-clock" style="font-size: 1.5rem; font-weight: 700; color: #D4AF37;">00:00:00 م</div>
-            </div>
-        </div>
+        <!-- ... المكونات البرمجية والعدادات ... -->
     </div>
-
-    <!-- 🛠️ وحدة الترميم السيادي (نظام الإصلاح التلقائي) -->
-    {% if show_repair %}
-    <div class="row mb-5">
-        <div class="col-12">
-            <div class="p-4 rounded-4 shadow-lg border-0 d-flex align-items-center justify-content-between" 
-                 style="background: linear-gradient(90deg, #ff4b2b 0%, #ff416c 100%); color: white;">
-                <div class="text-end">
-                    <h4 class="mb-1 fw-bold"><i class="fas fa-tools me-2"></i> اكتشاف خلل في الهيكل الرقمي</h4>
-                    <p class="mb-0 opacity-90">تم رصد فقدان في أعمدة قاعدة البيانات. اضغط على الزر لتفعيل التحديث السيادي فوراً.</p>
-                </div>
-                <a href="{{ url_for('admin.auto_repair') }}" class="btn btn-light fw-bold px-5 py-3 rounded-pill repair-btn" style="color: #ff416c;">
-                    <i class="fas fa-magic me-2"></i> إصلاح الترسانة الآن
-                </a>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- بطاقات الإحصائيات السيادية -->
-    <div class="row g-4 text-center">
-        <!-- إجمالي المبيعات -->
-        <div class="col-md-3">
-            <div class="stat-card bg-purple-grad shadow">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <i class="fas fa-rocket fa-2x opacity-50"></i>
-                    <small class="fw-bold">إجمالي المبيعات</small>
-                </div>
-                <h2 class="mb-0 fw-black">{{ orders_count if orders_count else '0' }}</h2>
-            </div>
-        </div>
-
-        <!-- شركاء الترسانة -->
-        <div class="col-md-3">
-            <div class="stat-card bg-dark-grad shadow">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <i class="fas fa-shield-halved fa-2x opacity-50 text-success"></i>
-                    <small class="fw-bold text-success">شركاء الترسانة</small>
-                </div>
-                <h2 class="mb-0 fw-black">{{ suppliers_count }}</h2>
-            </div>
-        </div>
-
-        <!-- السيولة المركزية -->
-        <div class="col-md-3">
-            <div class="stat-card bg-gold-grad shadow">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <i class="fas fa-coins fa-2x opacity-50"></i>
-                    <small class="fw-bold">السيولة المركزية</small>
-                </div>
-                <h2 class="mb-0 fw-black text-white">${{ total_balance if total_balance else '0.00' }}</h2>
-            </div>
-        </div>
-
-        <!-- طلبات قيد التدقيق -->
-        <div class="col-md-3">
-            <div class="stat-card bg-primary shadow" style="background: linear-gradient(135deg, #0984e3 0%, #00cec9 100%);">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <i class="fas fa-microchip fa-2x opacity-50"></i>
-                    <small class="fw-bold">طلبات قيد التدقيق</small>
-                </div>
-                <h2 class="mb-0 fw-black">{{ pending_withdrawals if pending_withdrawals else '0' }}</h2>
-            </div>
-        </div>
-    </div>
-
-    <!-- سجل العمليات السيادية -->
-    <div class="mt-5 p-4 bg-white rounded-4 shadow-sm border-0 text-end">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <button class="btn btn-warning fw-bold rounded-pill px-4" style="background: #D4AF37; color: #1a0b2e;">
-                تحميل التقرير
-            </button>
-            <h4 style="font-weight: 800; color: #1a0b2e;">
-                <i class="fas fa-bolt text-warning me-2"></i> سجل العمليات السيادية
-            </h4>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>الشريك الاستراتيجي</th>
-                        <th>نوع العملية</th>
-                        <th>القيمة</th>
-                        <th>التوقيت الرقمي</th>
-                        <th>حالة الاعتماد</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>نظام محجوب الذكي</td>
-                        <td>تهيئة النظام</td>
-                        <td class="fw-bold text-purple">$0.00</td>
-                        <td>{{ current_time if current_time else '2026-05-02' }}</td>
-                        <td><span class="badge bg-success rounded-pill">نشط</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+    
+    <!-- باقي الكود الذي تملكه للسجل والبطاقات -->
 </div>
-
-<script>
-    function updateClock() {
-        const now = new Date();
-        const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-        document.getElementById('digital-clock').innerText = now.toLocaleTimeString('ar-YE', options);
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-</script>
 {% endblock %}
