@@ -28,6 +28,13 @@
             overflow-x: hidden;
         }
 
+        /* أنيميشن نبض الشعار */
+        @keyframes logo-pulse {
+            0% { filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(212, 175, 55, 0.4)); transform: scale(1); }
+            50% { filter: brightness(0) invert(1) drop-shadow(0 0 25px rgba(212, 175, 55, 0.7)); transform: scale(1.05); }
+            100% { filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(212, 175, 55, 0.4)); transform: scale(1); }
+        }
+
         .sidebar {
             width: var(--sidebar-width);
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
@@ -44,8 +51,8 @@
         
         .logo-img { 
             width: 65px; height: auto; 
-            filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(212, 175, 55, 0.4));
             margin-bottom: 15px; 
+            animation: logo-pulse 3s infinite ease-in-out;
         }
         
         .sidebar-header h2 { color: white; font-size: 1.15rem; margin: 0; font-weight: 900; letter-spacing: 1px; }
@@ -140,19 +147,17 @@
 
             <!-- حوكمة الموردين -->
             <div class="nav-item">
-                <div class="nav-link {% if request.endpoint == 'admin.add_supplier' %}active{% endif %}" onclick="toggleDropdown(this)">
+                <div class="nav-link {% if request.endpoint in ['admin.add_supplier', 'admin.manage_suppliers'] %}active{% endif %}" onclick="toggleDropdown(this)">
                     <i class="fas fa-handshake-angle"></i>
                     <span>حوكمة الموردين</span>
                     <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s;"></i>
                 </div>
-                <ul class="dropdown-content" style="{% if request.endpoint == 'admin.add_supplier' %}display: block;{% endif %}">
+                <ul class="dropdown-content" style="{% if request.endpoint in ['admin.add_supplier', 'admin.manage_suppliers'] %}display: block;{% endif %}">
                     <li>
-                        <!-- تم التصحيح هنا إلى add_supplier -->
-                        <a href="{{ url_for('admin.add_supplier') }}" style="color: var(--mahjoub-gold); font-weight: 800;">
+                        <a href="{{ url_for('admin.add_supplier') }}" style="{% if request.endpoint == 'admin.add_supplier' %}color: var(--mahjoub-gold); font-weight: 800;{% endif %}">
                             <i class="fas fa-user-plus"></i> تعميد مورد جديد
                         </a>
                     </li>
-                    <!-- وضعنا # للروابط غير المبرمجة بعد لمنع خطأ 500 -->
                     <li><a href="#"><i class="fas fa-list-check"></i> إدارة الموردين المعتمدين</a></li>
                     <li><a href="#"><i class="fas fa-user-clock"></i> طلبات اعتماد معلقة</a></li>
                 </ul>
@@ -235,11 +240,13 @@
             
             const isOpen = content.style.display === "block";
             
+            // إغلاق القوائم الأخرى
             document.querySelectorAll('.dropdown-content').forEach(el => {
-                if (el !== content) el.style.display = 'none';
-            });
-            document.querySelectorAll('.chevron').forEach(ch => {
-                if (ch !== chevron) ch.style.transform = "rotate(0deg)";
+                if (el !== content) {
+                    el.style.display = 'none';
+                    const otherChevron = el.previousElementSibling.querySelector('.chevron');
+                    if(otherChevron) otherChevron.style.transform = "rotate(0deg)";
+                }
             });
 
             content.style.display = isOpen ? "none" : "block";
