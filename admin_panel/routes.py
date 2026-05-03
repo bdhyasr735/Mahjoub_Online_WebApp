@@ -115,3 +115,9 @@ def logout():
     session.clear()
     flash('تم إغلاق الجلسة الآمنة بنجاح.', 'info')
     return redirect(url_for('admin.login'))
+
+@admin_bp.route('/dashboard')
+@login_required
+def admin_dashboard():
+    db.session.rollback() # تطهير الجلسة من أي مخلفات سابقة
+    # ... بقية الكود
