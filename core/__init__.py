@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from config import Config
 
-# إنشاء كائنات النظام الأساسية (العمود الفقري)
+# إنشاء كائنات النظام الأساسية (العمود الفقري للترسانة الرقمية)
 db = SQLAlchemy()
 login_manager = LoginManager()
 
@@ -13,29 +13,30 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # رؤوس CORS للسماح بالعمليات المتقاطعة (التواصل السيادي بين الأنظمة)
+    # --- 1. إعدادات الأمان والتواصل (CORS) ---
     @app.after_request
     def add_cors_headers(response):
+        """السماح بالتواصل السيادي الآمن بين أنظمة المنصة الموزعة"""
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         return response
 
-    # تهيئة الإضافات داخل التطبيق
+    # --- 2. تهيئة الإضافات الأساسية ---
     db.init_app(app)
     login_manager.init_app(app)
     
-    # إعدادات حوكمة الدخول
+    # حوكمة الدخول وتوجيه غير المصرح لهم إلى لوحة الإدارة
     login_manager.login_view = 'admin.login'
     login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى النظام السيادي."
     login_manager.login_message_category = "info"
 
     with app.app_context():
-        # استيراد النماذج لضمان تسجيلها في SQLAlchemy قبل إنشاء الجداول
+        # --- 3. استيراد النماذج (Models) لضمان سلامة القاعدة ---
         from core.models.user import User
         from core.models.vendor import Vendor
         
-        # 🛡️ تصحيح الترسانة: ضمان وجود الجداول وتحديث الهيكل
+        # 🛡️ تصحيح الترسانة: إنشاء الجداول المفقودة وتحديث الهيكل
         try:
             db.create_all() 
             print("✅ تم فحص وتحديث هيكل الترسانة الرقمية بنجاح.")
@@ -43,35 +44,27 @@ def create_app(config_class=Config):
             db.session.rollback()
             print(f"⚠️ تنبيه حوكمة البيانات: تعذر تحديث الهيكل تلقائياً: {e}")
         
+        # --- 4. إدارة جلسات المستخدمين (User Loader) ---
         @login_manager.user_loader
         def load_user(user_id):
-            """
-            تحميل المستخدم مع معالجة الأخطاء لمنع انهيار النظام (Crash) 
-            في حالة وجود تضارب في الجلسات أو قواعد البيانات.
-            """
+            """تحميل المستخدم مع منع تعليق الاتصال بقاعدة البيانات"""
             try:
-                # محاولة جلب المستخدم من قاعدة البيانات
                 return User.query.get(int(user_id))
             except Exception as e:
-                # في حالة حدوث خطأ (مثل نقص أعمدة في الجدول)، نقوم بعمل Rollback
-                # لمنع تعليق الاتصال بقاعدة البيانات في Railway
                 db.session.rollback()
-                print(f"❌ User Loader Error: {e}")
+                print(f"❌ خطأ في محمل المستخدم: {e}")
                 return None
 
+        # --- 5. المعالجات السياقية (بيانات الهوية السيادية) ---
         @app.context_processor
         def utility_processor():
             def get_sovereign_data():
-                """
-                توليد البيانات السيادية الموحدة (المعرف والمحفظة) برقم تسلسلي واحد.
-                الهدف: MAH-9631 و W-MAH-9631
-                """
+                """توليد المعرف MAH-963 والمحفظة برقم تسلسلي موحد"""
                 base_prefix = "MAH-963"
                 try:
-                    # نستخدم استعلاماً سريعاً للحصول على العدد لضمان عدم استهلاك الموارد
+                    # استعلام خفيف لضمان دقة التسلسل
                     count = db.session.query(Vendor.id).count() if Vendor else 0
                     next_num = count + 1
-                    
                     final_serial = f"{base_prefix}{next_num}"
                     
                     return {
@@ -80,21 +73,22 @@ def create_app(config_class=Config):
                     }
                 except Exception as e:
                     db.session.rollback()
-                    print(f"⚠️ خطأ في توليد البيانات السيادية: {e}")
-                    # حالة احتياطية تعتمد على رقم عشوائي مؤقت لمنع توقف الصفحة
-                    rand_id = random.randint(100, 999)
-                    return {"id": f"{base_prefix}{rand_id}", "wallet": f"W-{base_prefix}{rand_id}"}
+                    # حل احتياطي ذكي لمنع توقف واجهات الإدخال
+                    rand_id = random.randint(1000, 9999)
+                    return {
+                        "id": f"{base_prefix}{rand_id}", 
+                        "wallet": f"W-{base_prefix}{rand_id}"
+                    }
 
             sov_data = get_sovereign_data()
-            
-            # جعل المعرفات متاحة في جميع القوالب (Templates)
             return dict(
                 next_id=sov_data['id'],
                 next_wallet=sov_data['wallet']
             )
 
-        # تسجيل البلوبيرنت الخاص بلوحة الإدارة (مركز القيادة)
-        from admin_panel.routes import admin_bp
+        # --- 6. تسجيل مركز القيادة (Blueprints) ---
+        # ملاحظة: الاستيراد هنا يمنع مشاكل الاستيراد الدائري نهائياً
+        from admin_panel import admin_bp
         app.register_blueprint(admin_bp, url_prefix='/admin')
 
     return app
