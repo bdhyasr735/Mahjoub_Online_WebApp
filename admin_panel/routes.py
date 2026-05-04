@@ -81,11 +81,14 @@ def add_supplier():
             if User.query.filter_by(username=username).first():
                 return jsonify({"status": "error", "message": "اسم المستخدم موجود مسبقاً"}), 400
 
+            # --- التعديل الجوهري هنا لحل خطأ password invalid argument ---
             new_user = User(
                 username=username,
-                password=generate_password_hash(password),
+                password_hash=generate_password_hash(password), # تم تغيير password إلى password_hash
                 role='vendor'
             )
+            # --------------------------------------------------------
+            
             db.session.add(new_user)
             db.session.flush() 
 
