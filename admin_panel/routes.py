@@ -1,3 +1,5 @@
+# admin_panel/routes.py
+
 import os
 import re
 import random
@@ -7,6 +9,8 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import text
 from core import db 
 from werkzeug.security import generate_password_hash
+from . import admin_bp
+from .auth import handle_admin_login
 
 # --- 1. استيراد النماذج السيادية ---
 try:
@@ -20,39 +24,41 @@ except ImportError as e:
     print(f"❗ Import Warning: {e}")
     User = Vendor = WithdrawRequest = None
 
-# --- 2. خدمات الهوية والمحافظ ---
-def generate_vendor_wallet():
-    """توليد محفظة فريدة تتبع نمط محجوب أونلاين"""
-    return f"W-MAH-{random.randint(100000, 999999)}"
-
-from . import admin_bp
-from .auth import handle_admin_login
-
-def get_next_sovereign_id():
-    """توليد المعرف السيادي التالي للموردين MAH-963"""
+# --- 2. خدمات الهوية والمحافظ السيادية (الموحدة) ---
+def get_sovereign_identity():
+    """توليد الهوية الموحدة للمورد والمحفظة لضمان التطابق MAH-963X و W-MAH963X"""
     try:
         db.session.rollback()
         count = db.session.query(Vendor).count() if Vendor else 0
-        return f"MAH-963{count + 1}"
+        next_number = count + 1
+        return {
+            'id': f"MAH-963{next_number}",
+            'wallet': f"W-MAH963{next_number}"
+        }
     except:
-        return f"MAH-963{random.randint(100, 999)}"
+        rand = random.randint(100, 999)
+        return {'id': f"MAH-963{rand}", 'wallet': f"W-MAH963{rand}"}
 
 # --- 3. مسار الطوارئ (ترميم هيكل الترسانة) ---
 @admin_bp.route('/force-repair-now')
 def force_repair():
     try:
         db.session.rollback() 
+        # إضافة الأعمدة الضرورية التي تسببت في الخطأ
+        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS supplier_id VARCHAR(50) UNIQUE;"))
+        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS e_wallet VARCHAR(100) UNIQUE;"))
         db.session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'admin';"))
+        
         db.create_all()
         db.session.commit()
         session['repair_done'] = True
-        flash("تم تحديث هيكل النظام وتأمين الصلاحيات بنجاح", "success")
+        flash("تم ترميم هيكل الترسانة وتوحيد المعرفات بنجاح", "success")
         return redirect(url_for('admin.admin_dashboard'))
     except Exception as e:
         db.session.rollback()
         return f"Repair Error: {str(e)}"
 
-# --- 4. لوحة التحكم (مركز المراقبة) ---
+# --- 4. لوحة التحكم ---
 @admin_bp.route('/')
 @admin_bp.route('/dashboard')
 @login_required
@@ -81,23 +87,16 @@ def add_supplier():
             if User.query.filter_by(username=username).first():
                 return jsonify({"status": "error", "message": "اسم المستخدم موجود مسبقاً"}), 400
 
-            # --- التعديل الجوهري هنا لحل خطأ password invalid argument ---
+            # إنشاء المستخدم مع الحقل الصحيح password_hash
             new_user = User(
                 username=username,
-                password_hash=generate_password_hash(password), # تم تغيير password إلى password_hash
+                password_hash=generate_password_hash(password),
                 role='vendor'
             )
-            # --------------------------------------------------------
-            
             db.session.add(new_user)
             db.session.flush() 
 
-            activity = request.form.get('activity_type')
-            if activity == 'manual': activity = request.form.get('manual_activity')
-            
-            id_type = request.form.get('id_type')
-            if id_type == 'manual': id_type = request.form.get('manual_id_type')
-
+            # جلب البيانات وتخزين المورد
             new_vendor = Vendor(
                 user_id=new_user.id,
                 supplier_id=request.form.get('next_id'),
@@ -105,59 +104,47 @@ def add_supplier():
                 owner_name=request.form.get('owner_name'),
                 phone=request.form.get('phone'),
                 e_wallet=request.form.get('e_wallet'),
-                activity_type=activity,
-                id_type=id_type,
+                activity_type=request.form.get('activity_type'),
+                id_type=request.form.get('id_type'),
                 id_card_number=request.form.get('id_card_number'),
                 province=request.form.get('province'),
                 district=request.form.get('district'),
                 address_detail=request.form.get('address_detail'),
-                bank_name=request.form.get('bank_name') if request.form.get('bank_name') != 'other' else request.form.get('manual_bank'),
+                bank_name=request.form.get('bank_name'),
                 bank_acc=request.form.get('bank_acc'),
                 fin_type=request.form.get('fin_type')
             )
             
             db.session.add(new_vendor)
             db.session.commit()
-            return jsonify({"status": "success", "message": "تم تعميد المورد وربط المحفظة السيادية"})
+            return jsonify({"status": "success", "message": "تم تعميد المورد بنجاح"})
         except Exception as e:
             db.session.rollback()
             return jsonify({"status": "error", "message": str(e)}), 500
 
-    return render_template('add_supplier.html', 
-                           next_id=get_next_sovereign_id(),
-                           next_wallet=generate_vendor_wallet())
+    # التوليد عند فتح النموذج
+    identity = get_sovereign_identity()
+    return render_template('add_supplier.html', next_id=identity['id'], next_wallet=identity['wallet'])
 
+# --- 6. الإدارة والوصول ---
 @admin_bp.route('/suppliers')
 @login_required
 def manage_suppliers():
-    """قائمة الموردين المعتمدين"""
     suppliers_list = Vendor.query.all() if Vendor else []
     return render_template('manage_suppliers.html', suppliers=suppliers_list)
 
-# --- 6. الهندسة المالية وإدارة المحافظ ---
 @admin_bp.route('/manage-wallets')
 @login_required
 def manage_wallets():
-    """تعديل: تم توجيه المسار إلى القالب المحدث wallets.html"""
-    try:
-        suppliers_list = Vendor.query.all() if Vendor else []
-        return render_template('wallets.html', suppliers=suppliers_list)
-    except Exception as e:
-        flash(f"خطأ في الوصول للمحافظ: {str(e)}", "danger")
-        return redirect(url_for('admin.admin_dashboard'))
+    suppliers_list = Vendor.query.all() if Vendor else []
+    return render_template('wallets.html', suppliers=suppliers_list)
 
 @admin_bp.route('/withdraw-requests')
 @login_required
 def withdraw_requests():
-    """عرض طلبات السحب لتدقيقها"""
-    try:
-        requests_list = WithdrawRequest.query.order_by(WithdrawRequest.id.desc()).all() if WithdrawRequest else []
-        return render_template('withdraw_requests.html', requests=requests_list)
-    except Exception as e:
-        flash(f"خطأ في جلب البيانات المالية: {str(e)}", "danger")
-        return redirect(url_for('admin.admin_dashboard'))
+    requests_list = WithdrawRequest.query.order_by(WithdrawRequest.id.desc()).all() if WithdrawRequest else []
+    return render_template('withdraw_requests.html', requests=requests_list)
 
-# --- 7. إدارة الوصول ---
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated and getattr(current_user, 'role', 'admin') == 'admin':
@@ -168,5 +155,4 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash("تم إنهاء الجلسة الآمنة بنجاح", "info")
     return redirect(url_for('admin.login'))
