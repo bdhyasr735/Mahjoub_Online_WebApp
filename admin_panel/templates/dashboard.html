@@ -3,33 +3,143 @@
 {% block title %}نظام الرقابة العليا | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<!-- محتويات لوحة التحكم كما هي -->
 <style>
+    :root {
+        --royal-purple: #632C8F;
+        --royal-gold: #D4AF37;
+        --deep-space: #1a0b2e;
+    }
+
     .stat-card {
         border-radius: 20px;
         padding: 25px;
         color: white;
-        transition: transform 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         border: none;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
-    /* ... باقي التنسيقات الملكية ... */
+
+    .stat-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(99, 44, 143, 0.2);
+    }
+
+    .card-purple { background: linear-gradient(135deg, #632C8F, #8b44cc); }
+    .card-gold { background: linear-gradient(135deg, #D4AF37, #f1c40f); }
+    .card-dark { background: linear-gradient(135deg, #1a0b2e, #3a1a5e); }
+
+    .repair-banner {
+        background: #fff3cd;
+        border-right: 5px solid #ffc107;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .status-indicator {
+        height: 12px;
+        width: 12px;
+        background-color: #2ecc71;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 8px;
+        box-shadow: 0 0 10px #2ecc71;
+    }
 </style>
 
-<div class="container-fluid">
-    <!-- هيكل لوحة التحكم السيادي -->
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-8 text-end">
-            <h1 style="font-weight: 900; color: #1a0b2e; font-size: 2.5rem;">نظام الرقابة العليا</h1>
-            <p class="text-muted">
+<div class="container-fluid py-4" dir="rtl">
+    
+    <!-- ⚠️ نظام الترميم التلقائي (يظهر عند الحاجة فقط) -->
+    {% if show_repair %}
+    <div class="repair-banner shadow-sm">
+        <div>
+            <h5 class="mb-1 text-dark" style="font-weight: bold;">🔧 تكتيك استقرار القاعدة</h5>
+            <p class="mb-0 text-muted">تم رصد تحديثات في الترسانة تتطلب مواءمة قاعدة البيانات.</p>
+        </div>
+        <a href="{{ url_for('admin.force_repair') }}" class="btn btn-warning fw-bold px-4">تفعيل الترميم الآن</a>
+    </div>
+    {% endif %}
+
+    <!-- رأس الصفحة السيادي -->
+    <div class="row mb-5 align-items-center">
+        <div class="col-md-12 text-end">
+            <h1 style="font-weight: 900; color: var(--deep-space); font-size: 2.8rem; margin-bottom: 0.5rem;">نظام الرقابة العليا</h1>
+            <p class="text-muted mb-0">
                 <span class="status-indicator"></span>
-                المحرك الرقمي "محجوب أونلاين" يعمل بكفاءة قصوى
+                المحرك الرقمي <strong>"محجوب أونلاين"</strong> يعمل بكفاءة قصوى
             </p>
         </div>
-        <!-- ... المكونات البرمجية والعدادات ... -->
     </div>
-    
-    <!-- باقي الكود الذي تملكه للسجل والبطاقات -->
+
+    <!-- بطاقات الإحصائيات السيادية -->
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="stat-card card-purple">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-uppercase opacity-75">قاعدة الموردين</h6>
+                        <h2 class="display-5 fw-bold">{{ suppliers_count }}</h2>
+                        <p class="mb-0 mt-2"><i class="fas fa-check-circle"></i> موردين معمدين</p>
+                    </div>
+                    <i class="fas fa-store fa-3x opacity-25"></i>
+                </div>
+                <a href="{{ url_for('admin.manage_suppliers') }}" class="stretched-link"></a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="stat-card card-gold">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-uppercase opacity-75">طلبات السحب</h6>
+                        <h2 class="display-5 fw-bold">{{ pending_withdrawals }}</h2>
+                        <p class="mb-0 mt-2"><i class="fas fa-clock"></i> بانتظار المراجعة المالية</p>
+                    </div>
+                    <i class="fas fa-hand-holding-usd fa-3x opacity-25"></i>
+                </div>
+                <a href="{{ url_for('admin.withdraw_requests') }}" class="stretched-link"></a>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="stat-card card-dark">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-uppercase opacity-75">إجمالي الطلبات</h6>
+                        <h2 class="display-5 fw-bold">{{ orders_count }}</h2>
+                        <p class="mb-0 mt-2"><i class="fas fa-shopping-cart"></i> عمليات جارية</p>
+                    </div>
+                    <i class="fas fa-chart-line fa-3x opacity-25"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قسم الإجراءات السريعة -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card shadow-sm border-0" style="border-radius: 20px;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4" style="color: var(--royal-purple);">العمليات السيادية السريعة</h5>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <a href="{{ url_for('admin.add_supplier') }}" class="btn btn-outline-primary px-4 py-2" style="border-radius: 10px; border-color: var(--royal-purple); color: var(--royal-purple);">
+                            <i class="fas fa-plus-circle me-2"></i> تعميد مورد جديد
+                        </a>
+                        <a href="{{ url_for('admin.manage_wallets') }}" class="btn btn-outline-secondary px-4 py-2" style="border-radius: 10px;">
+                            <i class="fas fa-wallet me-2"></i> هندسة المحافظ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
