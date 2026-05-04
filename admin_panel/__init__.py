@@ -1,28 +1,45 @@
-from flask import Blueprint
+# core/__init__.py
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
+from flask_migrate import Migrate
 
-# تعريف الـ Blueprint للقيادة المركزية (محجوب أونلاين)
-# تم إعداد المسارات لضمان تحميل القوالب والموارد الثابتة (الأرجواني والذهبي) بكفاءة
-admin_bp = Blueprint(
-    'admin', 
-    __name__, 
-    template_folder='templates',
-    static_folder='static',
-    static_url_path='/admin/static'
-)
+# تعريف المحركات الأساسية للترسانة الرقمية
+db = SQLAlchemy()
+login_manager = LoginManager()
+migrate = Migrate()
 
-# ملاحظة سيادية: يتم استيراد الروابط هنا لمنع "الاستيراد الدائري" (Circular Import)
-# هذا يضمن أن جميع الدوال (مثل force_repair وإدارة المحافظ) أصبحت مسجلة ومعرفة لدى التطبيق
-try:
-    from . import routes
-except ImportError as e:
-    # تسجيل الخطأ في حال وجود مشكلة في استيراد المسارات لسهولة التصحيح في بيئة الاستضافة
-    import logging
-    logging.error(f"❌ فشل تحميل مسارات لوحة التحكم: {str(e)}")
+def create_app():
+    app = Flask(__name__)
+    
+    # إعدادات السيادة (تأكد من ضبطها في بيئة Railway)
+    app.config['SECRET_KEY'] = 'mahjoub_sovereign_secret_2026'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://...' # أو جلبها من env
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# توثيق المكونات النشطة في الـ Blueprint لـ "سوقك الذكي"
-# المسارات المتاحة حالياً: 
-# - dashboard: لوحة التحكم المركزية
-# - manage_suppliers: حوكمة الموردين
-# - manage_wallets: إدارة المحافظ السيادية (YER, SAR, USD)
-# - withdraw_requests: الهندسة المالية وطلبات السحب
-# - force_repair: ترميم قاعدة البيانات والترسانة الرقمية
+    # تفعيل المحركات
+    db.init_app(app)
+    login_manager.init_app(app)
+    migrate.init_app(app, db)
+    
+    login_manager.login_view = 'admin.login'
+    login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى الترسانة السيادية"
+
+    with app.app_context():
+        # استيراد النماذج (Models) لضمان تسجيلها في SQLAlchemy
+        from core.models.user import User
+        from core.models.vendor import Vendor
+        
+        # تسجيل الـ Blueprints
+        from admin_panel import admin_bp
+        app.register_blueprint(admin_bp, url_prefix='/admin')
+
+        # استدعاء دالة ترميم الهوية (اختياري عند كل تشغيل)
+        # db.create_all() 
+
+    return app
+
+@login_manager.user_loader
+def load_user(user_id):
+    from core.models.user import User
+    return User.query.get(int(user_id))
