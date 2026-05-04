@@ -5,26 +5,30 @@ from core import db
 # 1. استيراد نماذج الهوية والمستخدمين
 from core.models.user import User
 
-# 2. استيراد نماذج الأعمال والربط السيادي (المحافظات، المديريات، الموردين)
-from .business import Province, District, FinancialEntity, Supplier, Order
+# 2. استيراد نماذج الأعمال والربط السيادي
+# تم تعديل هذا السطر لإزالة الكيانات التي تسببت في الخطأ (Province, District, FinancialEntity)
+# لأنها الآن حقول داخل كلاس Supplier وليست كلاسات منفصلة.
+from .business import Supplier
 
-# 3. استيراد نماذج المتاجر والمنتجات
+# 3. استيراد نماذج المتاجر والمنتجات والطلبات
 from .vendor import Vendor
 from .product import Product
+# تأكد من استيراد Order إذا كان معرفاً داخل business أو vendor
+try:
+    from .business import Order
+except ImportError:
+    from .vendor import Order
 
-# استيراد طلبات السحب إذا كانت موجودة في ملف vendor
+# استيراد طلبات السحب
 try:
     from .vendor import WithdrawRequest
 except ImportError:
     WithdrawRequest = None
 
-# 4. تعريف الحزم المصدرة (قائمة واحدة شاملة لضمان رؤية النظام لكل الجداول)
+# 4. تعريف الحزم المصدرة (تحديث القائمة لتطابق الاستيرادات الفعلية)
 __all__ = [
     'db',
     'User',
-    'Province',
-    'District',
-    'FinancialEntity',
     'Supplier',
     'Order',
     'Vendor',
