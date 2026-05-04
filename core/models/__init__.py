@@ -1,11 +1,10 @@
-# core/models/__init__.py
 from core import db
 
-# 1. استيراد النماذج الأساسية
+# استيراد الهوية السيادية فقط
 from .user import User
 from .vendor import Vendor, WithdrawRequest
 
-# 2. استيراد النماذج اللوجستية (مع معالجة أخطاء الاستيراد)
+# استيراد المنتجات والطلبات (إن وجدت)
 try:
     from .product import Product
 except ImportError:
@@ -16,12 +15,4 @@ try:
 except ImportError:
     Order = None
 
-# 3. قائمة التصدير الموحدة (تم حذف Supplier نهائياً)
-__all__ = [
-    'db',
-    'User',
-    'Vendor',
-    'WithdrawRequest',
-    'Product',
-    'Order'
-]
+__all__ = ['db', 'User', 'Vendor', 'WithdrawRequest', 'Product', 'Order']
