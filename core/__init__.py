@@ -1,44 +1,47 @@
+# core/__init__.py
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 import os
 
-# تهيئة أدوات النظام الأساسية
+# 1. تهيئة أدوات النظام الأساسية (خارج الدالة لضمان الوصول إليها من الموديلات)
 db = SQLAlchemy()
 login_manager = LoginManager()
 
 def create_app():
     # إنشاء تطبيق Flask
-    app = Flask(__name__)
+    app = Flask(__name__, 
+                static_folder='../static', 
+                template_folder='../templates')
     
     # تحميل الإعدادات من كائن Config
     app.config.from_object('config.Config')
     
-    # ربط قاعدة البيانات ونظام الدخول بالتطبيق
+    # 2. ربط قاعدة البيانات ونظام الدخول بالتطبيق
     db.init_app(app)
     login_manager.init_app(app)
 
-    # إعدادات حماية الجلسة وتوجيه المتطفلين
-    login_manager.login_view = 'admin.login'  # البوابة التي يتم تحويل غير المسجلين إليها
+    # إعدادات حماية الجلسة
+    login_manager.login_view = 'admin.login'
     login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى منطقة الإدارة السيادية."
     login_manager.login_message_category = "info"
 
     with app.app_context():
-        # --- 1. تسجيل الـ Blueprints (الربط المركزي) ---
-        # استيراد وتسجيل لوحة التحكم ببادئة /admin
+        # --- 3. استيراد الموديلات لضمان تسجيل الجداول ---
+        # استيراد الموردين والمستخدمين داخل السياق لمنع أخطاء Import
+        from core.models.user import User
+        from core.models.supplier import Supplier # الموديل الجديد لـ محجوب أونلاين
+
+        # --- 4. تسجيل الـ Blueprints ---
         from admin_panel import admin_bp
         app.register_blueprint(admin_bp, url_prefix='/admin')
-        
-        # يمكنك تسجيل مسارات الموقع الرئيسي هنا لاحقاً
-        # from . import routes
 
-        # --- 2. محمل المستخدم (The User Loader) ---
-        # هذا الجزء حيوي جداً لعمل @login_required في routes.py
-        from core.models.user import User
-        
+        # --- 5. محمل المستخدم (User Loader) ---
         @login_manager.user_loader
         def load_user(user_id):
-            """يستخدمه Flask-Login لاستعادة كائن المستخدم من قاعدة البيانات عبر الـ ID"""
             return User.query.get(int(user_id))
+
+        # إنشاء الجداول إذا لم تكن موجودة (اختياري لكن مفيد في Railway)
+        # db.create_all() 
 
     return app
