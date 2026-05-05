@@ -57,14 +57,14 @@
 
 <div class="container-fluid py-4" dir="rtl">
     
-    <!-- 🛡️ نظام الترميم التلقائي للأرصدة السيادية -->
+    <!-- 🛡️ نظام الترميم التلقائي -->
     {% if show_repair %}
     <div class="repair-banner shadow-sm">
         <div>
             <h5 class="mb-1 text-dark" style="font-weight: bold;">🔧 تكتيك استقرار القاعدة</h5>
-            <p class="mb-0 text-muted">تم رصد تحديثات في الترسانة تتطلب مواءمة الأرصدة الثلاثة (YER, SAR, USD).</p>
+            <p class="mb-0 text-muted">تم رصد تحديثات في الترسانة تتطلب مواءمة قاعدة البيانات.</p>
         </div>
-        <a href="{{ url_for('admin.force_repair') }}" class="btn btn-warning fw-bold px-4 shadow-sm">تفعيل الترميم الآن</a>
+        <a href="{{ url_for('admin.force_repair') }}" class="btn btn-warning fw-bold px-4">تفعيل الترميم الآن</a>
     </div>
     {% endif %}
 
@@ -81,8 +81,8 @@
 
     <!-- بطاقات الإحصائيات السيادية -->
     <div class="row g-4">
-        <!-- الموردين -->
         <div class="col-md-4">
+            <!-- تم تعديل الرابط هنا ليشير إلى المسار الصحيح للموردين -->
             <div class="stat-card card-purple shadow">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
@@ -92,10 +92,10 @@
                     </div>
                     <i class="fas fa-store fa-3x opacity-25"></i>
                 </div>
+                <a href="{{ url_for('admin.manage_suppliers') }}" class="stretched-link"></a>
             </div>
         </div>
 
-        <!-- طلبات السحب -->
         <div class="col-md-4">
             <div class="stat-card card-gold shadow">
                 <div class="d-flex justify-content-between align-items-start">
@@ -109,7 +109,6 @@
             </div>
         </div>
 
-        <!-- الطلبات الجارية -->
         <div class="col-md-4">
             <div class="stat-card card-dark shadow">
                 <div class="d-flex justify-content-between align-items-start">
@@ -124,21 +123,19 @@
         </div>
     </div>
 
-    <!-- قسم الإجراءات السريعة (حوكمة النظام) -->
+    <!-- قسم الإجراءات السريعة -->
     <div class="row mt-5">
         <div class="col-12">
             <div class="card shadow-sm border-0" style="border-radius: 20px;">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-4" style="color: var(--royal-purple);">العمليات السيادية السريعة</h5>
                     <div class="d-flex gap-3 flex-wrap">
-                        <!-- رابط إضافة مورد -->
-                        <a href="{{ url_for('admin.add_supplier') }}" class="btn btn-outline-primary px-4 py-2 fw-bold" style="border-radius: 10px; border-color: var(--royal-purple); color: var(--royal-purple);">
+                        <a href="{{ url_for('admin.add_supplier') }}" class="btn btn-outline-primary px-4 py-2 fw-bold" style="border-radius: 10px;">
                             <i class="fas fa-plus-circle me-2"></i> تعميد مورد جديد
                         </a>
-                        <!-- روابط مؤقتة لتجنب الخطأ 500 حتى يتم إنشاء المسارات -->
-                        <button class="btn btn-outline-secondary px-4 py-2" style="border-radius: 10px;" disabled>
-                            <i class="fas fa-wallet me-2"></i> هندسة المحافظ (قريباً)
-                        </button>
+                        <a href="{{ url_for('admin.manage_wallets') }}" class="btn btn-outline-secondary px-4 py-2" style="border-radius: 10px;">
+                            <i class="fas fa-wallet me-2"></i> هندسة المحافظ
+                        </a>
                     </div>
                 </div>
             </div>
