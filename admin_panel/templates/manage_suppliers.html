@@ -1,142 +1,100 @@
-{% extends "base.html" %}
+<!-- admin_panel/templates/manage_suppliers.html -->
+{% extends "admin_layout.html" %}
 
-{% block title %}إدارة الموردين المعتمدين | محجوب أونلاين{% endblock %}
+{% block title %}إدارة الموردين - محجوب أونلاين{% endblock %}
 
 {% block content %}
-<style>
-    .supplier-row {
-        transition: all 0.3s ease;
-    }
-    .supplier-row:hover {
-        background-color: rgba(212, 175, 55, 0.05) !important;
-        transform: scale(1.002);
-    }
-    .id-badge {
-        background: linear-gradient(45deg, var(--royal-purple), #3a1a5e);
-        color: var(--mahjoub-gold) !important;
-        letter-spacing: 1px;
-        font-weight: 700;
-        border: 1px solid rgba(212, 175, 55, 0.3);
-    }
-    .action-btn {
-        width: 35px;
-        height: 35px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        margin: 0 2px;
-        transition: 0.2s;
-    }
-    .action-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-</style>
-
-<div class="container-fluid" dir="rtl">
-    <!-- رأس الصفحة -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 style="font-weight: 900; color: var(--royal-purple); margin-bottom: 5px;">
-                <i class="fas fa-handshake-angle me-2"></i>حوزة الموردين المعتمدين
-            </h2>
-            <p class="text-muted small">ضبط وحوكمة كيانات التوريد ضمن النطاق السيادي لـ <strong>محجوب أونلاين</strong></p>
-        </div>
-        <a href="{{ url_for('admin.add_supplier') }}" class="btn shadow" style="background: var(--royal-purple); color: var(--mahjoub-gold); border-radius: 12px; font-weight: 800; padding: 12px 25px;">
-            <i class="fas fa-plus-circle me-2"></i>تعميد كيان جديد
-        </a>
-    </div>
-
-    <!-- بطاقة الجدول -->
-    <div class="card border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="background: white;">
-                <thead style="background: var(--royal-purple); color: white;">
-                    <tr>
-                        <th class="ps-4 py-3" style="font-size: 0.9rem; font-weight: 700;">الهوية السيادية</th>
-                        <th class="py-3" style="font-size: 0.9rem; font-weight: 700;">الكيان التجاري</th>
-                        <th class="py-3" style="font-size: 0.9rem; font-weight: 700;">المدير المسؤول</th>
-                        <th class="py-3" style="font-size: 0.9rem; font-weight: 700;">قناة الصرف (المحفظة)</th>
-                        <th class="py-3" style="font-size: 0.9rem; font-weight: 700;">حالة الاعتماد</th>
-                        <th class="text-center py-3" style="font-size: 0.9rem; font-weight: 700;">إجراءات الضبط</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for supplier in suppliers %}
-                    <tr class="supplier-row">
-                        <td class="ps-4">
-                            <span class="badge id-badge px-3 py-2 shadow-sm">
-                                {{ supplier.supplier_id or 'NOT_SET' }}
-                            </span>
-                        </td>
-                        <td>
-                            <div style="font-weight: 800; color: var(--royal-purple); font-size: 1rem;">{{ supplier.trade_name }}</div>
-                            <div class="d-flex align-items-center mt-1">
-                                <span class="badge bg-light text-dark border small" style="font-size: 0.65rem;">
-                                    <i class="fas fa-user-shield me-1"></i> {{ supplier.user.username if supplier.user else 'بدون ارتباط' }}
-                                </span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="fw-bold text-secondary">{{ supplier.owner_name }}</div>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="p-2 bg-light rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
-                                    <i class="fas fa-wallet" style="color: var(--mahjoub-gold);"></i>
-                                </div>
-                                <span style="font-family: monospace; font-weight: 600; color: #444;">
-                                    {{ supplier.e_wallet or 'لا يوجد قناة صرف' }}
-                                </span>
-                            </div>
-                        </td>
-                        <td>
-                            {% if supplier.is_active|default(True) %}
-                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2" style="border-radius: 10px;">
-                                <i class="fas fa-shield-check me-1"></i> معتمد ونشط
-                            </span>
-                            {% else %}
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2" style="border-radius: 10px;">
-                                <i class="fas fa-exclamation-triangle me-1"></i> موقوف إدارياً
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">
-                            <div class="d-flex justify-content-center">
-                                <a href="#" class="action-btn border bg-white" title="تحديث البيانات">
-                                    <i class="fas fa-pen-nib text-primary"></i>
-                                </a>
-                                <a href="#" class="action-btn border bg-white" title="سجل العمليات المالية">
-                                    <i class="fas fa-file-invoice-dollar text-success"></i>
-                                </a>
-                                <button class="action-btn border bg-white" title="سحب الصلاحيات">
-                                    <i class="fas fa-lock text-danger"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5">
-                            <div class="mb-3">
-                                <i class="fas fa-boxes-packing fa-4x opacity-25" style="color: var(--royal-purple);"></i>
-                            </div>
-                            <h4 class="text-muted fw-bold">الخزينة خالية من الموردين</h4>
-                            <p class="text-secondary">لم يتم تعميد أي مورد في النظام حتى هذه اللحظة.</p>
-                            <a href="{{ url_for('admin.add_supplier') }}" class="btn btn-sm btn-outline-primary mt-2">تعميد أول مورد الآن</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <!-- تذييل الجدول للإحصائيات السريعة -->
-        <div class="card-footer bg-light border-0 py-3">
-            <small class="text-muted fw-bold">
-                <i class="fas fa-info-circle me-1"></i> إجمالي الكيانات المعمدة: {{ suppliers|length }} مورد
-            </small>
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                    <h6>قاعدة بيانات الموردين السيادية</h6>
+                    <a href="{{ url_for('admin.add_supplier') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> تعميد مورد جديد
+                    </a>
+                </div>
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0" id="suppliersTable">
+                            <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">المورد / النشاط</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">المنطقة (المديرية)</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">المحفظة السيادية</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">حالة الحساب</th>
+                                    <th class="text-secondary opacity-7"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for supplier in suppliers %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div>
+                                                <div class="avatar avatar-sm me-3 bg-gradient-info d-flex align-items-center justify-content-center text-white rounded-circle">
+                                                    {{ supplier.trade_name[0] | upper }}
+                                                </div>
+                                            </div>
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">{{ supplier.trade_name }}</h6>
+                                                <p class="text-xs text-secondary mb-0">{{ supplier.owner_name }} - {{ supplier.activity_type }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs font-weight-bold mb-0">{{ supplier.province }}</p>
+                                        <p class="text-xs text-secondary mb-0">{{ supplier.district }}</p>
+                                    </td>
+                                    <td class="align-middle text-center text-sm">
+                                        <span class="badge badge-sm bg-gradient-secondary font-weight-bold">
+                                            {{ supplier.e_wallet or 'غير مربوط' }}
+                                        </span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        {% if supplier.status == 'active' %}
+                                        <span class="badge badge-sm bg-gradient-success">نشط</span>
+                                        {% else %}
+                                        <span class="badge badge-sm bg-gradient-warning">معلق</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle">
+                                        <a href="#" class="text-secondary font-weight-bold text-xs" data-toggle="tooltip" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="tel:{{ supplier.phone }}" class="text-info font-weight-bold text-xs ms-3">
+                                            <i class="fas fa-phone"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                
+                                {% if not suppliers %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-secondary">
+                                        لا يوجد موردين معمدين حالياً في المنظومة.
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- إضافة DataTables لجعل الجدول قابلاً للبحث والفرز -->
+<script>
+    $(document).ready(function() {
+        $('#suppliersTable').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Arabic.json"
+            },
+            "pageLength": 10,
+            "order": [[0, "desc"]]
+        });
+    });
+</script>
 {% endblock %}
