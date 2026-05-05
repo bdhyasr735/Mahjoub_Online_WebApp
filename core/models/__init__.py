@@ -1,10 +1,10 @@
 from core import db
 
-# استيراد الهوية السيادية فقط
-from .user import User
-from .vendor import Vendor, WithdrawRequest
+# 1. استيراد الهوية السيادية من الملف الموحد (user.py)
+# تم تغيير المسار هنا ليكون الاستيراد من .user بدلاً من .vendor المحذوف
+from .user import User, Vendor, WithdrawRequest
 
-# استيراد المنتجات والطلبات (إن وجدت)
+# 2. استيراد المكونات الإضافية مع الحماية من الانهيار
 try:
     from .product import Product
 except ImportError:
@@ -15,4 +15,5 @@ try:
 except ImportError:
     Order = None
 
+# 3. تعريف المكونات المتاحة للنظام (الترسانة البرمجية)
 __all__ = ['db', 'User', 'Vendor', 'WithdrawRequest', 'Product', 'Order']
