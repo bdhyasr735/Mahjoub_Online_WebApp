@@ -36,8 +36,13 @@ def create_app(config_class=Config):
 
     with app.app_context():
         # --- 3. استيراد النماذج (Models) لضمان سلامة القاعدة ---
-        # 🛡️ تصحيح سيادي: تم تعديل الاستيراد ليتم من ملف user الموحد بدلاً من vendor المحذوف
-        from core.models.user import User, Vendor
+        # 🛡️ تصحيح سيادي: تم استيراد User فقط لأننا فصلنا البقية لتجنب ImportError
+        from core.models.user import User
+        # محاولة استيراد Order لتأمين الإحصائيات في الداشبورد
+        try:
+            from core.models.business import Order
+        except ImportError:
+            Order = None
         
         # إنشاء الجداول المفقودة وتحديث الهيكل تلقائياً
         try:
@@ -51,26 +56,14 @@ def create_app(config_class=Config):
         @app.context_processor
         def utility_processor():
             def get_sovereign_data():
-                """توليد المعرف MAH-963 والمحفظة برقم تسلسلي موحد لجميع القوالب"""
+                """توليد المعرف السيادي بشكل آمن واحتياطي"""
                 base_prefix = "MAH-963"
-                try:
-                    # استعلام لضمان دقة التسلسل بناءً على عدد الموردين الحاليين
-                    count = db.session.query(Vendor.id).count() if Vendor else 0
-                    next_num = count + 1
-                    final_serial = f"{base_prefix}{next_num}"
-                    
-                    return {
-                        "id": final_serial,
-                        "wallet": f"W-{final_serial}"
-                    }
-                except Exception:
-                    db.session.rollback()
-                    # حل احتياطي لمنع توقف الواجهات في حال تعثر الاتصال
-                    rand_id = random.randint(1000, 9999)
-                    return {
-                        "id": f"{base_prefix}{rand_id}", 
-                        "wallet": f"W-{base_prefix}{rand_id}"
-                    }
+                # نستخدم رقم عشوائي حالياً لأن جدول الموردين (Vendor) غير موجود في هذا الملف
+                rand_id = random.randint(1000, 9999)
+                return {
+                    "id": f"{base_prefix}{rand_id}", 
+                    "wallet": f"W-{base_prefix}{rand_id}"
+                }
 
             sov_data = get_sovereign_data()
             return dict(
