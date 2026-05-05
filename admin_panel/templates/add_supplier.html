@@ -171,13 +171,13 @@
     </div>
 
     <div class="back-nav">
-        <!-- تم تعديل الرابط هنا ليتوافق مع ملفاتك الحالية -->
         <a href="{{ url_for('admin.manage_suppliers') }}" class="btn-back-gov">
             <i class="fas fa-arrow-right"></i> العودة لقائمة الموردين
         </a>
     </div>
 
     <form id="sovereignForm" action="{{ url_for('admin.add_supplier') }}" method="POST" enctype="multipart/form-data">
+        <!-- الحقول المخفية للقيم المولدة تلقائياً -->
         <input type="hidden" name="next_id" value="{{ next_id }}">
         <input type="hidden" name="e_wallet" value="{{ next_wallet }}">
         <input type="hidden" name="fin_type" id="fin_type_hidden" value="banks">
@@ -338,14 +338,14 @@
         bSelect.add(new Option("أخرى (إدخال يدوي)...", "manual"));
     }
 
-    // تم تعديل الجزء الخاص بالـ AJAX ليتعامل مع الاستجابة بشكل أفضل
+    // معالجة الإرسال عبر AJAX
     document.getElementById('sovereignForm').onsubmit = async function(e) {
         e.preventDefault();
         const submitBtn = document.getElementById('submitBtn');
         const container = document.getElementById('mainContainer');
         const formData = new FormData(this);
         
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ في الترسانة...';
         submitBtn.disabled = true;
         container.classList.add('processing');
 
@@ -355,14 +355,14 @@
                 body: formData 
             });
             
-            // إذا كانت الاستجابة JSON
             const result = await response.json();
             if (result.status === 'success') {
                 Swal.fire({
-                    title: '✅ تم بنجاح',
+                    title: '✅ تم التعميد بنجاح',
                     text: result.message,
                     icon: 'success',
-                    confirmButtonColor: '#632C8F'
+                    confirmButtonColor: '#632C8F',
+                    confirmButtonText: 'حسناً'
                 }).then(() => {
                     window.location.href = "{{ url_for('admin.manage_suppliers') }}";
                 });
@@ -370,16 +370,15 @@
                 throw new Error(result.message);
             }
         } catch (err) {
-            // إذا فشل الـ AJAX أو كانت الاستجابة ليست JSON (مثلاً Redirect)
-            // نترك السيرفر يقوم بعمله الطبيعي أو نظهر تنبيه
-            if (err.name === 'SyntaxError') {
-                 this.submit(); // العودة للإرسال التقليدي إذا فشل الـ AJAX
-            } else {
-                Swal.fire({ title: '❌ خطأ', text: err.message, icon: 'error' });
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '🛡️ إتمام التعميد والأرشفة';
-                container.classList.remove('processing');
-            }
+            Swal.fire({ 
+                title: '❌ فشل التعميد', 
+                text: err.message, 
+                icon: 'error',
+                confirmButtonColor: '#C5A021'
+            });
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '🛡️ إتمام التعميد والأرشفة';
+            container.classList.remove('processing');
         }
     };
 
