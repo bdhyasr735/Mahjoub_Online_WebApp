@@ -103,7 +103,6 @@
         box-shadow: 0 0 0 4px rgba(99, 44, 143, 0.15);
     }
 
-    /* تحسين حقل الملفات */
     .file-input-wrapper {
         position: relative;
         border: 2px dashed var(--gov-gold);
@@ -161,7 +160,6 @@
 
     .manual-input { margin-top: 10px; border-color: var(--gov-gold); display: none; }
     
-    /* منع التفاعل أثناء الإرسال */
     .processing { pointer-events: none; opacity: 0.8; }
 </style>
 
@@ -184,6 +182,7 @@
     </div>
 
     <form id="sovereignForm" action="{{ url_for('admin.add_supplier') }}" method="POST" enctype="multipart/form-data">
+        <!-- الحقول المخفية للبيانات التلقائية -->
         <input type="hidden" name="next_id" value="{{ next_id }}">
         <input type="hidden" name="e_wallet" value="{{ next_wallet }}">
         <input type="hidden" name="fin_type" id="fin_type_hidden" value="banks">
@@ -306,6 +305,7 @@
 </div>
 
 <script>
+    // بيانات المناطق الجغرافية المستهدفة
     const geoData = {
         "الحديدة": ["الخوخة", "حيس", "الحوك", "الميناء", "زبيد", "بيت الفقيه"],
         "أمانة العاصمة": ["السبعين", "التحرير", "الثورة", "صنعاء القديمة"],
@@ -325,7 +325,7 @@
 
     function toggleManualInput(selectObj, inputId) {
         const manualInput = document.getElementById(inputId);
-        const isManual = (selectObj.value === 'manual' || selectObj.value === 'other');
+        const isManual = (selectObj.value === 'manual');
         manualInput.style.display = isManual ? 'block' : 'none';
         manualInput.required = isManual;
     }
@@ -349,6 +349,7 @@
         bSelect.add(new Option("أخرى (إدخال يدوي)...", "manual"));
     }
 
+    // معالجة الإرسال ببروتوكول AJAX
     document.getElementById('sovereignForm').onsubmit = async function(e) {
         e.preventDefault();
         const submitBtn = document.getElementById('submitBtn');
@@ -365,8 +366,6 @@
                 body: formData 
             });
             
-            if (!response.ok) throw new Error('فشل الاتصال بالخادم');
-            
             const result = await response.json();
 
             if (result.status === 'success') {
@@ -380,7 +379,7 @@
                     window.location.href = "{{ url_for('admin.manage_wallets') }}";
                 });
             } else {
-                throw new Error(result.message);
+                throw new Error(result.message || 'حدث خطأ غير معروف');
             }
         } catch (err) {
             Swal.fire({
