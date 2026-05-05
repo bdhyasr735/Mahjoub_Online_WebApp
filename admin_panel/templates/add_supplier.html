@@ -94,6 +94,7 @@
         background: var(--input-bg);
         font-size: 1rem;
         transition: 0.3s ease;
+        width: 100%;
     }
 
     .form-control-gov:focus {
@@ -124,17 +125,12 @@
         transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         width: 100%;
         box-shadow: 0 5px 15px rgba(99, 44, 143, 0.3);
+        margin-top: 20px;
     }
 
     .btn-gov:hover:not(:disabled) {
         background: #4a1d6d;
         transform: translateY(-3px);
-    }
-
-    .btn-gov:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-        filter: grayscale(1);
     }
 
     .fin-card {
@@ -159,7 +155,6 @@
     }
 
     .manual-input { margin-top: 10px; border-color: var(--gov-gold); display: none; }
-    
     .processing { pointer-events: none; opacity: 0.8; }
 </style>
 
@@ -176,13 +171,13 @@
     </div>
 
     <div class="back-nav">
-        <a href="{{ url_for('admin.manage_wallets') }}" class="btn-back-gov">
-            <i class="fas fa-arrow-right"></i> العودة للمحافظ السيادية
+        <!-- تم تعديل الرابط هنا ليتوافق مع ملفاتك الحالية -->
+        <a href="{{ url_for('admin.manage_suppliers') }}" class="btn-back-gov">
+            <i class="fas fa-arrow-right"></i> العودة لقائمة الموردين
         </a>
     </div>
 
     <form id="sovereignForm" action="{{ url_for('admin.add_supplier') }}" method="POST" enctype="multipart/form-data">
-        <!-- الحقول المخفية للبيانات التلقائية -->
         <input type="hidden" name="next_id" value="{{ next_id }}">
         <input type="hidden" name="e_wallet" value="{{ next_wallet }}">
         <input type="hidden" name="fin_type" id="fin_type_hidden" value="banks">
@@ -305,7 +300,6 @@
 </div>
 
 <script>
-    // بيانات المناطق الجغرافية المستهدفة
     const geoData = {
         "الحديدة": ["الخوخة", "حيس", "الحوك", "الميناء", "زبيد", "بيت الفقيه"],
         "أمانة العاصمة": ["السبعين", "التحرير", "الثورة", "صنعاء القديمة"],
@@ -316,11 +310,6 @@
     const finData = {
         "banks": ["بنك الكريمي الإسلامي", "بنك القطيبي الإسلامي", "بنك التضامن", "بنك اليمن والبحرين"],
         "exchange": ["شركة المريسي للصرافة", "شركة سويد", "شركة النجم"]
-    };
-
-    // منع إدخال غير الأرقام في الهاتف
-    document.querySelector('input[name="phone"]').oninput = function() {
-        this.value = this.value.replace(/[^0-9]/g, '');
     };
 
     function toggleManualInput(selectObj, inputId) {
@@ -349,14 +338,14 @@
         bSelect.add(new Option("أخرى (إدخال يدوي)...", "manual"));
     }
 
-    // معالجة الإرسال ببروتوكول AJAX
+    // تم تعديل الجزء الخاص بالـ AJAX ليتعامل مع الاستجابة بشكل أفضل
     document.getElementById('sovereignForm').onsubmit = async function(e) {
         e.preventDefault();
         const submitBtn = document.getElementById('submitBtn');
         const container = document.getElementById('mainContainer');
         const formData = new FormData(this);
         
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التعميد السيادي...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
         submitBtn.disabled = true;
         container.classList.add('processing');
 
@@ -366,31 +355,31 @@
                 body: formData 
             });
             
+            // إذا كانت الاستجابة JSON
             const result = await response.json();
-
             if (result.status === 'success') {
                 Swal.fire({
-                    title: '✅ تم التعميد بنجاح',
+                    title: '✅ تم بنجاح',
                     text: result.message,
                     icon: 'success',
-                    confirmButtonColor: '#632C8F',
-                    confirmButtonText: 'الذهاب للمحافظ'
+                    confirmButtonColor: '#632C8F'
                 }).then(() => {
-                    window.location.href = "{{ url_for('admin.manage_wallets') }}";
+                    window.location.href = "{{ url_for('admin.manage_suppliers') }}";
                 });
             } else {
-                throw new Error(result.message || 'حدث خطأ غير معروف');
+                throw new Error(result.message);
             }
         } catch (err) {
-            Swal.fire({
-                title: '❌ فشل البروتوكول',
-                text: err.message,
-                icon: 'error',
-                confirmButtonColor: '#632C8F'
-            });
-            submitBtn.innerHTML = '🛡️ إعادة محاولة التعميد';
-            submitBtn.disabled = false;
-            container.classList.remove('processing');
+            // إذا فشل الـ AJAX أو كانت الاستجابة ليست JSON (مثلاً Redirect)
+            // نترك السيرفر يقوم بعمله الطبيعي أو نظهر تنبيه
+            if (err.name === 'SyntaxError') {
+                 this.submit(); // العودة للإرسال التقليدي إذا فشل الـ AJAX
+            } else {
+                Swal.fire({ title: '❌ خطأ', text: err.message, icon: 'error' });
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🛡️ إتمام التعميد والأرشفة';
+                container.classList.remove('processing');
+            }
         }
     };
 
