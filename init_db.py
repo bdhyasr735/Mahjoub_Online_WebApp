@@ -2,59 +2,54 @@ import os
 from core import create_app, db
 from sqlalchemy import text
 
-# إنشاء نسخة من التطبيق للوصول إلى سياق قاعدة البيانات لـ محجوب أونلاين
 app = create_app()
 
 def initialize_database():
     with app.app_context():
         try:
             print("--------------------------------")
-            print("🚀 جاري الاتصال وبناء الترسانة الرقمية لـ محجوب أونلاين...")
+            print("🚀 جاري تنفيذ بروتوكول الإصلاح الشامل لـ محجوب أونلاين...")
             
-            # 1. استيراد الموديلات لضمان تعريف الجداول في SQLAlchemy
+            # 1. ضمان وجود الجداول الأساسية
             from core.models.user import User
             try:
                 from core.models.business import Order
                 from core.models.product import Product
             except ImportError:
-                print("⚠️ تنبيه: تعذر استيراد بعض موديلات العمليات.")
+                print("⚠️ تنبيه: تعذر استيراد بعض الموديلات.")
             
-            # 2. إنشاء الجداول الجديدة (التي لم تكن موجودة سابقاً)
             db.create_all()
             
-            # 3. الترميم الهيكلي السيادي (حل مشكلة العمود المفقود في image_001738.png)
+            # 2. الترميم الهيكلي العميق (Deep Structural Repair)
             with db.engine.connect() as connection:
-                print("🔍 بدء عملية الترميم العميق للجداول القائمة...")
+                print("🔍 فحص وترميم أعمدة جدول الطلبات (Orders)...")
                 
-                # --- إصلاح جدول المستخدمين (Users) ---
-                connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'admin';"))
-                connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active_account BOOLEAN DEFAULT TRUE;"))
-                
-                # --- إصلاح جدول الطلبات (Orders) - الحل النهائي للخطأ ---
-                print("🛠️ معالجة جدول الطلبات (Orders)...")
+                # إضافة كافة الأعمدة المفقودة التي ظهرت في سجلات Railway
                 connection.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id);"))
                 connection.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS total_amount FLOAT DEFAULT 0.0;"))
                 connection.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'YER';"))
                 connection.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending';"))
+                connection.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;"))
+                connection.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(20);"))
                 
-                # --- إصلاح جدول المنتجات (Products) ---
-                print("🛠️ معالجة جدول المنتجات (Products)...")
+                # إضافة أعمدة جدول المنتجات لضمان جاهزية العرض
+                print("🔍 فحص وترميم أعمدة جدول المنتجات (Products)...")
                 connection.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS owner_id INTEGER REFERENCES users(id);"))
                 connection.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'YER';"))
                 connection.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity INTEGER DEFAULT 0;"))
                 
-                # تأكيد كافة التغييرات في قاعدة البيانات
+                # إضافة عمود الصلاحيات للمستخدمين (لحل مشكلة الداشبورد)
+                connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'admin';"))
+                
                 connection.commit()
             
-            print("✅ تم فحص وترميم هيكل قاعدة البيانات بنجاح (تمت إضافة الأعمدة المفقودة).")
-            print("🌟 الترسانة الرقمية جاهزة الآن للتشغيل في بيئة Railway.")
+            print("✅ اكتمل الترميم! كافة الأعمدة (Shipping, Phone, UserID) أصبحت جاهزة.")
+            print("🌟 محجوب أونلاين جاهز الآن للانطلاق.")
             print("--------------------------------")
             
         except Exception as e:
             db.session.rollback()
-            print("--------------------------------")
-            print(f"❌ تعثرت عملية البناء السيادي: {str(e)}")
-            print("--------------------------------")
+            print(f"❌ تعثرت عملية الترميم: {str(e)}")
 
 if __name__ == "__main__":
     initialize_database()
