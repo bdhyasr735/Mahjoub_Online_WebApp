@@ -7,7 +7,7 @@ from core import db
 from . import admin_bp
 from .auth import handle_admin_login
 
-# --- 1. استيراد النماذج المستقلة (الرشاقة السيادية) ---
+# --- 1. استيراد النماذج (نظام الوحدات المستقلة) ---
 from core.models.user import User
 
 try:
@@ -20,7 +20,7 @@ try:
 except ImportError:
     Order = None
 
-# --- 2. التحقق من الصلاحية الإدارية ---
+# --- 2. التحقق من الصلاحية الإدارية السيادية ---
 def is_admin():
     return current_user.is_authenticated and getattr(current_user, 'role', '').lower() == 'admin'
 
@@ -36,7 +36,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash("تم تأمين النظام وتفكيك الجلسة الإدارية", "info")
+    flash("تم تأمين النظام وتفكيك الجلسة الإدارية بنجاح", "info")
     return redirect(url_for('admin.login'))
 
 @admin_bp.route('/')
@@ -44,24 +44,42 @@ def logout():
 @login_required
 def admin_dashboard():
     if not is_admin():
-        flash("عذراً، لا تمتلك صلاحيات الترسانة الإدارية", "danger")
+        flash("تنبيه: محاولة وصول غير مصرح بها للمنطقة السيادية", "danger")
         return redirect(url_for('main.index'))
     
-    # جلب إحصائيات رشيقة من القاعدة
-    stats = {
-        'suppliers_count': User.query.filter_by(role='vendor').count(),
-        'orders_count': db.session.query(Order).count() if Order else 0,
-        'users_count': db.session.query(User).count(),
-        'pending_withdrawals': 0
-    }
-    return render_template('dashboard.html', **stats)
+    # --- منطق الإحصائيات الرشيق (صمام أمان ضد خطأ 500) ---
+    try:
+        # جلب الأعداد باستخدام استعلامات SQL مباشرة لضمان أقصى درجات الخفة والرشاقة
+        suppliers_count = db.session.execute(text("SELECT COUNT(*) FROM users WHERE role = 'vendor'")).scalar() or 0
+        users_count = db.session.execute(text("SELECT COUNT(*) FROM users")).scalar() or 0
+        
+        # التأكد من سلامة جدول الطلبات قبل الاستعلام (لتجنب الخطأ الظاهر في image_f5bc5a.png)
+        try:
+            orders_count = db.session.execute(text("SELECT COUNT(*) FROM orders")).scalar() or 0
+        except:
+            orders_count = 0
 
-# --- 4. النوافذ الإضافية (ربط ملفات الصورة image_f629d1.png) ---
+        stats = {
+            'suppliers_count': suppliers_count,
+            'orders_count': orders_count,
+            'users_count': users_count,
+            'pending_withdrawals': 0
+        }
+        return render_template('dashboard.html', **stats)
+        
+    except Exception as e:
+        # صمام أمان: في حال حدوث أي خطأ في القاعدة، تفتح الصفحة بأصفار بدلاً من الانهيار
+        print(f"⚠️ Dashboard SQL Error: {str(e)}")
+        return render_template('dashboard.html', suppliers_count=0, orders_count=0, users_count=0, pending_withdrawals=0)
+
+# --- 4. النوافذ الإدارية (ربط الملفات من الصورة image_f629d1.png) ---
 
 @admin_bp.route('/manage-suppliers')
 @login_required
 def manage_suppliers():
     if not is_admin(): return redirect(url_for('main.index'))
+    
+    # جلب قائمة الموردين لعرضهم في واجهة الإدارة
     suppliers = User.query.filter_by(role='vendor').all()
     return render_template('manage_suppliers.html', suppliers=suppliers)
 
@@ -77,26 +95,29 @@ def withdraw_requests():
     if not is_admin(): return redirect(url_for('main.index'))
     return render_template('withdraw_requests.html')
 
-# --- 5. مسارات الطوارئ والتعميد ---
+# --- 5. مسارات الطوارئ والتعميد السيادي ---
 
 @admin_bp.route('/approve-vendor/<int:user_id>')
 @login_required
 def approve_vendor(user_id):
+    """بروتوكول تعميد المورد لتفعيل تمرير المنتجات لمتجر قمرة"""
     if not is_admin(): return "Unauthorized", 403
+    
     vendor = User.query.get(user_id)
     if vendor:
         vendor.is_active_account = True
         db.session.commit()
-        flash(f"تم تعميد المورد {vendor.username} بنجاح لتمرير منتجاته", "success")
+        flash(f"تم تعميد المورد {vendor.username} بنجاح. المنتجات جاهزة للتمرير.", "success")
     return redirect(url_for('admin.manage_suppliers'))
 
 @admin_bp.route('/make-me-admin')
 @login_required
 def make_me_admin():
+    """مسار الطوارئ لترقية حساب علي محجوب إلى آدمن سيادي"""
     try:
         current_user.role = 'admin'
         db.session.commit()
-        flash("تمت ترقيتك لآدمن سيادي بنجاح", "success")
+        flash("تمت ترقيتك لآدمن سيادي بنجاح! الترسانة تحت تصرفك الآن.", "success")
         return redirect(url_for('admin.admin_dashboard'))
     except Exception as e:
         db.session.rollback()
