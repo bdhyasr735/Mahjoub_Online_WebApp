@@ -7,9 +7,9 @@ from core import db
 from . import admin_bp
 from .auth import handle_admin_login
 
-# --- 1. استيراد النماذج (الهوية السيادية الموحدة) ---
-# 🛡️ تم التعديل هنا: استيراد الكل من ملف user الموحد
-from core.models.user import User, Vendor, WithdrawRequest
+# --- 1. استيراد النماذج (تم تنظيف الاستدعاءات المحذوفة) ---
+# تم حذف Vendor و WithdrawRequest لأنهما غير موجودين حالياً
+from core.models.user import User
 
 # محاولة استيراد النماذج الثانوية لتجنب الانهيار
 try:
@@ -22,20 +22,13 @@ try:
 except ImportError:
     Order = None
 
-# --- 2. خدمات الهوية والمحافظ السيادية ---
+# --- 2. خدمات الهوية المؤقتة ---
 def generate_vendor_wallet():
-    """توليد محفظة تبدأ بـ W-MAH لضمان الهوية المالية"""
     return f"W-MAH-{random.randint(100000, 999999)}"
 
 def get_next_sovereign_id():
-    """توليد المعرف السيادي MAH-963 بناءً على عدد الموردين الحاليين"""
-    try:
-        # حساب العدد الإجمالي للموردين المسجلين في القاعدة
-        count = db.session.query(Vendor).count()
-        return f"MAH-963{count + 1}"
-    except Exception:
-        db.session.rollback()
-        return f"MAH-963{random.randint(100, 999)}"
+    # معرف وهمي لأن موديل Vendor محذوف
+    return f"MAH-963-{random.randint(100, 999)}"
 
 # --- 3. تأمين الوصول والمصادقة ---
 @admin_bp.route('/login', methods=['GET', 'POST'])
@@ -61,56 +54,23 @@ def admin_dashboard():
         flash("عذراً، لا تمتلك صلاحيات الوصول للترسانة الإدارية", "danger")
         return redirect(url_for('main.index'))
     
+    # إحصائيات ثابتة لتجنب الانهيار بسبب الموديلات المحذوفة
     stats = {
-        'suppliers_count': db.session.query(Vendor).count(),
-        'pending_withdrawals': db.session.query(WithdrawRequest).filter_by(status='pending').count(),
+        'suppliers_count': 0, # لا يوجد موديل Vendor حالياً
+        'pending_withdrawals': 0, # لا يوجد موديل WithdrawRequest حالياً
         'orders_count': db.session.query(Order).count() if Order else 0
     }
     return render_template('dashboard.html', **stats, show_repair=not session.get('repair_done'))
 
-# --- 5. حوكمة الموردين (إضافة وتعميد مورد جديد) ---
+# --- 5. حوكمة الموردين (تم تعطيلها مؤقتاً لحين بناء الموديلات الجديدة) ---
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
 @login_required
 def add_supplier():
     if getattr(current_user, 'role', '') != 'admin':
         return "Unauthorized", 403
-
-    if request.method == 'POST':
-        try:
-            username = request.form.get('username')
-            password = request.form.get('password')
-            
-            if User.query.filter_by(username=username).first():
-                return jsonify({"status": "error", "message": "اسم المستخدم مسجل مسبقاً"}), 400
-
-            # 1. إنشاء حساب الدخول
-            new_user = User(username=username, role='vendor')
-            new_user.set_password(password)
-            db.session.add(new_user)
-            db.session.flush() 
-
-            # 2. إنشاء بروفايل المورد بربط الهوية السيادية
-            new_vendor = Vendor(
-                user_id=new_user.id,
-                supplier_id=request.form.get('next_id'),
-                trade_name=request.form.get('trade_name'),
-                owner_name=request.form.get('owner_name'),
-                phone=request.form.get('phone'),
-                e_wallet=request.form.get('e_wallet'),
-                activity_type=request.form.get('activity_type'),
-                province=request.form.get('province'),
-                district=request.form.get('district'),
-                balance_yer=0.0, balance_sar=0.0, balance_usd=0.0
-            )
-            
-            db.session.add(new_vendor)
-            db.session.commit()
-            return jsonify({"status": "success", "message": "تم تعميد المورد بنجاح وربطه بالهوية MAH-963"})
-            
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"status": "error", "message": f"فشل الحفظ: {str(e)}"}), 500
-
+    
+    # هذه الصفحة ستعرض رسالة تنبيه فقط لأن الموديل محذوف
+    flash("نظام الموردين قيد التحديث الهيكلي حالياً", "warning")
     return render_template('add_supplier.html', 
                            next_id=get_next_sovereign_id(), 
                            next_wallet=generate_vendor_wallet())
@@ -122,14 +82,9 @@ def force_repair():
     if getattr(current_user, 'role', '') != 'admin':
         return "Unauthorized", 403
     try:
-        # تنفيذ أوامر SQL مباشرة لضمان مطابقة الهيكل لمتطلبات محجوب أونلاين
-        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS balance_yer FLOAT DEFAULT 0.0;"))
-        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS balance_sar FLOAT DEFAULT 0.0;"))
-        db.session.execute(text("ALTER TABLE vendors ADD COLUMN IF NOT EXISTS balance_usd FLOAT DEFAULT 0.0;"))
-        db.session.commit()
+        # تعطيل التعديلات على الجداول المحذوفة
         session['repair_done'] = True
-        flash("تم تحديث الأرصدة السيادية الثلاثة بنجاح", "success")
+        flash("تم تشغيل بروتوكول الإصلاح الصامت", "success")
         return redirect(url_for('admin.admin_dashboard'))
     except Exception as e:
-        db.session.rollback()
         return f"Repair Error: {str(e)}"
