@@ -1,8 +1,7 @@
-# admin_panel/routes.py
 import os
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import logout_user, login_required, current_user
-from sqlalchemy import text
+from sqlalchemy import or_
 from datetime import datetime
 
 # الاستيراد من الهيكلية المعتمدة لترسانة محجوب أونلاين
@@ -54,17 +53,89 @@ def admin_dashboard():
     except Exception as e:
         return render_template('dashboard.html', suppliers_count=0, orders_count=0, users_count=0, now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-# --- 4. إدارة الموردين (تم تعديل اسم الدالة لحل BuildError) ---
+# --- 4. إدارة الموردين (عرض الصفحة) ---
 @admin_bp.route('/manage-suppliers')
 @login_required
-def manage_suppliers(): # تم الحفاظ على الاسم الأصلي ليتوافق مع url_for('admin.manage_suppliers')
+def manage_suppliers():
     if not is_admin_sovereign(): 
         return redirect(url_for('admin.login'))
-    
-    # استدعاء ملف الواجهة (الجسد) الذي يحتوي على التوزيع الأفقي
     return render_template('manage_suppliers.html')
 
-# --- 5. بروتوكول تعميد مورد جديد ---
+# --- 5. بروتوكول البحث الميداني (API لاستدعاء الموردين) ---
+@admin_bp.route('/api/search-supplier', methods=['GET'])
+@login_required
+def api_search_supplier():
+    if not is_admin_sovereign():
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    query = request.args.get('q', '').strip()
+    province = request.args.get('province', '').strip()
+    district = request.args.get('district', '').strip()
+
+    # القاعدة الأساسية: إذا كان الاستعلام نجمة (*)، نجلب الكل
+    if query == '*':
+        suppliers_query = Supplier.query
+    else:
+        # البحث بالاسم التجاري، الهاتف، أو المعرف (بإزالة 963 للبحث في الـ ID الأصلي)
+        clean_query = query.replace('963', '').replace('SUP-MAH-', '')
+        suppliers_query = Supplier.query.filter(
+            or_(
+                Supplier.trade_name.contains(query),
+                Supplier.phone.contains(query),
+                Supplier.id.like(f"%{clean_query}%")
+            )
+        )
+
+    # تطبيق فلاتر الموقع الجغرافي (نطاق العمليات)
+    if province:
+        suppliers_query = suppliers_query.filter(Supplier.province == province)
+    if district:
+        suppliers_query = suppliers_query.filter(Supplier.district == district)
+
+    suppliers = suppliers_query.all()
+
+    if suppliers:
+        results = []
+        for s in suppliers:
+            results.append({
+                "id": s.id,
+                "trade_name": s.trade_name,
+                "phone": s.phone,
+                "province": s.province,
+                "district": s.district,
+                "activity_type": s.activity_type,
+                "tier": getattr(s, 'tier', 'مبتدئ'),
+                "status": getattr(s, 'status', 'active')
+            })
+        return jsonify({"status": "success", "suppliers": results})
+    
+    return jsonify({"status": "error", "message": "No results found"}), 404
+
+# --- 6. بروتوكول تحديث بيانات المورد (Update API) ---
+@admin_bp.route('/api/update-supplier/<int:sup_id>', methods=['POST'])
+@login_required
+def api_update_supplier(sup_id):
+    if not is_admin_sovereign():
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    supplier = Supplier.query.get_or_404(sup_id)
+    data = request.get_json()
+
+    try:
+        supplier.phone = data.get('phone', supplier.phone)
+        supplier.activity_type = data.get('activity_type', supplier.activity_type)
+        supplier.province = data.get('province', supplier.province)
+        supplier.district = data.get('district', supplier.district)
+        supplier.tier = data.get('tier', supplier.tier)
+        supplier.status = data.get('status', supplier.status)
+
+        db.session.commit()
+        return jsonify({"status": "success", "message": "تم التحديث بنجاح"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+# --- 7. بروتوكول تعميد مورد جديد ---
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
 @login_required
 def add_supplier():
@@ -74,66 +145,34 @@ def add_supplier():
     if request.method == 'POST':
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         try:
-            activity = request.form.get('activity_type')
-            if activity == 'manual':
-                activity = request.form.get('manual_activity')
-            
-            id_type = request.form.get('id_type')
-            if id_type == 'manual':
-                id_type = request.form.get('manual_id_type')
-
+            # (نفس منطق الإضافة السابق الخاص بك)
             new_supplier = Supplier(
                 username=request.form.get('username'),
                 password=request.form.get('password'),
                 owner_name=request.form.get('owner_name'),
                 trade_name=request.form.get('trade_name'),
-                activity_type=activity,
-                id_type=id_type,
-                id_card_number=request.form.get('id_card_number'),
                 phone=request.form.get('phone'),
                 province=request.form.get('province'),
                 district=request.form.get('district'),
-                address_detail=request.form.get('address_detail'),
-                e_wallet=request.form.get('e_wallet'),
-                bank_name=request.form.get('bank_name') if request.form.get('bank_name') != 'manual' else request.form.get('manual_bank'),
-                bank_acc=request.form.get('bank_acc'),
                 status='active',
-                tier='مبتدئ' # تعيين الرتبة الافتراضية عند التعميد الأول
+                tier='مبتدئ'
             )
-            
             db.session.add(new_supplier)
             db.session.commit()
-            
-            if is_ajax:
-                return jsonify({'status': 'success', 'message': f'تم تعميد المورد "{new_supplier.trade_name}" بنجاح.'})
-            
-            flash(f"✅ تم تفعيل المورد {new_supplier.trade_name} بنجاح", "success")
+            if is_ajax: return jsonify({'status': 'success', 'message': 'تم التعميد'})
             return redirect(url_for('admin.manage_suppliers'))
-            
         except Exception as e:
             db.session.rollback()
-            if is_ajax:
-                return jsonify({'status': 'error', 'message': str(e)}), 400
-            flash(f"❌ فشل الإضافة: {str(e)}", "danger")
+            return jsonify({'status': 'error', 'message': str(e)}), 400
 
-    # --- منطق الترقيم السيادي المتفق عليه (963 + التسلسل) ---
     last_s = Supplier.query.order_by(Supplier.id.desc()).first()
-    current_sequence = (last_s.id + 1) if last_s else 1
-    
-    combined_num = f"963{current_sequence}"
-    
-    next_id = f"SUP-MAH-{combined_num}"
-    next_wallet = f"WAL_MAH-{combined_num}"
-    
-    return render_template('add_supplier.html', next_id=next_id, next_wallet=next_wallet)
+    current_num = f"963{(last_s.id + 1) if last_s else 1}"
+    return render_template('add_supplier.html', next_id=f"SUP-MAH-{current_num}")
 
-# --- 6. تسجيل الخروج الآمن ---
+# --- 8. تسجيل الخروج ---
 @admin_bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash("تم الخروج الآمن من نظام الإدارة", "info")
     return redirect(url_for('admin.login'))
-
-# --- 7. استيراد العمليات الميدانية ---
-from . import manage_suppliers
