@@ -118,14 +118,22 @@ def add_supplier():
                 return jsonify({'status': 'error', 'message': str(e)}), 400
             flash(f"❌ فشل الإضافة: {str(e)}", "danger")
 
+    # --- منطق الترقيم السيادي المتفق عليه (963 + التسلسل) ---
     last_s = Supplier.query.order_by(Supplier.id.desc()).first()
-    next_id_val = (last_s.id + 1) if last_s else 1
-    return render_template('add_supplier.html', next_id=f"SUP-{next_id_val:04d}", next_wallet=f"WAL-{next_id_val:06d}")
+    current_sequence = (last_s.id + 1) if last_s else 1
+    
+    # دمج الرقم الثابت 963 مع الرقم التسلسلي
+    combined_num = f"963{current_sequence}"
+    
+    next_id = f"SUP-MAH-{combined_num}"
+    next_wallet = f"WAL_MAH-{combined_num}"
+    
+    return render_template('add_supplier.html', next_id=next_id, next_wallet=next_wallet)
 
-# --- 6. تسجيل الخروج الآمن (تم إصلاح الفاصلة هنا) ---
+# --- 6. تسجيل الخروج الآمن ---
 @admin_bp.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash("تم الخروج الآمن من نظام الإدارة", "info") # تم تغيير (،) إلى (,)
+    flash("تم الخروج الآمن من نظام الإدارة", "info")
     return redirect(url_for('admin.login'))
