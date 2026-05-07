@@ -15,6 +15,7 @@ from .auth import handle_admin_login
 # --- 1. بروتوكول التحقق السيادي (حماية مركز القيادة) ---
 def is_admin_sovereign():
     """ يضمن أن المؤسس علي محجوب فقط يمكنه الوصول. """
+    # ملاحظة: يمكنك إضافة التحقق من ID المستخدم لضمان أنك وحدك المتحكم
     return current_user.is_authenticated and getattr(current_user, 'role', '').lower() == 'admin'
 
 # --- 2. بوابة الدخول (The Gateway) ---
@@ -51,18 +52,18 @@ def admin_dashboard():
         return render_template('dashboard.html', **stats)
         
     except Exception as e:
-        print(f"Dashboard Stats Error: {str(e)}")
+        print(f"❌ Dashboard Stats Error: {str(e)}")
         return render_template('dashboard.html', suppliers_count=0, orders_count=0, users_count=0, now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
-# --- 4. إدارة الموردين (عرض الصفحة) ---
+# --- 4. إدارة الموردين (عرض الصفحة الرئيسية) ---
 @admin_bp.route('/manage-suppliers')
 @login_required
 def manage_suppliers():
     if not is_admin_sovereign(): 
         return redirect(url_for('admin.login'))
     
-    # جلب قائمة أولية للمحافظات أو الموردين إذا لزم الأمر
-    all_suppliers = Supplier.query.limit(10).all()
+    # جلب قائمة أولية لعرضها في الجدول عند التحميل
+    all_suppliers = Supplier.query.order_by(Supplier.id.desc()).limit(20).all()
     return render_template('manage_suppliers.html', suppliers=all_suppliers)
 
 # --- 5. بروتوكول البحث الميداني المطور (API) ---
@@ -70,46 +71,45 @@ def manage_suppliers():
 @login_required
 def api_search_supplier():
     if not is_admin_sovereign():
-        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+        return jsonify({"status": "error", "message": "Unauthorized Access"}), 403
 
     query = request.args.get('q', '').strip()
     province = request.args.get('province', '').strip()
-    district = request.args.get('district', '').strip()
+    tier = request.args.get('tier', '').strip()
 
-    # إنشاء الاستعلام الأساسي من قاعدة البيانات
     suppliers_query = Supplier.query
 
-    # أ) منطق البحث النصي وتفعيل الرمز السيادي (#)
+    # أ) منطق البحث النصي والرموز السيادية
     if query == '#':
-        # في حالة الرمز #، لا نطبق فلتر النص لكي يسحب كل الموردين
+        # جلب الكل
         pass
-    elif query and query != '*':
-        # تنظيف المدخلات للبحث في المعرف الرقمي
-        clean_query = query.replace('963', '').replace('SUP-MAH-', '')
-        
+    elif query:
+        # تنظيف المدخلات للبحث بذكاء في المعرفات أو الأسماء
+        clean_query = query.replace('SUP-MAH-', '')
         suppliers_query = suppliers_query.filter(
             or_(
                 Supplier.trade_name.ilike(f"%{query}%"),
                 Supplier.phone.ilike(f"%{query}%"),
                 Supplier.owner_name.ilike(f"%{query}%"),
+                Supplier.id_card_number.ilike(f"%{query}%"),
                 cast(Supplier.id, String).ilike(f"%{clean_query}%")
             )
         )
 
-    # ب) تطبيق فلاتر الموقع الجغرافي من القاعدة
-    if province and province != "all":
+    # ب) فلاتر الموقع والرتبة
+    if province and province != "":
         suppliers_query = suppliers_query.filter(Supplier.province == province)
-    if district and district != "all":
-        suppliers_query = suppliers_query.filter(Supplier.district == district)
+    if tier and tier != "":
+        suppliers_query = suppliers_query.filter(Supplier.tier == tier)
 
     try:
         suppliers = suppliers_query.all()
-        if suppliers:
-            # تحويل الموردين إلى JSON باستخدام دالة to_dict الموجودة في الموديل
-            results = [s.to_dict() for s in suppliers]
-            return jsonify({"status": "success", "suppliers": results})
-        
-        return jsonify({"status": "error", "message": "لم يتم العثور على نتائج في السجلات"}), 404
+        results = [s.to_dict() for s in suppliers]
+        return jsonify({
+            "status": "success", 
+            "count": len(results),
+            "suppliers": results
+        })
     except Exception as e:
         return jsonify({"status": "error", "message": f"عطل في الاتصال السيادي: {str(e)}"}), 500
 
@@ -124,17 +124,22 @@ def api_update_supplier(sup_id):
     data = request.get_json()
 
     try:
-        # تحديث الحقول المسموح بها في القاعدة
-        fields = ['phone', 'activity_type', 'province', 'district', 'tier', 'status', 'bank_name', 'bank_acc']
-        for field in fields:
+        # الحقول القابلة للتحديث من مركز التحكم
+        allowed_fields = [
+            'trade_name', 'phone', 'province', 'district', 
+            'tier', 'status', 'bank_name', 'bank_acc', 
+            'e_wallet', 'address_detail'
+        ]
+        
+        for field in allowed_fields:
             if field in data:
                 setattr(supplier, field, data[field])
 
         db.session.commit()
-        return jsonify({"status": "success", "message": "تم تحديث البيانات في قاعدة محجوب أونلاين"})
+        return jsonify({"status": "success", "message": f"تم تحديث بيانات المورد {supplier.trade_name} بنجاح"})
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 400
+        return jsonify({"status": "error", "message": f"فشل التحديث: {str(e)}"}), 400
 
 # --- 7. بروتوكول تعميد مورد جديد ---
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
@@ -146,35 +151,37 @@ def add_supplier():
     if request.method == 'POST':
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         try:
-            username = request.form.get('username') or f"user_{int(datetime.now().timestamp())}"
-            
-            # توليد محفظة افتراضية إذا لم يتم إدخالها
-            wallet = request.form.get('e_wallet') or f"WAL_MAH_963{int(datetime.now().timestamp())}"
+            # توليد بيانات تلقائية عند النقص لضمان استمرار العمل
+            timestamp = int(datetime.now().timestamp())
+            username = request.form.get('username') or f"sup_{timestamp}"
+            wallet = request.form.get('e_wallet') or f"WAL-MAH-{timestamp}"
 
             new_supplier = Supplier(
                 username=username,
-                password=request.form.get('password', '123456'),
+                password=request.form.get('password', '123456'), # كلمة مرور افتراضية
                 owner_name=request.form.get('owner_name'),
                 trade_name=request.form.get('trade_name'),
                 phone=request.form.get('phone'),
                 province=request.form.get('province'),
                 district=request.form.get('district'),
                 id_type=request.form.get('id_type', 'شخصية'),
-                id_card_number=request.form.get('id_card_number', '000'),
-                address_detail=request.form.get('address_detail', 'غير محدد'),
+                id_card_number=request.form.get('id_card_number'),
+                address_detail=request.form.get('address_detail', 'اليمن'),
                 e_wallet=wallet, 
                 bank_name=request.form.get('bank_name', 'غير محدد'),
-                bank_acc=request.form.get('bank_acc', '000'),
+                bank_acc=request.form.get('bank_acc', '000000'),
                 status='active',
-                tier='مبتدئ'
+                tier='مبتدئ',
+                balance_yer=0.0 # تصفير الأرصدة عند الإنشاء
             )
+            
             db.session.add(new_supplier)
             db.session.commit()
             
             if is_ajax: 
-                return jsonify({'status': 'success', 'message': 'تم تعميد المورد بنجاح في السجلات المركزية'})
+                return jsonify({'status': 'success', 'message': 'تم تعميد المورد في السجلات المركزية'})
             
-            flash("تم إضافة المورد بنجاح", "success")
+            flash(f"تمت إضافة المورد {new_supplier.trade_name} بنجاح", "success")
             return redirect(url_for('admin.manage_suppliers'))
             
         except Exception as e:
@@ -183,14 +190,15 @@ def add_supplier():
                 return jsonify({'status': 'error', 'message': f"فشل التعميد: {str(e)}"}), 400
             flash(f"خطأ في الإضافة: {str(e)}", "danger")
 
+    # حساب المعرف القادم للعرض الجمالي في الـ Template
     last_s = Supplier.query.order_by(Supplier.id.desc()).first()
-    next_val = (last_s.id + 1) if last_s else 1
-    return render_template('add_supplier.html', next_id=f"SUP-MAH-963{next_val}")
+    next_id_val = (last_s.id + 1) if last_s else 1
+    return render_template('add_supplier.html', next_id=f"SUP-MAH-963{next_id_val}")
 
-# --- 8. تسجيل الخروج ---
+# --- 8. تسجيل الخروج الآمن ---
 @admin_bp.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash("تم الخروج الآمن من نظام الإدارة", "info")
+    flash("تم إنهاء الجلسة السيادية بنجاح", "info")
     return redirect(url_for('admin.login'))
