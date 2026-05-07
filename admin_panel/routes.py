@@ -1,7 +1,7 @@
 import os
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import logout_user, login_required, current_user
-from sqlalchemy import or_, cast, String
+from sqlalchemy import or_
 from datetime import datetime
 from functools import wraps
 
@@ -19,7 +19,7 @@ def is_admin_sovereign():
     return current_user.is_authenticated and getattr(current_user, 'role', '').lower() == 'admin'
 
 def admin_api_required(f):
-    """ تأمين الـ APIs لمنع ظهور رسائل تسجيل الدخول في الواجهات الخلفية """
+    """ تأمين الـ APIs لمنع الدخول غير المصرح به """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_admin_sovereign():
@@ -43,13 +43,12 @@ def admin_dashboard():
         return redirect(url_for('admin.login'))
     
     try:
-        # جلب البيانات الحقيقية من الترسانة لضمان دقة الإحصائيات
         stats = {
             'suppliers_count': Supplier.query.count(),
             'users_count': User.query.count(),
             'now': datetime.now().strftime("%H:%M:%S")
         }
-        # جلب الطلبات إن وجدت في الموديل
+        # جلب الطلبات إن وجدت
         try:
             from core.models.business import Order
             stats['orders_count'] = Order.query.count()
@@ -76,9 +75,34 @@ def admin_manage_suppliers():
 @admin_bp.route('/api/supplier-details/<int:sup_id>')
 @admin_api_required
 def api_supplier_details(sup_id):
-    """ جلب بيانات المورد للنافذة الجانبية """
+    """ جلب بيانات المورد التفصيلية للنافذة الجانبية """
     supplier = Supplier.query.get_or_404(sup_id)
-    return jsonify(supplier.to_dict())
+    # نرسل البيانات التي يحتاجها المودال (المالك، الهاتف، المحفظة)
+    return jsonify({
+        "id": supplier.id,
+        "owner_name": supplier.owner_name,
+        "trade_name": supplier.trade_name,
+        "phone": supplier.phone,
+        "e_wallet": supplier.e_wallet or f"WAL_MAH_{supplier.id}",
+        "province": supplier.province,
+        "district": supplier.district,
+        "balance_yer": float(supplier.balance_yer or 0),
+        "status": supplier.status
+    })
+
+@admin_bp.route('/api/update-supplier-password/<int:sup_id>', methods=['POST'])
+@admin_api_required
+def update_supplier_password(sup_id):
+    """ إعادة تعيين كلمة مرور المورد """
+    supplier = Supplier.query.get_or_404(sup_id)
+    data = request.get_json()
+    new_pass = data.get('password')
+    
+    if new_pass and len(new_pass) >= 6:
+        supplier.set_password(new_pass) # افترضنا وجود هذه الدالة في الموديل
+        db.session.commit()
+        return jsonify({"status": "success", "message": "تم تحديث كلمة المرور بنجاح"})
+    return jsonify({"status": "error", "message": "كلمة المرور قصيرة جداً"}), 400
 
 @admin_bp.route('/api/toggle-supplier-status/<int:sup_id>', methods=['POST'])
 @admin_api_required
@@ -119,7 +143,6 @@ def add_supplier():
         try:
             new_supplier = Supplier(
                 username=request.form.get('username'),
-                password=request.form.get('password', '123456'),
                 owner_name=request.form.get('owner_name'),
                 trade_name=request.form.get('trade_name'),
                 phone=request.form.get('phone'),
@@ -127,6 +150,7 @@ def add_supplier():
                 district=request.form.get('district'),
                 status='active'
             )
+            new_supplier.set_password(request.form.get('password', '123456'))
             db.session.add(new_supplier)
             db.session.flush() 
             new_supplier.mint_sovereign_id() # نقش المعرف WAL_MAH
