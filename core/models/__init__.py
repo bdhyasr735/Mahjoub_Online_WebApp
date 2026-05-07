@@ -4,10 +4,12 @@
 from core.extensions import db 
 
 # 2. استيراد الهوية الأساسية (النواة الرقمية للنظام)
+# موديل User يمثل الأدمن، الموردين، والموظفين حسب الصلاحيات (Roles)
 from .user import User
 
 # 3. استيراد الموردين (الموديل السيادي المطور لـ محجوب أونلاين)
 # تسجيل هذا الموديل هنا يضمن تفعيل المحفظة متعددة العملات (Multi-Currency Vault)
+# والرتب السيادية (مبتدئ، محترف، سيادي)
 try:
     from .supplier import Supplier
 except ImportError:
@@ -16,6 +18,7 @@ except ImportError:
     print("⚠️ Warning: Supplier model not found in core/models")
 
 # 4. استيراد المكونات التجارية (المنتجات والعمليات)
+# يتم تحميل هذه الموديلات لضمان جاهزية العرض في لوحة التحكم
 try:
     from .product import Product
 except ImportError:
@@ -28,7 +31,8 @@ except ImportError:
     Order = None
 
 # 5. بروتوكول التصدير الموحد (__all__)
-# هذا البروتوكول يسمح باستدعاء الموديلات بسهولة عبر: from core.models import Supplier
+# هذا البروتوكول يسمح باستدعاء الموديلات بسهولة واحترافية عبر: 
+# from core.models import User, Supplier, Order
 __all__ = [
     'db', 
     'User', 
@@ -37,5 +41,6 @@ __all__ = [
     'Order'
 ]
 
-# رسالة تأكيد في سجلات السيرفر عند اكتمال بناء الترسانة
+# رسالة تأكيد في سجلات السيرفر عند اكتمال بناء الترسانة البرمجية
+# يمكن تفعيلها عند الحاجة لتتبع عمليات التشغيل (Debugging)
 # print("✅ Sovereign Models Registry: Initialized Successfully.")
