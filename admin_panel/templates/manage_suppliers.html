@@ -1,260 +1,34 @@
 {% extends "base.html" %}
 
-{% block title %}الرقابة السيادية على الموردين | محجوب أونلاين{% endblock %}
+{% block title %}مركز قيادة الموردين | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
 <div class="container-fluid py-4 sovereign-theme" style="direction: rtl; text-align: right;">
     
-    <div class="d-flex justify-content-between align-items-center mb-4 animate__animated animate__fadeInDown">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold sovereign-title">🛡️ مركز قيادة الموردين</h2>
-            <p class="text-muted small">نظام الحوكمة المركزية v3.0 - <span class="text-royal fw-bold">سوقك الذكي</span></p>
+            <p class="text-muted small">نظام الحوكمة v3.0 - <span class="text-royal fw-bold">سوقك الذكي</span></p>
         </div>
-        <a href="{{ url_for('admin.add_supplier') }}" class="btn shadow-lg btn-royal px-4 py-2">
-            <i class="fas fa-plus-circle me-2"></i> تعميد مورد سيادي جديد
+        <a href="{{ url_for('admin.add_supplier') }}" class="btn btn-royal px-4">
+            <i class="fas fa-plus-circle me-2"></i> تعميد مورد جديد
         </a>
     </div>
 
-    <div class="card border-0 shadow-sm p-4 mb-4 animate__animated animate__fadeInUp bg-white" style="border-radius: 15px;">
-        <form method="GET" action="{{ url_for('admin.manage_suppliers') }}" class="row g-3">
-            <div class="col-lg-4">
-                <label class="small fw-bold mb-1"><i class="fas fa-search me-1"></i> البحث الشامل</label>
-                <div class="input-group">
-                    <input type="text" name="q" id="supplierSearch" class="form-control border-2" placeholder="اسم، هاتف، محفظة..." value="{{ request.args.get('q', '') }}">
-                    <button type="submit" class="btn btn-royal">استدعاء</button>
-                </div>
-            </div>
-            <div class="col-lg-3">
-                <label class="small fw-bold mb-1"><i class="fas fa-map-marker-alt me-1"></i> المحافظة</label>
-                <select name="province" class="form-select border-2" onchange="this.form.submit()">
-                    <option value="">كل المحافظات</option>
-                    {% for prov in ["الحديدة", "صنعاء", "تعز", "عدن"] %}
-                    <option value="{{ prov }}" {% if request.args.get('province') == prov %}selected{% endif %}>{{ prov }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-lg-3">
-                <label class="small fw-bold mb-1"><i class="fas fa-crown me-1"></i> الحالة</label>
-                <select name="status" class="form-select border-2" onchange="this.form.submit()">
-                    <option value="">كل الحالات</option>
-                    <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>نشط</option>
-                    <option value="suspended" {% if request.args.get('status') == 'suspended' %}selected{% endif %}>موقوف</option>
-                </select>
-            </div>
-            <div class="col-lg-2 d-flex align-items-end">
-                <a href="{{ url_for('admin.manage_suppliers') }}" class="btn btn-outline-secondary w-100 fw-bold">
-                    <i class="fas fa-sync-alt"></i> ضبط
-                </a>
-            </div>
-        </form>
+    {% include 'includes/_supplier_filters.html' %}
+
+    <div id="tableContainer" class="card border-0 shadow-lg animate__animated animate__fadeIn">
+        {% include 'includes/_supplier_table.html' %}
     </div>
 
-    <div id="fullTableContainer" class="card border-0 shadow-lg mb-5 animate__animated animate__fadeIn" style="border-radius: 20px; overflow: hidden;">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 text-center">
-                <thead class="bg-royal text-white">
-                    <tr>
-                        <th class="py-3">المعرف</th>
-                        <th>المتجر والنشاط</th>
-                        <th>الموقع</th>
-                        <th>المحفظة الرقمية</th>
-                        <th>الرصيد (YER)</th>
-                        <th>الحالة</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="suppliersTableBody">
-                    {% for s in suppliers %}
-                    <tr class="supplier-row" onclick="fetchSingleSupplier('{{ s.id }}')">
-                        <td><span class="badge bg-warning text-dark px-3 fw-bold">ID: {{ s.id }}</span></td>
-                        <td class="text-end">
-                            <div class="fw-bold text-royal">{{ s.trade_name }}</div>
-                            <small class="text-muted"><i class="fas fa-phone-alt me-1"></i> {{ s.phone }}</small>
-                        </td>
-                        <td>{{ s.province }} - {{ s.district }}</td>
-                        <td class="text-ltr small fw-bold text-primary">{{ s.e_wallet or 'لا يوجد' }}</td>
-                        <td class="fw-bold text-success">{{ "{:,.2f}".format(s.balance_yer or 0) }}</td>
-                        <td>
-                            {% if s.status == 'active' %}
-                            <span class="badge bg-success">نشط</span>
-                            {% else %}
-                            <span class="badge bg-danger">موقوف</span>
-                            {% endif %}
-                        </td>
-                        <td><button class="btn btn-sm btn-royal shadow-sm"><i class="fas fa-shield-alt"></i></button></td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="7" class="py-5 text-muted">لا يوجد موردين مسجلين في الترسانة حالياً.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+    {% include 'includes/_supplier_offcanvas.html' %}
 
-    <div id="controlCard" class="d-none animate__animated animate__zoomIn">
-        <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 25px;">
-            <div class="card-header border-0 py-4 d-flex justify-content-between align-items-center bg-royal-dark text-gold">
-                <div class="d-flex align-items-center">
-                    <div class="avatar-circle"><i class="fas fa-store-alt fa-2x text-gold"></i></div>
-                    <div class="ms-3 text-end">
-                        <h3 class="mb-0 fw-bold" id="displayTradeName">...</h3>
-                        <span class="badge bg-gold text-dark" id="displaySupID">...</span>
-                    </div>
-                </div>
-                <button class="btn btn-outline-light rounded-circle" onclick="closeControlCard()"><i class="fas fa-times"></i></button>
-            </div>
-            
-            <div class="card-body p-0 text-end">
-                <div class="row g-0">
-                    <div class="col-md-3 bg-light border-end">
-                        <div class="nav flex-column nav-pills p-3">
-                            <button class="nav-link active mb-2 text-end" data-bs-toggle="pill" data-bs-target="#tab-activity">
-                                <i class="fas fa-fingerprint ms-2"></i> 1. الهوية والنشاط
-                            </button>
-                            <button class="nav-link mb-2 text-end" data-bs-toggle="pill" data-bs-target="#tab-financial">
-                                <i class="fas fa-wallet ms-2"></i> 2. الربط المالي
-                            </button>
-                            <button class="nav-link mb-2 text-end text-danger fw-bold" data-bs-toggle="pill" data-bs-target="#tab-security">
-                                <i class="fas fa-user-lock ms-2"></i> 3. الأمان والتحكم
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="col-md-9 p-4 bg-white">
-                        <div class="tab-content text-end">
-                            <div class="tab-pane fade show active" id="tab-activity">
-                                <input type="hidden" id="edit_id"> <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="fw-bold small">الاسم التجاري</label>
-                                        <input type="text" id="edit_trade_name" class="form-control border-2 shadow-sm">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="fw-bold small">الهاتف</label>
-                                        <input type="text" id="edit_phone" class="form-control border-2 text-ltr">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="tab-pane fade" id="tab-financial">
-                                <div class="p-4 border border-2 border-dashed rounded-4 mb-4 text-center">
-                                    <p class="text-muted mb-2">رقم المحفظة</p>
-                                    <h2 class="fw-bold text-primary text-ltr" id="display_e_wallet">...</h2>
-                                </div>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="p-3 rounded-4 bg-soft-purple text-royal shadow-sm text-center">
-                                            <small>الرصيد الحالي</small>
-                                            <h4 class="mb-0 fw-bold"><span id="bal_yer">0.00</span> ر.ي</h4>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 text-center">
-                                        <a id="walletLink" href="#" class="btn btn-primary w-100 py-3 rounded-4">
-                                            <i class="fas fa-external-link-alt mb-2"></i><br>فتح إدارة المحفظة
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="tab-pane fade" id="tab-security">
-                                <label class="fw-bold small">الحالة السيادية</label>
-                                <select id="edit_status" class="form-select border-2 fw-bold">
-                                    <option value="active">نشط (Active)</option>
-                                    <option value="suspended">موقوف (Suspended)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mt-5 text-start border-top pt-3">
-                            <button onclick="saveChanges()" class="btn btn-royal px-5 shadow">
-                                <i class="fas fa-check-double me-2"></i> تحديث السجلات
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <style>
-    /* التنسيقات الملكية الخاصة بك */
-    :root { --royal: #4a148c; --royal-dark: #1a237e; --gold: #ffd700; }
-    .bg-royal { background: linear-gradient(135deg, var(--royal), #6a1b9a) !important; }
-    .btn-royal { background: var(--royal); color: var(--gold); border: 2px solid var(--gold); font-weight: 700; }
+    :root { --royal: #4a148c; --gold: #ffd700; --royal-dark: #1a237e; }
     .sovereign-title { color: var(--royal); border-right: 6px solid var(--gold); padding-right: 15px; }
-    .supplier-row { cursor: pointer; transition: 0.2s; }
-    .supplier-row:hover { background: #f3e5f5 !important; }
-    .text-ltr { direction: ltr; display: inline-block; }
+    .btn-royal { background: var(--royal); color: var(--gold); border: 2px solid var(--gold); font-weight: bold; }
+    .btn-royal:hover { background: var(--royal-dark); color: white; }
 </style>
-
-<script>
-function fetchSingleSupplier(id) {
-    // جلب البيانات الفورية للمورد عند النقر
-    fetch(`/admin/api/search-supplier?q=${id}`)
-    .then(res => res.json())
-    .then(data => {
-        if(data.status === 'success' && data.suppliers.length > 0) {
-            const s = data.suppliers[0];
-            document.getElementById('fullTableContainer').classList.add('d-none');
-            document.getElementById('controlCard').classList.remove('d-none');
-            
-            // تعبئة البيانات في واجهة التحكم
-            document.getElementById('edit_id').value = s.id;
-            document.getElementById('displayTradeName').innerText = s.trade_name;
-            document.getElementById('displaySupID').innerText = `ID: ${s.id}`;
-            document.getElementById('display_e_wallet').innerText = s.e_wallet || 'WAL_MAH_NEW';
-            document.getElementById('bal_yer').innerText = (s.balance_yer || 0).toLocaleString();
-            document.getElementById('edit_trade_name').value = s.trade_name;
-            document.getElementById('edit_phone').value = s.phone;
-            document.getElementById('edit_status').value = s.status;
-            
-            // ربط زر المحفظة بالملف المستقل الذي أنشأته
-            document.getElementById('walletLink').href = `/admin/wallets/${s.id}`;
-        }
-    });
-}
-
-function closeControlCard() {
-    document.getElementById('controlCard').classList.add('d-none');
-    document.getElementById('fullTableContainer').classList.remove('d-none');
-}
-
-function saveChanges() {
-    const id = document.getElementById('edit_id').value;
-    const payload = {
-        trade_name: document.getElementById('edit_trade_name').value,
-        phone: document.getElementById('edit_phone').value,
-        status: document.getElementById('edit_status').value
-    };
-
-    Swal.fire({
-        title: 'تأكيد التحديث؟',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#4a148c',
-        confirmButtonText: 'تحديث الآن'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/admin/api/update-supplier/${id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    Swal.fire('تم التحديث!', 'تمت مزامنة البيانات مع الترسانة.', 'success')
-                    .then(() => location.reload());
-                }
-            });
-        }
-    });
-}
-</script>
 {% endblock %}
