@@ -1,86 +1,62 @@
-<div class="card border-0 shadow-sm p-4 mb-4 bg-white animate__animated animate__fadeInDown" 
-     style="border-radius: 20px; border-right: 6px solid var(--gov-purple) !important;">
+<div class="offcanvas offcanvas-start border-0 shadow-lg" tabindex="-1" id="supplierInspector" 
+     style="width: 450px; background: #f8fafc; direction: rtl;">
     
-    <form method="GET" class="row g-3 align-items-end" id="filterForm">
-        
-        <div class="col-lg-3">
-            <label class="small fw-bold mb-2" style="color: var(--gov-purple);">
-                <i class="fas fa-search me-1"></i> البحث الشامل
-            </label>
-            <input type="text" name="q" class="form-control border-2 shadow-none" 
-                   placeholder="اسم، هاتف، أو ID..." 
-                   value="{{ request.args.get('q', '') }}" 
-                   style="border-radius: 10px; padding: 10px; background: #f8fafc;">
+    <div class="offcanvas-header text-white" style="background: linear-gradient(135deg, #632C8F 0%, #4a1d6d 100%); border-bottom: 4px solid #C5A021;">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-user-shield fs-4 me-2 text-gold"></i>
+            <h5 class="offcanvas-title fw-bold" id="inspectorTitle">فحص بيانات الترسانة</h5>
         </div>
-        
-        <div class="col-lg-3">
-            <label class="small fw-bold mb-2" style="color: var(--gov-purple);">
-                <i class="fas fa-map-marker-alt me-1"></i> المحافظة
-            </label>
-            <select name="province" id="provinceSelect" class="form-select border-2 shadow-none" style="border-radius: 10px; padding: 10px;">
-                <option value="">كل المحافظات</option>
-                </select>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+
+    <div class="offcanvas-body p-0">
+        <div id="inspectorContent" class="p-4">
+            <div class="text-center py-5">
+                <div class="spinner-border text-royal" role="status"></div>
+                <p class="mt-3 text-muted">جاري استدعاء السجل الرقمي...</p>
+            </div>
         </div>
 
-        <div class="col-lg-3">
-            <label class="small fw-bold mb-2" style="color: var(--gov-purple);">
-                <i class="fas fa-location-arrow me-1"></i> المديرية
-            </label>
-            <select name="district" id="districtSelect" class="form-select border-2 shadow-none" style="border-radius: 10px; padding: 10px;">
-                <option value="">كل المديريات</option>
-            </select>
+        <div class="p-4 bg-white border-top shadow-sm mt-auto">
+            <div class="d-grid gap-3">
+                <a id="walletLink" href="#" class="btn btn-gold-action py-3 fw-bold rounded-4 shadow-sm">
+                    <i class="fas fa-wallet me-2"></i> الانتقال للمحفظة المالية
+                </a>
+                
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-danger flex-grow-1 py-2 fw-bold" onclick="updateStatus('suspended')">
+                        <i class="fas fa-ban me-1"></i> إيقاف
+                    </button>
+                    <button class="btn btn-outline-success flex-grow-1 py-2 fw-bold" onclick="updateStatus('active')">
+                        <i class="fas fa-check me-1"></i> تفعيل
+                    </button>
+                </div>
+            </div>
         </div>
-
-        <div class="col-lg-3">
-            <button type="submit" class="btn btn-gov-action w-100 fw-bold shadow-sm" 
-                    style="border-radius: 12px; height: 48px; background: var(--gov-purple); color: white; border: 2px solid var(--gov-gold);">
-                <i class="fas fa-filter me-2"></i> تصفية النتائج
-            </button>
-        </div>
-
-    </form>
+    </div>
 </div>
 
-<script>
-    // استخدام نفس البيانات الجغرافية الموجودة في ملف add_supplier.html لضمان التطابق
-    const geoData = {
-        "الحديدة": ["الخوخة", "حيس", "الحوك", "الميناء", "زبيد", "بيت الفقيه"],
-        "أمانة العاصمة": ["السبعين", "التحرير", "الثورة", "صنعاء القديمة"],
-        "عدن": ["المنصورة", "كريتر", "الشيخ عثمان", "البريقة"],
-        "تعز": ["المخاء", "القاهرة", "المظفر"]
-    };
-
-    const pSelect = document.getElementById('provinceSelect');
-    const dSelect = document.getElementById('districtSelect');
-
-    // تعبئة المحافظات عند التحميل
-    Object.keys(geoData).sort().forEach(p => {
-        const option = new Option(p, p);
-        if (p === "{{ request.args.get('province', '') }}") option.selected = true;
-        pSelect.add(option);
-    });
-
-    // تحديث المديريات آلياً
-    pSelect.addEventListener('change', function() {
-        const prov = this.value;
-        dSelect.innerHTML = '<option value="">كل المديريات</option>';
-        if(geoData[prov]) {
-            geoData[prov].sort().forEach(d => dSelect.add(new Option(d, d)));
-        }
-    });
-
-    // تشغيل التحديث فوراً إذا كانت هناك محافظة مختارة مسبقاً
-    if(pSelect.value) {
-        const currentDist = "{{ request.args.get('district', '') }}";
-        geoData[pSelect.value].sort().forEach(d => {
-            const option = new Option(d, d);
-            if (d === currentDist) option.selected = true;
-            dSelect.add(option);
-        });
-    }
-</script>
-
 <style>
-    :root { --gov-purple: #632C8F; --gov-gold: #C5A021; }
-    .btn-gov-action:hover { background: #4a1d6d !important; transform: translateY(-2px); }
+    /* تنسيقات اللوحة الجانبية */
+    .text-gold { color: #C5A021 !important; }
+    .btn-gold-action { 
+        background-color: #C5A021; 
+        color: #4a1d6d; 
+        border: none;
+        transition: 0.3s;
+    }
+    .btn-gold-action:hover { 
+        background-color: #d4af37; 
+        transform: scale(1.02);
+    }
+    .bg-royal { background-color: #632C8F !important; }
+    
+    /* تنسيق الوثائق (صورة الهوية) */
+    .id-card-preview {
+        width: 100%;
+        border-radius: 12px;
+        border: 2px dashed #cbd5e1;
+        margin-top: 10px;
+        cursor: zoom-in;
+    }
 </style>
