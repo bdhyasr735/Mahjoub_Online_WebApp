@@ -1,25 +1,26 @@
-<div class="offcanvas offcanvas-start sovereign-offcanvas" tabindex="-1" id="supplierOffcanvas" style="width: 420px; border-right: 4px solid var(--gold);">
+<div class="offcanvas offcanvas-start sovereign-offcanvas" tabindex="-1" id="supplierOffcanvas" style="width: 420px; border-right: 5px solid var(--gold);">
+    
     <div class="offcanvas-header bg-royal text-gold shadow-sm">
         <div class="d-flex align-items-center">
-            <i class="fas fa-shield-alt fa-lg me-2"></i>
-            <h5 class="offcanvas-title fw-bold" id="offcanvasLabel">لوحة الفحص السيادي</h5>
+            <i class="fas fa-shield-alt fa-lg me-2 animate__animated animate__pulse animate__infinite"></i>
+            <h5 class="offcanvas-title fw-bold" id="offcanvasLabel">مركز فحص الكيان</h5>
         </div>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
 
     <div class="offcanvas-body p-0">
-        <div class="header-profile p-4 text-center bg-light border-bottom">
-            <div class="avatar-circle mb-3 mx-auto shadow-sm">
+        <div class="header-profile p-4 text-center bg-light border-bottom position-relative">
+            <div class="avatar-circle mb-3 mx-auto shadow">
                 <i class="fas fa-store fa-2x text-royal"></i>
             </div>
             <h4 id="oc_trade_name" class="fw-bold text-dark mb-1">---</h4>
-            <span id="oc_e_wallet" class="badge rounded-pill bg-royal text-gold px-3">---</span>
+            <span id="oc_e_wallet" class="badge rounded-pill bg-royal text-gold px-3 py-2 shadow-sm">---</span>
         </div>
 
         <div class="p-4 text-end">
-            <div class="info-card mb-4">
-                <label class="text-muted small d-block mb-2">الرصيد الحالي (المحفظة السيادية)</label>
-                <div class="d-flex justify-content-between align-items-center p-3 bg-soft-royal rounded-3 border">
+            <div class="info-card mb-4 shadow-sm border-0">
+                <label class="text-muted small d-block mb-2 fw-bold">الرصيد الحالي (المحفظة السيادية)</label>
+                <div class="d-flex justify-content-between align-items-center p-3 bg-soft-royal rounded-3 border-start border-4 border-royal">
                     <span class="fw-bold text-success fs-4" id="oc_balance_yer">0.00</span>
                     <i class="fas fa-money-bill-wave text-success opacity-50"></i>
                 </div>
@@ -27,70 +28,105 @@
 
             <div class="row g-3 mb-4">
                 <div class="col-6">
-                    <div class="p-3 border rounded-3 bg-white shadow-xs">
-                        <label class="text-muted small d-block">جهة الاتصال</label>
+                    <div class="p-3 border rounded-4 bg-white shadow-xs text-center">
+                        <i class="fas fa-phone-alt text-muted mb-2"></i>
+                        <label class="text-muted d-block" style="font-size: 0.7rem;">جهة الاتصال</label>
                         <span id="oc_phone" class="fw-bold text-dark small">---</span>
                     </div>
                 </div>
                 <div class="col-6">
-                    <div class="p-3 border rounded-3 bg-white shadow-xs">
-                        <label class="text-muted small d-block">النطاق</label>
+                    <div class="p-3 border rounded-4 bg-white shadow-xs text-center">
+                        <i class="fas fa-map-marker-alt text-muted mb-2"></i>
+                        <label class="text-muted d-block" style="font-size: 0.7rem;">النطاق الجغرافي</label>
                         <span id="oc_location" class="fw-bold text-dark small">---</span>
                     </div>
                 </div>
             </div>
 
-            <div class="d-grid gap-2 mt-5">
-                <a id="walletBtn" href="#" class="btn btn-outline-royal py-3 rounded-4 shadow-sm">
+            <hr class="my-4 opacity-25">
+
+            <div class="d-grid gap-3 mt-4">
+                <a id="walletBtn" href="#" class="btn btn-outline-royal py-3 rounded-4 shadow-sm fw-bold">
                     <i class="fas fa-wallet me-2"></i> دخول الخزينة المالية
                 </a>
                 
-                <div class="btn-group w-100 mt-2">
-                    <button class="btn btn-success py-3" onclick="updateStatus('active')">تفعيل</button>
-                    <button class="btn btn-danger py-3" onclick="updateStatus('suspended')">إيقاف</button>
+                <div class="btn-group w-100 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+                    <button class="btn btn-success py-3 fw-bold" onclick="updateStatus('active')">
+                        <i class="fas fa-check-circle mb-1 d-block"></i> تفعيل
+                    </button>
+                    <button class="btn btn-warning py-3 fw-bold text-dark" onclick="updateStatus('suspended')">
+                        <i class="fas fa-pause-circle mb-1 d-block"></i> تعليق
+                    </button>
                 </div>
+
+                <button class="btn btn-light text-danger py-3 rounded-4 mt-2 border-danger-subtle hover-danger" onclick="deleteSupplier()">
+                    <i class="fas fa-trash-alt me-2"></i> شطب الكيان من الترسانة
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    /* تنسيقات خاصة باللوحة الجانبية */
-    .bg-royal { background-color: #4a148c !important; }
-    .text-gold { color: #ffd700 !important; }
+    /* التنسيقات السيادية للهوية البصرية */
+    :root { --royal: #4a148c; --gold: #ffd700; }
+    
+    .bg-royal { background-color: var(--royal) !important; }
+    .text-gold { color: var(--gold) !important; }
     .bg-soft-royal { background-color: rgba(74, 20, 140, 0.05); }
+    .border-royal { border-color: var(--royal) !important; }
     
     .avatar-circle {
-        width: 70px;
-        height: 70px;
+        width: 85px; height: 85px;
         background: white;
-        border: 3px solid #4a148c;
+        border: 4px solid var(--royal);
         border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: flex; align-items: center; justify-content: center;
     }
 
-    .info-card {
-        background: #f8f9fa;
-        border-radius: 12px;
-    }
+    .info-card { background: #fdfdfd; border-radius: 15px; }
+    .shadow-xs { box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+    .rounded-4 { border-radius: 12px !important; }
 
-    .sovereign-offcanvas {
-        border-left: none;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.1);
-    }
-
-    .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    
     .btn-outline-royal {
-        color: #4a148c;
-        border: 2px solid #4a148c;
-        font-weight: 600;
+        color: var(--royal);
+        border: 2px solid var(--royal);
+        transition: 0.3s;
     }
-    
     .btn-outline-royal:hover {
-        background: #4a148c;
-        color: #ffd700;
+        background: var(--royal);
+        color: var(--gold);
     }
+
+    .hover-danger:hover {
+        background-color: #dc3545 !important;
+        color: white !important;
+        border-color: #dc3545 !important;
+    }
+
+    /* أنيميشن خفيف */
+    .sovereign-offcanvas { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 </style>
+
+<script>
+    // وظيفة الحذف (تحتاج لإضافة المسار في routes.py لاحقاً)
+    function deleteSupplier() {
+        const supId = window.currentInspectedSupplierId;
+        if (!supId) return;
+
+        if (confirm("⚠️ تحذير سيادي: هل أنت متأكد من شطب هذا الكيان نهائياً؟ لا يمكن التراجع عن هذه العملية.")) {
+            fetch(`/admin/api/delete-supplier/${supId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert("خطأ: " + data.message);
+                }
+            });
+        }
+    }
+</script>
