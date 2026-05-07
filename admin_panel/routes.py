@@ -13,13 +13,13 @@ from core.models.user import User
 from . import admin_bp
 from .auth import handle_admin_login
 
-# --- 1. بروتوكول التحقق السيادي (حماية مركز القيادة) ---
+# --- 1. بروتوكول التحقق السيادي ---
 def is_admin_sovereign():
     """ يضمن أن المؤسس علي محجوب فقط يمكنه الوصول. """
     return current_user.is_authenticated and getattr(current_user, 'role', '').lower() == 'admin'
 
 def admin_api_required(f):
-    """ ديكوريتور لتأمين طلبات الـ API ومنع رسائل تسجيل الدخول المزعجة """
+    """ تأمين الـ APIs لمنع ظهور رسائل تسجيل الدخول في الواجهات الخلفية """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_admin_sovereign():
@@ -27,7 +27,7 @@ def admin_api_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- 2. بوابة الدخول (The Gateway) ---
+# --- 2. بوابة الدخول ---
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if is_admin_sovereign(): 
@@ -43,13 +43,13 @@ def admin_dashboard():
         return redirect(url_for('admin.login'))
     
     try:
-        # جلب البيانات الحقيقية لعرضها في الدشبرد
+        # جلب البيانات الحقيقية من الترسانة لضمان دقة الإحصائيات
         stats = {
             'suppliers_count': Supplier.query.count(),
             'users_count': User.query.count(),
-            'now': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            'now': datetime.now().strftime("%H:%M:%S")
         }
-        # محاولة جلب الطلبات إن وجدت
+        # جلب الطلبات إن وجدت في الموديل
         try:
             from core.models.business import Order
             stats['orders_count'] = Order.query.count()
@@ -58,12 +58,13 @@ def admin_dashboard():
 
         return render_template('dashboard.html', **stats)
     except Exception as e:
-        return render_template('dashboard.html', suppliers_count=0, now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        return render_template('dashboard.html', suppliers_count=0, now=datetime.now().strftime("%H:%M:%S"))
 
-# --- 4. إدارة الموردين (قائمة الكيانات المعتمدة) ---
+# --- 4. إدارة الموردين (الكيانات المعتمدة) ---
 @admin_bp.route('/manage-suppliers')
 @login_required
 def admin_manage_suppliers():
+    """ عرض قائمة الكيانات السيادية وإدارتها """
     if not is_admin_sovereign():
         return redirect(url_for('admin.login'))
     
@@ -75,14 +76,14 @@ def admin_manage_suppliers():
 @admin_bp.route('/api/supplier-details/<int:sup_id>')
 @admin_api_required
 def api_supplier_details(sup_id):
-    """ جلب تفاصيل المورد للوحة الجانبية """
+    """ جلب بيانات المورد للنافذة الجانبية """
     supplier = Supplier.query.get_or_404(sup_id)
     return jsonify(supplier.to_dict())
 
 @admin_bp.route('/api/toggle-supplier-status/<int:sup_id>', methods=['POST'])
 @admin_api_required
 def toggle_supplier_status(sup_id):
-    """ تفعيل أو تعليق نشاط المورد """
+    """ تفعيل أو تعليق نشاط كيان معين """
     supplier = Supplier.query.get_or_404(sup_id)
     data = request.get_json()
     new_status = data.get('status')
@@ -96,7 +97,7 @@ def toggle_supplier_status(sup_id):
 @admin_bp.route('/api/delete-supplier/<int:sup_id>', methods=['DELETE'])
 @admin_api_required
 def delete_supplier(sup_id):
-    """ شطب الكيان نهائياً من الترسانة """
+    """ شطب الكيان نهائياً من الترسانة المركزية """
     try:
         supplier = Supplier.query.get_or_404(sup_id)
         db.session.delete(supplier)
@@ -106,7 +107,7 @@ def delete_supplier(sup_id):
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# --- 6. تعميد مورد جديد (The Creation Protocol) ---
+# --- 6. تعميد مورد جديد ---
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
 @login_required
 def add_supplier():
@@ -128,7 +129,7 @@ def add_supplier():
             )
             db.session.add(new_supplier)
             db.session.flush() 
-            new_supplier.mint_sovereign_id() # توليد المعرف WAL_MAH_XXXX
+            new_supplier.mint_sovereign_id() # نقش المعرف WAL_MAH
             db.session.commit()
             
             if is_ajax: 
