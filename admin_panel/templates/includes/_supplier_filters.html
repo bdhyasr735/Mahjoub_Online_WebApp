@@ -9,7 +9,7 @@
                     </span>
                     <input type="text" id="searchInput" 
                            class="form-control border-0 bg-transparent py-2" 
-                           placeholder="ابحث بالمتجر، المالك، أو المعرف السيادي..."
+                           placeholder="ابحث بالمتجر، المالك، أو المعرف..."
                            onkeyup="runSovereignSearch()">
                 </div>
             </div>
@@ -27,9 +27,9 @@
             <div class="col-lg-2 col-md-3">
                 <select id="districtFilter" class="form-select border shadow-none rounded-3" onchange="runSovereignSearch()">
                     <option value="">كل المديريات</option>
-                    <option value="الخوخة">مديرية الخوخة</option>
-                    <option value="الحالي">مديرية الحالي</option>
-                    <option value="الميناء">مديرية الميناء</option>
+                    <option value="الخوخة">الخوخة</option>
+                    <option value="الحالي">الحالي</option>
+                    <option value="الميناء">الميناء</option>
                 </select>
             </div>
 
@@ -63,40 +63,59 @@
         background-color: var(--royal) !important;
         color: var(--gold) !important;
     }
-    .form-select, .form-control { font-size: 0.9rem; font-weight: 500; }
+    .form-select, .form-control { font-size: 0.9rem; font-weight: 500; height: 42px; }
     .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .bg-light { background-color: #f8f9fa !important; }
 </style>
 
 <script>
     function runSovereignSearch() {
+        // الحصول على القيم المختارة من الفلاتر
         const query = document.getElementById('searchInput').value.toLowerCase();
         const province = document.getElementById('provinceFilter').value;
         const district = document.getElementById('districtFilter').value;
-        const status = document.querySelector('input[name="status"]:checked').value;
+        const statusElement = document.querySelector('input[name="status"]:checked');
+        const status = statusElement ? statusElement.value : "";
 
+        // جلب جميع صفوف الموردين من الجدول
         const rows = document.querySelectorAll('.supplier-row');
+        let visibleCount = 0;
 
         rows.forEach(row => {
+            // جلب البيانات المخزنة في الـ Data Attributes لكل صف
             const text = row.innerText.toLowerCase();
-            const rowStatus = row.getAttribute('data-status') || ''; // تأكد من إضافة هذا السمة في الـ TR بالجدول
+            const rowStatus = row.getAttribute('data-status') || '';
             const rowProvince = row.getAttribute('data-province') || '';
             const rowDistrict = row.getAttribute('data-district') || '';
 
+            // منطق المطابقة (بناء الشرط)
             const matchesQuery = text.includes(query);
             const matchesProvince = province === "" || rowProvince === province;
             const matchesDistrict = district === "" || rowDistrict === district;
             const matchesStatus = status === "" || rowStatus === status;
 
+            // تنفيذ الإظهار أو الإخفاء بناءً على النتيجة
             if (matchesQuery && matchesProvince && matchesDistrict && matchesStatus) {
                 row.style.display = "";
+                visibleCount++;
             } else {
                 row.style.display = "none";
             }
         });
+
+        // تحديث عداد الموردين في الهيدر (اختياري)
+        const countBadge = document.getElementById('supplierCount');
+        if (countBadge) {
+            countBadge.innerText = visibleCount + " مورد مطابق";
+        }
     }
 
     function resetSovereignFilters() {
+        // إعادة ضبط الفورم وتشغيل البحث من جديد لإظهار الكل
         document.getElementById('filterForm').reset();
         runSovereignSearch();
     }
+
+    // تشغيل البحث عند تحميل الصفحة لضمان دقة البيانات
+    document.addEventListener('DOMContentLoaded', runSovereignSearch);
 </script>
