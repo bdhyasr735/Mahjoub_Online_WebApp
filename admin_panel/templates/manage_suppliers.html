@@ -10,7 +10,7 @@
             <h2 class="fw-bold sovereign-title">🛡️ مركز قيادة الموردين</h2>
             <p class="text-muted small">نظام الحوكمة v3.0 - <span class="text-royal fw-bold">سوقك الذكي</span></p>
         </div>
-        <a href="{{ url_for('admin.add_supplier') }}" class="btn btn-royal px-4">
+        <a href="{{ url_for('admin.add_supplier') }}" class="btn btn-royal px-4 shadow-sm">
             <i class="fas fa-plus-circle ms-2"></i> تعميد مورد جديد
         </a>
     </div>
@@ -31,7 +31,6 @@
     .btn-royal { background: var(--royal); color: var(--gold); border: 2px solid var(--gold); font-weight: bold; border-radius: 10px; transition: 0.3s; }
     .btn-royal:hover { background: var(--royal-dark); color: white; transform: translateY(-2px); }
     
-    /* تنسيق السهم ليظهر كزر تفاعلي */
     .btn-action-arrow {
         background: none;
         border: 1px solid #e0e0e0;
@@ -53,26 +52,28 @@
 </style>
 
 <script>
+    // متغير عالمي لحفظ المعرف المفتوح حالياً
+    window.currentInspectedSupplierId = null;
+
     // 1. وظيفة فتح لوحة الفحص وجلب البيانات
     function inspectSupplier(supId) {
-        console.log("🔍 بدء فحص المورد رقم:", supId);
+        window.currentInspectedSupplierId = supId; // تخزين المعرف للعمليات اللاحقة
+        console.log("🔍 فحص المورد رقم:", supId);
         
-        // جلب البيانات من الـ API السيادية
         fetch(`/admin/api/supplier-details/${supId}`)
             .then(response => response.json())
             .then(data => {
-                if(data.status === "error") {
-                    alert("عطل في جلب البيانات: " + data.message);
-                    return;
-                }
-                
-                // ملء بيانات اللوحة الجانبية (تأكد من وجود هذه الـ IDs في ملف _supplier_offcanvas.html)
+                // ملء بيانات اللوحة الجانبية
                 document.getElementById('oc_trade_name').innerText = data.trade_name;
                 document.getElementById('oc_e_wallet').innerText = data.e_wallet;
                 document.getElementById('oc_balance_yer').innerText = parseFloat(data.balance_yer).toLocaleString() + ' ر.ي';
                 document.getElementById('oc_phone').innerText = data.phone;
                 document.getElementById('oc_location').innerText = `${data.province} - ${data.district}`;
                 
+                // تحديث رابط المحفظة (مثال)
+                const walletBtn = document.getElementById('walletBtn');
+                if(walletBtn) walletBtn.href = `/admin/supplier-wallet/${supId}`;
+
                 // إظهار اللوحة
                 const offcanvasElement = document.getElementById('supplierOffcanvas');
                 const bsOffcanvas = new bootstrap.Offcanvas(offcanvasElement);
@@ -80,20 +81,40 @@
             })
             .catch(error => {
                 console.error("❌ خطأ في الاتصال:", error);
+                alert("حدث خطأ أثناء جلب بيانات الترسانة");
             });
     }
 
-    // 2. تحديث الجدول عند استخدام الفلاتر (AJAX Search)
+    // 2. وظيفة تحديث الحالة (تفعيل / إيقاف) من اللوحة الجانبية
+    function updateStatus(newStatus) {
+        const supId = window.currentInspectedSupplierId;
+        
+        if (!supId) return;
+
+        const confirmMsg = newStatus === 'active' ? "هل تريد تفعيل المورد؟" : "هل تريد إيقاف المورد سيادياً؟";
+        if (!confirm(confirmMsg)) return;
+
+        fetch(`/admin/api/toggle-supplier-status/${supId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                location.reload(); // تحديث فوري للجدول
+            } else {
+                alert("فشل التحديث: " + data.message);
+            }
+        })
+        .catch(err => console.error("❌ خطأ في التحديث:", err));
+    }
+
+    // 3. تحديث الجدول عند استخدام الفلاتر (تطوير مستقبلي للبحث اللحظي)
     function refreshSupplierTable() {
         const q = document.getElementById('searchInput').value;
         const province = document.getElementById('provinceFilter').value;
-        
-        fetch(`/admin/api/search-suppliers?q=${q}&province=${province}`)
-            .then(response => response.json())
-            .then(data => {
-                // هنا يتم استبدال محتوى الجدول بالبيانات الجديدة
-                // سنحتاج لتطوير هذه الجزئية لاحقاً لجعل البحث "لحظي"
-            });
+        // ... منطق تحديث الجدول عبر AJAX
     }
 </script>
 {% endblock %}
