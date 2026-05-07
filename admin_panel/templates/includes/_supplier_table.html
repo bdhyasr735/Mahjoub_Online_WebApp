@@ -2,7 +2,7 @@
     <table class="table table-hover align-middle mb-0 text-center bg-white">
         <thead style="background-color: #4a148c; color: #ffd700;">
             <tr>
-                <th class="py-3 px-4">المعرف</th>
+                <th class="py-3 px-4">المعرف السيادي</th>
                 <th>المتجر / المورد</th>
                 <th>النطاق الجغرافي</th>
                 <th>الرصيد التقديري</th>
@@ -13,23 +13,23 @@
         <tbody>
             {% for s in suppliers %}
             <tr class="supplier-row" 
-                onclick="openSovereignInspector('{{ s.id }}')" 
+                onclick="inspectSupplier('{{ s.id }}')" 
                 style="cursor: pointer; transition: all 0.2s;">
                 
-                <td>
-                    <span class="badge rounded-pill bg-light text-dark border">
-                        #{{ s.id }}
+                <td class="fw-bold">
+                    <span class="badge rounded-pill bg-light text-royal border px-3">
+                        {{ s.e_wallet if s.e_wallet else "SUP-MAH-963" ~ s.id }}
                     </span>
                 </td>
                 
                 <td class="text-end fw-bold text-royal">
-                    <i class="fas fa-store me-2 opacity-50"></i>
+                    <i class="fas fa-store ms-2 opacity-50"></i>
                     {{ s.trade_name }}
                 </td>
                 
                 <td>
                     <small class="text-muted">
-                        <i class="fas fa-map-marker-alt me-1 text-danger"></i>
+                        <i class="fas fa-map-marker-alt ms-1 text-danger"></i>
                         {{ s.province }} - {{ s.district }}
                     </small>
                 </td>
@@ -42,17 +42,17 @@
                 <td>
                     {% if s.status == 'active' %}
                         <span class="badge bg-soft-success text-success px-3 py-2">
-                            <i class="fas fa-check-circle me-1"></i> نشط
+                            <i class="fas fa-check-circle ms-1"></i> نشط
                         </span>
                     {% else %}
                         <span class="badge bg-soft-danger text-danger px-3 py-2">
-                            <i class="fas fa-times-circle me-1"></i> موقوف
+                            <i class="fas fa-times-circle ms-1"></i> موقوف
                         </span>
                     {% endif %}
                 </td>
 
                 <td>
-                    <button class="btn btn-sm btn-outline-royal rounded-circle">
+                    <button class="btn btn-sm btn-outline-royal rounded-circle btn-arrow-pulse">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                 </td>
@@ -70,28 +70,37 @@
 </div>
 
 <style>
-    /* تنسيقات الجدول الاحترافية */
+    /* تنسيقات الجدول السيادية */
     .bg-soft-success { background-color: rgba(40, 167, 69, 0.1); }
     .bg-soft-danger { background-color: rgba(220, 53, 69, 0.1); }
     
     .supplier-row:hover {
-        background-color: rgba(74, 20, 140, 0.03) !important;
-        transform: scale(1.002);
+        background-color: rgba(74, 20, 140, 0.04) !important;
     }
 
     .btn-outline-royal {
         color: #4a148c;
         border-color: #4a148c;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .btn-outline-royal:hover {
+    .supplier-row:hover .btn-arrow-pulse {
         background-color: #4a148c;
         color: #ffd700;
+        transform: translateX(-3px); /* حركة خفيفة للسهم عند التمرير على الصف */
     }
 
-    /* جعل النص متوافق مع الاتجاه العربي */
+    .text-royal { color: #4a148c; }
+
+    /* تحسين اتجاه النص للعربية */
     .table thead th {
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
     }
 </style>
