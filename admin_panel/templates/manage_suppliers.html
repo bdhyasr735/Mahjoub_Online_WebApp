@@ -128,8 +128,109 @@
             * يتم عرض آخر 10 موردين مسجلين. استخدم البحث للوصول لكافة البيانات.
         </div>
     </div>
-    
-    {% include 'includes/_edit_supplier_modal.html' %}
+
+    <div class="modal fade" id="sovereignModal" tabindex="-1" aria-hidden="true" data-current-id="">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-royal text-gold border-0 p-4">
+                    <h4 class="modal-title fw-bold" id="m_title">تعديل بيانات الكيان</h4>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="margin-right: auto; margin-left: 0;"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <div id="modalLoader" class="text-center py-5" style="display: none;">
+                        <div class="spinner-grow text-royal" role="status"></div>
+                        <p class="mt-2 text-royal fw-bold">جاري سحب بيانات القاعدة...</p>
+                    </div>
+                    <div class="row g-4" id="modalContentArea">
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                                <h6 class="fw-bold text-royal mb-3 border-bottom pb-2">📋 سجل الهوية</h6>
+                                <div class="mb-2">
+                                    <label class="small text-muted">اسم المالك</label>
+                                    <input type="text" id="m_owner_name" class="form-control sovereign-input">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="small text-muted">اسم المتجر / الكيان</label>
+                                    <input type="text" id="m_trade_name" class="form-control sovereign-input">
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="small text-muted">المحافظة</label>
+                                        <input type="text" id="m_province" class="form-control sovereign-input">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="small text-muted">المديرية</label>
+                                        <input type="text" id="m_district" class="form-control sovereign-input">
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="small text-muted">تغيير كلمة المرور</label>
+                                    <div class="input-group">
+                                        <input type="password" id="m_new_pass" class="form-control sovereign-input" placeholder="تغيير اختياري">
+                                        <button class="btn btn-outline-royal" onclick="togglePass()"><i class="fas fa-eye"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                                <h6 class="fw-bold text-royal mb-3 border-bottom pb-2">💰 الخزينة والحالة السيادية</h6>
+                                <div class="balance-card bg-soft-success mb-2 p-2 rounded-3 border-start border-success border-4">
+                                    <label class="small d-block fw-bold text-success">الريال اليمني (YER)</label>
+                                    <input type="number" id="m_bal_yer" class="form-control border-0 bg-transparent fw-bold text-success fs-5">
+                                </div>
+                                <div class="balance-card bg-soft-royal mb-2 p-2 rounded-3 border-start border-primary border-4">
+                                    <label class="small d-block fw-bold text-primary">الريال السعودي (SAR)</label>
+                                    <input type="number" id="m_bal_sar" class="form-control border-0 bg-transparent fw-bold text-primary fs-5">
+                                </div>
+                                <div class="balance-card bg-soft-gold mb-3 p-2 rounded-3 border-start border-warning border-4">
+                                    <label class="small d-block fw-bold text-warning">الدولار الأمريكي (USD)</label>
+                                    <input type="number" id="m_bal_usd" class="form-control border-0 bg-transparent fw-bold text-warning fs-5">
+                                </div>
+                                
+                                <div class="row g-2 mt-2">
+                                    <div class="col-6">
+                                        <label class="small text-muted fw-bold">الرتبة</label>
+                                        <select id="m_tier" class="form-select sovereign-input shadow-sm">
+                                            <option value="مبتدئ">مبتدئ</option>
+                                            <option value="محترف">محترف</option>
+                                            <option value="سيادي">سيادي</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="small text-muted fw-bold">حالة الكيان</label>
+                                        <select id="m_status" class="form-select sovereign-input shadow-sm">
+                                            <option value="active">✅ نشط</option>
+                                            <option value="suspended">⚠️ موقف</option>
+                                            <option value="audit">🔍 رقابة</option>
+                                            <option value="banned">🚫 محظور</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white">
+                                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                    <h6 class="fw-bold text-royal mb-0"><i class="fas fa-users-cog ms-2"></i> كتيبة الموظفين</h6>
+                                    <button class="btn btn-sm btn-royal" onclick="openAddStaff()"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <div id="staffList" class="overflow-auto" style="max-height: 280px;">
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 p-4">
+                    <button onclick="saveAllChanges()" class="btn btn-success px-5 py-2 fw-bold rounded-3 shadow">
+                        <i class="fas fa-check-double ms-2"></i> تعميد التعديلات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -140,6 +241,8 @@
     .btn-royal:hover { background: var(--royal-dark); color: #fff; transform: translateY(-2px); }
     .sovereign-input { border-radius: 10px; border: 1px solid #ddd; padding: 10px 15px; background: white !important; }
     .bg-soft-royal { background-color: rgba(74, 20, 140, 0.08); }
+    .bg-soft-success { background-color: #e8f5e9; }
+    .bg-soft-gold { background-color: #fff9c4; }
     .text-royal { color: var(--royal); }
     .table-hover tbody tr:hover { background-color: rgba(74, 20, 140, 0.03); }
 </style>
@@ -147,16 +250,11 @@
 <script>
     let searchTimeout;
 
-    // وظيفة البحث الذكي مع تأخير بسيط (Debounce) لتقليل الضغط على الخادم
+    // البحث وجلب البيانات كاملة من القاعدة
     function handleSearch(query) {
         clearTimeout(searchTimeout);
-        if (query.length === 0) {
-            // إذا فرغ حقل البحث يمكن العودة للحالة الافتراضية أو إبقاء النتائج
-            return;
-        }
-        searchTimeout = setTimeout(() => {
-            triggerSearch();
-        }, 500);
+        if (query.length === 0) return;
+        searchTimeout = setTimeout(() => { triggerSearch(); }, 500);
     }
 
     function triggerSearch() {
@@ -165,7 +263,6 @@
         loader.style.display = 'block';
         notice.style.display = 'none';
 
-        // جمع بيانات الفلاتر
         const params = {
             q: document.getElementById('mainSearch').value,
             province: document.getElementById('filterProvince').value,
@@ -174,37 +271,27 @@
             status: document.getElementById('filterStatus').value
         };
 
-        // إرسال طلب AJAX للخلفية (Backend)
-        // ملاحظة: يجب أن يكون لديك Route في Flask باسم /admin/api/suppliers_search
         fetch(`/admin/api/suppliers_search?${new URLSearchParams(params)}`)
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 renderTable(data);
                 loader.style.display = 'none';
             })
-            .catch(err => {
-                console.error("Search Error:", err);
-                loader.style.display = 'none';
-            });
+            .catch(err => { console.error(err); loader.style.display = 'none'; });
     }
 
     function renderTable(suppliers) {
         const tbody = document.getElementById('suppliersTableBody');
         tbody.innerHTML = '';
-        
         if (suppliers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-muted">لا توجد نتائج مطابقة لبحثك</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-muted">لا توجد نتائج مطابقة</td></tr>';
             return;
         }
-
         suppliers.forEach(sup => {
-            const row = `
+            tbody.innerHTML += `
                 <tr onclick="openSovereignModal(${sup.id})" style="cursor: pointer;">
                     <td class="fw-bold text-royal">SUP_${sup.id}#</td>
-                    <td>
-                        <div class="fw-bold">${sup.trade_name}</div>
-                        <div class="small text-muted">${sup.owner_name}</div>
-                    </td>
+                    <td><div class="fw-bold">${sup.trade_name}</div><div class="small text-muted">${sup.owner_name}</div></td>
                     <td>${sup.province} - ${sup.district}</td>
                     <td><span class="badge bg-soft-royal text-royal">${sup.tier || 'مبتدئ'}</span></td>
                     <td>
@@ -213,48 +300,44 @@
                         <span class="text-warning small fw-bold">${Number(sup.balance_usd).toLocaleString()}</span>
                     </td>
                     <td>${getStatusBadge(sup.status)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-light text-royal shadow-sm border"><i class="fas fa-edit"></i></button>
-                    </td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
+                    <td><button class="btn btn-sm btn-light text-royal shadow-sm border"><i class="fas fa-edit"></i></button></td>
+                </tr>`;
         });
     }
 
     function getStatusBadge(status) {
-        const maps = {
-            'active': '<span class="badge rounded-pill bg-success px-3">نشط</span>',
-            'suspended': '<span class="badge rounded-pill bg-warning text-dark px-3">موقف</span>',
-            'audit': '<span class="badge rounded-pill bg-info px-3">رقابة</span>',
-            'banned': '<span class="badge rounded-pill bg-danger px-3">محظور</span>'
-        };
-        return maps[status] || '<span class="badge rounded-pill bg-secondary px-3">غير محدد</span>';
+        const maps = { 'active': 'success', 'suspended': 'warning text-dark', 'audit': 'info', 'banned': 'danger' };
+        const labels = { 'active': 'نشط', 'suspended': 'موقف', 'audit': 'رقابة', 'banned': 'محظور' };
+        return `<span class="badge rounded-pill bg-${maps[status] || 'secondary'} px-3">${labels[status] || 'غير محدد'}</span>`;
     }
 
-    // بقية دوال الجغرافيا والمودال كما هي...
-    const geoData = {
-        "الحديدة": ["الخوخة", "حيس", "زبيد", "باجل", "الميناء", "الحوك"],
-        "صنعاء": ["السبعين", "التحرير", "بني الحارث", "الوحدة"],
-        "عدن": ["المنصورة", "الشيخ عثمان", "كريتر", "المعلا"],
-        "تعز": ["المخاء", "القاهرة", "المظفر"]
-    };
+    // فتح المودال وسحب بيانات المورد المعين من السيرفر
+    function openSovereignModal(supId) {
+        const modal = new bootstrap.Modal(document.getElementById('sovereignModal'));
+        document.getElementById('modalContentArea').style.opacity = '0.3';
+        document.getElementById('modalLoader').style.display = 'block';
+        modal.show();
 
-    function loadDistricts() {
-        const prov = document.getElementById('filterProvince').value;
-        const distSelect = document.getElementById('filterDistrict');
-        distSelect.innerHTML = '<option value="">كل المديريات</option>';
-        if (geoData[prov]) {
-            geoData[prov].forEach(d => distSelect.add(new Option(d, d)));
-        }
-        triggerSearch();
+        fetch(`/admin/api/supplier/${supId}`)
+            .then(res => res.json())
+            .then(sup => {
+                document.getElementById('m_owner_name').value = sup.owner_name;
+                document.getElementById('m_trade_name').value = sup.trade_name;
+                document.getElementById('m_province').value = sup.province;
+                document.getElementById('m_district').value = sup.district;
+                document.getElementById('m_bal_yer').value = sup.balance_yer;
+                document.getElementById('m_bal_sar').value = sup.balance_sar;
+                document.getElementById('m_bal_usd').value = sup.balance_usd;
+                document.getElementById('m_tier').value = sup.tier;
+                document.getElementById('m_status').value = sup.status;
+                document.getElementById('sovereignModal').setAttribute('data-current-id', sup.id);
+                
+                document.getElementById('modalLoader').style.display = 'none';
+                document.getElementById('modalContentArea').style.opacity = '1';
+            });
     }
 
-    function resetFilters() {
-        ['mainSearch', 'filterProvince', 'filterDistrict', 'filterTier', 'filterStatus'].forEach(id => {
-            document.getElementById(id).value = '';
-        });
-        location.reload(); // لإعادة الوضع لآخر 10 موردين
-    }
+    function resetFilters() { location.reload(); }
+    function togglePass() { const x = document.getElementById("m_new_pass"); x.type = x.type === "password" ? "text" : "password"; }
 </script>
 {% endblock %}
