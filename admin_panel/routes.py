@@ -186,6 +186,13 @@ def toggle_supplier_status(sup_id):
     db.session.commit()
     return jsonify({"status": "success", "new_status": supplier.status})
 
+@admin.route('/supplier/<int:supplier_id>/profile')
+def supplier_profile(supplier_id):
+    # جلب بيانات المورد من القاعدة
+    supplier = Supplier.query.get_or_forward_404(supplier_id)
+    # فتح الملف الجديد الذي أنشأناه في مجلد suppliers
+    return render_template('suppliers/supplier_profile.html', supplier=supplier)
+    
 # --- 9. إنهاء الجلسة السيادية ---
 @admin_bp.route('/logout')
 @login_required
