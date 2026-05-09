@@ -92,7 +92,7 @@ def api_suppliers_search():
     suppliers = db_query.order_by(Supplier.id.desc()).all()
     return jsonify([s.to_dict() for s in suppliers])
 
-# --- 6. إضافة وتعمد مورد جديد ---
+# --- 6. إضافة وتعمد مورد جديد (المُعدّل لضمان الحفظ الكامل) ---
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
 @login_required
 def add_supplier():
@@ -102,36 +102,51 @@ def add_supplier():
     if request.method == 'POST':
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         try:
+            # التحقق من وجود اسم المستخدم مسبقاً
             if Supplier.query.filter_by(username=request.form.get('username')).first():
-                raise Exception("اسم المستخدم مسجل مسبقاً في الترسانة")
+                return jsonify({'status': 'error', 'message': 'عذراً.. اسم المستخدم هذا مسجل مسبقاً في الترسانة'}), 400
 
+            # إنشاء الكيان الجديد مع سحب كافة الحقول من النموذج
             new_supplier = Supplier(
                 username=request.form.get('username'),
                 owner_name=request.form.get('owner_name'),
                 trade_name=request.form.get('trade_name'),
+                activity_type=request.form.get('activity_type'), # مضاف لضمان الحفظ
                 phone=request.form.get('phone'),
                 province=request.form.get('province'),
                 district=request.form.get('district'),
+                address_detail=request.form.get('address_detail'), # مضاف لضمان الحفظ
+                bank_name=request.form.get('bank_name'), # مضاف لضمان الحفظ
+                bank_acc=request.form.get('bank_acc'), # مضاف لضمان الحفظ
                 tier=request.form.get('tier', 'مبتدئ'),
                 status='active'
             )
+            
+            # تشفير كلمة المرور
             new_supplier.set_password(request.form.get('password', '123456'))
             
             db.session.add(new_supplier)
-            db.session.flush() 
+            db.session.flush() # الحصول على ID قبل الـ commit
+            
+            # توليد المعرف السيادي (الذي عدلناه ليكون 9631، 9632...)
             new_supplier.mint_sovereign_id()
+            
             db.session.commit()
             
             if is_ajax: 
-                return jsonify({'status': 'success', 'message': 'تم تعميد المورد بنجاح'})
+                return jsonify({'status': 'success', 'message': f'تم تعميد المورد {new_supplier.trade_name} بنجاح تحت المعرف {new_supplier.sovereign_id}'})
             return redirect(url_for('admin.manage_suppliers'))
             
         except Exception as e:
             db.session.rollback()
-            if is_ajax: return jsonify({'status': 'error', 'message': str(e)}), 400
-            flash(f"خطأ: {str(e)}", "danger")
+            if is_ajax: return jsonify({'status': 'error', 'message': f"فشل البروتوكول: {str(e)}"}), 500
+            flash(f"خطأ في النظام: {str(e)}", "danger")
 
-    return render_template('add_supplier.html')
+    # حساب المعرف القادم للعرض في الواجهة (لأغراض العرض فقط)
+    last_s = Supplier.query.order_by(Supplier.id.desc()).first()
+    next_id = (last_s.id + 1) if last_s else 1
+    
+    return render_template('add_supplier.html', next_id=next_id)
 
 # --- 7. مركز إدارة الكيان (البروفايل السيادي) ---
 @admin_bp.route('/supplier/<int:supplier_id>/profile')
@@ -147,17 +162,12 @@ def supplier_profile(supplier_id):
 @admin_bp.route('/supplier/<int:supplier_id>/update_field', methods=['POST'])
 @admin_api_required
 def update_supplier_field(supplier_id):
-    """ 
-    المعالج الذكي لتحديث أي حقل في قاعدة البيانات فوراً.
-    يستقبل اسم الحقل والقيمة الجديدة من الواجهة.
-    """
     data = request.get_json()
     field_name = data.get('field')
     new_value = data.get('value')
     
     supplier = Supplier.query.get_or_404(supplier_id)
     
-    # قائمة الحقول المسموح بتعديلها لحماية أمن النظام
     allowed_fields = [
         'username', 'owner_name', 'trade_name', 'activity_type',
         'phone', 'province', 'district', 'address_detail',
@@ -170,7 +180,6 @@ def update_supplier_field(supplier_id):
 
     try:
         if hasattr(supplier, field_name):
-            # تحويل القيم المالية لأرقام إذا لزم الأمر
             if 'balance' in field_name:
                 try:
                     new_value = float(new_value) if new_value else 0.0
