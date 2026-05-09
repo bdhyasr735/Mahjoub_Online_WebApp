@@ -165,12 +165,12 @@
         </a>
     </div>
 
-    <form id="sovereignForm" action="{{ url_for('admin.add_supplier') }}" method="POST" enctype="multipart/form-data">
+    <form id="sovereignForm" action="{{ url_for('admin.add_supplier') }}" method="POST">
         <div class="section-banner"><i class="fas fa-user-shield"></i> بيانات الهوية الرقمية والنشاط</div>
         <div class="grid-layout">
             <div class="input-box">
                 <label>اسم المستخدم (للدخول)</label>
-                <input type="text" name="username" class="form-control-gov" placeholder="مثال: mahjoub_store" required>
+                <input type="text" name="username" id="username_input" class="form-control-gov" placeholder="مثال: mahjoub_store" required>
             </div>
             <div class="input-box">
                 <label>كلمة المرور المؤقتة</label>
@@ -178,12 +178,13 @@
             </div>
             <div class="input-box">
                 <label>تصنيف النشاط التجاري</label>
-                <select name="activity_type_select" id="activity_select" class="form-control-gov" onchange="handleManualSelection(this, 'activity_type')" required>
+                <select id="activity_select" class="form-control-gov" onchange="handleManualSelection(this, 'activity_type')" required>
                     <option value="مواد غذائية">مواد غذائية واستهلاكية</option>
                     <option value="إلكترونيات">إلكترونيات وتقنية</option>
                     <option value="ملابس">ملابس ومنسوجات</option>
                     <option value="manual">أخرى (إدخال يدوي)...</option>
                 </select>
+                <!-- الحقل المخفي الذي سيتم إرساله فعلياً للقاعدة -->
                 <input type="hidden" name="activity_type" id="activity_type" value="مواد غذائية">
                 <input type="text" id="manual_activity" class="form-control-gov manual-input" placeholder="اكتب نوع النشاط هنا">
             </div>
@@ -222,9 +223,10 @@
             </div>
             <div class="input-box">
                 <label>اسم البنك / شركة الصرافة</label>
-                <select name="bank_name_select" id="bank_select" class="form-control-gov" onchange="handleManualSelection(this, 'bank_name')" required>
+                <select id="bank_select" class="form-control-gov" onchange="handleManualSelection(this, 'bank_name')" required>
                     <option value="">اختر من القائمة...</option>
                 </select>
+                <!-- الحقل المخفي للبنك -->
                 <input type="hidden" name="bank_name" id="bank_name">
                 <input type="text" id="manual_bank" class="form-control-gov manual-input" placeholder="اسم الجهة يدوياً">
             </div>
@@ -274,7 +276,8 @@
     };
 
     function handleManualSelection(selectObj, hiddenId) {
-        const manualInput = document.getElementById(hiddenId === 'activity_type' ? 'manual_activity' : 'manual_bank');
+        const isActivity = hiddenId === 'activity_type';
+        const manualInput = document.getElementById(isActivity ? 'manual_activity' : 'manual_bank');
         const hiddenField = document.getElementById(hiddenId);
 
         if (selectObj.value === 'manual') {
@@ -309,15 +312,23 @@
     document.getElementById('sovereignForm').onsubmit = async function(e) {
         e.preventDefault();
         
-        if (document.getElementById('activity_select').value === 'manual') {
+        // مزامنة القيم اليدوية قبل الإرسال لضمان الحفظ
+        const actSelect = document.getElementById('activity_select');
+        if (actSelect.value === 'manual') {
             document.getElementById('activity_type').value = document.getElementById('manual_activity').value;
+        } else {
+            document.getElementById('activity_type').value = actSelect.value;
         }
-        if (document.getElementById('bank_select').value === 'manual') {
+
+        const bnkSelect = document.getElementById('bank_select');
+        if (bnkSelect.value === 'manual') {
             document.getElementById('bank_name').value = document.getElementById('manual_bank').value;
+        } else {
+            document.getElementById('bank_name').value = bnkSelect.value;
         }
 
         const submitBtn = document.getElementById('submitBtn');
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الأرشفة في الترسانة...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحقق والأرشفة...';
         submitBtn.disabled = true;
 
         try {
@@ -329,6 +340,7 @@
             });
             
             const result = await response.json();
+            
             if (response.ok && result.status === 'success') {
                 Swal.fire({
                     title: '✅ تم التعميد بنجاح',
@@ -337,10 +349,20 @@
                     confirmButtonColor: '#632C8F'
                 }).then(() => window.location.href = "{{ url_for('admin.manage_suppliers') }}");
             } else {
+                // معالجة حالة "المستخدم مسجل مسبقاً" أو أي خطأ منطقي آخر
+                let errorTitle = '❌ عطل في البروتوكول';
+                if (result.message && result.message.includes('مسجل')) {
+                    errorTitle = '⚠️ تنبيه سيادي';
+                }
                 throw new Error(result.message || 'فشل الاتصال بنظام محجوب');
             }
         } catch (err) {
-            Swal.fire('❌ عطل في البروتوكول', err.message, 'error');
+            Swal.fire({
+                title: 'تنبيه',
+                text: err.message,
+                icon: 'warning',
+                confirmButtonColor: '#C5A021'
+            });
             submitBtn.disabled = false;
             submitBtn.innerHTML = '🛡️ إتمام التعميد والأرشفة';
         }
