@@ -3,7 +3,8 @@
 {% block title %}البروفايل السيادي | {{ supplier.trade_name }}{% endblock %}
 
 {% block content %}
-<!-- 1. تعريف الماكرو في البداية لتجنب خطأ UndefinedError -->
+
+<!-- 1. الماكرو: يجب أن يكون في البداية ليتمكن Jinja2 من التعرف عليه قبل استخدامه بالأسفل -->
 {% macro edit_field(label, field_name, value, col_class, extra_class="") %}
 <div class="{{ col_class }} field-group position-relative">
     <label class="small text-muted">{{ label }}</label>
@@ -89,22 +90,24 @@
 </div>
 
 <style>
+    /* التنسيقات الملكية - Mahjoub Online */
     .field-group { transition: 0.3s; border-radius: 10px; }
     .editable-wrapper { cursor: pointer; border-bottom: 1px solid transparent; min-height: 45px; }
-    .editable-wrapper:hover { border-bottom-color: #632C8F; background: #f4f0f9; }
+    .editable-wrapper:hover { border-bottom-color: #632C8F; background: #f4f0f9; border-radius: 8px; }
     .edit-icon { font-size: 0.7rem; color: #cbd5e1; transition: 0.3s; }
     .editable-wrapper:hover .edit-icon { color: #632C8F; }
     .edit-input { border: 1px solid #632C8F !important; font-size: 1rem; padding: 2px 8px; height: auto; }
+    
     .v-card { background: white; border: 1px solid #e2e8f0; border-radius: 15px; padding: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.3s; }
-    .v-card.active { border-right: 5px solid #632C8F; background: #fdfbff; border-color: #632C8F; }
+    .v-card.active { border-right: 5px solid #632C8F; background: #fdfbff; border-color: #632C8F; box-shadow: 0 4px 15px rgba(99, 44, 143, 0.1); }
     .v-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
     .icon-purple { background: #f3e8ff; color: #632C8F; }
     .icon-gold { background: #fef9c3; color: #854d0e; }
     .icon-blue { background: #e0f2fe; color: #0369a1; }
-    .currency-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin: 5px; }
-    .balance { font-size: 1.2rem; font-weight: 900; }
-    .sovereign-tag { background: #f1f5f9; padding: 5px 15px; border-radius: 20px; font-weight: 900; color: #632C8F; font-size: 0.85rem; }
-    .section-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 25px; }
+    .currency-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin: 0; padding: 5px; }
+    .balance { font-size: 1.2rem; font-weight: 900; color: #1e293b; }
+    .section-header { border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+    .sovereign-tag { background: #632C8F; color: gold; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
 </style>
 
 <script>
@@ -121,6 +124,7 @@
         const display = document.getElementById('display-' + fieldName);
         const icon = document.getElementById('icon-' + fieldName);
         const spinner = document.getElementById('spinner-' + fieldName);
+        
         const newValue = input.value;
         
         input.classList.add('d-none');
@@ -137,13 +141,18 @@
 
             if (result.status === 'success') {
                 display.innerText = newValue || '---';
-                display.style.color = '#10b981';
+                display.style.color = '#10b981'; // ومضة نجاح خضراء
                 setTimeout(() => { display.style.color = ''; }, 2000);
             } else {
                 throw new Error(result.message);
             }
         } catch (error) {
-            Swal.fire('خطأ في الحفظ', error.message, 'error');
+            Swal.fire({
+                title: 'عذراً يا عظيم',
+                text: error.message || 'حدث خطأ أثناء الحفظ',
+                icon: 'error',
+                confirmButtonColor: '#632C8F'
+            });
         } finally {
             spinner.classList.add('d-none');
             display.classList.remove('d-none');
@@ -155,7 +164,12 @@
         document.querySelectorAll('.tab-content-fade').forEach(s => s.classList.add('d-none'));
         document.getElementById('sec-' + tab).classList.remove('d-none');
         document.querySelectorAll('.v-card').forEach(c => c.classList.remove('active'));
-        document.getElementById('btn-' + (tab==='identity'?'id':tab==='finance'?'fin':'geo')).classList.add('active');
+        
+        let btnId = 'btn-id';
+        if(tab === 'finance') btnId = 'btn-fin';
+        if(tab === 'geo') btnId = 'btn-geo';
+        
+        document.getElementById(btnId).classList.add('active');
     }
 </script>
 {% endblock %}
