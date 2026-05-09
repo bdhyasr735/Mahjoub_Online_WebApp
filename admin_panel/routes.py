@@ -167,6 +167,20 @@ def update_supplier_sovereign(sup_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 400
+@admin.route('/supplier/<int:supplier_id>/update_field', methods=['POST'])
+def update_supplier_field(supplier_id):
+    data = request.get_json()
+    field = data.get('field')
+    value = data.get('value')
+    
+    supplier = Supplier.query.get_or_404(supplier_id)
+    
+    if hasattr(supplier, field):
+        setattr(supplier, field, value)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'تم التحديث بنجاح'})
+    
+    return jsonify({'status': 'error', 'message': 'حقل غير صالح'}), 400
 
 # --- 9. إنهاء الجلسة السيادية ---
 @admin_bp.route('/logout')
