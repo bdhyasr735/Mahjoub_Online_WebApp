@@ -81,7 +81,7 @@ def manage_suppliers():
         return redirect(url_for('admin.login'))
     return render_template('manage_suppliers.html')
 
-# --- 5. إضافة وتعمد مورد جديد (مع ميزة الأرشفة الذكية) ---
+# --- 5. إضافة وتعمد مورد جديد (مع ميزة الأرشفة الذكية وكشف الأخطاء) ---
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
 @login_required
 def add_supplier():
@@ -127,7 +127,7 @@ def add_supplier():
             db.session.flush() 
             new_supplier.mint_sovereign_id()
             
-            # محاولة الأرشفة إلى السحابة فقط إذا كان النظام متاحاً
+            # --- بروتوكول الأرشفة السيادية مع كشف الأخطاء (Debug) ---
             if HAS_ARCHIVE_SYSTEM:
                 try:
                     archive_sys.archive_data_as_json(
@@ -135,8 +135,10 @@ def add_supplier():
                         filename=f"REGISTRY_{new_supplier.sovereign_id}",
                         entity_id=new_supplier.sovereign_id
                     )
-                except:
-                    pass # فشل الأرشفة لا يعطل التسجيل الأساسي
+                    print(f"✅ Archive Success: {new_supplier.sovereign_id}")
+                except Exception as archive_err:
+                    # طباعة الخطأ في الكونسول لمعرفة سبب فشل الرفع بعد حذف المجلدات
+                    print(f"❌ ARCHIVE ERROR: {str(archive_err)}")
 
             db.session.commit()
             
@@ -183,7 +185,7 @@ def update_supplier_field(supplier_id):
             setattr(supplier, field_name, new_value)
             db.session.commit()
             
-            # أرشفة التعديل اختيارياً
+            # أرشفة التعديل مع كشف الأخطاء
             if HAS_ARCHIVE_SYSTEM:
                 try:
                     archive_sys.archive_data_as_json(
@@ -192,8 +194,8 @@ def update_supplier_field(supplier_id):
                         entity_id=supplier.sovereign_id,
                         folder_name="Updates"
                     )
-                except:
-                    pass
+                except Exception as archive_err:
+                    print(f"❌ UPDATE ARCHIVE ERROR: {str(archive_err)}")
 
             response_data = {"status": "success", "message": f"تم تحديث {field_name} بنجاح"}
             if field_name == 'status':
