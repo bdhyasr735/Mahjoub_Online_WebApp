@@ -32,7 +32,10 @@ class Supplier(db.Model):
     activity_type = db.Column(db.String(100), nullable=True) 
     phone = db.Column(db.String(20), nullable=True) 
     email = db.Column(db.String(120), nullable=True)
-    id_type = db.Column(db.String(50), nullable=True)  # نوع الهوية
+    
+    # التعديل الجوهري: تغيير id_type إلى identity_type ليتطابق مع طلب المحرك في الصورة
+    identity_type = db.Column(db.String(50), nullable=True)  # نوع الهوية
+    identity_image_url = db.Column(db.String(255), nullable=True) # رابط صورة الهوية
     id_card_number = db.Column(db.String(50), nullable=True) # رقم الهوية
 
     # --- منظومة الرتب (التدرج اليدوي السيادي) ---
@@ -106,6 +109,7 @@ class Supplier(db.Model):
             "owner_name": self.owner_name or "غير محدد",
             "phone": self.phone or "N/A",
             "province": self.province or "-",
+            "district": self.district or "-",
             "tier": self.tier,
             "status": self.status,
             "status_color": self.get_status_color(),
