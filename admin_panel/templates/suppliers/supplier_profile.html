@@ -3,6 +3,21 @@
 {% block title %}البروفايل السيادي | {{ supplier.trade_name }}{% endblock %}
 
 {% block content %}
+<!-- 1. تعريف الماكرو في البداية لتجنب خطأ UndefinedError -->
+{% macro edit_field(label, field_name, value, col_class, extra_class="") %}
+<div class="{{ col_class }} field-group position-relative">
+    <label class="small text-muted">{{ label }}</label>
+    <div class="d-flex align-items-center justify-content-between editable-wrapper p-2" onclick="enableEdit('{{ field_name }}')">
+        <div id="display-{{ field_name }}" class="field-value {{ extra_class }}">{{ value if value != None else '---' }}</div>
+        <input type="text" id="input-{{ field_name }}" class="form-control edit-input d-none" 
+               value="{{ value }}" onblur="saveData('{{ field_name }}')" 
+               onkeyup="if(event.key==='Enter') this.blur()">
+        <i class="fas fa-pen-nib edit-icon ms-2" id="icon-{{ field_name }}"></i>
+        <span class="save-spinner d-none" id="spinner-{{ field_name }}"><i class="fas fa-sync fa-spin text-success"></i></span>
+    </div>
+</div>
+{% endmacro %}
+
 <!-- إضافة مكتبة SweetAlert2 للإشعارات -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -73,31 +88,13 @@
     </div>
 </div>
 
-<!-- الماكرو الخاص بإنشاء حقول التعديل التلقائي -->
-{% macro edit_field(label, field_name, value, col_class, extra_class="") %}
-<div class="{{ col_class }} field-group position-relative">
-    <label class="small text-muted">{{ label }}</label>
-    <div class="d-flex align-items-center justify-content-between editable-wrapper p-2" onclick="enableEdit('{{ field_name }}')">
-        <div id="display-{{ field_name }}" class="field-value {{ extra_class }}">{{ value if value != None else '---' }}</div>
-        <input type="text" id="input-{{ field_name }}" class="form-control edit-input d-none" 
-               value="{{ value }}" onblur="saveData('{{ field_name }}')" 
-               onkeyup="if(event.key==='Enter') this.blur()">
-        <i class="fas fa-pen-nib edit-icon ms-2" id="icon-{{ field_name }}"></i>
-        <span class="save-spinner d-none" id="spinner-{{ field_name }}"><i class="fas fa-sync fa-spin text-success"></i></span>
-    </div>
-</div>
-{% endmacro %}
-
 <style>
-    /* التنسيقات الملكية الجديدة */
     .field-group { transition: 0.3s; border-radius: 10px; }
-    .editable-wrapper { cursor: pointer; border-bottom: 1px solid transparent; }
+    .editable-wrapper { cursor: pointer; border-bottom: 1px solid transparent; min-height: 45px; }
     .editable-wrapper:hover { border-bottom-color: #632C8F; background: #f4f0f9; }
     .edit-icon { font-size: 0.7rem; color: #cbd5e1; transition: 0.3s; }
     .editable-wrapper:hover .edit-icon { color: #632C8F; }
     .edit-input { border: 1px solid #632C8F !important; font-size: 1rem; padding: 2px 8px; height: auto; }
-    
-    /* أنماط البطائق الجانبية والأقسام (نفس الكود السابق مع تحسينات) */
     .v-card { background: white; border: 1px solid #e2e8f0; border-radius: 15px; padding: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.3s; }
     .v-card.active { border-right: 5px solid #632C8F; background: #fdfbff; border-color: #632C8F; }
     .v-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
@@ -106,10 +103,11 @@
     .icon-blue { background: #e0f2fe; color: #0369a1; }
     .currency-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin: 5px; }
     .balance { font-size: 1.2rem; font-weight: 900; }
+    .sovereign-tag { background: #f1f5f9; padding: 5px 15px; border-radius: 20px; font-weight: 900; color: #632C8F; font-size: 0.85rem; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 25px; }
 </style>
 
 <script>
-    // تفعيل التعديل عند الضغط
     function enableEdit(fieldName) {
         document.getElementById('display-' + fieldName).classList.add('d-none');
         document.getElementById('icon-' + fieldName).classList.add('d-none');
@@ -118,16 +116,13 @@
         input.focus();
     }
 
-    // الحفظ التلقائي عبر AJAX
     async function saveData(fieldName) {
         const input = document.getElementById('input-' + fieldName);
         const display = document.getElementById('display-' + fieldName);
         const icon = document.getElementById('icon-' + fieldName);
         const spinner = document.getElementById('spinner-' + fieldName);
-        
         const newValue = input.value;
         
-        // إظهار السبنر وإخفاء الإدخال
         input.classList.add('d-none');
         spinner.classList.remove('d-none');
 
@@ -142,7 +137,6 @@
 
             if (result.status === 'success') {
                 display.innerText = newValue || '---';
-                // ومضة خضراء للنجاح
                 display.style.color = '#10b981';
                 setTimeout(() => { display.style.color = ''; }, 2000);
             } else {
