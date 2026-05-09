@@ -1,111 +1,177 @@
 {% extends "base.html" %}
 
-{% block title %}الترسانة | {{ supplier.trade_name }}{% endblock %}
+{% block title %}البروفايل السيادي | {{ supplier.trade_name }}{% endblock %}
 
 {% block content %}
-<div class="sovereign-dashboard p-2" style="direction: rtl; font-family: 'Tajawal', sans-serif; background: #f8f9fa; min-height: 100vh;">
+<div class="sovereign-layout p-4" style="direction: rtl; font-family: 'Tajawal', sans-serif; background: #f8fafc; min-height: 100vh;">
     
-    <div class="row g-2 mb-3 px-2">
-        <div class="col-4">
-            <div class="nav-tab active-tab shadow-sm" id="tab-id" onclick="showSection('identity')">
-                <i class="fas fa-id-card-alt mb-1"></i>
-                <span class="d-block fw-bold" style="font-size: 12px;">الهوية</span>
-            </div>
-        </div>
-        <div class="col-4">
-            <div class="nav-tab shadow-sm" id="tab-fin" onclick="showSection('finance')">
-                <i class="fas fa-vault mb-1 text-warning"></i>
-                <span class="d-block fw-bold" style="font-size: 12px;">المحفظة</span>
-            </div>
-        </div>
-        <div class="col-4">
-            <div class="nav-tab shadow-sm" id="tab-geo" onclick="showSection('geo')">
-                <i class="fas fa-map-marked-alt mb-1 text-primary"></i>
-                <span class="d-block fw-bold" style="font-size: 12px;">النطاق</span>
-            </div>
-        </div>
-    </div>
+    <div class="row g-4">
+        <!-- الجانب الأيمن: البطائق الثلاث المرتصة عمودياً (قائمة التحكم) -->
+        <div class="col-md-3">
+            <div class="sticky-top" style="top: 20px; display: flex; flex-direction: column; gap: 15px;">
+                
+                <div class="v-card active" id="btn-id" onclick="showTab('identity')">
+                    <div class="v-icon icon-purple"><i class="fas fa-fingerprint"></i></div>
+                    <div class="v-label"><span>هوية الكيان</span><small>النشاط والتوثيق</small></div>
+                </div>
 
-    <div class="bg-white rounded-4 shadow-sm p-4 mx-2 border">
-        
-        <div id="identitySection" class="content-fade">
-            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
-                <h6 class="fw-bold text-dark"><i class="fas fa-database me-2 text-primary"></i> سجل الكيان الرقمي</h6>
-                <span class="badge bg-light text-dark border">{{ supplier.sovereign_id }}</span>
+                <div class="v-card" id="btn-fin" onclick="showTab('finance')">
+                    <div class="v-icon icon-gold"><i class="fas fa-university"></i></div>
+                    <div class="v-label"><span>الربط المالي</span><small>المحفظة والبنوك</small></div>
+                </div>
+
+                <div class="v-card" id="btn-geo" onclick="showTab('geo')">
+                    <div class="v-icon icon-blue"><i class="fas fa-map-marked-alt"></i></div>
+                    <div class="v-label"><span>النطاق اللوجستي</span><small>العناوين والتواصل</small></div>
+                </div>
+
             </div>
-            
-            <div class="row g-3">
-                {% for key, value in supplier.__dict__.items() %}
-                    {% if not key.startswith('_') and key not in ['id', 'password_hash'] %}
-                    <div class="col-md-6">
-                        <div class="p-2 border-bottom">
-                            <label class="d-block text-muted mb-1" style="font-size: 11px;">{{ key | replace('_', ' ') | upper }}</label>
-                            <input type="text" class="form-control border-0 bg-light fw-bold" style="font-size: 14px;" value="{{ value if value != None else '---' }}">
+        </div>
+
+        <!-- الجانب الأيسر: لوحة عرض البيانات الملكية -->
+        <div class="col-md-9">
+            <div class="main-display-panel shadow-sm border rounded-4 bg-white p-5">
+                
+                <!-- القسم الأول: الهوية الرقمية -->
+                <div id="sec-identity" class="tab-content-fade">
+                    <div class="section-header">
+                        <h4 class="fw-bold"><i class="fas fa-user-shield ms-2 text-purple"></i> بيانات الهوية الرقمية</h4>
+                        <span class="sovereign-tag">ID: {{ supplier.sovereign_id }}</span>
+                    </div>
+                    <div class="row g-4 mt-2">
+                        <div class="col-md-6 field-group">
+                            <label>اسم المستخدم</label>
+                            <div class="field-value">{{ supplier.username }}</div>
+                        </div>
+                        <div class="col-md-6 field-group">
+                            <label>تصنيف النشاط</label>
+                            <div class="field-value"><span class="badge-activity">{{ supplier.activity_type }}</span></div>
+                        </div>
+                        <div class="col-md-6 field-group">
+                            <label>الاسم التجاري للمنشأة</label>
+                            <div class="field-value fw-bold text-purple">{{ supplier.trade_name }}</div>
+                        </div>
+                        <div class="col-md-6 field-group">
+                            <label>اسم المالك المعتمد</label>
+                            <div class="field-value">{{ supplier.owner_name }}</div>
                         </div>
                     </div>
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-
-        <div id="financeSection" class="content-fade d-none">
-            <h6 class="fw-bold mb-4 border-bottom pb-2 text-warning">الخزينة المركزية</h6>
-            <div class="row g-3 text-center">
-                <div class="col-4 border-start">
-                    <small class="text-muted d-block">YER</small>
-                    <input type="number" class="w-100 border-0 text-center fw-bold h4 mb-0" value="{{ supplier.balance_yer }}">
                 </div>
-                <div class="col-4 border-start">
-                    <small class="text-muted d-block">SAR</small>
-                    <input type="number" class="w-100 border-0 text-center fw-bold h4 mb-0" value="{{ supplier.balance_sar }}">
+
+                <!-- القسم الثاني: البيانات المالية -->
+                <div id="sec-finance" class="tab-content-fade d-none">
+                    <div class="section-header">
+                        <h4 class="fw-bold text-gold"><i class="fas fa-vault ms-2"></i> بروتوكول الربط المالي</h4>
+                    </div>
+                    <div class="row g-4 mt-2">
+                        <div class="col-md-12">
+                            <div class="bank-card-display p-3 rounded-3 border d-flex align-items-center gap-3 mb-4">
+                                <i class="fas fa-building-columns fa-2x text-gold"></i>
+                                <div>
+                                    <h6 class="m-0 fw-bold">{{ supplier.bank_name }}</h6>
+                                    <small class="text-muted">رقم الحساب المعتمد: <strong>{{ supplier.bank_acc }}</strong></small>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- الأرصدة الثلاثية الديناميكية -->
+                        <div class="col-md-4 text-center currency-box">
+                            <label>ريال يمني</label>
+                            <div class="balance">{{ supplier.balance_yer }}</div>
+                        </div>
+                        <div class="col-md-4 text-center currency-box">
+                            <label>ريال سعودي</label>
+                            <div class="balance">{{ supplier.balance_sar }}</div>
+                        </div>
+                        <div class="col-md-4 text-center currency-box">
+                            <label>دولار أمريكي</label>
+                            <div class="balance">{{ supplier.balance_usd }}</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-4">
-                    <small class="text-muted d-block">USD</small>
-                    <input type="number" class="w-100 border-0 text-center fw-bold h4 mb-0" value="{{ supplier.balance_usd }}">
+
+                <!-- القسم الثالث: البيانات الجغرافية -->
+                <div id="sec-geo" class="tab-content-fade d-none">
+                    <div class="section-header">
+                        <h4 class="fw-bold text-primary"><i class="fas fa-map-marker-alt ms-2"></i> النطاق الجغرافي والتواصل</h4>
+                    </div>
+                    <div class="row g-4 mt-2">
+                        <div class="col-md-6 field-group">
+                            <label>رقم الهاتف (الواتساب)</label>
+                            <div class="field-value fw-bold"><i class="fab fa-whatsapp text-success ms-2"></i> {{ supplier.phone }}</div>
+                        </div>
+                        <div class="col-md-6 field-group">
+                            <label>المحافظة / المديرية</label>
+                            <div class="field-value">{{ supplier.province }} - {{ supplier.district }}</div>
+                        </div>
+                        <div class="col-md-12 field-group">
+                            <label>العنوان التفصيلي</label>
+                            <div class="field-value bg-light p-3 rounded-3">{{ supplier.address_detail }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- زر التعديل السيادي -->
+                <div class="mt-5 pt-4 border-top">
+                    <button class="btn-royal-save w-100"><i class="fas fa-check-circle ms-2"></i> تحديث بيانات الترسانة</button>
                 </div>
             </div>
-        </div>
-
-        <div id="geoSection" class="content-fade d-none">
-            <h6 class="fw-bold mb-4 border-bottom pb-2 text-primary">الإحداثيات والانتشار</h6>
-            <div class="p-3 bg-light rounded-3">
-                <i class="fas fa-map-pin me-2 text-danger"></i>
-                <span class="fw-bold">{{ supplier.province }} - {{ supplier.district }}</span>
-            </div>
-        </div>
-
-        <div class="mt-5 pt-3">
-            <button class="btn btn-dark w-100 py-3 rounded-3 fw-bold" onclick="alert('تم تعميد البيانات في النظام')">
-                <i class="fas fa-shield-alt ms-2"></i> حفظ وتعميد كافة البيانات
-            </button>
         </div>
     </div>
 </div>
 
 <style>
-    .nav-tab { background: #fff; padding: 12px; border-radius: 12px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.3s; }
-    .nav-tab:hover { background: #f1f1f1; }
-    .active-tab { border-color: #4a148c !important; background: #fffdfc; }
-    .active-tab i { color: #4a148c; }
-    .content-fade { animation: fadeIn 0.4s ease; }
+    /* CSS الملكي المصمم لراحة العين */
+    .text-purple { color: #632C8F !important; }
+    .text-gold { color: #C5A021 !important; }
+    
+    .v-card { 
+        background: white; border: 1px solid #e2e8f0; border-radius: 15px; 
+        padding: 15px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.3s;
+    }
+    .v-card:hover { transform: translateX(-5px); border-color: #632C8F; }
+    .v-card.active { border-right: 5px solid #632C8F; background: #fdfbff; border-color: #632C8F; }
+    
+    .v-icon { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .icon-purple { background: #f3e8ff; color: #632C8F; }
+    .icon-gold { background: #fef9c3; color: #854d0e; }
+    .icon-blue { background: #e0f2fe; color: #0369a1; }
+    
+    .v-label span { display: block; font-weight: 800; font-size: 0.9rem; color: #1e293b; }
+    .v-label small { font-size: 0.75rem; color: #64748b; }
+
+    .main-display-panel { min-height: 600px; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 25px; }
+    
+    .field-group label { display: block; font-size: 0.8rem; font-weight: 700; color: #94a3b8; margin-bottom: 5px; text-transform: uppercase; }
+    .field-value { font-size: 1.05rem; color: #334155; }
+    
+    .sovereign-tag { background: #f1f5f9; padding: 5px 15px; border-radius: 20px; font-weight: 900; color: #632C8F; font-size: 0.85rem; }
+    .badge-activity { background: #632C8F; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.85rem; }
+    
+    .currency-box { padding: 15px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; }
+    .currency-box label { font-size: 0.75rem; color: #64748b; }
+    .currency-box .balance { font-size: 1.4rem; font-weight: 900; color: #1e293b; }
+
+    .btn-royal-save { background: #632C8F; color: white; border: none; padding: 18px; border-radius: 12px; font-weight: 800; transition: 0.3s; box-shadow: 0 4px 12px rgba(99, 44, 143, 0.2); }
+    .btn-royal-save:hover { background: #4a1d6d; transform: translateY(-2px); }
+
+    .tab-content-fade { animation: fadeIn 0.4s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .form-control:focus { box-shadow: none; background: #fff !important; border: 1px solid #4a148c !important; }
 </style>
 
 <script>
-    function showSection(id) {
-        document.getElementById('identitySection').classList.add('d-none');
-        document.getElementById('financeSection').classList.add('d-none');
-        document.getElementById('geoSection').classList.add('d-none');
-        document.getElementById(id + 'Section').classList.remove('d-none');
-
-        document.getElementById('tab-id').classList.remove('active-tab');
-        document.getElementById('tab-fin').classList.remove('active-tab');
-        document.getElementById('tab-geo').classList.remove('active-tab');
+    function showTab(tab) {
+        // إخفاء كل الأقسام
+        document.getElementById('sec-identity').classList.add('d-none');
+        document.getElementById('sec-finance').classList.add('d-none');
+        document.getElementById('sec-geo').classList.add('d-none');
         
-        if(id === 'identity') document.getElementById('tab-id').classList.add('active-tab');
-        if(id === 'finance') document.getElementById('tab-fin').classList.add('active-tab');
-        if(id === 'geo') document.getElementById('tab-geo').classList.add('active-tab');
+        // إظهار القسم المختار
+        document.getElementById('sec-' + tab).classList.remove('d-none');
+        
+        // تحديث شكل البطائق العمودية
+        document.querySelectorAll('.v-card').forEach(c => c.classList.remove('active'));
+        document.getElementById('btn-' + (tab==='identity'?'id':tab==='finance'?'fin':'geo')).classList.add('active');
     }
 </script>
 {% endblock %}
