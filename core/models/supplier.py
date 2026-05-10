@@ -37,13 +37,14 @@ class Supplier(db.Model, UserMixin):
     balance_sar = db.Column(db.Float, default=0.0)
     balance_usd = db.Column(db.Float, default=0.0)
     
+    # حقول الحالة والرتبة (تم إضافة حقل tier هنا لحل مشكلة Railway)
     status = db.Column(db.String(20), default='active')
+    tier = db.Column(db.String(50), default='مبتدئ') # رتبة المورد: سيادي، ذهبي، مبتدئ
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # 2. المحرك الذكي: دالة لتوليد المعرفات تلقائياً قبل الحفظ
     def generate_sovereign_codes(self):
         """توليد المعرف السيادي ورقم المحفظة بناءً على الـ ID"""
-        # إذا كان المورد جديداً وليس له ID بعد، نأخذ الرقم التالي في القاعدة
         if not self.id:
             last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
             next_num = (last_supplier.id + 1) if last_supplier else 1
@@ -58,6 +59,26 @@ class Supplier(db.Model, UserMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    # 3. محرك التحويل الرقمي (JSON)
+    def to_dict(self):
+        """تحويل الكيان إلى قاموس لسهولة استخدامه في الـ API والواجهات"""
+        return {
+            "id": self.id,
+            "sovereign_id": self.sovereign_id,
+            "username": self.username,
+            "trade_name": self.trade_name,
+            "owner_name": self.owner_name,
+            "phone": self.phone,
+            "province": self.province,
+            "district": self.district,
+            "status": self.status,
+            "tier": self.tier,
+            "balance_yer": self.balance_yer,
+            "balance_sar": self.balance_sar,
+            "balance_usd": self.balance_usd,
+            "created_at": self.created_at.strftime('%Y-%m-%d')
+        }
 
     def __repr__(self):
         return f"<Supplier {self.trade_name} | {self.sovereign_id}>"
