@@ -1,6 +1,6 @@
 # admin_panel/routes.py
 from flask import Blueprint, redirect, url_for, render_template, request, flash
-from flask_login import login_required
+from flask_login import login_required, logout_user
 from core import db
 from core.models.user import User
 from core.models.supplier import Supplier
@@ -50,33 +50,14 @@ def dashboard():
 def add_supplier():
     """شاشة تعميد مورد جديد"""
     if request.method == 'POST':
+        # تمرير بيانات الفورم لمحرك المنطق
         success, message = SupplierLogic.register_supplier(request.form)
         flash(message, 'success' if success else 'danger')
         if success:
             return redirect(url_for('admin.manage_suppliers'))
             
-    # توليد المعرف القادم لإظهاره في الواجهة (اختياري)
+    # توليد المعرف القادم لإظهاره في الواجهة الملكية
     next_id = SupplierLogic.get_next_id()
     return render_template('admin/add_supplier.html', next_id=next_id)
 
-@admin_bp.route('/suppliers/manage')
-@login_required
-def manage_suppliers():
-    """عرض الرادار لكافة الموردين المعتمدين"""
-    search_query = request.args.get('search')
-    status_filter = request.args.get('status')
-    suppliers = SupplierLogic.search_suppliers(search_query, status_filter)
-    return render_template('admin/manage_suppliers.html', suppliers=suppliers)
-
-# ==========================================
-# 4. بروتوكول الخروج الآمن (Logout)
-# ==========================================
-
-@admin_bp.route('/logout')
-@login_required
-def logout():
-    """تأمين الخروج والعودة لبوابة الولوج"""
-    from flask_login import logout_user
-    logout_user()
-    flash("تم تسجيل الخروج من مركز القيادة بنجاح.", "info")
-    return redirect(url_for('admin.login'))
+@admin_bp.route('/suppliers
