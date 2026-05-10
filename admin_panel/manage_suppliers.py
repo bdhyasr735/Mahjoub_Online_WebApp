@@ -2,8 +2,9 @@
 from flask import request, jsonify
 from flask_login import login_required
 from . import admin_bp
-from .suppliers_logic import SupplierLogic # العقل المدبر
-from .auth import admin_required # حماية سيادية
+from .suppliers_logic import SupplierLogic # العقل المدبر الذي سننشئه
+# ملاحظة: تأكد من وجود دالة admin_required في auth.py أو استبدلها بـ login_required مؤقتاً
+from .auth import admin_required 
 
 # --- 1. محرك البحث الذكي ---
 @admin_bp.route('/api/search-suppliers')
@@ -18,7 +19,7 @@ def api_search_suppliers():
         'status': request.args.get('status', '').strip()
     }
     
-    # استدعاء المنطق
+    # استدعاء المنطق من العقل المدبر
     results = SupplierLogic.search_suppliers(q, filters)
     
     return jsonify({
@@ -33,7 +34,9 @@ def api_search_suppliers():
 @admin_required
 def get_supplier_full_details(s_id):
     data = SupplierLogic.get_full_details(s_id)
-    return jsonify(data)
+    if data:
+        return jsonify(data)
+    return jsonify({"status": "error", "message": "الكيان غير موجود"}), 404
 
 # --- 3. محرك تحديث البيانات والأرصدة ---
 @admin_bp.route('/api/update-sovereign-data/<int:s_id>', methods=['POST'])
