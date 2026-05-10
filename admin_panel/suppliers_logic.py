@@ -5,15 +5,13 @@ from core.models.supplier import Supplier
 class SupplierLogic:
     @staticmethod
     def register_supplier(form_data):
-        """
-        محرك تعميد الموردين: يستقبل البيانات من الواجهة الملكية ويحفظها في الترسانة
-        """
+        """محرك تعميد الموردين: تنفيذ عمليات الحفظ في قاعدة البيانات"""
         try:
-            # 1. توليد المعرف السيادي SUP_ تلقائياً
+            # 1. توليد المعرف السيادي القادم
             last_id = db.session.query(db.func.max(Supplier.id)).scalar() or 0
             new_sovereign_id = f"SUP_{last_id + 1}#"
 
-            # 2. إنشاء كيان المورد الجديد بناءً على بيانات الواجهة
+            # 2. إنشاء الكيان الجديد
             new_supplier = Supplier(
                 sovereign_id=new_sovereign_id,
                 trade_name=form_data.get('trade_name'),
@@ -29,36 +27,30 @@ class SupplierLogic:
                 status='active'
             )
 
-            # 3. الحفظ في قاعدة بيانات Postgres
             db.session.add(new_supplier)
             db.session.commit()
-
             return True, f"تم تعميد المورد {new_supplier.trade_name} بنجاح برقم {new_sovereign_id}"
 
         except Exception as e:
             db.session.rollback()
-            print(f"❌ فشل التعميد: {str(e)}")
-            return False, f"حدث خطأ أثناء التعميد: {str(e)}"
+            return False, f"فشل في التعميد: {str(e)}"
 
     @staticmethod
     def get_next_id():
-        """دالة لتوقع الرقم التالي وإظهاره في واجهة الإضافة"""
+        """توليد المعرف التالي لإظهاره في الواجهة"""
         last_id = db.session.query(db.func.max(Supplier.id)).scalar() or 0
         return f"SUP_{last_id + 1}#"
 
     @staticmethod
-    def search_suppliers(search_query=None, status_filter=None):
-        """محرك الرادار: البحث عن الموردين وتصفيتهم"""
-        query = Supplier.query
-        
-        if search_query:
-            query = query.filter(
-                (Supplier.trade_name.like(f"%{search_query}%")) |
-                (Supplier.sovereign_id.like(f"%{search_query}%")) |
-                (Supplier.owner_name.like(f"%{search_query}%"))
+    def search_suppliers(query=None, status=None):
+        """محرك البحث في الرادار"""
+        s_query = Supplier.query
+        if query:
+            s_query = s_query.filter(
+                (Supplier.trade_name.contains(query)) | 
+                (Supplier.sovereign_id.contains(query))
             )
-        
-        if status_filter:
-            query = query.filter_by(status=status_filter)
+        if status:
+            s_query = s_query.filter_by(status=status)
             
-        return query.order_by(Supplier.created_at.desc()).all()
+        return s_query.order_by(Supplier.created_at.desc()).all()
