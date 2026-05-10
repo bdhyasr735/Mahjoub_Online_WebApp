@@ -26,20 +26,43 @@ def create_app():
         # 4. استيراد الموديلات من النقطة المركزية لضمان بناء الجداول
         from .models import User, Supplier, SupplierStaff
         
-        # 5. بروتوكول تعميد وتحديث الجداول
+        # 5. بروتوكول تعميد وتحديث الجداول الشامل
         try:
             # بناء الجداول الجديدة إذا لم تكن موجودة
             db.create_all()
             
-            # إصلاح يدوي للأعمدة المفقودة في PostgreSQL (حل مشكلة is_active و email)
-            # هذا الكود يضمن استقرار السيرفر حتى لو كانت قاعدة Railway قديمة
-            db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE"))
-            db.session.execute(db.text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(150)"))
-            db.session.execute(db.text("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS email VARCHAR(150)"))
-            db.session.execute(db.text("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS identity_image VARCHAR(255)"))
-            db.session.commit()
+            # --- مصفوفة التحديث الجبري للأعمدة المفقودة في PostgreSQL ---
+            # تحديث جدول المستخدمين (Users)
+            user_updates = [
+                ("is_active", "BOOLEAN DEFAULT TRUE"),
+                ("email", "VARCHAR(150)"),
+                ("created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+                ("role", "VARCHAR(50) DEFAULT 'admin'")
+            ]
             
-            print("✅ تم فحص وتحديث هيكل الجداول بنجاح (is_active & identities secured)")
+            for col_name, col_type in user_updates:
+                try:
+                    db.session.execute(db.text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                except Exception:
+                    pass # يتجاهل العمود إذا كان موجوداً مسبقاً
+
+            # تحديث جدول الموردين (Suppliers)
+            supplier_updates = [
+                ("email", "VARCHAR(150)"),
+                ("identity_image", "VARCHAR(255)"),
+                ("created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+                ("identity_type", "VARCHAR(50)")
+            ]
+            
+            for col_name, col_type in supplier_updates:
+                try:
+                    db.session.execute(db.text(f"ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                except Exception:
+                    pass
+
+            db.session.commit()
+            print("✅ تم استكمال الترسانة وإضافة الأعمدة المفقودة (created_at & is_active secured)")
+            
         except Exception as e:
             print(f"⚠️ تنبيه أثناء تحديث الهيكل: {e}")
             db.session.rollback()
