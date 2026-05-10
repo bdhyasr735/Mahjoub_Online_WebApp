@@ -1,62 +1,52 @@
 # admin_panel/suppliers_logic.py
 from core import db
-from core.models.supplier import Supplier
-import logging
-
-logger = logging.getLogger("Supplier_Engine")
+from core.models.supplier import Supplier, archive_sys
 
 class SupplierLogic:
-    """ محرك الحوكمة لتعميد وإدارة الموردين - محجوب أونلاين v3.5 """
-
     @staticmethod
     def get_next_id():
-        """توليد معرف سيادي تلقائي (SUP_1#)"""
+        """توليد المعرف السيادي القادم تلقائياً"""
         last = Supplier.query.order_by(Supplier.id.desc()).first()
-        return f"SUP_{last.id + 1}#" if last else "SUP_1#"
+        # نبدأ من 100 إذا كانت قاعدة البيانات فارغة
+        next_num = (last.id + 1) if last else 100
+        return f"SUP_{next_num}#"
 
     @staticmethod
-    def register_supplier(data):
-        """تعميد مورد جديد وضبط المحفظة الثلاثية"""
+    def commit_new_supplier(form_data):
+        """تنفيذ عملية التعميد المركزية وتصحيح الحقول"""
         try:
+            # نقوم ببناء الكيان باستخدام الحقول الأساسية فقط المعرفة في الموديل
             new_sup = Supplier(
-                trade_name=data.get('trade_name'),
-                phone=data.get('phone'),
-                identity_type=data.get('identity_type'),
-                sovereign_id=data.get('sovereign_id'),
-                status='active',
-                tier='مورد معتمد',
-                # تصفير الأرصدة السيادية عند التأسيس
-                balance_yer=0.0, balance_sar=0.0, balance_usd=0.0
+                sovereign_id=SupplierLogic.get_next_id(),
+                trade_name=form_data.get('trade_name'),
+                owner_name=form_data.get('owner_name'),
+                province=form_data.get('province'),
+                district=form_data.get('district'),
+                phone=form_data.get('phone'),
+                tier=form_data.get('tier', 'مبتدئ'), # التأكد من وجود قيمة افتراضية
+                # تصفير المحفظة الثلاثية تلقائياً كما اتفقنا
+                balance_yer=0.0,
+                balance_sar=0.0,
+                balance_usd=0.0,
+                status='active'
             )
+            
+            # ملاحظة: تأكدنا من عدم وجود 'identity_type' هنا لأنه سبب الخطأ
+            
             db.session.add(new_sup)
             db.session.commit()
-            return True, f"تم تعميد الكيان {new_sup.trade_name} بنجاح"
+            
+            # الأرشفة السيادية في GitHub بعد نجاح الحفظ في Postgres
+            try:
+                archive_sys.archive_entity(new_sup)
+            except Exception as archive_err:
+                # إذا فشلت الأرشفة لا نعطل العملية بل نسجل تحذير
+                print(f"Warning: Archive failed: {str(archive_err)}")
+            
+            return True, "تم تعميد الكيان بنجاح وأرشفته سيادياً."
+            
         except Exception as e:
             db.session.rollback()
-            logger.error(f"فشل التعميد: {str(e)}")
-            return False, "خطأ في البيانات أو الكيان موجود مسبقاً"
-
-    @staticmethod
-    def search_suppliers(query=None, status_filter=None):
-        """الرادار الذكي للبحث عن الموردين"""
-        q = Supplier.query
-        if query:
-            q = q.filter(Supplier.trade_name.contains(query))
-        if status_filter:
-            q = q.filter(Supplier.status == status_filter)
-        return q.order_by(Supplier.id.desc()).all()
-
-    @staticmethod
-    def update_balance(sup_id, amount, currency):
-        """تحديث رصيد مورد (YER/SAR/USD)"""
-        try:
-            sup = Supplier.query.get(sup_id)
-            field = f'balance_{currency.lower()}'
-            if hasattr(sup, field):
-                setattr(sup, field, getattr(sup, field) + float(amount))
-                db.session.commit()
-                return True, "تم تحديث الخزينة"
-            return False, "عملة غير مدعومة"
-        except Exception as e:
-            db.session.rollback()
-            return False, str(e)
+            # هذا ما يظهر لك في السجلات الآن
+            print(f"ERROR:Supplier_Engine: فشل التعميد: {str(e)}")
+            return False, f"فشلت عملية التعميد: {str(e)}"
