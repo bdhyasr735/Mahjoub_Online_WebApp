@@ -1,37 +1,50 @@
-from flask import render_template, request, jsonify
-from . import admin_bp
-from .suppliers_logic import SupplierManager # المحرك الخاص بهذه النافذة
-from core.factory import SovereignFactory     # المصنع المركزي الشامل
+from flask import Blueprint, render_template
+from flask_login import login_required, current_user
+# استيراد محركات المنطق (Logic Engines)
+from .auth import login_view 
+from .suppliers_logic import SupplierLogic
+from .utils import admin_only # ديكوريتور سيادي لحماية الروابط
 
-# --- 1. مسارات عرض الواجهات (Render Routes) ---
+admin_bp = Blueprint('admin', __name__, template_folder='templates')
 
+# ==========================================
+# 1. بوابة الدخول والخروج (Security Gate)
+# ==========================================
+@admin_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    return login_view()
+
+@admin_bp.route('/logout')
+@login_required
+def logout():
+    from flask_login import logout_user
+    logout_user()
+    return redirect(url_for('admin.login'))
+
+# ==========================================
+# 2. غرفة القيادة المركزية (Main Dashboard)
+# ==========================================
 @admin_bp.route('/dashboard')
+@login_required
+@admin_only # لا يدخل هنا إلا من رتبته 'admin'
 def dashboard():
-    # استدعاء من مجلد templates/admin/
-    return render_template('admin/dashboard.html')
+    return render_template('admin/dashboard.html', user=current_user)
 
-@admin_bp.route('/add-supplier', methods=['GET'])
-def add_supplier_view():
-    # حساب المعرف القادم يوضع في المنطق الخاص بالنافذة
-    next_id = SupplierManager.get_next_id()
-    return render_template('admin/add_supplier.html', next_id=next_id)
-
-# --- 2. مسارات العمليات (Action Routes) ---
-
-@admin_bp.route('/add-supplier', methods=['POST'])
-def add_supplier_action():
-    """
-    هنا السحر: نرسل البيانات للمصنع المركزي مباشرة.
-    المصنع سيتولى: الحفظ في DB، تشفير الباسورد، والأرشفة في GitHub.
-    """
-    return SovereignFactory.create_and_archive(
-        model_name='Supplier', 
-        data=request.form,
-        files=request.files # في حال وجود صورة الهوية
-    )
-
-@admin_bp.route('/manage-suppliers')
+# ==========================================
+# 3. إدارة ترسانة الموردين (Suppliers Management)
+# ==========================================
+@admin_bp.route('/suppliers')
+@login_required
 def manage_suppliers():
-    # جلب البيانات يتم عبر سطر واحد من المنطق
-    suppliers = SupplierManager.get_all_active()
+    suppliers = SupplierLogic.get_all_suppliers()
     return render_template('admin/manage_suppliers.html', suppliers=suppliers)
+
+# ==========================================
+# 4. الرقابة المالية والأرشفة (Financials & Logs)
+# ==========================================
+@admin_bp.route('/reports/sovereign')
+@login_required
+@admin_only
+def financial_reports():
+    # سيتم ربطها بمنطق الحسابات لاحقاً
+    return render_template('admin/reports.html')
