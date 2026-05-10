@@ -24,62 +24,51 @@ def login():
 @admin_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """عرض إحصائيات النظام الأساسية مع نظام حماية مركزية"""
     try:
-        # حساب الإحصائيات مع قيم افتراضية آمنة
         data = {
             'users_count': User.query.count() or 0,
             'suppliers_count': Supplier.query.count() or 0,
             'orders_count': 0, 
-            
-            # حساب السيولة مع معالجة القيم الفارغة
             'total_yer': db.session.query(db.func.sum(Supplier.balance_yer)).scalar() or 0.0,
             'total_sar': db.session.query(db.func.sum(Supplier.balance_sar)).scalar() or 0.0,
             'total_usd': db.session.query(db.func.sum(Supplier.balance_usd)).scalar() or 0.0,
-            
             'now': datetime.now()
         }
-        # تأكد من أن المسار هو admin/dashboard.html
         return render_template('admin/dashboard.html', **data)
-        
     except Exception as e:
-        # نظام رصد الأخطاء المتقدم - سيظهر لك السطر المسبب للمشكلة بالضبط
         error_details = traceback.format_exc()
-        return f"""
-        <div dir="rtl" style="font-family: sans-serif; padding: 20px; color: #721c24; background: #f8d7da; border: 1px solid #f5c6cb;">
-            <h3>⚠️ خلل في رادار القيادة المركزية</h3>
-            <p>يوجد تعارض في قوالب العرض أو قاعدة البيانات. تفاصيل العطل:</p>
-            <pre style="text-align: left; background: #fff; padding: 15px;">{error_details}</pre>
-            <hr>
-            <a href="{url_for('admin.logout')}">الرجوع لتسجيل الدخول</a>
-        </div>
-        """
+        return f"⚠️ خطأ في الرادار: {error_details}"
 
 # ==========================================
-# 3. إدارة الموردين (Suppliers)
+# 3. إدارة الموردين (Manage Suppliers)
 # ==========================================
 @admin_bp.route('/suppliers')
 @login_required
 def manage_suppliers():
-    """عرض الموردين مع تعطيل الفلاتر المسببة للانهيار"""
+    """عرض قائمة الموردين"""
     try:
-        suppliers = Supplier.query.order_by(Supplier.id.desc()).limit(20).all()
-        
-        # تم تصفير 'sovereign' لأن عمود 'tier' غير موجود في قاعدة البيانات حالياً (كما في الصورة)
+        suppliers = Supplier.query.order_by(Supplier.id.desc()).all()
         stats = {
-            'total': Supplier.query.count() or 0,
-            'active': Supplier.query.filter_by(status='active').count() or 0,
-            'sovereign': 0 
+            'total': Supplier.query.count(),
+            'active': Supplier.query.filter_by(status='active').count(),
+            'sovereign': 0 # مؤقتاً لتجنب خطأ الـ tier
         }
-        
-        return render_template('admin/manage_suppliers.html', 
-                               suppliers=suppliers, 
-                               stats=stats)
+        return render_template('admin/manage_suppliers.html', suppliers=suppliers, stats=stats)
     except Exception as e:
-        return f"⚠️ خطأ في إدارة الموردين: {e}"
+        return f"⚠️ خطأ في استعراض الموردين: {e}"
 
 # ==========================================
-# 4. بروتوكول الخروج الآمن (Logout)
+# 4. إضافة مورد جديد (Add Supplier)
+# ==========================================
+@admin_bp.route('/suppliers/add', methods=['GET', 'POST'])
+@login_required
+def add_supplier():
+    """فتح واجهة إضافة مورد جديد"""
+    # هنا يمكنك إضافة منطق الـ POST لاحقاً لحفظ البيانات
+    return render_template('admin/add_supplier.html')
+
+# ==========================================
+# 5. بروتوكول الخروج الآمن (Logout)
 # ==========================================
 @admin_bp.route('/logout')
 @login_required
