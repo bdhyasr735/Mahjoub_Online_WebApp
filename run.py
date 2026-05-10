@@ -80,6 +80,6 @@ if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
 
 if __name__ == "__main__":
     # تحديد المنفذ الخاص بـ Railway أو المنفذ الافتراضي 5000
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8080))
     logger.info(f"🚀 انطلاق منصة محجوب أونلاين على المنفذ: {port}")
     app.run(host='0.0.0.0', port=port, debug=True)
