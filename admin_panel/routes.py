@@ -11,11 +11,10 @@ admin_bp = Blueprint('admin', __name__, template_folder='templates')
 # ==========================================
 # بوابة الدخول السيادية (The Entry Point)
 # ==========================================
-
-@admin_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    """توجيه طلب الدخول إلى المحرك المختص في auth.py"""
-    return login_view()
+@admin_bp.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('admin/dashboard.html')
 
 # ==========================================
 # بروتوكول الخروج الآمن (Logout)
