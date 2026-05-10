@@ -6,13 +6,11 @@ from core.models.user import User
 from core.models.supplier import Supplier
 from datetime import datetime
 
-# 1. استيراد البلوبرنت والمنطق السيادي
+# 1. استيراد البلوبرنت
 from . import admin_bp
 from .auth import login_view 
-from .suppliers_logic import SupplierLogic
 
-# 2. استيراد المحركات التنفيذية (Engines)
-# تم استدعاء محرك اللوجستيات لرصد المناطق ومحرك الموردين للفلترة
+# 2. استيراد المحركات (Engines) - تأكد من صحة مسارات الملفات
 from .engines.supplier_engine import get_suppliers_by_filter
 from .engines.logistics_engine import LogisticsEngine
 
@@ -21,60 +19,46 @@ from .engines.logistics_engine import LogisticsEngine
 # ==========================================
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """تأمين المداخل الرسمية لمركز الإدارة"""
     return login_view()
 
 # ==========================================
-# 2. غرفة القيادة والتحكم (The Sovereign Dashboard)
+# 2. غرفة القيادة والتحكم (The Dashboard)
 # ==========================================
 @admin_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """
-    الرادار المركزي لمراقبة أداء محجوب أونلاين:
-    يرصد العمليات، الأرصدة، والتوزع الجغرافي للموردين.
-    """
+    """استدعاء الرادار المركزي وعرض كافة الإحصائيات السيادية"""
     try:
-        # أ: استدعاء تقارير الكثافة الجغرافية (الخوخة، عدن، إلخ) من محرك اللوجستيات
+        # جلب إحصائيات التوزع الجغرافي من محرك اللوجستيات
         zone_stats = LogisticsEngine.get_zone_density()
         
-        # ب: تجميع البيانات المالية والعددية
-        # ملاحظة للقائد: يتم تجميع الأرصدة من جميع الموردين لإعطاء القيمة الإجمالية للترسانة
         data = {
             'users_count': User.query.count(),
             'suppliers_count': Supplier.query.count(),
-            'orders_count': 0, # سيتم ربطه بمحرك الطلبات مستقبلاً
+            'orders_count': 0, # سيتم ربطه لاحقاً
             
-            # رصد السيولة النقدية بمختلف العملات
+            # رصد السيولة المالية (المبالغ الإجمالية في الترسانة)
             'total_yer': db.session.query(db.func.sum(Supplier.balance_yer)).scalar() or 0.0,
             'total_sar': db.session.query(db.func.sum(Supplier.balance_sar)).scalar() or 0.0,
             'total_usd': db.session.query(db.func.sum(Supplier.balance_usd)).scalar() or 0.0,
             
-            'zones': zone_stats, # توزيع الموردين حسب المحافظات
+            'zones': zone_stats, 
             'now': datetime.now()
         }
-        
-        # ج: استدعاء واجهة الداشبورد مع حقن البيانات السيادية
+        # استدعاء الواجهة وحقن البيانات فيها
         return render_template('admin/dashboard.html', **data)
-        
     except Exception as e:
-        # بروتوكول الطوارئ في حال تعثر الرادار
-        return f"⚠️ خطأ فني في استدعاء بيانات الرادار المركزي: {str(e)}"
+        return f"⚠️ عطل في استدعاء بيانات الداشبورد: {str(e)}"
 
 # ==========================================
-# 3. إدارة الموردين (Supplier Management)
+# 3. إدارة الموردين (Suppliers)
 # ==========================================
 @admin_bp.route('/suppliers')
 @login_required
 def manage_suppliers():
-    """
-    عرض قائمة الموردين: يعتمد على المحرك لجلب عينة أولية (آخر 10 موردين)
-    لضمان سرعة استجابة النظام.
-    """
-    # جلب البيانات عبر المحرك المخصص
+    """عرض رادار الموردين مع جلب آخر 10 سجلات لضمان السرعة"""
     latest_suppliers = get_suppliers_by_filter(limit=10)
     
-    # إحصائيات سريعة للبطاقات العلوية في صفحة الإدارة
     stats = {
         'total': Supplier.query.count(),
         'active': Supplier.query.filter_by(status='active').count(),
@@ -86,12 +70,11 @@ def manage_suppliers():
                            stats=stats)
 
 # ==========================================
-# 4. بروتوكول الإنهاء (Secure Logout)
+# 4. بروتوكول الخروج (Logout)
 # ==========================================
 @admin_bp.route('/logout')
 @login_required
 def logout():
-    """تأمين النظام عند مغادرة القائد"""
     logout_user()
-    flash("تم تسجيل الخروج بنجاح. النظام في وضع الحماية النشطة.", "info")
+    flash("تم تسجيل الخروج. النظام في وضع الحماية.", "info")
     return redirect(url_for('admin.login'))
