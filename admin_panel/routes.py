@@ -1,7 +1,9 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, logout_user, current_user
 from datetime import datetime
+from sqlalchemy import func
 from . import admin_bp
+from core import db # استيراد الجلسة للعمليات الحسابية
 
 # استيراد النواة والترسانة الأمنية
 from core.models import User, Supplier, Order, Product
@@ -13,12 +15,20 @@ from core.utils.archive_manager import archive_manager
 @admin_bp.route('/dashboard')
 @admin_required # استخدمنا الحارس الذي برمجناه في security.py
 def admin_dashboard():
+    # حساب الأرصدة الإجمالية من قاعدة البيانات مباشرة
+    total_yer = db.session.query(func.sum(Supplier.balance_yer)).scalar() or 0.0
+    total_sar = db.session.query(func.sum(Supplier.balance_sar)).scalar() or 0.0
+    total_usd = db.session.query(func.sum(Supplier.balance_usd)).scalar() or 0.0
+
     stats = {
         'users_count': User.query.count(),
         'suppliers_count': Supplier.query.count(),
         'orders_count': Order.query.count() if Order else 0,
         'products_count': Product.query.count() if Product else 0,
-        'now': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        'total_yer': f"{total_yer:,.2f}", # تنسيق رقمي احترافي
+        'total_sar': f"{total_sar:,.2f}",
+        'total_usd': f"{total_usd:,.2f}",
+        'now': datetime.now() # نرسله ككائن لتنسيقه داخل التمبلت
     }
     return render_template('dashboard.html', **stats)
 
@@ -28,6 +38,12 @@ def admin_dashboard():
 @admin_required
 def manage_suppliers():
     return render_template('manage_suppliers.html')
+
+@admin_bp.route('/add-supplier')
+@admin_required
+def add_supplier():
+    """ صفحة تعميد مورد جديد """
+    return render_template('add_supplier.html')
 
 @admin_bp.route('/api/suppliers/search')
 @admin_required
@@ -46,7 +62,6 @@ def api_search_suppliers():
         search_query = search_query.filter(Supplier.status == status)
 
     suppliers = search_query.all()
-    # تحويل البيانات لـ JSON ليفهمها المحرك الذكي
     return jsonify([sup.to_dict() for sup in suppliers])
 
 @admin_bp.route('/api/supplier/<int:sup_id>')
