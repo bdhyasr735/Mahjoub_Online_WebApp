@@ -68,7 +68,8 @@ def create_app():
             db.session.rollback()
 
         # 3. تسجيل البلوبرنتات (Blueprint Registry)
-        # تم إزالة الاستيراد اليدوي للروابط الفرعية هنا لمنع تكرار التسجيل وانهيار السيرفر
+        # تم تنظيف هذا القسم تماماً: الاستيراد يتم من الباقة مباشرة
+        # والروابط يتم تسجيلها تلقائياً عبر __init__.py الخاص بـ admin_panel
         from admin_panel import admin_bp
         app.register_blueprint(admin_bp) 
 
