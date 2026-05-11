@@ -1,10 +1,10 @@
 # core/__init__.py
 from flask import Flask
-from flask_wtf.csrf import CSRFProtect # 🛡️ استيراد درع الحماية
+from flask_wtf.csrf import CSRFProtect  # 🛡️ استيراد درع الحماية السيادي
 from .extensions import db, login_manager 
 from .setup import auth_loaders 
 
-# تهيئة درع الحماية عالمياً
+# تهيئة درع الحماية عالمياً لمنع هجمات التزييف
 csrf = CSRFProtect()
 
 def create_app():
@@ -12,28 +12,28 @@ def create_app():
                 static_folder='../static', 
                 template_folder='../templates')
     
-    # تحميل الإعدادات (تأكد أن Config تحتوي على SECRET_KEY)
+    # تحميل الإعدادات المركزية (تأكد من وجود SECRET_KEY في config.Config)
     app.config.from_object('config.Config')
     
-    # --- تفعيل الترسانة الدفاعية والخدمات ---
+    # --- تفعيل الترسانة الرقمية والخدمات المركزية ---
     db.init_app(app)
     login_manager.init_app(app)
-    csrf.init_app(app) # ✅ تعميد درع الحماية (هذا يحل خطأ csrf_token)
+    csrf.init_app(app)  # ✅ تفعيل الحماية: هذا السطر ينهي خطأ 'csrf_token' is undefined
     
     login_manager.login_view = 'admin.login'
     login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى الترسانة السيادية"
 
     with app.app_context():
-        # 1. استيراد الموديلات المطهّرة من النقطة المركزية
+        # 1. استيراد الموديلات المطهّرة لضمان وعي المحرك بها
         from .models import User, Supplier, SupplierStaff
         
-        # 2. بروتوكول تحديث الجداول (PostgreSQL Migration)
+        # 2. بروتوكول التحديث التلقائي للهيكل (Auto-Migration)
         try:
             db.create_all()
             
-            # تحديث حقول الموردين والمستخدمين (الخزينة الثلاثية والهوية الرقمية)
-            # تم إضافة حقل permissions و full_name لضمان استقرار نظام الطاقم
+            # قائمة التحديثات السيادية للجداول لضمان توافق Railway مع الكود الجديد
             db_updates = [
+                # جداول الموردين
                 ("suppliers", "email", "VARCHAR(150)"),
                 ("suppliers", "identity_image", "VARCHAR(255)"),
                 ("suppliers", "balance_yer", "NUMERIC(20, 2) DEFAULT 0.0"), 
@@ -41,20 +41,22 @@ def create_app():
                 ("suppliers", "balance_usd", "NUMERIC(20, 2) DEFAULT 0.0"), 
                 ("suppliers", "sovereign_id", "VARCHAR(100) UNIQUE"),       
                 ("suppliers", "tier", "VARCHAR(50) DEFAULT 'مبتدئ'"),
+                # جداول المستخدمين (نظام الحوكمة الجديد)
                 ("users", "full_name", "VARCHAR(150)"),
                 ("users", "permissions", "TEXT DEFAULT '{}'"),
-                ("users", "role", "VARCHAR(50) DEFAULT 'admin'")
+                ("users", "role", "VARCHAR(50) DEFAULT 'admin'"),
+                ("users", "last_ip", "VARCHAR(45)")
             ]
             
             for table, col_name, col_type in db_updates:
                 try:
                     db.session.execute(db.text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
                 except Exception:
-                    pass
+                    pass # تخطي في حال كان الحقل موجوداً مسبقاً
 
             db.session.commit()
             
-            # 3. بروتوكول التحقق من "القائد" وتعميد الهوية السيادية
+            # 3. بروتوكول تثبيت الهوية السيادية للقائد
             try:
                 boss = Supplier.query.filter_by(trade_name="علي محجوب").first()
                 if boss and not boss.sovereign_id:
@@ -71,13 +73,12 @@ def create_app():
             print(f"⚠️ عطل سيادي في التهيئة: {e}")
             db.session.rollback()
 
-        # 4. تسجيل لوحات التحكم (Admin Blueprint)
-        # يتم الاستيراد هنا لتجنب الاستيراد الدائري (Circular Import)
+        # 4. تسجيل البلوبرنتات لربط الواجهات بالمحرك
         from admin_panel import admin_bp
-        from admin_panel.staff_routes import staff_bp # تسجيل مسارات الطاقم
+        # تسجيل نظام الطاقم والخدمات لضمان تفعيل الروابط السيادية
+        from admin_panel import supplier_service_routes 
+        from admin_panel import staff_routes
         
         app.register_blueprint(admin_bp) 
-        # ملاحظة: staff_bp مسجل بالفعل داخل admin_panel/__init__.py 
-        # ولكن نضمن هنا وعي التطبيق به.
 
     return app
