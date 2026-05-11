@@ -11,8 +11,8 @@ def supplier_profile(supplier_id):
     """
     مسار إدارة بروفايل المورد السيادي:
     - GET: عرض بيانات المورد وطاقم العمل.
-    - POST (AJAX): تحديث الحقول بشكل فردي (الحفظ التلقائي).
-    - POST (Form): إضافة موظفين جدد لطاقم العمل.
+    - POST (AJAX): تحديث الحقول بشكل فردي (الحفظ التلقائي) لبيانات المورد الأساسية واسم المستخدم.
+    - POST (Form): إضافة موظفين جدد لطاقم العمل للكيان.
     """
     supplier = Supplier.query.get_or_404(supplier_id)
 
@@ -23,25 +23,32 @@ def supplier_profile(supplier_id):
             field = data.get('field')
             value = data.get('value')
             
-            # التأكد من وجود الحقل في كائن المورد
+            # منع تغيير المعرف السيادي أو كلمة المرور عبر هذا المسار لغرض الأمان اللحظي
+            if field == 'password':
+                return jsonify({
+                    "status": "error", 
+                    "message": "تغيير كلمة المرور يتطلب بروتوكولاً أمنياً منفصلاً."
+                }), 403
+
+            # التأكد من وجود الحقل في كائن المورد وتحديثه
             if hasattr(supplier, field):
                 setattr(supplier, field, value)
                 db.session.commit()
                 return jsonify({
                     "status": "success", 
-                    "message": "تم تعميد التحديث بنجاح في قاعدة البيانات."
+                    "message": f"تم تعميد تحديث {field} بنجاح."
                 })
             else:
                 return jsonify({
                     "status": "error", 
-                    "message": f"الحقل '{field}' غير موجود في نظام الموردين."
+                    "message": f"الحقل '{field}' غير موجود في مصفوفة بيانات المورد."
                 }), 400
                 
         except Exception as e:
             db.session.rollback()
             return jsonify({
                 "status": "error", 
-                "message": f"حدث خطأ في محرك التحديث: {str(e)}"
+                "message": f"عطل في محرك المزامنة: {str(e)}"
             }), 500
 
     # 2. بروتوكول إضافة موظف جديد (من نافذة المودال)
@@ -51,33 +58,39 @@ def supplier_profile(supplier_id):
             name = request.form.get('full_name')
             password = request.form.get('new_password')
             
-            # إنشاء عضو جديد في طاقم العمل
+            # التحقق من عدم تكرار اسم المستخدم في طاقم الموردين
+            existing_user = SupplierStaff.query.filter_by(username=username).first()
+            if existing_user:
+                flash(f"⚠️ اسم المستخدم {username} محجوز مسبقاً في النظام.", "danger")
+                return redirect(url_for('admin.supplier_profile', supplier_id=supplier_id))
+
+            # إنشاء عضو جديد في طاقم العمل وتشفير كلمة مروره
             new_staff = SupplierStaff(
                 supplier_id=supplier_id,
                 username=username,
                 name=name
             )
-            new_staff.set_password(password)
+            new_staff.set_password(password) # استخدام ميثود التشفير السيادية
             
             db.session.add(new_staff)
             db.session.commit()
-            flash(f"✅ تم إضافة الموظف {name} إلى طاقم العمل بنجاح.", "success")
+            flash(f"✅ تم تعميد الموظف {name} وإلحاقه بالكيان بنجاح.", "success")
             
         except Exception as e:
             db.session.rollback()
-            flash(f"⚠️ تعذر إضافة الموظف: {str(e)}", "danger")
+            flash(f"⚠️ فشلت عملية الإلحاق: {str(e)}", "danger")
             
         return redirect(url_for('admin.supplier_profile', supplier_id=supplier_id))
 
-    # 3. بروتوكول العرض (GET)
+    # 3. بروتوكول العرض السيادي (GET)
     return render_template(
         'suppliers/supplier_profile.html', 
         supplier=supplier
     )
 
 """
---- ملاحظات القيادة التقنية ---
-1. تم دمج DB Session مباشرة لضمان سرعة الحفظ دون الاعتماد على خدمات خارجية معطلة.
-2. المسار يدعم استقبال JSON لخدمة وظائف الـ JavaScript التي برمجناها في القالب.
-3. النظام الآن يربط تلقائياً بين واجهة "حوكمة البيانات" وقاعدة بيانات Postgres.
+--- بروتوكول الحماية والرقابة ---
+1. الحماية اللحظية: تم عزل تعديل كلمات المرور عن الحفظ التلقائي لضمان عدم تمرير نصوص خام (Plain Text).
+2. الشفافية: حقل 'username' الآن قابل للتعديل لحظياً ويرتبط مباشرة بقاعدة بيانات الهوية.
+3. التشفير: جميع كلمات المرور للموظفين المضافين تخضع لنظام التشفير الخاص بـ Core Models قبل دخولها الـ Postgres.
 """
