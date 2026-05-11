@@ -44,14 +44,19 @@ def create_app():
                 try:
                     db.session.execute(db.text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
                 except Exception:
-                    pass # يتجاهل العمود إذا كان موجوداً مسبقاً
+                    pass 
 
-            # تحديث جدول الموردين (Suppliers)
+            # تحديث جدول الموردين (Suppliers) ليشمل العملات الثلاث والهيكل الجديد
             supplier_updates = [
                 ("email", "VARCHAR(150)"),
                 ("identity_image", "VARCHAR(255)"),
                 ("created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
-                ("identity_type", "VARCHAR(50)")
+                ("identity_type", "VARCHAR(50)"),
+                ("balance_yer", "NUMERIC(20, 2) DEFAULT 0.0"), # تأمين العملة المحلية
+                ("balance_sar", "NUMERIC(20, 2) DEFAULT 0.0"), # تأمين العملة السعودية
+                ("balance_usd", "NUMERIC(20, 2) DEFAULT 0.0"), # تأمين العملة العالمية
+                ("sovereign_id", "VARCHAR(100) UNIQUE"),       # المعرف SUP-MHA
+                ("tier", "VARCHAR(50) DEFAULT 'مبتدئ'")
             ]
             
             for col_name, col_type in supplier_updates:
@@ -61,13 +66,23 @@ def create_app():
                     pass
 
             db.session.commit()
-            print("✅ تم استكمال الترسانة وإضافة الأعمدة المفقودة (created_at & is_active secured)")
+            print("✅ تم استكمال الترسانة وإضافة الأعمدة المفقودة (العملات الثلاث & الأكواد السيادية)")
             
         except Exception as e:
             print(f"⚠️ تنبيه أثناء تحديث الهيكل: {e}")
             db.session.rollback()
 
-        # 6. تسجيل لوحة تحكم الإدارة (Blueprint)
+        # 6. بروتوكول معالجة البيانات المفقودة (Data Migration Patch)
+        # هذا الجزء يضمن استدعاء الدالة الصحيحة لمنع خطأ 'mint_sovereign_id'
+        try:
+            missing_codes = Supplier.query.filter(Supplier.sovereign_id == None).all()
+            for s in missing_codes:
+                s.generate_sovereign_codes() # الدالة الصحيحة في الموديل
+            db.session.commit()
+        except:
+            db.session.rollback()
+
+        # 7. تسجيل لوحة تحكم الإدارة (Blueprint)
         try:
             from admin_panel import admin_bp
             app.register_blueprint(admin_bp) 
