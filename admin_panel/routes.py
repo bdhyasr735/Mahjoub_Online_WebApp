@@ -3,7 +3,8 @@ from flask import render_template, redirect, url_for, request, jsonify, flash
 from flask_login import login_required, logout_user
 from . import admin_bp
 
-# استدعاء الخدمات (النظام المنفصل - الترسانة التقنية)
+# 🛡️ استدعاء الخدمات السيادية (الترسانة التقنية)
+# ملاحظة: استدعاء دالة التعديل supplier_profile يتم عبر الملف المنفصل supplier_service_routes.py
 from core.services.supplier_service import get_all_suppliers, create_supplier, get_next_supplier_id
 from core.services.stats_service import get_admin_dashboard_stats
 from .auth import login_view 
@@ -22,12 +23,12 @@ def login():
 @admin_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """ استدعاء الإحصائيات الشاملة من محرك الإحصائيات لعرضها في الرادار """
+    """ عرض الرادار الشامل والإحصائيات الحية للكيانات """
     try:
         stats = get_admin_dashboard_stats()
         return render_template('admin/dashboard.html', **stats)
     except Exception as e:
-        # بروتوكول الطوارئ: تأمين اللوحة في حال فشل الاستعلامات المباشرة
+        # بروتوكول الطوارئ: تأمين اللوحة بالقيم الصفرية في حال تعثر المحرك
         return render_template('admin/dashboard.html', 
                                error=str(e), 
                                users_count=0, 
@@ -37,12 +38,12 @@ def dashboard():
                                total_usd=0.0)
 
 # ==========================================
-# 3. إدارة الموردين (القائمة السيادية)
+# 3. رادار الموردين (القائمة السيادية)
 # ==========================================
 @admin_bp.route('/suppliers')
 @login_required
 def manage_suppliers():
-    """ جلب قائمة الموردين المعتمدين وإحصائيات الرتب من الخدمة المختصة """
+    """ عرض قائمة الكيانات المعتمدة وإحصائيات الرتب """
     try:
         data = get_all_suppliers()
         return render_template('admin/manage_suppliers.html', **data)
@@ -56,24 +57,26 @@ def manage_suppliers():
 @admin_bp.route('/suppliers/add', methods=['GET', 'POST'])
 @login_required
 def add_supplier():
-    """ معالجة بروتوكول الإرسال والتعميد والأرشفة الرقمية """
+    """ معالجة بروتوكول الإرسال والتعميد والأرشفة الرقمية لمورد جديد """
     if request.method == 'POST':
+        # استقبال البيانات سواء كانت JSON أو Form
         data = request.get_json() if request.is_json else request.form.to_dict()
         
         if not data:
-            return jsonify({"status": "error", "message": "عذراً، لم يتم استلام بيانات صالحة للتعميد."}), 400
+            return jsonify({"status": "error", "message": "لم يتم استلام بيانات صالحة للتعميد."}), 400
             
+        # تنفيذ عملية الإنشاء عبر الخدمة المختصة
         success, result = create_supplier(data)
         
         if success:
             return jsonify({
                 "status": "success", 
-                "message": f"تم التعميد بنجاح للمورد: {result}"
+                "message": f"تم تعميد المورد بنجاح: {result}"
             })
         
         return jsonify({"status": "error", "message": result}), 500
 
-    # في حالة الـ GET: نجهز واجهة الإضافة
+    # في حالة العرض: جلب الرقم التسلسلي القادم تلقائياً
     next_id = get_next_supplier_id()
     return render_template('admin/add_supplier.html', next_id=next_id)
 
@@ -85,8 +88,12 @@ def add_supplier():
 def logout():
     """ إنهاء الجلسة وإعادة تشغيل وضع الحماية """
     logout_user()
-    flash("تم تسجيل الخروج. النظام في وضع الحماية الآن.", "info")
+    flash("تم تسجيل الخروج بنجاح. النظام الآن تحت الحماية.", "info")
     return redirect(url_for('admin.login'))
 
-# ملاحظة: دالة supplier_profile تم نقلها إلى supplier_service_routes.py
-# لضمان فصل منطق التعديل عن منطق العرض العام.
+"""
+--- توثيق الاستقرار (القائد علي محجوب) ---
+- تم فصل مسار 'supplier_profile' ليكون في 'supplier_service_routes.py'.
+- تم ربط كافة المسارات بالخدمات (Services) لضمان Clean Architecture.
+- النظام جاهز للنشر (Deployment) على Railway بدون تداخلات.
+"""
