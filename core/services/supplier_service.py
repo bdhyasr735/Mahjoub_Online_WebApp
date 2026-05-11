@@ -1,9 +1,9 @@
 # core/services/supplier_service.py
 from core import db
-from core.models.supplier import Supplier
+from core.models.supplier import Supplier, SupplierStaff
+from core.models.user import User
 import logging
 
-# إعداد السجلات لمراقبة العمليات السيادية
 logger = logging.getLogger(__name__)
 
 def get_all_suppliers():
@@ -40,7 +40,7 @@ def create_supplier(data):
         password = data.get('password') or '123456'
         new_supplier.set_password(password)
         
-        # استخدام الدالة المعتمدة في الموديل
+        # توليد المعرفات السيادية (SUP-MHA & WEL-MAH)
         new_supplier.generate_sovereign_codes()
         
         db.session.add(new_supplier)
@@ -51,30 +51,43 @@ def create_supplier(data):
         db.session.rollback()
         return False, str(e)
 
-def update_supplier_profile(supplier_id, data):
-    """ بروتوكول تحديث بيانات الكيان مع نظام تتبع (Debug) """
+def update_supplier_field(supplier_id, field, value):
+    """ بروتوكول الحفظ التلقائي - تحديث حقل واحد فقط لسرعة الأداء """
     try:
-        logger.info(f"🔍 محاولة تحديث المورد {supplier_id}. البيانات: {data}")
         supplier = Supplier.query.get(supplier_id)
         if not supplier:
             return False, "الكيان غير موجود"
-
-        # تحديث الحقول الأساسية
-        supplier.trade_name = data.get('trade_name', supplier.trade_name)
-        supplier.owner_name = data.get('owner_name', supplier.owner_name)
-        supplier.email = data.get('email', supplier.email)
-        supplier.phone = data.get('phone', supplier.phone)
         
-        # تحديث الموقع
-        supplier.province = data.get('province', supplier.province)
-        supplier.district = data.get('district', supplier.district)
-
-        db.session.commit()
-        logger.info(f"✅ تم الحفظ بنجاح للكيان: {supplier.trade_name}")
-        return True, "تم الحفظ بنجاح"
+        if hasattr(supplier, field):
+            setattr(supplier, field, value)
+            db.session.commit()
+            return True, "تم التعميد بنجاح"
+        return False, "الحقل غير موجود"
     except Exception as e:
         db.session.rollback()
-        logger.error(f"⚠️ فشل التحديث: {str(e)}")
+        return False, str(e)
+
+def add_staff_to_supplier(supplier_id, staff_data):
+    """ نظام إضافة موظفين تابعين لكيان المورد """
+    try:
+        # التحقق من عدم تكرار اسم المستخدم في نظام المستخدمين العام
+        existing = User.query.filter_by(username=staff_data.get('username')).first()
+        if existing:
+            return False, "اسم المستخدم محجوز مسبقاً"
+
+        new_staff = User(
+            username=staff_data.get('username'),
+            full_name=staff_data.get('name'),
+            role='employee', # رتبة موظف مورد
+            supplier_id=supplier_id
+        )
+        new_staff.set_password(staff_data.get('password'))
+        
+        db.session.add(new_staff)
+        db.session.commit()
+        return True, "تم إضافة الموظف لطاقم العمل"
+    except Exception as e:
+        db.session.rollback()
         return False, str(e)
 
 def get_next_supplier_id():
