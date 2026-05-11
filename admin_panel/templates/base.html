@@ -186,14 +186,27 @@
             </a>
 
             <div class="nav-item">
-                <div class="nav-link {% if 'supplier' in request.endpoint %}active{% endif %}" style="cursor:pointer" onclick="toggleDropdown(this)">
+                <div class="nav-link {% if 'supplier' in request.endpoint and 'staff' not in request.endpoint %}active{% endif %}" style="cursor:pointer" onclick="toggleDropdown(this)">
                     <i class="fas fa-handshake-angle"></i>
                     <span>حوكمة الموردين</span>
-                    <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s; {% if 'supplier' in request.endpoint %}transform: rotate(180deg);{% endif %}"></i>
+                    <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s; {% if 'supplier' in request.endpoint and 'staff' not in request.endpoint %}transform: rotate(180deg);{% endif %}"></i>
                 </div>
-                <ul class="dropdown-content" style="{% if 'supplier' in request.endpoint %}display: block;{% endif %}">
+                <ul class="dropdown-content" style="{% if 'supplier' in request.endpoint and 'staff' not in request.endpoint %}display: block;{% endif %}">
                     <li><a href="{{ url_for('admin.add_supplier') }}"><i class="fas fa-plus-circle me-1"></i> تعميد كيان جديد</a></li>
                     <li><a href="{{ url_for('admin.manage_suppliers') }}"><i class="fas fa-list-check me-1"></i> الموردون المعتمدون</a></li>
+                </ul>
+            </div>
+
+            <div class="nav-item">
+                <div class="nav-link {% if 'staff' in request.endpoint or 'permissions' in request.endpoint %}active{% endif %}" style="cursor:pointer" onclick="toggleDropdown(this)">
+                    <i class="fas fa-user-shield"></i>
+                    <span>حوكمة الصلاحيات</span>
+                    <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.4s; {% if 'staff' in request.endpoint or 'permissions' in request.endpoint %}transform: rotate(180deg);{% endif %}"></i>
+                </div>
+                <ul class="dropdown-content" style="{% if 'staff' in request.endpoint or 'permissions' in request.endpoint %}display: block;{% endif %}">
+                    <li><a href="#"><i class="fas fa-users-gear me-1"></i> طاقم الإدارة العليا</a></li>
+                    <li><a href="#"><i class="fas fa-users-viewfinder me-1"></i> طاقم الكيانات</a></li>
+                    <li><a href="#"><i class="fas fa-key me-1"></i> مصفوفة الرتب</a></li>
                 </ul>
             </div>
 
@@ -245,6 +258,9 @@
             const chevron = element.querySelector('.chevron');
             const isOpen = content.style.display === "block";
             
+            // إغلاق أي قوائم أخرى مفتوحة (اختياري لزيادة التنظيم)
+            // document.querySelectorAll('.dropdown-content').forEach(el => el.style.display = 'none');
+
             content.style.display = isOpen ? "none" : "block";
             if(chevron) chevron.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
         }
