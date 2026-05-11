@@ -98,3 +98,19 @@ def logout():
     logout_user()
     flash("تم تسجيل الخروج. النظام في وضع الحماية الآن.", "info")
     return redirect(url_for('admin.login'))
+
+@admin_bp.route('/suppliers/profile/<int:supplier_id>')
+@login_required
+def supplier_profile(supplier_id):
+    from core.models.supplier import Supplier
+    try:
+        # جلب المورد
+        supplier = Supplier.query.get_or_404(supplier_id)
+        
+        # ملاحظة: تأكد أن الموديل يحتوي على sovereign_id وليس mint_sovereign_id
+        return render_template('suppliers/supplier_profile.html', supplier=supplier)
+        
+    except Exception as e:
+        # تسجيل الخطأ في حالة فشل قاعدة البيانات
+        print(f"Error accessing supplier {supplier_id}: {str(e)}")
+        return "حدث خطأ في الاتصال بقاعدة البيانات السيادية", 500
