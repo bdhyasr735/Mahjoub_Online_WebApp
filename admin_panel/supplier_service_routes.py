@@ -2,7 +2,6 @@
 from flask import render_template, request, jsonify
 from flask_login import login_required
 from admin_panel import admin_bp
-from core.services.supplier_service import update_supplier_profile
 from core.models.supplier import Supplier
 
 @admin_bp.route('/suppliers/profile/<int:supplier_id>', methods=['GET', 'POST'])
@@ -14,20 +13,22 @@ def supplier_profile(supplier_id):
     - POST: استقبال طلبات التحديث وتعميدها عبر المحرك المستقل.
     """
     
-    # 1. التعامل مع طلبات التعديل (POST) القادمة من AJAX
+    # 1. بروتوكول التحديث (POST) القادم من AJAX
     if request.method == 'POST':
+        # استدعاء المحرك هنا داخلياً لكسر دائرة الاستيراد (Circular Import Prevention)
+        from core.services.supplier_service import update_supplier_profile
+        
         try:
-            # استخراج البيانات من الفورم
+            # استخراج البيانات من الفورم القادم عبر الطلب
             data = request.form.to_dict()
             
-            # استدعاء المحرك المستقل للتنفيذ في قاعدة البيانات
-            # نمرر المعرف والبيانات للمحرك لضمان الحوكمة
+            # تنفيذ عملية التعميد في قاعدة البيانات
             success, message = update_supplier_profile(supplier_id, data)
             
             if success:
                 return jsonify({
                     "status": "success", 
-                    "message": "تم تعميد التحديثات بنجاح في السجلات السيادية"
+                    "message": "تم تعميد التحديثات بنجاح في السجلات السيادية."
                 })
             else:
                 return jsonify({
@@ -41,8 +42,8 @@ def supplier_profile(supplier_id):
                 "message": f"خطأ في الاتصال بالمحرك: {str(e)}"
             }), 500
 
-    # 2. التعامل مع طلبات العرض (GET)
-    # جلب بيانات المورد أو إظهار صفحة 404 إذا لم يوجد
+    # 2. بروتوكول العرض (GET)
+    # جلب بيانات الكيان أو إظهار 404 في حال عدم الوجود
     supplier = Supplier.query.get_or_404(supplier_id)
     
     return render_template(
