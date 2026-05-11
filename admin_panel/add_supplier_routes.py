@@ -8,11 +8,10 @@ from core.models.supplier import Supplier
 @admin_bp.route('/suppliers/add', methods=['GET', 'POST'])
 @login_required
 def add_supplier():
-    """مسار التعميد السيادي للموردين - نسخة الحماية v4.0"""
+    """مسار التعميد السيادي للموردين - نسخة الاستقرار v4.7"""
     if request.method == 'POST':
         try:
-            # إرسال البيانات للمحرك المتخصص
-            # تأكد من أن المحرك لا ينهار داخلياً
+            # تمرير request.form للمحرك (تم تدعيمه للتعامل مع كافة الحقول)
             success, result = create_new_supplier(request.form)
             
             if success:
@@ -21,17 +20,17 @@ def add_supplier():
                     "message": f"تم التعميد بنجاح! المعرف السيادي: {result}"
                 })
             else:
-                # إرسال الخطأ بتنسيق JSON واضح للواجهة
+                # إرسال تفاصيل الفشل النصية (لتجنب JSON.parse error)
                 return jsonify({
                     "status": "error", 
                     "message": f"فشل التعميد: {result}"
-                }), 400 # تغيير الكود من 500 إلى 400 ليكون أكثر دقة
+                }), 400
 
         except Exception as e:
-            # خط الدفاع الأخير: منع إرسال صفحة HTML في حالة انهيار الكود
+            # حماية قصوى: الرد دائماً بـ JSON
             return jsonify({
                 "status": "error",
-                "message": f"خطأ غير متوقع في الخادم: {str(e)}"
+                "message": f"عطل غير متوقع في البوابة: {str(e)}"
             }), 500
 
     # حساب المعرف القادم للعرض في الواجهة (للعرض فقط)
@@ -61,6 +60,7 @@ def search_suppliers_api():
 
         output = []
         for s in suppliers:
+            # تحويل البيانات إلى JSON مع معالجة القيم الفارغة
             output.append({
                 "id": s.id,
                 "sovereign_id": s.sovereign_id or f"SUP_{s.id}#",
