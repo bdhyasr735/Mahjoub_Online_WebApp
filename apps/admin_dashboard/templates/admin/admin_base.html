@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}القيادة المركزية | محجوب أونلاين{% endblock %}</title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
@@ -18,68 +19,142 @@
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        body { font-family: 'Cairo', sans-serif; background: #f4f6f9; margin: 0; display: flex; overflow-x: hidden; }
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background: #f4f6f9; 
+            margin: 0; 
+            display: flex; 
+            overflow-x: hidden; 
+            direction: rtl;
+        }
 
-        /* اللوجو الأبيض */
+        /* اللوجو الأبيض الناصع */
         .logo-img { 
-            width: 70px; height: auto; margin-bottom: 15px; 
-            filter: brightness(0) invert(1); /* جعل اللوجو أبيض بالكامل */
+            width: 70px; 
+            height: auto; 
+            margin-bottom: 15px; 
+            filter: brightness(0) invert(1); /* تحويل اللوجو للون الأبيض ليتناسب مع الخلفية الداكنة */
         }
 
         /* القائمة الجانبية المستجيبة */
         .sidebar {
             width: var(--sidebar-width);
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
-            height: 100vh; position: fixed; right: 0; top: 0; z-index: 1100;
+            height: 100vh; 
+            position: fixed; 
+            right: 0; 
+            top: 0; 
+            z-index: 1100;
             transition: var(--transition);
+            box-shadow: -5px 0 25px rgba(0,0,0,0.5);
         }
 
+        /* تنسيق الجوال والتابلت */
         @media (max-width: 991px) {
             .sidebar { right: calc(-1 * var(--sidebar-width)); }
             .sidebar.active { right: 0; }
             .main-wrapper { margin-right: 0 !important; width: 100% !important; }
         }
 
-        .nav-menu { padding: 1rem; }
+        .sidebar-header { padding: 2rem 1rem; border-bottom: 1px solid rgba(212, 175, 55, 0.1); }
+
+        .nav-menu { padding: 1rem; flex-grow: 1; }
+        
         .nav-link, .dropdown-btn {
-            display: flex; align-items: center; padding: 12px 15px;
-            color: rgba(255, 255, 255, 0.7); text-decoration: none;
-            border-radius: 12px; margin-bottom: 5px; transition: var(--transition);
-            cursor: pointer; border: none; background: transparent; width: 100%;
+            display: flex; 
+            align-items: center; 
+            padding: 12px 15px;
+            color: rgba(255, 255, 255, 0.7); 
+            text-decoration: none;
+            border-radius: 12px; 
+            margin-bottom: 5px; 
+            transition: var(--transition);
+            cursor: pointer; 
+            border: none; 
+            background: transparent; 
+            width: 100%;
+            font-weight: 600;
         }
 
-        .nav-link:hover, .dropdown-btn:hover { background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold); }
+        .nav-link:hover, .dropdown-btn:hover, .nav-link.active { 
+            background: rgba(212, 175, 55, 0.15); 
+            color: var(--mahjoub-gold); 
+        }
+
+        /* القائمة المنسدلة الذكية */
+        .dropdown-container { 
+            display: none; 
+            background: rgba(0,0,0,0.2); 
+            border-radius: 10px; 
+            margin-bottom: 10px; 
+            overflow: hidden;
+        }
         
-        /* القائمة المنسدلة */
-        .dropdown-container { display: none; background: rgba(0,0,0,0.2); border-radius: 10px; margin-bottom: 10px; }
-        .dropdown-container a { padding: 10px 45px; font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); display: block; text-decoration: none; transition: 0.3s; }
-        .dropdown-container a:hover { color: var(--mahjoub-gold); }
+        .dropdown-container a { 
+            padding: 10px 45px; 
+            font-size: 0.9rem; 
+            color: rgba(255, 255, 255, 0.6); 
+            display: block; 
+            text-decoration: none; 
+            transition: 0.3s; 
+        }
         
-        .fa-chevron-left { transition: var(--transition); font-size: 0.8rem; margin-right: auto; }
+        .dropdown-container a:hover { 
+            color: var(--mahjoub-gold); 
+            background: rgba(255,255,255,0.05); 
+        }
+        
+        .fa-chevron-left { 
+            transition: var(--transition); 
+            font-size: 0.8rem; 
+            margin-right: auto; 
+        }
+        
         .rotate { transform: rotate(-90deg); }
 
+        /* منطقة المحتوى الرئيسي */
         .main-wrapper { 
-            margin-right: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); 
-            min-height: 100vh; transition: var(--transition);
+            margin-right: var(--sidebar-width); 
+            width: calc(100% - var(--sidebar-width)); 
+            min-height: 100vh; 
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
         }
 
-        .top-bar { background: white; height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .top-bar { 
+            background: white; 
+            height: 70px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 0 1.5rem; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+        }
         
-        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer; color: var(--royal-purple); }
+        .menu-toggle { 
+            display: none; 
+            font-size: 1.5rem; 
+            cursor: pointer; 
+            color: var(--royal-purple); 
+        }
+        
         @media (max-width: 991px) { .menu-toggle { display: block; } }
+
+        .user-info { font-weight: 800; color: var(--royal-purple); }
     </style>
 </head>
 <body>
 
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header text-center p-4 border-bottom border-secondary">
+        <div class="sidebar-header text-center">
             <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="logo-img" alt="Logo">
             <h2 class="text-white h5 fw-bold mb-0">محجوب أونلاين</h2>
-            <small style="color: var(--mahjoub-gold);">السيادة المطلقة للمؤسس</small>
+            <small style="color: var(--mahjoub-gold); font-weight: 700;">السيادة المطلقة للمؤسس</small>
         </div>
 
         <nav class="nav-menu">
-            <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
                 <i class="fas fa-tower-observation me-2"></i> <span>مركز المراقبة</span>
             </a>
 
@@ -90,12 +165,15 @@
                     <i class="fas fa-chevron-left" id="arrow"></i>
                 </button>
                 <div class="dropdown-container" id="supplierDropdown">
-                    <a href="{{ url_for('add_supplier.save_supplier') }}"><i class="fas fa-plus-circle me-2"></i> إضافة مورد جديد</a>
+                    <a href="{{ url_for('add_supplier.save_supplier') }}">
+                        <i class="fas fa-plus-circle me-2"></i> إضافة مورد جديد
+                    </a>
                     <a href="#"><i class="fas fa-list-check me-2"></i> إدارة الموردين</a>
                 </div>
             </div>
 
-            <hr class="text-secondary">
+            <hr style="border-color: rgba(212, 175, 55, 0.2); margin: 15px 0;">
+
             <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger">
                 <i class="fas fa-power-off me-2"></i> <span>خروج آمن</span>
             </a>
@@ -105,7 +183,10 @@
     <main class="main-wrapper">
         <header class="top-bar">
             <div class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
-            <div class="user-info fw-bold text-dark">علي محجوب | <small class="text-muted">المؤسس</small></div>
+            
+            <div class="user-profile d-flex align-items-center gap-3">
+                <div class="user-info">علي محجوب | <small class="text-muted">المؤسس</small></div>
+            </div>
         </header>
 
         <div class="p-4">
@@ -117,13 +198,33 @@
         function toggleDropdown() {
             const dropdown = document.getElementById("supplierDropdown");
             const arrow = document.getElementById("arrow");
-            dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-            arrow.classList.toggle("rotate");
+            // تبديل ظهور القائمة
+            if (dropdown.style.display === "block") {
+                dropdown.style.display = "none";
+                arrow.classList.remove("rotate");
+            } else {
+                dropdown.style.display = "block";
+                arrow.classList.add("rotate");
+            }
         }
 
         function toggleSidebar() {
+            // فتح وإغلاق القائمة الجانبية في الجوال
             document.getElementById("sidebar").classList.toggle("active");
         }
+
+        // إغلاق القائمة الجانبية عند النقر خارجها في الجوال
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById("sidebar");
+            const toggle = document.querySelector(".menu-toggle");
+            if (window.innerWidth <= 991) {
+                if (!sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains("active")) {
+                    sidebar.classList.remove("active");
+                }
+            }
+        });
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
