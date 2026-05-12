@@ -1,1 +1,25 @@
 
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}مركز المراقبة | محجوب أونلاين{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h3 class="mb-4" style="color: var(--royal-purple); font-weight: 900;">
+                <i class="fas fa-tower-observation me-2"></i> مركز المراقبة والتحكم بالأنظمة
+            </h3>
+            
+            <div class="card shadow-sm border-0" style="border-radius: 15px; background: white;">
+                <div class="card-body p-4">
+                    <div class="alert alert-mahjoub mb-0">
+                        <i class="fas fa-crown me-2"></i>
+                        أهلاً بك يا قائد. تم تفعيل الأنظمة الإدارية بنجاح، وجميع الوحدات بانتظار أوامرك.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
