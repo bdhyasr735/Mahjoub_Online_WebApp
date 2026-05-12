@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}القيادة المركزية | محجوب أونلاين{% endblock %}</title>
+    <title id="page-title">{% block title %}القيادة المركزية | محجوب أونلاين{% endblock %}</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -28,6 +28,7 @@
             direction: rtl;
         }
 
+        /* تنسيق اللوجو */
         .logo-img { 
             width: 70px; 
             height: auto; 
@@ -35,6 +36,7 @@
             filter: brightness(0) invert(1); 
         }
 
+        /* القائمة الجانبية */
         .sidebar {
             width: var(--sidebar-width);
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
@@ -108,6 +110,7 @@
         
         .rotate { transform: rotate(-90deg); }
 
+        /* منطقة المحتوى الرئيسية */
         .main-wrapper { 
             margin-right: var(--sidebar-width); 
             width: calc(100% - var(--sidebar-width)); 
@@ -137,9 +140,24 @@
         @media (max-width: 991px) { .menu-toggle { display: block; } }
 
         .user-info { font-weight: 800; color: var(--royal-purple); }
+
+        /* مؤشر التحميل */
+        #loader {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+        }
     </style>
 </head>
 <body>
+
+    <!-- مؤشر التحميل -->
+    <div id="loader">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; color: var(--mahjoub-gold) !important;"></div>
+    </div>
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header text-center">
@@ -160,7 +178,8 @@
                     <i class="fas fa-chevron-left" id="arrow"></i>
                 </button>
                 <div class="dropdown-container" id="supplierDropdown">
-                    <a href="{{ url_for('add_supplier.save_supplier') }}">
+                    <!-- تم تعديل الرابط لاستدعاء دالة AJAX -->
+                    <a href="javascript:void(0);" onclick="loadPage('{{ url_for('add_supplier.save_supplier') }}')">
                         <i class="fas fa-plus-circle me-2"></i> إضافة مورد جديد
                     </a>
                     <a href="#"><i class="fas fa-list-check me-2"></i> إدارة الموردين</a>
@@ -184,28 +203,71 @@
             </div>
         </header>
 
-        <div class="p-4">
+        <!-- منطقة المحتوى الديناميكية -->
+        <div class="p-4" id="main-content">
             {% block content %}{% endblock %}
         </div>
     </main>
 
     <script>
+        // 1. وظائف القائمة الجانبية
         function toggleDropdown() {
             const dropdown = document.getElementById("supplierDropdown");
             const arrow = document.getElementById("arrow");
-            if (dropdown.style.display === "block") {
-                dropdown.style.display = "none";
-                arrow.classList.remove("rotate");
-            } else {
-                dropdown.style.display = "block";
-                arrow.classList.add("rotate");
-            }
+            dropdown.style.display = (dropdown.style.display === "block") ? "none" : "block";
+            arrow.classList.toggle("rotate");
         }
 
         function toggleSidebar() {
             document.getElementById("sidebar").classList.toggle("active");
         }
 
+        // 2. محرك AJAX لتحميل الصفحات داخل الدوشبورد
+        async function loadPage(url) {
+            const contentArea = document.getElementById('main-content');
+            const loader = document.getElementById('loader');
+            
+            loader.style.display = 'block'; // إظهار التحميل
+            contentArea.style.opacity = '0.5';
+
+            try {
+                const response = await fetch(url);
+                const html = await response.text();
+                
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // تحديث العنوان
+                document.getElementById('page-title').innerText = doc.title;
+                
+                // جلب محتوى الحاوية الجديدة (form-container)
+                const newContent = doc.querySelector('.form-container') || doc.body;
+                contentArea.innerHTML = newContent.outerHTML;
+                
+                // إعادة تشغيل السكريبتات لضمان عمل الـ Validation و SweetAlert
+                const scripts = doc.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                    document.body.appendChild(newScript);
+                });
+
+                // تحديث رابط المتصفح دون إعادة تحميل
+                window.history.pushState({path: url}, '', url);
+                
+                if (window.innerWidth <= 991) toggleSidebar(); // غلق القائمة في الجوال بعد الاختيار
+
+            } catch (err) {
+                console.error("فشل تحميل الصفحة:", err);
+                contentArea.innerHTML = `<div class="alert alert-danger text-center">حدث خطأ أثناء تحميل الصفحة السيادية.</div>`;
+            } finally {
+                loader.style.display = 'none';
+                contentArea.style.opacity = '1';
+            }
+        }
+
+        // إغلاق القائمة عند النقر خارجها في الجوال
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById("sidebar");
             const toggle = document.querySelector(".menu-toggle");
