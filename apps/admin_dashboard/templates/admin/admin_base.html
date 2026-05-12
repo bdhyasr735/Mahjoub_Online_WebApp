@@ -28,15 +28,13 @@
             direction: rtl;
         }
 
-        /* اللوجو الأبيض الناصع */
         .logo-img { 
             width: 70px; 
             height: auto; 
             margin-bottom: 15px; 
-            filter: brightness(0) invert(1); /* تحويل اللوجو للون الأبيض ليتناسب مع الخلفية الداكنة */
+            filter: brightness(0) invert(1); 
         }
 
-        /* القائمة الجانبية المستجيبة */
         .sidebar {
             width: var(--sidebar-width);
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
@@ -49,7 +47,6 @@
             box-shadow: -5px 0 25px rgba(0,0,0,0.5);
         }
 
-        /* تنسيق الجوال والتابلت */
         @media (max-width: 991px) {
             .sidebar { right: calc(-1 * var(--sidebar-width)); }
             .sidebar.active { right: 0; }
@@ -81,7 +78,6 @@
             color: var(--mahjoub-gold); 
         }
 
-        /* القائمة المنسدلة الذكية */
         .dropdown-container { 
             display: none; 
             background: rgba(0,0,0,0.2); 
@@ -112,7 +108,6 @@
         
         .rotate { transform: rotate(-90deg); }
 
-        /* منطقة المحتوى الرئيسي */
         .main-wrapper { 
             margin-right: var(--sidebar-width); 
             width: calc(100% - var(--sidebar-width)); 
@@ -198,7 +193,6 @@
         function toggleDropdown() {
             const dropdown = document.getElementById("supplierDropdown");
             const arrow = document.getElementById("arrow");
-            // تبديل ظهور القائمة
             if (dropdown.style.display === "block") {
                 dropdown.style.display = "none";
                 arrow.classList.remove("rotate");
@@ -209,11 +203,9 @@
         }
 
         function toggleSidebar() {
-            // فتح وإغلاق القائمة الجانبية في الجوال
             document.getElementById("sidebar").classList.toggle("active");
         }
 
-        // إغلاق القائمة الجانبية عند النقر خارجها في الجوال
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById("sidebar");
             const toggle = document.querySelector(".menu-toggle");
