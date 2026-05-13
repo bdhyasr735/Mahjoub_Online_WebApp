@@ -1,136 +1,64 @@
-{% extends "admin/admin_base.html" %}
+{% extends "admin_base.html" %}
+
+{% block title %}مركز المراقبة | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<!-- المكونات البرمجية والأنماط (نفس الـ CSS الخاص بك مع تعديلات طفيفة للتوافق) -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-<style>
-    /* ... (احتفظ بكامل ستايل الـ CSS الخاص بك هنا) ... */
-    :root {
-        --gov-purple: #632C8F;
-        --gov-gold: #C5A021;
-        --accent-green: #10b981;
-        --input-bg: #f8fafc;
-    }
-    .form-container { max-width: 1100px; margin: 20px auto; background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
-    /* ... بقية الستايلات ... */
-</style>
-
-<div class="form-container" id="mainContainer">
-    <div class="form-header">
-        <div>
-            <h2 style="margin:0; font-weight: 900;">🛡️ نظام التعميد السيادي</h2>
-            <small style="opacity: 0.9;">أرشفة مورد جديد في ترسانة محجوب أونلاين</small>
-        </div>
-        <div style="text-align:left; background: rgba(255,255,255,0.15); padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.3);">
-            <small>المعرف السيادي القادم</small><br>
-            <strong id="sovereign_id_display" style="font-size:1.4rem; color:var(--gov-gold);">SUP-MHA_{{ next_id }}</strong>
-        </div>
-    </div>
-
-    <div class="back-nav">
-        <!-- تصحيح رابط العودة ليشير إلى تطبيق الدوشبورد -->
-        <a href="{{ url_for('admin_dashboard.list_suppliers') }}" class="btn-back-gov">
-            <i class="fas fa-arrow-right"></i> العودة لسجل الموردين
-        </a>
-    </div>
-
-    <!-- تصحيح الـ Action ليشير إلى البلوبرينت المستقل للموردين -->
-    <form id="sovereignForm" action="{{ url_for('admin_suppliers.add_supplier') }}" method="POST" enctype="multipart/form-data">
-        
-        <!-- قسم الهوية الرقمية -->
-        <div class="section-banner"><i class="fas fa-user-shield"></i> بيانات الهوية الرقمية والنشاط</div>
-        <div class="grid-layout">
-            <div class="input-box">
-                <label>اسم المستخدم (للدخول)</label>
-                <input type="text" name="username" class="form-control-gov" placeholder="مثال: AlQemma_Tech" required>
-            </div>
-            <div class="input-box">
-                <label>كلمة المرور المؤقتة</label>
-                <input type="text" name="password" value="123456" class="form-control-gov" required>
-            </div>
-            <div class="input-box">
-                <label>تصنيف النشاط</label>
-                <select id="activity_select" name="activity_type" class="form-control-gov" required>
-                    <option value="مواد غذائية">مواد غذائية</option>
-                    <option value="إلكترونيات">إلكترونيات</option>
-                    <option value="ملابس">ملابس</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- قسم المالك والتوثيق -->
-        <div class="section-banner"><i class="fas fa-id-card"></i> بيانات المالك والتوثيق الرسمي</div>
-        <div class="grid-layout">
-            <div class="input-box" style="grid-column: span 2;">
-                <label>اسم المالك الكامل</label>
-                <input type="text" name="owner_name" class="form-control-gov" required>
-            </div>
-            <div class="input-box">
-                <label>صورة الهوية</label>
-                <input type="file" name="identity_image" id="identity_image" accept="image/*" style="display:none;" onchange="updateFileName(this)">
-                <div class="file-upload-wrapper" onclick="document.getElementById('identity_image').click()">
-                    <i class="fas fa-camera fa-2x"></i><br>
-                    <span id="file-name-display">اضغط لرفع صورة الوثيقة</span>
+<!-- بداية منطقة المحتوى التي يتم جلبها عبر AJAX -->
+<div id="main-content">
+    <div class="row g-4">
+        <!-- كرت إحصائي 1 -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3" style="border-right: 5px solid var(--mahjoub-gold) !important;">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box bg-light p-3 rounded-3 me-3">
+                        <i class="fas fa-users fa-2x text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">المستخدمين النشطين</h6>
+                        <h3 class="fw-bold mb-0">1,250</h3>
+                    </div>
                 </div>
             </div>
-            <div class="input-box">
-                <label>رقم الهاتف</label>
-                <input type="tel" name="phone" class="form-control-gov" placeholder="7xxxxxxxx" required>
+        </div>
+
+        <!-- كرت إحصائي 2 -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3" style="border-right: 5px solid var(--mahjoub-gold) !important;">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box bg-light p-3 rounded-3 me-3">
+                        <i class="fas fa-shopping-cart fa-2x text-success"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">الطلبات اليومية</h6>
+                        <h3 class="fw-bold mb-0">85</h3>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div style="padding: 40px 30px;">
-            <button type="submit" id="submitBtn" class="btn-gov">🛡️ إتمام التعميد والأرشفة</button>
+        <!-- كرت إحصائي 3 -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3" style="border-right: 5px solid var(--mahjoub-gold) !important;">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box bg-light p-3 rounded-3 me-3">
+                        <i class="fas fa-chart-line fa-2x text-warning"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">حالة النظام</h6>
+                        <h3 class="fw-bold mb-0 text-success">مستقر</h3>
+                    </div>
+                </div>
+            </div>
         </div>
-    </form>
+    </div>
+
+    <!-- قسم الرسالة الترحيبية -->
+    <div class="mt-5 p-5 bg-white rounded-4 shadow-sm text-center">
+        <h2 class="fw-bold" style="color: var(--royal-purple);">مرحباً بك في القيادة المركزية</h2>
+        <p class="text-muted">هنا يمكنك إدارة كافة عمليات "محجوب أونلاين" السيادية.</p>
+        <button class="btn btn-gold px-4 py-2" style="background: var(--mahjoub-gold); color: white; border-radius: 8px;">
+            تحديث البيانات <i class="fas fa-sync-alt ms-2"></i>
+        </button>
+    </div>
 </div>
-
-<script>
-    // ... (احتفظ بدوال geoData و loadDistricts الخاصة بك) ...
-
-    function updateFileName(input) {
-        const display = document.getElementById('file-name-display');
-        if (input.files && input.files[0]) {
-            display.innerText = "✅ تم اختيار: " + input.files[0].name;
-            display.style.color = "var(--accent-green)";
-        }
-    }
-
-    // التعديل الجوهري لدالة الإرسال لتعمل مع الملفات (Multipart)
-    document.getElementById('sovereignForm').onsubmit = async function(e) {
-        e.preventDefault();
-        const submitBtn = document.getElementById('submitBtn');
-        submitBtn.innerHTML = '<i class="fas fa-shield-alt fa-spin"></i> جاري الأرشفة السيادية...';
-        submitBtn.disabled = true;
-
-        try {
-            const formData = new FormData(this); // إرسال كـ FormData لدعم الصور
-
-            const response = await fetch(this.action, { 
-                method: 'POST', 
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok && result.status === 'success') {
-                Swal.fire({
-                    title: '✅ تم التعميد',
-                    text: result.message,
-                    icon: 'success',
-                    confirmButtonColor: '#632C8F'
-                }).then(() => window.location.href = "{{ url_for('admin_dashboard.list_suppliers') }}");
-            } else {
-                throw new Error(result.message || 'فشل في العملية');
-            }
-        } catch (err) {
-            Swal.fire({ title: 'خطأ', text: err.message, icon: 'error' });
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '🛡️ إتمام التعميد والأرشفة';
-        }
-    };
-</script>
 {% endblock %}
