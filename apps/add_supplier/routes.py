@@ -1,20 +1,24 @@
 import os
-from flask import render_template, request, jsonify, url_for, current_app
-from apps import db  # تأكد من استيراد كائن قاعدة البيانات الخاص بك
-from apps.models import User, Supplier  # استيراد الموديلات
+from flask import render_template, request, jsonify, url_for, current_app, Blueprint
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 
-# إذا كنت تستخدم Blueprint، تأكد من تعريفه هنا
-# from apps.add_supplier import blueprint
+# استيراد قاعدة البيانات والموديلات باستخدام المسارات النسبية لتجنب خطأ ModuleNotFoundError
+from ..models.admin_db import db  
+# ملاحظة: تأكد أن ملف الموديلات يحتوي على كلاس User و Supplier
+from ..models.admin_db import User, Supplier 
 
-def add_supplier_route():
+# تعريف الـ Blueprint الخاص بالموردين
+admin_suppliers = Blueprint('admin_suppliers', __name__)
+
+@admin_suppliers.route('/add', methods=['GET', 'POST'])
+def add_supplier():
     """
-    المنطق البرمجي لإضافة مورد جديد في نظام محجوب أونلاين (Flask Version)
+    محرك إضافة الموردين لنظام محجوب أونلاين - متوافق مع Railway و PostgreSQL.
     """
     if request.method == 'POST':
         try:
-            # 1. استلام البيانات النصية من النموذج
+            # 1. استقبال البيانات من النموذج السيادي
             username = request.form.get('username')
             password = request.form.get('password')
             email = request.form.get('email')
@@ -29,40 +33,40 @@ def add_supplier_route():
             district = request.form.get('district')
             address_detail = request.form.get('address_detail')
 
-            # 2. التحقق من وجود المستخدم مسبقاً
+            # 2. فحص استباقي لعدم تكرار الهوية الرقمية
             user_exists = User.query.filter_by(username=username).first()
             if user_exists:
                 return jsonify({
                     'status': 'error', 
-                    'message': f'اسم المستخدم "{username}" محجوز مسبقاً.'
+                    'message': f'عذراً، اسم المستخدم "{username}" مسجل بالفعل في قاعدة البيانات.'
                 }), 400
 
-            # 3. معالجة رفع صورة الهوية (Identity Image)
+            # 3. بروتوكول معالجة صورة الهوية
             identity_filename = None
             if 'identity_image' in request.files:
                 file = request.files['identity_image']
-                if file.filename != '':
-                    # تأكد من وجود مجلد الرفع: static/uploads/suppliers
-                    upload_path = os.path.join(current_app.root_path, 'static/uploads/suppliers')
-                    if not os.path.exists(upload_path):
-                        os.makedirs(upload_path)
+                if file and file.filename != '':
+                    # تحديد مسار التخزين داخل static
+                    upload_folder = os.path.join(current_app.root_path, 'static/uploads/suppliers')
+                    if not os.path.exists(upload_folder):
+                        os.makedirs(upload_folder)
                     
                     filename = secure_filename(f"ID_{username}_{file.filename}")
-                    file.save(os.path.join(upload_path, filename))
+                    file.save(os.path.join(upload_folder, filename))
                     identity_filename = filename
 
-            # 4. إنشاء سجل المستخدم (الحساب البرمجي)
-            hashed_password = generate_password_hash(password)
+            # 4. إنشاء الحساب الأساسي (User)
+            hashed_pw = generate_password_hash(password)
             new_user = User(
                 username=username,
-                password=hashed_password,
-                email=email,
-                role='supplier' # تمييز الرتبة في محجوب أونلاين
+                password=hashed_pw,
+                email=email if email else None,
+                role='supplier'
             )
             db.session.add(new_user)
-            db.session.flush() # للحصول على user.id قبل الـ commit النهائي
+            db.session.flush() # الحصول على المعرف قبل الحفظ النهائي
 
-            # 5. إنشاء سجل بيانات المورد (التفاصيل السيادية)
+            # 5. أرشفة بيانات المورد (Supplier Profile)
             new_supplier = Supplier(
                 user_id=new_user.id,
                 owner_name=owner_name,
@@ -79,22 +83,22 @@ def add_supplier_route():
             )
             db.session.add(new_supplier)
             
-            # تثبيت العمليات في قاعدة البيانات
+            # تنفيذ العملية الشاملة
             db.session.commit()
 
             return jsonify({
                 'status': 'success',
-                'message': f'تم تعميد المورد {trade_name} بنجاح في النظام.'
+                'message': f'تم تعميد المورد {trade_name} بنجاح وأرشفة بياناته.'
             })
 
         except Exception as e:
             db.session.rollback()
             return jsonify({
                 'status': 'error',
-                'message': f'فشل النظام: {str(e)}'
+                'message': f'فشل في الأرشفة: {str(e)}'
             }), 500
 
-    # في حالة طلب الصفحة (GET)
-    # حساب المعرف القادم لإرساله إلى القالب
+    # عرض واجهة الإضافة (GET)
+    # حساب المعرف القادم لعرضه في لوحة التحكم
     next_id = Supplier.query.count() + 1
     return render_template('admin/add_supplier.html', next_id=next_id)
