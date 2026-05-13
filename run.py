@@ -4,7 +4,8 @@ import os
 from models.admin_db import db, AdminUser
 
 def create_app():
-    app = Flask(__name__)
+    # تعديل Flask ليتعرف على مجلد القوالب المركزي المشترك
+    app = Flask(__name__, template_folder='apps/templates')
     
     # مفتاح الأمان السيادي للمنصة
     app.secret_key = os.environ.get('SECRET_KEY') or 'MAHJOUB_SECURE_2026'
@@ -20,10 +21,8 @@ def create_app():
     # ربط قاعدة البيانات بالتطبيق
     db.init_app(app)
 
-    # تسجيل البوابات الرقمية (تصحيح الاستيراد لمنع الانهيار Crashed)
-    # ملاحظة: نستخدم الاستيراد داخل الدالة لضمان استقرار الهيكل التنظيمي
+    # تسجيل البوابات الرقمية (التطبيقات المستقلة)
     from apps.auth_portal.routes import auth_bp
-    # تأكد أن admin_dashboard معرف كـ Blueprint في ملفه
     from apps.admin_dashboard import admin_dashboard  
     from apps.add_supplier.routes import admin_suppliers
 
@@ -39,7 +38,6 @@ def create_app():
     # التوجيه التلقائي لبوابة الدخول عند فتح الرابط الرئيسي
     @app.route('/')
     def root():
-        # تأكد أن اسم البلوبرينت في auth_portal هو 'auth_portal'
         return redirect(url_for('auth_portal.login')) 
 
     return app
