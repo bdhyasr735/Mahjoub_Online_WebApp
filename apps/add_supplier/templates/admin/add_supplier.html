@@ -1,5 +1,6 @@
-{# الوراثة من القالب الأساسي #}
-{% extends "admin/admin_base.html" if not request.is_xhr and not request.headers.get('X-Requested-With') else "admin/blank.html" %}
+{% extends "admin/admin_base.html" %}
+
+{% block title %}سجل الموردين | محجوب أونلاين{% endblock %}
 
 {% block content %}
 <!-- المكونات الأساسية للنظام -->
