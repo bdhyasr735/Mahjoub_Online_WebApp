@@ -1,7 +1,8 @@
-{# تعديل الوراثة: إذا كان الطلب AJAX لا تورث الهيكل الكامل، وإذا كان طلباً مباشراً ورث القاعدة #}
+{# الوراثة من القالب الأساسي #}
 {% extends "admin/admin_base.html" if not request.is_xhr and not request.headers.get('X-Requested-With') else "admin/blank.html" %}
 
 {% block content %}
+<!-- المكونات الأساسية للنظام -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
