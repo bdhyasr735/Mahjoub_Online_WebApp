@@ -4,7 +4,7 @@ from models.supplier_db import db, Supplier
 from datetime import datetime
 from functools import wraps
 
-# تعريف الـ Blueprint - تأكد أن مجلد templates يحتوي على مجلد فرعي باسم admin
+# تعريف الـ Blueprint المركزي للوحة التحكم
 admin_bp = Blueprint('admin_dashboard', __name__, template_folder='templates')
 
 def login_required(f):
@@ -21,10 +21,9 @@ def login_required(f):
 @login_required
 def dashboard():
     """
-    عرض لوحة التحكم الرئيسية (المحتوى المركزي)
+    عرض لوحة التحكم الرئيسية
     المسار: /admin/dashboard
     """
-    # استدعاء الملف الذي يرث من admin_base.html
     return render_template('admin/dashboard_content.html')
 
 @admin_bp.route('/add-supplier', methods=['GET', 'POST'])
@@ -67,8 +66,8 @@ def add_supplier():
             db.session.rollback()
             return jsonify({"status": "error", "message": f"عطل فني أثناء الأرشفة: {str(e)}"}), 500
 
-    # في حالة GET، يتم عرض نموذج الإضافة
-    # تأكد من وجود ملف add_supplier.html داخل مجلد templates/admin/
+    # التعديل الحاسم هنا: بما أن الملف في مجلد مستقل، نستخدم المسار النسبي أو الكامل
+    # Flask سيبحث في كافة مجلدات templates المسجلة في الـ Blueprints
     return render_template('admin/add_supplier.html', next_id=963)
 
 @admin_bp.route('/suppliers-list')
