@@ -23,3 +23,11 @@ def create_app():
     app.register_blueprint(dashboard_bp, url_prefix='/admin')
 
     return app
+def create_app():
+    app = Flask(__name__)
+    
+    # استيراد الاسم الصحيح الذي ظهر في الخطأ بالصورة
+    from .add_supplier.routes import add_supplier_bp
+    app.register_blueprint(add_supplier_bp)
+    
+    return app
