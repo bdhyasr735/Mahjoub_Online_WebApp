@@ -1,303 +1,174 @@
 {% extends "admin_base.html" %}
 
-{% block title %}نظام التعميد السيادي | محجوب أونلاين{% endblock %}
+{% block title %}إضافة مورد جديد | محجوب أونلاين{% endblock %}
 
 {% block content %}
 <style>
+    /* المتغيرات اللونية لمنصة محجوب أونلاين */
     :root {
-        --gov-purple: #4B0082; /* الأرجواني الإمبراطوري */
-        --gov-gold: #D4AF37;   /* الذهبي الملكي */
-        --text-main: #1e293b;
-        --accent-green: #10b981;
-        --input-bg: #f8fafc;
+        --mahjoub-purple: #4B0082;
+        --mahjoub-gold: #D4AF37;
+        --bg-light: #f8fafc;
     }
 
-    .form-container {
-        max-width: 1100px;
-        margin: 15px auto;
-        direction: rtl;
-        background: #fff;
-        border-radius: 20px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-        overflow: hidden;
-    }
-
-    .form-header {
-        background: linear-gradient(135deg, var(--gov-purple) 0%, #310055 100%);
-        color: white;
-        padding: 30px 40px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 5px solid var(--gov-gold);
-    }
-
-    .section-banner {
+    .form-section-title {
         background: #f1f5f9;
-        color: var(--gov-purple);
-        padding: 15px 25px;
-        font-weight: 900;
-        border-right: 6px solid var(--gov-gold);
-        margin: 30px 0 15px 0;
-        font-size: 1.15rem;
-        display: flex;
-        align-items: center;
-        gap: 12px;
+        color: var(--mahjoub-purple);
+        padding: 10px 20px;
+        font-weight: 800;
+        border-right: 5px solid var(--mahjoub-gold);
+        margin: 20px 0;
+        border-radius: 0 8px 8px 0;
     }
 
-    .grid-layout {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 25px;
-        padding: 10px 40px;
-    }
-
-    .input-box { display: flex; flex-direction: column; gap: 10px; }
-    .input-box label { font-size: 0.95rem; font-weight: 800; color: #334155; }
-
-    .form-control-gov {
-        padding: 14px;
-        border-radius: 12px;
-        border: 2px solid #cbd5e1;
-        background: var(--input-bg);
-        font-size: 1rem;
-        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        width: 100%;
-    }
-
-    .form-control-gov:focus {
-        border-color: var(--gov-purple);
-        background: #fff;
-        outline: none;
-        box-shadow: 0 0 0 4px rgba(75, 0, 130, 0.15);
-    }
-
-    .file-upload-wrapper {
-        border: 2px dashed #cbd5e1;
+    .card-custom {
+        border: none;
         border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        background: #fff;
+    }
+
+    .form-control:focus {
+        box-shadow: none;
+        border: 1px solid var(--mahjoub-gold) !important;
+        background-color: #fff !important;
+    }
+
+    .btn-submit {
+        background: var(--mahjoub-gold);
+        color: white;
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        transition: 0.3s;
+        border: none;
+    }
+
+    .btn-submit:hover {
+        background: var(--mahjoub-purple) !important;
+        transform: translateY(-3px);
+        color: white;
+    }
+
+    .file-upload-box {
+        border: 2px dashed #cbd5e1;
+        border-radius: 10px;
         padding: 20px;
         text-align: center;
-        background: #fdfdff;
         cursor: pointer;
-        transition: 0.3s;
+        background: var(--bg-light);
     }
-
-    .file-upload-wrapper:hover { border-color: var(--gov-purple); background: #f5f3ff; }
-
-    .fin-card {
-        background: #fff;
-        border: 2.5px solid #e2e8f0;
-        border-radius: 15px;
-        padding: 18px;
-        text-align: center;
-        cursor: pointer;
-        transition: 0.3s;
-        flex: 1;
-        font-weight: 800;
-    }
-
-    .fin-card.active {
-        border-color: var(--gov-purple);
-        background: #f5f3ff;
-        color: var(--gov-purple);
-        box-shadow: 0 5px 15px rgba(75, 0, 130, 0.1);
-    }
-
-    .btn-gov {
-        background: var(--gov-purple);
-        color: white;
-        border: 2px solid var(--gov-gold);
-        padding: 18px 50px;
-        border-radius: 15px;
-        font-weight: 900;
-        font-size: 1.2rem;
-        cursor: pointer;
-        transition: 0.4s ease;
-        width: 100%;
-        max-width: 500px;
-        box-shadow: 0 8px 20px rgba(75, 0, 130, 0.2);
-    }
-
-    .btn-gov:hover { background: #310055; transform: translateY(-3px); }
-    .manual-input { display: none; margin-top: 10px; border-color: var(--gov-gold); }
-    .text-helper { font-size: 0.8rem; color: #64748b; margin-top: 5px; }
 </style>
 
-<div class="form-container">
-    <!-- الرأس السيادي -->
-    <div class="form-header">
+<div class="container-fluid" id="main-content">
+    <!-- رأس الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 style="margin:0; font-weight: 900; letter-spacing: 1px;">🛡️ نظام التعميد السيادي</h2>
-            <p style="margin: 5px 0 0 0; opacity: 0.8; font-size: 0.9rem;">أرشفة وتوثيق مورد جديد - منصة محجوب أونلاين</p>
+            <h2 class="fw-bold" style="color: var(--mahjoub-purple);">🛡️ تعميد مورد جديد</h2>
+            <p class="text-muted">تسجيل وأرشفة بيانات المورد في النظام السيادي للمنصة.</p>
         </div>
-        <div style="text-align:left; background: rgba(255,255,255,0.15); padding: 12px 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.3);">
-            <small style="display:block; margin-bottom:4px;">معرف النظام</small>
-            <strong style="font-size:1.3rem; color:var(--gov-gold);">SUP-{{ range(1000, 9999) | random }}</strong>
+        <div class="text-start bg-light p-3 rounded border">
+            <small class="text-muted">المعرف القادم:</small><br>
+            <span class="fw-bold text-primary">SUP-{{ next_id }}</span>
         </div>
     </div>
 
-    <form id="sovereignForm" action="{{ url_for('admin.add_supplier') }}" method="POST" enctype="multipart/form-data">
+    <form id="addSupplierForm" method="POST" enctype="multipart/form-data" action="{{ url_for('admin.add_supplier') }}">
         
-        <!-- قسم 1: الهوية الرقمية -->
-        <div class="section-banner"><i class="fas fa-user-shield"></i> بيانات الدخول والنشاط التجاري</div>
-        <div class="grid-layout">
-            <div class="input-box">
-                <label>اسم المستخدم (النظام)</label>
-                <input type="text" name="username" class="form-control-gov" placeholder="مثال: مؤسسة_القمة" required>
+        <!-- القسم الأول: الهوية الرقمية والنشاط -->
+        <div class="form-section-title"><i class="fas fa-user-shield me-2"></i> بيانات الهوية الرقمية والنشاط</div>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">اسم المستخدم</label>
+                <input type="text" name="username" class="form-control bg-light" placeholder="مثال: user2026" required>
             </div>
-            <div class="input-box">
-                <label>كلمة المرور الافتراضية</label>
-                <input type="text" name="password" value="123456" class="form-control-gov" required>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">كلمة المرور الأولية</label>
+                <input type="password" name="password" class="form-control bg-light" required>
             </div>
-            <div class="input-box">
-                <label>نوع النشاط</label>
-                <select id="activity_select" class="form-control-gov" onchange="handleManualSelection(this, 'activity_type')" required>
-                    <option value="مواد غذائية">مواد غذائية واستهلاكية</option>
-                    <option value="إلكترونيات">إلكترونيات وتقنية</option>
-                    <option value="ملابس">ملابس ومنسوجات</option>
-                    <option value="manual">أخرى (إدخال يدوي)...</option>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">البريد الإلكتروني</label>
+                <input type="email" name="email" class="form-control bg-light" placeholder="mail@example.com">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">تصنيف النشاط</label>
+                <select name="activity_type" class="form-select bg-light" required>
+                    <option value="مواد غذائية">مواد غذائية</option>
+                    <option value="إلكترونيات">إلكترونيات</option>
+                    <option value="ملابس">ملابس</option>
+                    <option value="أخرى">أخرى...</option>
                 </select>
-                <input type="hidden" name="activity_type" id="activity_type" value="مواد غذائية">
-                <input type="text" id="manual_activity" class="form-control-gov manual-input" placeholder="اكتب نوع النشاط هنا">
             </div>
         </div>
 
-        <!-- قسم 2: التوثيق الرسمي -->
-        <div class="section-banner"><i class="fas fa-id-card"></i> الهوية الرسمية والاتصال</div>
-        <div class="grid-layout">
-            <div class="input-box" style="grid-column: span 2;">
-                <label>اسم المالك (رباعي كما في الهوية)</label>
-                <input type="text" name="owner_name" class="form-control-gov" placeholder="الاسم الكامل" required>
+        <!-- القسم الثاني: بيانات المالك والتوثيق -->
+        <div class="form-section-title"><i class="fas fa-id-card me-2"></i> بيانات المالك والتوثيق الرسمي</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">اسم المالك الكامل</label>
+                <input type="text" name="owner_name" class="form-control bg-light" placeholder="كما هو في الهوية" required>
             </div>
-            <div class="input-box">
-                <label>رقم الواتساب</label>
-                <input type="tel" name="phone" class="form-control-gov" placeholder="7xxxxxxxx" required>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">الاسم التجاري (المؤسسة)</label>
+                <input type="text" name="trade_name" class="form-control bg-light" required>
             </div>
-            <div class="input-box">
-                <label>وثيقة الهوية (صورة)</label>
-                <input type="file" name="identity_image" id="identity_image" style="display:none;" onchange="updateFileName(this)">
-                <div class="file-upload-wrapper" onclick="document.getElementById('identity_image').click()">
-                    <i class="fas fa-upload" style="color: var(--gov-purple);"></i> 
-                    <span id="file-name-display" style="margin-right:10px;">رفع صورة البطاقة/السجل</span>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">رقم الهاتف (واتساب)</label>
+                <input type="tel" name="phone" class="form-control bg-light" placeholder="77xxxxxxx" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">نوع الوثيقة المرفقة</label>
+                <select name="identity_type" class="form-select bg-light">
+                    <option value="بطاقة شخصية">بطاقة شخصية</option>
+                    <option value="جواز سفر">جواز سفر</option>
+                    <option value="سجل تجاري">سجل تجاري</option>
+                </select>
+            </div>
+            <div class="col-md-9">
+                <label class="form-label small fw-bold">صورة الوثيقة</label>
+                <input type="file" name="identity_image" class="form-control bg-light" accept="image/*">
+            </div>
+        </div>
+
+        <!-- القسم الثالث: الربط المالي والجغرافي -->
+        <div class="row mt-2">
+            <div class="col-md-6">
+                <div class="form-section-title"><i class="fas fa-university me-2"></i> المحفظة المالية</div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">اسم البنك / الصرافة</label>
+                        <input type="text" name="bank_name" class="form-control bg-light" placeholder="مثال: الكريمي" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">رقم الحساب / الآيبان</label>
+                        <input type="text" name="bank_acc" class="form-control bg-light" required>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-section-title"><i class="fas fa-map-marker-alt me-2"></i> العنوان والنطاق</div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">المحافظة</label>
+                        <select name="province" class="form-select bg-light" id="provinceSelect">
+                            <option value="الحديدة">الحديدة</option>
+                            <option value="عدن">عدن</option>
+                            <option value="تعز">تعز</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">المديرية</label>
+                        <input type="text" name="district" class="form-control bg-light" placeholder="مثال: الخوخة" required>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- قسم 3: الربط المالي -->
-        <div class="section-banner"><i class="fas fa-university"></i> بروتوكول التحويل المالي</div>
-        <div class="grid-layout">
-            <div class="input-box" style="grid-column: span 2;">
-                <div style="display: flex; gap: 15px;">
-                    <div class="fin-card active" id="btn_banks" onclick="setFinance('banks')">
-                        <i class="fas fa-building-columns"></i> بنوك إسلامية
-                    </div>
-                    <div class="fin-card" id="btn_exchange" onclick="setFinance('exchange')">
-                        <i class="fas fa-money-bill-transfer"></i> شركات صرافة
-                    </div>
-                </div>
-            </div>
-            <div class="input-box">
-                <label>اسم الجهة</label>
-                <select id="bank_select" class="form-control-gov" onchange="handleManualSelection(this, 'bank_name')" required></select>
-                <input type="hidden" name="bank_name" id="bank_name">
-                <input type="text" id="manual_bank" class="form-control-gov manual-input" placeholder="اسم البنك/الصرافة يدوياً">
-            </div>
-            <div class="input-box">
-                <label>رقم الحساب / الآيبان</label>
-                <input type="text" name="bank_acc" class="form-control-gov" placeholder="رقم الحساب المعتمد" required>
-            </div>
-        </div>
-
-        <!-- قسم 4: الجغرافيا والعنوان (المحدث) -->
-        <div class="section-banner"><i class="fas fa-map-marker-alt"></i> النطاق الجغرافي والعنوان التفصيلي</div>
-        <div class="grid-layout">
-            <div class="input-box">
-                <label>المحافظة</label>
-                <select name="province" id="prov_select" class="form-control-gov" onchange="loadDistricts(this.value)" required>
-                    <option value="">اختر المحافظة...</option>
-                </select>
-            </div>
-            <div class="input-box">
-                <label>المديرية</label>
-                <select name="district" id="dist_select" class="form-control-gov" required>
-                    <option value="">حدد المحافظة أولاً</option>
-                </select>
-            </div>
-            <!-- العنوان كاملاً -->
-            <div class="input-box" style="grid-column: 1 / -1;">
-                <label>العنوان التفصيلي (للوصول اللوجستي)</label>
-                <textarea name="address_detail" class="form-control-gov" rows="3" 
-                    placeholder="مثال: الحديدة - الخوخة - حارة الميناء - جوار الجمارك - محل القمة" 
-                    style="resize: none; line-height: 1.6;" required></textarea>
-                <p class="text-helper">سيتم استخدام هذا العنوان لجدولة زيارات التحصيل وتوصيل الشحنات.</p>
-            </div>
-        </div>
-
-        <div style="padding: 40px; text-align: center;">
-            <button type="submit" id="submitBtn" class="btn-gov">
-                🛡️ إتمام التعميد وأرشفة المورد
+        <div class="mt-5 mb-5">
+            <button type="submit" class="btn btn-submit w-100 fw-bold">
+                🛡️ إتمام التعميد والأرشفة النهائية
             </button>
         </div>
     </form>
 </div>
-
-<script>
-    // البيانات الجغرافية لمناطق العمليات
-    const geoData = {
-        "الحديدة": ["الخوخة", "حيس", "الدريهمي", "بيت الفقيه", "باجل"],
-        "عدن": ["المنصورة", "الشيخ عثمان", "كريتر", "المعلا"],
-        "تعز": ["المخاء", "التربة", "المظفر"],
-        "حضرموت": ["المكلا", "سيئون"]
-    };
-
-    const finData = {
-        "banks": ["بنك الكريمي الإسلامي", "بنك التضامن", "بنك القطيبي", "بنك سبأ"],
-        "exchange": ["شركة المريسي", "شركة سويد", "شركة النجم", "شركة الصيفي"]
-    };
-
-    function loadDistricts(prov) {
-        const dSelect = document.getElementById('dist_select');
-        dSelect.innerHTML = '<option value="">اختر المديرية...</option>';
-        if(geoData[prov]) {
-            geoData[prov].sort().forEach(d => dSelect.add(new Option(d, d)));
-        }
-    }
-
-    function setFinance(type) {
-        document.getElementById('btn_banks').classList.toggle('active', type === 'banks');
-        document.getElementById('btn_exchange').classList.toggle('active', type === 'exchange');
-        const bSelect = document.getElementById('bank_select');
-        bSelect.innerHTML = '<option value="">اختر من القائمة...</option>';
-        finData[type].sort().forEach(item => bSelect.add(new Option(item, item)));
-        bSelect.add(new Option("أخرى (يدوي)...", "manual"));
-    }
-
-    function handleManualSelection(select, hiddenId) {
-        const isActivity = hiddenId === 'activity_type';
-        const manualInput = document.getElementById(isActivity ? 'manual_activity' : 'manual_bank');
-        if (select.value === 'manual') {
-            manualInput.style.display = 'block';
-            manualInput.required = true;
-        } else {
-            manualInput.style.display = 'none';
-            manualInput.required = false;
-            document.getElementById(hiddenId).value = select.value;
-        }
-    }
-
-    function updateFileName(input) {
-        const display = document.getElementById('file-name-display');
-        if (input.files && input.files[0]) {
-            display.innerText = "✅ تم اختيار: " + input.files[0].name;
-            display.style.color = "var(--accent-green)";
-        }
-    }
-
-    window.onload = () => {
-        const pSelect = document.getElementById('prov_select');
-        Object.keys(geoData).sort().forEach(p => pSelect.add(new Option(p, p)));
-        setFinance('banks');
-    };
-</script>
 {% endblock %}
