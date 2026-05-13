@@ -2,24 +2,24 @@ from flask import Flask
 import os
 
 def create_app():
+    # إنشاء التطبيق وتحديد مسار الملفات الثابتة العامة
     app = Flask(__name__)
     
-    # إعدادات الأمان للمنصة
-    app.config['SECRET_KEY'] = 'mahjoub_sovereign_2026'
-
-    # 1. تشغيل محرك بوابة التحقق (Auth Engine)
-    # القوالب موجودة داخل: apps/auth_portal/templates/
+    # إعدادات الحماية والتشفير للمنصة
+    app.config['SECRET_KEY'] = 'mahjoub_online_2026_key'
+    
+    # تسجيل المحركات (Blueprints)
+    
+    # 1. محرك بوابة التحقق
     from .auth_portal.routes import auth_bp
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(auth_bp, url_prefix='/auth')
 
-    # 2. تشغيل محرك الموردين (Supplier Engine)
-    # القوالب موجودة داخل: apps/add_supplier/templates/
+    # 2. محرك إدارة الموردين
     from .add_supplier.routes import admin_bp
-    app.register_blueprint(admin_bp)
+    app.register_blueprint(admin_bp, url_prefix='/suppliers')
 
-    # 3. تشغيل محرك لوحة التحكم (Dashboard Engine)
-    # القوالب موجودة داخل: apps/admin_dashboard/templates/
+    # 3. محرك لوحة التحكم الإدارية
     from .admin_dashboard.routes import dashboard_bp
-    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(dashboard_bp, url_prefix='/admin')
 
     return app
