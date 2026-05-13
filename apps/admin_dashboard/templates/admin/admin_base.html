@@ -1,59 +1,401 @@
-{% extends 'admin/admin_base.html' %}
+<!DOCTYPE html>
 
-{% block title %}مركز المراقبة | محجوب أونلاين{% endblock %}
+<html lang="ar" dir="rtl">
 
-{% block content %}
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="fw-bold" style="color: var(--royal-purple);">لوحة المراقبة المركزية</h2>
-            <p class="text-muted">مرحباً بك يا سيد علي، إليك ملخص العمليات الحالية.</p>
-        </div>
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title id="page-title">{% block title %}القيادة المركزية | محجوب أونلاين{% endblock %}</title>
+
+    
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+
+    
+
+    <style>
+
+        :root {
+
+            --royal-purple: #1a0b2e;
+
+            --deep-black: #08020d;
+
+            --mahjoub-gold: #D4AF37;
+
+            --sidebar-width: 280px;
+
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        }
+
+
+
+        body { 
+
+            font-family: 'Cairo', sans-serif; 
+
+            background: #f4f6f9; 
+
+            margin: 0; 
+
+            display: flex; 
+
+            overflow-x: hidden; 
+
+            direction: rtl;
+
+        }
+
+
+
+        .logo-img { width: 70px; height: auto; margin-bottom: 15px; filter: brightness(0) invert(1); }
+
+
+
+        .sidebar {
+
+            width: var(--sidebar-width);
+
+            background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
+
+            height: 100vh; position: fixed; right: 0; top: 0; z-index: 1100;
+
+            transition: var(--transition);
+
+            box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+
+        }
+
+
+
+        @media (max-width: 991px) {
+
+            .sidebar { right: calc(-1 * var(--sidebar-width)); }
+
+            .sidebar.active { right: 0; }
+
+            .main-wrapper { margin-right: 0 !important; width: 100% !important; }
+
+        }
+
+
+
+        .sidebar-header { padding: 2rem 1rem; border-bottom: 1px solid rgba(212, 175, 55, 0.1); }
+
+        .nav-menu { padding: 1rem; flex-grow: 1; }
+
+        
+
+        .nav-link, .dropdown-btn {
+
+            display: flex; align-items: center; padding: 12px 15px;
+
+            color: rgba(255, 255, 255, 0.7); text-decoration: none;
+
+            border-radius: 12px; margin-bottom: 5px; transition: var(--transition);
+
+            cursor: pointer; border: none; background: transparent; width: 100%;
+
+            font-weight: 600;
+
+        }
+
+
+
+        .nav-link:hover, .dropdown-btn:hover, .nav-link.active { 
+
+            background: rgba(212, 175, 55, 0.15); color: var(--mahjoub-gold); 
+
+        }
+
+
+
+        .dropdown-container { 
+
+            display: none; background: rgba(0,0,0,0.2); border-radius: 10px; 
+
+            margin-bottom: 10px; overflow: hidden;
+
+        }
+
+        
+
+        .dropdown-container a { 
+
+            padding: 10px 45px; font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); 
+
+            display: block; text-decoration: none; transition: 0.3s; 
+
+        }
+
+        
+
+        .dropdown-container a:hover { color: var(--mahjoub-gold); background: rgba(255,255,255,0.05); }
+
+        
+
+        .fa-chevron-left { transition: var(--transition); font-size: 0.8rem; margin-right: auto; }
+
+        .rotate { transform: rotate(-90deg); }
+
+
+
+        .main-wrapper { 
+
+            margin-right: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); 
+
+            min-height: 100vh; transition: var(--transition);
+
+            display: flex; flex-direction: column;
+
+        }
+
+
+
+        .top-bar { 
+
+            background: white; height: 70px; display: flex; align-items: center; 
+
+            justify-content: space-between; padding: 0 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+
+        }
+
+        
+
+        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer; color: var(--royal-purple); }
+
+        @media (max-width: 991px) { .menu-toggle { display: block; } }
+
+
+
+        .user-info { font-weight: 800; color: var(--royal-purple); }
+
+
+
+        #loader {
+
+            display: none; position: fixed; top: 50%; left: 50%;
+
+            transform: translate(-50%, -50%); z-index: 2000;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+
+
+    <div id="loader">
+
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; color: var(--mahjoub-gold) !important;"></div>
+
     </div>
 
-    <!-- كروت الإحصائيات السريعة -->
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-4" style="border-right: 5px solid var(--mahjoub-gold) !important; border-radius: 15px;">
-                <div class="d-flex align-items-center">
-                    <div class="icon-box bg-light p-3 rounded-circle me-3">
-                        <i class="fas fa-truck-field fa-2x" style="color: var(--royal-purple);"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-1">الموردين</h6>
-                        <h3 class="fw-bold mb-0">0</h3>
-                    </div>
-                </div>
-            </div>
+
+
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sidebar-header text-center">
+
+            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="logo-img" alt="Logo">
+
+            <h2 class="text-white h5 fw-bold mb-0">محجوب أونلاين</h2>
+
+            <small style="color: var(--mahjoub-gold); font-weight: 700;">السيادة المطلقة للمؤسس</small>
+
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-4" style="border-right: 5px solid var(--mahjoub-gold) !important; border-radius: 15px;">
-                <div class="d-flex align-items-center">
-                    <div class="icon-box bg-light p-3 rounded-circle me-3">
-                        <i class="fas fa-boxes-stacked fa-2x" style="color: var(--royal-purple);"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-1">المنتجات النشطة</h6>
-                        <h3 class="fw-bold mb-0">0</h3>
-                    </div>
+
+
+        <nav class="nav-menu">
+
+            <!-- رابط الدوشبورد الرئيسي -->
+
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+
+                <i class="fas fa-tower-observation me-2"></i> <span>مركز المراقبة</span>
+
+            </a>
+
+
+
+            <div class="dropdown-section">
+
+                <button class="dropdown-btn" onclick="toggleDropdown()">
+
+                    <i class="fas fa-truck-ramp-box me-2"></i> 
+
+                    <span>إدارة الموردين</span>
+
+                    <i class="fas fa-chevron-left" id="arrow"></i>
+
+                </button>
+
+                <div class="dropdown-container" id="supplierDropdown">
+
+                    <!-- الرابط هنا يجب أن يوجه إلى اسم البلوبرينت الجديد للموردين -->
+
+                    <a href="javascript:void(0);" onclick="loadPage('{{ url_for('admin_suppliers.add_supplier') }}')">
+
+                        <i class="fas fa-plus-circle me-2"></i> إضافة مورد جديد
+
+                    </a>
+
+                    <a href="#"><i class="fas fa-list-check me-2"></i> إدارة الموردين</a>
+
                 </div>
+
             </div>
+
+
+
+            <hr style="border-color: rgba(212, 175, 55, 0.2); margin: 15px 0;">
+
+
+
+            <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger">
+
+                <i class="fas fa-power-off me-2"></i> <span>خروج آمن</span>
+
+            </a>
+
+        </nav>
+
+    </aside>
+
+
+
+    <main class="main-wrapper">
+
+        <header class="top-bar">
+
+            <div class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+
+            <div class="user-info">علي محجوب | <small class="text-muted">المؤسس</small></div>
+
+        </header>
+
+
+
+        <div class="p-4" id="main-content">
+
+            {% block content %}{% endblock %}
+
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-4" style="border-right: 5px solid var(--mahjoub-gold) !important; border-radius: 15px;">
-                <div class="d-flex align-items-center">
-                    <div class="icon-box bg-light p-3 rounded-circle me-3">
-                        <i class="fas fa-coins fa-2x" style="color: var(--royal-purple);"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted mb-1">صافي الأرباح</h6>
-                        <h3 class="fw-bold mb-0">0 ريال</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+    </main>
+
+
+
+    <script>
+
+        function toggleDropdown() {
+
+            const dropdown = document.getElementById("supplierDropdown");
+
+            const arrow = document.getElementById("arrow");
+
+            dropdown.style.display = (dropdown.style.display === "block") ? "none" : "block";
+
+            arrow.classList.toggle("rotate");
+
+        }
+
+
+
+        function toggleSidebar() {
+
+            document.getElementById("sidebar").classList.toggle("active");
+
+        }
+
+
+
+        async function loadPage(url) {
+
+            const contentArea = document.getElementById('main-content');
+
+            const loader = document.getElementById('loader');
+
+            loader.style.display = 'block'; 
+
+            contentArea.style.opacity = '0.5';
+
+
+
+            try {
+
+                const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+
+                const html = await response.text();
+
+                const parser = new DOMParser();
+
+                const doc = parser.parseFromString(html, 'text/html');
+
+                
+
+                document.title = doc.querySelector('title') ? doc.querySelector('title').innerText : "القيادة المركزية";
+
+                const newContent = doc.querySelector('.form-container') || doc.querySelector('#main-content') || doc.body;
+
+                contentArea.innerHTML = newContent.innerHTML;
+
+                
+
+                const scripts = doc.querySelectorAll('script');
+
+                scripts.forEach(oldScript => {
+
+                    const newScript = document.createElement('script');
+
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+
+                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+
+                    document.body.appendChild(newScript);
+
+                });
+
+
+
+                window.history.pushState({path: url}, '', url);
+
+                if (window.innerWidth <= 991) document.getElementById("sidebar").classList.remove("active");
+
+            } catch (err) {
+
+                contentArea.innerHTML = `<div class="alert alert-danger text-center">خطأ في الاتصال بالمركز الرئيسي.</div>`;
+
+            } finally {
+
+                loader.style.display = 'none';
+
+                contentArea.style.opacity = '1';
+
+            }
+
+        }
+
+
+
+        window.onpopstate = function() { location.reload(); };
+
+    </script>
+
+</body>
+
+</html>
