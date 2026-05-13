@@ -102,7 +102,6 @@
 </head>
 <body>
 
-    <!-- محرك التحميل السيادي -->
     <div id="loader">
         <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: var(--mahjoub-gold);"></div>
     </div>
@@ -115,12 +114,11 @@
         </div>
 
         <nav class="nav-menu">
-            <!-- مركز المراقبة -->
+            <!-- رابط مركز المراقبة -->
             <a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'admin_dashboard.dashboard' %}active{% endif %}">
                 <i class="fas fa-tower-observation me-2"></i> <span>مركز المراقبة</span>
             </a>
 
-            <!-- إدارة الموردين -->
             <div class="dropdown-section">
                 <button class="dropdown-btn" onclick="toggleDropdown()">
                     <i class="fas fa-truck-ramp-box me-2"></i> 
@@ -139,8 +137,8 @@
 
             <hr style="border-color: rgba(212, 175, 55, 0.2); margin: 15px 0;">
 
-            <!-- الخروج من النظام -->
-            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link text-danger">
+            <!-- التعديل الجوهري: تم تغيير auth_portal.logout إلى auth.logout بناءً على سجلات النظام -->
+            <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger">
                 <i class="fas fa-power-off me-2"></i> <span>خروج آمن</span>
             </a>
         </nav>
@@ -152,7 +150,6 @@
             <div class="user-info">علي محجوب | <small class="text-muted">المؤسس</small></div>
         </header>
 
-        <!-- منطقة العمل المركزية -->
         <div class="p-4" id="main-content">
             {% block content %}{% endblock %}
         </div>
@@ -173,53 +170,26 @@
         async function loadPage(url) {
             const contentArea = document.getElementById('main-content');
             const loader = document.getElementById('loader');
-            
             loader.style.display = 'block'; 
             contentArea.style.opacity = '0.3';
 
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error('Network response was not ok');
-                
                 const html = await response.text();
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
-                
-                // تحديث عنوان المتصفح
-                const newTitle = doc.querySelector('title');
-                if (newTitle) document.title = newTitle.innerText;
-
-                // استبدال المحتوى فقط لضمان عدم تكرار الهيكل الأساسي
                 const incomingContent = doc.querySelector('#main-content') || doc.body;
                 contentArea.innerHTML = incomingContent.innerHTML;
 
-                // تحديث الحالة النشطة في القائمة
-                document.querySelectorAll('.nav-link').forEach(link => {
-                    link.classList.remove('active');
-                    if (url.includes(link.getAttribute('href'))) link.classList.add('active');
-                });
-                
-                // تفعيل السكريبتات في المحتوى الجديد
-                const scripts = incomingContent.querySelectorAll('script');
-                scripts.forEach(oldScript => {
-                    const newScript = document.createElement('script');
-                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-                    document.body.appendChild(newScript);
-                });
-
                 window.history.pushState({path: url}, '', url);
-                if (window.innerWidth <= 991) document.getElementById("sidebar").classList.remove("active");
             } catch (err) {
-                console.error('AJAX Error:', err);
-                contentArea.innerHTML = `<div class="alert alert-danger text-center">حدث خطأ أثناء جلب البيانات. تأكد من اتصالك بالسيرفر.</div>`;
+                console.error(err);
+                contentArea.innerHTML = `<div class="alert alert-danger">حدث خطأ في تحديث البيانات.</div>`;
             } finally {
                 loader.style.display = 'none';
                 contentArea.style.opacity = '1';
             }
         }
-
-        window.onpopstate = function() { location.reload(); };
     </script>
 </body>
 </html>
