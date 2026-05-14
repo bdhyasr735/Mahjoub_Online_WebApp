@@ -1,32 +1,27 @@
 # coding: utf-8
-# ملف التشغيل الرئيسي - متوافق مع إعدادات PYTHONPATH=.
+# ملف التشغيل الرئيسي - منصة محجوب أونلاين
 import os
 import sys
 
-# 🚀 بما أنك أضفت المسار في الإعدادات، سنقوم بتأكيد ذلك برمجياً أيضاً
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+# 1. تهيئة المسارات البرمجية
+# نضمن أن النظام يرى مجلد apps كحزمة برمجية رئيسية
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from flask import Flask
-
-# الاستيراد المباشر من الحزمة models
+# 2. استيراد دالة مصنع التطبيق من مجلد apps
+# ملاحظة: سيقوم هذا السطر بتنفيذ الكود الموجود في apps/__init__.py
 try:
-    from models.admin_db import db, AdminUser
-    print("✅ تم العثور على النماذج بنجاح باستخدام PYTHONPATH")
+    from apps import create_app
+    print("✅ تم استيراد محرك التطبيق من مجلد apps بنجاح")
 except ImportError as e:
-    print(f"❌ لا يزال هناك خطأ في المسار: {e}")
-    db = None
-    AdminUser = None
+    print(f"❌ خطأ حرج: لم يتم العثور على حزمة apps. التفاصيل: {e}")
+    sys.exit(1) # إغلاق التشغيل في حال فشل الاستيراد
 
-def create_app():
-    app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default_key_2026')
-    
-    if db:
-        db.init_app(app)
-    return app
-
+# 3. إنشاء كائن التطبيق
+# هذا المتغير 'app' هو ما يبحث عنه خادم Railway لتشغيل الموقع
 app = create_app()
 
+# 4. نقطة الانطلاق عند التشغيل محلياً
 if __name__ == "__main__":
-    app.run()
+    # تشغيل التطبيق على المنفذ المخصص (أو 5000 افتراضياً)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
