@@ -1,37 +1,34 @@
 import os
 from flask import Blueprint, render_template, request, jsonify
 from datetime import datetime
-from apps import db  # استيراد كائن قاعدة البيانات المركزي
-# 🔥 الحل الحاسم: استيراد الموديل هنا في الأعلى لكي يراه محرك SQLAlchemy فوراً عند تشغيل التطبيق
-from models.supplier_db import Supplier 
+from apps import db  # استيراد كائن قاعدة البيانات المركزي المشترك
+from models.supplier_db import Supplier # استيراد موديل الموردين
 
-# حساب المسار النسبي صعوداً من المجلد الحالي للوصول إلى المجلد المشترك templates
+# 🎯 تفعيل المسار الداخلي الصارم: جعل الـ Blueprint يقرأ مجلد templates الموجود بجانبه مباشرة
 current_dir = os.path.dirname(os.path.abspath(__file__))
-template_dir = os.path.abspath(os.path.join(current_dir, '..', '..', 'templates'))
+local_template_dir = os.path.join(current_dir, 'templates')
 
 admin_suppliers = Blueprint(
     'admin_suppliers', 
     __name__,
-    template_folder=template_dir
+    template_folder=local_template_dir
 )
 
-# 🔥 السحر المستقل: إجبار السيرفر على إنشاء الجدول فوراً عند إقلاع التطبيق أونلاين
+# 🔥 التوليد التلقائي المستقل: إنشاء الجدول فوراً عند قراءة الحزمة في السيرفر
 with admin_suppliers.record_once(lambda state: None):
     try:
-        # استخدام سياق التطبيق لضمان الاتصال الآمن بقاعدة البيانات في Railway
         from run import create_app
         app = create_app()
         with app.app_context():
             db.create_all()
             print("🚀 [Independent DB] 'suppliers' table created successfully or already exists!")
     except Exception as e:
-        # إذا واجه بايثون تداخل في التشغيل المبدئي، سنقوم بإنشائه داخل الدالة كخطة بديلة آمنة
-        print(f"⚠️ Initial DB setup skipped, will build inside route: {e}")
+        print(f"⚠️ Initial DB setup skipped, will retry inside route: {e}")
 
 
 @admin_suppliers.route('/add', methods=['GET', 'POST'])
 def add_supplier():
-    # خطة دفاعية ثانية: التأكد من وجود الجدول فور دخول الصفحة
+    # خطة دفاعية ثنائية: التأكد من وجود الجدول فور طلب الصفحة
     try:
         db.create_all()
     except Exception:
@@ -61,11 +58,13 @@ def add_supplier():
                 bank_name = request.form.get('manual_bank_name')
             bank_acc = request.form.get('bank_acc')
 
+            # فحص ومنع تكرار البيانات قبل الحفظ والتسبب في خطأ قاعدة البيانات
             if Supplier.query.filter_by(username=username).first():
                 return jsonify({'status': 'error', 'message': 'اسم المستخدم مسجل مسبقاً!'}), 400
             if Supplier.query.filter_by(trade_name=trade_name).first():
                 return jsonify({'status': 'error', 'message': 'الاسم التجاري مسجل مسبقاً!'}), 400
 
+            # إنشاء كائن المورد الجديد بالأعمدة المحدثة
             new_supplier = Supplier(
                 sovereign_id=unified_id,
                 username=username,
@@ -99,6 +98,7 @@ def add_supplier():
             db.session.rollback()
             return jsonify({'status': 'error', 'message': f'حدث خطأ في الخادم: {str(e)}'}), 500
 
+    # حساب المعرّف التسلسلي التالي تلقائياً لعرضه في الواجهة
     next_id_num = 1
     try:
         last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
