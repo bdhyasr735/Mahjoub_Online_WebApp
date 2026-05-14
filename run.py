@@ -1,21 +1,20 @@
 # coding: utf-8
-# 🌟 توثيق: هذا الملف هو نقطة الانطلاق الرئيسية للمنصة على خوادم Railway
+# 🌟 استيراد المكتبات الأساسية لتشغيل الويب وإدارة النظام
 import os
 from flask import Flask, redirect, url_for
-from models.admin_db import db  # استيراد كائن قاعدة البيانات الموحد
+from models.admin_db import db
 
 def create_app():
     """
-    دالة بناء التطبيق (Application Factory): 
-    تقوم بتجهيز الإعدادات، ربط قاعدة البيانات، وتفعيل محرك Jinja2 للقوالب.
+    دالة بناء التطبيق: تقوم بتجهيز المسارات، قواعد البيانات، والقوالب (Jinja2).
     """
-    # 1. تهيئة التطبيق وتحديد مسار مجلد القوالب (Templates)
+    # 📂 تحديد مجلد القوالب لضمان ظهور واجهات المنصة بشكل صحيح
     app = Flask(__name__, template_folder='apps/templates')
     
-    # 2. إعداد مفتاح الأمان (Secret Key) لتشفير بيانات الجلسات
+    # 🔐 مفتاح أمان لتشفير بيانات المستخدمين والجلسات
     app.secret_key = os.environ.get('SECRET_KEY') or 'MAHJOUB_SECURE_2026'
 
-    # 3. ضبط إعدادات قاعدة البيانات (PostgreSQL للإنتاج أو SQLite للتجربة)
+    # 🗄️ إعدادات قاعدة البيانات (PostgreSQL لمنصة Railway)
     database_url = os.environ.get('DATABASE_URL')
     if database_url and database_url.startswith("postgres://"):
         # تصحيح البروتوكول ليتوافق مع SQLAlchemy
@@ -24,10 +23,10 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///mahjoub_admin.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # 4. ربط قاعدة البيانات بالتطبيق
+    # 🔗 ربط قاعدة البيانات بالتطبيق
     db.init_app(app)
 
-    # 5. تسجيل الروابط (Blueprints) لربط الصفحات ببعضها
+    # 🚀 تسجيل الأقسام البرمجية (Blueprints)
     from apps.auth_portal.routes import auth_bp
     from apps.admin_dashboard.routes import admin_dashboard  
     from apps.add_supplier.routes import admin_suppliers
@@ -36,21 +35,22 @@ def create_app():
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(admin_suppliers, url_prefix='/admin/suppliers')
 
-    # 6. إنشاء الجداول تلقائياً عند تشغيل النظام لأول مرة
+    # 🛠️ إنشاء الجداول برمجياً عند بدء التشغيل
     with app.app_context():
         db.create_all()
 
-    # 7. مسار توجيهي: عند الدخول للرابط الرئيسي، يتم التحويل لصفحة الدخول
+    # 🏠 تحويل الزوار تلقائياً إلى صفحة تسجيل الدخول
     @app.route('/')
     def root():
         return redirect(url_for('auth_portal.login')) 
 
     return app
 
-# 🔑 هام جداً: تعريف المتغير 'app' عالمياً ليتمكن Gunicorn من رؤيته وتشغيله
+# 🔑 هام جداً: تعريف المتغير 'app' عالمياً لكي يراه ملف Procfile
+# هذا هو السطر الذي يمنع توقف النظام عند استخدام gunicorn
 app = create_app()
 
 if __name__ == '__main__':
-    # تحديد المنفذ تلقائياً بناءً على بيئة التشغيل (Railway يستخدم 8080 غالباً)
+    # 🔌 تشغيل التطبيق على المنفذ المخصص من قبل الخادم
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
