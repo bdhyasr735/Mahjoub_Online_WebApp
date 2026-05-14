@@ -200,6 +200,9 @@
     </div>
 </div>
 
+<!-- إضافة مكتبة SweetAlert2 للإشعارات الاحترافية -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 const locationData = {
     'الحديدة': ['الخوخة', 'حيس', 'التحيتا', 'المراوعة', 'باجل'],
@@ -276,11 +279,19 @@ document.querySelectorAll('.validation-field').forEach(input => {
     });
 });
 
-// إرسال النموذج
+// إرسال النموذج مع تنبيهات SweetAlert2 الاحترافية
 document.getElementById('addSupplierForm').onsubmit = async function(e) {
     e.preventDefault();
+    
+    // استبدال الـ Alert التقليدي بـ SweetAlert في حالة وجود أخطاء مكررة
     if (this.querySelectorAll('.is-invalid').length > 0) {
-        alert("⚠️ توجد بيانات مكررة، يرجى تصحيحها.");
+        Swal.fire({
+            title: 'تنبيه أمني',
+            text: 'يرجى تصحيح البيانات المكررة المشار إليها بالأحمر قبل الحفظ.',
+            icon: 'warning',
+            confirmButtonText: 'حسناً فهمت',
+            confirmButtonColor: '#4B338A'
+        });
         return;
     }
 
@@ -303,12 +314,27 @@ document.getElementById('addSupplierForm').onsubmit = async function(e) {
             
             new bootstrap.Modal(document.getElementById('successModal')).show();
         } else {
-            alert(res.message);
+            // تنبيه احترافي في حالة الخطأ من السيرفر
+            Swal.fire({
+                title: 'خطأ في النظام',
+                text: res.message,
+                icon: 'error',
+                confirmButtonText: 'إغلاق',
+                confirmButtonColor: '#d33'
+            });
             btn.disabled = false;
+            btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
         }
     } catch (e) {
-        alert("خطأ في الاتصال");
+        Swal.fire({
+            title: 'فشل الاتصال',
+            text: 'حدث خطأ غير متوقع أثناء الاتصال بالخادم.',
+            icon: 'error',
+            confirmButtonText: 'إغلاق',
+            confirmButtonColor: '#d33'
+        });
         btn.disabled = false;
+        btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
     }
 };
 
@@ -349,5 +375,7 @@ window.onload = updateFinanceOptions;
         background-color: #4B338A !important; border-color: #4B338A !important; color: #fff !important;
     }
     .validation-icon { min-width: 40px; justify-content: center; }
+    /* تحسين شكل خط SweetAlert */
+    .swal2-popup { font-family: inherit !important; border-radius: 15px !important; }
 </style>
 {% endblock %}
