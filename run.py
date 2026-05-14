@@ -3,6 +3,8 @@ from flask import Flask, redirect, url_for
 import os
 # استيراد القاعدة والموديل السيادي من المجلد الرئيسي لضمان وحدة البيانات
 from models.admin_db import db, AdminUser
+# استيراد دالة التحديث التلقائي للأعمدة الناقصة لجدول الموردين
+from models.supplier_db import check_and_upgrade_db
 
 def create_app():
     # تعديل Flask ليتعرف على مجلد القوالب المركزي المشترك وفق هيكلية المشروع
@@ -37,11 +39,17 @@ def create_app():
     # إنشاء الجداول السيادية (بما فيها جدول الموردين الجديد) تلقائياً عند الإقلاع
     with app.app_context():
         db.create_all()
+        # 🔥 تشغيل الفحص الذكي وتحديث الأعمدة الناقصة في قاعدة بيانات Railway تلقائياً
+        check_and_upgrade_db(app)
 
     # التوجيه التلقائي لبوابة الدخول عند فتح الرابط الرئيسي للمنصة
     @app.route('/')
     def root():
-        return redirect(url_for('auth_portal.login')) 
+        # ملاحظة: إذا كان اسم الـ Blueprint هو auth_bp، يتم التوجيه لـ auth.login أو حسب الـ endpoint
+        try:
+            return redirect(url_for('auth_portal.login'))
+        except:
+            return redirect(url_for('auth.login')) 
 
     return app
 
