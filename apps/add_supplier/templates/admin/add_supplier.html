@@ -17,6 +17,7 @@
     </div>
 
     <form id="addSupplierForm" method="POST" enctype="multipart/form-data">
+        <!-- المعرف الموحد يُرسل كـ unified_id ليتوافق مع الـ route -->
         <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id if next_id else '1' }}">
 
         <div class="row g-4">
@@ -121,7 +122,7 @@
                         </div>
                     </div>
 
-                    <!-- الحقل الجديد: العنوان بالتفصيل -->
+                    <!-- الحقل يتم ربطه مع address_detail في الـ Model -->
                     <div class="mb-3">
                         <label class="form-label text-muted small">العنوان بالتفصيل (الشارع / الحي / المعلم)</label>
                         <textarea name="address" id="addressInput" class="form-control bg-light border-0" rows="2" placeholder="مثلاً: شارع الميناء - جوار بنك الكريمي" required></textarea>
@@ -162,10 +163,8 @@
                     <div class="mb-4">
                         <label class="form-label text-muted small">رقم الحساب / المحفظة</label>
                         <div class="input-group">
-                            <input type="text" name="bank_acc" id="bankAccInput" class="form-control bg-light border-0 fw-bold validation-field" data-type="bank_acc" placeholder="0000000" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="bankAccIcon"></span>
+                            <input type="text" name="bank_acc" id="bankAccInput" class="form-control bg-light border-0 fw-bold" placeholder="0000000" required>
                         </div>
-                        <div id="bankAccFeedback" class="small mt-1" style="display:none;"></div>
                     </div>
 
                     <button type="submit" id="submitBtn" class="btn w-100 fw-bold shadow-sm py-3 mt-auto" style="background: #4B338A; color: white; border-radius: 12px;">
@@ -177,7 +176,7 @@
     </form>
 </div>
 
-<!-- Modal النجاح -->
+<!-- Modal النجاح المعدل ليطابق أسماء الحقول السيادية -->
 <div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
@@ -194,8 +193,8 @@
                         <span id="res_trade_name" class="fw-bold"></span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <small class="text-muted">المالك:</small>
-                        <span id="res_owner_name" class="fw-bold"></span>
+                        <small class="text-muted">المعرف السيادي:</small>
+                        <span id="res_sovereign_id" class="fw-bold text-dark"></span>
                     </div>
                     <hr>
                     <div class="mb-3">
@@ -230,7 +229,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-// البيانات الأساسية
+// البيانات الجغرافية والمالية
 const locationData = {
     'الحديدة': ['الخوخة', 'حيس', 'التحيتا', 'المراوعة', 'باجل'],
     'تعز': ['المخا', 'المظفر', 'القاهرة', 'صالة'],
@@ -242,7 +241,7 @@ const financialData = {
     'exchange': ['النجم للصرافة', 'باسياب للصرافة', 'الحرمين', 'المريسي', 'عدن للصرافة']
 };
 
-// وظائف التعامل مع القوائم
+// وظائف القوائم الديناميكية
 function handleCategoryManualEntry(select) {
     const manualDiv = document.getElementById('categoryManualDiv');
     const manualInput = document.getElementById('categoryManualInput');
@@ -297,54 +296,12 @@ function handleManualEntry(select) {
     }
 }
 
-// التحقق من التكرار
-document.querySelectorAll('.validation-field').forEach(input => {
-    input.addEventListener('blur', async function() {
-        const value = this.value.trim();
-        const type = this.getAttribute('data-type');
-        const icon = document.getElementById(this.id.replace('Input', 'Icon'));
-        const feedback = document.getElementById('bankAccFeedback');
-        
-        if (value.length < 3) return;
-        icon.innerHTML = '<span class="spinner-border spinner-border-sm text-secondary"></span>';
-        
-        let url = `/admin/suppliers/check-duplicate/?type=${type}&value=${encodeURIComponent(value)}`;
-        if(type === 'bank_acc') {
-            const currentBank = document.getElementById('financeSelect').value;
-            url += `&bank_name=${encodeURIComponent(currentBank)}`;
-        }
-
-        try {
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.exists) {
-                icon.innerHTML = '<i class="fas fa-times-circle text-danger"></i>';
-                this.classList.add('is-invalid');
-                if(type === 'bank_acc' && feedback) {
-                    feedback.style.display = 'block';
-                    feedback.className = 'small mt-1 text-danger fw-bold';
-                    feedback.innerText = data.message;
-                }
-            } else {
-                icon.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
-                this.classList.remove('is-invalid');
-                if(feedback) feedback.style.display = 'none';
-            }
-        } catch (e) { icon.innerHTML = ''; }
-    });
-});
-
-// إرسال النموذج
+// معالجة إرسال النموذج
 document.getElementById('addSupplierForm').onsubmit = async function(e) {
     e.preventDefault();
-    if (this.querySelectorAll('.is-invalid').length > 0) {
-        Swal.fire({ title: 'تنبيه', text: 'يرجى تصحيح البيانات المكررة أولاً.', icon: 'warning', confirmButtonColor: '#4B338A' });
-        return;
-    }
-
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.innerHTML = 'جاري المعالجة...';
+    btn.innerHTML = 'جاري التعميد...';
 
     try {
         const response = await fetch("{{ url_for('admin_suppliers.add_supplier') }}", {
@@ -355,25 +312,28 @@ document.getElementById('addSupplierForm').onsubmit = async function(e) {
         
         if (res.status === 'success') {
             document.getElementById('res_trade_name').innerText = res.data.trade_name;
-            document.getElementById('res_owner_name').innerText = document.getElementById('ownerNameInput').value;
+            document.getElementById('res_sovereign_id').innerText = res.data.sovereign_id;
             document.getElementById('res_username').innerText = res.data.username;
             document.getElementById('res_password').innerText = res.data.password;
             new bootstrap.Modal(document.getElementById('successModal')).show();
         } else {
-            Swal.fire({ title: 'فشل', text: res.message, icon: 'error', confirmButtonColor: '#d33' });
+            Swal.fire({ title: 'تنبيه', text: res.message, icon: 'error', confirmButtonColor: '#4B338A' });
             btn.disabled = false;
             btn.innerHTML = 'اعتماد المورد الآن';
         }
     } catch (e) {
-        Swal.fire({ title: 'خطأ', text: 'فشل الاتصال بالخادم', icon: 'error' });
+        Swal.fire({ title: 'خطأ', text: 'فشل في الاتصال بالنظام السيادي', icon: 'error' });
         btn.disabled = false;
+        btn.innerHTML = 'اعتماد المورد الآن';
     }
 };
 
 function copyFullReport() {
-    const report = `🛡️ تقرير تعميد مورد - محجوب أونلاين\n🏛️ المنشأة: ${document.getElementById('res_trade_name').innerText}\n👤 المالك: ${document.getElementById('res_owner_name').innerText}\n🆔 المعرف: ${document.getElementById('display-id').innerText}\n👤 المستخدم: ${document.getElementById('res_username').innerText}\n🔑 كلمة السر: ${document.getElementById('res_password').innerText}`;
+    const report = `🛡️ تقرير تعميد مورد - محجوب أونلاين\n🏛️ المنشأة: ${document.getElementById('res_trade_name').innerText}\n🆔 المعرف: ${document.getElementById('res_sovereign_id').innerText}\n👤 المستخدم: ${document.getElementById('res_username').innerText}\n🔑 كلمة السر: ${document.getElementById('res_password').innerText}`;
     navigator.clipboard.writeText(report).then(() => {
-        document.getElementById('copyAllBtn').innerText = "تم النسخ ✅";
+        const btn = document.getElementById('copyAllBtn');
+        btn.innerText = "تم النسخ ✅";
+        btn.className = "btn btn-success w-100 fw-bold py-2";
     });
 }
 
