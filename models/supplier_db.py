@@ -1,4 +1,6 @@
-from apps import db
+# coding: utf-8
+# 🌟 استيراد كائن قاعدة البيانات المشترك والموحد من الموديل الأساسي للحفاظ على البيئة المستقلة
+from models.admin_db import db
 from datetime import datetime
 
 class Supplier(db.Model):
@@ -17,8 +19,9 @@ class Supplier(db.Model):
     
     # 🏢 بيانات المنشأة والنشاط التجاري
     owner_name = db.Column(db.String(150), nullable=False)                # اسم المالك الكامل
+    owner_phone = db.Column(db.String(20), nullable=False)                # 📱 رقم هاتف المالك الشخصي (مضاف حديثاً)
     trade_name = db.Column(db.String(150), unique=True, nullable=False)   # الاسم التجاري للمحل/المنشأة
-    business_type = db.Column(db.String(100), nullable=True)             # 🌟 نوع النشاط التجاري المضاف حديثاً
+    business_type = db.Column(db.String(100), nullable=True)             # نوع النشاط التجاري
     shop_phone = db.Column(db.String(20), nullable=False)                 # رقم هاتف المحل
     
     # 📍 الجغرافيا والعناوين
