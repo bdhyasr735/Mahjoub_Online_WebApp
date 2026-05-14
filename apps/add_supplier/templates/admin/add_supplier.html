@@ -76,22 +76,38 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-muted small">اسم المالك الكامل</label>
-                        <input type="text" name="owner_name" id="ownerNameInput" class="form-control bg-light border-0" required>
+                        <div class="input-group">
+                            <input type="text" name="owner_name" id="ownerNameInput" class="form-control bg-light border-0 validation-field" data-type="owner_name" required>
+                            <span class="input-group-text bg-light border-0 validation-icon" id="owner_nameIcon"></span>
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">الاسم التجاري للمنشأة</label>
+                        <label class="form-label text-muted small">الاسم التجاري للمنشأة / المحل</label>
                         <div class="input-group">
                             <input type="text" name="trade_name" id="tradeNameInput" class="form-control bg-light border-0 validation-field" data-type="trade_name" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="tradeNameIcon"></span>
+                            <span class="input-group-text bg-light border-0 validation-icon" id="trade_nameIcon"></span>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">نوع النشاط التجاري</label>
+                        <select name="business_type" id="businessTypeSelect" class="form-select bg-light border-0" required>
+                            <option value="" selected disabled>اختر نوع النشاط...</option>
+                            <option value="مواد غذائية">مواد غذائية ومجمدات</option>
+                            <option value="ملابس وأقمشة">ملابس وأقمشة جاهزة</option>
+                            <option value="إلكترونيات وهواتف">إلكترونيات وأنظمة هواتف</option>
+                            <option value="أدوية ومستلزمات طبية">أدوية ومستلزمات طبية</option>
+                            <option value="مقاولات وخدمات">مقاولات عامة وخدمات لوجستية</option>
+                            <option value="أخرى">أنشطة تجارية أخرى</option>
+                        </select>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label text-muted small">رقم هاتف المنشأة</label>
+                        <label class="form-label text-muted small">رقم هاتف المحل / المنشأة</label>
                         <div class="input-group dir-ltr">
                             <span class="input-group-text bg-white border-0">+967</span>
-                            <input type="tel" name="shop_phone" id="shopPhoneInput" class="form-control bg-light border-0 validation-field" data-type="shop_phone" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="shopPhoneIcon"></span>
+                            <input type="tel" name="shop_phone" id="shopPhoneInput" class="form-control bg-light border-0 validation-field" data-type="shop_phone" placeholder="77XXXXXXX" required>
+                            <span class="input-group-text bg-light border-0 validation-icon" id="shop_phoneIcon"></span>
                         </div>
                     </div>
 
@@ -117,7 +133,7 @@
 
                     <div class="mb-3">
                         <label class="form-label text-muted small">العنوان بالتفصيل</label>
-                        <textarea name="address" class="form-control bg-light border-0" rows="2" placeholder="الشارع، الحي..." required></textarea>
+                        <textarea name="address" class="form-control bg-light border-0" rows="2" placeholder="الشارع، الحي، بجانب معلم مميز..." required></textarea>
                     </div>
                 </div>
             </div>
@@ -144,24 +160,24 @@
                     </div>
 
                     <div id="manualEntryDiv" class="mb-3" style="display: none;">
-                        <input type="text" name="manual_bank_name" id="manualInput" class="form-control border-primary" placeholder="اكتب اسم الجهة">
+                        <input type="text" name="manual_bank_name" id="manualInput" class="form-control border-primary" placeholder="اكتب اسم الجهة المخصصة">
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label text-muted small">رقم الحساب / المحفظة</label>
+                        <label class="form-label text-muted small">رقم الحساب / السحاب البنكي</label>
                         <div class="input-group">
-                            <input type="text" name="bank_acc" id="bankAccInput" class="form-control bg-light border-0 fw-bold validation-field" data-type="bank_acc" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="bankAccIcon"></span>
+                            <input type="text" name="bank_acc" id="bankAccInput" class="form-control bg-light border-0 fw-bold validation-field" data-type="bank_acc" placeholder="أدخل رقم الحساب أو المحفظة" required>
+                            <span class="input-group-text bg-light border-0 validation-icon" id="bank_accIcon"></span>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-muted small">فئة المورد</label>
-                        <select name="category" id="categorySelect" class="form-select bg-light border-0" onchange="handleCategoryManualEntry(this)" required>
+                        <select name="category" id="categorySelect" class="form-select bg-light border-0" required>
                             <option value="" selected disabled>اختر فئة المورد...</option>
                             <option value="مورد جملة">مورد جملة</option>
                             <option value="مورد تجزئة">مورد تجزئة</option>
-                            <option value="manual">أخرى...</option>
+                            <option value="شركة/مؤسسة مصنعة">شركة / مؤسسة مصنعة</option>
                         </select>
                     </div>
 
@@ -197,7 +213,7 @@
 
                 <div class="alert alert-warning py-2 mb-4 d-flex align-items-center" style="font-size: 12px; direction: rtl;">
                     <i class="fas fa-exclamation-triangle ms-2"></i>
-                    <span>تنبيه سيادي: يرجى إبلاغ المورد بضرورة تغيير كلمة المرور المؤقتة فور الدخول.</span>
+                    <span>تنبيه سيادي: يرجى إبلاغ المورد بضرورة تغيير كلمة المرور المؤقتة فور الدخول الأول.</span>
                 </div>
 
                 <button type="button" class="btn w-100 fw-bold py-2 shadow-sm" onclick="copyAndFinish()" style="background: #4B338A; color: white; border-radius: 10px;">
@@ -256,20 +272,22 @@ function updateFinanceOptions() {
 
 function handleIdentityManualEntry(s) { document.getElementById('identityManualDiv').style.display = s.value === 'manual' ? 'block' : 'none'; }
 function handleManualEntry(s) { document.getElementById('manualEntryDiv').style.display = s.value === 'manual' ? 'block' : 'none'; }
-function handleCategoryManualEntry(s) { }
 
-// --- التفعيل القياسي والآمن عند تحميل الصفحة ---
+// --- تفعيل نظام الفحص اللحظي الفيدرالي عند مغادرة الحقول ---
 document.addEventListener("DOMContentLoaded", function() {
     updateFinanceOptions();
 
-    // ربط الفحص اللحظي AJAX لمنع تكرار الحقول
     document.querySelectorAll('.validation-field').forEach(input => {
         input.addEventListener('blur', async function() {
             const type = this.getAttribute('data-type');
-            const value = this.value.strip ? this.value.strip() : this.value.trim();
+            const value = this.value.trim();
             const iconSpan = document.getElementById(type + 'Icon');
             
-            if (!value) return;
+            if (!value) {
+                this.classList.remove('is-valid', 'is-invalid');
+                if(iconSpan) iconSpan.innerHTML = '';
+                return;
+            }
 
             let url = `/admin/suppliers/check-duplicate?type=${type}&value=${encodeURIComponent(value)}`;
             if (type === 'bank_acc') {
@@ -281,32 +299,40 @@ document.addEventListener("DOMContentLoaded", function() {
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data.exists) {
+                    // المورد متواجد مسبقاً -> يعطي خطأ أحمر وعلامة خطأ
                     this.classList.add('is-invalid');
                     this.classList.remove('is-valid');
-                    if(iconSpan) iconSpan.innerHTML = '❌';
+                    if(iconSpan) iconSpan.innerHTML = '<b class="text-danger">❌ مسجل</b>';
                 } else {
+                    // الحقل آمن ومتاح للاستخدام -> يعطي أخضر وعلامة صح
                     this.classList.remove('is-invalid');
                     this.classList.add('is-valid');
-                    if(iconSpan) iconSpan.innerHTML = '✔️';
+                    if(iconSpan) iconSpan.innerHTML = '<b class="text-success">✔️ متاح</b>';
                 }
             } catch (err) {
-                console.error("AJAX Error:", err);
+                console.error("AJAX Validation Error:", err);
             }
         });
     });
 });
 
-// معالجة إرسال النموذج عبر AJAX
+// معالجة معيار الإرسال الآمن عبر AJAX
 document.getElementById('addSupplierForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    
+    // التحقق الفوري ما إذا كان هناك أي حقل غير مستوفي للشروط
+    if (this.querySelectorAll('.is-invalid').length > 0) {
+        alert("يرجى تعديل الحقول المكررة والموضحة باللون الأحمر قبل الحفظ.");
+        return;
+    }
+
     const btn = document.getElementById('submitBtn');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري التعميد...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ والتعميد...';
     btn.disabled = true;
 
     const formData = new FormData(this);
 
     try {
-        // تحديد مسار ثابت صريح منعاً لتشوهات الروابط النسبية
         const response = await fetch('/admin/suppliers/add', {
             method: 'POST',
             body: formData,
@@ -324,33 +350,36 @@ document.getElementById('addSupplierForm').addEventListener('submit', async func
             const modal = new bootstrap.Modal(document.getElementById('successModal'));
             modal.show();
         } else {
-            alert(result.message || "خطأ في عملية التعميد، يرجى مراجعة البيانات.");
+            alert(result.message || "خطأ في عملية التعميد، يرجى مراجعة البيانات المرفوعة.");
             btn.disabled = false;
             btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
         }
     } catch (err) {
         console.error(err);
-        alert("حدث خطأ غير متوقع في الخادم.");
+        alert("فشل الاتصال بالخادم الرئيسي.");
         btn.disabled = false;
         btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
     }
 });
 
 function copyAndFinish() {
-    const text = `بيانات المورد السيادية - محجوب أونلاين\nالمالك: ${document.getElementById('resOwner').innerText}\nاسم المستخدم: ${document.getElementById('resUser').innerText}\nكلمة المرور: ${document.getElementById('resPass').innerText}\nتنبيه: يرجى تغيير كلمة المرور فور الدخول.`;
+    const text = `بيانات المورد السيادية - محجوب أونلاين\nالمالك: ${document.getElementById('resOwner').innerText}\nاسم المستخدم: ${document.getElementById('resUser').innerText}\nكلمة المرور: ${document.getElementById('resPass').innerText}\nتنبيه: يرجى تغيير كلمة المرور فورا.`;
     navigator.clipboard.writeText(text).then(() => {
-        alert("تم نسخ البيانات بنجاح!");
-        window.location.href = '/admin/suppliers/add'; // إعادة تحميل نظيفة لمنع التكرار
+        alert("تم نسخ معلومات التوثيق للحافظة بنجاح!");
+        window.location.href = '/admin/suppliers/add';
     });
 }
 </script>
 
 <style>
-    .validation-icon { min-width: 45px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; }
+    .validation-icon { min-width: 75px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; font-size: 13px; }
     .dir-ltr { direction: ltr; }
     .btn-outline-primary { color: #4B338A; border-color: #4B338A; }
     .btn-outline-primary:hover, .btn-check:checked + .btn-outline-primary { 
         background-color: #4B338A !important; border-color: #4B338A !important; color: #fff !important;
     }
+    /* إجبار إطارات التوثيق على اتخاذ قرارات Bootstrap القياسية لتجربة مستخدم مذهلة */
+    .form-control.is-valid { border-color: #198754 !important; background-image: none !important; }
+    .form-control.is-invalid { border-color: #dc3545 !important; background-image: none !important; }
 </style>
 {% endblock %}
