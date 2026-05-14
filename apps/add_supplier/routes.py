@@ -1,10 +1,11 @@
 import os
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask_login import login_required  # 🛡️ استيراد جدار حماية الدخول
 from datetime import datetime
 from apps import db  
 from models.supplier_db import Supplier 
 
-# حساب المسار الديناميكي المشترك للمجلد الرئيسي 'templates' لضمان قراءة الأب والابن معاً
+# إعداد المسارات الديناميكية للقوالب
 current_dir = os.path.dirname(os.path.abspath(__file__))
 global_template_dir = os.path.abspath(os.path.join(current_dir, '..', 'templates'))
 
@@ -15,6 +16,7 @@ admin_suppliers = Blueprint(
 )
 
 @admin_suppliers.route('/add', methods=['GET', 'POST'])
+@login_required  # 🛡️ تأمين الرابط: لا يمكن الدخول إلا للمسجلين في النظام
 def add_supplier():
     # الأمان السيادي: فحص وإنشاء الجدول فوراً عند طلب الصفحة
     try:
@@ -24,13 +26,13 @@ def add_supplier():
 
     if request.method == 'POST':
         try:
-            # استقبال البيانات المرسلة من الفرونت إند عبر AJAX
+            # 1. استقبال البيانات من نموذج الإضافة
             unified_id = request.form.get('unified_id')
             username = request.form.get('username', '').strip()
             password = request.form.get('password')
             
             category = request.form.get('category')
-            business_type = request.form.get('business_type')  # 🌟 الحقل الجديد المستلم
+            business_type = request.form.get('business_type')
             owner_name = request.form.get('owner_name', '').strip()
             trade_name = request.form.get('trade_name', '').strip()
             shop_phone = request.form.get('shop_phone', '').strip()
@@ -45,18 +47,18 @@ def add_supplier():
                 bank_name = request.form.get('manual_bank_name')
             bank_acc = request.form.get('bank_acc', '').strip()
 
-            # جدار الحماية النهائي: التحقق الأخير في الباك إند لمنع التكرار الشديد
+            # 2. جدار الحماية النهائي في الباك إند (تأكيد عدم التكرار)
             if Supplier.query.filter_by(username=username).first():
                 return jsonify({'status': 'error', 'message': 'عذراً، اسم المستخدم مسجل مسبقاً!'}), 400
+            
             if Supplier.query.filter_by(trade_name=trade_name).first():
                 return jsonify({'status': 'error', 'message': 'عذراً، الاسم التجاري للمنشأة مسجل مسبقاً!'}), 400
 
-            # إنشاء وتجهيز كائن المورد الجديد لحفظه
-            # (تأكد أن موديل Supplier في ملف supplier_db.py يحتوي على أعمدة متوافقة مع هذه المتغيرات، مثل business_type إذا أردت حفظه)
+            # 3. إنشاء كائن المورد الجديد
             new_supplier = Supplier(
                 sovereign_id=unified_id,
                 username=username,
-                password=password, 
+                password=password, # ملاحظة: يفضل تشفير كلمة المرور في مراحل لاحقة
                 category=category,
                 owner_name=owner_name,
                 trade_name=trade_name,
@@ -70,18 +72,22 @@ def add_supplier():
                 created_at=datetime.utcnow()
             )
 
-            # إذا كان العمود متوفراً في الموديل كـ business_type يمكنك تفعيله هنا:
+            # إضافة نوع النشاط إذا كان العمود موجوداً في الموديل
             if hasattr(Supplier, 'business_type'):
                 new_supplier.business_type = business_type
 
+            # 4. الحفظ في قاعدة البيانات
             db.session.add(new_supplier)
             db.session.commit()
 
+            # 5. العودة ببيانات النجاح لعرضها في النافذة المنبثقة (Modal)
             return jsonify({
                 'status': 'success',
                 'data': {
                     'username': username,
-                    'password': password
+                    'password': password,
+                    'owner_name': owner_name,
+                    'trade_name': trade_name
                 }
             }), 200
 
@@ -89,7 +95,7 @@ def add_supplier():
             db.session.rollback()
             return jsonify({'status': 'error', 'message': f'حدث خطأ في الخادم: {str(e)}'}), 500
 
-    # احتساب الرقم التسلسلي القادم تلقائياً للواجهة
+    # حساب الرقم التسلسلي القادم (ID)
     next_id_num = 1
     try:
         last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
@@ -98,21 +104,22 @@ def add_supplier():
     except Exception:
         next_id_num = 1
         
-    return render_template('admin/add_supplier.html', next_id=next_id_num, next_id_num=next_id_num)
+    return render_template('admin/add_supplier.html', next_id=next_id_num)
 
 
 @admin_suppliers.route('/check-duplicate', methods=['GET'])
+@login_required # تأمين مسار الفحص أيضاً
 def check_duplicate():
-    """ 🌟 محرك الفحص اللحظي الفيدرالي المحدث """
+    """ 🌟 محرك الفحص اللحظي المحدث لمنع التكرار """
     check_type = request.args.get('type')
     value = request.args.get('value', '').strip()
-    bank_name = request.args.get('bank_name', '').strip()
 
     if not check_type or not value:
         return jsonify({'exists': False})
 
     exists = False
     try:
+        # فحص الحقول المختلفة بناءً على النوع المرسل من JavaScript
         if check_type == 'username':
             exists = Supplier.query.filter_by(username=value).first() is not None
         elif check_type == 'trade_name':
@@ -122,10 +129,10 @@ def check_duplicate():
         elif check_type == 'shop_phone':
             exists = Supplier.query.filter_by(shop_phone=value).first() is not None
         elif check_type == 'bank_acc':
-            # التحقق من عدم تكرار نفس رقم الحساب لنفس جهة الصرافة أو البنك
-            exists = Supplier.query.filter_by(bank_account=value, bank_name=bank_name).first() is not None
+            exists = Supplier.query.filter_by(bank_account=value).first() is not None
+            
     except Exception as e:
-        print(f"Validation endpoint query error: {e}")
+        print(f"Validation error: {e}")
         exists = False
 
     return jsonify({'exists': exists})
