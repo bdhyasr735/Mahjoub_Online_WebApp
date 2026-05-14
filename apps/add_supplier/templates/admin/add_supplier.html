@@ -8,7 +8,7 @@
     <div class="mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
         <div>
             <h2 class="fw-bold" style="color: #4B338A;">🛡️ تعميد مورد جديد</h2>
-            <p class="text-muted mb-0">إدارة الأرشفة والربط المالي السيادي لعام 2026.</p>
+            <p class="text-muted mb-0">نظام الأرشفة السيادي - منصة محجوب أونلاين 2026.</p>
         </div>
         <div class="text-center p-2 border-start ps-4">
             <small class="d-block text-muted fw-bold">المعرف الموحد الثابت</small>
@@ -17,51 +17,72 @@
     </div>
 
     <form id="addSupplierForm" method="POST" enctype="multipart/form-data">
-        <!-- الحقل المخفي لإرسال الرقم الموحد للسيرفر -->
         <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id if next_id else '1' }}">
 
         <div class="row g-4">
-            <!-- العمود الأول: الهوية والتوثيق -->
+            <!-- العمود الأول: الهوية والتوثيق (تم إضافة نوع الهوية) -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-id-card fa-lg me-2" style="color: #4B338A;"></i>
-                        <h5 class="fw-bold mb-0">بيانات الهوية</h5>
+                        <h5 class="fw-bold mb-0">بيانات الهوية والنشاط</h5>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">اسم المستخدم (Username)</label>
+                        <label class="form-label text-muted small">اسم المستخدم (للدخول)</label>
                         <input type="text" name="username" class="form-control bg-light border-0" placeholder="user_2026" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">فئة النشاط</label>
+                        <label class="form-label text-muted small">نوع الهوية</label>
+                        <select name="id_type" class="form-select bg-light border-0" required>
+                            <option value="">اختر نوع الوثيقة...</option>
+                            <option value="بطاقة الكترونية">بطاقة إلكترونية</option>
+                            <option value="بطاقة شخصية">بطاقة شخصية (قديم)</option>
+                            <option value="رخصة مزاولة المهنة">رخصة مزاولة المهنة</option>
+                            <option value="سجل تجاري">سجل تجاري</option>
+                            <option value="اخرى">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">فئة المورد</label>
                         <select name="category" class="form-select bg-light border-0" required>
                             <option value="">اختر الفئة...</option>
                             <option value="جملة">مورد جملة</option>
                             <option value="تجزئة">مورد تجزئة</option>
-                            <option value="مصنع">منتج محلي</option>
+                            <option value="مصنع">منتج محلي / مصنع</option>
+                            <option value="مستورد">مستورد</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">وثيقة الإثبات (صورة الهوية)</label>
+                        <label class="form-label text-muted small">صورة الوثيقة المذكورة</label>
                         <input type="file" name="identity_image" class="form-control bg-light border-0">
                     </div>
                 </div>
             </div>
 
-            <!-- العمود الثاني: العنوان والتواصل (تم إضافة رقم الهاتف هنا) -->
+            <!-- العمود الثاني: المالك وبيانات التواصل (إعادة ترتيب الحقول) -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
-                        <i class="fas fa-map-marked-alt fa-lg me-2" style="color: #4B338A;"></i>
-                        <h5 class="fw-bold mb-0">العنوان والتواصل</h5>
+                        <i class="fas fa-user-tie fa-lg me-2" style="color: #4B338A;"></i>
+                        <h5 class="fw-bold mb-0">بيانات المالك والمنشأة</h5>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">الاسم التجاري</label>
-                        <input type="text" name="trade_name" class="form-control bg-light border-0" placeholder="مثلاً: مؤسسة المحجوب" required>
+                        <label class="form-label text-muted small">اسم المالك الكامل</label>
+                        <input type="text" name="owner_name" class="form-control bg-light border-0" placeholder="الاسم الرباعي" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">رقم الهاتف النشط</label>
-                        <input type="tel" name="phone_number" class="form-control bg-light border-0" placeholder="7xxxxxxx" required>
+                        <label class="form-label text-muted small">الاسم التجاري للمحل</label>
+                        <input type="text" name="trade_name" class="form-control bg-light border-0" placeholder="مثلاً: محل المحجوب للصرافة" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-muted small">تلفون المالك</label>
+                            <input type="tel" name="owner_phone" class="form-control bg-light border-0" placeholder="77xxxxxxx" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small">هاتف المحل</label>
+                            <input type="tel" name="shop_phone" class="form-control bg-light border-0" placeholder="03xxxxxx">
+                        </div>
                     </div>
                     <div class="row g-2">
                         <div class="col-6">
@@ -83,16 +104,16 @@
                 </div>
             </div>
 
-            <!-- العمود الثالث: الوسيلة المالية والأمان (تم إضافة كلمة المرور هنا) -->
+            <!-- العمود الثالث: الربط المالي والأمان -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
-                        <i class="fas fa-lock fa-lg me-2" style="color: #4B338A;"></i>
-                        <h5 class="fw-bold mb-0">الربط المالي والأمان</h5>
+                        <i class="fas fa-wallet fa-lg me-2" style="color: #4B338A;"></i>
+                        <h5 class="fw-bold mb-0">الحساب المالي والأمان</h5>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label text-muted small">تصنيف الجهة</label>
+                        <label class="form-label text-muted small">نوع جهة الربط</label>
                         <div class="d-flex gap-2">
                             <input type="radio" class="btn-check" name="fin_type" id="fin_bank" value="banks" onchange="updateFinanceOptions()" checked>
                             <label class="btn btn-outline-primary btn-sm w-50" for="fin_bank">بنوك</label>
@@ -103,24 +124,25 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-muted small">اسم الجهة / المحفظة</label>
+                        <label class="form-label text-muted small">اسم البنك / الشركة</label>
                         <select name="bank_name" id="financeSelect" class="form-select bg-light border-0" required>
+                            <!-- يتم التحديث عبر الجافا سكريبت -->
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-muted small">رقم الحساب المالي</label>
-                        <input type="text" name="bank_acc" class="form-control bg-light border-0" placeholder="0000000" required>
+                        <label class="form-label text-muted small">رقم حساب التحويلات</label>
+                        <input type="text" name="bank_acc" class="form-control bg-light border-0" placeholder="رقم الحساب أو المحفظة" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-muted small">كلمة مرور الحساب</label>
+                        <label class="form-label text-muted small">كلمة مرور النظام (السيادية)</label>
                         <input type="password" name="password" class="form-control bg-light border-0" placeholder="********" required>
                     </div>
 
                     <div class="mt-auto">
-                        <button type="submit" class="btn w-100 fw-bold shadow-sm" style="background: #4B338A; color: white; padding: 12px; border-radius: 8px;">
-                            إتمام التعميد والحفظ <i class="fas fa-save ms-2"></i>
+                        <button type="submit" class="btn w-100 fw-bold shadow-sm" style="background: #4B338A; color: white; padding: 15px; border-radius: 8px;">
+                            حفظ واعتماد المورد <i class="fas fa-check-double ms-2"></i>
                         </button>
                     </div>
                 </div>
@@ -130,16 +152,17 @@
 </div>
 
 <script>
-// تحديث قائمة الجهات المالية
+// القوائم المالية (إدخال يدوي في المصفوفة لسهولة التعديل)
 const financialData = {
-    'banks': ['بنك الكريمي', 'بنك القطيبي', 'بنك البسيري', 'بنك التضامن'],
-    'exchange': ['النجم للصرافة', 'باسياب للصرافة', 'الحرمين', 'عدن للصرافة']
+    'banks': ['بنك الكريمي الإسلامي', 'بنك القطيبي', 'بنك البسيري', 'بنك التضامن', 'بنك اليمن والكويت'],
+    'exchange': ['شركة النجم للصرافة', 'شركة باسياب للصرافة', 'شركة الحرمين', 'شركة المريسي', 'شركة عدن للصرافة']
 };
 
 function updateFinanceOptions() {
     const type = document.querySelector('input[name="fin_type"]:checked').value;
     const financeSelect = document.getElementById('financeSelect');
-    financeSelect.innerHTML = '<option value="">اختر الجهة...</option>';
+    financeSelect.innerHTML = '<option value="">اختر الجهة المالية...</option>';
+    
     financialData[type].forEach(item => {
         let option = document.createElement('option');
         option.value = item; option.text = item;
@@ -147,16 +170,18 @@ function updateFinanceOptions() {
     });
 }
 
-// تحديث المديريات بناءً على النطاق الجغرافي لليمن
+// القوائم الجغرافية
 function updateDistricts() {
     const province = document.getElementById('provinceSelect').value;
     const districtSelect = document.getElementById('districtSelect');
     districtSelect.innerHTML = '<option value="">المديرية</option>';
+
     const cityData = {
-        'الحديدة': ['الخوخة', 'حيس', 'التحيتا'],
-        'تعز': ['المخا', 'ذوباب', 'موزع'],
-        'عدن': ['المنصورة', 'كريتر', 'الشيخ عثمان']
+        'الحديدة': ['الخوخة', 'حيس', 'التحيتا', 'الخوخة - سوق القات'],
+        'تعز': ['المخا', 'ذوباب', 'موزع', 'الوازعية'],
+        'عدن': ['المنصورة', 'كريتر', 'الشيخ عثمان', 'خور مكسر']
     };
+
     if (province && cityData[province]) {
         cityData[province].forEach(dist => {
             let option = document.createElement('option');
@@ -172,8 +197,13 @@ window.onload = function() {
 </script>
 
 <style>
+    /* التنسيق الجمالي للهوية البصرية (Royal Purple) */
     .btn-outline-primary { color: #4B338A; border-color: #4B338A; }
     .btn-check:checked + .btn-outline-primary { background-color: #4B338A !important; border-color: #4B338A !important; }
-    .form-control:focus, .form-select:focus { border: 1px solid #4B338A !important; box-shadow: none; }
+    .form-control:focus, .form-select:focus { 
+        border: 1px solid #4B338A !important; 
+        box-shadow: 0 0 5px rgba(75, 51, 138, 0.2); 
+    }
+    label { font-weight: 500; }
 </style>
 {% endblock %}
