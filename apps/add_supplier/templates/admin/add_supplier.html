@@ -4,6 +4,12 @@
 
 {% block content %}
 <div class="container-fluid" id="main-content">
+    
+    <!-- العنوان الرئيسي للملف -->
+    <h1 class="fw-bold mb-4" style="color: #4B338A; border-bottom: 2px solid #4B338A; padding-bottom: 10px;">
+        إدارة الموردين: نموذج تعميد الموردين الجدد
+    </h1>
+
     <!-- رأس الصفحة: نظام الترقيم السيادي لمحجوب أونلاين -->
     <div class="mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm border-end border-4" style="border-color: #4B338A !important;">
         <div>
@@ -66,7 +72,7 @@
                 </div>
             </div>
 
-            <!-- العمود الثاني: المالك والاتصال والعنوان -->
+            <!-- العمود الثاني: المالك والاتصال -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -85,6 +91,24 @@
                         </div>
                     </div>
                     
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">رقم هاتف المنشأة (مطلوب)</label>
+                        <div class="input-group dir-ltr">
+                            <span class="input-group-text bg-white border-0 fw-bold">+967</span>
+                            <input type="tel" name="shop_phone" id="shopPhoneInput" class="form-control bg-light border-0 validation-field" data-type="shop_phone" placeholder="0XXXXXXXX" required>
+                            <span class="input-group-text bg-light border-0 validation-icon" id="shopPhoneIcon"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">رقم هاتف المالك (شخصي)</label>
+                        <div class="input-group dir-ltr">
+                            <span class="input-group-text bg-white border-0 fw-bold">+967</span>
+                            <input type="tel" name="owner_phone" id="ownerPhoneInput" class="form-control bg-light border-0 validation-field" data-type="owner_phone" placeholder="77XXXXXXX" pattern="[0-9]{9}" maxlength="9" required>
+                            <span class="input-group-text bg-light border-0 validation-icon" id="ownerPhoneIcon"></span>
+                        </div>
+                    </div>
+
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label text-muted small">المحافظة</label>
@@ -100,30 +124,6 @@
                             <select name="district" id="districtSelect" class="form-select bg-light border-0 custom-select" required>
                                 <option value="" selected disabled>حدد المحافظة</option>
                             </select>
-                        </div>
-                    </div>
-
-                    <!-- إضافة حقل العنوان الكامل -->
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">العنوان الكامل (الشارع / المعلم)</label>
-                        <input type="text" name="full_address" class="form-control bg-light border-0" placeholder="مثلاً: شارع صنعاء - بجوار جولة السفينة" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">هاتف المنشأة</label>
-                        <div class="input-group dir-ltr">
-                            <span class="input-group-text bg-white border-0 fw-bold">+967</span>
-                            <input type="tel" name="shop_phone" id="shopPhoneInput" class="form-control bg-light border-0 validation-field" data-type="shop_phone" placeholder="0XXXXXXXX" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="shopPhoneIcon"></span>
-                        </div>
-                    </div>
-
-                    <div class="mb-0">
-                        <label class="form-label text-muted small">هاتف المالك</label>
-                        <div class="input-group dir-ltr">
-                            <span class="input-group-text bg-white border-0 fw-bold">+967</span>
-                            <input type="tel" name="owner_phone" id="ownerPhoneInput" class="form-control bg-light border-0 validation-field" data-type="owner_phone" placeholder="77XXXXXXX" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="ownerPhoneIcon"></span>
                         </div>
                     </div>
                 </div>
@@ -165,6 +165,7 @@
                             <input type="text" name="bank_acc" id="bankAccInput" class="form-control bg-light border-0 fw-bold validation-field" data-type="bank_acc" placeholder="0000000" required>
                             <span class="input-group-text bg-light border-0 validation-icon" id="bankAccIcon"></span>
                         </div>
+                        <div id="bankAccFeedback" class="small mt-1" style="display:none;"></div>
                     </div>
 
                     <button type="submit" id="submitBtn" class="btn w-100 fw-bold shadow-sm py-3 mt-auto" style="background: #4B338A; color: white; border-radius: 12px;">
@@ -176,26 +177,58 @@
     </form>
 </div>
 
-<!-- Modal النجاح -->
+<!-- Modal النجاح والتقارير -->
 <div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
             <div class="modal-body p-4 text-center">
-                <div class="mb-3"><i class="fas fa-check-circle fa-5x text-success"></i></div>
-                <h3 class="fw-bold text-dark">تم الاعتماد بنجاح</h3>
-                <div class="bg-light p-3 rounded-4 text-start mb-4 border">
-                    <div class="d-flex justify-content-between mb-2 small text-muted">المنشأة: <span id="res_trade_name" class="fw-bold text-dark"></span></div>
-                    <div class="d-flex justify-content-between mb-2 small text-muted">اسم المستخدم: <span id="res_username" class="fw-bold text-primary font-monospace"></span></div>
-                    <div class="d-flex justify-content-between mb-0 small text-muted">كلمة السر: <span id="res_password" class="fw-bold text-success font-monospace"></span></div>
+                <div class="mb-3">
+                    <i class="fas fa-check-circle fa-5x text-success"></i>
                 </div>
-                <button class="btn btn-warning w-100 fw-bold py-2 mb-2" id="copyAllBtn" onclick="copyFullReport()">نسخ التقرير <i class="fas fa-copy ms-1"></i></button>
-                <button class="btn btn-dark w-100 py-2 fw-bold" onclick="location.reload()">إغلاق</button>
+                <h3 class="fw-bold text-dark">تم الاعتماد بنجاح</h3>
+                <p class="text-danger fw-bold small">⚠️ يرجى تغيير كلمة السر المؤقتة فور الدخول الأول</p>
+                
+                <div class="bg-light p-3 rounded-4 text-start mb-4 border">
+                    <div class="d-flex justify-content-between mb-2">
+                        <small class="text-muted">المنشأة:</small>
+                        <span id="res_trade_name" class="fw-bold"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <small class="text-muted">المالك:</small>
+                        <span id="res_owner_name" class="fw-bold"></span>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <label class="small text-muted">اسم المستخدم:</small>
+                        <div class="p-2 bg-white rounded border d-flex justify-content-between align-items-center">
+                            <span id="res_username" class="font-monospace fw-bold text-primary"></span>
+                        </div>
+                    </div>
+                    <div class="mb-1">
+                        <label class="small text-muted">كلمة السر:</small>
+                        <div class="p-2 bg-white rounded border d-flex justify-content-between align-items-center">
+                            <span id="res_password" class="font-monospace fw-bold text-success"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row g-2">
+                    <div class="col-12">
+                        <button class="btn btn-warning w-100 fw-bold py-2" id="copyAllBtn" onclick="copyFullReport()">
+                           نسخ تقرير الاعتماد <i class="fas fa-copy ms-1"></i>
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-dark w-100 py-2 fw-bold" onclick="location.reload()">إغلاق</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 const locationData = {
     'الحديدة': ['الخوخة', 'حيس', 'التحيتا', 'المراوعة', 'باجل'],
@@ -209,8 +242,17 @@ const financialData = {
 };
 
 function handleCategoryManualEntry(select) {
-    const div = document.getElementById('categoryManualDiv');
-    div.style.display = select.value === "manual" ? 'block' : 'none';
+    const manualDiv = document.getElementById('categoryManualDiv');
+    const manualInput = document.getElementById('categoryManualInput');
+    if (select.value === "manual") {
+        manualDiv.style.display = 'block';
+        manualInput.required = true;
+        manualInput.focus();
+    } else {
+        manualDiv.style.display = 'none';
+        manualInput.required = false;
+        manualInput.value = "";
+    }
 }
 
 function updateDistrictOptions() {
@@ -241,26 +283,49 @@ function updateFinanceOptions() {
 }
 
 function handleManualEntry(select) {
-    document.getElementById('manualEntryDiv').style.display = select.value === "manual" ? 'block' : 'none';
+    const manualDiv = document.getElementById('manualEntryDiv');
+    const manualInput = document.getElementById('manualInput');
+    if (select.value === "manual") {
+        manualDiv.style.display = 'block';
+        manualInput.required = true;
+    } else {
+        manualDiv.style.display = 'none';
+        manualInput.required = false;
+        manualInput.value = "";
+    }
 }
 
-// فحص التكرار
 document.querySelectorAll('.validation-field').forEach(input => {
     input.addEventListener('blur', async function() {
-        const type = this.getAttribute('data-type');
         const value = this.value.trim();
+        const type = this.getAttribute('data-type');
         const icon = document.getElementById(this.id.replace('Input', 'Icon'));
+        const feedback = document.getElementById('bankAccFeedback');
+        
         if (value.length < 3) return;
         icon.innerHTML = '<span class="spinner-border spinner-border-sm text-secondary"></span>';
+        
+        let url = `/admin/suppliers/check-duplicate/?type=${type}&value=${encodeURIComponent(value)}`;
+        if(type === 'bank_acc') {
+            const currentBank = document.getElementById('financeSelect').value;
+            url += `&bank_name=${encodeURIComponent(currentBank)}`;
+        }
+
         try {
-            const res = await fetch(`/admin/suppliers/check-duplicate/?type=${type}&value=${encodeURIComponent(value)}`);
+            const res = await fetch(url);
             const data = await res.json();
             if (data.exists) {
                 icon.innerHTML = '<i class="fas fa-times-circle text-danger"></i>';
                 this.classList.add('is-invalid');
+                if(type === 'bank_acc' && feedback) {
+                    feedback.style.display = 'block';
+                    feedback.className = 'small mt-1 text-danger fw-bold';
+                    feedback.innerText = data.message;
+                }
             } else {
                 icon.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
                 this.classList.remove('is-invalid');
+                if(feedback) feedback.style.display = 'none';
             }
         } catch (e) { icon.innerHTML = ''; }
     });
@@ -268,33 +333,41 @@ document.querySelectorAll('.validation-field').forEach(input => {
 
 document.getElementById('addSupplierForm').onsubmit = async function(e) {
     e.preventDefault();
+    if (this.querySelectorAll('.is-invalid').length > 0) {
+        Swal.fire({ title: 'تنبيه', text: 'يرجى تصحيح البيانات المكررة أولاً.', icon: 'warning', confirmButtonColor: '#4B338A' });
+        return;
+    }
+
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.innerHTML = 'جاري الحفظ...';
+    btn.innerHTML = 'جاري المعالجة...';
+
     try {
         const response = await fetch("{{ url_for('admin_suppliers.add_supplier') }}", {
             method: 'POST',
             body: new FormData(this)
         });
         const res = await response.json();
+        
         if (res.status === 'success') {
             document.getElementById('res_trade_name').innerText = res.data.trade_name;
+            document.getElementById('res_owner_name').innerText = document.getElementById('ownerNameInput').value;
             document.getElementById('res_username').innerText = res.data.username;
             document.getElementById('res_password').innerText = res.data.password;
             new bootstrap.Modal(document.getElementById('successModal')).show();
         } else {
-            Swal.fire({ title: 'فشل', text: res.message, icon: 'error' });
+            Swal.fire({ title: 'فشل', text: res.message, icon: 'error', confirmButtonColor: '#d33' });
             btn.disabled = false;
             btn.innerHTML = 'اعتماد المورد الآن';
         }
-    } catch (e) { 
-        Swal.fire({ title: 'خطأ', text: 'فشل الاتصال', icon: 'error' });
+    } catch (e) {
+        Swal.fire({ title: 'خطأ', text: 'فشل الاتصال بالخادم', icon: 'error' });
         btn.disabled = false;
     }
 };
 
 function copyFullReport() {
-    const report = `🛡️ تعميد مورد - محجوب أونلاين\n🏛️ المنشأة: ${document.getElementById('res_trade_name').innerText}\n👤 المستخدم: ${document.getElementById('res_username').innerText}\n🔑 كلمة السر: ${document.getElementById('res_password').innerText}`;
+    const report = `🛡️ تقرير تعميد مورد - محجوب أونلاين\n🏛️ المنشأة: ${document.getElementById('res_trade_name').innerText}\n👤 المالك: ${document.getElementById('res_owner_name').innerText}\n🆔 المعرف: ${document.getElementById('display-id').innerText}\n👤 المستخدم: ${document.getElementById('res_username').innerText}\n🔑 كلمة السر: ${document.getElementById('res_password').innerText}`;
     navigator.clipboard.writeText(report).then(() => {
         document.getElementById('copyAllBtn').innerText = "تم النسخ ✅";
     });
@@ -305,321 +378,8 @@ window.onload = updateFinanceOptions;
 
 <style>
     .dir-ltr { direction: ltr; }
-    .font-monospace { font-family: 'Courier New', monospace; }
-    .btn-outline-primary { color: #4B338A; border-color: #4B338A; }
-    .btn-outline-primary:hover, .btn-check:checked + .btn-outline-primary { 
-        background-color: #4B338A !important; border-color: #4B338A !important; color: #fff !important;
-    }
-    .validation-icon { min-width: 40px; justify-content: center; }
-</style>
-{% endblock %}{% extends "admin_base.html" %}
-
-{% block title %}تعميد مورد | محجوب أونلاين{% endblock %}
-
-{% block content %}
-<div class="container-fluid" id="main-content">
-    <!-- رأس الصفحة: نظام الترقيم السيادي لمحجوب أونلاين -->
-    <div class="mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm border-end border-4" style="border-color: #4B338A !important;">
-        <div>
-            <h2 class="fw-bold" style="color: #4B338A;">🛡️ تعميد مورد جديد</h2>
-            <p class="text-muted mb-0">نظام الأرشفة السيادي - منصة محجوب أونلاين 2026.</p>
-        </div>
-        <div class="text-center p-2 border-start ps-4">
-            <small class="d-block text-muted fw-bold">المعرف الموحد</small>
-            <span class="fs-4 fw-bold" style="color: #4B338A;" id="display-id">SUP-WEL-MAH963{{ next_id if next_id else '1' }}</span>
-        </div>
-    </div>
-
-    <form id="addSupplierForm" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id if next_id else '1' }}">
-
-        <div class="row g-4">
-            <!-- العمود الأول: الدخول والنشاط -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="fas fa-user-shield fa-lg me-2" style="color: #4B338A;"></i>
-                        <h5 class="fw-bold mb-0">بيانات الوصول</h5>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">اسم المستخدم (Login)</label>
-                        <div class="input-group">
-                            <input type="text" name="username" id="usernameInput" class="form-control bg-light border-0 validation-field" data-type="username" placeholder="مثلاً: ali_2026" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="usernameIcon"></span>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">كلمة مرور النظام (المؤقتة)</label>
-                        <input type="password" name="password" class="form-control bg-light border-0" placeholder="********" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">فئة المورد</label>
-                        <select name="category" id="categorySelect" class="form-select bg-light border-0 custom-select" onchange="handleCategoryManualEntry(this)" required>
-                            <option value="" selected disabled>اختر فئة المورد...</option>
-                            <option value="مورد جملة">مورد جملة</option>
-                            <option value="مورد تجزئة">مورد تجزئة</option>
-                            <option value="منتج محلي / مصنع">منتج محلي / مصنع</option>
-                            <option value="مستورد">مستورد</option>
-                            <option value="manual">أخرى (إدخال يدوي)...</option>
-                        </select>
-                    </div>
-
-                    <div id="categoryManualDiv" class="mb-3" style="display: none;">
-                        <label class="form-label text-primary small fw-bold">اسم الفئة الجديدة</label>
-                        <input type="text" name="manual_category" id="categoryManualInput" class="form-control border-primary" placeholder="مثلاً: مورد خدمات برمجية">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">صورة الوثيقة (اختياري)</label>
-                        <input type="file" name="identity_image" class="form-control bg-light border-0">
-                        <small class="text-muted" style="font-size: 10px;">JPG, PNG, PDF (بحد أقصى 2MB)</small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- العمود الثاني: المالك والاتصال والعنوان -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="fas fa-address-card fa-lg me-2" style="color: #4B338A;"></i>
-                        <h5 class="fw-bold mb-0">بيانات المالك والمنشأة</h5>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">اسم المالك الكامل</label>
-                        <input type="text" name="owner_name" id="ownerNameInput" class="form-control bg-light border-0" placeholder="الاسم الرباعي للمالك" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">الاسم التجاري للمنشأة</label>
-                        <div class="input-group">
-                            <input type="text" name="trade_name" id="tradeNameInput" class="form-control bg-light border-0 validation-field" data-type="trade_name" placeholder="مثلاً: مؤسسة المحجوب" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="tradeNameIcon"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label text-muted small">المحافظة</label>
-                            <select name="province" id="provinceSelect" class="form-select bg-light border-0 custom-select" onchange="updateDistrictOptions()" required>
-                                <option value="" selected disabled>اختر...</option>
-                                <option value="الحديدة">الحديدة</option>
-                                <option value="تعز">تعز</option>
-                                <option value="عدن">عدن</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label text-muted small">المديرية</label>
-                            <select name="district" id="districtSelect" class="form-select bg-light border-0 custom-select" required>
-                                <option value="" selected disabled>حدد المحافظة</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- إضافة حقل العنوان الكامل -->
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">العنوان الكامل (الشارع / المعلم)</label>
-                        <input type="text" name="full_address" class="form-control bg-light border-0" placeholder="مثلاً: شارع صنعاء - بجوار جولة السفينة" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">هاتف المنشأة</label>
-                        <div class="input-group dir-ltr">
-                            <span class="input-group-text bg-white border-0 fw-bold">+967</span>
-                            <input type="tel" name="shop_phone" id="shopPhoneInput" class="form-control bg-light border-0 validation-field" data-type="shop_phone" placeholder="0XXXXXXXX" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="shopPhoneIcon"></span>
-                        </div>
-                    </div>
-
-                    <div class="mb-0">
-                        <label class="form-label text-muted small">هاتف المالك</label>
-                        <div class="input-group dir-ltr">
-                            <span class="input-group-text bg-white border-0 fw-bold">+967</span>
-                            <input type="tel" name="owner_phone" id="ownerPhoneInput" class="form-control bg-light border-0 validation-field" data-type="owner_phone" placeholder="77XXXXXXX" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="ownerPhoneIcon"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- العمود الثالث: الربط المالي -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="fas fa-wallet fa-lg me-2" style="color: #4B338A;"></i>
-                        <h5 class="fw-bold mb-0">الربط المالي السيادي</h5>
-                    </div>
-                    
-                    <div class="mb-3 text-center">
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="fin_type" id="fin_bank" value="banks" onchange="updateFinanceOptions()" checked>
-                            <label class="btn btn-outline-primary" for="fin_bank">بنوك</label>
-
-                            <input type="radio" class="btn-check" name="fin_type" id="fin_exchange" value="exchange" onchange="updateFinanceOptions()">
-                            <label class="btn btn-outline-primary" for="fin_exchange">صرافة</label>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">جهة التحويل</label>
-                        <select name="bank_name" id="financeSelect" class="form-select bg-light border-0 custom-select" onchange="handleManualEntry(this)" required>
-                            <option value="" selected disabled>اختر من القائمة...</option>
-                        </select>
-                    </div>
-
-                    <div id="manualEntryDiv" class="mb-3" style="display: none;">
-                        <label class="form-label text-primary small fw-bold">اسم الجهة (إدخال يدوي)</label>
-                        <input type="text" name="manual_bank_name" id="manualInput" class="form-control border-primary" placeholder="اكتب اسم البنك أو الشركة">
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label text-muted small">رقم الحساب / المحفظة</label>
-                        <div class="input-group">
-                            <input type="text" name="bank_acc" id="bankAccInput" class="form-control bg-light border-0 fw-bold validation-field" data-type="bank_acc" placeholder="0000000" required>
-                            <span class="input-group-text bg-light border-0 validation-icon" id="bankAccIcon"></span>
-                        </div>
-                    </div>
-
-                    <button type="submit" id="submitBtn" class="btn w-100 fw-bold shadow-sm py-3 mt-auto" style="background: #4B338A; color: white; border-radius: 12px;">
-                        اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </form>
-</div>
-
-<!-- Modal النجاح -->
-<div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-body p-4 text-center">
-                <div class="mb-3"><i class="fas fa-check-circle fa-5x text-success"></i></div>
-                <h3 class="fw-bold text-dark">تم الاعتماد بنجاح</h3>
-                <div class="bg-light p-3 rounded-4 text-start mb-4 border">
-                    <div class="d-flex justify-content-between mb-2 small text-muted">المنشأة: <span id="res_trade_name" class="fw-bold text-dark"></span></div>
-                    <div class="d-flex justify-content-between mb-2 small text-muted">اسم المستخدم: <span id="res_username" class="fw-bold text-primary font-monospace"></span></div>
-                    <div class="d-flex justify-content-between mb-0 small text-muted">كلمة السر: <span id="res_password" class="fw-bold text-success font-monospace"></span></div>
-                </div>
-                <button class="btn btn-warning w-100 fw-bold py-2 mb-2" id="copyAllBtn" onclick="copyFullReport()">نسخ التقرير <i class="fas fa-copy ms-1"></i></button>
-                <button class="btn btn-dark w-100 py-2 fw-bold" onclick="location.reload()">إغلاق</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-const locationData = {
-    'الحديدة': ['الخوخة', 'حيس', 'التحيتا', 'المراوعة', 'باجل'],
-    'تعز': ['المخا', 'المظفر', 'القاهرة', 'صالة'],
-    'عدن': ['المنصورة', 'كريتر', 'الشيخ عثمان', 'خور مكسر']
-};
-
-const financialData = {
-    'banks': ['بنك التضامن', 'بنك القطيبي', 'بنك الكريمي', 'بنك اليمن الدولي', 'بنك سبأ'],
-    'exchange': ['النجم للصرافة', 'باسياب للصرافة', 'الحرمين', 'المريسي', 'عدن للصرافة']
-};
-
-function handleCategoryManualEntry(select) {
-    const div = document.getElementById('categoryManualDiv');
-    div.style.display = select.value === "manual" ? 'block' : 'none';
-}
-
-function updateDistrictOptions() {
-    const province = document.getElementById('provinceSelect').value;
-    const districtSelect = document.getElementById('districtSelect');
-    districtSelect.innerHTML = '<option value="" selected disabled>اختر المديرية...</option>';
-    if (locationData[province]) {
-        locationData[province].forEach(d => {
-            let opt = document.createElement('option');
-            opt.value = d; opt.textContent = d;
-            districtSelect.appendChild(opt);
-        });
-    }
-}
-
-function updateFinanceOptions() {
-    const type = document.querySelector('input[name="fin_type"]:checked').value;
-    const select = document.getElementById('financeSelect');
-    select.innerHTML = '<option value="" selected disabled>اختر الجهة...</option>';
-    financialData[type].forEach(item => {
-        let opt = document.createElement('option');
-        opt.value = item; opt.textContent = item;
-        select.appendChild(opt);
-    });
-    let manualOpt = document.createElement('option');
-    manualOpt.value = "manual"; manualOpt.textContent = "أخرى (إدخال يدوي)...";
-    select.appendChild(manualOpt);
-}
-
-function handleManualEntry(select) {
-    document.getElementById('manualEntryDiv').style.display = select.value === "manual" ? 'block' : 'none';
-}
-
-// فحص التكرار
-document.querySelectorAll('.validation-field').forEach(input => {
-    input.addEventListener('blur', async function() {
-        const type = this.getAttribute('data-type');
-        const value = this.value.trim();
-        const icon = document.getElementById(this.id.replace('Input', 'Icon'));
-        if (value.length < 3) return;
-        icon.innerHTML = '<span class="spinner-border spinner-border-sm text-secondary"></span>';
-        try {
-            const res = await fetch(`/admin/suppliers/check-duplicate/?type=${type}&value=${encodeURIComponent(value)}`);
-            const data = await res.json();
-            if (data.exists) {
-                icon.innerHTML = '<i class="fas fa-times-circle text-danger"></i>';
-                this.classList.add('is-invalid');
-            } else {
-                icon.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
-                this.classList.remove('is-invalid');
-            }
-        } catch (e) { icon.innerHTML = ''; }
-    });
-});
-
-document.getElementById('addSupplierForm').onsubmit = async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerHTML = 'جاري الحفظ...';
-    try {
-        const response = await fetch("{{ url_for('admin_suppliers.add_supplier') }}", {
-            method: 'POST',
-            body: new FormData(this)
-        });
-        const res = await response.json();
-        if (res.status === 'success') {
-            document.getElementById('res_trade_name').innerText = res.data.trade_name;
-            document.getElementById('res_username').innerText = res.data.username;
-            document.getElementById('res_password').innerText = res.data.password;
-            new bootstrap.Modal(document.getElementById('successModal')).show();
-        } else {
-            Swal.fire({ title: 'فشل', text: res.message, icon: 'error' });
-            btn.disabled = false;
-            btn.innerHTML = 'اعتماد المورد الآن';
-        }
-    } catch (e) { 
-        Swal.fire({ title: 'خطأ', text: 'فشل الاتصال', icon: 'error' });
-        btn.disabled = false;
-    }
-};
-
-function copyFullReport() {
-    const report = `🛡️ تعميد مورد - محجوب أونلاين\n🏛️ المنشأة: ${document.getElementById('res_trade_name').innerText}\n👤 المستخدم: ${document.getElementById('res_username').innerText}\n🔑 كلمة السر: ${document.getElementById('res_password').innerText}`;
-    navigator.clipboard.writeText(report).then(() => {
-        document.getElementById('copyAllBtn').innerText = "تم النسخ ✅";
-    });
-}
-
-window.onload = updateFinanceOptions;
-</script>
-
-<style>
-    .dir-ltr { direction: ltr; }
-    .font-monospace { font-family: 'Courier New', monospace; }
+    .font-monospace { font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; }
+    .custom-select:focus { border: 1px solid #4B338A !important; box-shadow: none; }
     .btn-outline-primary { color: #4B338A; border-color: #4B338A; }
     .btn-outline-primary:hover, .btn-check:checked + .btn-outline-primary { 
         background-color: #4B338A !important; border-color: #4B338A !important; color: #fff !important;
