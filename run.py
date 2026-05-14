@@ -1,48 +1,40 @@
 # coding: utf-8
-# 🌟 ملف التشغيل لمنصة محجوب أونلاين - متوافق مع Python 3.12.3
+# ملف: run.py
 import os
 import sys
 
-# التأكد من إضافة المسار الحالي لبيئة العمل لضمان رؤية المجلدات الفرعية
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# 🚀 تعليم بايثون مكان المجلدات لضمان عدم حدوث ImportError
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
 
 from flask import Flask
 
-# 🛡️ محاولة استيراد آمنة لفك "تجميد" التطبيق
+# استيراد النماذج من المجلد الذي يحتوي على __init__.py
 try:
-    # الاستيراد من مجلد models (تأكد من وجود ملف __init__.py هناك)
     from models.admin_db import db, AdminUser
-    print("✅ تم استيراد النماذج بنجاح")
+    print("✅ تم التعرف على AdminUser بنجاح")
 except ImportError as e:
-    print(f"❌ فشل الاستيراد: {e}")
-    # تعريف كائنات وهمية مؤقتاً لمنع انهيار gunicorn أثناء التشخيص
+    print(f"❌ خطأ حرج في الاستيراد: {e}")
+    # تعريفات وهمية لمنع gunicorn من الانهيار فوراً
     db = None
     AdminUser = None
 
 def create_app():
     app = Flask(__name__)
-    
-    # إعدادات قاعدة البيانات المربوطة بـ Railway
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default_key_2026')
-
+    
     if db:
         db.init_app(app)
         with app.app_context():
-            # إنشاء الجداول إذا كانت مفقودة
             try:
                 db.create_all()
-            except Exception as e:
-                print(f"⚠️ خطأ في إنشاء الجداول: {e}")
-
-    @app.route('/')
-    def status():
-        return "Mahjoub Online: System is Operational"
-
+            except Exception as db_err:
+                print(f"⚠️ فشل تحديث جداول القاعدة: {db_err}")
+                
     return app
 
-# 🚀 هذا المتغير هو ما يبحث عنه Procfile (web: gunicorn run:app)
+# الكائن المطلوب لتشغيل الخادم (web: gunicorn run:app)
 app = create_app()
 
 if __name__ == "__main__":
