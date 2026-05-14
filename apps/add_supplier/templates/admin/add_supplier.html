@@ -4,21 +4,21 @@
 
 {% block content %}
 <div class="container-fluid" id="main-content">
-    <!-- رأس الصفحة مع نظام الترقيم الموحد المختصر -->
+    <!-- رأس الصفحة مع نظام الترقيم الموحد المختصر الثابت -->
     <div class="mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm">
         <div>
             <h2 class="fw-bold" style="color: #4B338A;">🛡️ تعميد مورد جديد</h2>
-            <p class="text-muted mb-0">إدارة الأرشفة والربط المالي السيادي.</p>
+            <p class="text-muted mb-0">إدارة الأرشفة والربط المالي السيادي لعام 2026.</p>
         </div>
         <div class="text-center p-2 border-start ps-4">
-            <small class="d-block text-muted fw-bold">المعرف الموحد (SUP-WEL)</small>
-            <span class="fs-4 fw-bold" style="color: #4B338A;" id="display-id">SUP-WEL-MAH{{ next_id if next_id else '9631' }}</span>
+            <small class="d-block text-muted fw-bold">المعرف الموحد الثابت</small>
+            <span class="fs-4 fw-bold" style="color: #4B338A;" id="display-id">SUP-WEL-MAH963{{ next_id if next_id else '1' }}</span>
         </div>
     </div>
 
     <form id="addSupplierForm" method="POST" enctype="multipart/form-data">
         <!-- الحقل المخفي لإرسال الرقم الموحد للسيرفر -->
-        <input type="hidden" name="unified_id" value="SUP-WEL-MAH{{ next_id if next_id else '9631' }}">
+        <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id if next_id else '1' }}">
 
         <div class="row g-4">
             <!-- العمود الأول: الهوية والتوثيق -->
@@ -29,7 +29,7 @@
                         <h5 class="fw-bold mb-0">بيانات الهوية</h5>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">اسم المستخدم</label>
+                        <label class="form-label text-muted small">اسم المستخدم (Username)</label>
                         <input type="text" name="username" class="form-control bg-light border-0" placeholder="user_2026" required>
                     </div>
                     <div class="mb-3">
@@ -42,51 +42,57 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">وثيقة الإثبات (صورة)</label>
+                        <label class="form-label text-muted small">وثيقة الإثبات (صورة الهوية)</label>
                         <input type="file" name="identity_image" class="form-control bg-light border-0">
                     </div>
                 </div>
             </div>
 
-            <!-- العمود الثاني: النطاق الجغرافي (العنوان) -->
+            <!-- العمود الثاني: العنوان والتواصل (تم إضافة رقم الهاتف هنا) -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-map-marked-alt fa-lg me-2" style="color: #4B338A;"></i>
-                        <h5 class="fw-bold mb-0">العنوان والنطاق</h5>
+                        <h5 class="fw-bold mb-0">العنوان والتواصل</h5>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">الاسم التجاري للمحل/المؤسسة</label>
-                        <input type="text" name="trade_name" class="form-control bg-light border-0" placeholder="مثلاً: شركة المحجوب" required>
+                        <label class="form-label text-muted small">الاسم التجاري</label>
+                        <input type="text" name="trade_name" class="form-control bg-light border-0" placeholder="مثلاً: مؤسسة المحجوب" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">المحافظة</label>
-                        <select name="province" id="provinceSelect" class="form-select bg-light border-0" onchange="updateDistricts()" required>
-                            <option value="">اختر المحافظة...</option>
-                            <option value="الحديدة">الحديدة</option>
-                            <option value="تعز">تعز</option>
-                            <option value="عدن">عدن</option>
-                        </select>
+                        <label class="form-label text-muted small">رقم الهاتف النشط</label>
+                        <input type="tel" name="phone_number" class="form-control bg-light border-0" placeholder="7xxxxxxx" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">المديرية (نطاق العمل)</label>
-                        <select name="district" id="districtSelect" class="form-select bg-light border-0" required>
-                            <option value="">حدد المحافظة أولاً</option>
-                        </select>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label text-muted small">المحافظة</label>
+                            <select name="province" id="provinceSelect" class="form-select bg-light border-0" onchange="updateDistricts()" required>
+                                <option value="">المحافظة</option>
+                                <option value="الحديدة">الحديدة</option>
+                                <option value="تعز">تعز</option>
+                                <option value="عدن">عدن</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-muted small">المديرية</label>
+                            <select name="district" id="districtSelect" class="form-select bg-light border-0" required>
+                                <option value="">المديرية</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- العمود الثالث: الوسيلة المالية (محدث) -->
+            <!-- العمود الثالث: الوسيلة المالية والأمان (تم إضافة كلمة المرور هنا) -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
-                        <i class="fas fa-credit-card fa-lg me-2" style="color: #4B338A;"></i>
-                        <h5 class="fw-bold mb-0">وسيلة الدفع المعتمدة</h5>
+                        <i class="fas fa-lock fa-lg me-2" style="color: #4B338A;"></i>
+                        <h5 class="fw-bold mb-0">الربط المالي والأمان</h5>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label text-muted small">تصنيف جهة الصرف</label>
+                        <label class="form-label text-muted small">تصنيف الجهة</label>
                         <div class="d-flex gap-2">
                             <input type="radio" class="btn-check" name="fin_type" id="fin_bank" value="banks" onchange="updateFinanceOptions()" checked>
                             <label class="btn btn-outline-primary btn-sm w-50" for="fin_bank">بنوك</label>
@@ -97,15 +103,19 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-muted small">اسم الجهة المختارة</label>
+                        <label class="form-label text-muted small">اسم الجهة / المحفظة</label>
                         <select name="bank_name" id="financeSelect" class="form-select bg-light border-0" required>
-                            <!-- يتم التحديث عبر الجافا سكريبت -->
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-muted small">رقم الحساب / الجوال المالي</label>
+                        <label class="form-label text-muted small">رقم الحساب المالي</label>
                         <input type="text" name="bank_acc" class="form-control bg-light border-0" placeholder="0000000" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">كلمة مرور الحساب</label>
+                        <input type="password" name="password" class="form-control bg-light border-0" placeholder="********" required>
                     </div>
 
                     <div class="mt-auto">
@@ -120,9 +130,9 @@
 </div>
 
 <script>
-// بيانات الجهات المالية المحدثة
+// تحديث قائمة الجهات المالية
 const financialData = {
-    'banks': ['بنك الكريمي', 'بنك القطيبي', 'بنك البسيري', 'بنك اليمن والكويت'],
+    'banks': ['بنك الكريمي', 'بنك القطيبي', 'بنك البسيري', 'بنك التضامن'],
     'exchange': ['النجم للصرافة', 'باسياب للصرافة', 'الحرمين', 'عدن للصرافة']
 };
 
@@ -130,56 +140,40 @@ function updateFinanceOptions() {
     const type = document.querySelector('input[name="fin_type"]:checked').value;
     const financeSelect = document.getElementById('financeSelect');
     financeSelect.innerHTML = '<option value="">اختر الجهة...</option>';
-    
     financialData[type].forEach(item => {
         let option = document.createElement('option');
-        option.value = item;
-        option.text = item;
+        option.value = item; option.text = item;
         financeSelect.add(option);
     });
 }
 
-// بيانات العناوين
+// تحديث المديريات بناءً على النطاق الجغرافي لليمن
 function updateDistricts() {
     const province = document.getElementById('provinceSelect').value;
     const districtSelect = document.getElementById('districtSelect');
-    districtSelect.innerHTML = '<option value="">اختر المديرية...</option>';
-
+    districtSelect.innerHTML = '<option value="">المديرية</option>';
     const cityData = {
         'الحديدة': ['الخوخة', 'حيس', 'التحيتا'],
         'تعز': ['المخا', 'ذوباب', 'موزع'],
         'عدن': ['المنصورة', 'كريتر', 'الشيخ عثمان']
     };
-
     if (province && cityData[province]) {
         cityData[province].forEach(dist => {
             let option = document.createElement('option');
-            option.value = dist;
-            option.text = dist;
+            option.value = dist; option.text = dist;
             districtSelect.add(option);
         });
     }
 }
 
-// تشغيل القوائم تلقائياً
 window.onload = function() {
     updateFinanceOptions();
 };
 </script>
 
 <style>
-    /* تخصيص اللون الأرجواني الملكي للمنصة */
-    .btn-outline-primary {
-        color: #4B338A;
-        border-color: #4B338A;
-    }
-    .btn-check:checked + .btn-outline-primary {
-        background-color: #4B338A !important;
-        border-color: #4B338A !important;
-    }
-    .form-control:focus, .form-select:focus {
-        border: 1px solid #4B338A !important;
-        box-shadow: none;
-    }
+    .btn-outline-primary { color: #4B338A; border-color: #4B338A; }
+    .btn-check:checked + .btn-outline-primary { background-color: #4B338A !important; border-color: #4B338A !important; }
+    .form-control:focus, .form-select:focus { border: 1px solid #4B338A !important; box-shadow: none; }
 </style>
 {% endblock %}
