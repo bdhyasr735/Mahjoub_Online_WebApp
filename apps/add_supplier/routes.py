@@ -2,9 +2,8 @@ import os
 from flask import Blueprint, render_template, request, jsonify
 from datetime import datetime
 
-# حساب مسار القوالب برمجياً بشكل دقيق لتفادي TemplateNotFound
-base_dir = os.path.abspath(os.path.dirname(__file__))
-template_dir = os.path.join(base_dir, '..', '..', 'templates')
+# 🎯 الحل الجذري: تحديد مسار المجلد الرئيسي المشترك للقوالب (templates) بشكل ثابت وصارم لـ Railway
+template_dir = "/app/apps/templates"
 
 admin_suppliers = Blueprint(
     'admin_suppliers', 
@@ -14,11 +13,10 @@ admin_suppliers = Blueprint(
 
 @admin_suppliers.route('/add', methods=['GET', 'POST'])
 def add_supplier():
-    # استيراد محلي آمن ومستقل كلياً
     from models.supplier_db import Supplier
     from apps import db 
 
-    # 🔥 السحر المستقل: أمر إنشاء الجدول تلقائياً فور طلب الصفحة
+    # إنشاء الجدول تلقائياً إذا تم حذفه
     try:
         db.create_all()
     except Exception as e:
@@ -48,7 +46,6 @@ def add_supplier():
                 bank_name = request.form.get('manual_bank_name')
             bank_acc = request.form.get('bank_acc')
 
-            # فحص التكرار
             if Supplier.query.filter_by(username=username).first():
                 return jsonify({'status': 'error', 'message': 'اسم المستخدم مسجل مسبقاً!'}), 400
             if Supplier.query.filter_by(trade_name=trade_name).first():
@@ -87,7 +84,6 @@ def add_supplier():
             db.session.rollback()
             return jsonify({'status': 'error', 'message': f'حدث خطأ في الخادم: {str(e)}'}), 500
 
-    # حساب المعرف القادم للمورد
     next_id_num = 1
     try:
         last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
@@ -96,6 +92,7 @@ def add_supplier():
     except Exception as e:
         next_id_num = 1
         
+    # تذكر: يجب أن يكون الملف داخل مجلد: apps/templates/admin/add_supplier.html
     return render_template('admin/add_supplier.html', next_id=next_id_num, next_id_num=next_id_num)
 
 
