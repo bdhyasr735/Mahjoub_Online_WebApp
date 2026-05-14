@@ -4,6 +4,7 @@
 
 {% block content %}
 <div class="container-fluid" id="main-content">
+    <!-- الهيدر الخاص بالصفحة -->
     <div class="mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm border-end border-4" style="border-color: #4B338A !important;">
         <div>
             <h2 class="fw-bold" style="color: #4B338A;">🛡️ تعميد مورد جديد</h2>
@@ -19,6 +20,7 @@
         <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id if next_id else '1' }}">
 
         <div class="row g-4">
+            <!-- العمود الأول: بيانات الوصول -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -68,6 +70,7 @@
                 </div>
             </div>
 
+            <!-- العمود الثاني: بيانات المنشأة -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -138,6 +141,7 @@
                 </div>
             </div>
 
+            <!-- العمود الثالث: الربط المالي -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -190,6 +194,7 @@
     </form>
 </div>
 
+<!-- Modal النجاح -->
 <div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
@@ -225,6 +230,7 @@
 </div>
 
 <script>
+// البيانات المحلية للمناطق والجهات المالية
 const locationData = {
     'الحديدة': ['الخوخة', 'حيس', 'التحيتا', 'الحالي', 'الحوك', 'الميناء', 'باجل'],
     'تعز': ['المخا', 'المظفر', 'القاهرة', 'صالة', 'التربة'],
@@ -238,6 +244,7 @@ const financialData = {
     'exchange': ['النجم للصرافة', 'الامتياز للحوالات', 'الحرمين للصرافة']
 };
 
+// وظائف التحديث الديناميكي للقوائم
 function updateDistrictOptions() {
     const province = document.getElementById('provinceSelect').value;
     const districtSelect = document.getElementById('districtSelect');
@@ -273,7 +280,7 @@ function updateFinanceOptions() {
 function handleIdentityManualEntry(s) { document.getElementById('identityManualDiv').style.display = s.value === 'manual' ? 'block' : 'none'; }
 function handleManualEntry(s) { document.getElementById('manualEntryDiv').style.display = s.value === 'manual' ? 'block' : 'none'; }
 
-// --- تفعيل نظام الفحص اللحظي الفيدرالي عند مغادرة الحقول ---
+// --- نظام الفحص اللحظي (Validation) ---
 document.addEventListener("DOMContentLoaded", function() {
     updateFinanceOptions();
 
@@ -289,45 +296,45 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
 
-            let url = `/admin/suppliers/check-duplicate?type=${type}&value=${encodeURIComponent(value)}`;
-            if (type === 'bank_acc') {
-                const bankName = document.getElementById('financeSelect').value;
-                url += `&bank_name=${encodeURIComponent(bankName)}`;
-            }
+            // إظهار سبينر صغير أثناء التحميل (اختياري)
+            if(iconSpan) iconSpan.innerHTML = '<span class="spinner-border spinner-border-sm text-muted"></span>';
 
+            let url = `/admin/suppliers/check-duplicate?type=${type}&value=${encodeURIComponent(value)}`;
+            
             try {
                 const res = await fetch(url);
                 const data = await res.json();
+                
                 if (data.exists) {
-                    // المورد متواجد مسبقاً -> يعطي خطأ أحمر وعلامة خطأ
+                    // القيمة موجودة مسبقاً -> خطأ
                     this.classList.add('is-invalid');
                     this.classList.remove('is-valid');
                     if(iconSpan) iconSpan.innerHTML = '<b class="text-danger">❌ مسجل</b>';
                 } else {
-                    // الحقل آمن ومتاح للاستخدام -> يعطي أخضر وعلامة صح
+                    // القيمة متاحة -> نجاح
                     this.classList.remove('is-invalid');
                     this.classList.add('is-valid');
                     if(iconSpan) iconSpan.innerHTML = '<b class="text-success">✔️ متاح</b>';
                 }
             } catch (err) {
-                console.error("AJAX Validation Error:", err);
+                console.error("Validation Error:", err);
+                if(iconSpan) iconSpan.innerHTML = '<i class="fas fa-exclamation-circle text-warning"></i>';
             }
         });
     });
 });
 
-// معالجة معيار الإرسال الآمن عبر AJAX
+// معالجة الإرسال النهائي
 document.getElementById('addSupplierForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    // التحقق الفوري ما إذا كان هناك أي حقل غير مستوفي للشروط
     if (this.querySelectorAll('.is-invalid').length > 0) {
-        alert("يرجى تعديل الحقول المكررة والموضحة باللون الأحمر قبل الحفظ.");
+        alert("تنبيه: توجد حقول مسجلة مسبقاً، يرجى تصحيح البيانات الموضحة باللون الأحمر.");
         return;
     }
 
     const btn = document.getElementById('submitBtn');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ والتعميد...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري التعميد...';
     btn.disabled = true;
 
     const formData = new FormData(this);
@@ -350,36 +357,34 @@ document.getElementById('addSupplierForm').addEventListener('submit', async func
             const modal = new bootstrap.Modal(document.getElementById('successModal'));
             modal.show();
         } else {
-            alert(result.message || "خطأ في عملية التعميد، يرجى مراجعة البيانات المرفوعة.");
+            alert(result.message || "خطأ في عملية التعميد.");
             btn.disabled = false;
             btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
         }
     } catch (err) {
-        console.error(err);
-        alert("فشل الاتصال بالخادم الرئيسي.");
+        alert("فشل الاتصال بالخادم.");
         btn.disabled = false;
         btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
     }
 });
 
 function copyAndFinish() {
-    const text = `بيانات المورد السيادية - محجوب أونلاين\nالمالك: ${document.getElementById('resOwner').innerText}\nاسم المستخدم: ${document.getElementById('resUser').innerText}\nكلمة المرور: ${document.getElementById('resPass').innerText}\nتنبيه: يرجى تغيير كلمة المرور فورا.`;
+    const text = `بيانات المورد - محجوب أونلاين\nالمالك: ${document.getElementById('resOwner').innerText}\nاسم المستخدم: ${document.getElementById('resUser').innerText}\nكلمة المرور: ${document.getElementById('resPass').innerText}`;
     navigator.clipboard.writeText(text).then(() => {
-        alert("تم نسخ معلومات التوثيق للحافظة بنجاح!");
-        window.location.href = '/admin/suppliers/add';
+        alert("تم النسخ!");
+        window.location.reload();
     });
 }
 </script>
 
 <style>
-    .validation-icon { min-width: 75px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; font-size: 13px; }
+    .validation-icon { min-width: 85px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; font-size: 12px; }
     .dir-ltr { direction: ltr; }
     .btn-outline-primary { color: #4B338A; border-color: #4B338A; }
     .btn-outline-primary:hover, .btn-check:checked + .btn-outline-primary { 
         background-color: #4B338A !important; border-color: #4B338A !important; color: #fff !important;
     }
-    /* إجبار إطارات التوثيق على اتخاذ قرارات Bootstrap القياسية لتجربة مستخدم مذهلة */
-    .form-control.is-valid { border-color: #198754 !important; background-image: none !important; }
-    .form-control.is-invalid { border-color: #dc3545 !important; background-image: none !important; }
+    .form-control.is-valid { border-color: #198754 !important; border-width: 2px; }
+    .form-control.is-invalid { border-color: #dc3545 !important; border-width: 2px; }
 </style>
 {% endblock %}
