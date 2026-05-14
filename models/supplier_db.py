@@ -3,9 +3,6 @@ from flask import Blueprint, render_template, request, jsonify, current_app
 from datetime import datetime
 from werkzeug.utils import secure_filename
 
-# استيراد مستقر 100% من الملف المحلي الذي أصلحناه معاً
-from models.supplier_db import db, Supplier 
-
 # تعريف الـ Blueprint ليعود إلى مجلد القوالب الرئيسي لتلافي أي تضارب
 admin_suppliers = Blueprint(
     'admin_suppliers', 
