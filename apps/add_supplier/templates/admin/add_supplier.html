@@ -4,7 +4,6 @@
 
 {% block content %}
 <div class="container-fluid" id="main-content">
-    <!-- الهيدر السيادي -->
     <div class="mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm border-end border-4" style="border-color: #4B338A !important;">
         <div>
             <h2 class="fw-bold" style="color: #4B338A;">🛡️ تعميد مورد جديد</h2>
@@ -20,7 +19,6 @@
         <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id if next_id else '1' }}">
 
         <div class="row g-4">
-            <!-- العمود الأول: الوصول والتوثيق -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -70,7 +68,6 @@
                 </div>
             </div>
 
-            <!-- العمود الثاني: بيانات المالك -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -125,7 +122,6 @@
                 </div>
             </div>
 
-            <!-- العمود الثالث: الربط المالي -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -178,7 +174,6 @@
     </form>
 </div>
 
-<!-- Modal عرض بيانات الاعتماد بعد التعميد -->
 <div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
@@ -187,11 +182,11 @@
                     <i class="fas fa-check-double fa-3x text-success"></i>
                 </div>
             </div>
-            <div class="modal-body text-center p-4 text-end">
-                <h4 class="fw-bold mb-3 text-center" style="color: #4B338A;">تم التعميد بنجاح!</h4>
-                <p class="text-muted text-center small">تمت أرشفة المورد في نظام محجوب أونلاين السيادي.</p>
+            <div class="modal-body text-center p-4">
+                <h4 class="fw-bold mb-3" style="color: #4B338A;">تم التعميد بنجاح!</h4>
+                <p class="text-muted small">تمت أرشفة المورد في نظام محجوب أونلاين السيادي.</p>
                 
-                <div class="bg-light p-3 rounded-3 mb-3 border">
+                <div class="bg-light p-3 rounded-3 mb-3 border text-start" style="direction: rtl;">
                     <div class="mb-2 small text-muted">بيانات المورد السيادية:</div>
                     <div class="mb-2 text-dark"><strong>المالك:</strong> <span id="resOwner"></span></div>
                     <div class="mb-2 text-dark"><strong>الهوية:</strong> <span id="resID"></span></div>
@@ -214,7 +209,6 @@
 </div>
 
 <script>
-// البيانات الجغرافية والمالية
 const locationData = {
     'الحديدة': ['الخوخة', 'حيس', 'التحيتا', 'الحالي', 'الحوك', 'الميناء', 'باجل'],
     'تعز': ['المخا', 'المظفر', 'القاهرة', 'صالة', 'التربة'],
@@ -242,8 +236,13 @@ function updateDistrictOptions() {
 }
 
 function updateFinanceOptions() {
-    const type = document.querySelector('input[name="fin_type"]:checked').value;
+    const typeElement = document.querySelector('input[name="fin_type"]:checked');
+    if(!typeElement) return;
+    
+    const type = typeElement.value;
     const select = document.getElementById('financeSelect');
+    if(!select) return;
+
     select.innerHTML = '<option value="" selected disabled>اختر الجهة...</option>';
     financialData[type].forEach(item => {
         let opt = document.createElement('option');
@@ -255,10 +254,47 @@ function updateFinanceOptions() {
     select.appendChild(manualOpt);
 }
 
-// التحكم بالحقول اليدوية
 function handleIdentityManualEntry(s) { document.getElementById('identityManualDiv').style.display = s.value === 'manual' ? 'block' : 'none'; }
 function handleManualEntry(s) { document.getElementById('manualEntryDiv').style.display = s.value === 'manual' ? 'block' : 'none'; }
-function handleCategoryManualEntry(s) { /* منطق مشابه */ }
+function handleCategoryManualEntry(s) { }
+
+// --- التفعيل القياسي والآمن عند تحميل الصفحة ---
+document.addEventListener("DOMContentLoaded", function() {
+    updateFinanceOptions();
+
+    // ربط الفحص اللحظي AJAX لمنع تكرار الحقول
+    document.querySelectorAll('.validation-field').forEach(input => {
+        input.addEventListener('blur', async function() {
+            const type = this.getAttribute('data-type');
+            const value = this.value.strip ? this.value.strip() : this.value.trim();
+            const iconSpan = document.getElementById(type + 'Icon');
+            
+            if (!value) return;
+
+            let url = `/admin/suppliers/check-duplicate?type=${type}&value=${encodeURIComponent(value)}`;
+            if (type === 'bank_acc') {
+                const bankName = document.getElementById('financeSelect').value;
+                url += `&bank_name=${encodeURIComponent(bankName)}`;
+            }
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.exists) {
+                    this.classList.add('is-invalid');
+                    this.classList.remove('is-valid');
+                    if(iconSpan) iconSpan.innerHTML = '❌';
+                } else {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                    if(iconSpan) iconSpan.innerHTML = '✔️';
+                }
+            } catch (err) {
+                console.error("AJAX Error:", err);
+            }
+        });
+    });
+});
 
 // معالجة إرسال النموذج عبر AJAX
 document.getElementById('addSupplierForm').addEventListener('submit', async function(e) {
@@ -270,29 +306,33 @@ document.getElementById('addSupplierForm').addEventListener('submit', async func
     const formData = new FormData(this);
 
     try {
-        const response = await fetch(window.location.href, {
+        // تحديد مسار ثابت صريح منعاً لتشوهات الروابط النسبية
+        const response = await fetch('/admin/suppliers/add', {
             method: 'POST',
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
 
-        if (response.ok) {
-            // تعبئة المودال بالبيانات المدخلة
+        const result = await response.json();
+
+        if (response.ok && result.status === 'success') {
             document.getElementById('resOwner').innerText = document.getElementById('ownerNameInput').value;
             document.getElementById('resID').innerText = document.getElementById('identityNumberInput').value;
-            document.getElementById('resUser').innerText = document.getElementById('usernameInput').value;
-            document.getElementById('resPass').innerText = document.getElementById('passwordInput').value;
+            document.getElementById('resUser').innerText = result.data.username;
+            document.getElementById('resPass').innerText = result.data.password;
 
             const modal = new bootstrap.Modal(document.getElementById('successModal'));
             modal.show();
         } else {
-            alert("خطأ في عملية التعميد، يرجى مراجعة البيانات.");
+            alert(result.message || "خطأ في عملية التعميد، يرجى مراجعة البيانات.");
             btn.disabled = false;
             btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
         }
     } catch (err) {
         console.error(err);
+        alert("حدث خطأ غير متوقع في الخادم.");
         btn.disabled = false;
+        btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
     }
 });
 
@@ -300,11 +340,9 @@ function copyAndFinish() {
     const text = `بيانات المورد السيادية - محجوب أونلاين\nالمالك: ${document.getElementById('resOwner').innerText}\nاسم المستخدم: ${document.getElementById('resUser').innerText}\nكلمة المرور: ${document.getElementById('resPass').innerText}\nتنبيه: يرجى تغيير كلمة المرور فور الدخول.`;
     navigator.clipboard.writeText(text).then(() => {
         alert("تم نسخ البيانات بنجاح!");
-        location.reload();
+        window.location.href = '/admin/suppliers/add'; // إعادة تحميل نظيفة لمنع التكرار
     });
 }
-
-window.onload = updateFinanceOptions;
 </script>
 
 <style>
