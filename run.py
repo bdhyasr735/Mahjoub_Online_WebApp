@@ -1,21 +1,19 @@
 # coding: utf-8
-# ملف: run.py
+# ملف التشغيل الرئيسي - متوافق مع إعدادات PYTHONPATH=.
 import os
 import sys
 
-# 🚀 تعليم بايثون مكان المجلدات لضمان عدم حدوث ImportError
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(BASE_DIR)
+# 🚀 بما أنك أضفت المسار في الإعدادات، سنقوم بتأكيد ذلك برمجياً أيضاً
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 
 from flask import Flask
 
-# استيراد النماذج من المجلد الذي يحتوي على __init__.py
+# الاستيراد المباشر من الحزمة models
 try:
     from models.admin_db import db, AdminUser
-    print("✅ تم التعرف على AdminUser بنجاح")
+    print("✅ تم العثور على النماذج بنجاح باستخدام PYTHONPATH")
 except ImportError as e:
-    print(f"❌ خطأ حرج في الاستيراد: {e}")
-    # تعريفات وهمية لمنع gunicorn من الانهيار فوراً
+    print(f"❌ لا يزال هناك خطأ في المسار: {e}")
     db = None
     AdminUser = None
 
@@ -26,15 +24,8 @@ def create_app():
     
     if db:
         db.init_app(app)
-        with app.app_context():
-            try:
-                db.create_all()
-            except Exception as db_err:
-                print(f"⚠️ فشل تحديث جداول القاعدة: {db_err}")
-                
     return app
 
-# الكائن المطلوب لتشغيل الخادم (web: gunicorn run:app)
 app = create_app()
 
 if __name__ == "__main__":
