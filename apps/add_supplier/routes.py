@@ -12,7 +12,7 @@ admin_suppliers = Blueprint(
     template_folder=template_dir
 )
 
-# دالة ذكية مستقلة تفحص وتضيف الأعمدة الناقصة لجدول الموردين تلقائياً دون المساس بالبيانات القديمة
+# دالة ذكية ومستقلة تفحص وتضيف الأعمدة الناقصة لجدول الموردين تلقائياً عند طلب الصفحة
 def auto_upgrade_supplier_table():
     from apps import db
     from sqlalchemy import inspect, text
@@ -35,9 +35,10 @@ def auto_upgrade_supplier_table():
     except Exception as e:
         print(f"⚠️ [Independent Upgrade Warning]: {e}")
 
-@admin_suppliers.route('/admin/suppliers/add', methods=['GET', 'POST'])
+# تم تعديل الرابط هنا إلى '/' و '/add' ليتكامل بشكل مستقل وصحيح مع الإعدادات المركزية
+@admin_suppliers.route('/add', methods=['GET', 'POST'])
 def add_supplier():
-    # تشغيل الفحص الذاتي والترقية فوراً عند طلب الصفحة لضمان عدم حدوث خطأ UndefinedColumn
+    # تشغيل الفحص والترقية الذاتية فوراً
     auto_upgrade_supplier_table()
 
     from models.supplier_db import Supplier
@@ -116,7 +117,8 @@ def add_supplier():
     return render_template('admin/add_supplier.html', next_id=next_id_num, next_id_num=next_id_num)
 
 
-@admin_suppliers.route('/admin/suppliers/check-duplicate', methods=['GET'])
+# تم تعديل الرابط هنا أيضاً ليكون نظيفاً ومستقلاً
+@admin_suppliers.route('/check-duplicate', methods=['GET'])
 def check_duplicate():
     from models.supplier_db import Supplier 
 
