@@ -2,8 +2,10 @@ import os
 from flask import Blueprint, render_template, request, jsonify
 from datetime import datetime
 
-# 🎯 الحل الجذري: تحديد مسار المجلد الرئيسي المشترك للقوالب (templates) بشكل ثابت وصارم لـ Railway
-template_dir = "/app/apps/templates"
+# 🎯 الحل الديناميكي الحاسم: حساب المسار النسبي صعوداً من المجلد الحالي للوصول إلى المجلد المشترك templates
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# الصعود خطوتين لأعلى (من add_supplier ثم من apps) للوصول للمجلد الرئيسي المشترك
+template_dir = os.path.abspath(os.path.join(current_dir, '..', '..', 'templates'))
 
 admin_suppliers = Blueprint(
     'admin_suppliers', 
@@ -16,7 +18,7 @@ def add_supplier():
     from models.supplier_db import Supplier
     from apps import db 
 
-    # إنشاء الجدول تلقائياً إذا تم حذفه
+    # إنشاء الجدول تلقائياً إذا لم يكن موجوداً
     try:
         db.create_all()
     except Exception as e:
@@ -92,7 +94,6 @@ def add_supplier():
     except Exception as e:
         next_id_num = 1
         
-    # تذكر: يجب أن يكون الملف داخل مجلد: apps/templates/admin/add_supplier.html
     return render_template('admin/add_supplier.html', next_id=next_id_num, next_id_num=next_id_num)
 
 
