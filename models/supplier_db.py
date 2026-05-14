@@ -19,3 +19,27 @@ class Supplier(db.Model):
     bank_name = db.Column(db.String(100))
     bank_account = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# 💡 حركة ذكية تلقائية: فحص وإضافة الأعمدة الناقصة في السيرفر فور الإقلاع لضمان عدم حدوث خطأ UndefinedColumn
+def check_and_upgrade_db(app):
+    with app.app_context():
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            columns = [col['name'] for col in inspector.get_columns('suppliers')]
+            
+            # الأعمدة الجديدة المراد التحقق منها
+            expected_columns = {
+                'category': 'VARCHAR(50)',
+                'finance_type': 'VARCHAR(50)',
+                'bank_name': 'VARCHAR(100)',
+                'bank_account': 'VARCHAR(100)'
+            }
+            
+            for col_name, col_type in expected_columns.items():
+                if col_name not in columns:
+                    print(f"🔧 [DB Upgrade] Adding missing column: {col_name}")
+                    db.session.execute(text(f"ALTER TABLE suppliers ADD COLUMN {col_name} {col_type};"))
+                    db.session.commit()
+        except Exception as e:
+            print(f"⚠️ [DB Upgrade Warning]: {e}")
