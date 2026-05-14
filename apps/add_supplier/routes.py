@@ -4,19 +4,19 @@ from datetime import datetime
 from apps import db  
 from models.supplier_db import Supplier 
 
-# 🎯 حساب المسار الديناميكي بدقة صعوداً للمجلد الرئيسي المشترك 'templates'
+# 🎯 التركيز هنا: حساب المسار الداخلي الفعلي للمجلد الفرعي الحالي
 current_dir = os.path.dirname(os.path.abspath(__file__))
-global_template_dir = os.path.abspath(os.path.join(current_dir, '..', 'templates'))
+local_template_dir = os.path.join(current_dir, 'templates')
 
 admin_suppliers = Blueprint(
     'admin_suppliers', 
     __name__,
-    template_folder=global_template_dir # إجبار فلاسك على القراءة من المجلد المشترك الرئيسي
+    template_folder=local_template_dir # قراءة المجلد الداخلي الخاص بهذه الحزمة فقط
 )
 
 @admin_suppliers.route('/add', methods=['GET', 'POST'])
 def add_supplier():
-    # التأكد الآمن من وجود الجدول فور طلب الصفحة
+    # التأكد من وجود الجدول فور طلب الصفحة
     try:
         db.create_all()
     except Exception as e:
@@ -92,7 +92,7 @@ def add_supplier():
     except Exception:
         next_id_num = 1
         
-    # 🎯 استدعاء قالب Jinja2 الأصلي المتواجد داخل مجلد templates المشترك
+    # استدعاء ملف الـ HTML الأصلي المكتوب بـ Jinja2 المتواجد داخل المجلد الداخلي
     return render_template('admin/add_supplier.html', next_id=next_id_num, next_id_num=next_id_num)
 
 
