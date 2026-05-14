@@ -4,42 +4,32 @@ from datetime import datetime
 from apps import db  
 from models.supplier_db import Supplier 
 
+# تعريف البلوبرنت بدون أي تعقيدات أو استدعاءات خارجية أثناء الإقلاع
 admin_suppliers = Blueprint(
     'admin_suppliers', 
     __name__
 )
 
-# محاولة إنشاء الجدول عند تشغيل السيرفر
-with admin_suppliers.record_once(lambda state: None):
-    try:
-        from run import create_app
-        app = create_app()
-        with app.app_context():
-            db.create_all()
-    except Exception:
-        pass
-
-
 @admin_suppliers.route('/add', methods=['GET', 'POST'])
 def add_supplier():
-    # إنشاء الجدول كخطة احتياطية
+    # 🎯 هنا الأمان الكامل: يتم فحص وإنشاء الجدول فقط عند فتح الرابط لتجنب انهيار السيرفر أثناء الإقلاع
     try:
         db.create_all()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Database connection error: {e}")
 
     if request.method == 'POST':
         try:
-            unified_id = request.form.get('unified_id', 'TEST-123')
             username = request.form.get('username')
             password = request.form.get('password')
             trade_name = request.form.get('trade_name')
 
+            # فحص التكرار في قاعدة البيانات
             if Supplier.query.filter_by(username=username).first():
                 return jsonify({'status': 'error', 'message': 'اسم المستخدم مسجل مسبقاً!'}), 400
 
             new_supplier = Supplier(
-                sovereign_id=unified_id,
+                sovereign_id=f"TEST-{int(datetime.utcnow().timestamp())}",
                 username=username,
                 password=password, 
                 trade_name=trade_name,
@@ -48,12 +38,12 @@ def add_supplier():
             db.session.add(new_supplier)
             db.session.commit()
 
-            return jsonify({'status': 'success', 'message': 'تم تسجيل المورد التجريبي بنجاح!'}), 200
+            return jsonify({'status': 'success', 'message': 'تم تسجيل المورد التجريبي بنجاح في قاعدة البيانات!'}), 200
         except Exception as e:
             db.session.rollback()
             return jsonify({'status': 'error', 'message': str(e)}), 500
 
-    # 🎯 واجهة اختبار فرونت إند (HTML/Jinja2) مدمجة ومباشرة بدون استدعاء ملفات خارجية
+    # واجهة فرونت إند مدمجة سريعة وخفيفة جداً للاختبار المباشر
     test_html = """
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
@@ -64,14 +54,14 @@ def add_supplier():
     </head>
     <body class="bg-light p-5">
         <div class="container text-center" style="max-width: 500px;">
-            <div class="card shadow p-4 border-0">
-                <h3 class="fw-bold text-success mb-3">✔️ نظام الموردين يعمل بنجاح!</h3>
-                <p class="text-muted">هذه واجهة اختبار معزولة للتأكد من سلامة الاتصال بقاعدة البيانات والـ Backend.</p>
+            <div class="card shadow p-4 border-0 mt-5">
+                <h3 class="fw-bold text-success mb-3">✔️ اتصال الباك إند ناجح</h3>
+                <p class="text-muted">هذه واجهة معزولة لاختبار الحفظ الفعلي في قاعدة بيانات الـ Postgres.</p>
                 <hr>
                 <form method="POST" class="text-start">
                     <div class="mb-3">
                         <label class="form-label">اسم المستخدم</label>
-                        <input type="text" name="username" class="form-control" placeholder="test_user" required>
+                        <input type="text" name="username" class="form-control" placeholder="user_test" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">كلمة المرور</label>
@@ -79,9 +69,9 @@ def add_supplier():
                     </div>
                     <div class="mb-3">
                         <label class="form-label">الاسم التجاري</label>
-                        <input type="text" name="trade_name" class="form-control" placeholder="مؤسسة التجارة المحدودة" required>
+                        <input type="text" name="trade_name" class="form-control" placeholder="مؤسسة التجارة" required>
                     </div>
-                    <button type="submit" class="btn btn-success w-100 fw-bold">إرسال وتجربة الحفظ في قاعدة البيانات</button>
+                    <button type="submit" class="btn btn-success w-100 fw-bold">حفظ المورد واختبار قاعدة البيانات</button>
                 </form>
             </div>
         </div>
@@ -89,7 +79,6 @@ def add_supplier():
     </html>
     """
     return test_html
-
 
 @admin_suppliers.route('/check-duplicate', methods=['GET'])
 def check_duplicate():
