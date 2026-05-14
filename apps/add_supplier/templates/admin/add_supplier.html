@@ -20,7 +20,7 @@
         <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id if next_id else '1' }}">
 
         <div class="row g-4">
-            <!-- العمود الأول: الهوية والنشاط (إدخال يدوي متاح عبر datalist) -->
+            <!-- العمود الأول: الهوية والنشاط -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -33,28 +33,27 @@
                         <input type="text" name="username" class="form-control bg-light border-0" placeholder="user_2026" required>
                     </div>
                     
-                    <!-- حقل نوع الهوية مع ميزة الإدخال اليدوي -->
                     <div class="mb-3">
-                        <label class="form-label text-muted small">نوع الهوية (اختر أو اكتب يدوياً)</label>
-                        <input list="id_types" name="id_type" class="form-control bg-light border-0" placeholder="بطاقة، سجل، رخصة..." required>
-                        <datalist id="id_types">
-                            <option value="بطاقة الكترونية">
-                            <option value="بطاقة شخصية">
-                            <option value="رخصة مزاولة المهنة">
-                            <option value="سجل تجاري">
-                            <option value="أخرى">
-                        </datalist>
+                        <label class="form-label text-muted small">نوع الهوية</label>
+                        <select name="id_type" class="form-select bg-light border-0 custom-select" required>
+                            <option value="" selected disabled>اختر نوع الهوية...</option>
+                            <option value="بطاقة الكترونية">بطاقة الكترونية</option>
+                            <option value="بطاقة شخصية">بطاقة شخصية</option>
+                            <option value="رخصة مزاولة المهنة">رخصة مزاولة المهنة</option>
+                            <option value="سجل تجاري">سجل تجاري</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-muted small">فئة المورد</label>
-                        <input list="categories" name="category" class="form-control bg-light border-0" placeholder="جملة، تجزئة، مصنع..." required>
-                        <datalist id="categories">
-                            <option value="مورد جملة">
-                            <option value="مورد تجزئة">
-                            <option value="منتج محلي / مصنع">
-                            <option value="مستورد">
-                        </datalist>
+                        <select name="category" class="form-select bg-light border-0 custom-select" required>
+                            <option value="" selected disabled>اختر فئة المورد...</option>
+                            <option value="مورد جملة">مورد جملة</option>
+                            <option value="مورد تجزئة">مورد تجزئة</option>
+                            <option value="منتج محلي / مصنع">منتج محلي / مصنع</option>
+                            <option value="مستورد">مستورد</option>
+                        </select>
                     </div>
 
                     <div class="mb-3">
@@ -64,7 +63,7 @@
                 </div>
             </div>
 
-            <!-- العمود الثاني: المالك والعنوان التفصيلي -->
+            <!-- العمود الثاني: المالك والعنوان -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -92,22 +91,21 @@
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label text-muted small">المحافظة</label>
-                            <input list="provinces" name="province" class="form-control bg-light border-0" placeholder="المحافظة" required>
-                            <datalist id="provinces">
-                                <option value="الحديدة">
-                                <option value="تعز">
-                                <option value="عدن">
-                            </datalist>
+                            <select name="province" class="form-select bg-light border-0 custom-select" required>
+                                <option value="" selected disabled>اختر...</option>
+                                <option value="الحديدة">الحديدة</option>
+                                <option value="تعز">تعز</option>
+                                <option value="عدن">عدن</option>
+                            </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label text-muted small">المديرية</label>
                             <input type="text" name="district" class="form-control bg-light border-0" placeholder="المديرية">
                         </div>
                     </div>
-                    <!-- إضافة حقل العنوان التفصيلي -->
                     <div class="mb-3">
-                        <label class="form-label text-muted small">العنوان التفصيلي (الشارع / المعلم)</label>
-                        <input type="text" name="address_detail" class="form-control bg-light border-0" placeholder="مثلاً: شارع الميناء - بجوار فرع الكريمي">
+                        <label class="form-label text-muted small">العنوان التفصيلي</label>
+                        <input type="text" name="address_detail" class="form-control bg-light border-0" placeholder="الشارع / المعلم">
                     </div>
                 </div>
             </div>
@@ -133,11 +131,15 @@
 
                     <div class="mb-3">
                         <label class="form-label text-muted small">اسم البنك أو شركة الصرافة</label>
-                        <!-- ميزة الإدخال اليدوي هنا أيضاً -->
-                        <input list="finance_list" name="bank_name" id="financeInput" class="form-control bg-light border-0" placeholder="اختر أو اكتب جهة الصرف" required>
-                        <datalist id="finance_list">
-                            <!-- يتم تعبئتها عبر JavaScript ويمكن للمستخدم الكتابة يدوياً فوقها -->
-                        </datalist>
+                        <select name="bank_name" id="financeSelect" class="form-select bg-light border-0 custom-select" onchange="handleManualEntry(this)" required>
+                            <option value="" selected disabled>اختر من القائمة...</option>
+                        </select>
+                    </div>
+
+                    <!-- حقل إدخال يدوي يظهر عند اختيار "أخرى" -->
+                    <div class="mb-3" id="manualEntryDiv" style="display: none;">
+                        <label class="form-label text-danger small fw-bold">يرجى كتابة اسم الجهة يدوياً</label>
+                        <input type="text" id="manualInput" class="form-control bg-light" style="border: 1px solid #4B338A;" placeholder="مثلاً: صرافة مأرب">
                     </div>
 
                     <div class="mb-3">
@@ -146,7 +148,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-muted small">كلمة مرور النظام (السيادية)</label>
+                        <label class="form-label text-muted small">كلمة مرور النظام</label>
                         <input type="password" name="password" class="form-control bg-light border-0" placeholder="********" required>
                     </div>
 
@@ -162,46 +164,66 @@
 </div>
 
 <script>
-// البيانات المالية الافتراضية للتسهيل على المستخدم
 const financialData = {
-    'banks': ['بنك الكريمي الإسلامي', 'بنك القطيبي', 'بنك البسيري', 'بنك التضامن', 'بنك اليمن والكويت'],
+    'banks': ['بنك التضامن', 'بنك القطيبي', 'بنك الكريمي الإسلامي', 'بنك اليمن الدولي', 'بنك اليمن والكويت'],
     'exchange': ['شركة النجم للصرافة', 'شركة باسياب للصرافة', 'شركة الحرمين', 'شركة المريسي', 'شركة عدن للصرافة']
 };
 
-/**
- * وظيفة تحديث خيارات الـ Datalist بناءً على الاختيار (بنوك أو صرافة)
- * مع بقاء الحقل قابلاً للكتابة اليدوية لأي جهة أخرى.
- */
 function updateFinanceOptions() {
     const type = document.querySelector('input[name="fin_type"]:checked').value;
-    const datalist = document.getElementById('finance_list');
-    datalist.innerHTML = ''; // مسح الخيارات الحالية
+    const select = document.getElementById('financeSelect');
+    
+    select.innerHTML = '<option value="" selected disabled>اختر من القائمة...</option>';
     
     financialData[type].forEach(item => {
         let option = document.createElement('option');
         option.value = item;
-        datalist.appendChild(option);
+        option.textContent = item;
+        select.appendChild(option);
     });
+
+    // إضافة خيار الإدخال اليدوي
+    let manualOption = document.createElement('option');
+    manualOption.value = "manual";
+    manualOption.textContent = "أخرى (إدخال يدوي)...";
+    manualOption.style.color = "#4B338A";
+    manualOption.style.fontWeight = "bold";
+    select.appendChild(manualOption);
+
+    // إخفاء حقل النص عند التغيير
+    document.getElementById('manualEntryDiv').style.display = 'none';
+    document.getElementById('manualInput').value = '';
 }
 
-// تنفيذ الوظيفة عند تحميل الصفحة لأول مرة
-window.onload = function() {
-    updateFinanceOptions();
-};
+function handleManualEntry(selectElement) {
+    const manualDiv = document.getElementById('manualEntryDiv');
+    const manualInput = document.getElementById('manualInput');
+    
+    if (selectElement.value === "manual") {
+        manualDiv.style.display = 'block';
+        manualInput.setAttribute('name', 'bank_name'); 
+        selectElement.removeAttribute('name'); 
+        manualInput.focus();
+    } else {
+        manualDiv.style.display = 'none';
+        selectElement.setAttribute('name', 'bank_name');
+        manualInput.removeAttribute('name');
+    }
+}
+
+window.onload = updateFinanceOptions;
 </script>
 
 <style>
-    /* الحفاظ على الهوية البصرية الملكية لمنصة محجوب أونلاين */
+    .custom-select {
+        border: 1px solid transparent !important;
+        transition: 0.3s;
+    }
+    .custom-select:focus {
+        border: 1px solid #4B338A !important;
+        box-shadow: 0 0 5px rgba(75, 51, 138, 0.2);
+    }
     .btn-outline-primary { color: #4B338A; border-color: #4B338A; }
     .btn-check:checked + .btn-outline-primary { background-color: #4B338A !important; border-color: #4B338A !important; }
-    .form-control:focus { 
-        border: 1px solid #4B338A !important; 
-        box-shadow: 0 0 5px rgba(75, 51, 138, 0.2); 
-    }
-    label { font-weight: 500; }
-    /* تحسين مظهر الـ Datalist في المتصفحات الحديثة */
-    input::-webkit-calendar-picker-indicator {
-        opacity: 0.5;
-    }
 </style>
 {% endblock %}
