@@ -2,7 +2,7 @@ import os
 from flask import Blueprint, render_template, request, jsonify
 from datetime import datetime
 
-# حساب مسار القوالب برمجياً لمنع خطأ TemplateNotFound
+# حساب مسار القوالب برمجياً لمنع خطأ TemplateNotFound على سيرفر Railway
 base_dir = os.path.abspath(os.path.dirname(__file__))
 template_dir = os.path.join(base_dir, '..', '..', 'templates')
 
@@ -12,7 +12,7 @@ admin_suppliers = Blueprint(
     template_folder=template_dir
 )
 
-# دالة داخلية مستقلة تماماً لفحص وتحديث الأعمدة الناقصة لجدول الموردين فقط
+# دالة ذكية مستقلة تفحص وتضيف الأعمدة الناقصة لجدول الموردين تلقائياً دون المساس بالبيانات القديمة
 def auto_upgrade_supplier_table():
     from apps import db
     from sqlalchemy import inspect, text
@@ -37,7 +37,7 @@ def auto_upgrade_supplier_table():
 
 @admin_suppliers.route('/admin/suppliers/add', methods=['GET', 'POST'])
 def add_supplier():
-    # تشغيل الفحص الذاتي المستقل فور طلب الصفحة لضمان سلامة الجداول
+    # تشغيل الفحص الذاتي والترقية فوراً عند طلب الصفحة لضمان عدم حدوث خطأ UndefinedColumn
     auto_upgrade_supplier_table()
 
     from models.supplier_db import Supplier
