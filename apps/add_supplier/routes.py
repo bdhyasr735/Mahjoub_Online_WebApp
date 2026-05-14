@@ -1,123 +1,154 @@
+# coding: utf-8
 import os
-from flask import Blueprint, render_template, request, jsonify, current_app
-from datetime import datetime
+from flask import render_template, request, jsonify, current_app, Blueprint
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash
 
-# استيراد قاعدة البيانات والموديل من المسار الصحيح
-from models.supplier_db import db, Supplier 
+# استيراد كائن قاعدة البيانات والموديلات لضمان وحدة البيانات السيادية
+from models.admin_db import db, AdminUser
+from models.supplier_db import Supplier
 
-# تعريف الـ Blueprint مع حل مشكلة المسار التي ظهرت في image_955a54.png
+# تعريف الـ Blueprint الخاص بإدارة الموردين
 admin_suppliers = Blueprint(
     'admin_suppliers', 
-    __name__,
-    template_folder='../../templates' # يوجه الفلاسك لمجلد القوالب الرئيسي
+    __name__, 
+    template_folder='templates'
 )
 
-@admin_suppliers.route('/admin/suppliers/add', methods=['GET', 'POST'])
+# إعدادات أمان رفع الملفات لصور الهوية والوثائق
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
+
+def allowed_file(filename):
+    """التحقق من امتداد الملف لضمان أمن النظام"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@admin_suppliers.route('/check-duplicate/', methods=['GET'])
+def check_duplicate():
+    """
+    نظام التحقق الفوري (AJAX) لمنع التكرار قبل الحفظ
+    تم تحديثه ليشمل رقم هاتف المحل
+    """
+    field_type = request.args.get('type')
+    value = request.args.get('value')
+    
+    if not field_type or not value:
+        return jsonify({'exists': False})
+
+    exists = False
+    
+    if field_type == 'username':
+        exists = AdminUser.query.filter_by(username=value).first() is not None or \
+                 Supplier.query.filter_by(username=value).first() is not None
+    
+    elif field_type == 'owner_phone':
+        exists = Supplier.query.filter_by(owner_phone=value).first() is not None
+        
+    elif field_type == 'shop_phone':
+        # التحقق من عدم تكرار رقم هاتف المنشأة
+        exists = Supplier.query.filter_by(shop_phone=value).first() is not None
+        
+    elif field_type == 'trade_name':
+        exists = Supplier.query.filter_by(trade_name=value).first() is not None
+        
+    elif field_type == 'owner_name':
+        exists = Supplier.query.filter_by(owner_name=value).first() is not None
+
+    return jsonify({'exists': exists})
+
+@admin_suppliers.route('/add', methods=['GET', 'POST'])
 def add_supplier():
+    """
+    محرك تعميد الموردين - منظومة محجوب أونلاين السيادية
+    تم إصلاح منطق الاستجابة لضمان ظهور رسالة النجاح في الـ Frontend
+    """
     if request.method == 'POST':
         try:
-            # 1. استلام البيانات الأساسية (المعرف الموحد والوصول)
+            # 1. استقبال البيانات الأساسية
             unified_id = request.form.get('unified_id')
             username = request.form.get('username')
-            password = request.form.get('password')
+            password = request.form.get('password') 
             
-            # معالجة فئة المورد (الاختيار أو الإدخال اليدوي)
+            # 2. بيانات النشاط والاتصال
             category = request.form.get('category')
-            if category == 'manual':
-                category = request.form.get('manual_category')
-
-            # 2. بيانات المالك والمنشأة والاتصال
             owner_name = request.form.get('owner_name')
             trade_name = request.form.get('trade_name')
-            shop_phone = request.form.get('shop_phone')
-            owner_phone = request.form.get('owner_phone') # حقل المالك الجديد
+            owner_phone = request.form.get('owner_phone')
+            shop_phone = request.form.get('shop_phone') # الحقل المضاف
             
-            # 3. بيانات الموقع الجغرافي
+            # 3. التوزيع الجغرافي والمالي
             province = request.form.get('province')
             district = request.form.get('district')
-            address_detail = request.form.get('address_detail', '')
-
-            # 4. بيانات الربط المالي (معالجة الإدخال اليدوي للبنك/الصرافة)
             fin_type = request.form.get('fin_type')
             bank_name = request.form.get('bank_name')
-            manual_bank = request.form.get('manual_bank_name')
-            # إذا لم يتم اختيار بنك من القائمة وتم كتابته يدوياً
-            final_bank_name = manual_bank if (not bank_name or bank_name == "") else bank_name
-            
             bank_acc = request.form.get('bank_acc')
 
-            # 5. معالجة الرفع (صورة الوثيقة)
-            identity_image = request.files.get('identity_image')
-            image_filename = None
-            if identity_image and identity_image.filename != '':
-                image_filename = secure_filename(f"{unified_id}_{identity_image.filename}")
-                # يتم الحفظ في مجلد الرفع المحدد في إعدادات التطبيق
-                # upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], image_filename)
-                # identity_image.save(upload_path)
+            # --- 4. الفحص الأمني المزدوج (Server-side) ---
+            if Supplier.query.filter_by(username=username).first():
+                return jsonify({'status': 'error', 'message': 'اسم المستخدم مسجل مسبقاً.'}), 200
+            
+            if Supplier.query.filter_by(shop_phone=shop_phone).first():
+                return jsonify({'status': 'error', 'message': 'رقم هاتف المنشأة مسجل لمورد آخر.'}), 200
 
-            # 6. إنشاء سجل المورد في قاعدة بيانات "محجوب أونلاين"
+            # --- 5. معالجة الصور ---
+            identity_image_path = None
+            file = request.files.get('identity_image')
+            if file and allowed_file(file.filename):
+                filename = secure_filename(f"{unified_id}_{file.filename}")
+                upload_path = os.path.join(current_app.root_path, 'static/uploads/suppliers/ids')
+                
+                if not os.path.exists(upload_path):
+                    os.makedirs(upload_path)
+                
+                file.save(os.path.join(upload_path, filename))
+                identity_image_path = f"uploads/suppliers/ids/{filename}"
+
+            # --- 6. إنشاء السجل وحفظه ---
             new_supplier = Supplier(
                 sovereign_id=unified_id,
                 username=username,
-                password=password, 
-                category=category,
+                password=generate_password_hash(password),
+                activity_type=category,
+                identity_image=identity_image_path,
                 owner_name=owner_name,
                 trade_name=trade_name,
+                owner_phone=owner_phone,
                 shop_phone=shop_phone,
-                owner_phone=owner_phone, # تأكد من وجود هذا العمود في الموديل
                 province=province,
                 district=district,
-                address_detail=address_detail,
-                finance_type=fin_type,
-                bank_name=final_bank_name,
-                bank_account=bank_acc,
-                identity_image=image_filename,
-                created_at=datetime.utcnow()
+                fin_type=fin_type,
+                bank_name=bank_name,
+                bank_acc=bank_acc,
+                is_active=True
             )
 
             db.session.add(new_supplier)
             db.session.commit()
 
-            # الاستجابة لـ JavaScript (SweetAlert2)
+            # --- 7. رد النجاح الحاسم (هذا ما ينتظره الـ JavaScript) ---
             return jsonify({
-                'status': 'success',
+                'status': 'success', 
+                'message': 'تم الاعتماد بنجاح',
                 'data': {
-                    'sovereign_id': unified_id,
                     'username': username,
-                    'password': password
+                    'password': password, # نرسل كلمة السر الصافية للعرض فقط في المودال
+                    'trade_name': trade_name,
+                    'unified_id': unified_id
                 }
             })
 
         except Exception as e:
             db.session.rollback()
+            # تسجيل الخطأ في السيرفر للمراجعة
+            print(f"Error in add_supplier: {str(e)}") 
             return jsonify({
-                'status': 'error',
-                'message': f'فشل النظام في تعميد البيانات: {str(e)}'
-            }), 400
+                'status': 'error', 
+                'message': f'حدث خطأ تقني: {str(e)}'
+            }), 500
 
-    # في حالة GET: جلب الرقم التسلسلي للمورد القادم
+    # معالجة طلب GET لعرض الصفحة
     try:
-        last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
-        next_id_num = (last_supplier.id + 1) if last_supplier else 1
+        next_id = Supplier.query.count() + 1
     except:
-        next_id_num = 1
+        next_id = 1
         
-    return render_template('admin/add_supplier.html', next_id=next_id_num)
-
-@admin_suppliers.route('/admin/suppliers/check-validate', methods=['GET'])
-def check_validate():
-    """محرك فحص البيانات لمنع التكرار (يستخدمه الـ AJAX في الواجهة)"""
-    val_type = request.args.get('type')
-    value = request.args.get('value')
-    
-    if not value: return jsonify({'exists': False})
-    
-    # البحث الديناميكي في قاعدة البيانات
-    exists = False
-    if val_type == 'username':
-        exists = Supplier.query.filter_by(username=value).first() is not None
-    elif val_type == 'shop_phone':
-        exists = Supplier.query.filter_by(shop_phone=value).first() is not None
-        
-    return jsonify({'exists': exists})
+    return render_template('admin/add_supplier.html', next_id=next_id)
