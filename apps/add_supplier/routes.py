@@ -12,7 +12,7 @@ admin_suppliers = Blueprint(
 def add_supplier():
     # استيراد محلي لتفادي الـ Circular Import تماماً وضمان إقلاع السيرفر
     from models.supplier_db import Supplier
-    from apps import db # استيراد كائن قاعدة البيانات الرئيسي الخاص بالتطبيق
+    from apps import db 
 
     if request.method == 'POST':
         try:
@@ -38,7 +38,7 @@ def add_supplier():
                 bank_name = request.form.get('manual_bank_name')
             bank_acc = request.form.get('bank_acc')
 
-            # فحص التكرار
+            # فحص تكرار البيانات قبل الحفظ
             if Supplier.query.filter_by(username=username).first():
                 return jsonify({'status': 'error', 'message': 'اسم المستخدم مسجل مسبقاً!'}), 400
             if Supplier.query.filter_by(trade_name=trade_name).first():
@@ -77,7 +77,7 @@ def add_supplier():
             db.session.rollback()
             return jsonify({'status': 'error', 'message': f'حدث خطأ في الخادم: {str(e)}'}), 500
 
-    # معالجة الـ GET
+    # معالجة طلب الـ GET وعرض الصفحة
     next_id_num = 1
     try:
         last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
