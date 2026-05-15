@@ -6,7 +6,7 @@
 <div class="container-fluid" id="main-content">
     <div class="mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm border-end border-4" style="border-color: #4B338A !important;">
         <div class="d-flex align-items-center gap-3">
-            <a href="javascript:history.back()" class="btn btn-light rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm text-decoration-none border back-btn" style="width: 42px; height: 42px; transition: all 0.3s ease;">
+            <a href="javascript:history.back()" class="btn btn-light rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm text-decoration-none border back-btn" style="width: 42px; height: 42px; transition: all 0.3s ease;" title="رجوع">
                 <i class="fas fa-arrow-right" style="color: #4B338A; font-size: 18px;"></i>
             </a>
             <div>
@@ -20,8 +20,10 @@
         </div>
     </div>
 
-    <form id="addSupplierForm" method="POST" enctype="multipart/form-data">
+    <form id="addSupplierForm" method="POST" enctype="multipart/form-data" action="{{ url_for('admin_suppliers.add_supplier') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id if next_id else '1' }}">
+
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
@@ -29,20 +31,48 @@
                         <i class="fas fa-user-shield fa-lg me-2" style="color: #4B338A;"></i>
                         <h5 class="fw-bold mb-0">بيانات الوصول والتوثيق</h5>
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label text-muted small">اسم المستخدم (Login)</label>
                         <div class="input-group">
-                            <input type="text" name="username" id="u_name" class="form-control bg-light border-0 validation-field" placeholder="ali_2026" required>
+                            <input type="text" name="username" class="form-control bg-light border-0 validation-field" placeholder="ali_2026" required>
                             <span class="input-group-text bg-light border-0 validation-icon"><i class="fas fa-minus text-muted"></i></span>
                         </div>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label text-muted small">كلمة المرور المؤقتة</label>
-                        <input type="text" name="password" id="u_pass" class="form-control bg-light border-0 fw-bold text-primary" placeholder="اكتب كلمة مرور قوية" required>
+                        <label class="form-label text-muted small">كلمة مرور النظام (المؤقتة)</label>
+                        <input type="password" name="password" class="form-control bg-light border-0" placeholder="********" required>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label text-muted small">رقم الوثيقة</label>
-                        <input type="text" name="identity_number" class="form-control bg-light border-0" required>
+                        <label class="form-label text-muted small">نوع الوثيقة / الهوية</label>
+                        <select name="identity_type" id="identityTypeSelect" class="form-select bg-light border-0 mb-2" onchange="toggleManualInput(this, 'identityManualDiv')" required>
+                            <option value="" selected disabled>اختر نوع الهوية...</option>
+                            <option value="بطاقة الكترونية">بطاقة إلكترونية</option>
+                            <option value="سجل تجاري">سجل تجاري</option>
+                            <option value="جواز سفر">جواز سفر</option>
+                            <option value="manual">أخرى (إدخال يدوي)...</option>
+                        </select>
+                        <div id="identityManualDiv" style="display: none;">
+                            <input type="text" class="form-control border-primary" placeholder="اكتب نوع الوثيقة هنا..." oninput="syncManualValue(this, 'identityTypeSelect')">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">رقم الوثيقة / الهوية</label>
+                        <div class="input-group">
+                            <input type="text" name="identity_number" class="form-control bg-light border-0 validation-field" required>
+                            <span class="input-group-text bg-light border-0 validation-icon"><i class="fas fa-minus text-muted"></i></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">صورة الوثيقة (اختياري)</label>
+                        <div class="p-3 border-dashed rounded text-center bg-light">
+                            <i class="fas fa-cloud-upload-alt mb-2 d-block" style="color: #4B338A; font-size: 24px;"></i>
+                            <input type="file" name="identity_image" class="form-control form-control-sm border-0 bg-transparent">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -55,11 +85,25 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-muted small">اسم المالك الكامل</label>
-                        <input type="text" name="owner_name" id="o_full_name" class="form-control bg-light border-0" required>
+                        <input type="text" name="owner_name" class="form-control bg-light border-0" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">هاتف المالك</label>
-                        <input type="tel" name="owner_phone" class="form-control bg-light border-0 dir-ltr" placeholder="7XXXXXXXX" required>
+                        <label class="form-label text-muted small">الاسم التجاري للمنشأة</label>
+                        <input type="text" name="trade_name" class="form-control bg-light border-0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">رقم هاتف المالك (شخصي)</label>
+                        <div class="input-group dir-ltr">
+                            <span class="input-group-text bg-white border-0">+967</span>
+                            <input type="tel" name="owner_phone" class="form-control bg-light border-0" placeholder="7XXXXXXXX" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">هاتف المنشأة (محل)</label>
+                        <div class="input-group dir-ltr">
+                            <span class="input-group-text bg-white border-0">+967</span>
+                            <input type="tel" name="shop_phone" class="form-control bg-light border-0" placeholder="77XXXXXXX" required>
+                        </div>
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-6">
@@ -70,8 +114,14 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label text-muted small">المديرية</label>
-                            <select name="district" id="districtSelect" class="form-select bg-light border-0" required></select>
+                            <select name="district" id="districtSelect" class="form-select bg-light border-0" required>
+                                <option value="" selected disabled>حدد المحافظة</option>
+                            </select>
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">العنوان بالتفصيل</label>
+                        <textarea name="address" class="form-control bg-light border-0" rows="2" placeholder="الشارع، بجوار..." required></textarea>
                     </div>
                 </div>
             </div>
@@ -80,7 +130,7 @@
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-wallet fa-lg me-2" style="color: #4B338A;"></i>
-                        <h5 class="fw-bold mb-0">الربط المالي</h5>
+                        <h5 class="fw-bold mb-0">الربط المالي والفئة</h5>
                     </div>
                     <div class="mb-3 text-center">
                         <div class="btn-group w-100">
@@ -92,13 +142,29 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-muted small">جهة التحويل</label>
-                        <select name="bank_name" id="financeSelect" class="form-select bg-light border-0" required></select>
+                        <select name="bank_name" id="financeSelect" class="form-select bg-light border-0 mb-2" onchange="toggleManualInput(this, 'financeManualDiv')" required></select>
+                        <div id="financeManualDiv" style="display: none;">
+                            <input type="text" class="form-control border-primary" placeholder="اسم البنك/الشركة..." oninput="syncManualValue(this, 'financeSelect')">
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-muted small">رقم الحساب</label>
                         <input type="text" name="bank_acc" class="form-control bg-light border-0 fw-bold" required>
                     </div>
-                    <button type="button" onclick="showSuccessModal()" class="btn w-100 fw-bold py-3 mt-auto shadow" style="background: #4B338A; color: white; border-radius: 12px;">
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-muted small">فئة المورد</label>
+                        <select name="category" id="categorySelect" class="form-select bg-light border-0 mb-2" onchange="toggleManualInput(this, 'categoryManualDiv')" required>
+                            <option value="مورد جملة">مورد جملة</option>
+                            <option value="مورد تجزئة">مورد تجزئة</option>
+                            <option value="manual">أخرى (إدخال يدوي)...</option>
+                        </select>
+                        <div id="categoryManualDiv" style="display: none;">
+                            <input type="text" class="form-control border-danger" placeholder="مثال: إلكترونيات..." oninput="syncManualValue(this, 'categorySelect')">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn w-100 fw-bold py-3 mt-auto shadow" style="background: #4B338A; color: white; border-radius: 12px;">
                         اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>
                     </button>
                 </div>
@@ -109,124 +175,133 @@
 
 <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-body p-4 text-center">
-                <div class="mb-3">
-                    <i class="fas fa-check-circle fa-4x text-success"></i>
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-body text-center p-5">
+                <div class="mb-4">
+                    <i class="fas fa-check-circle fa-5x text-success"></i>
                 </div>
-                <h4 class="fw-bold" style="color: #4B338A;">تم اعتماد المورد بنجاح!</h4>
-                <p class="text-muted">تمت أرشفة البيانات في نظام محجوب أونلاين السيادي.</p>
-                
-                <div class="bg-light p-3 rounded-3 mb-3 text-start border">
-                    <div class="d-flex justify-content-between mb-2">
-                        <small class="text-muted">المعرف الموحد:</small>
-                        <strong id="copy-id" style="color: #4B338A;"></strong>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <small class="text-muted">اسم المستخدم:</small>
-                        <strong id="copy-user"></strong>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <small class="text-muted">كلمة المرور:</small>
-                        <strong id="copy-pass"></strong>
-                    </div>
+                <h3 class="fw-bold mb-3" style="color: #4B338A;">تم التعميد بنجاح!</h3>
+                <p class="text-muted">تم حفظ بيانات المورد وإصدار المعرف السيادي له في النظام.</p>
+                <div class="bg-light p-3 rounded-3 mb-4 text-start">
+                    <small class="d-block text-muted">اسم المستخدم:</small>
+                    <strong id="res-username" class="d-block mb-2">-</strong>
+                    <small class="d-block text-muted">المعرف الموحد:</small>
+                    <strong id="res-id" class="d-block text-primary">-</strong>
                 </div>
-
-                <div class="alert alert-warning py-2 small border-0">
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    تنبيه للمورد: يرجى تغيير كلمة المرور المؤقتة فور تسجيل الدخول الأول.
-                </div>
-
-                <button class="btn btn-dark w-100 mb-2 py-2" onclick="copyLoginDetails()">
-                    <i class="fas fa-copy me-2"></i> نسخ بيانات الدخول للمورد
-                </button>
-                <button type="button" class="btn btn-link text-muted" onclick="location.reload()">إغلاق</button>
+                <button type="button" class="btn w-100 py-3 fw-bold" style="background: #4B338A; color: white; border-radius: 12px;" onclick="location.reload()">حسناً، متابعة</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// القائمة المالية الموسعة
-const financeData = {
-    banks: [
-        "بنك القطيبي الإسلامي", "بنك الشمول الإسلامي", "بنك عدن الإسلامي", 
-        "بنك الكريمي الإسلامي", "بنك البسيري الإسلامي", "بنك التضامن", 
-        "بنك اليمن والكويت", "بنك إنماء الإسلامي", "بنك بن دول الإسلامي", 
-        "بنك سبأ الإسلامي", "البنك المركزي اليمني"
-    ],
-    exchange: [
-        "شركة القطيبي للصرافة", "شركة الحداد للصرافة", "شركة بن دول للصرافة", 
-        "شركة الشامل للصرافة", "شركة الناصر للصرافة", "شركة الصيفي للصرافة", 
-        "شركة العمقي وإخوانه", "شركة المريسي للصرافة", "شركة دادية للصرافة"
-    ]
-};
-
 const yemenGeography = {
-    "الحديدة": ["الخوخة", "حيس", "الحالي", "الحوك", "الميناء", "بيت الفقيه", "زبيد"],
-    "عدن": ["صيرة", "المعلا", "التواهي", "المنصورة", "الشيخ عثمان", "البريقة"],
-    "تعز": ["المخا", "القاهرة", "المظفر", "صالة", "ذوباب"],
-    "حضرموت": ["المكلا", "سيئون", "الشحر", "تريم", "القطن"]
-    // ... يمكن إضافة بقية الـ 22 بنفس الطريقة
+    "الحديدة": ["الخوخة", "حيس", "المخا", "باجل", "زبيد", "بيت الفقيه"],
+    "عدن": ["المنصورة", "الشيخ عثمان", "كريتر", "المعلا"],
+    "صنعاء": ["السبعين", "التحرير", "الوحدة", "شعوب"],
+    "حضرموت": ["المكلا", "سيئون", "الشحر"],
+    "تعز": ["المظفر", "القاهرة", "صالة"]
+    // ... يمكن إضافة البقية حسب الحاجة
 };
 
-function updateFinanceOptions() {
-    const type = document.querySelector('input[name="fin_type"]:checked').value;
-    const select = document.getElementById('financeSelect');
-    select.innerHTML = '<option value="" selected disabled>اختر الجهة...</option>';
-    financeData[type].forEach(item => {
-        let opt = document.createElement('option');
-        opt.value = opt.textContent = item;
-        select.appendChild(opt);
-    });
+const financeData = {
+    banks: ["بنك القطيبي الإسلامي", "بنك الشمول الإسلامي", "بنك عدن الإسلامي", "مصرف الكريمي"],
+    exchange: ["شركة القطيبي للصرافة", "شركة بن دول للصرافة", "شركة الشامل للصرافة"]
+};
+
+function toggleManualInput(selectElement, divId) {
+    const manualDiv = document.getElementById(divId);
+    manualDiv.style.display = (selectElement.value === 'manual') ? 'block' : 'none';
+}
+
+function syncManualValue(inputElement, selectId) {
+    const select = document.getElementById(selectId);
+    let manualOption = select.querySelector('option[data-manual="true"]');
+    if (!manualOption) {
+        manualOption = document.createElement('option');
+        manualOption.setAttribute('data-manual', 'true');
+        select.appendChild(manualOption);
+    }
+    manualOption.value = manualOption.textContent = inputElement.value;
+    select.value = inputElement.value;
 }
 
 function updateDistrictOptions() {
     const province = document.getElementById('provinceSelect').value;
     const districtSelect = document.getElementById('districtSelect');
-    districtSelect.innerHTML = '';
+    districtSelect.innerHTML = '<option value="" selected disabled>اختر المديرية...</option>';
     if (yemenGeography[province]) {
         yemenGeography[province].forEach(d => {
-            let opt = document.createElement('option');
+            const opt = document.createElement('option');
             opt.value = opt.textContent = d;
             districtSelect.appendChild(opt);
         });
     }
 }
 
-function showSuccessModal() {
-    document.getElementById('copy-id').textContent = document.getElementById('display-id').textContent;
-    document.getElementById('copy-user').textContent = document.getElementById('u_name').value;
-    document.getElementById('copy-pass').textContent = document.getElementById('u_pass').value;
-    
-    var myModal = new bootstrap.Modal(document.getElementById('successModal'));
-    myModal.show();
-}
-
-function copyLoginDetails() {
-    const text = `بيانات دخول مورد - محجوب أونلاين\n-------------------\nالمعرف: ${document.getElementById('copy-id').textContent}\nالمستخدم: ${document.getElementById('copy-user').textContent}\nكلمة المرور: ${document.getElementById('copy-pass').textContent}\n-------------------\nيرجى تغيير كلمة المرور بعد الدخول.\n2026 - نظام الأرشفة السيادي`;
-    navigator.clipboard.writeText(text).then(() => {
-        alert('تم نسخ البيانات بنجاح!');
+function updateFinanceOptions() {
+    const finType = document.querySelector('input[name="fin_type"]:checked').value;
+    const financeSelect = document.getElementById('financeSelect');
+    financeSelect.innerHTML = '<option value="" selected disabled>اختر جهة التحويل...</option>';
+    financeData[finType].forEach(item => {
+        const option = document.createElement('option');
+        option.value = option.textContent = item;
+        financeSelect.appendChild(option);
     });
+    const manualOption = document.createElement('option');
+    manualOption.value = 'manual'; manualOption.textContent = 'أخرى (إدخال يدوي)...';
+    financeSelect.appendChild(manualOption);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const provinceSelect = document.getElementById('provinceSelect');
-    Object.keys(yemenGeography).sort().forEach(p => {
-        let opt = document.createElement('option');
+    // تعبئة المحافظات
+    const pSelect = document.getElementById('provinceSelect');
+    Object.keys(yemenGeography).forEach(p => {
+        const opt = document.createElement('option');
         opt.value = opt.textContent = p;
-        provinceSelect.appendChild(opt);
+        pSelect.appendChild(opt);
     });
     updateFinanceOptions();
+
+    // معالجة إرسال الفورم AJAX
+    document.getElementById('addSupplierForm').onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = 'جاري التعميد... <i class="fas fa-spinner fa-spin ms-2"></i>';
+
+        try {
+            const formData = new FormData(this);
+            const response = await fetch(this.action, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                document.getElementById('res-username').innerText = result.data.username;
+                document.getElementById('res-id').innerText = result.data.unified_id;
+                new bootstrap.Modal(document.getElementById('successModal')).show();
+            } else {
+                alert('خطأ: ' + result.message);
+                btn.disabled = false;
+                btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
+            }
+        } catch (error) {
+            alert('حدث خطأ تقني في الاتصال بالسيرفر');
+            btn.disabled = false;
+        }
+    };
 });
 </script>
 
 <style>
-    .validation-icon { min-width: 40px; background: #fff !important; border: none !important; }
+    .border-dashed { border: 2px dashed #ddd; transition: all 0.3s; }
+    .border-dashed:hover { border-color: #4B338A; background: #f8f5ff !important; }
     .dir-ltr { direction: ltr; }
     .btn-outline-primary { color: #4B338A; border-color: #4B338A; }
-    .btn-check:checked + .btn-outline-primary { background-color: #4B338A !important; color: #fff !important; }
-    .modal-content { border-radius: 20px; }
-    #successModal i.text-success { filter: drop-shadow(0 0 10px rgba(40, 167, 69, 0.2)); }
+    .btn-check:checked + .btn-outline-primary { background: #4B338A !important; border-color: #4B338A !important; color: #fff !important; }
+    .back-btn:hover { background: #4B338A !important; }
+    .back-btn:hover i { color: #fff !important; }
 </style>
 {% endblock %}
