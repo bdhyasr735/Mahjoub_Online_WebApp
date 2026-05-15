@@ -1,36 +1,21 @@
 # coding: utf-8
-# 🛡️ ملف التشغيل السيادي لمنصة محجوب أونلاين
-# التوثيق: هذا الملف هو بوابة الدخول الرئيسية للخادم السحابي
-
+# 🚀 محرك الإقلاع لمنصة محجوب أونلاين
 import os
 import sys
+from apps import create_app, db
 
-# 1. تهيئة مسارات النظام (System Paths)
-# نضمن أن المحرك يرى مجلد 'apps' كحزمة رئيسية لضمان صحة الاستيراد
-base_dir = os.path.abspath(os.path.dirname(__file__))
-sys.path.insert(0, base_dir)
+# التأكد من إضافة المسار الحالي للنظام لضمان رؤية حزمة apps
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-try:
-    # 2. استيراد دالة مصنع التطبيق من مجلد apps
-    # هذا السطر يربط ملف التشغيل بكافة الإعدادات والدروع الموجودة في apps/__init__.py
-    from apps import create_app
-    
-    # إنشاء كائن التطبيق
-    app = create_app()
-    
-    print("✅ تم تشغيل محرك منصة محجوب أونلاين بنجاح")
+app = create_app()
 
-except ImportError as e:
-    print(f"❌ خطأ حرج: تعذر العثور على حزمة 'apps'. تأكد من وجود ملف __init__.py داخل المجلد. التفاصيل: {e}")
-    sys.exit(1)
-except Exception as e:
-    print(f"❌ حدث خطأ غير متوقع أثناء بدء التشغيل: {e}")
-    sys.exit(1)
-
-# 3. إعدادات التشغيل (للمحيط المحلي والسحابي)
 if __name__ == "__main__":
-    # الحصول على المنفذ من إعدادات Railway أو استخدام 5000 كافتراضي
+    # استلام المنفذ (Port) ديناميكياً من Railway
+    # إذا لم يجد متغير بيئة، سيستخدم 5000 كافتراضي للمعاينة المحلية
     port = int(os.environ.get("PORT", 5000))
     
-    # تشغيل التطبيق (host='0.0.0.0' ضروري لبيئات السحاب)
-    app.run(host='0.0.0.0', port=port, debug=False)
+    try:
+        # تشغيل السيرفر على العنوان العام 0.0.0.0 ليتمكن Railway من توجيه الترافيك إليه
+        app.run(host='0.0.0.0', port=port, debug=False)
+    except Exception as e:
+        print(f"❌ فشل إقلاع المحرك: {e}")
