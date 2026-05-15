@@ -4,10 +4,8 @@
 
 {% block content %}
 <div class="container-fluid" id="main-content">
-    <!-- الهيدر العلوي مع إضافة زر الرجوع الديناميكي -->
     <div class="mb-4 d-flex justify-content-between align-items-center bg-white p-3 rounded shadow-sm border-end border-4" style="border-color: #4B338A !important;">
         <div class="d-flex align-items-center gap-3">
-            <!-- زر الرجوع -->
             <a href="javascript:history.back()" class="btn btn-light rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm text-decoration-none border" style="width: 42px; height: 42px; transition: all 0.3s ease;" title="رجوع">
                 <i class="fas fa-arrow-right" style="color: #4B338A; font-size: 18px;"></i>
             </a>
@@ -27,7 +25,6 @@
         <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id if next_id else '1' }}">
 
         <div class="row g-4">
-            <!-- العمود الأول: بيانات الوصول والتوثيق -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -74,7 +71,6 @@
                 </div>
             </div>
 
-            <!-- العمود الثاني: بيانات المالك والمنشأة والمنطقة -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -93,11 +89,19 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">رقم هاتف المنشأة</label>
+                        <label class="form-label text-muted small">رقم هاتف المحل / المنشأة</label>
                         <div class="input-group dir-ltr">
                             <span class="input-group-text bg-white border-0">+967</span>
                             <input type="tel" name="shop_phone" id="shopPhoneInput" class="form-control bg-light border-0 validation-field" data-type="shop_phone" placeholder="77XXXXXXX" required>
                             <span class="input-group-text bg-light border-0 validation-icon" id="shop_phoneIcon"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">رقم هاتف المالك (شخصي)</label>
+                        <div class="input-group dir-ltr">
+                            <span class="input-group-text bg-white border-0">+967</span>
+                            <input type="tel" name="owner_phone" id="ownerPhoneInput" class="form-control bg-light border-0 validation-field" data-type="owner_phone" placeholder="7XXXXXXXX" required>
+                            <span class="input-group-text bg-light border-0 validation-icon" id="owner_phoneIcon"></span>
                         </div>
                     </div>
                     <div class="row g-2 mb-3">
@@ -105,8 +109,7 @@
                             <label class="form-label text-muted small">المحافظة</label>
                             <select name="province" id="provinceSelect" class="form-select bg-light border-0" onchange="updateDistrictOptions()" required>
                                 <option value="" selected disabled>اختر...</option>
-                                <!-- يتم البناء برمجياً لـ 22 محافظة -->
-                            </select>
+                                </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label text-muted small">المديرية</label>
@@ -117,12 +120,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-muted small">العنوان بالتفصيل</label>
-                        <textarea name="address" class="form-control bg-light border-0" rows="2" required></textarea>
+                        <textarea name="address" class="form-control bg-light border-0" rows="2" placeholder="الشارع، بجوار معلم معروف..." required></textarea>
                     </div>
                 </div>
             </div>
 
-            <!-- العمود الثالث: الربط المالي وفئة المورد -->
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm p-4 h-100" style="border-top: 5px solid #4B338A !important;">
                     <div class="d-flex align-items-center mb-3">
@@ -149,7 +151,6 @@
                         <input type="text" name="bank_acc" class="form-control bg-light border-0 fw-bold" required>
                     </div>
                     
-                    <!-- قسم فئة المورد مع ميزة الإدخال اليدوي والتحديث اللحظي -->
                     <div class="mb-4">
                         <label class="form-label text-muted small">فئة المورد</label>
                         <select name="category" id="categorySelect" class="form-select bg-light border-0" onchange="handleCategoryManualEntry(this)" required>
@@ -159,7 +160,6 @@
                         </select>
                     </div>
                     <div id="categoryManualDiv" class="mb-4" style="display: none;">
-                        <label class="form-label text-danger small fw-bold">اكتب فئة المورد الجديدة (تحديث لحظي):</label>
                         <input type="text" id="categoryManualInput" class="form-control border-danger" placeholder="مثال: مورد خدمات مصانع" oninput="syncCategoryValue(this)">
                     </div>
 
@@ -172,167 +172,76 @@
     </form>
 </div>
 
-<!-- مودال النجاح -->
-<div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-body text-center p-4">
-                <div class="rounded-circle bg-success bg-opacity-10 p-3 d-inline-block mb-3">
-                    <i class="fas fa-check-double fa-3x text-success"></i>
-                </div>
-                <h4 class="fw-bold mb-3" style="color: #4B338A;">تم التعميد بنجاح!</h4>
-                <div class="bg-light p-3 rounded-3 mb-4 text-end" style="direction: rtl;">
-                    <div class="mb-2"><strong>المالك:</strong> <span id="resOwner"></span></div>
-                    <div class="mb-2"><strong>المستخدم:</strong> <span id="resUser" class="text-primary"></span></div>
-                    <div class="mb-0"><strong>كلمة المرور:</strong> <span id="resPass" class="text-danger"></span></div>
-                </div>
-                <button type="button" class="btn w-100 fw-bold py-2" onclick="copyAndFinish()" style="background: #4B338A; color: white; border-radius: 10px;">
-                    نسخ البيانات والإنهاء <i class="fas fa-copy ms-2"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-// 1. بيانات البنوك والصرافات الجديدة والمحدثة
 const financeData = {
-    banks: [
-        "بنك القطيبي الإسلامي",
-        "بنك الشمول الإسلامي",
-        "بنك عدن الإسلامي",
-        "البنك المركزي اليمني",
-        "بنك اليمن والكويت الإسلامي",
-        "بنك اليمن والبحرين الإسلامي",
-        "بنك بن دول الإسلامي",
-        "بنك البسيري الإسلامي",
-        "بنك الكريمي الإسلامي",
-        "بنك إنماء الإسلامي"
-    ],
-    exchange: [
-        "شركة احمد الحداد واخوانه",
-        "شركة القطيبي",
-        "شركة بن دول",
-        "شركة الشامل",
-        "شركة عدن",
-        "شركة إنماء"
-    ]
+    banks: ["بنك القطيبي الإسلامي", "بنك الشمول الإسلامي", "بنك عدن الإسلامي", "البنك المركزي اليمني", "بنك اليمن والكويت الإسلامي", "بنك اليمن والبحرين الإسلامي", "بنك بن دول الإسلامي", "بنك البسيري الإسلامي", "بنك الكريمي الإسلامي", "بنك إنماء الإسلامي"],
+    exchange: ["شركة احمد الحداد واخوانه", "شركة القطيبي", "شركة بن دول", "شركة الشامل", "شركة عدن", "شركة إنماء"]
 };
 
-// 2. كشاف المحافظات والمديريات اليمنية (22 محافظة كاملة ومصححة)
 const yemenGeography = {
-    "عدن": ["صيرة (كريتر)", "المعلا", "التواهي", "خور مكسر", "الشيخ عثمان", "المنصورة", "دار سعد", "البريقة"],
+    "عدن": ["صيرة", "المعلا", "التواهي", "خور مكسر", "الشيخ عثمان", "المنصورة", "دار سعد", "البريقة"],
     "صنعاء (الأمانة)": ["التحرير", "صنعاء القديمة", "آزال", "الصافية", "السبعين", "الوحدة", "شعوب", "الثورة", "معين", "بني الحارث"],
-    "الحديدة": ["الحالي", "الحوك", "الميناء", "الخوخة", "حيس", "بيت الفقيه", "المنصورية", "الدريهمي", "الزيدية", "الضحى", "باجل", "المراوعة", "القناوص", "اللحية", "زبيد", "الجراحي", "جبل رأس", "التحيتا"],
-    "تعز": ["القاهرة", "المظفر", "صالة", "التعزية", "ماوية", "شرعب الرونة", "شرعب السلام", "مقبنة", "المخا", "ذوباب", "موزع", "الوازعية", "التربة (الشمايتين)", "المواسط", "المعافر", "المسراخ", "جبل حبشي"],
-    "حضرموت": ["المكلا", "سيئون", "الشحر", "تريم", "شبام", "القطن", "غيل باوزير", "دوعن", "حجر الصيعر", "ساه", "عمد", "حريضة"],
-    "شبوة": ["عتق", "بيحان", "عسيلان", "عين", "نصاب", "مرخة السفلى", "مرخة العليا", "حبان", "الروضة", "ميفعة", "الصعيد", "رضوم"],
+    "صنعاء (المحافظة)": ["سنحان", "بلاد الروس", "بني حشيش", "بني مطر", "الحيمة الداخلية", "الحيمة الخارجية", "همدان", "أرحب", "نهم", "خولان", "جحانة"],
+    "الحديدة": ["الحالي", "الحوك", "الميناء", "الخوخة", "حيس", "بيت الفقيه", "المنصورية", "الدريهمي", "الزيدية", "باجل", "المراوعة", "القناوص", "اللحية", "زبيد", "الجراحي", "التحيتا", "الضحى", "جبل رأس", "برع"],
+    "تعز": ["القاهرة", "المظفر", "صالة", "التعزية", "ماوية", "شرعب الرونة", "شرعب السلام", "مقبنة", "المخا", "ذوباب", "موزع", "الوازعية", "الشمايتين", "المواسط", "المعافر", "المسراخ", "جبل حبشي", "صبر الموادم"],
+    "حضرموت": ["المكلا", "سيئون", "الشحر", "تريم", "شبام", "القطن", "غيل باوزير", "دوعن", "حجر الصيعر", "ساه", "عمد", "حريضة", "بروم ميفع", "الديس", "الريدة وقصيعر"],
+    "شبوة": ["عتق", "بيحان", "عسيلان", "عين", "نصاب", "مرخة السفلى", "مرخة العليا", "حبان", "الروضة", "ميفعة", "الصعيد", "رضوم", "عرماء", "جردان", "الطلح"],
     "مأرب": ["مدينة مأرب", "مأرب الوادي", "صرواح", "الجوبة", "حريب", "العبدية", "ماهلية", "مجزر", "رغوان", "مدغل"],
-    "المهرة": ["الغيضة", "شحن", "حوف", "حصوين", "قشن", "سيحوت", "المسيلة", "منعر", "حات"],
-    "أبين": ["زنجبار", "خنفر (جعار)", "لودر", "مودية", "الوضيع", "المحفد", "أحور", "جيشان", "سباح", "رصد", "سرار"],
-    "لحج": ["الحوطة", "تبن", "طور الباحة", "المقاطرة", "القبيطة", "المفلحي", "يافع (لبعوس)", "يهر", "الحد", "الملاح", "حبيل جبر", "رادفان"],
+    "إب": ["الظهار", "المشنة", "جبلة", "إب", "يريم", "كتاب", "المخادر", "القفر", "حبيش", "بعدان", "السبرة", "السياني", "ذو السفال", "العدين", "حزم العدين", "فرع العدين", "الرضمة", "الشعر"],
+    "ذمار": ["مدينة ذمار", "عنس", "مغرب عنس", "الحداء", "جهران", "ضوران آنس", "المنار", "عتمة", "وصاب العالي", "وصاب السافل", "جبل الشرق"],
+    "أبين": ["زنجبار", "خنفر", "لودر", "مودية", "الوضيع", "المحفد", "أحور", "جيشان", "سباح", "رصد", "سرار"],
+    "لحج": ["الحوطة", "تبن", "طور الباحة", "المقاطرة", "القبيطة", "المفلحي", "يافع", "يهر", "الحد", "الملاح", "حبيل جبر", "رادفان", "المضاربة"],
     "الضالع": ["مدينة الضالع", "قعطبة", "دمت", "الحشاء", "الأزارق", "جحاف", "الشعيب", "جبن"],
-    "إب": ["الظهار", "المشنة", "جبلة", "إب", "يريم", "كتاب", "المخادر", "القفر", "حبيش", "بعدان", "السبرة", "السياني", "ذو السفال", "العدين", "حزم العدين", "فرع العدين"],
-    "ذمار": ["مدينة ذمار", "عنس", "مغرب عنس", "الحداء", "جهران (معبر)", "ضوران آنس", "المنار", "عتمة", "وصاب العالي", "وصاب السافل"],
-    "عمران": ["مدينة عمران", "عيال سريح", "جبلة", "خمر", "ريدة", "خارف", "حوث", "العشة", "قفلة عذر", "شهارة", "ثلاء"],
-    "صعدة": ["مدينة صعدة", "سحار", "مجزر", "الصفراء", "رازح", "شدا", "منبه", "باقم", "كتاف والبقع", "حيدان", "ساقين"],
-    "حجة": ["مدينة حجة", "ميدي", "حرض", "عبس", "خيران المحرق", "أسلم", "مستبأ", "كشر", "المحابشة", "كحلان عفار", "قفل شمر", "الشغادرة"],
+    "صعدة": ["مدينة صعدة", "سحار", "مجزر", "الصفراء", "رازح", "شدا", "منبه", "باقم", "كتاف والبقع", "حيدان", "ساقين", "غمر"],
+    "حجة": ["مدينة حجة", "ميدي", "حرض", "عبس", "خيران المحرق", "أسلم", "مستبأ", "كشر", "المحابشة", "كحلان عفار", "قفل شمر", "الشغادرة", "كحلان الشرف", "وضرة"],
+    "عمران": ["مدينة عمران", "عيال سريح", "خمر", "ريدة", "خارف", "حوث", "العشة", "قفلة عذر", "شهارة", "ثلاء", "مسور", "حرف سفيان"],
+    "المهرة": ["الغيضة", "شحن", "حوف", "حصوين", "قشن", "سيحوت", "المسيلة", "منعر", "حات"],
+    "الجوف": ["الحزم", "الخلق", "المصلوب", "الغيل", "المتون", "الزاهر", "برط العنان", "خب والشعف", "الحميدات", "المطمة"],
     "المحويت": ["مدينة المحويت", "شبام كوكبان", "الرجم", "الطويلة", "حفاش", "ملحان", "بني سعد"],
-    "الجوف": ["الحزم", "الخلق", "المصلوب", "الغيل", "المتون", "الزاهر", "برط العنان", "خب والشعف"],
-    "البيضاء": ["مدينة البيضاء", "البيضاء (الرياشية)", "رداع", "العرش", "صباح", "مكيراس", "الصومعة", "الزاهر", "ذي ناعم"],
-    "صنعاء (العاصمة)": ["سنحان وبني بهلول", "بلاد الروس", "بني حشيش", "بني مطر", "الحيمة الداخلية", "الحيمة الخارجية", "همدان", "أرحب", "نهم", "خولان"],
+    "البيضاء": ["مدينة البيضاء", "البيضاء", "رداع", "العرش", "صباح", "مكيراس", "الصومعة", "الزاهر", "ذي ناعم", "الطفة", "ناطع"],
     "ريمة": ["الجبين", "كسمة", "مزهر", "السلفية", "بلاد الطعام", "الجعفرية"],
     "أرخبيل سقطرى": ["حديبو", "قلنسية وعبد الكوري"]
 };
 
-// تحديث خيارات الربط المالي (بنوك / صرافة)
 function updateFinanceOptions() {
     const finType = document.querySelector('input[name="fin_type"]:checked').value;
     const financeSelect = document.getElementById('financeSelect');
-    
     financeSelect.innerHTML = '<option value="" selected disabled>اختر جهة التحويل...</option>';
-    
     financeData[finType].forEach(item => {
         const option = document.createElement('option');
         option.value = item;
         option.textContent = item;
         financeSelect.appendChild(option);
     });
-    
     const manualOption = document.createElement('option');
     manualOption.value = 'manual';
     manualOption.textContent = 'أخرى (إدخال يدوي)...';
     financeSelect.appendChild(manualOption);
-    
-    document.getElementById('manualEntryDiv').style.display = 'none';
-    document.getElementById('manualInput').removeAttribute('required');
 }
 
-// التحكم بالإدخال اليدوي لجهة التحويل المالية
 function handleManualEntry(select) {
-    const manualDiv = document.getElementById('manualEntryDiv');
-    const manualInput = document.getElementById('manualInput');
-    
-    if (select.value === 'manual') {
-        manualDiv.style.display = 'block';
-        manualInput.setAttribute('required', 'required');
-        manualInput.focus();
-    } else {
-        manualDiv.style.display = 'none';
-        manualInput.removeAttribute('required');
-    }
+    document.getElementById('manualEntryDiv').style.display = (select.value === 'manual') ? 'block' : 'none';
 }
 
-// التحكم بالإدخال اليدوي لنوع الهوية
 function handleIdentityManualEntry(select) {
-    const manualDiv = document.getElementById('identityManualDiv');
-    const manualInput = document.getElementById('identityManualInput');
-    
-    if (select.value === 'manual') {
-        manualDiv.style.display = 'block';
-        manualInput.setAttribute('required', 'required');
-        manualInput.focus();
-    } else {
-        manualDiv.style.display = 'none';
-        manualInput.removeAttribute('required');
-    }
+    document.getElementById('identityManualDiv').style.display = (select.value === 'manual') ? 'block' : 'none';
 }
 
-// التحكم بالإدخال اليدوي لفئة المورد + التحديث اللحظي
 function handleCategoryManualEntry(select) {
-    const manualDiv = document.getElementById('categoryManualDiv');
-    const manualInput = document.getElementById('categoryManualInput');
-    
-    if (select.value === 'manual') {
-        manualDiv.style.display = 'block';
-        manualInput.setAttribute('required', 'required');
-        manualInput.focus();
-    } else {
-        manualDiv.style.display = 'none';
-        manualInput.removeAttribute('required');
-    }
+    document.getElementById('categoryManualDiv').style.display = (select.value === 'manual') ? 'block' : 'none';
 }
 
-// مزامنة فئة المورد تحديث لحظي للباكيند
 function syncCategoryValue(input) {
     const select = document.getElementById('categorySelect');
-    let manualOption = select.querySelector('option[data-custom="true"]');
-    
-    if (!manualOption) {
-        manualOption = document.createElement('option');
-        manualOption.setAttribute('data-custom', 'true');
-        select.appendChild(manualOption);
-    }
-    
-    manualOption.value = input.value;
-    manualOption.textContent = input.value;
+    let opt = select.querySelector('option[data-custom="true"]');
+    if (!opt) { opt = document.createElement('option'); opt.setAttribute('data-custom', 'true'); select.appendChild(opt); }
+    opt.value = opt.textContent = input.value;
     select.value = input.value;
 }
 
-// تحميل وتحديث المحافظات والمديريات
 function initGeographicData() {
     const provinceSelect = document.getElementById('provinceSelect');
-    Object.keys(yemenGeography).forEach(province => {
+    Object.keys(yemenGeography).sort().forEach(province => {
         const option = document.createElement('option');
         option.value = province;
         option.textContent = province;
@@ -341,44 +250,31 @@ function initGeographicData() {
 }
 
 function updateDistrictOptions() {
-    const provinceSelect = document.getElementById('provinceSelect');
+    const province = document.getElementById('provinceSelect').value;
     const districtSelect = document.getElementById('districtSelect');
-    const selectedProvince = provinceSelect.value;
-    
     districtSelect.innerHTML = '<option value="" selected disabled>اختر المديرية...</option>';
-    
-    if (selectedProvince && yemenGeography[selectedProvince]) {
-        yemenGeography[selectedProvince].forEach(district => {
-            const option = document.createElement('option');
-            option.value = district;
-            option.textContent = district;
-            districtSelect.appendChild(option);
+    if (province && yemenGeography[province]) {
+        yemenGeography[province].sort().forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d;
+            districtSelect.appendChild(opt);
         });
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     initGeographicData();
     updateFinanceOptions();
 });
 </script>
 
 <style>
-    /* أنماط مخصصة للهوية الملكية للمنصة */
     .validation-icon { min-width: 85px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; font-size: 11px; }
     .dir-ltr { direction: ltr; }
     .btn-outline-primary { color: #4B338A; border-color: #4B338A; }
     .btn-check:checked + .btn-outline-primary { background-color: #4B338A !important; border-color: #4B338A !important; color: #fff !important; }
-    .is-valid { border: 2px solid #198754 !important; }
-    .is-invalid { border: 2px solid #dc3545 !important; }
-    
-    /* حركة تمرير وتأثير جميل لزر الرجوع */
-    a[href="javascript:history.back()"]:hover {
-        background-color: #4B338A !important;
-        transform: scale(1.05);
-    }
-    a[href="javascript:history.back()"]:hover i {
-        color: #fff !important;
-    }
+    a[href="javascript:history.back()"]:hover { background-color: #4B338A !important; transform: scale(1.05); }
+    a[href="javascript:history.back()"]:hover i { color: #fff !important; }
 </style>
 {% endblock %}
