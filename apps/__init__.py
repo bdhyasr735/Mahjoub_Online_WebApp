@@ -1,6 +1,6 @@
 # coding: utf-8
 # 🛡️ المحرك المركزي لمنصة محجوب أونلاين 2026
-# التوثيق: المصنع الرئيسي (App Factory) الذي يدير الدروع الأمنية وقاعدة البيانات
+# التوثيق: المصنع الرئيسي (App Factory) لإدارة الدروع الأمنية وقواعد البيانات
 
 import os
 from flask import Flask
@@ -16,26 +16,31 @@ csrf = CSRFProtect()
 def create_app():
     """
     دالة إنشاء التطبيق (App Factory)
-    تقوم بتجميع كافة القطع البرمجية لتشغيل المنصة تحت مظلة أمنية واحدة
+    تقوم بتجميع القطع البرمجية وتفعيل الدروع الأمنية
     """
     app = Flask(__name__)
 
-    # 2. الإعدادات السيادية للمنصة
-    # يتم سحب المفاتيح الحساسة من بيئة تشغيل Railway لضمان الأمان المطلق
+    # 2. الإعدادات السيادية للمنصة (Railway Environment)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'mahjoub_sovereign_key_2026')
     
-    # تحويل رابط PostgreSQL ليتوافق مع مكتبة SQLAlchemy الحديثة
+    # معالجة رابط قاعدة البيانات ليتوافق مع معايير Railway الحديثة
     database_url = os.environ.get('DATABASE_URL')
     if database_url and database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///mahjoub_admin.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # تحسين الأداء: منع السيرفر من "التعليق" أثناء الاستعلامات الطويلة
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
 
     # 3. ربط المحركات بالتطبيق الفعلي
     db.init_app(app)
     login_manager.init_app(app)
-    csrf.init_app(app) # درع الحماية ضد هجمات تزوير الطلبات عبر المواقع
+    csrf.init_app(app) 
 
     # إعدادات نظام الولوج
     login_manager.login_view = 'auth_bp.login'
@@ -43,26 +48,29 @@ def create_app():
     login_manager.login_message_category = "info"
 
     # 4. تسجيل الأقسام البرمجية (Blueprints)
-    # الاستيراد داخل الدالة يمنع "الاستيراد الدائري" (Circular Imports)
+    # الاستيراد هنا يحل مشكلة التبعيات الدائرية
     from apps.auth_portal.routes import auth_bp
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.add_supplier.routes import admin_suppliers
     
-    # ربط المسارات بالهيكل التنظيمي للمنصة
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(admin_suppliers, url_prefix='/admin/suppliers')
 
-    # 5. بناء جدار قاعدة البيانات (Database Integrity)
+    # 5. بناء جدار قاعدة البيانات (Database Sync)
     with app.app_context():
         try:
-            # استيراد حزمة النماذج لضمان أن SQLAlchemy يراها عند بناء الجداول
-            # هذا السطر يحل مشكلة No module named 'apps.models'
+            # استيراد النماذج من الحزمة المركزية
             import apps.models 
-            
             db.create_all()
-            print("✅ تم فحص وتعميد جداول قاعدة البيانات بنجاح.")
+            print("✅ تم تعميد جداول قاعدة البيانات بنجاح.")
         except Exception as e:
-            print(f"⚠️ تنبيه سيادي: حدث خلل أثناء محاولة إنشاء الجداول: {e}")
+            print(f"⚠️ تنبيه: السيرفر يعمل ولكن تعذر تحديث الجداول تلقائياً: {e}")
 
     return app
+
+# تعريف مستخدم النظام لـ Flask-Login (مطلوب لعمل login_required)
+@login_manager.user_loader
+def load_user(user_id):
+    from apps.models.admin_db import AdminUser
+    return AdminUser.query.get(int(user_id))
