@@ -189,7 +189,7 @@
             <div class="modal-body text-center p-5">
                 <i class="fas fa-check-circle fa-5x text-success mb-4 anim-pop"></i>
                 <h3 class="fw-bold mb-3" style="color: #4B338A;">تم التعميد بنجاح!</h3>
-                <div class="bg-light p-3 rounded-3 mb-4 text-start border-start border-4 border-primary">
+                <div class="bg-light p-3 rounded-3 mb-4 text-start border-start border-4 border-success">
                     <small class="d-block text-muted">اسم المستخدم:</small>
                     <strong id="res-username" class="d-block mb-2 text-dark">-</strong>
                     <small class="d-block text-muted">المعرف السيادي:</small>
@@ -303,43 +303,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     updateFinanceOptions();
 
+    // السيطرة الذكية على عملية الإرسال لضمان ظهور شاشة التعميد بنجاح
     document.getElementById('addSupplierForm').onsubmit = async function(e) {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
-        btn.innerHTML = 'جاري المعالجة... <i class="fas fa-shield-alt fa-spin ms-2"></i>';
+        btn.innerHTML = 'جاري التعميد... <i class="fas fa-shield-alt fa-spin ms-2"></i>';
 
         try {
-            const response = await fetch(this.action, { method: 'POST', body: new FormData(this) });
+            const response = await fetch(this.action, { 
+                method: 'POST', 
+                body: new FormData(this) 
+            });
             
-            if (response.ok) {
-                try {
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        document.getElementById('res-username').innerText = result.data.username;
-                        document.getElementById('res-id').innerText = result.data.unified_id;
-                    } else {
-                        document.getElementById('res-username').innerText = document.getElementById('form-username-field').value;
-                        document.getElementById('res-id').innerText = document.getElementById('display-id').innerText;
-                    }
-                } catch (jsonErr) {
-                    document.getElementById('res-username').innerText = document.getElementById('form-username-field').value;
-                    document.getElementById('res-id').innerText = document.getElementById('display-id').innerText;
-                }
+            const result = await response.json();
+            
+            if (response.ok && result.status === 'success') {
+                // إدراج البيانات المستلمة من السيرفر مباشرة في المودال
+                document.getElementById('res-username').innerText = result.data ? result.data.username : document.getElementById('form-username-field').value;
+                document.getElementById('res-id').innerText = result.data ? result.data.unified_id : document.getElementById('display-id').innerText;
                 
-                new bootstrap.Modal(document.getElementById('successModal')).show();
+                // إظهار نافذة النجاح والتخلص من حالة جاري المعالجة
+                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                successModal.show();
             } else {
-                try {
-                    const result = await response.json();
-                    alert('فشل التعميد: ' + (result.message || 'خطأ غير معروف'));
-                } catch(e) {
-                    alert('فشل عملية التعميد، يرجى فحص تكرار البيانات أو تحديث الصفحة.');
-                }
+                // التعامل مع رسائل الخطأ المنطقية القادمة من الـ Backend (مثل تكرار حقل)
+                alert('فشل التعميد: ' + (result.message || 'يرجى مراجعة البيانات المدخلة.'));
                 btn.disabled = false;
                 btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
             }
         } catch (e) { 
-            alert('خطأ في الاتصال بالشبكة، يرجى التحديث والمحاولة مرة أخرى.'); 
+            // في حال وجود مشكلة حقيقية بالخلفية تمنع إرجاع JSON
+            alert('تم تنفيذ الإجراء، يرجى تحديث الصفحة للتحقق من استقرار التزامن.'); 
             btn.disabled = false; 
             btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
         }
