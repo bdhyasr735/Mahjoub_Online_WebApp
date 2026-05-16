@@ -237,3 +237,113 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 const response = await fetch(`/admin/suppliers/check-duplicate?type=${dbType}&value=${this.value.trim()}`);
                 const result = await response.json();
                 if (result.exists) isValid = false;
+            } catch (e) { console.error("DB Check Failed"); }
+        }
+
+        if (isValid) {
+            icon.innerHTML = '<i class="fas fa-check-circle text-success anim-pop"></i>';
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        } else {
+            icon.innerHTML = '<i class="fas fa-times-circle text-danger anim-pop"></i>';
+            this.classList.add('is-invalid');
+            this.classList.remove('is-valid');
+        }
+
+        submitBtn.disabled = document.querySelectorAll('.is-invalid').length > 0;
+    });
+});
+
+function toggleManualInput(select, divId) {
+    document.getElementById(divId).style.display = (select.value === 'manual') ? 'block' : 'none';
+}
+
+function syncManualValue(input, selectId) {
+    const select = document.getElementById(selectId);
+    let opt = select.querySelector('option[data-manual="true"]') || document.createElement('option');
+    opt.setAttribute('data-manual', 'true');
+    opt.value = opt.textContent = input.value;
+    if (!opt.parentElement) select.appendChild(opt);
+    select.value = input.value;
+}
+
+function updateDistrictOptions() {
+    const p = document.getElementById('provinceSelect').value;
+    const dSelect = document.getElementById('districtSelect');
+    dSelect.innerHTML = '<option value="" selected disabled>اختر المديرية...</option>';
+    if (yemenGeography[p]) {
+        yemenGeography[p].forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = opt.textContent = d;
+            dSelect.appendChild(opt);
+        });
+    }
+}
+
+function updateFinanceOptions() {
+    const type = document.querySelector('input[name="fin_type"]:checked').value;
+    const select = document.getElementById('financeSelect');
+    select.innerHTML = '<option value="" selected disabled>اختر جهة التحويل...</option>';
+    financeData[type].forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = item;
+        select.appendChild(opt);
+    });
+    const mOpt = document.createElement('option');
+    mOpt.value = 'manual'; mOpt.textContent = 'أخرى (إدخال يدوي)...';
+    select.appendChild(mOpt);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const pSelect = document.getElementById('provinceSelect');
+    Object.keys(yemenGeography).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = p;
+        pSelect.appendChild(opt);
+    });
+    updateFinanceOptions();
+
+    document.getElementById('addSupplierForm').onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = 'جاري المعالجة... <i class="fas fa-shield-alt fa-spin ms-2"></i>';
+
+        try {
+            const response = await fetch(this.action, { method: 'POST', body: new FormData(this) });
+            
+            if (response.ok) {
+                try {
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        document.getElementById('res-username').innerText = result.data.username;
+                        document.getElementById('res-id').innerText = result.data.unified_id;
+                    } else {
+                        document.getElementById('res-username').innerText = document.getElementById('form-username-field').value;
+                        document.getElementById('res-id').innerText = document.getElementById('display-id').innerText;
+                    }
+                } catch (jsonErr) {
+                    document.getElementById('res-username').innerText = document.getElementById('form-username-field').value;
+                    document.getElementById('res-id').innerText = document.getElementById('display-id').innerText;
+                }
+                
+                new bootstrap.Modal(document.getElementById('successModal')).show();
+            } else {
+                try {
+                    const result = await response.json();
+                    alert('فشل التعميد: ' + (result.message || 'خطأ غير معروف'));
+                } catch(e) {
+                    alert('فشل عملية التعميد، يرجى فحص تكرار البيانات أو تحديث الصفحة.');
+                }
+                btn.disabled = false;
+                btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
+            }
+        } catch (e) { 
+            alert('خطأ في الاتصال بالشبكة، يرجى التحديث والمحاولة مرة أخرى.'); 
+            btn.disabled = false; 
+            btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
+        }
+    };
+});
+</script>
+{% endblock %}
