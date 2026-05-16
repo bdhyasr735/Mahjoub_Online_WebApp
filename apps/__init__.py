@@ -49,7 +49,9 @@ def create_app():
     try:
         from apps.auth_portal.routes import auth_bp
         from apps.admin_dashboard.routes import admin_dashboard
-        from apps.add_supplier.routes import admin_suppliers
+        
+        # التعديل الحاسم والمصحح: استيراد البلوبرينت مباشرة من حزمة القسم لمنع انكسار محرك جينجا والتداخل
+        from apps.add_supplier import admin_suppliers
         
         app.register_blueprint(auth_bp, url_prefix='/auth')
         app.register_blueprint(admin_dashboard, url_prefix='/admin')
