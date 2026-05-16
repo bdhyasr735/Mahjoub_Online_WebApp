@@ -16,13 +16,13 @@
         </div>
         <div class="text-center p-2 border-start ps-4">
             <small class="d-block text-muted fw-bold">المعرف الموحد</small>
-            <span class="fs-4 fw-bold" style="color: var(--royal-purple);" id="display-id">SUP-WEL-MAH963{{ next_id }}</span>
+            <span class="fs-4 fw-bold" style="color: var(--royal-purple);" id="display-id">{{ sovereign_id }}</span>
         </div>
     </div>
 
     <form id="addSupplierForm" method="POST" enctype="multipart/form-data" action="{{ url_for('admin_suppliers.add_supplier') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="unified_id" value="SUP-WEL-MAH963{{ next_id }}">
+        <input type="hidden" name="sovereign_id" value="{{ sovereign_id }}">
 
         <div class="row g-4">
             <div class="col-md-4">
