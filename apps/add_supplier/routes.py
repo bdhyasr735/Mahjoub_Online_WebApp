@@ -51,7 +51,7 @@ def add_supplier():
             hashed_pw = generate_password_hash(password)
             
             new_supplier = Supplier(
-                sovereign_id=unified_id, # المعرف الموحد SUP-WEL-...
+                sovereign_id=unified_id, # المعرف الموحد SUP-WEL-MAH963...
                 username=username,
                 password_hash=hashed_pw,
                 identity_type=identity_type,
@@ -96,16 +96,16 @@ def add_supplier():
             print(f"Critical Error in add_supplier: {str(e)}")
             return jsonify({'status': 'error', 'message': f'فشل في عملية التعميد: {str(e)}'}), 500
 
-    # في حالة GET: حساب المعرف القادم لعرضه في الواجهة
+    # في حالة GET: حساب المعرف القادم بدقة وضمان تمريره كمتغير رقمي مستقر
     try:
         last_s = Supplier.query.order_by(Supplier.id.desc()).first()
-        next_id = (last_s.id + 1) if last_s else 1
+        next_id = (last_s.id + 1) if (last_s and last_s.id) else 1
     except Exception as e:
         print(f"Error fetching next_id: {str(e)}")
         next_id = 1
     
-    # استدعاء القالب بناءً على مساره الحقيقي الدقيق والمثبت لتجنب TemplateNotFound
-    return render_template('admin/add_supplier.html', next_id=next_id)
+    # [تحديث الحماية السحابية]: استدعاء القالب بعد تنظيفه وتحويل المعرف إلى نص صريح لمنع انكسار محرك جينجا
+    return render_template('admin/add_supplier.html', next_id=str(next_id))
 
 
 @admin_suppliers.route('/check-duplicate', methods=['GET'])
