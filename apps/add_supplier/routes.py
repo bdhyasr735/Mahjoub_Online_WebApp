@@ -126,7 +126,7 @@ def add_supplier():
 
             return jsonify({
                 'status': 'success',
-                'message': 'تم تعميد Mورد بنجاح في نظام الأرشفة برتبة أساسي وحالة نشطة',
+                'message': 'تم تعميد المورد بنجاح في نظام الأرشفة برتبة أساسي وحالة نشطة',
                 'data': {
                     'username': new_supplier.username,
                     'sovereign_id': new_supplier.sovereign_id
@@ -166,7 +166,7 @@ def add_supplier():
 def check_duplicate():
     """
     نظام الفحص اللحظي الآمن والمطور والمحمي من أخطاء الـ SQL:
-    يقوم بالتحقق من الحقول الفردية السبعة لضمان دقة الاستجابة وعمل الواجهة بشكل مثالي.
+    يقوم بالتحقق من الحقول الفردية لضمان دقة الاستجابة وعمل الواجهة بشكل مثالي.
     """
     try:
         check_type = request.args.get('type')
