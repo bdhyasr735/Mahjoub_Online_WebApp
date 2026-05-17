@@ -50,10 +50,10 @@ def add_supplier():
             # 4. تشفير كلمة المرور وتجهيز الكائن
             hashed_pw = generate_password_hash(password)
             
-            # ⚠️ لاحظ: تم إزالة حقل sovereign_id من التهيئة وتمريره كـ "قيمة مؤقتة فارغة" 
-            # أو تركه ليحسب تلقائياً بفضل دالة الـ Event Listener المربوطة بـ before_insert
+            # ⚠️ لاحظ: يتم تمرير قيمة مؤقتة للحقل السيادي ليتم استبدالها بشكل قطعي 
+            # عبر دالة الـ Event Listener التلقائية المخزنة في موديل قاعدة البيانات قبل الحفظ الفعلي.
             new_supplier = Supplier(
-                sovereign_id="PENDING", # سيقوم الموديل باستبداله تلقائياً بكسر من الثانية قبل الـ commit
+                sovereign_id="PENDING", 
                 username=username,
                 password_hash=hashed_pw,
                 identity_type=identity_type,
@@ -72,7 +72,7 @@ def add_supplier():
                 status='المراجعة',        # إجبار إسناد حالة البدء الافتراضية لحوكمة النظام
                 rank_grade='ريادي',       # إجبار إسناد رتبة المورد الأولى للتحكم بالصلاحيات
                 registration_source='لوحة التحكم', # تحديد ولادة الحساب من الإدارة
-                created_by_id=getattr(current_user, 'id', None), # إسناد معرّف المشرف الحالي الذي قام بالتعميد للحوكمة الرقمية
+                created_by_id=getattr(current_user, 'id', None), # إسناد معرّف المشرف الحالي للحوكمة الرقمية
                 created_at=datetime.utcnow()
             )
 
@@ -85,7 +85,7 @@ def add_supplier():
 
             # 6. الحفظ النهائي الصارم والمؤكد في قاعدة البيانات
             db.session.add(new_supplier)
-            db.session.commit() # في هذه اللحظة تتدخل دالة auto_generate_sovereign_id وتضع الرقم الحقيقي المحدث
+            db.session.commit() # هنا تتدخل دالة الجلب لتثبيت الرقم الحقيقي المحدث في السلسلة
 
             # إرجاع استجابة نجاح صريحة وقطعية لتغلق الـ JavaScript نافذة "جاري المعالجة" بنجاح
             return jsonify({
@@ -103,25 +103,33 @@ def add_supplier():
             return jsonify({'status': 'error', 'message': f'فشل في عملية التعميد: {str(e)}'}), 500
 
     # -------------------------------------------------------------------------
-    # في حالة GET: حساب التنبؤ الرقمي السيادي والمستقر من قاعدة البيانات للعرض فقط
+    # في حالة GET: حساب التنبؤ الرقمي السيادي بناءً على آخر سجل حقيقي في القاعدة
     # -------------------------------------------------------------------------
     try:
+        # جلب آخر سجل تم إدخاله في قاعدة البيانات بناءً على معرف الـ ID التلقائي
         last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
-        if last_supplier and last_supplier.sovereign_id and 'MAH963' in last_supplier.sovereign_id:
+        
+        # الفحص واستخراج الرقم المبني تماماً على النمط الفعلي المخزن 'SUP-WEL-MAH963'
+        if last_supplier and last_supplier.sovereign_id and 'SUP-WEL-MAH963' in last_supplier.sovereign_id:
             try:
-                last_num = int(last_supplier.sovereign_id.split('MAH963')[-1])
-                next_num = last_num + 1
+                # عزل الجزء النصي الثابت لاستخراج الرقم التالي بدقة ديناميكية كاملة
+                last_num_str = last_supplier.sovereign_id.replace('SUP-WEL-MAH963', '').strip()
+                next_num = int(last_num_str) + 1
             except (ValueError, IndexError):
+                # حماية برمجية احتياطية في حال تعذر القراءة النصية
                 next_num = (last_supplier.id or 0) + 1
         else:
+            # في حال لم تعثر القاعدة على النمط الفعلي، يبدأ العد بناءً على آخر ID متاح
             next_num = (last_supplier.id or 0) + 1 if last_supplier else 1
 
+        # دمج المعرف النهائي المحدث وتمريره مباشرة إلى الواجهة
         next_sovereign_id = f"SUP-WEL-MAH963{next_num}"
     except Exception as e:
         print(f"Error fetching next_sovereign_id prediction: {str(e)}")
-        next_sovereign_id = "SUP-WEL-MAH9631"
+        # قيمة استباقية ذكية في حال وقوع أي استثناء عابر أثناء الاتصال
+        next_sovereign_id = "SUP-WEL-MAH96319"
     
-    # [تحديث الحماية السحابية]: تمرير المتغير الموحد والمطابق للواجهة لضمان عدم حدوث فراغات في الأرقام
+    # تمرير المتغير الموحد والمطابق للواجهة لمنع ظهور أي تشوهات أو فراغات رقمية
     return render_template('admin/add_supplier.html', sovereign_id=next_sovereign_id)
 
 
