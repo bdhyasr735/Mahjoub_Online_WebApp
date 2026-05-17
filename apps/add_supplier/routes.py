@@ -13,8 +13,8 @@ from werkzeug.utils import secure_filename
 from apps import db  
 from apps.models.supplier_db import Supplier 
 
-# استيراد البلوبرينت الموحد والمثبت من ملف الـ __init__ لمنع التعارض الخفي
-from apps.add_supplier import admin_suppliers
+# استيراد محمي ومباشر للبلوبرينت
+from . import admin_suppliers
 
 @admin_suppliers.route('/add', methods=['GET', 'POST'])
 @login_required 
@@ -90,7 +90,7 @@ def add_supplier():
                     _, ext = os.path.splitext(filename)
                     image_filename = f"doc_{unique_suffix}{ext}"
                     
-                    # مسار الحفظ السحابي الآمن للمرفقات
+                    # مسار الحفظ الآمن للمرفقات
                     upload_path = os.path.join(current_app.root_path, 'static', 'uploads', 'identities')
                     os.makedirs(upload_path, exist_ok=True)
                     file.save(os.path.join(upload_path, image_filename))
@@ -157,25 +157,27 @@ def add_supplier():
         current_app.logger.error(f"Error fetching next_sovereign_id prediction: {str(e)}")
         next_sovereign_id = "SUP-WEL-MAH96319"
     
-    return render_template('admin/add_supplier.html', sovereign_id=next_sovereign_id)
+    # حوكمة استدعاء القالب: إذا كان الملف داخل مجلد التطبيق الفرعي وليس المجلد الرئيسي لـ Flask
+    # نقوم بتجربة استدعائه مباشرة، وإذا فشل يتم توجيهه للمجلد الفرعي لتجنب الـ TemplateNotFound تماماً
+    try:
+        return render_template('admin/add_supplier.html', sovereign_id=next_sovereign_id)
+    except Exception:
+        return render_template('add_supplier.html', sovereign_id=next_sovereign_id)
 
 
 @admin_suppliers.route('/check-duplicate', methods=['GET'])
 @login_required
 def check_duplicate():
     """
-    نظام الفحص اللحظي المطور:
-    تم تدعيمه بإرجاع الحالات كـ Boolean ونصوص صريحة (status) ليتوافق مع شيفرات الجافاسكريبت المتنوعة.
+    نظام الفحص اللحظي المطور
     """
     try:
         check_type = request.args.get('type')
         value = request.args.get('value', '').strip()
 
-        # إذا كان الحقل فارغاً، يجب ألا يعطي الـ Front-end علامة صح أبداً
         if not check_type or not value:
             return jsonify({'exists': False, 'valid': False, 'status': 'empty', 'message': 'الحقل فارغ'})
 
-        # حوكمة طول اسم المستخدم
         if check_type == 'username' and len(value) < 3:
             return jsonify({'exists': True, 'valid': False, 'status': 'invalid', 'message': 'اسم المستخدم قصير جداً'})
 
@@ -193,7 +195,6 @@ def check_duplicate():
         elif check_type == 'bank_acc':
             exists = Supplier.query.filter_by(bank_acc=value).first() is not None
 
-        # الرد الشامل والمحمي لضمان قراءة الجافاسكريبت للبيانات المكررة بشكل صحيح ومنع ظهور علامة صح بالخطأ
         return jsonify({
             'exists': exists, 
             'valid': not exists,
