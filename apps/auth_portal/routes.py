@@ -4,16 +4,21 @@
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
-from apps import db 
-from apps.models.admin_db import AdminUser 
-from . import auth_bp
 from datetime import datetime
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
+# الاستيراد المباشر والمحمي للبلوبرينت الموحد لمنع تعذر العثور على الكائن
+from . import auth_blueprint
+
+
+@auth_blueprint.route('/login', methods=['GET', 'POST'])
 def login():
+    # 🚨 استدعاء محلي متأخر للموديل وقاعدة البيانات لحل أزمة الاستيراد الدائري نهائياً
+    from apps import db 
+    from apps.models.admin_db import AdminUser 
+
     # منع الدخول المتكرر إذا كان المالك مسجلاً بالفعل
     if current_user.is_authenticated:
-        return redirect(url_for('admin_dashboard.dashboard'))
+        return redirect(url_for('admin_dashboard.dashboard_home'))
 
     if request.method == 'POST':
         username = request.form.get('username')
@@ -30,10 +35,10 @@ def login():
                 user.last_login = datetime.utcnow()
                 db.session.commit()
                 
-                flash(f'مرحباً بك يا سيد {user.full_name} في سوقك الذكي.', 'success')
+                flash(f'مرحباً بك في سوقك الذكي.', 'success')
                 
-                # ✅ تم التصحيح هنا: التوجيه لـ dashboard وليس index
-                return redirect(url_for('admin_dashboard.dashboard'))
+                # التوجيه إلى لوحة التحكم الرئيسية المحدثة
+                return redirect(url_for('admin_dashboard.dashboard_home'))
             else:
                 flash('ليس لديك صلاحيات الوصول لهذه المنطقة السيادية.', 'warning')
         else:
@@ -41,9 +46,10 @@ def login():
     
     return render_template('auth/login.html')
 
-@auth_bp.route('/logout')
+
+@auth_blueprint.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('تم تسجيل الخروج من المنطقة السيادية بنجاح.', 'info')
-    return redirect(url_for('auth_bp.login'))
+    return redirect(url_for('auth_portal.login'))
