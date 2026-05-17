@@ -265,10 +265,10 @@ document.querySelectorAll('.validation-field').forEach(input => {
 
             if (isFormatValid && dbType) {
                 try {
-                    // تحويل مسار الطلب الفوري ليتناسب مع بلوبرينت السيرفر الحقيقي
                     const response = await fetch(`/admin/suppliers/check-duplicate?type=${dbType}&value=${encodeURIComponent(value)}`);
                     const result = await response.json();
                     
+                    // التعديل هنا: فحص القيمة من داخل حقل exists المرسل من الباكيند الحوكمي الجديد
                     if (result.exists === true || String(result.exists).toLowerCase() === "true") {
                         isFinalValid = false; 
                     } else {
@@ -299,6 +299,8 @@ function updateSubmitButtonState() {
     const submitBtn = document.getElementById('submitBtn');
     const totalValidFields = document.querySelectorAll('.validation-field.is-valid').length;
     const hasErrors = document.querySelectorAll('.is-invalid').length > 0;
+    
+    // تم التعديل الجذري: الحقول السبعة الأساسية التي تمتلك كلاس الفحص عددها الفعلي (7 حقول جاهزة للتأكيد)
     const requiredValidationCount = 7; 
 
     if (totalValidFields === requiredValidationCount && !hasErrors) {
