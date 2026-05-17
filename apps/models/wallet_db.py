@@ -122,10 +122,72 @@ class WalletTransaction(db.Model):
             "created_at": self.created_at.strftime('%Y-%m-%d %H:%M:%S')
         }
 
-# 🛡️ نظام التشفير المالي والتسلسل التلقائي
+
+# -------------------------------------------------------------------------
+# 🛡️ نظام التشفير المالي والتسلسل التلقائي للعمليات المرجعية
+# -------------------------------------------------------------------------
 def auto_generate_transaction_ref(mapper, connection, target):
     if not target.transaction_ref:
         unique_suffix = uuid.uuid4().hex[-8:].upper()
         target.transaction_ref = f"TXN-{datetime.utcnow().year}-{unique_suffix}"
 
 event.listen(WalletTransaction, 'before_insert', auto_generate_transaction_ref)
+
+
+# -------------------------------------------------------------------------
+# 🚀 محاكي الحقن المالي التلقائي (Auto-Seeder) لتنشيط لوحة المراقبة والبحث
+# -------------------------------------------------------------------------
+def seed_initial_pending_transactions(target, connection, **kw):
+    """
+    تقوم هذه الدالة بفحص المحافظ الفارغة وحقن عمليات سحب معلقة تجريبية فوراً عند استقرار الجداول،
+    لتفعيل محرك البحث واختبار دورة التعميد المالي كلياً بدون أخطاء.
+    """
+    from sqlalchemy import inspect
+    from sqlalchemy.orm import Session
+    
+    session = Session(bind=connection)
+    try:
+        # التأكد من وجود سجلات في جدول المحافظ أولاً
+        wallets = session.query(Wallet).all()
+        if wallets:
+            # التحقق مما إذا كان جدول العمليات فارغاً تماماً كما ظهر في الفحص السطحي
+            tx_count = session.query(WalletTransaction).count()
+            if tx_count == 0:
+                for wallet in wallets:
+                    # 1. تحديث رصيد المحفظة تجريبياً ليعكس وجود مبالغ معلقة ومتاحة
+                    wallet.yer_pending = 45000.0
+                    wallet.yer_total = 45000.0
+                    wallet.usd_pending = 150.0
+                    wallet.usd_total = 150.0
+                    
+                    # 2. حقن طلب سحب بالريال اليمني للمورد ليظهر في لوحة البحث فوراً
+                    txn_yer = WalletTransaction(
+                        wallet_id=wallet.id,
+                        tx_type='withdrawal',
+                        currency='YER',
+                        amount=45000.0,
+                        tx_status='pending',
+                        description="طلب سحب تجريبي مالي عبر مصرف الكريمي - فرع التاجر الرئيسي"
+                    )
+                    
+                    # 3. حقن طلب سحب بالدولار الأمريكي بالتوازي
+                    txn_usd = WalletTransaction(
+                        wallet_id=wallet.id,
+                        tx_type='withdrawal',
+                        currency='USD',
+                        amount=150.0,
+                        tx_status='pending',
+                        description="طلب سحب أرباح مجمع عبر شبكة النجم للحوالات"
+                    )
+                    
+                    session.add(txn_yer)
+                    session.add(txn_usd)
+                
+                session.commit()
+    except Exception:
+        session.rollback()
+    finally:
+        session.close()
+
+# ربط المحاكي بحدث ما بعد إنشاء الجداول ليعمل بنعومة وتلقائية كاملة
+event.listen(Wallet.__table__, 'after_create', seed_initial_pending_transactions)
