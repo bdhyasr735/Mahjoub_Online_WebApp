@@ -1,74 +1,121 @@
 {% extends "admin_base.html" %}
 
-{% block title %}الفضاء المالي السيادي | محجوب أونلاين{% endblock %}
+{% block title %}الفضاء المالي الحوكمي | محجوب أونلاين{% endblock %}
 
 {% block content %}
 <style>
     :root {
         --royal-purple: #7B2CBF;
         --deep-purple: #3C096C;
-        --dark-space: #0A0908;
-        --card-bg: #141115;
-        --gold-crown: #FFD700;
+        --bg-main: #f8f9fa;       /* خلفية عامة بيضاء مريحة */
+        --bg-card: #ffffff;       /* كروت وقوالب بيضاء صافية */
+        --text-primary: #212529;  /* نصوص داكنة واضحة للقراءة */
+        --text-muted: #6c757d;    /* نصوص ثانوية رمادية */
+        --border-color: #dee2e6;  /* حدود خفيفة مريحة للعين */
+        --gold-crown: #D4AF37;    /* ذهبي ملكي متناسق مع الوضع الفاتح */
     }
 
     body {
-        background-color: var(--dark-space);
-        color: #E0E0E0;
+        background-color: var(--bg-main);
+        color: var(--text-primary);
     }
 
+    /* كروت النقدية الفاتحة */
     .crypto-card {
-        background: var(--card-bg);
-        border: 1px solid #222;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
         border-radius: 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         transition: all 0.3s ease;
     }
 
     .crypto-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(123, 44, 191, 0.2);
+        box-shadow: 0 8px 25px rgba(123, 44, 191, 0.1);
     }
 
     .border-yer { border-right: 5px solid #E63946; }
     .border-sar { border-right: 5px solid #2A9D8F; }
     .border-usd { border-right: 5px solid #F4A261; }
 
+    /* رتب الموردين */
     .rank-badge {
         font-weight: bold;
         padding: 4px 10px;
         border-radius: 6px;
     }
-    .rank-riadi { background-color: rgba(0, 180, 216, 0.15); color: #00b4d8; }
-    .rank-siadi { background-color: rgba(123, 44, 191, 0.15); color: #9d4edd; }
-    .rank-malaki { background-color: rgba(255, 215, 0, 0.1); color: var(--gold-crown); border: 1px solid var(--gold-crown); }
+    .rank-riadi { background-color: rgba(0, 180, 216, 0.1); color: #0077b6; }
+    .rank-siadi { background-color: rgba(123, 44, 191, 0.1); color: var(--royal-purple); }
+    .rank-malaki { background-color: rgba(212, 175, 55, 0.1); color: #aa8000; border: 1px solid #d4af37; }
 
+    /* صندوق فلاتر البحث الفاتح */
     .search-box-system {
-        background: var(--card-bg);
-        border: 2px solid #222;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
         border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         transition: border-color 0.3s ease;
     }
     .search-box-system:focus-within {
         border-color: var(--royal-purple);
+        box-shadow: 0 0 0 3px rgba(123, 44, 191, 0.1);
     }
 
-    .table-dark-custom {
-        background-color: var(--card-bg);
-        color: #E0E0E0;
+    /* إحصائيات الفلاتر */
+    .filter-stats-badge {
+        background-color: #e9ecef;
+        color: var(--text-primary);
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid var(--border-color);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
-    .table-dark-custom th {
-        background-color: #1a161b;
-        color: #9d4edd;
+    .filter-stats-badge span {
+        color: var(--royal-purple);
+        font-size: 16px;
+    }
+
+    /* الجداول الفاتحة المريحة للعين */
+    .table-light-custom {
+        background-color: var(--bg-card);
+        color: var(--text-primary);
+    }
+    .table-light-custom th {
+        background-color: #f1f3f5;
+        color: var(--deep-purple);
         border-bottom: 2px solid var(--royal-purple);
+        font-weight: 600;
     }
-    .table-dark-custom td {
-        border-bottom: 1px solid #222;
+    .table-light-custom td {
+        border-bottom: 1px solid var(--border-color);
         vertical-align: middle;
+        background-color: var(--bg-card);
+        color: var(--text-primary);
     }
     
-    /* حجب النتائج والبحث تلقائياً حتى يكتب المسؤول */
+    .table-light-custom tr:hover td {
+        background-color: #f8f9fa;
+    }
+    
+    /* حجب النتائج والبحث تلقائياً في البداية */
     #search_results_container {
         display: none;
+    }
+
+    /* تخصيص زر اللون البنفسجي ليتناسب مع النقاء الفاتح */
+    .btn-royal {
+        background-color: var(--royal-purple);
+        color: #ffffff;
+        border: none;
+        font-weight: 600;
+    }
+    .btn-royal:hover {
+        background-color: var(--deep-purple);
+        color: #ffffff;
     }
 </style>
 
@@ -78,49 +125,49 @@
         <div class="col-md-4">
             <div class="crypto-card p-3 border-yer">
                 <small class="text-muted d-block mb-1">الريال اليمني (YER)</small>
-                <h4 class="text-white font-weight-bold mb-2">{{ "{:,.2f}".format(metrics.YER.total) }} <small style="font-size: 0.8rem;">ريال</small></h4>
-                <div class="d-flex justify-content-between border-top border-secondary border-opacity-25 pt-2" style="font-size: 0.85rem;">
+                <h4 class="font-weight-bold mb-2" style="color: var(--text-primary);">{{ "{:,.2f}".format(metrics.YER.total) }} <small style="font-size: 0.8rem;">ريال</small></h4>
+                <div class="d-flex justify-content-between border-top border-secondary border-opacity-10 pt-2" style="font-size: 0.85rem;">
                     <span class="text-success">متاح: {{ "{:,.2f}".format(metrics.YER.available) }}</span>
-                    <span class="text-warning">معلق: {{ "{:,.2f}".format(metrics.YER.pending) }}</span>
+                    <span class="text-warning" style="color: #b27b00 !important;">معلق: {{ "{:,.2f}".format(metrics.YER.pending) }}</span>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="crypto-card p-3 border-sar">
                 <small class="text-muted d-block mb-1">الريال السعودي (SAR)</small>
-                <h4 class="text-white font-weight-bold mb-2">{{ "{:,.2f}".format(metrics.SAR.total) }} <small style="font-size: 0.8rem;">رس</small></h4>
-                <div class="d-flex justify-content-between border-top border-secondary border-opacity-25 pt-2" style="font-size: 0.85rem;">
+                <h4 class="font-weight-bold mb-2" style="color: var(--text-primary);">{{ "{:,.2f}".format(metrics.SAR.total) }} <small style="font-size: 0.8rem;">رس</small></h4>
+                <div class="d-flex justify-content-between border-top border-secondary border-opacity-10 pt-2" style="font-size: 0.85rem;">
                     <span class="text-success">متاح: {{ "{:,.2f}".format(metrics.SAR.available) }}</span>
-                    <span class="text-warning">معلق: {{ "{:,.2f}".format(metrics.SAR.pending) }}</span>
+                    <span class="text-warning" style="color: #b27b00 !important;">معلق: {{ "{:,.2f}".format(metrics.SAR.pending) }}</span>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="crypto-card p-3 border-usd">
                 <small class="text-muted d-block mb-1">الدولار الأمريكي (USD)</small>
-                <h4 class="text-white font-weight-bold mb-2">$ {{ "{:,.2f}".format(metrics.USD.total) }}</h4>
-                <div class="d-flex justify-content-between border-top border-secondary border-opacity-25 pt-2" style="font-size: 0.85rem;">
+                <h4 class="font-weight-bold mb-2" style="color: var(--text-primary);">$ {{ "{:,.2f}".format(metrics.USD.total) }}</h4>
+                <div class="d-flex justify-content-between border-top border-secondary border-opacity-10 pt-2" style="font-size: 0.85rem;">
                     <span class="text-success">متاح: {{ "{:,.2f}".format(metrics.USD.available) }}</span>
-                    <span class="text-warning">معلق: {{ "{:,.2f}".format(metrics.USD.pending) }}</span>
+                    <span class="text-warning" style="color: #b27b00 !important;">معلق: {{ "{:,.2f}".format(metrics.USD.pending) }}</span>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="search-box-system p-4 mb-4">
-        <h6 class="text-white mb-3"><i class="fas fa-search-dollar me-2 text-purple"></i> نظام استدعاء وفحص المحافظ الموحد</h6>
+        <h6 class="mb-3" style="color: var(--deep-purple); font-weight: 700;"><i class="fas fa-search-dollar me-2"></i> نظام استدعاء وفحص المحافظ الموحد</h6>
         <div class="row g-3 align-items-center">
-            <div class="col-md-9 position-relative">
+            <div class="col-md-8 position-relative">
                 <div class="input-group">
-                    <span class="input-group-text bg-transparent border-secondary border-end-0 text-muted"><i class="fas fa-search"></i></span>
-                    <input type="text" id="wallet_search_input" class="form-control bg-transparent text-white border-secondary border-start-0 py-2" 
-                           placeholder="ابحث بواسطة: رقم المحفظة الموحد، المعرف السيادي، اسم المتجر التجاري، أو رقم هاتف المالك...">
+                    <span class="input-group-text bg-transparent border-secondary border-opacity-25 text-muted"><i class="fas fa-search"></i></span>
+                    <input type="text" id="wallet_search_input" class="form-control bg-transparent border-secondary border-opacity-25 py-2" style="color: var(--text-primary);" 
+                           placeholder="ابحث بواسطة: اسم المنشأة، اسم المستخدم، المعرف السيادي، رقم المحفظة (اكتب # لعرض الكل)...">
                 </div>
             </div>
-            <div class="col-md-3">
-                <button type="button" id="search_trigger_btn" class="btn btn-royal w-100 py-2 d-none" onclick="triggerSovereignSearch()">
-                    <i class="fas fa-fingerprint me-1"></i> استدعاء وفحص الآن
-                </button>
+            <div class="col-md-4 text-md-end">
+                <div class="filter-stats-badge">
+                    📊 طلبات السحب المطابقة: <span id="filtered_count">0</span> طلب معلّق
+                </div>
             </div>
         </div>
     </div>
@@ -128,10 +175,10 @@
     <div id="search_results_container">
         <div class="card bg-transparent border-0 mb-4">
             <div class="card-header bg-transparent p-0 mb-3">
-                <h5 class="text-white m-0"><i class="fas fa-receipt me-2 text-warning"></i>طلبات تعميد السحب المطابقة للفحص</h5>
+                <h5 class="m-0" style="color: var(--deep-purple); font-weight: 700;"><i class="fas fa-receipt me-2 text-warning"></i>طلبات تعميد السحب المطابقة للفحص</h5>
             </div>
-            <div class="table-responsive rounded-3">
-                <table class="table table-dark-custom m-0" id="pending_withdrawals_table">
+            <div class="table-responsive rounded-3 border">
+                <table class="table table-light-custom m-0" id="pending_withdrawals_table">
                     <thead>
                         <tr>
                             <th>رقم المحفظة / العملية</th>
@@ -148,30 +195,31 @@
                             {% for tx in pending_tx %}
                             <tr class="wallet-row-item" 
                                 data-wallet-id="{{ tx.wallet_id }}"
-                                data-sovereign-id="{{ tx.wallet.supplier.sovereign_id }}"
-                                data-trade-name="{{ tx.wallet.supplier.trade_name }}"
-                                data-phone="{{ tx.wallet.supplier.owner_phone }}">
+                                data-sovereign-id="{{ tx.wallet.supplier.sovereign_id if tx.wallet.supplier else '' }}"
+                                data-trade-name="{{ tx.wallet.supplier.trade_name if tx.wallet.supplier else '' }}"
+                                data-username="{{ tx.wallet.supplier.username if tx.wallet.supplier else '' }}"
+                                data-phone="{{ tx.wallet.supplier.owner_phone if tx.wallet.supplier else '' }}">
                                 
                                 <td>
-                                    <code class="text-purple font-weight-bold">W-ID: {{ tx.wallet_id }}</code>
+                                    <code class="font-weight-bold" style="color: var(--royal-purple);">W-ID: {{ tx.wallet_id }}</code>
                                     <small class="text-muted d-block">REF: {{ tx.transaction_ref }}</small>
                                 </td>
                                 <td>
-                                    <strong>{{ tx.wallet.supplier.trade_name }}</strong>
-                                    <small class="text-muted d-block">{{ tx.wallet.supplier.sovereign_id }}</small>
+                                    <strong>{{ tx.wallet.supplier.trade_name if tx.wallet.supplier else 'منشأة قديمة' }}</strong>
+                                    <small class="text-muted d-block">{{ tx.wallet.supplier.sovereign_id if tx.wallet.supplier else 'N/A' }}</small>
                                 </td>
                                 <td>
-                                    {% if tx.wallet.supplier.rank_grade == 'ملكي' %}
+                                    {% if tx.wallet.supplier and tx.wallet.supplier.rank_grade == 'ملكي' %}
                                         <span class="rank-badge rank-malaki"><i class="fas fa-crown me-1"></i>ملكي</span>
-                                    {% elif tx.wallet.supplier.rank_grade == 'سيادي' %}
+                                    {% elif tx.wallet.supplier and tx.wallet.supplier.rank_grade == 'سيادي' %}
                                         <span class="rank-badge rank-siadi"><i class="fas fa-shield-alt me-1"></i>سيادي</span>
                                     {% else %}
                                         <span class="rank-badge rank-riadi"><i class="fas fa-rocket me-1"></i>ريادي</span>
                                     {% endif %}
                                 </td>
                                 <td><span class="badge bg-secondary">{{ tx.currency }}</span></td>
-                                <td class="text-white font-weight-bold">{{ "{:,.2f}".format(tx.amount) }}</td>
-                                <td><small class="text-muted">{{ tx.wallet.supplier.owner_phone }}</small></td>
+                                <td class="font-weight-bold" style="color: var(--text-primary);">{{ "{:,.2f}".format(tx.amount) }}</td>
+                                <td><small class="text-muted">{{ tx.wallet.supplier.owner_phone if tx.wallet.supplier else 'N/A' }}</small></td>
                                 <td class="text-center">
                                     <button class="btn btn-sm btn-success me-1 px-3" onclick="approveTx('{{ tx.id }}', '{{ tx.transaction_ref }}')">
                                         <i class="fas fa-check-circle me-1"></i> تعميد فوري
@@ -197,19 +245,19 @@
 
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-dark text-white border border-secondary">
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>إسقاط ورفض طلب السحب</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content bg-white text-dark border shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title text-danger fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>إسقاط ورفض طلب السحب</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="reject_tx_id">
                 <div class="mb-3">
-                    <label for="reject_reason" class="form-label text-muted">سبب الرفض والتعليق الحوكمي لحساب التاجر:</label>
-                    <textarea class="form-control bg-secondary bg-opacity-10 text-white border-secondary" id="reject_reason" rows="3" placeholder="أدخل مبرر الرفض الفوري هنا..."></textarea>
+                    <label for="reject_reason" class="form-label text-muted fw-bold">سبب الرفض والتعليق الحوكمي لحساب التاجر:</label>
+                    <textarea class="form-control bg-light text-dark border" id="reject_reason" rows="3" placeholder="أدخل مبرر الرفض الفوري هنا..."></textarea>
                 </div>
             </div>
-            <div class="modal-footer border-secondary">
+            <div class="modal-footer border-top bg-light">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
                 <button type="button" class="btn btn-danger" onclick="submitReject()">تأكيد الرفض والإسقاط</button>
             </div>
@@ -219,37 +267,52 @@
 
 <script>
     const searchInput = document.getElementById('wallet_search_input');
-    const searchBtn = document.getElementById('search_trigger_btn');
     const resultsContainer = document.getElementById('search_results_container');
     const rows = document.querySelectorAll('.wallet-row-item');
+    const filteredCountBadge = document.getElementById('filtered_count');
 
-    // مستمع لإظهار وإخفاء زر البحث ديناميكياً وبشكل مشروط بناءً على تعبئة الحقل
+    // تحديث عداد الحوالات المطابقة على الشاشة
+    function updateFilteredCount() {
+        const visibleRows = document.querySelectorAll('.wallet-row-item:not([style*="display: none"])').length;
+        filteredCountBadge.innerText = visibleRows;
+    }
+
+    // مستمع البحث الفوري الذكي والمشروط
     searchInput.addEventListener('input', function() {
         const query = this.value.trim().toLowerCase();
-        
-        if (query.length > 0) {
-            searchBtn.classList.remove('d-none'); // إظهار زر البحث السيادي فوراً
-        } else {
-            searchBtn.classList.add('d-none'); // إخفاء الزر إذا مسح النص تماماً
-            resultsContainer.style.display = 'none'; // إعادة حجب كتل الجداول المالية
-        }
-    });
-
-    // دالة الفلترة وتأكيد الفحص عند الضغط على زر البحث
-    function triggerSovereignSearch() {
-        const query = searchInput.value.trim().toLowerCase();
         let visibleCount = 0;
+        
+        if (query.length === 0) {
+            resultsContainer.style.display = 'none';
+            filteredCountBadge.innerText = "0";
+            return;
+        }
 
-        if (!query) return;
+        // إذا كتب المسؤول رمز # يتم فك الحجب وإظهار كل الكشوفات والعمليات فوراً
+        if (query === "#") {
+            rows.forEach(row => {
+                row.style.setProperty('display', 'table-row', 'important');
+                visibleCount++;
+            });
+            resultsContainer.style.display = 'block';
+            
+            // إخفاء صف السقوط الاحتياطي إن وجد
+            const fallbackRow = document.querySelector('.no-data-fallback');
+            if (fallbackRow) fallbackRow.style.display = 'none';
+            
+            updateFilteredCount();
+            return;
+        }
 
+        // معالجة الفحص المتعدد والموسع (المحفظة، المعرف السيادي، اسم المنشأة، اسم المستخدم، الهاتف)
         rows.forEach(row => {
             const walletId = row.getAttribute('data-wallet-id').toLowerCase();
             const sovereignId = row.getAttribute('data-sovereign-id').toLowerCase();
             const tradeName = row.getAttribute('data-trade-name').toLowerCase();
+            const username = row.getAttribute('data-username').toLowerCase();
             const phone = row.getAttribute('data-phone').toLowerCase();
 
-            // فحص دقيق وشامل لجميع الحقول المطلوبة (رقم المحفظة والمعرف واحد، الاسم والهاتف)
-            if (walletId.includes(query) || sovereignId.includes(query) || tradeName.includes(query) || phone.includes(query)) {
+            if (walletId.includes(query) || sovereignId.includes(query) || tradeName.includes(query) || username.includes(query) || phone.includes(query)) {
                 row.style.setProperty('display', 'table-row', 'important');
                 visibleCount++;
             } else {
@@ -257,11 +320,10 @@
             }
         });
 
-        // فتح حاوية البيانات والنتائج رسمياً أمام المسؤول
         resultsContainer.style.display = 'block';
 
-        // إدارة السقوط الاحتياطي في حال عدم وجود تطابق للبحث المبرم
-        const fallbackRow = document.querySelector('.no-data-fallback');
+        // إدارة ظهور رسالة "لا توجد بيانات مطابقة" ديناميكياً
+        let fallbackRow = document.querySelector('.no-data-fallback');
         if (visibleCount === 0) {
             if (!fallbackRow) {
                 const tbody = document.querySelector('#pending_withdrawals_table tbody');
@@ -273,9 +335,11 @@
         } else if (fallbackRow) {
             fallbackRow.style.display = 'none';
         }
-    }
 
-    // محرك معالجة الأياكس لعمليات التعميد والرفض
+        updateFilteredCount();
+    });
+
+    // محرك معالجة الأياكس لعمليات التعميد والرفض الحوكمية
     function approveTx(txId, ref) {
         if(confirm(`هل أنت متأكد من تعميد وصرف الحوالة ذات الرقم المرجعي: ${ref}؟`)) {
             fetch('/admin/wallet/approve-withdrawal', {
@@ -299,6 +363,7 @@
     const rejectModal = new bootstrap.Modal(document.getElementById('rejectModal'));
     function openRejectModal(txId) {
         document.getElementById('reject_tx_id').value = txId;
+        document.getElementById('reject_reason').value = '';
         rejectModal.show();
     }
 
