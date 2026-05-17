@@ -20,7 +20,7 @@ def create_app():
     login_manager.init_app(app)
     
     # 🛡️ الحماية السيادية: تحديد المسار الكامل بعد العزل لـ Flask-Login
-    login_manager.login_view = 'auth_portal.login'  # اسم البلوبرينت . اسم الدالة
+    login_manager.login_view = 'auth_portal.login'
     login_manager.login_message = 'يرجى إثبات الهوية الرقمية للوصول إلى المنطقة السيادية.'
     login_manager.login_message_category = 'warning'
 
@@ -30,10 +30,12 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # استيراد وتسجيل البلوبرينتس الفرعية باستخدام بادئات الروابط القياسية (url_prefix)
+    # استيراد وتسجيل البلوبرينتس الفرعية بشكل آمن ومباشر
     from apps.auth_portal import auth_blueprint
     from apps.admin_dashboard import admin_dashboard_blueprint
-    from apps.add_supplier import suppliers_blueprint
+    
+    # التوجه مباشرة إلى ملف الروابط لحل تعارض الأسماء في add_supplier
+    from apps.add_supplier.routes import suppliers_blueprint
 
     # عزل المسارات برمجياً لضمان عدم التداخل وحماية هيكلية المنصة
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
