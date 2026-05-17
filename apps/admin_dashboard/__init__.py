@@ -6,12 +6,11 @@ import os
 
 # 1. تحديد المسارات المطلقة لضمان الاستقرار في بيئة Linux (Railway)
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# ملاحظة: Flask سيبحث داخل هذا المسار عن المجلدات الفرعية مثل 'admin'
 template_path = os.path.join(current_dir, 'templates')
 
 # 2. إنشاء البلوبرينت
-# تم استخدام اسم 'admin_dashboard' ليتوافق مع url_for في القالب الملكي
-admin_dashboard = Blueprint(
+# تعديل اسم الكائن إلى admin_dashboard_blueprint ليتوافق 100% مع المصنع المركزي في النواة
+admin_dashboard_blueprint = Blueprint(
     'admin_dashboard', 
     __name__, 
     template_folder=template_path
