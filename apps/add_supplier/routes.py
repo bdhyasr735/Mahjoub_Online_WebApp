@@ -1,45 +1,24 @@
 # coding: utf-8
-# 🏢 المصنع المركزي للنواة - منصة محجوب أونلاين 2026
+# 🔑 مسارات محرك الموردين المعزول - محجوب أونلاين 2026
 
-import os
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from config import Config
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required, current_user
+import jinja2
 
-# إنشاء الكائنات المركزية كنسخ مستقلة لمنع التعارض الدائري
-db = SQLAlchemy()
-login_manager = LoginManager()
+# استيراد البلوبرينت الصحيح المعمد في الـ __init__
+from . import admin_suppliers
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
-
-    # تهيئة الإضافات بربطها بالتطبيق الحالي
-    db.init_app(app)
-    login_manager.init_app(app)
-    
-    # 🛡️ الحماية السيادية: تحديد المسار الكامل بعد العزل لـ Flask-Login
-    login_manager.login_view = 'auth_portal.login'
-    login_manager.login_message = 'يرجى إثبات الهوية الرقمية للوصول إلى المنطقة السيادية.'
-    login_manager.login_message_category = 'warning'
-
-    # 🔑 تعريف الـ user_loader لجلب الهوية من PostgreSQL
-    @login_manager.user_loader
-    def load_user(user_id):
-        from apps.models.admin_db import AdminUser
-        return AdminUser.query.get(int(user_id))
-
-    # استيراد البلوبرينتس الفرعية بشكل آمن ومباشر من حزمها المستقلة
-    from apps.auth_portal import auth_blueprint
-    from apps.admin_dashboard import admin_dashboard_blueprint
-    
-    # 🎯 الاستيراد النقي والمباشر للبلوبرينت من حزمة الموردين لمنع التعارض الدائري
-    from apps.add_supplier import admin_suppliers
-
-    # عزل المسارات برمجياً لضمان عدم التداخل وحماية هيكلية المنصة
-    app.register_blueprint(auth_blueprint, url_prefix='/auth')
-    app.register_blueprint(admin_dashboard_blueprint, url_prefix='/admin')
-    app.register_blueprint(admin_suppliers, url_prefix='/admin/suppliers')
-
-    return app
+@admin_suppliers.route('/add', methods=['GET', 'POST'])
+@login_required  # حماية النفاذ السيادي
+def add_supplier():
+    """تعميد وإضافة مورد جديد للمنصة"""
+    if request.method == 'POST':
+        # هنا ستكون معالجة البيانات وإضافتها لقاعدة البيانات لاحقاً
+        flash('تم تعميد المورد بنجاح في النظام الرقمي.', 'success')
+        return redirect(url_for('admin_dashboard.dashboard_home'))
+        
+    # محاولة رندرة القالب من المجلد الفرعي، وإذا تعذر يقرأه مباشرة منعا للـ 500
+    try:
+        return render_template('admin/add_supplier.html', owner=current_user)
+    except jinja2.exceptions.TemplateNotFound:
+        return render_template('add_supplier.html', owner=current_user)
