@@ -9,9 +9,9 @@ from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 
-# استيراد النواة وقاعدة البيانات والموديل بشكل آمن ومباشر
-from apps import db  
-from apps.models.supplier_db import Supplier 
+# استخدام الاستيراد النسبي الصارم لمنع انهيار الـ Boot في Railway
+from .. import db  
+from ..models.supplier_db import Supplier 
 
 # استيراد كائن البلوبرينت المعرّف في الـ __init__.py الفرعي
 from . import admin_suppliers
@@ -21,12 +21,10 @@ from . import admin_suppliers
 @login_required 
 def add_supplier():
     """
-    محرك تعميد الموردين: يقوم بمعالجة البيانات وحفظها في السجل لـ "منصة محجوب أونلاين"
-    الحالة الافتراضية: نشط | الرتبة الافتراضية: أساسي
+    محرك تعميد الموردين لـ "منصة محجوب أونلاين"
     """
     if request.method == 'POST':
         try:
-            # 1. استقبال البيانات الأساسية وتطهيرها من الفراغات (Sanitization)
             username = request.form.get('username', '').strip()
             trade_name = request.form.get('trade_name', '').strip()
             password = request.form.get('password')
@@ -35,7 +33,6 @@ def add_supplier():
             shop_phone = request.form.get('shop_phone', '').strip()
             owner_phone = request.form.get('owner_phone', '').strip()
 
-            # 2. التحقق النهائي الصارم والثابت عند الإرسال (Back-end Validation) لمنع التكرار
             if not username or len(username) < 3:
                 return jsonify({'status': 'error', 'message': 'فشل التعميد: يجب أن يكون اسم المستخدم 3 أحرف أو أكثر!'}), 400
 
@@ -61,7 +58,6 @@ def add_supplier():
             bank_name = request.form.get('bank_name')
             activity_type = request.form.get('activity_type', '').strip()
 
-            # 3. حساب وتوليد المعرف السيادي الحقيقي تلقائياً للتسجيل الفعلي
             try:
                 last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
                 if last_supplier and last_supplier.sovereign_id and 'SUP-WEL-MAH963' in last_supplier.sovereign_id:
@@ -77,10 +73,8 @@ def add_supplier():
             except Exception:
                 final_sovereign_id = request.form.get('sovereign_id', '').strip() or "SUP-WEL-MAH96319"
 
-            # 4. تشفير كلمة المرور وتجهيز الكائن الإنشائي
             hashed_pw = generate_password_hash(password)
             
-            # معالجة رفع وثائق الهوية والمرفقات بأمان
             image_filename = None
             if 'identity_image' in request.files:
                 file = request.files['identity_image']
@@ -94,7 +88,6 @@ def add_supplier():
                     os.makedirs(upload_path, exist_ok=True)
                     file.save(os.path.join(upload_path, image_filename))
             
-            # 5. بناء موديل المورد الجديد بالحالة الافتراضية "نشط" والرتبة "أساسي"
             new_supplier = Supplier(
                 sovereign_id=final_sovereign_id, 
                 username=username,
@@ -120,7 +113,6 @@ def add_supplier():
                 created_at=datetime.now(timezone.utc)            
             )
 
-            # 6. الحفظ الفعلي المؤكد داخل داتابيز Postgres
             db.session.add(new_supplier)
             db.session.commit()
 
@@ -157,7 +149,6 @@ def add_supplier():
         current_app.logger.error(f"Error fetching next_sovereign_id prediction: {str(e)}")
         next_sovereign_id = "SUP-WEL-MAH96319"
     
-    # استدعاء ملف القالب الموجه بدقة إلى المجلد الفرعي لتجنب الـ TemplateNotFound نهائياً
     return render_template('admin/add_supplier.html', sovereign_id=next_sovereign_id)
 
 
