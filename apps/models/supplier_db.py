@@ -52,11 +52,11 @@ class Supplier(db.Model):
     bank_acc = db.Column(db.String(50), unique=True, nullable=False)          
     
     # 6. حقول التحكم بالحالة والرتبة (Core Governance Fields)
-    status = db.Column(db.String(20), nullable=False, default='المراجعة') 
-    # يقبل حصراً: 'نشط'، 'المراجعة'، 'محظور'، 'موقوف مؤقتاً'، 'رقابة'
+    status = db.Column(db.String(20), nullable=False, default='pending') 
+    # الحالة العامة تقبل برمجياً: 'active' (نشط فوري)، 'pending' (مراجعة)، 'suspended' (معلق/موقوف)
     
     rank_grade = db.Column(db.String(20), nullable=False, default='ريادي') 
-    # يقبل حصراً الهرمية الفخمة: 'ريادي'، 'سيادي'، 'ملكي'
+    # الهرمية الفخمة المعتمدة: 'ريادي' (المستوى 1)، 'سيادي' (المستوى 2)، 'ملكي' (المستوى الأعلى)
 
     # 7. حقول الحوكمة وتتبع نظام الصلاحيات
     registration_source = db.Column(db.String(30), nullable=False, default='الموقع الخارجي') 
@@ -68,6 +68,38 @@ class Supplier(db.Model):
     # 8. التوثيق والتحليل الزمني (Timestamps)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) 
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow) 
+
+    # =========================================================================
+    # 👑 قاموس الترجَمة السيادية للحالات اللفظية الفخمة بناءً على مستويات النفوذ
+    # =========================================================================
+    @property
+    def state_title(self):
+        """
+        خاصية ذكية ومحصنة تقوم بقراءة حالة النظام ورتبته لتنتج 
+        اللقب اللفظي الفخم المخصص للتاجر في واجهة العرض تلقائياً.
+        """
+        sovereign_matrix = {
+            'ريادي': {
+                'active': 'مُطلق',
+                'pending': 'مراجعة',
+                'suspended': 'محتجز'
+            },
+            'سيادي': {
+                'active': 'نافذ / مُهيمِن',
+                'pending': 'مراجعة الصلاحية',
+                'suspended': 'مُقيد / مجمد السيادة'
+            },
+            'ملكي': {
+                'active': 'حَصين',
+                'pending': 'مستقر / صيانة خاصة',
+                'suspended': 'معلق الحصانة'
+            }
+        }
+        # استدعاء قاموس الرتبة الحالية، والعودة إلى ريادي كملاذ آمن في حال عدم التطابق
+        current_rank_dict = sovereign_matrix.get(self.rank_grade, sovereign_matrix['ريادي'])
+        
+        # إرجاع العبارة الفخمة المطابقة لحالة النظام الحالية
+        return current_rank_dict.get(self.status, 'تحت التدقيق السيادي')
 
     # -------------------------------------------------------------------------
     # 🛡️ مصيدة الحوكمة (Validators): منع تمرير المسافات أو القِيَم الفارغة نهائياً
@@ -82,6 +114,19 @@ class Supplier(db.Model):
             raise ValueError(f"خطأ حوكمي صارم: الحقل السيادي ({key}) لا يمكن أن يكون فارغاً أو يحتوي على مسافات فقط.")
             
         return clean_value
+
+    def to_dict(self):
+        """تحويل البيانات إلى كود جيسون جاهز لإرساله لواجهات العرض والمودال"""
+        return {
+            "id": self.id,
+            "sovereign_id": self.sovereign_id,
+            "username": self.username,
+            "owner_name": self.owner_name,
+            "trade_name": self.trade_name,
+            "rank_grade": self.rank_grade,
+            "status": self.status,
+            "state_title": self.state_title  # ستخرج للفرونت إند مثل: [حَصين] أو [مُطلق]
+        }
 
     def __repr__(self):
         return f'<Supplier {self.sovereign_id} - {self.trade_name}>'
