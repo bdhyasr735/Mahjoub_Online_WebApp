@@ -15,6 +15,9 @@ class Wallet(db.Model):
     # ربط المحفظة بالمورد (علاقة رأس برأس)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), unique=True, nullable=False, index=True)
     
+    # 👑 إضافة العلاقة البرمجية المباشرة مع نموذج الموردين لتمكين الاستعلام المتداخل الحوكمي
+    supplier = db.relationship('Supplier', backref=db.backref('wallet', uselist=False), lazy=True)
+    
     # 🔴 أرصدة الريال اليمني (YER)
     yer_total = db.Column(db.Float, nullable=False, default=0.0)
     yer_available = db.Column(db.Float, nullable=False, default=0.0)
@@ -119,10 +122,7 @@ class WalletTransaction(db.Model):
             "created_at": self.created_at.strftime('%Y-%m-%d %H:%M:%S')
         }
 
-
-# -------------------------------------------------------------------------
 # 🛡️ نظام التشفير المالي والتسلسل التلقائي
-# -------------------------------------------------------------------------
 def auto_generate_transaction_ref(mapper, connection, target):
     if not target.transaction_ref:
         unique_suffix = uuid.uuid4().hex[-8:].upper()
