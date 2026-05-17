@@ -82,13 +82,15 @@
                         <i class="fas fa-address-card fa-lg me-2" style="color: var(--royal-purple);"></i>
                         <h5 class="fw-bold mb-0">بيانات المالك والمنشأة</h5>
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label text-muted small">اسم المالك الكامل</label>
                         <div class="input-group">
-                            <input type="text" name="owner_name" class="form-control bg-light border-0 validation-field" data-valid="name" required>
+                            <input type="text" name="owner_name" class="form-control bg-light border-0 validation-field" data-valid="name" data-db-check="owner_name" required>
                             <span class="input-group-text bg-light border-0 validation-icon"><i class="fas fa-minus text-muted"></i></span>
                         </div>
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label text-muted small">الاسم التجاري للمنشأة</label>
                         <div class="input-group">
@@ -96,6 +98,7 @@
                             <span class="input-group-text bg-light border-0 validation-icon"><i class="fas fa-minus text-muted"></i></span>
                         </div>
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label text-muted small">رقم هاتف المالك</label>
                         <div class="input-group dir-ltr">
@@ -104,6 +107,7 @@
                             <span class="input-group-text bg-light border-0 validation-icon"><i class="fas fa-minus text-muted"></i></span>
                         </div>
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label text-muted small">هاتف المنشأة (محل)</label>
                         <div class="input-group dir-ltr">
@@ -112,6 +116,7 @@
                             <span class="input-group-text bg-light border-0 validation-icon"><i class="fas fa-minus text-muted"></i></span>
                         </div>
                     </div>
+                    
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label text-muted small">المحافظة</label>
@@ -154,6 +159,7 @@
                             <input type="text" class="form-control border-primary" placeholder="اسم الجهة..." oninput="syncManualValue(this, 'financeSelect')">
                         </div>
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label text-muted small">رقم الحساب</label>
                         <div class="input-group">
@@ -192,7 +198,6 @@
 </div>
 
 <script>
-// جغرافية الساحل والمحافظات اليمنية المحدثة بدقة
 const yemenGeography = {
     "الحديدة": ["الخوخة", "حيس", "باجل", "زبيد", "المراوعة", "القناوص"],
     "عدن": ["المنصورة", "الشيخ عثمان", "كريتر", "البريقة", "المعلا"],
@@ -252,15 +257,16 @@ document.querySelectorAll('.validation-field').forEach(input => {
 
             let isFinalValid = isFormatValid;
 
+            // إذا كان التنسيق صحيحاً وهناك مؤشر للفحص من قاعدة البيانات
             if (isFormatValid && dbType) {
                 try {
                     const response = await fetch(`/admin/suppliers/check-duplicate?type=${dbType}&value=${encodeURIComponent(value)}`);
                     const result = await response.json();
                     
                     if (result.exists === true || String(result.exists).toLowerCase() === "true") {
-                        isFinalValid = false;
+                        isFinalValid = false; // الحقل مكرر ومسجل مسبقاً
                     } else {
-                        isFinalValid = true;
+                        isFinalValid = true; // الحقل متاح وجديد
                     }
                 } catch (e) { 
                     console.error("DB Check Failed"); 
@@ -268,7 +274,7 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 }
             }
 
-            // ⚡ تحديث الرموز بدقة تامة (إظهار علامة الصح أو الخطأ المطلق)
+            // تحديث الرموز والـ Classes لحظياً للمستخدم (✓ / ✗)
             if (isFinalValid) {
                 icon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 16px;"></i>';
                 this.classList.remove('is-invalid');
@@ -288,7 +294,7 @@ function updateSubmitButtonState() {
     const submitBtn = document.getElementById('submitBtn');
     const totalValidFields = document.querySelectorAll('.validation-field.is-valid').length;
     const hasErrors = document.querySelectorAll('.is-invalid').length > 0;
-    const requiredValidationCount = 7; 
+    const requiredValidationCount = 7; // تم تأكيد فحص الحقول السبعة كاملة بنجاح
 
     if (totalValidFields === requiredValidationCount && !hasErrors) {
         submitBtn.disabled = false;
@@ -346,7 +352,7 @@ function copySupplierCredentials(user, id, pass) {
                        `--------------------------------------\n` +
                        `👤 اسم المستخدم: ${user}\n` +
                        `🆔 المعرف السيادي: ${id}\n` +
-                       `🔑 كلمة المرور Temporary: ${pass}\n\n` +
+                       `🔑 كلمة المرور المؤقتة: ${pass}\n\n` +
                        `⚠️ تنبيه: يرجى تغيير كلمة المرور المؤقتة فور تسجيل الدخول الأول لحماية حسابك.\n\n` +
                        `🤝 شكراً لتسجيلك معنا في منصة محجوب أونلاين\n` +
                        `🌐 المنصة اللامركزية لحوكمة التجارة الرقمية`;
