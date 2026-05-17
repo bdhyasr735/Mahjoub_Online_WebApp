@@ -100,7 +100,7 @@
                         <label class="form-label text-muted small">رقم هاتف المالك</label>
                         <div class="input-group dir-ltr">
                             <span class="input-group-text bg-white border-0">+967</span>
-                            <input type="tel" name="owner_phone" class="form-control bg-light border-0 validation-field" data-valid="phone" placeholder="7XXXXXXXX" required>
+                            <input type="tel" name="owner_phone" class="form-control bg-light border-0 validation-field" data-valid="phone" data-db-check="owner_phone" placeholder="7XXXXXXXX" required>
                             <span class="input-group-text bg-light border-0 validation-icon"><i class="fas fa-minus text-muted"></i></span>
                         </div>
                     </div>
@@ -206,27 +206,25 @@ const financeData = {
     exchange: ["شركة القطيبي للصرافة", "شركة بن دول للصرافة", "شركة الشامل للصرافة"]
 };
 
-// حاوية لتخزين مؤقتات المدخلات (Debounce) لمنع إثقال الشبكة أثناء الكتابة اللحظية
+// حاوية لتخزين مؤقتات المدخلات (Debounce) لمنع الـ Overloading وإثقال السيرفر
 const debounceTimers = {};
 
 document.querySelectorAll('.validation-field').forEach(input => {
-    // التعديل هنا: استخدام حدث 'input' ليكون التحقق لحظياً مع كل حرف يكتب
     input.addEventListener('input', function() {
         const fieldName = this.getAttribute('name');
         
-        // مسح المؤقت السابق للحقل الحالي لتهيئة فترة الانتظار الجديدة
+        // إلغاء المؤقت السابق فوراً والبدء من جديد
         clearTimeout(debounceTimers[fieldName]);
         
         const type = this.getAttribute('data-valid');
         const dbType = this.getAttribute('data-db-check');
         const icon = this.parentElement.querySelector('.validation-icon');
-        const submitBtn = document.getElementById('submitBtn');
         const value = this.value.trim();
         
-        // إظهار علامة التحميل المبدئية أثناء الكتابة النشطة لبث الحيوية في الواجهة
+        // إظهار أيقونة التحميل اللحظية
         icon.innerHTML = '<i class="fas fa-circle-notch fa-spin text-muted" style="font-size: 14px;"></i>';
 
-        // تفعيل الـ Debounce: الانتظار 400 ملي ثانية بعد توقف المشرف عن الكتابة
+        // تفعيل نظام الـ Debounce للحوكمة اللامركزية (400 ملي ثانية بعد التوقف)
         debounceTimers[fieldName] = setTimeout(async () => {
             let isValid = false;
 
@@ -237,45 +235,63 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 return;
             }
 
+            // 1. الفحص الأولي للواجهة بناءً على الشروط الصارمة
             switch(type) {
-                case 'name': isValid = value.split(' ').length >= 3; break;
-                case 'min3': isValid = value.length >= 3; break;
-                case 'min5': isValid = value.length >= 5; break;
-                case 'phone': isValid = /^[7][0-9]{8}$/.test(value); break;
-                case 'acc': isValid = value.length >= 6; break;
+                case 'name': 
+                    isValid = value.split(/\s+/).filter(word => word.length > 0).length >= 3; 
+                    break;
+                case 'min3': 
+                    isValid = value.length >= 3; 
+                    break;
+                case 'min5': 
+                    isValid = value.length >= 5; 
+                    break;
+                case 'phone': 
+                    isValid = /^[7][0-9]{8}$/.test(value); 
+                    break;
+                case 'acc': 
+                    isValid = value.length >= 6; 
+                    break;
+                default:
+                    isValid = value.length > 0;
             }
 
-            // الفحص الخفي عبر السيرفر لمنع تكرار أي بيانات في سجل آخر
+            // 2. فحص التكرار الخفي في قاعدة البيانات عبر السيرفر
             if (isValid && dbType) {
-                icon.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: var(--royal-purple);"></i>';
                 try {
                     const response = await fetch(`/admin/suppliers/check-duplicate?type=${dbType}&value=${encodeURIComponent(value)}`);
                     const result = await response.json();
-                    if (result.exists) isValid = false;
+                    
+                    // إذا أرجعت قاعدة البيانات أن القيمة موجودة مسبقاً، تسقط الصلاحية فوراً
+                    if (result.exists === true || result.exists === "true") {
+                        isValid = false;
+                    }
                 } catch (e) { 
                     console.error("DB Check Failed"); 
+                    isValid = false; // حماية السيرفر: في حال وقوع خطأ، الحقل يسقط منعاً للمجازفة
                 }
             }
 
-            // رسم استجابة الفحص اللحظي (✅ أو ❌) بدقة بصهر الكلاسات
+            // 3. تطبيق التأثير البصري المباشر (✅ أو ❌) بدون تداخل الكلاسات القديمة
             if (isValid) {
-                icon.innerHTML = '<i class="fas fa-check-circle text-success anim-pop"></i>';
+                icon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 16px;"></i>';
                 this.classList.remove('is-invalid');
                 this.classList.add('is-valid');
             } else {
-                icon.innerHTML = '<i class="fas fa-times-circle text-danger anim-pop"></i>';
-                this.classList.add('is-invalid');
+                icon.innerHTML = '<i class="fas fa-times-circle text-danger" style="font-size: 16px;"></i>';
                 this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
             }
 
+            // تحديث قفل أو فتح زر الاعتماد النهائي
             updateSubmitButtonState();
         }, 400);
     });
 });
 
-// دالة مركزية للتحقق من سلامة الحقول وقفل أو فتح زر الإرسال بنظام الحوكمة الرقمية
 function updateSubmitButtonState() {
     const submitBtn = document.getElementById('submitBtn');
+    // إذا كان هناك أي حقل يحمل الكلاس الأحمر (is-invalid) يُغلق الزر فوراً
     const hasErrors = document.querySelectorAll('.is-invalid').length > 0;
     submitBtn.disabled = hasErrors;
 }
