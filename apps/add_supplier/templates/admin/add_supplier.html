@@ -231,7 +231,7 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 return;
             }
 
-            // 1. الفحص الهيكلي الأساسي
+            // 1. الفحص الهيكلي الطولي الأساسي
             switch(type) {
                 case 'name': 
                     isFormatValid = value.split(/\s+/).filter(word => word.length > 0).length >= 3; 
@@ -254,13 +254,14 @@ document.querySelectorAll('.validation-field').forEach(input => {
 
             let isFinalValid = isFormatValid;
 
-            // 2. الفحص الخلفي لمنع التكرار
+            // 2. فحص الداتابيز الفوري لمنع تكرار البيانات المؤرشفة سلفاً
             if (isFormatValid && dbType) {
                 try {
                     const response = await fetch(`/admin/suppliers/check-duplicate?type=${dbType}&value=${encodeURIComponent(value)}`);
                     const result = await response.json();
                     
-                    if (result.exists === true || result.exists === "true") {
+                    // إصلاح الحوكمة: إذا أعاد السيرفر القيمة المنطقية true صريحة أو نصية، يعتبر مكرراً (غير صالح ❌)
+                    if (result.exists === true || String(result.exists).toLowerCase() === "true") {
                         isFinalValid = false;
                     } else {
                         isFinalValid = true;
@@ -271,7 +272,7 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 }
             }
 
-            // 3. عكس النتائج البصرية على الواجهة
+            // 3. عكس الحالات البصرية بدقة متناهية على الواجهة
             if (isFinalValid) {
                 icon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 16px;"></i>';
                 this.classList.remove('is-invalid');
@@ -282,33 +283,27 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 this.classList.add('is-invalid');
             }
 
-            // استدعاء دالة قفل وفتح زر الإرسال السيادي
+            // استدعاء دالة تحديث حالة زر الإرسال
             updateSubmitButtonState();
         }, 400);
     });
 });
 
-/**
- * دالة الحوكمة الشاملة: تمنع إرسال الفورم إلا بعد إتمام فحص وتوثيق كافة الحقول الإلزامية بالكامل بنجاح (✅)
- * الحقول الإلزامية المطلوبة هي: اسم المستخدم، رقم الوثيقة، اسم المالك، الاسم التجاري، هاتف المالك، هاتف المنشأة، ورقم الحساب.
- */
 function updateSubmitButtonState() {
     const submitBtn = document.getElementById('submitBtn');
     
-    // حساب عدد الحقول المكتملة والسليمة بنجاح داخل الفورم (عليها علامة ✅)
+    // حساب عدد الحقول المكتملة والسليمة بنجاح داخل الفورم (المعلمة بـ ✅)
     const totalValidFields = document.querySelectorAll('.validation-field.is-valid').length;
     
-    // التأكد من خلو الفورم تماماً من أي حقول تحتوي على أخطاء أو تكرار (❌)
+    // التأكد من خلو الفورم تماماً من أي حقول مكررة أو تالفة تملك كلاس (❌)
     const hasErrors = document.querySelectorAll('.is-invalid').length > 0;
     
-    // عدد الحقول الكلي التي تمتلك كلاس الفحص والتحقق الإلزامي هو 7 حقول
+    // عدد الحقول الإجمالية الخاضعة للفحص التلقائي هي 7 حقول
     const requiredValidationCount = 7; 
 
     if (totalValidFields === requiredValidationCount && !hasErrors) {
-        // فتح الزر فوراً في حال استيفاء فحص جميع البيانات المطلوبة
         submitBtn.disabled = false;
     } else {
-        // إبقاء الزر مقفلاً حماية للنظام من البيانات الناقصة أو غير المفحوصة
         submitBtn.disabled = true;
     }
 }
