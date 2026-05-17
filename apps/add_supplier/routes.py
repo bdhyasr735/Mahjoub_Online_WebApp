@@ -55,7 +55,7 @@ def get_expected_sovereign_id():
 def add_supplier_page():
     if request.method == 'POST':
         try:
-            # 1. استقبال البيانات السبعة والبيانات المساعدة من الواجهة
+            # 1. استقبال البيانات السبعة والبيانات المساعدة من الواجهة وعمل تطهير (strip) فوري
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '').strip()
             identity_type = request.form.get('identity_type', '').strip()
@@ -71,6 +71,19 @@ def add_supplier_page():
             bank_name = request.form.get('bank_name', '').strip()
             bank_acc = request.form.get('bank_acc', '').strip()
             activity_type = request.form.get('activity_type', '').strip()
+
+            # التحقق الفوري الحوكمي من عدم إرسال حقول أساسية فارغة
+            required_post_fields = {
+                "username": username, "identity_number": identity_number, 
+                "owner_name": owner_name, "trade_name": trade_name, 
+                "owner_phone": owner_phone, "shop_phone": shop_phone, "bank_acc": bank_acc
+            }
+            for f_key, f_val in required_post_fields.items():
+                if not f_val:
+                    return jsonify({
+                        "status": "error",
+                        "message": f"تنبيه سيادي: لا يمكن تعميد المورد والحقل الأساسي ({f_key}) فارغ."
+                    }), 400
 
             # 2. فحص الحقول السبعة بشكل صارم في الخلفية قبل إتمام الحفظ لمنع تجاوز التكرار
             check_fields = {
@@ -90,7 +103,7 @@ def add_supplier_page():
                         "message": f"تنبيه حوكمي: حقل ({field_title}) مسجل مسبقاً في النظام ومحفوظ، يرجى تعديله."
                     }), 400
 
-            # 3. تشفير كلمة المرور وبناء الكائن (سيقوم الـ Model تلقائياً بإنشاء sovereign_id الفريد بفضل الـ before_insert)
+            # 3. تشفير كلمة المرور وبناء الكائن
             hashed_password = generate_password_hash(password)
             
             new_supplier = Supplier(
@@ -145,7 +158,6 @@ def add_supplier_page():
     except Exception:
         pass
 
-    # إرسال المتغيرات بدقة إلى القوالب المتوقعة لتفادي الـ TemplateNotFound والـ BuildError
     try:
         return render_template('admin/add_supplier.html', sovereign_id=sovereign_id, owner=current_user, backup_csrf=csrf_val)
     except jinja2.exceptions.TemplateNotFound:
@@ -157,12 +169,14 @@ def add_supplier_page():
 def check_duplicate():
     """
     مستمع الفحص الفوري واللحظي المباشر لقاعدة البيانات لضمان الحوكمة وسرعة الاستجابة.
+    تم تطوير الاستجابة لتعود بـ 'exists': true في حال التكرار أو الفراغ الخادع لمنع علامات الصح.
     """
     check_type = request.args.get('type')
     value = request.args.get('value', '').strip()
     
+    # حوكمة صارمة: إذا أرسلت الواجهة قيمة فارغة أو مسافات فقط، نعتبرها مكررة/مرفوضة فوراً لقطع علامة الصح
     if not check_type or not value:
-        return jsonify({"exists": False, "error": "Missing parameters"}), 400
+        return jsonify({"exists": True, "error": "المدخلات فارغة أو غير سليمة"}), 200
         
     is_duplicate = False
     try:
@@ -193,6 +207,6 @@ def check_duplicate():
 
     except Exception as e:
         current_app.logger.error(f"❌ خطأ أثناء الاستعلام اللحظي للحقل [{check_type}]: {str(e)}")
-        return jsonify({"exists": False, "error": "Database error"}), 500
+        return jsonify({"exists": True, "error": "Database error"}), 500
         
     return jsonify({"exists": is_duplicate})
