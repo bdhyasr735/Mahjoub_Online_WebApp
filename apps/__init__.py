@@ -16,6 +16,10 @@ def create_app():
     app = Flask(__name__, template_folder='templates')
     app.config.from_object(Config)
 
+    # 🛡️ التحديث السيادي لعام 2026: حل مشكلة تشفير النصوص العربية (Unicode) في Flask 3+
+    # نقوم بحقن ترميز الـ UTF-8 مباشرة في محرك الـ JSON الخاص بـ Flask لضمان طباعة النصوص العربية بنقاء كامل
+    app.json.ensure_ascii = False
+
     # تهيئة الإضافات بربطها بالتطبيق الحالي
     db.init_app(app)
     login_manager.init_app(app)
