@@ -19,25 +19,25 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     
-    # 🛡️ الحماية السيادية: تحديد المسار الكامل بعد العزل لـ Flask-Login
+    # 🛡️ الحماية السيادية: تحديد المسار الكامل لـ Flask-Login
     login_manager.login_view = 'auth_portal.login'
     login_manager.login_message = 'يرجى إثبات الهوية الرقمية للوصول إلى المنطقة السيادية.'
     login_manager.login_message_category = 'warning'
 
-    # 🔑 تعريف الـ user_loader لجلب الهوية من قاعدة البيانات وحل خطأ الـ Missing user_loader
+    # 🔑 تعريف الـ user_loader لجلب الهوية من قاعدة البيانات
     @login_manager.user_loader
     def load_user(user_id):
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # استيراد البلوبرينتس الفرعية بشكل آمن ومباشر من حزمها المستقلة
+    # استيراد البلوبرينتس الفرعية بشكل آمن ومباشر
     from apps.auth_portal import auth_blueprint
     from apps.admin_dashboard import admin_dashboard_blueprint
     
-    # 🎯 الاستيراد النقي والمطابق بالاسم الصريح المعتمد داخل ملف الـ routes الخاص بك
-    from apps.add_supplier.routes import admin_suppliers
+    # 🎯 الاستيراد الصحيح والنقي مباشرة من مجلد الحزمة (الذي يحتوي على البلوبرينت الأصلي)
+    from apps.add_supplier import admin_suppliers
 
-    # عزل وعميد المسارات برمجياً لضمان عدم التداخل وحماية هيكلية المنصة
+    # تسجيل وعزل المسارات برمجياً لضمان استقرار المنصة
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
     app.register_blueprint(admin_dashboard_blueprint, url_prefix='/admin')
     app.register_blueprint(admin_suppliers, url_prefix='/admin/suppliers')
