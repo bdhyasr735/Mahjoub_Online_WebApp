@@ -1,10 +1,10 @@
+# run.py
 # coding: utf-8
 # 🚀 المحرك التنفيذي لمنصة محجوب أونلاين 2026
 # التوثيق: تشغيل السيرفر وتعميد صلاحيات المالك السيادي وتحديث هيكل البيانات
 
 import os
 from apps import create_app, db
-from apps.models.admin_db import AdminUser
 from werkzeug.security import generate_password_hash
 
 # 1. إنشاء نسخة التطبيق عبر المصنع المركزي
@@ -17,6 +17,9 @@ def initialize_sovereignty():
     """
     with app.app_context():
         try:
+            # 🚨 استدعاء محلي متأخر للموديل هنا لحماية خط الإقلاع ومنع الـ Circular Import تماماً
+            from apps.models.admin_db import AdminUser
+
             # [التحديث الجوهري]: فحص وتحديث هيكل قاعدة البيانات تلقائياً لإضافة أي أعمدة جديدة
             print("⏳ جاري مواءمة وتحديث هيكل السجلات السيادية وقاعدة البيانات...")
             db.create_all()
@@ -49,5 +52,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     
     # تشغيل المحرك
-    # ملاحظة: debug=True تستخدم للتطوير، وفي الإنتاج يفضل إيقافها
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # في بيئة الإنتاج على Railway، يفضل جعل debug=False لرفع أداء السيرفر وحمايته
+    app.run(host='0.0.0.0', port=port, debug=False)
