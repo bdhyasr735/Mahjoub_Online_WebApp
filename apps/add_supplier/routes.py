@@ -27,9 +27,10 @@ def add_supplier():
             password = request.form.get('password')
             identity_number = request.form.get('identity_number', '').strip()
             bank_acc = request.form.get('bank_acc', '').strip()
+            shop_phone = request.form.get('shop_phone', '').strip()
+            owner_phone = request.form.get('owner_phone', '').strip()
 
             # 2. التحقق النهائي الصارم والثابت عند الإرسال (Back-end Validation) لمنع التكرار تماماً
-            # إضافة شرط حوكمة الطول الأدنى (يجب أن لا يقل اسم المستخدم عن 3 أحرف فعلية منعا لتمرير الأسماء الثنائية)
             if not username or len(username) < 3:
                 return jsonify({'status': 'error', 'message': 'فشل التعميد: يجب أن يكون اسم المستخدم 3 أحرف أو أكثر!'}), 400
 
@@ -38,6 +39,12 @@ def add_supplier():
             
             if trade_name and Supplier.query.filter_by(trade_name=trade_name).first():
                 return jsonify({'status': 'error', 'message': 'فشل التعميد: الاسم التجاري مسجل مسبقاً!'}), 400
+
+            if shop_phone and Supplier.query.filter_by(shop_phone=shop_phone).first():
+                return jsonify({'status': 'error', 'message': 'فشل التعميد: هاتف المنشأة مسجل مسبقاً!'}), 400
+
+            if owner_phone and Supplier.query.filter_by(owner_phone=owner_phone).first():
+                return jsonify({'status': 'error', 'message': 'فشل التعميد: رقم هاتف المالك مسجل مسبقاً!'}), 400
 
             if identity_number and Supplier.query.filter_by(identity_number=identity_number).first():
                 return jsonify({'status': 'error', 'message': 'فشل التعميد: رقم الوثيقة أو الهوية مسجل مسبقاً!'}), 400
@@ -53,7 +60,6 @@ def add_supplier():
             # 4. تشفير كلمة المرور وتجهيز الكائن
             hashed_pw = generate_password_hash(password)
             
-            # يتم تمرير قيمة مؤقتة للحقل السيادي ليتم استبدالها بشكل قطعي عبر الـ Event Listener المخزن في القاعدة
             new_supplier = Supplier(
                 sovereign_id="PENDING", 
                 username=username,
@@ -63,8 +69,8 @@ def add_supplier():
                 activity_type=activity_type,
                 owner_name=request.form.get('owner_name', '').strip(),
                 trade_name=trade_name,
-                shop_phone=request.form.get('shop_phone', '').strip(),
-                owner_phone=request.form.get('owner_phone', '').strip(),
+                shop_phone=shop_phone,
+                owner_phone=owner_phone,
                 province=request.form.get('province'),
                 district=request.form.get('district'),
                 address_detail=request.form.get('address_detail'),
@@ -74,28 +80,26 @@ def add_supplier():
                 status='المراجعة',        # إجبار إسناد حالة البدء الافتراضية لحوكمة النظام
                 rank_grade='ريادي',       # إجبار إسناد رتبة المورد الأولى للتحكم بالصلاحيات
                 registration_source='لوحة التحكم', # تحديد ولادة الحساب من الإدارة
-                created_by_id=getattr(current_user, 'id', None), # إسناد معرّف المشرف الحالي للحوكمة الرقمية
+                created_by_id=getattr(current_user, 'id', None), 
                 created_at=datetime.utcnow()
             )
 
-            # 5. معالجة المرفقات (إذا تم رفع صورة الهوية)
+            # 5. معالجة المرفقات
             if 'identity_image' in request.files:
                 file = request.files['identity_image']
                 if file and file.filename != '':
-                    # هنا يمكن إضافة منطق الحفظ الفعلي للصور لاحقاً
                     pass
 
             # 6. الحفظ النهائي المؤكد في قاعدة البيانات
             db.session.add(new_supplier)
-            db.session.commit() # هنا تتدخل دالة الجلب لتثبيت الرقم الحقيقي المحدث في السلسلة
+            db.session.commit()
 
-            # إرجاع استجابة نجاح صريحة وقطعية لتغلق الـ JavaScript نافذة "جاري المعالجة" بنجاح
             return jsonify({
                 'status': 'success',
                 'message': 'تم تعميد المورد بنجاح في نظام الأرشفة',
                 'data': {
                     'username': new_supplier.username,
-                    'sovereign_id': new_supplier.sovereign_id # يعود الرقم المتسلسل الفعلي المولد من قاعدة البيانات مباشرة
+                    'sovereign_id': new_supplier.sovereign_id
                 }
             }), 200
 
@@ -108,30 +112,22 @@ def add_supplier():
     # في حالة GET: حساب التنبؤ الرقمي السيادي بناءً على آخر سجل حقيقي في القاعدة
     # -------------------------------------------------------------------------
     try:
-        # جلب آخر سجل تم إدخاله في قاعدة البيانات بناءً على معرف الـ ID التلقائي
         last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
         
-        # الفحص واستخراج الرقم المبني تماماً على النمط الفعلي المخزن 'SUP-WEL-MAH963'
         if last_supplier and last_supplier.sovereign_id and 'SUP-WEL-MAH963' in last_supplier.sovereign_id:
             try:
-                # عزل الجزء النصي الثابت لاستخراج الرقم التالي بدقة ديناميكية كاملة
                 last_num_str = last_supplier.sovereign_id.replace('SUP-WEL-MAH963', '').strip()
                 next_num = int(last_num_str) + 1
             except (ValueError, IndexError):
-                # حماية برمجية احتياطية في حال تعذر القراءة النصية
                 next_num = (last_supplier.id or 0) + 1
         else:
-            # في حال لم تعثر القاعدة على النمط الفعلي، يبدأ العد بناءً على آخر ID متاح
             next_num = (last_supplier.id or 0) + 1 if last_supplier else 1
 
-        # دمج المعرف النهائي المحدث وتمريره مباشرة إلى الواجهة
         next_sovereign_id = f"SUP-WEL-MAH963{next_num}"
     except Exception as e:
         print(f"Error fetching next_sovereign_id prediction: {str(e)}")
-        # قيمة استباقية ذكية في حال وقوع أي استثناء عابر أثناء الاتصال بناءً على لوحة التحكم
         next_sovereign_id = "SUP-WEL-MAH96319"
     
-    # تمرير المتغير الموحد والمطابق للواجهة لمنع ظهور أي تشوهات أو فراغات رقمية
     return render_template('admin/add_supplier.html', sovereign_id=next_sovereign_id)
 
 
@@ -153,13 +149,14 @@ def check_duplicate():
         if check_type == 'username' and len(value) < 3:
             return jsonify({'exists': True, 'valid': False, 'message': 'اسم المستخدم قصير جداً'})
 
-        # خريطة الحقول الشاملة والمحمية بالكامل لمنع تكرار أي بيانات في محل آخر
+        # خريطة الحقول الشاملة: تم دعم كلا حقول الهاتف (owner_phone و shop_phone) لضمان دقة الاستجابة
         field_map = {
             'username': Supplier.username,
             'trade_name': Supplier.trade_name,
             'shop_phone': Supplier.shop_phone,
+            'owner_phone': Supplier.owner_phone,
             'identity_number': Supplier.identity_number,
-            'bank_acc': Supplier.bank_acc  # حماية السيادة المالية لمنع تكرار الحساب البنكي لأي مورد آخر
+            'bank_acc': Supplier.bank_acc
         }
 
         target_field = field_map.get(check_type)
@@ -171,6 +168,5 @@ def check_duplicate():
         return jsonify({'exists': exists, 'valid': not exists})
         
     except Exception as e:
-        # حماية سيادية: يمنع انكسار واجهة المشرف ويضمن استقرار السيرفر عند حدوث خطأ عابر
         print(f"Check duplicate error for {check_type}: {str(e)}")
         return jsonify({'exists': False, 'error': str(e), 'valid': False})
