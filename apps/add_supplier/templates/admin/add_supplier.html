@@ -54,7 +54,7 @@
                             <option value="manual">إدخال يدوي...</option>
                         </select>
                         <div id="idManual" style="display: none;">
-                            <input type="text" class="form-control border-primary" placeholder="اكتب نوع الوثيقة..." oninput="syncManualValue(this, 'identityTypeSelect')">
+                            <input type="text" class="form-control border-primary mb-2" placeholder="اكتب نوع الوثيقة..." oninput="syncManualValue(this, 'identityTypeSelect')">
                         </div>
                     </div>
 
@@ -151,7 +151,7 @@
                         <label class="form-label text-muted small">جهة التحويل</label>
                         <select name="bank_name" id="financeSelect" class="form-select bg-light border-0 mb-2" onchange="toggleManualInput(this, 'finManual')" required></select>
                         <div id="finManual" style="display: none;">
-                            <input type="text" class="form-control border-primary" placeholder="اسم الجهة..." oninput="syncManualValue(this, 'financeSelect')">
+                            <input type="text" class="form-control border-primary mb-2" placeholder="اسم الجهة..." oninput="syncManualValue(this, 'financeSelect')">
                         </div>
                     </div>
                     <div class="mb-3">
@@ -170,7 +170,7 @@
                             <option value="manual">أخرى (إدخال يدوي)...</option>
                         </select>
                         <div id="catManual" style="display: none;">
-                            <input type="text" class="form-control border-danger" placeholder="مثال: إلكترونيات..." oninput="syncManualValue(this, 'categorySelect')">
+                            <input type="text" class="form-control border-danger mb-2" placeholder="مثال: إلكترونيات..." oninput="syncManualValue(this, 'categorySelect')">
                         </div>
                     </div>
 
@@ -231,7 +231,6 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 return;
             }
 
-            // 1. الفحص الهيكلي الطولي الأساسي
             switch(type) {
                 case 'name': 
                     isFormatValid = value.split(/\s+/).filter(word => word.length > 0).length >= 3; 
@@ -254,13 +253,11 @@ document.querySelectorAll('.validation-field').forEach(input => {
 
             let isFinalValid = isFormatValid;
 
-            // 2. فحص الداتابيز الفوري لمنع تكرار البيانات المؤرشفة سلفاً
             if (isFormatValid && dbType) {
                 try {
                     const response = await fetch(`/admin/suppliers/check-duplicate?type=${dbType}&value=${encodeURIComponent(value)}`);
                     const result = await response.json();
                     
-                    // إصلاح الحوكمة: إذا أعاد السيرفر القيمة المنطقية true صريحة أو نصية، يعتبر مكرراً (غير صالح ❌)
                     if (result.exists === true || String(result.exists).toLowerCase() === "true") {
                         isFinalValid = false;
                     } else {
@@ -272,7 +269,6 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 }
             }
 
-            // 3. عكس الحالات البصرية بدقة متناهية على الواجهة
             if (isFinalValid) {
                 icon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 16px;"></i>';
                 this.classList.remove('is-invalid');
@@ -283,7 +279,6 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 this.classList.add('is-invalid');
             }
 
-            // استدعاء دالة تحديث حالة زر الإرسال
             updateSubmitButtonState();
         }, 400);
     });
@@ -292,13 +287,11 @@ document.querySelectorAll('.validation-field').forEach(input => {
 function updateSubmitButtonState() {
     const submitBtn = document.getElementById('submitBtn');
     
-    // حساب عدد الحقول المكتملة والسليمة بنجاح داخل الفورم (المعلمة بـ ✅)
+    // حساب الحقول السليمة الحالية
     const totalValidFields = document.querySelectorAll('.validation-field.is-valid').length;
+    const hasErrors = document.querySelectorAll('.validation-field.is-invalid').length > 0;
     
-    // التأكد من خلو الفورم تماماً من أي حقول مكررة أو تالفة تملك كلاس (❌)
-    const hasErrors = document.querySelectorAll('.is-invalid').length > 0;
-    
-    // عدد الحقول الإجمالية الخاضعة للفحص التلقائي هي 7 حقول
+    // الحقول الإجمالية الخاضعة للـ validation-field أصبحت 7 حقول بعد تفعيلها بالكامل
     const requiredValidationCount = 7; 
 
     if (totalValidFields === requiredValidationCount && !hasErrors) {
@@ -443,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <div class="text-center text-muted mb-3" style="font-size: 0.85rem; line-height: 1.6; font-weight: 600;">
                         شكرًا لتسجيلك في منصة محجوب أونلاين<br>
-                        <span style="color: var(--mahjoub-gold); font-weight: 700;">المنصة اللامركزية لحوكمة التجارة الرقمية</span>
+                        <span style="color: var(--royal-purple); font-weight: 700;">المنصة اللامركزية لحוكمة التجارة الرقمية</span>
                     </div>
 
                     <a href="${window.location.pathname}" class="btn w-100 py-2 btn-secondary fw-bold text-decoration-none text-center" style="border-radius: 12px;">إغلاق ومتابعة</a>
