@@ -1,5 +1,5 @@
 # coding: utf-8
-# 🔑 محرك الموردين المعزول - منصة محجوب أونلاين 2026
+# 🔑 محرك الموردين المعزول والمحصن - منصة محجوب أونلاين 2026
 
 from flask import render_template, request, jsonify, current_app
 from flask_login import login_required, current_user
@@ -14,13 +14,14 @@ def generate_sovereign_id():
     return f"MS-{secrets.randbelow(900000) + 100000}"
 
 
-@admin_suppliers.route('/add', methods=['GET', 'POST'])
+# 💡 تم ربط مسارين (القديم والجديد) بنفس الدالة لمنع خطأ الـ BuildError في الـ Jinja2
+@admin_suppliers.route('/add', methods=['GET', 'POST'], endpoint='add_supplier_page')
+@admin_suppliers.route('/add_legacy', methods=['GET', 'POST'], endpoint='add_supplier')
 @login_required  # درع الحماية والنفاذ السيادي للمنصة
 def add_supplier_page():
     """
     إدارة وتعميد الشركاء (الموردين) الجدد.
-    تم تغيير اسم الدالة إلى add_supplier_page لمنع أي Endpoint Conflict 
-    مع لوحة التحكم المركزية وسرعة التقاطها ديناميكياً.
+    تدعم الآن الاستدعاء المزدوج من الـ HTML منعاً لأي تعارض في الـ Endpoints.
     """
     if request.method == 'POST':
         # استقبال البيانات القادمة من الحوكمة الرقمية للواجهة
@@ -29,12 +30,10 @@ def add_supplier_page():
         trade_name = request.form.get('trade_name')
         owner_phone = request.form.get('owner_phone')
         
-        # 💡 [ملاحظة هندسية]: هنا يتم وضع منطق الحفظ في قاعدة البيانات (DB) الخاص بك
-        # مثال: new_supplier = Supplier(username=username, sovereign_id=sovereign_id, ...)
+        # [منطق الحفظ في قاعدة البيانات الخاصة بك]
         
         current_app.logger.info(f"✨ تم اعتماد شريك جديد بنجاح: {trade_name} ({sovereign_id})")
         
-        # إرجاع استجابة JSON نقية لتستقبلها دالة الفيتش (Fetch) في الواجهة وتفتح مودال النجاح
         return jsonify({
             "status": "success",
             "message": "تم تعميد المورد بنجاح في النظام الحوكمي الموحد.",
@@ -47,7 +46,7 @@ def add_supplier_page():
     # في حالة طلب الصفحة عبر GET: توليد المعرف برمجياً وعرض الواجهة
     sovereign_id = generate_sovereign_id()
     
-    # موازنة المسارات لضمان رندرة القالب سواء كان معزولاً أو في النطاق المباشر منعاً للـ TemplateNotFound
+    # موازنة المسارات لضمان رندرة القالب دون TemplateNotFound
     try:
         return render_template('admin/add_supplier.html', sovereign_id=sovereign_id, owner=current_user)
     except jinja2.exceptions.TemplateNotFound:
@@ -59,8 +58,7 @@ def add_supplier_page():
 @login_required
 def check_duplicate():
     """
-    الفحص الفوري للبيانات عبر السيرفر (الاسم، الجوال، الحساب البنكي)
-    لمنع التكرار الرقمي وتأمين الحوكمة المالية قبل الحفظ الكلي.
+    الفحص الفوري للبيانات عبر السيرفر لمنع التكرار الرقمي قبل الحفظ الكلي.
     """
     check_type = request.args.get('type')
     value = request.args.get('value', '').strip()
@@ -68,8 +66,7 @@ def check_duplicate():
     if not check_type or not value:
         return jsonify({"exists": False, "error": "Missing parameters"}), 400
         
-    # 💡 [ملاحظة هندسية]: استعلم من الداتابيز هنا لمنع التكرار
-    # مثال: exists = Supplier.query.filter_by(**{check_type: value}).first() is not None
+    # استعلام قاعدة البيانات (منع التكرار)
     exists = False 
     
     return jsonify({"exists": exists})
