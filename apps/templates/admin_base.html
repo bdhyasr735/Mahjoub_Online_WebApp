@@ -148,10 +148,10 @@
                     <i class="fas fa-chevron-left" id="supplierArrow"></i>
                 </button>
                 <div class="dropdown-container" id="supplierDropdown">
-                    <a href="{{ url_for('admin_suppliers.add_supplier_page') }}">
+                    <a href="{{ endpoints.get('add_supplier', '/admin/suppliers/add') if endpoints else '/admin/suppliers/add' }}">
                         <i class="fas fa-user-plus ms-2"></i> تعميد مورد جديد
                     </a>
-                    <a href="{{ url_for('admin_dashboard.list_suppliers') }}">
+                    <a href="{{ endpoints.get('list_suppliers', '#') if endpoints else '#' }}">
                         <i class="fas fa-database ms-2"></i> سجل الموردين
                     </a>
                 </div>
