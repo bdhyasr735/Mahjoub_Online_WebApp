@@ -111,7 +111,7 @@ def add_supplier_page():
             # 7. إنشاء الكائن وحفظه في جدول الموردين (PostgreSQL)
             new_supplier = Supplier(
                 username=username,
-                password=hashed_password,
+                password_hash=hashed_password,  # 🔒 تم التعديل هنا ليتطابق مع حقل الموديل المعتمد بنجاح
                 sovereign_id=generated_sovereign_id,
                 wallet_code=generated_wallet_code,
                 identity_type=identity_type,
