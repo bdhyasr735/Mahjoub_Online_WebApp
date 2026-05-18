@@ -313,6 +313,7 @@ function updateSubmitButtonState() {
     const totalValidFields = document.querySelectorAll('.validation-field.is-valid').length;
     const hasErrors = document.querySelectorAll('.is-invalid').length > 0;
     
+    // إجمالي الحقول الموثقة بـ validation-field ويجب أن تكون صالحة لتنشيط الحفظ
     const requiredValidationCount = 5; 
 
     if (totalValidFields >= requiredValidationCount && !hasErrors) {
@@ -386,19 +387,17 @@ function copySupplierCredentials(user, supId, walId, pass) {
     });
 }
 
-// 🌐 دالة مخصصة ومعدلة لجلب المعاينة الحقيقية المتوقعة من السيرفر عند فتح الصفحة
 async function fetchNextExpectedSequence() {
     try {
         const response = await fetch('/admin/suppliers/check-duplicate?type=get_next_sequence');
         if (response.ok) {
             const result = await response.json();
             if (result.next_sequence) {
-                document.getElementById('display-supplier-id').textContent = `SUP-MAH963${result.next_sequence}`;
-                document.getElementById('display-wallet-id').textContent = `WEL-MAH963${result.next_sequence}`;
+                document.getElementById('display-supplier-id').textContent = result.next_sequence;
+                document.getElementById('display-wallet-id').textContent = result.next_sequence.replace("SUP-", "WEL-", 1);
             }
         }
     } catch (e) {
-        // إبقاء العرض الاحتياطي التتابعي الافتراضي في حال تعذر الاتصال اللحظي بالسيرفر
         document.getElementById('display-supplier-id').textContent = "SUP-MAH9631";
         document.getElementById('display-wallet-id').textContent = "WEL-MAH9631";
     }
@@ -417,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     updateFinanceOptions();
-    fetchNextExpectedSequence(); // تشغيل الجلب التلقائي لمعاينة المعرف القادم
+    fetchNextExpectedSequence();
 
     document.getElementById('addSupplierForm').onsubmit = async function(e) {
         e.preventDefault();
@@ -446,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const finalSupplierId = result.data.sovereign_id;
                 const finalWalletId = result.data.wallet_code;
+                const nextRedirectUrl = result.redirect_url || '/admin/suppliers';
 
                 const modalContent = `
                     <div class="text-center mb-4">
@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span style="color: var(--royal-purple); font-weight: 700;">المنصة اللامركزية لحوكمة التجارة الرقمية</span>
                     </div>
 
-                    <a href="${window.location.pathname}" class="btn w-100 py-2 btn-secondary fw-bold text-decoration-none text-center" style="border-radius: 12px;">إغلاق ومتابعة</a>
+                    <a href="${nextRedirectUrl}" class="btn w-100 py-2 btn-secondary fw-bold text-decoration-none text-center" style="border-radius: 12px; background: var(--royal-purple) !important; color: white;">إغلاق ومتابعة</a>
                 `;
 
                 document.getElementById('successModalBody').innerHTML = modalContent;
