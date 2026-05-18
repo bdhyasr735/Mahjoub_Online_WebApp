@@ -24,10 +24,10 @@ def wallet_overview():
 
     search_query = request.args.get('search', '').strip()
     
-    # بناء استعلام جلب المحافظ الأساسي مع ربط جدول الموردين لمنع استهلاك السيرفر (Eager Loading)
+    # بناء استعلام جلب المحافظ الأساسي مع ربط جدول الموردين لضمان استقرار السيرفر
     query = Wallet.query.join(Supplier, Wallet.supplier_id == Supplier.id)
 
-    # تطبيق التفتيش الذكي إذا وجد نص بحث
+    # تطبيق التفتيش الذكي إذا وجد نص بحث ولم يكن الرمز العام (#) لجلد السيرفر كاملاً
     if search_query and search_query != '#':
         query = query.filter(
             (Supplier.trade_name.like(f'%{search_query}%')) |
@@ -45,7 +45,7 @@ def wallet_overview():
 @login_required
 def get_wallet_balance_api(wallet_code):
     """
-    واجهة برمجة تطبيقات (API) آمنة لجلب كشف الحساب المالي الفوري للمحفظة بجيسون نقي.
+    واجهة برمجة تطبيقات (API) آمنة لجلب كشف الحساب المالي الفوري للمحفظة بجيسون نقي للواجهات الفرعية.
     """
     if current_user.role not in ['Owner', 'Admin']:
         return jsonify({"status": "error", "message": "صلاحية سيادية مرفوضة"}), 403
@@ -88,7 +88,7 @@ def adjust_balance():
             flash('المحفظة المستهدفة غير مسجلة في الفضاء الحالي.', 'danger')
             return redirect(url_for('admin_wallet.wallet_overview'))
 
-        # المعالجة الذكية حسب خزنة العملة المحددة
+        # المعالجة الذكية حسب خزنة العملة المحددة وتحديث الحقول المستقرة بالكامل
         if currency == 'YER':
             if action_type == 'deposit':
                 wallet.yer_balance = float(wallet.yer_balance) + amount
@@ -128,7 +128,7 @@ def adjust_balance():
         db.session.add(tx_log)
         db.session.commit()
         
-        flash(f'تمت معالجة القيمة المادية بجاح؛ وتحديث كشف {currency} للمحفظة {wallet.wallet_code}.', 'success')
+        flash(f'تمت معالجة القيمة المادية بنجاح؛ وتحديث كشف {currency} للمحفظة {wallet.wallet_code}.', 'success')
 
     except ValueError:
         flash('خطأ حوكمي: صيغة المبلغ المدخل غير صالحة برمجياً.', 'danger')
