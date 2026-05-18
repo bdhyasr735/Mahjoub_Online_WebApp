@@ -30,7 +30,7 @@ def add_supplier_page():
     عرض صفحة تعميد المورد (GET) ومعالجة طلب الحفظ والتعميد السحابي الفعلي في قاعدة البيانات (POST).
     """
     
-    # 🚀 هندسة الإصلاح الذاتي تلقائياً عند أول استدعاء للمسار لضمان إدراج الحقل في PostgreSQL السحابية
+    # 🚀 هندسة الإصلاح الذاتي تلقائياً عند استدعاء المسار لضمان مزامنة حقل wallet_code في PostgreSQL السحابية
     try:
         db.session.execute(db.text("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS wallet_code VARCHAR(50) UNIQUE;"))
         db.session.commit()
@@ -100,11 +100,14 @@ def add_supplier_page():
                     else:
                         return jsonify({"status": "error", "message": "⚠️ صيغة الملف المرفوع غير مدعومة سيادياً، يرجى رفع صورة أو ملف PDF."}), 400
 
-            # 5. استدعاء المولد الديناميكي الآمن من الموديل مباشرة لمنع تداخل الحقول (Race Condition)
+            # 5. استدعاء المولد الديناميكي الآمن من الموديل لمنع تداخل الحقول (Race Condition)
             generated_sovereign_id = Supplier.generate_next_sovereign_id()
-            # استخراج الرقم التتابعي النقي لربطه بكود المحفظة بشكل متناسق وثابت
-            serial_num = generated_sovereign_id.split('MAH963')[-1] if 'MAH963' in generated_sovereign_id else str(secrets.token_hex(4))
-            generated_wallet_code = f"WEL-MAH963{serial_num}"
+            
+            # 🔄 المنطق المطلوب تماماً: توليد كود المحفظة عبر استبدال البادئة بشكل آمن ومباشر من SUP إلى WEL
+            if generated_sovereign_id.startswith("SUP-"):
+                generated_wallet_code = generated_sovereign_id.replace("SUP-", "WEL-", 1)
+            else:
+                generated_wallet_code = f"WEL-{generated_sovereign_id}"
 
             # 6. تشفير كلمة المرور لحماية الهوية الرقمية للمورد
             hashed_password = generate_password_hash(password)
@@ -112,7 +115,7 @@ def add_supplier_page():
             # 7. إنشاء الكائن وحفظه في جدول الموردين (PostgreSQL)
             new_supplier = Supplier(
                 username=username,
-                password_hash=hashed_password,  # 🔒 تم التعديل هنا ليتطابق مع حقل الموديل المعتمد بنجاح
+                password_hash=hashed_password,  
                 sovereign_id=generated_sovereign_id,
                 wallet_code=generated_wallet_code,
                 identity_type=identity_type,
@@ -133,16 +136,25 @@ def add_supplier_page():
             )
             db.session.add(new_supplier)
             
-            # 8. توليد وربط المحفظة المالية التابعة للمورد فوراً (رصيد 0 وحالة نشطة)
-            new_wallet = Wallet(
-                wallet_code=generated_wallet_code,
-                supplier_id=generated_sovereign_id,  
-                balance=0.0,
-                status="نشطة"
-            )
+            # 8. توليد وربط المحفظة المالية التابعة للمورد فوراً مع تجنب الأخطاء الهيكلية لاسم حقل الرصيد
+            wallet_args = {
+                "wallet_code": generated_wallet_code,
+                "supplier_id": generated_sovereign_id,
+                "status": "نشطة"
+            }
+            
+            # فحص ديناميكي لاسم حقل الرصيد المعتمد في الموديل لمنع الانهيار (500)
+            if hasattr(Wallet, 'balance'):
+                wallet_args['balance'] = 0.0
+            elif hasattr(Wallet, 'current_balance'):
+                wallet_args['current_balance'] = 0.0
+            elif hasattr(Wallet, 'amount'):
+                wallet_args['amount'] = 0.0
+
+            new_wallet = Wallet(**wallet_args)
             db.session.add(new_wallet)
 
-            # تنفيذ الحفظ النهائي الموحد (Atomic Commit) والتعميد في قاعدة البيانات
+            # تنفيذ الحفظ النهائي الموحد الحصين (Atomic Commit) والتعميد في قاعدة البيانات
             db.session.commit()
 
             # 9. إرجاع استجابة الـ JSON الناجحة لتشغيل الـ Modal في الواجهة الأمامية
