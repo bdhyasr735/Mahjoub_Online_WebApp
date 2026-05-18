@@ -25,19 +25,8 @@ def allowed_file(filename):
 @admin_suppliers_bp.route('/admin/suppliers/add', methods=['GET', 'POST'])
 def add_supplier_page():
     """
-    عرض صفحة تعميد المورد مع إنهاء تام للجلسات المعلقة وحقن حاسم للأعمدة السحابية.
+    عرض صفحة تعميد المورد والمعالجة السحابية الفورية والسريعة بدون تعليق.
     """
-    
-    # 🚀 تنظيف أولي وحقن آمن للأعمدة لضمان تطابق البنية السحابية
-    try:
-        db.session.execute(db.text("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS wallet_code VARCHAR(50) UNIQUE;"))
-        db.session.execute(db.text("ALTER TABLE supplier_wallets ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'نشطة';"))
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-    finally:
-        db.session.close() # 🔓 تحرير فوري لقاعدة البيانات لمنع الـ Deadlock
-
     if request.method == 'POST':
         try:
             # استقبال البيانات الأساسية وتنظيفها
@@ -62,15 +51,15 @@ def add_supplier_page():
 
             # التحقق الخلفي من الحقول الإلزامية
             if not all([username, password, identity_type, identity_number, owner_name, trade_name, owner_phone, province, district, address_detail, bank_name, bank_acc]):
-                return jsonify({"status": "error", "message": "⚠️ جميع الحقول الإلزامية يجب أن تكون مكتملة وصحيحة هندسيًا."}), 400
+                return jsonify({"status": "error", "message": "⚠️ جميع الحقول الإلزامية يجب أن تكون مكتملة وصحيحة."}), 400
 
             # فحص ومنع تكرار البيانات الحيوية
             if Supplier.query.filter_by(username=username).first():
-                return jsonify({"status": "error", "message": "اسم المستخدم هذا محجوز مسبقاً بالتشفير السيادي."}), 400
+                return jsonify({"status": "error", "message": "اسم المستخدم هذا محجوز مسبقاً."}), 400
             if Supplier.query.filter_by(identity_number=identity_number).first():
-                return jsonify({"status": "error", "message": "رقم الوثيقة / الهوية مسجل مسبقاً في النظام."}), 400
+                return jsonify({"status": "error", "message": "رقم الوثيقة / الهوية مسجل مسبقاً."}), 400
 
-            # معالجة رفع الملفات الأمنية
+            # معالجة رفع الملفات
             identity_image_db_path = None
             if 'identity_image' in request.files:
                 file = request.files['identity_image']
@@ -82,7 +71,7 @@ def add_supplier_page():
                     file.save(os.path.join(base_upload_folder, unique_filename))
                     identity_image_db_path = f"uploads/identities/{unique_filename}"
 
-            # توليد الهويات السيادية الرقمية المترابطة تلقائياً
+            # توليد الهويات السيادية الرقمية
             generated_sovereign_id = Supplier.generate_next_sovereign_id()
             
             if generated_sovereign_id.startswith("SUP-"):
@@ -116,10 +105,10 @@ def add_supplier_page():
             )
             db.session.add(new_supplier)
             
-            # ⚡ حجز الهوية في الجلسة أولاً لتجاوز قيود المفاتيح الأجنبية
+            # حجز الهوية في الجلسة أولاً لتفادي قيود المفاتيح الأجنبية
             db.session.flush()
 
-            # تأسيس كائن المحفظة نقيًا وحقن الأصفار لتجهيز خانات العملات الثلاث
+            # تأسيس كائن المحفظة النقي والمستقر بالأرصدة التأسيسية
             new_wallet = Wallet(
                 wallet_code=generated_wallet_code,
                 supplier_id=generated_sovereign_id,
@@ -130,12 +119,12 @@ def add_supplier_page():
             )
             db.session.add(new_wallet)
 
-            # التثبيت النهائي الشامل والحفظ المستقر
+            # التثبيت النهائي الشامل
             db.session.commit()
 
             return jsonify({
                 "status": "success",
-                "message": "تم الحفظ الفعلي وتعميد المحفظة السحابية متعددة العملات بنجاح مطلق.",
+                "message": "تم الحفظ الفعلي وتعميد المحفظة بنجاح مطلق.",
                 "data": {
                     "sovereign_id": generated_sovereign_id,
                     "wallet_code": generated_wallet_code
@@ -146,7 +135,7 @@ def add_supplier_page():
             db.session.rollback()
             return jsonify({"status": "error", "message": f"فشل داخلي في السيرفر السحابي (500): {str(e)}"}), 500
         finally:
-            db.session.close() # 🔓 تصفية وإنهاء الجلسة تماماً بعد الاستجابة لحماية السيرفر
+            db.session.close()  # 🔓 تحرير الاتصال فوراً لمنع أي تعليق مستقبلي
 
     endpoints_config = {
         "add_supplier": url_for('admin_suppliers.add_supplier_page'),
@@ -169,4 +158,4 @@ def check_duplicate():
     except Exception:
         return jsonify({"exists": False, "error": "فشل فحص قاعدة البيانات"})
     finally:
-        db.session.close() # 🔓 إغلاق الاتصال بعد الفحص الفوري
+        db.session.close()  # 🔓 تحرير الاتصال فوراً
