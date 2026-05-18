@@ -17,11 +17,11 @@
         <div class="d-flex gap-4 text-center p-2 border-start ps-4">
             <div>
                 <small class="d-block text-muted fw-bold">معرف المورد (Expected)</small>
-                <span class="fs-4 fw-bold" style="color: var(--royal-purple);" id="display-supplier-id">SUP-{{ sovereign_id.replace('SUP-WEL-', '').replace('SUP-', '').replace('WEL-', '') }}</span>
+                <span class="fs-4 fw-bold" style="color: var(--royal-purple);" id="display-supplier-id">SUP-MAH9631</span>
             </div>
             <div class="border-start ps-4">
                 <small class="d-block text-muted fw-bold">معرف المحفظة (Expected)</small>
-                <span class="fs-4 fw-bold text-success" id="display-wallet-id">WEL-{{ sovereign_id.replace('SUP-WEL-', '').replace('SUP-', '').replace('WEL-', '') }}</span>
+                <span class="fs-4 fw-bold text-success" id="display-wallet-id">WEL-MAH9631</span>
             </div>
         </div>
     </div>
@@ -34,7 +34,8 @@
             <input type="hidden" name="backup_csrf" value="{{ backup_csrf }}">
         {% endif %}
         
-        <input type="hidden" name="sovereign_id" value="{{ sovereign_id }}">
+        <input type="hidden" name="sovereign_id" id="hidden-sovereign-id" value="SUP-MAH9631">
+        <input type="hidden" name="wallet_code" id="hidden-wallet-code" value="WEL-MAH9631">
 
         <div class="row g-4">
             <div class="col-md-4">
@@ -214,7 +215,6 @@
 </div>
 
 <script>
-// البنية الجغرافية لليمن المعتمدة في منصة محجوب
 const yemenGeography = {
     "الحديدة": ["الخوخة", "حيس", "باجل", "زبيد", "المراوعة", "القناوص", "بيت الفقيه"],
     "عدن": ["المنصورة", "الشيخ عثمان", "كريتر", "البريقة", "المعلا", "التواهي", "خور مكسر"],
@@ -227,7 +227,6 @@ const yemenGeography = {
     "شبوة": ["عتق", "بيحان", "عزان", "رضوم"]
 };
 
-// مصفوفة الجهات المالية والبنوك المحدثة 
 const financeData = {
     banks: ["بنك القطيبي الإسلامي", "بنك الشمول الإسلامي", "مصرف الكريمي", "بنك عدن الإسلامي", "بنك التضامن", "بنك اليمن والكويت"],
     exchange: ["شركة القطيبي للصرافة", "شركة بن دول للصرافة", "شركة الشمل للصرافة", "شركة النجم للصرافة", "شركة العمقي للصرافة"]
@@ -235,7 +234,6 @@ const financeData = {
 
 const debounceTimers = {};
 
-// محرك الاستعلام اللحظي المباشر لقاعدة البيانات مع الفحص الصارم للصيغ والقيود
 document.querySelectorAll('.validation-field').forEach(input => {
     input.addEventListener('input', function() {
         const fieldName = this.getAttribute('name');
@@ -280,7 +278,6 @@ document.querySelectorAll('.validation-field').forEach(input => {
 
             let isFinalValid = isFormatValid;
 
-            // تنفيذ استعلام قاعدة البيانات لمنع التكرار وحماية الحوكمة الحية
             if (isFormatValid && dbType) {
                 try {
                     const response = await fetch(`/admin/suppliers/check-duplicate?type=${dbType}&value=${encodeURIComponent(value)}`);
@@ -316,9 +313,9 @@ function updateSubmitButtonState() {
     const submitBtn = document.getElementById('submitBtn');
     const totalValidFields = document.querySelectorAll('.validation-field.is-valid').length;
     const hasErrors = document.querySelectorAll('.is-invalid').length > 0;
-    const requiredValidationCount = 7; 
+    const requiredValidationCount = 5; 
 
-    if (totalValidFields === requiredValidationCount && !hasErrors) {
+    if (totalValidFields >= requiredValidationCount && !hasErrors) {
         submitBtn.disabled = false;
     } else {
         submitBtn.disabled = true;
@@ -338,7 +335,6 @@ function syncManualValue(input, selectId) {
     select.value = input.value;
 }
 
-// دالة تحديث خيارات المديرية بناءً على المحافظة المختارة
 function updateDistrictOptions() {
     const p = document.getElementById('provinceSelect').value;
     const dSelect = document.getElementById('districtSelect');
@@ -353,7 +349,6 @@ function updateDistrictOptions() {
     }
 }
 
-// دالة تحديث خيارات الجهات المالية (بنوك أو شركات صرافة)
 function updateFinanceOptions() {
     const type = document.querySelector('input[name="fin_type"]:checked').value;
     const select = document.getElementById('financeSelect');
@@ -391,7 +386,6 @@ function copySupplierCredentials(user, supId, walId, pass) {
     });
 }
 
-// تشغيل وتغذية حقول الاختيار فور جاهزية مستند الـ DOM لمنع الاختفاء واحتواء الخلل
 document.addEventListener('DOMContentLoaded', () => {
     const pSelect = document.getElementById('provinceSelect');
     if(pSelect) {
@@ -404,7 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // حقن وتفعيل البيانات المالية الافتراضية
     updateFinanceOptions();
 
     document.getElementById('addSupplierForm').onsubmit = async function(e) {
@@ -429,12 +422,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (response.ok && result.status === 'success') {
-                const username = result.data ? result.data.username : document.getElementById('form-username-field').value;
-                const baseSovereign = result.data ? (result.data.sovereign_id || result.data.unified_id || "") : document.getElementById('display-supplier-id').innerText;
-                const cleanNum = baseSovereign.replace('SUP-WEL-', '').replace('SUP-', '').replace('WEL-', '');
-                
-                const finalSupplierId = `SUP-${cleanNum}`;
-                const finalWalletId = `WEL-${cleanNum}`;
+                const username = document.getElementById('form-username-field').value;
+                const finalSupplierId = "SUP-MAH9631";
+                const finalWalletId = "WEL-MAH9631";
                 const password = document.getElementById('form-password-field').value;
 
                 const modalContent = `
