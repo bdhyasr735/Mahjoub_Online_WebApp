@@ -1,5 +1,5 @@
 # coding: utf-8
-# 🔑 محرك الموردين الحوكمي والسيادي - منصة محجوب أونلاين 2026
+# 🔑 محرك الموردين الحوكمي والسيادي المطور - منصة محجوب أونلاين 2026
 
 from flask import render_template, request, jsonify, current_app, url_for
 from flask_login import login_required, current_user
@@ -131,24 +131,16 @@ def add_supplier_page():
             db.session.add(new_supplier)
             db.session.flush()  
 
-            # 5. 💳 محرك توليد المحفظة الذكي المحصن (توفير كافة الحقول لمنع قيود الـ NOT NULL)
+            # 5. 💳 محرك توليد المحفظة النقي والمختصر (يمرر فقط الحقول الحاكمة والمؤكدة في قاعدة البيانات)
             generated_wallet_code = f"WLT-{username.upper()}-{random.randint(1000, 9999)}"
             
             insert_query = db.text(dedent("""
                 INSERT INTO supplier_wallets (
                     supplier_id, 
-                    wallet_code, 
-                    balance, 
-                    frozen_balance, 
-                    currency, 
-                    status
+                    wallet_code
                 ) VALUES (
                     :supplier_id, 
-                    :wallet_code, 
-                    0.00, 
-                    0.00, 
-                    'YER', 
-                    'active'
+                    :wallet_code
                 )
             """))
 
