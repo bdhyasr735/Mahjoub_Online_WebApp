@@ -100,7 +100,7 @@ def add_supplier_page():
                     else:
                         return jsonify({"status": "error", "message": "⚠️ صيغة الملف المرفوع غير مدعومة سيادياً، يرجى رفع صورة أو ملف PDF."}), 400
 
-            # 5. استدعاء المولد الديناميكي الآمن من الموديل لمنع تداخل الحقول (Race Condition)
+            # 5. استدعاء المولد الديناميكي الآمن من الموديل مباشرة لمنع تداخل الحقول (Race Condition)
             generated_sovereign_id = Supplier.generate_next_sovereign_id()
             
             # 🔄 المنطق المطلوب تماماً: توليد كود المحفظة عبر استبدال البادئة بشكل آمن ومباشر من SUP إلى WEL
@@ -136,14 +136,20 @@ def add_supplier_page():
             )
             db.session.add(new_supplier)
             
-            # 8. توليد وربط المحفظة المالية التابعة للمورد فوراً مع تجنب الأخطاء الهيكلية لاسم حقل الرصيد
-            wallet_args = {
-                "wallet_code": generated_wallet_code,
-                "supplier_id": generated_sovereign_id,
-                "status": "نشطة"
-            }
+            # 8. حوكمة إنشاء المحفظة بفحص ديناميكي للحقول لتفادي أي ارتباك في التسميات (invalid keyword argument)
+            wallet_args = {}
             
-            # فحص ديناميكي لاسم حقل الرصيد المعتمد في الموديل لمنع الانهيار (500)
+            # فحص الحقول الإلزامية الأساسية للمحفظة وتمرير المتاح منها فقط في كود الموديل لديك
+            if hasattr(Wallet, 'wallet_code'):
+                wallet_args['wallet_code'] = generated_wallet_code
+            
+            # فحص ربط المحفظة بالمورد (هل الموديل يربطها عبر الكود المالي النقي أم معرف المورد؟)
+            if hasattr(Wallet, 'supplier_id'):
+                wallet_args['supplier_id'] = generated_sovereign_id
+            elif hasattr(Wallet, 'supplier_id_code'):
+                wallet_args['supplier_id_code'] = generated_sovereign_id
+
+            # الفحص الذكي والآمن لحقول الرصيد لمنع الانهيار (500)
             if hasattr(Wallet, 'balance'):
                 wallet_args['balance'] = 0.0
             elif hasattr(Wallet, 'current_balance'):
@@ -151,6 +157,13 @@ def add_supplier_page():
             elif hasattr(Wallet, 'amount'):
                 wallet_args['amount'] = 0.0
 
+            # الفحص الذكي والآمن لحقل الحالة الخاص بالمحفظة
+            if hasattr(Wallet, 'status'):
+                wallet_args['status'] = "نشطة"
+            elif hasattr(Wallet, 'wallet_status'):
+                wallet_args['wallet_status'] = "نشطة"
+
+            # إنشاء المحفظة بالحقول التي تم إثبات وجودها فعلياً في ملف الموديل
             new_wallet = Wallet(**wallet_args)
             db.session.add(new_wallet)
 
