@@ -1,1 +1,15 @@
-python -c "from apps import db; from app import app; with app.app_context(): db.create_all()" && gunicorn app:app
+#!/bin/bash
+# 🚀 سكربت التخليق والتشغيل التلقائي - منصة محجوب أونلاين
+
+echo "========================================="
+echo "🛡️  بدء فحص وتخليق الجداول السيادية..."
+echo "========================================="
+
+# تشغيل أمر بايثون سريع لحقن الجداول الجديدة في البوستجرس
+python3 -c "from apps import db; from app import app; with app.app_context(): db.create_all()"
+
+echo "✅ تم التحقق من الجداول بنجاح. يتم الآن إقلاع السيرفر..."
+echo "========================================="
+
+# تشغيل السيرفر الرئيسي للمنصة
+gunicorn app:app
