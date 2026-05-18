@@ -15,7 +15,7 @@
                         <span class="input-group-text bg-light border-0 text-secondary" style="border-radius: 0 12px 12px 0;">
                             <i class="fas fa-search"></i>
                         </span>
-                        <input type="text" id="liveSearchInput" class="form-control bg-light border-0 py-2" placeholder="اكتب الآن للبحث اللحظي... (اسم المورد، كود المحفظة، المعرف السيادي)" value="{{ request.args.get('search', '') }}" style="border-radius: 12px 0 0 12px; font-size: 0.95rem;">
+                        <input type="text" id="liveSearchInput" class="form-control bg-light border-0 py-2" placeholder="اكتب الآن للبحث اللحظي... (اسم المورد، كود المحفظة، المعرف السيادي)" value="" style="border-radius: 12px 0 0 12px; font-size: 0.95rem;">
                     </div>
                 </div>
             </div>
@@ -131,30 +131,28 @@
     const tableBody = document.getElementById('walletsTableBody');
     const statusBadge = document.getElementById('liveStatusBadge');
 
-    // وظيفة تنسيق الأرقام المالية لتظهر بفواصل عشرية احترافية
     function formatMoney(number) {
         return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number);
     }
 
-    // التنصت اللحظي على خانة المدخلات
-    searchInput.addEventListener('input', function() {
+    // تشغيل البحث التلقائي الفوري عند تحميل الصفحة مباشرة لجلب البيانات المبدئية
+    function performSearch() {
         const queryValue = searchInput.value.trim();
         statusBadge.innerHTML = '<i class="fas fa-sync fa-spin me-1"></i> جاري التفتيش...';
         statusBadge.className = "badge bg-info text-dark fw-bold px-3 py-2";
 
-        // استدعاء الـ API الخلفي اللحظي الآمن
         fetch(`/admin/wallet/search_api?query=${encodeURIComponent(queryValue)}`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === "success") {
-                    tableBody.innerHTML = ""; // تصفير الجدول القديم بحرص
+                    tableBody.innerHTML = "";
                     
                     if (data.wallets.length === 0) {
                         tableBody.innerHTML = `
                             <tr>
                                 <td colspan="6" class="py-5 text-muted">
                                     <i class="fas fa-folder-open d-block fs-1 mb-3 text-light"></i>
-                                    لا توجد محافظ مطابقة لبيانات التفتيش الحالية.
+                                    لا توجد محافظ مالية مسجلة في الفضاء الحالي أو متوافقة مع استعلام البحث.
                                 </td>
                             </tr>`;
                     } else {
@@ -190,7 +188,13 @@
                 statusBadge.innerText = "خطأ في الاتصال";
                 statusBadge.className = "badge bg-danger text-white fw-bold px-3 py-2";
             });
-    });
+    }
+
+    // ربط الحدث عند الكتابة
+    searchInput.addEventListener('input', performSearch);
+    
+    // تشغيل جلب البيانات فور تحميل الصفحة لملء الجدول تلقائياً
+    document.addEventListener('DOMContentLoaded', performSearch);
 
     function openAdjustModal(walletId, walletCode) {
         document.getElementById('modal_wallet_id').value = walletId;
