@@ -13,19 +13,33 @@ app = create_app()
 
 def initialize_sovereignty():
     """
-    دالة تعميد السيادة: لضمان تحديث جداول قاعدة البيانات (الأعمدة الناقصة) 
-    ووجود حساب المالك (علي محجوب) عند تشغيل النظام في بيئة Railway.
+    دالة تعميد السيادة: لضمان تصفير الجداول القديمة والمتعارضة،
+    وإعادة بناء الهيكلية الموحدة للمحافظ، وتعميد حساب المالك (علي محجوب) في Railway.
     """
     with app.app_context():
         try:
+            # 🚨 [خطوة الحوكمة الأولى والطارئة]: كسر القيود وتطهير الجداول المتعارضة
+            print("⏳ جاري تنظيف الجداول القديمة وكسر قيود التحقق بالتتابع عبر CASCADE...")
+            
+            # تنفيذ أوامر الحذف الصارمة لضمان إخلاء مساحة البنية الجديدة
+            db.session.execute(text("DROP TABLE IF EXISTS wallet_transactions CASCADE;"))
+            db.session.execute(text("DROP TABLE IF EXISTS supplier_wallets CASCADE;"))
+            db.session.execute(text("DROP TABLE IF EXISTS wallets CASCADE;"))
+            db.session.execute(text("DROP TABLE IF EXISTS suppliers CASCADE;"))
+            db.session.commit()
+            
+            print("✨ تم مسح الجداول القديمة بنجاح، جاري بناء الهيكلية الموحدة الجديدة...")
+
             # 🚨 استدعاء محلي متأخر للموديل هنا لحماية خط الإقلاع ومنع الـ Circular Import تماماً
             from apps.models.admin_db import AdminUser
+            from apps.models.supplier_db import Supplier
+            from apps.models.wallet_db import Wallet
 
-            # [التحديث الجوهري الأول]: إنشاء الجداول الأساسية إن لم تكن موجودة
+            # [التحديث الجوهري الثاني]: إنشاء الجداول الجديدة بالهوية والمحفظة المشتقة تلقائياً
             print("⏳ جاري مواءمة وتحديث هيكل السجلات السيادية وقاعدة البيانات...")
             db.create_all()
             
-            # [التحديث الجوهري الثاني]: ترقيع جدول الموردين (Suppliers) بالأعمدة الناقصة تلقائياً في PostgreSQL
+            # [التحديث الجوهري الثالث]: ترقيع جدول الموردين (Suppliers) بالأعمدة الناقصة تلقائياً في PostgreSQL
             print("🛡️ جاري التحقق من الأعمدة الحوكمة لجدول الموردين...")
             alter_query = """
             ALTER TABLE suppliers 
