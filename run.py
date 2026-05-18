@@ -20,10 +20,10 @@ def initialize_sovereignty():
         try:
             print("⏳ جاري إخضاع قاعدة البيانات وتعطيل قيود الفحص اللحظي...")
             
-            # 🚨 [خطوة الإخضاع الحاسمة]: تأجيل فحص قيود المفاتيح الأجنبية لمنع اعتراض عملية الـ DROP
+            # 🚨 [خطوة الإخضاع الحاسمة]: تأجيل وفصل فحص قيود المفاتيح الأجنبية لمنع اعتراض عملية الـ DROP
             db.session.execute(text("SET CONSTRAINTS ALL DEFERRED;"))
             
-            # 🚨 [خطوة التطهير القصوى]: مسح الجداول المتعارضة عبر CASCADE لقطع دابر الامتدادات القديمة
+            # 🚨 [خطوة التطهير القصوى]: مسح الجداول المتعارضة عبر CASCADE لقطع دابر الامتدادات القديمة وسحق البيانات المخزنة
             print("⏳ جاري سحق الجداول القديمة عبر CASCADE لمنع أخطاء الأرصدة الناقصة...")
             db.session.execute(text("DROP TABLE IF EXISTS wallet_transactions CASCADE;"))
             db.session.execute(text("DROP TABLE IF EXISTS supplier_wallets CASCADE;"))
@@ -31,18 +31,18 @@ def initialize_sovereignty():
             db.session.execute(text("DROP TABLE IF EXISTS suppliers CASCADE;"))
             db.session.commit()
             
-            print("✨ تم تطهير قاعدة البيانات بالكامل من السجلات المتعارضة.")
+            print("✨ تم تطهير قاعدة البيانات بالكامل من السجلات المتعارضة والبيانات القديمة.")
 
             # استدعاء محلي للموديلات لتوثيق الـ Event Listeners والربط الهيكلي الجديد
             from apps.models.admin_db import AdminUser
             from apps.models.supplier_db import Supplier
             from apps.models.wallet_db import Wallet
 
-            # [إعادة البناء الهيكلي]: إنشاء الجداول بالبنية الحوكمية الصافية
+            # [إعادة البناء الهيكلي]: إنشاء الجداول بالبنية الحوكمية الصافية والجديدة تماماً
             print("⏳ جاري مواءمة وبناء الهيكلية السيادية للمحافظ والموردين...")
             db.create_all()
             
-            # [تحديث أعمدة الحوكمة]: إعداد جدول الموردين (Suppliers) الجديد
+            # [تحديث أعمدة الحوكمة]: إعداد جدول الموردين (Suppliers) الجديد وحقن الحقول اللوجستية
             print("🛡️ جاري مواءمة الأعمدة الحوكمة للجدول السيادي...")
             alter_query = """
             ALTER TABLE suppliers 
