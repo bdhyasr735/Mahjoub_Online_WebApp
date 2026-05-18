@@ -14,9 +14,15 @@
                 <p class="text-muted mb-0 small">نظام الأرشفة السيادي - منصة محجوب أونلاين 2026.</p>
             </div>
         </div>
-        <div class="text-center p-2 border-start ps-4">
-            <small class="d-block text-muted fw-bold">المعرف المتوقع</small>
-            <span class="fs-4 fw-bold" style="color: var(--royal-purple);" id="display-id">{{ sovereign_id }}</span>
+        <div class="d-flex gap-4 text-center p-2 border-start ps-4">
+            <div>
+                <small class="d-block text-muted fw-bold">معرف المورد (Expected)</small>
+                <span class="fs-4 fw-bold" style="color: var(--royal-purple);" id="display-supplier-id">SUP-{{ sovereign_id.replace('SUP-WEL-', '').replace('SUP-', '').replace('WEL-', '') }}</span>
+            </div>
+            <div class="border-start ps-4">
+                <small class="d-block text-muted fw-bold">معرف المحفظة (Expected)</small>
+                <span class="fs-4 fw-bold text-success" id="display-wallet-id">WEL-{{ sovereign_id.replace('SUP-WEL-', '').replace('SUP-', '').replace('WEL-', '') }}</span>
+            </div>
         </div>
     </div>
 
@@ -240,7 +246,6 @@ document.querySelectorAll('.validation-field').forEach(input => {
         debounceTimers[fieldName] = setTimeout(async () => {
             let isFormatValid = false;
 
-            // حوكمة الفراغات: إذا فرغ الحقل تماماً، يتم تصفير الحالة
             if (value === "") {
                 icon.innerHTML = '<i class="fas fa-minus text-muted"></i>';
                 this.classList.remove('is-valid', 'is-invalid');
@@ -248,7 +253,6 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 return;
             }
 
-            // الفحص النمطي والشكلي للمدخلات قبل الذهاب للسيرفر
             switch(type) {
                 case 'name': 
                     isFormatValid = value.split(/\s+/).filter(word => word.length > 0).length >= 3; 
@@ -260,7 +264,7 @@ document.querySelectorAll('.validation-field').forEach(input => {
                     isFormatValid = value.length >= 5; 
                     break;
                 case 'phone': 
-                    isFormatValid = /^[7][0-9]{8}$/.test(value); // مرونة أرقام الهواتف اليمنية 9 أرقام تبدأ بـ 7
+                    isFormatValid = /^[7][0-9]{8}$/.test(value);
                     break;
                 case 'acc': 
                     isFormatValid = value.length >= 5; 
@@ -271,7 +275,6 @@ document.querySelectorAll('.validation-field').forEach(input => {
 
             let isFinalValid = isFormatValid;
 
-            // استخدام دقيق للمسار الأساسي المعزول للموردين لمنع أخطاء الروابط
             if (isFormatValid && dbType) {
                 try {
                     const response = await fetch(`/admin/suppliers/check-duplicate?type=${dbType}&value=${encodeURIComponent(value)}`);
@@ -288,7 +291,6 @@ document.querySelectorAll('.validation-field').forEach(input => {
                 }
             }
 
-            // حقن الأيقونات والحالات البصرية بدقة
             if (isFinalValid) {
                 icon.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 16px;"></i>';
                 this.classList.remove('is-invalid');
@@ -308,8 +310,6 @@ function updateSubmitButtonState() {
     const submitBtn = document.getElementById('submitBtn');
     const totalValidFields = document.querySelectorAll('.validation-field.is-valid').length;
     const hasErrors = document.querySelectorAll('.is-invalid').length > 0;
-    
-    // سبعة حقول حوكمية أساسية لضمان تكامل السجل التجاري والمالي للمورد
     const requiredValidationCount = 7; 
 
     if (totalValidFields === requiredValidationCount && !hasErrors) {
@@ -362,19 +362,21 @@ function updateFinanceOptions() {
     select.appendChild(mOpt);
 }
 
-function copySupplierCredentials(user, id, pass) {
+// تعديل رسالة النسخ لتشمل المعرفين بشكل مستقل ومنظم
+function copySupplierCredentials(user, supId, walId, pass) {
     const textToCopy = `✨ تم تعميدك بنجاح في منصة محجوب أونلاين ✨\n\n` +
                        `🔐 بيانات الاعتماد والوصول الخاصة بك:\n` +
                        `--------------------------------------\n` +
                        `👤 اسم المستخدم: ${user}\n` +
-                       `🆔 المعرف السيادي: ${id}\n` +
+                       `🆔 معرف المورد: ${supId}\n` +
+                       `💳 معرف المحفظة: ${walId}\n` +
                        `🔑 كلمة المرور المؤقتة: ${pass}\n\n` +
                        `⚠️ تنبيه: يرجى تغيير كلمة المرور المؤقتة فور تسجيل الدخول الأول لحماية حسابك.\n\n` +
                        `🤝 شكراً لتسجيلك معنا في منصة محجوب أونلاين\n` +
                        `🌐 المنصة اللامركزية لحوكمة التجارة الرقمية`;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
-        alert("✅ تم نسخ نص الاعتماد بالكامل بنجاح!");
+        alert("✅ تم نسخ نص الاعتماد المحدث بنجاح!");
     }).catch(err => {
         console.error('فشل النسخ: ', err);
     });
@@ -415,9 +417,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok && result.status === 'success') {
                 const username = result.data ? result.data.username : document.getElementById('form-username-field').value;
-                const unifiedId = result.data ? (result.data.sovereign_id || result.data.unified_id) : document.getElementById('display-id').innerText;
+                
+                // استخراج الرقم المتسلسل الصافي لصناعة المعرفات المنفصلة
+                const baseSovereign = result.data ? (result.data.sovereign_id || result.data.unified_id || "") : document.getElementById('display-supplier-id').innerText;
+                const cleanNum = baseSovereign.replace('SUP-WEL-', '').replace('SUP-', '').replace('WEL-', '');
+                
+                const finalSupplierId = `SUP-${cleanNum}`;
+                const finalWalletId = `WEL-${cleanNum}`;
                 const password = document.getElementById('form-password-field').value;
 
+                // واجهة الـ Modal المحدثة والمقسمة للهويات بشكل كامل وعزلها
                 const modalContent = `
                     <div class="text-center mb-4">
                         <div style="display: flex; justify-content: center; margin: 0 auto 15px;">
@@ -428,20 +437,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <div class="p-3 mb-3 border rounded-3 text-start bg-light" style="font-size: 0.95rem; border-left: 5px solid var(--royal-purple) !important;">
                         <div class="mb-2" style="text-align: right; direction: rtl;">
-                            <strong>اسم المستخدم:</strong> <span class="text-dark fw-bold">${username}</span>
+                            <strong>👤 اسم المستخدم:</strong> <span class="text-dark fw-bold">${username}</span>
                         </div>
                         <div class="mb-2" style="text-align: right; direction: rtl;">
-                            <strong>المعرف السيادي:</strong> <span class="text-primary fw-bold">${unifiedId}</span>
+                            <strong>🆔 معرف المورد السيادي:</strong> <span class="text-primary fw-bold">${finalSupplierId}</span>
+                        </div>
+                        <div class="mb-2" style="text-align: right; direction: rtl;">
+                            <strong>💳 معرف المحفظة التابعة:</strong> <span class="text-success fw-bold">${finalWalletId}</span>
                         </div>
                         <div class="mb-0" style="text-align: right; direction: rtl;">
-                            <strong>كلمة المرور:</strong> <span class="text-danger fw-bold">${password}</span>
+                            <strong>🔑 كلمة المرور:</strong> <span class="text-danger fw-bold">${password}</span>
                         </div>
                     </div>
 
                     <button type="button" class="btn w-100 mb-3 d-flex align-items-center justify-content-center gap-2" 
                             style="background-color: var(--royal-purple); color: #fff; border-radius: 12px; padding: 12px; font-weight: 600;"
-                            onclick="copySupplierCredentials('${username}', '${unifiedId}', '${password}')">
-                        <i class="fas fa-copy"></i> نسخ بيانات الاعتماد كاملة
+                            onclick="copySupplierCredentials('${username}', '${finalSupplierId}', '${finalWalletId}', '${password}')">
+                        <i class="fas fa-copy"></i> نسخ بيانات الاعتماد المحدثة
                     </button>
 
                     <div class="alert alert-warning text-center py-2 mb-3" style="font-size: 0.85rem; border-radius: 10px; font-weight: bold;">
@@ -460,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const successModal = new bootstrap.Modal(document.getElementById('successModal'));
                 successModal.show();
-            } else {
+            </div> else {
                 alert('فشل التعميد: ' + (result.message || 'يرجى مراجعة البيانات المدخلة.'));
                 btn.disabled = false;
                 updateSubmitButtonState();
