@@ -1,3 +1,4 @@
+# apps/__init__.py
 # coding: utf-8
 # 🏢 المصنع المركزي للنواة - منصة محجوب أونلاين 2026
 
@@ -48,8 +49,8 @@ def create_app():
     # 🎯 الاستيراد الصحيح والنقي مباشرة من مجلد حزمة الموردين المعزولة
     from apps.add_supplier import admin_suppliers
 
-    # 💳 استيراد محرك الحوكمة المالية والمحافظ المحدث
-    from apps.wallet import admin_wallet
+    # 💳 الاستيراد الحاسم والسيادي لمحرك المحافظ من مسار الحزمة التابع لـ routes
+    from apps.wallet.routes import admin_wallet
 
     # ⚙️ تسجيل وعزل المسارات برمجياً لضمان استقرار المنصة بالكامل
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
@@ -58,7 +59,7 @@ def create_app():
     # 📦 تسجيل محرك الموردين السيادي بمسار مخصص يطابق طلبات الـ Fetch في الواجهة
     app.register_blueprint(admin_suppliers, url_prefix='/admin/suppliers')
 
-    # 💰 تسجيل محرك المحافظ والعمليات المادية الثلاثية في النواة
+    # 💰 تعميد وتسجيل محرك المحافظ والعمليات المادية الثلاثية بشكل رسمي في النواة
     app.register_blueprint(admin_wallet)
 
     return app
