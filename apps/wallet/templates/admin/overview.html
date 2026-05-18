@@ -1,154 +1,142 @@
 {% extends "admin_base.html" %}
 
-{% block title %}تعميد مورد | محجوب أونلاين{% endblock %}
+{% block title %}حوكمة وفحص المحافظ | محجوب أونلاين{% endblock %}
+
+{% block header_title %}الفضاء المالي وحوكمة الخزائن{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4" style="background-color: #000000; min-height: 100vh; color: #FFFFFF;">
+<div class="container-fluid py-4" style="direction: rtl;">
     
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #4B0082, #000000); border-left: 5px solid #8A2BE2 !important;">
-                <div class="card-body p-4 d-flex align-items-center justify-content-between">
-                    <div>
-                        <h2 class="fw-bold mb-1 text-white">
-                            <i class="fas fa-wallet me-2" style="color: #8A2BE2;"></i> 
-                            منظومة جلب وتدقيق أرصدة الموردين وحسابات المحافظ
-                        </h2>
-                        <p class="text-white-50 mb-0">البحث الفوري باسم المتجر التجاري، المعرف السيادي، أو إرسال الرمز (#) لجرد المحافظ كاملاً.</p>
-                    </div>
-                    <div class="spinner-grow text-light" role="status" style="background-color: #8A2BE2;">
-                        <span class="visually-hidden">Loading...</span>
+    <div class="card shadow-sm border-0 mb-4" style="border-radius: 15px; background: #fff;">
+        <div class="card-body p-4">
+            <form method="GET" action="/admin/wallet/overview" class="row g-3 align-items-center">
+                <div class="col-md-9">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0 text-secondary" style="border-radius: 0 12px 12px 0;">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" name="search" class="form-control bg-light border-0 py-2" placeholder="ابحث باسم المورد، المعرف السيادي، أو كود المحفظة..." value="{{ request.args.get('search', '') }}" style="border-radius: 12px 0 0 12px; font-size: 0.95rem;">
                     </div>
                 </div>
-            </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn text-white w-100 py-2 fw-bold" style="background: var(--royal-purple); border-radius: 12px; transition: 0.3s;">
+                        <i class="fas fa-filter me-2"></i> تفتيش فوري
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 p-3" style="background-color: #121212; border: 1px solid #222222 !important;">
-                <form method="GET" action="{{ url_for('admin_wallet.wallet_overview') }}" class="row g-3 align-items-center">
-                    <div class="col-md-9">
-                        <div class="input-group">
-                            <span class="input-group-text border-0" style="background-color: #1A1A1A; color: #8A2BE2;">
-                                <i class="fas fa-search"></i>
-                            </span>
-                            <input type="text" name="search" class="form-control border-0 text-white" 
-                                   placeholder="أدخل اسم المورد، المعرف السيادي (مثل: SUP-MAH9631)..." 
-                                   value="{{ request.args.get('search', '') }}"
-                                   style="background-color: #1A1A1A; color: white !important;">
-                        </div>
-                    </div>
-                    <div class="col-md-3 d-grid">
-                        <button type="submit" class="btn fw-bold text-white transition-all" 
-                                style="background-color: #4B0082; border: 1px solid #8A2BE2;">
-                            <i class="fas fa-filter me-1"></i> تفتيش فوري
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <div class="card shadow-sm border-0" style="border-radius: 15px; background: #fff; overflow: hidden;">
+        <div class="card-header text-white p-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, var(--royal-purple), var(--deep-black));">
+            <h5 class="mb-0 fw-bold" style="font-size: 1.1rem;"><i class="fas fa-vault me-2"></i> سجل الخزائن والأرصدة الثلاثية</h5>
+            <span class="badge bg-warning text-dark fw-bold px-3 py-2" style="border-radius: 30px;">تحديث حي 2026</span>
         </div>
-    </div>
-
-    <div class="row">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm" style="background-color: #121212; border: 1px solid #222222 !important;">
-                <div class="card-header border-0 bg-transparent py-3">
-                    <h5 class="mb-0 fw-bold" style="color: #8A2BE2;">⚡ فضاء الحسابات والأرصدة المستقرة</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover align-middle mb-0 text-center" style="background-color: #121212;">
-                        <thead style="background-color: #1A1A1A; color: #8A2BE2;">
-                            <tr>
-                                <th class="py-3 border-0">معرف كود المحفظة</th>
-                                <th class="py-3 border-0">اسم المتجر / المنشأة التجارية</th>
-                                <th class="py-3 border-0">المورد والبيان السيادي</th>
-                                <th class="py-3 border-0">هاتف التاجر</th>
-                                <th class="py-3 border-0 text-success">كشف الريال اليمني (YER)</th>
-                                <th class="py-3 border-0 text-warning">كشف الريال السعودي (SAR)</th>
-                                <th class="py-3 border-0 text-info">كشف الدولار الأمريكي (USD)</th>
-                                <th class="py-3 border-0">إجراءات الحوكمة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if wallets %}
-                                {% for wallet in wallets %}
-                                <tr style="border-bottom: 1px solid #1A1A1A;">
-                                    <td class="fw-bold text-white border-0">
-                                        <span class="badge px-3 py-2" style="background-color: #1A1A1A; border: 1px solid #4B0082; color: #8A2BE2;">
-                                            {{ wallet.wallet_code }}
-                                        </span>
-                                    </td>
-                                    <td class="fw-bold border-0 text-white">
-                                        {{ wallet.supplier.trade_name if wallet.supplier else 'منشأة غير معرفة' }}
-                                    </td>
-                                    <td class="border-0">
-                                        <div class="text-white small fw-bold">{{ wallet.supplier.sovereign_id if wallet.supplier else 'N/A' }}</div>
-                                        <div class="badge bg-dark mt-1 text-muted small" style="border: 1px solid #333;">
-                                            {{ wallet.supplier.rank_grade if wallet.supplier else 'ريادي' }}
-                                        </div>
-                                    </td>
-                                    <td class="border-0 text-white-50">
-                                        {{ wallet.supplier.shop_phone if wallet.supplier and wallet.supplier.shop_phone else 'بدون هاتف' }}
-                                    </td>
-                                    
-                                    <td class="border-0 text-success fw-bold">
-                                        <div class="fs-5">YER {{ "{:,.2f}".format(wallet.yer_balance) }}</div>
-                                        <div class="small text-muted fw-normal">متاح: {{ "{:,.2f}".format(wallet.yer_available) }}</div>
-                                        <div class="small text-danger fw-normal">معلق: {{ "{:,.2f}".format(wallet.yer_reserved) }}</div>
-                                    </td>
-                                    
-                                    <td class="border-0 text-warning fw-bold">
-                                        <div class="fs-5">SAR {{ "{:,.2f}".format(wallet.sar_balance) }}</div>
-                                        <div class="small text-muted fw-normal">متاح: {{ "{:,.2f}".format(wallet.sar_available) }}</div>
-                                        <div class="small text-danger fw-normal">معلق: {{ "{:,.2f}".format(wallet.sar_reserved) }}</div>
-                                    </td>
-                                    
-                                    <td class="border-0 text-info fw-bold">
-                                        <div class="fs-5">$ {{ "{:,.2f}".format(wallet.usd_balance) }}</div>
-                                        <div class="small text-muted fw-normal">متاح: {{ "{:,.2f}".format(wallet.usd_available) }}</div>
-                                        <div class="small text-danger fw-normal">معلق: {{ "{:,.2f}".format(wallet.usd_reserved) }}</div>
-                                    </td>
-                                    
-                                    <td class="border-0">
-                                        <button class="btn btn-sm text-white px-3 fw-bold disabled" 
-                                                style="background-color: #1A1A1A; border: 1px solid #333333; cursor: not-allowed;">
-                                            <i class="fas fa-hand-holding-usd me-1"></i> سحب الرصيد
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td colspan="8" class="py-5 text-muted border-0 bg-transparent">
-                                        <i class="fas fa-folder-open fa-3x mb-3 d-block" style="color: #4B0082;"></i>
-                                        لا توجد محافظ حية مطابقة لبيانات البحث الحالي في الفضاء المالي.
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-center">
+                <thead class="table-light text-secondary fw-bold" style="font-size: 0.9rem;">
+                    <tr>
+                        <th class="py-3">كود المحفظة</th>
+                        <th class="py-3">الشريك (المورد)</th>
+                        <th class="py-3" style="color: #2e7d32;">الريال اليمني (YER)</th>
+                        <th class="py-3" style="color: #e65100;">الريال السعودي (SAR)</th>
+                        <th class="py-3" style="color: #1565c0;">الدولار الأمريكي (USD)</th>
+                        <th class="py-3">إجراءات المالك</th>
+                    </tr>
+                </thead>
+                <tbody style="font-size: 0.95rem; font-weight: 600;">
+                    {% if wallets %}
+                        {% for wallet in wallets %}
+                        <tr>
+                            <td class="py-3">
+                                <span class="badge bg-light text-dark border p-2 font-monospace" style="font-size: 0.9rem;">
+                                    <i class="fas fa-hashtag text-muted me-1"></i>{{ wallet.wallet_code }}
+                                </span>
+                            </td>
+                            <td class="py-3">
+                                <div class="fw-bold text-dark">{{ wallet.supplier.trade_name if wallet.supplier else 'غير معرف' }}</div>
+                                <small class="text-muted" style="font-size: 0.8rem;">ID: {{ wallet.supplier.sovereign_id if wallet.supplier else '-' }}</small>
+                            </td>
+                            <td class="py-3 text-success fw-bold">
+                                {{ "{:,.2f}".format(wallet.yer_balance|float if wallet.yer_balance is defined else 0.0) }} ﷼
+                            </td>
+                            <td class="py-3 text-warning fw-bold" style="color: #e65100 !important;">
+                                {{ "{:,.2f}".format(wallet.sar_balance|float if wallet.sar_balance is defined else 0.0) }} ﷼
+                            </td>
+                            <td class="py-3 text-primary fw-bold">
+                                $ {{ "{:,.2f}".format(wallet.usd_balance|float if wallet.usd_balance is defined else 0.0) }}
+                            </td>
+                            <td class="py-3">
+                                <button type="button" class="btn btn-sm text-white px-3" style="background: var(--royal-purple); border-radius: 8px;" onclick="openAdjustModal('{{ wallet.id }}', '{{ wallet.wallet_code }}')">
+                                    <i class="fas fa-sliders-h me-1"></i> ضبط الرصيد
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="py-5 text-muted">
+                                <i class="fas fa-folder-open d-block fs-1 mb-3 text-light"></i>
+                                لا توجد محافظ مالية مسجلة في الفضاء الحالي أو متوافقة مع استعلام البحث.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<style>
-    .transition-all {
-        transition: all 0.3s ease-in-out;
+<div class="modal fade" id="adjustBalanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header text-white p-3" style="background: linear-gradient(135deg, var(--royal-purple), var(--deep-black));">
+                <h5 class="modal-title fw-bold" id="modalTitle"><i class="fas fa-tools me-2"></i> سلطة الضبط المباشر للمالك</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="/admin/wallet/adjust">
+                <input type="hidden" name="wallet_id" id="modal_wallet_id">
+                <div class="modal-body p-4">
+                    <p class="text-muted mb-3" style="font-size: 0.9rem;">أنت الآن تقوم بتعديل أرصدة الخزينة للمحفظة: <strong class="text-dark" id="modal_wallet_code"></strong></p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">العملة المستهدفة</label>
+                        <select name="currency" class="form-select py-2" style="border-radius: 10px;" required>
+                            <option value="YER">الريال اليمني (YER)</option>
+                            <option value="SAR">الريال السعودي (SAR)</option>
+                            <option value="USD">الدولار الأمريكي (USD)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">نوع العملية السيادية</label>
+                        <select name="action_type" class="form-select py-2" style="border-radius: 10px;" required>
+                            <option value="deposit">شحن / إيداع مباشر (➕)</option>
+                            <option value="withdrawal">خصم / سحب قسري (➖)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">المبلغ المالي</label>
+                        <input type="number" step="0.01" name="amount" class="form-control py-2" style="border-radius: 10px;" placeholder="0.00" required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 p-3">
+                    <button type="button" class="btn btn-secondary px-4 py-2" data-bs-dismiss="modal" style="border-radius: 10px;">إلغاء</button>
+                    <button type="submit" class="btn text-white px-4 py-2 fw-bold" style="background: var(--royal-purple); border-radius: 10px;">تنفيذ الفرمان المالي</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openAdjustModal(walletId, walletCode) {
+        document.getElementById('modal_wallet_id').value = walletId;
+        document.getElementById('modal_wallet_code').innerText = walletCode;
+        var myModal = new bootstrap.Modal(document.getElementById('adjustBalanceModal'));
+        myModal.show();
     }
-    .transition-all:hover {
-        background-color: #8A2BE2 !important;
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
-    }
-    .table-hover tbody tr:hover {
-        background-color: #161616 !important;
-    }
-    input:focus {
-        box-shadow: 0 0 0 0.25rem rgba(138, 43, 226, 0.25) !important;
-        border: 1px solid #8A2BE2 !important;
-    }
-</style>
+</script>
 {% endblock %}
