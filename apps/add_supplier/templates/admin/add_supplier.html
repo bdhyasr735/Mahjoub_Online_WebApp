@@ -17,11 +17,11 @@
         <div class="d-flex gap-4 text-center p-2 border-start ps-4">
             <div>
                 <small class="d-block text-muted fw-bold">معرف المورد (التالي متوقع)</small>
-                <span class="fs-4 fw-bold" style="color: var(--royal-purple);" id="display-supplier-id">SUP-MAH963+</span>
+                <span class="fs-4 fw-bold" style="color: var(--royal-purple);" id="display-supplier-id">SUP-MAH963...</span>
             </div>
             <div class="border-start ps-4">
                 <small class="d-block text-muted fw-bold">معرف المحفظة (التالي متوقع)</small>
-                <span class="fs-4 fw-bold text-success" id="display-wallet-id">WEL-MAH963+</span>
+                <span class="fs-4 fw-bold text-success" id="display-wallet-id">WEL-MAH963...</span>
             </div>
         </div>
     </div>
@@ -386,6 +386,25 @@ function copySupplierCredentials(user, supId, walId, pass) {
     });
 }
 
+// دالة مخصصة لجلب المعاينة الحقيقية المتوقعة من السيرفر عند فتح الصفحة
+async function fetchNextExpectedSequence() {
+    try {
+        // الفحص بالاعتماد على الفلتر لتوليد الاسم المتوقع للمورد القادم هندسياً
+        const response = await fetch('/admin/suppliers/check-duplicate?type=get_next_sequence');
+        if (response.ok) {
+            const result = await response.json();
+            if (result.next_sequence) {
+                document.getElementById('display-supplier-id').textContent = `SUP-MAH963${result.next_sequence}`;
+                document.getElementById('display-wallet-id').textContent = `WEL-MAH963${result.next_sequence}`;
+            }
+        }
+    } catch (e) {
+        // إبقاء العرض الاحتياطي في حال تعذر الاتصال اللحظي بالسيرفر
+        document.getElementById('display-supplier-id').textContent = "SUP-MAH963+";
+        document.getElementById('display-wallet-id').textContent = "WEL-MAH963+";
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const pSelect = document.getElementById('provinceSelect');
     if(pSelect) {
@@ -399,6 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     updateFinanceOptions();
+    fetchNextExpectedSequence(); // تشغيل الجلب التلقائي لمعاينة المعرف القادم
 
     document.getElementById('addSupplierForm').onsubmit = async function(e) {
         e.preventDefault();
