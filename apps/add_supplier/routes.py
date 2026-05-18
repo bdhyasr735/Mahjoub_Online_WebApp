@@ -30,7 +30,7 @@ def add_supplier_page():
     عرض صفحة تعميد المورد (GET) ومعالجة طلب الحفظ والتعميد السحابي الفعلي في قاعدة البيانات (POST).
     """
     
-    # 🚀 هندسة الإصلاح الذاتي تلقائياً عند استدعاء المسار لضمان وجود حقل wallet_code في PostgreSQL السحابية
+    # 🚀 هندسة الإصلاح الذاتي تلقائياً لضمان وجود حقل wallet_code في PostgreSQL السحابية
     try:
         db.session.execute(db.text("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS wallet_code VARCHAR(50) UNIQUE;"))
         db.session.commit()
@@ -66,7 +66,7 @@ def add_supplier_page():
                     "message": "⚠️ جميع الحقول الإلزامية يجب أن تكون مكتملة وصحيحة هندسيًا."
                 }), 400
 
-            # 3. التحقق الفعلي من عدم التكرار في قاعدة البيانات (خط الدفاع الثاني المباشر)
+            # 3. التحقق الفعلي من عدم التكرار في قاعدة البيانات
             if Supplier.query.filter_by(username=username).first():
                 return jsonify({"status": "error", "message": "اسم المستخدم هذا محجوز مسبقاً بالتشفير السيادي."}), 400
             
@@ -98,12 +98,12 @@ def add_supplier_page():
                         file.save(os.path.join(base_upload_folder, unique_filename))
                         identity_image_db_path = f"uploads/identities/{unique_filename}"
                     else:
-                        return jsonify({"status": "error", "message": "⚠️ صيغة الملف المرفوع غير مدعومة سيادياً، يرجى رفع صورة أو ملف PDF."}), 400
+                        return jsonify({"status": "error", "message": "⚠️ صيغة الملف المرفوع غير مدعومة سيادياً."}), 400
 
-            # 5. استدعاء المولد الديناميكي الآمن من الموديل لمنع تداخل الحقول (Race Condition)
+            # 5. استدعاء المولد الديناميكي الآمن من الموديل لمنع تداخل الحقول
             generated_sovereign_id = Supplier.generate_next_sovereign_id()
             
-            # 🔄 المنطق المتناسق والمنشود تماماً: تحويل البادئة النقدية تلقائياً من SUP إلى WEL
+            # 🔄 استبدال البادئة تلقائياً من SUP إلى WEL للمحفظة الرقمية التلقائية نفس رقم الآيدي
             if generated_sovereign_id.startswith("SUP-"):
                 generated_wallet_code = generated_sovereign_id.replace("SUP-", "WEL-", 1)
             else:
@@ -136,42 +136,42 @@ def add_supplier_page():
             )
             db.session.add(new_supplier)
             
-            # 8. توليد وربط المحفظة المالية المتكاملة متعددة العملات بناءً على هيكل قاعدة البيانات الفعلي
-            wallet_args = {
-                "wallet_code": generated_wallet_code,
-                "supplier_id": generated_sovereign_id
-            }
-
-            # الفحص والمطابقة الديناميكية لشبكة الحقول المالية الفرعية المكتشفة بالسيرفر
-            financial_fields = [
-                'yer_total', 'yer_available', 'yer_withdrawn', 'yer_pending',
-                'sar_total', 'sar_available', 'sar_withdrawn', 'sar_pending',
-                'usd_total', 'usd_available', 'usd_withdrawn', 'usd_pending'
-            ]
+            # 8. حوكمة إنشاء كائن المحفظة بشكل نقي ومباشر لمنع ارتباك الخصائص الحسابية المفتقرة لـ Setter
+            wallet_args = {}
             
-            for field in financial_fields:
-                if hasattr(Wallet, field):
-                    wallet_args[field] = 0.0
+            # تمرير المعرفات الأساسية المدعومة والمطابقة للموديل فقط
+            if hasattr(Wallet, 'wallet_code'):
+                wallet_args['wallet_code'] = generated_wallet_code
+            
+            if hasattr(Wallet, 'supplier_id'):
+                wallet_args['supplier_id'] = generated_sovereign_id
+            elif hasattr(Wallet, 'supplier_id_code'):
+                wallet_args['supplier_id_code'] = generated_sovereign_id
 
-            # التحقق الإضافي لسلامة الحقول البسيطة والحالة في حال وجودها بالموديل الأساسي
+            # تمرير حقول العملات الإجمالية فقط إذا كانت أعمدة حقيقية (وليست Properties)
+            for raw_field in ['yer_total', 'sar_total', 'usd_total']:
+                # الفحص الإضافي للتأكد من أن الحقل عمود حقيقي وليس خاصية حسابية مقروءة فقط
+                if hasattr(Wallet, raw_field):
+                    descriptor = getattr(Wallet, raw_field)
+                    # نتأكد أنه ليس property (لا يمتلك setter)
+                    if not isinstance(descriptor, property):
+                        wallet_args[raw_field] = 0.0
+
+            # التحقق لحقل الحالة للمحفظة
             for status_field in ['status', 'wallet_status']:
-                if hasattr(Wallet, status_field):
+                if hasattr(Wallet, status_field) and not isinstance(getattr(Wallet, status_field), property):
                     wallet_args[status_field] = "نشطة"
-            
-            for balance_field in ['balance', 'current_balance', 'amount']:
-                if hasattr(Wallet, balance_field):
-                    wallet_args[balance_field] = 0.0
 
             new_wallet = Wallet(**wallet_args)
             db.session.add(new_wallet)
 
-            # تنفيذ الحفظ النهائي الموحد الحصين (Atomic Commit) وتثبيت البيانات
+            # تنفيذ الحفظ النهائي الموحد الحصين (Atomic Commit) والتعميد في قاعدة البيانات
             db.session.commit()
 
             # 9. إرجاع استجابة الـ JSON الناجحة لتشغيل الـ Modal في الواجهة الأمامية
             return jsonify({
                 "status": "success",
-                "message": "تم الحفظ الفعلي، التعميد، والأرشفة السيادية بنجاح مطلق.",
+                "message": "تم الحفظ الفعلي، التعميد، والأرشفة بنجاح مطلق وطبيعي.",
                 "data": {
                     "sovereign_id": generated_sovereign_id,
                     "wallet_code": generated_wallet_code
@@ -179,7 +179,7 @@ def add_supplier_page():
             }), 200
 
         except Exception as e:
-            db.session.rollback()  # تراجع فوري شامل لحماية وسلامة الجداول من التلوث التراكمي
+            db.session.rollback()  # تراجع فوري شامل لحماية وسلامة الجداول من التلوث
             return jsonify({
                 "status": "error",
                 "message": f"فشل داخلي في السيرفر السحابي (500): {str(e)}"
@@ -201,7 +201,7 @@ def add_supplier_page():
 @admin_suppliers_bp.route('/admin/suppliers/check-duplicate', methods=['GET'])
 def check_duplicate():
     """
-    نقطة فحص التكرار اللحظية الفعالة (Live DB Debounce Check) عبر الـ API لضمان تفاعل سلس وسريع.
+    نقطة فحص التكرار اللحظية الفعالة (Live DB Debounce Check) عبر الـ API.
     """
     check_type = request.args.get('type', '')
     value = request.args.get('value', '').strip()
@@ -209,7 +209,6 @@ def check_duplicate():
     if not check_type or not value:
         return jsonify({"exists": False, "error": "المعاملات البرمجية المطلوبة ناقصة"}), 400
 
-    # حماية الفحص لمنع تلاعب المدخلات
     if check_type not in ['username', 'identity_number', 'owner_phone', 'trade_name', 'bank_acc']:
         return jsonify({"exists": False, "error": "نوع الفحص غير مدعوم هندسياً"}), 400
 
