@@ -120,3 +120,21 @@ def auto_create_supplier_wallet(mapper, connection, target):
         wallet_table.insert().values(
             supplier_id=target.id,
             wallet_code=generated_wallet_code,
+            yer_total=0.00,
+            yer_available=0.00,
+            yer_withdrawn=0.00,
+            yer_pending=0.00,
+            sar_total=0.00,
+            sar_available=0.00,
+            sar_withdrawn=0.00,
+            sar_pending=0.00,
+            usd_total=0.00,
+            usd_available=0.00,
+            usd_withdrawn=0.00,
+            usd_pending=0.00,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+    )
+
+event.listen(Supplier, 'after_insert', auto_create_supplier_wallet)
