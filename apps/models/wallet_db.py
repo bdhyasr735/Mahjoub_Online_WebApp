@@ -1,223 +1,126 @@
 # coding: utf-8
-# 🔑 مستند الحصانة المالية والمحافظ متعددة العملات - منصة محجوب أونلاين 2026
+# 🔑 مستند النموذج المالي والمحافظ الحوكمية - منصة محجوب أونلاين 2026
 
 from apps import db
 from datetime import datetime
 from sqlalchemy import event
-from sqlalchemy.orm import validates
-import uuid  # لتوليد أرقام عمليات فريدة ومؤمنة
 
 class Wallet(db.Model):
-    __tablename__ = 'supplier_wallets'
-
+    __tablename__ = 'wallets'
+    
+    # 1. المعرفات الأساسية والربط الجيني
     id = db.Column(db.Integer, primary_key=True)
     
-    # ربط المحفظة بالمورد (علاقة رأس برأس)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), unique=True, nullable=False, index=True)
+    # ربط المحفظة بالمورد (العلاقة الصارمة: لكل مورد محفظة واحدة فقط)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id', ondelete='CASCADE'), unique=True, nullable=False)
     
-    # 👑 إضافة العلاقة البرمجية المباشرة مع نموذج الموردين لتمكين الاستعلام المتداخل الحوكمي
-    supplier = db.relationship('Supplier', backref=db.backref('wallet', uselist=False), lazy=True)
+    # كود المحفظة المالي الموحد المشتق سيادياً (مثل: WEL-MAH9631)
+    wallet_code = db.Column(db.String(50), unique=True, nullable=False, index=True)
     
-    # 🔴 أرصدة الريال اليمني (YER)
-    yer_total = db.Column(db.Float, nullable=False, default=0.0)
-    yer_available = db.Column(db.Float, nullable=False, default=0.0)
-    yer_pending = db.Column(db.Float, nullable=False, default=0.0)
-    yer_withdrawn = db.Column(db.Float, nullable=False, default=0.0)
-
-    # 🟢 أرصدة الريال السعودي (SAR)
-    sar_total = db.Column(db.Float, nullable=False, default=0.0)
-    sar_available = db.Column(db.Float, nullable=False, default=0.0)
-    sar_pending = db.Column(db.Float, nullable=False, default=0.0)
-    sar_withdrawn = db.Column(db.Float, nullable=False, default=0.0)
-
-    # 🔵 أرصدة الدولار الأمريكي (USD)
-    usd_total = db.Column(db.Float, nullable=False, default=0.0)
-    usd_available = db.Column(db.Float, nullable=False, default=0.0)
-    usd_pending = db.Column(db.Float, nullable=False, default=0.0)
-    usd_withdrawn = db.Column(db.Float, nullable=False, default=0.0)
-
-    # التوثيق الزمني
+    # 2. خزائن الأرصدة المتعددة (Multi-Currency Vaults)
+    # خزانة الريال اليمني (YER)
+    yer_balance = db.Column(db.Numeric(16, 2), nullable=False, default=0.00)
+    yer_reserved = db.Column(db.Numeric(16, 2), nullable=False, default=0.00)  # الأرصدة المعلقة قيد المعالجة
+    
+    # خزانة الريال السعودي (SAR)
+    sar_balance = db.Column(db.Numeric(16, 2), nullable=False, default=0.00)
+    sar_reserved = db.Column(db.Numeric(16, 2), nullable=False, default=0.00)  # الأرصدة المعلقة قيد المعالجة
+    
+    # خزانة الدولار الأمريكي (USD)
+    usd_balance = db.Column(db.Numeric(16, 2), nullable=False, default=0.00)
+    usd_reserved = db.Column(db.Numeric(16, 2), nullable=False, default=0.00)  # الأرصدة المعلقة قيد المعالجة
+    
+    # 3. حقول تتبع التحديث والتوثيق الزمني (Timestamps)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # علاقة برمجية لاستدعاء الأرشيف
-    transactions = db.relationship('WalletTransaction', backref='wallet', lazy=True, cascade="all, delete-orphan")
+    # 4. الربط الخلفي مع المورد لسهولة الاستدعاء المباشر في الـ API
+    supplier = db.relationship('Supplier', backref=db.backref('wallet', uselist=False, cascade='all, delete-orphan'))
 
-    # 🛡️ مصيدة الحوكمة المادية: منع الحسابات السالبة نهائياً لجميع العملات
-    @validates(
-        'yer_total', 'yer_available', 'yer_pending', 'yer_withdrawn',
-        'sar_total', 'sar_available', 'sar_pending', 'sar_withdrawn',
-        'usd_total', 'usd_available', 'usd_pending', 'usd_withdrawn'
-    )
-    def validate_positive_balances(self, key, value):
-        if value is None:
-            return 0.0
-        if float(value) < 0:
-            raise ValueError(f"خطر مالي صارم: الحقل المالي للعملة ({key}) لا يمكن أن يحمل قيمة سالبة [{value}].")
-        return float(value)
+    # =========================================================================
+    # 📈 خصائص الحسابات الذكية (Smart Calculations Properties)
+    # =========================================================================
+    @property
+    def yer_available(self):
+        """حساب الرصيد المتاح الفعلي للريال اليمني بعد استبعاد المعلقات المحتجزة"""
+        return max(0.00, float(self.yer_balance - self.yer_reserved))
+
+    @property
+    def sar_available(self):
+        """حساب الرصيد المتاح الفعلي للريال السعودي بعد استبعاد المعلقات المحتجزة"""
+        return max(0.00, float(self.sar_balance - self.sar_reserved))
+
+    @property
+    def usd_available(self):
+        """حساب الرصيد المتاح الفعلي للدولار الأمريكي بعد استبعاد المعلقات المحتجزة"""
+        return max(0.00, float(self.usd_balance - self.usd_reserved))
 
     def to_dict(self):
-        """
-        تصدير منسق ومسطح بالكامل متوافق مع محرك جافا سكريبت لوحة المراقبة
-        لإظهار رقم المحفظة، الأرصدة المتعددة، والتحكم بالأزرار مباشرة.
-        """
+        """تحويل الحسابات المالية للمحفظة إلى كود جيسون متوافق بالكامل مع واجهات العرض"""
         return {
-            "wallet_id": self.id,
+            "id": self.id,
             "supplier_id": self.supplier_id,
+            "wallet_code": self.wallet_code,
+            "trade_name": self.supplier.trade_name if self.supplier else "منشأة غير معرفة",
+            "sovereign_id": self.supplier.sovereign_id if self.supplier else None,
+            "rank_grade": self.supplier.rank_grade if self.supplier else "ريادي",
+            "state_title": self.supplier.state_title if self.supplier else "تحت التدقيق",
+            "shop_phone": self.supplier.shop_phone if self.supplier else None,
             
-            # أرصدة الريال اليمني
-            "yer_total": self.yer_total,
+            # تفاصيل كشف الريال اليمني
+            "yer_total": float(self.yer_balance),
             "yer_available": self.yer_available,
-            "yer_pending": self.yer_pending,
-            "yer_withdrawn": self.yer_withdrawn,
+            "yer_pending": float(self.yer_reserved),
             
-            # أرصدة الريال السعودي
-            "sar_total": self.sar_total,
+            # تفاصيل كشف الريال السعودي
+            "sar_total": float(self.sar_balance),
             "sar_available": self.sar_available,
-            "sar_pending": self.sar_pending,
-            "sar_withdrawn": self.sar_withdrawn,
+            "sar_pending": float(self.sar_reserved),
             
-            # أرصدة الدولار الأمريكي
-            "usd_total": self.usd_total,
+            # تفاصيل كشف الدولار الأمريكي
+            "usd_total": float(self.usd_balance),
             "usd_available": self.usd_available,
-            "usd_pending": self.usd_pending,
-            "usd_withdrawn": self.usd_withdrawn,
-            
-            # الهيكل الشجري الاحتياطي
-            "currencies": {
-                "YER": {"total": self.yer_total, "available": self.yer_available, "pending": self.yer_pending, "withdrawn": self.yer_withdrawn},
-                "SAR": {"total": self.sar_total, "available": self.sar_available, "pending": self.sar_pending, "withdrawn": self.sar_withdrawn},
-                "USD": {"total": self.usd_total, "available": self.usd_available, "pending": self.usd_pending, "withdrawn": self.usd_withdrawn}
-            }
+            "usd_pending": float(self.usd_reserved)
         }
 
-
-class WalletTransaction(db.Model):
-    __tablename__ = 'wallet_transactions'
-
-    id = db.Column(db.Integer, primary_key=True)
-    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False, index=True)
-    
-    # الرقم المرجعي الفريد (TXN-2026-XXXXXX)
-    transaction_ref = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    
-    # نوع العملية: 'deposit' (إيداع/أرباح)، 'withdrawal' (طلب سحب)
-    tx_type = db.Column(db.String(20), nullable=False)
-    
-    # 👑 حقل العملة المعتمد للعملية: يقبل حصراً: 'YER', 'SAR', 'USD'
-    currency = db.Column(db.String(10), nullable=False)
-    
-    # المبلغ الخاص بالعملية
-    amount = db.Column(db.Float, nullable=False)
-    
-    # حالة العملية: 'completed' (معتمد ومصروف)، 'pending' (قيد الانتظار الإداري)، 'rejected' (مرفوض)
-    tx_status = db.Column(db.String(20), nullable=False, default='pending')
-    
-    # تفاصيل العملية (مثال: سحب عبر الكريمي، النجم، أو أرباح طلب رقم #1050)
-    description = db.Column(db.Text, nullable=True)
-    
-    # توثيق الآدمن المسؤول عن التعميد المالي للحوالة
-    approved_by_id = db.Column(db.Integer, nullable=True)  
-    
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
-    @validates('amount')
-    def validate_tx_amount(self, key, value):
-        if not value or float(value) <= 0:
-            raise ValueError("خطأ حوكمي: مبلغ العملية المادية يجب أن يكون أكبر من صفر.")
-        return float(value)
-
-    @validates('currency')
-    def validate_currency_type(self, key, value):
-        allowed_currencies = ['YER', 'SAR', 'USD']
-        if value not in allowed_currencies:
-            raise ValueError(f"خطأ في نظام العملات: العملة ({value}) غير مدعومة سيادياً في المنصة.")
-        return value
-
-    def to_dict(self):
-        return {
-            "tx_id": self.id,
-            "wallet_id": self.wallet_id,
-            "transaction_ref": self.transaction_ref,
-            "tx_type": self.tx_type,
-            "currency": self.currency,
-            "amount": self.amount,
-            "tx_status": self.tx_status,
-            "description": self.description,
-            "created_at": self.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        }
+    def __repr__(self):
+        return f'<Wallet {self.wallet_code} - Supplier_ID: {self.supplier_id}>'
 
 
 # -------------------------------------------------------------------------
-# 🛡️ نظام التشفير المالي والتسلسل التلقائي للعمليات المرجعية
+# 🛡️ مصيدة الحوكمة التلقائية (Event Listener): فتح المحفظة تلقائياً للمورد الجديد
 # -------------------------------------------------------------------------
-def auto_generate_transaction_ref(mapper, connection, target):
-    if not target.transaction_ref:
-        unique_suffix = uuid.uuid4().hex[-8:].upper()
-        target.transaction_ref = f"TXN-{datetime.utcnow().year}-{unique_suffix}"
+from apps.models.supplier_db import Supplier
 
-event.listen(WalletTransaction, 'before_insert', auto_generate_transaction_ref)
-
-
-# -------------------------------------------------------------------------
-# 🚀 محاكي الحقن المالي التلقائي (Auto-Seeder) لتنشيط لوحة المراقبة والبحث
-# -------------------------------------------------------------------------
-def seed_initial_pending_transactions(target, connection, **kw):
+def auto_create_supplier_wallet(mapper, connection, target):
     """
-    تقوم هذه الدالة بفحص المحافظ الفارغة وحقن عمليات سحب معلقة تجريبية فوراً عند استقرار الجداول،
-    لتفعيل محرك البحث واختبار دورة التعميد المالي كلياً بدون أخطاء.
+    مراقب حوكمي صارم يعمل فوراً أثناء عملية ولادة حساب المورد (after_insert).
+    يستخرج الرقم التسلسلي الموحد لتركيب كود المحفظة وحقنها تلقائياً بالرصيد الصفري المستقر.
     """
-    from sqlalchemy import inspect
-    from sqlalchemy.orm import Session
-    
-    session = Session(bind=connection)
-    try:
-        wallets = session.query(Wallet).all()
-        if wallets:
-            tx_count = session.query(WalletTransaction).count()
-            if tx_count == 0:
-                for wallet in wallets:
-                    # 1. تحديث رصيد المحفظة تجريبياً ليعكس وجود مبالغ معلقة ومتاحة لجميع العملات لتنشيط الواجهة
-                    wallet.yer_available = 75000.0
-                    wallet.yer_pending = 45000.0
-                    wallet.yer_total = 120000.0
-                    
-                    wallet.sar_available = 400.0
-                    wallet.sar_pending = 200.0
-                    wallet.sar_total = 600.0
-                    
-                    wallet.usd_available = 250.0
-                    wallet.usd_pending = 150.0
-                    wallet.usd_total = 400.0
-                    
-                    # 2. حقن طلب سحب بالريال اليمني للمورد ليظهر في لوحة البحث فوراً
-                    txn_yer = WalletTransaction(
-                        wallet_id=wallet.id,
-                        tx_type='withdrawal',
-                        currency='YER',
-                        amount=45000.0,
-                        tx_status='pending',
-                        description="طلب سحب تجريبي مالي عبر مصرف الكريمي - فرع التاجر الرئيسي"
-                    )
-                    
-                    # 3. حقن طلب سحب بالدولار الأمريكي بالتوازي
-                    txn_usd = WalletTransaction(
-                        wallet_id=wallet.id,
-                        tx_type='withdrawal',
-                        currency='USD',
-                        amount=150.0,
-                        tx_status='pending',
-                        description="طلب سحب أرباح مجمع عبر شبكة النجم للحوالات"
-                    )
-                    
-                    session.add(txn_yer)
-                    session.add(txn_usd)
-                
-                session.commit()
-    except Exception:
-        session.rollback()
-    finally:
-        session.close()
+    # استخراج الرقم التسلسلي الموحد المشتق من المعرف السيادي لضمان التطابق الجيني
+    if target.sovereign_id and 'MAH963' in target.sovereign_id:
+        serial_num = target.sovereign_id.split('MAH963')[-1]
+    else:
+        serial_num = str(target.id)
+        
+    generated_wallet_code = f"WEL-MAH963{serial_num}"
 
-# ربط المحاكي بحدث ما بعد إنشاء الجداول ليعمل بنعومة وتلقائية كاملة
-event.listen(Wallet.__table__, 'after_create', seed_initial_pending_transactions)
+    # إنشاء جدول المحفظة وإدراجه مباشرة في قاعدة البيانات تحت نفس جلسة العمل الحالية
+    wallet_table = Wallet.__table__
+    connection.execute(
+        wallet_table.insert().values(
+            supplier_id=target.id,
+            wallet_code=generated_wallet_code,
+            yer_balance=0.00,
+            yer_reserved=0.00,
+            sar_balance=0.00,
+            sar_reserved=0.00,
+            usd_balance=0.00,
+            usd_reserved=0.00,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+    )
+
+# ربط الدالة بحدث "بعد الإدخال الفوري" للمورد للتأكد من ولادة المحفظة تلقائياً وبأعلى سرعة معالجة
+event.listen(Supplier, 'after_insert', auto_create_supplier_wallet)
