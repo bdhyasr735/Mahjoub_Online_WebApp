@@ -31,7 +31,7 @@ def add_supplier_page():
     """
     if request.method == 'POST':
         try:
-            # 1. استقبال البيانات الأساسية من النموذج
+            # 1. استقبال البيانات الأساسية من النموذج وتنظيفها
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '').strip()
             identity_type = request.form.get('identity_type', '').strip()
@@ -71,25 +71,35 @@ def add_supplier_page():
             if Supplier.query.filter_by(trade_name=trade_name).first():
                 return jsonify({"status": "error", "message": "الاسم التجاري للمنشأة مسجل مسبقاً لدينا."}), 400
 
-            # 4. معالجة رفع صورة الوثيقة وحفظها بأمان
-            identity_image_path = None
+            if Supplier.query.filter_by(owner_phone=owner_phone).first():
+                return jsonify({"status": "error", "message": "رقم هاتف المالك مسجل لمورد آخر مسبقاً."}), 400
+
+            # 4. معالجة رفع صورة الوثيقة وحفظها بأمان هندسي كامل
+            identity_image_db_path = None
             if 'identity_image' in request.files:
                 file = request.files['identity_image']
-                if file and file.filename != '' and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    unique_filename = f"doc_{secrets.token_hex(8)}_{filename}"
-                    upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads/identities')
-                    
-                    if not os.path.exists(upload_folder):
-                        os.makedirs(upload_folder)
+                if file and file.filename != '':
+                    if allowed_file(file.filename):
+                        filename = secure_filename(file.filename)
+                        # توليد اسم فريد غير قابل للتخمين والاصطدام التكراري
+                        unique_filename = f"doc_{secrets.token_hex(8)}_{filename}"
                         
-                    file.save(os.path.join(upload_folder, unique_filename))
-                    identity_image_path = os.path.join(upload_folder, unique_filename)
+                        # تحديد المجلد بشكل ديناميكي آمن متوافق مع سيرفرات التشغيل الفعلي
+                        base_upload_folder = current_app.config.get('UPLOAD_FOLDER', os.path.join(current_app.root_path, 'static', 'uploads', 'identities'))
+                        
+                        if not os.path.exists(base_upload_folder):
+                            os.makedirs(base_upload_folder, exist_ok=True)
+                        
+                        # حفظ الملف ميكانيكياً في السيرفر
+                        file.save(os.path.join(base_upload_folder, unique_filename))
+                        # حفظ المسار النسبي الآمن للاستدعاء البرمجي المستقبلي في قاعدة البيانات
+                        identity_image_db_path = f"uploads/identities/{unique_filename}"
+                    else:
+                        return jsonify({"status": "error", "message": "⚠️ صيغة الملف المرفوع غير مدعومة سيادياً، يرجى رفع صورة أو ملف PDF."}), 400
 
-            # 5. نظام التوليد التتابعي الذكي (العداد التراكمي الفعلي)
-            # جلب إجمالي الموردين الحاليين لتوليد التسلسل القادم بأمان من قلب القاعدة
+            # 5. نظام التوليد التتابعي الذكي (حساب آمن للعداد لتفادي التصادم الهيكلي)
             try:
-                current_count = Supplier.query.count()
+                current_count = db.session.query(Supplier).count()
             except Exception:
                 current_count = 0
 
@@ -110,7 +120,7 @@ def add_supplier_page():
                 wallet_code=generated_wallet_code,
                 identity_type=identity_type,
                 identity_number=identity_number,
-                identity_image=identity_image_path,
+                identity_image=identity_image_db_path,
                 owner_name=owner_name,
                 trade_name=trade_name,
                 owner_phone=owner_phone,
@@ -126,16 +136,16 @@ def add_supplier_page():
             )
             db.session.add(new_supplier)
             
-            # 8. توليد وربط المحفظة المالية التابعة للمورد فوراً للحفاظ على حوكمة العمليات
+            # 8. توليد وربط المحفظة المالية التابعة للمورد فوراً للحفاظ على حوكمة العمليات ومبدأ التكاملية
             new_wallet = Wallet(
                 wallet_code=generated_wallet_code,
-                supplier_id=generated_sovereign_id,  # أو ربطها بالـ ID الفردي حسب هيكلة الموديل لديك
+                supplier_id=generated_sovereign_id,  
                 balance=0.0,
                 status="نشطة"
             )
             db.session.add(new_wallet)
 
-            # تنفيذ الحفظ النهائي والتعميد في قاعدة البيانات
+            # تنفيذ الحفظ النهائي الموحد (Atomic Commit) والتعميد في قاعدة البيانات
             db.session.commit()
 
             # 9. إرجاع استجابة الـ JSON الناجحة لتشغيل الـ Modal في الواجهة الأمامية
@@ -149,7 +159,7 @@ def add_supplier_page():
             }), 200
 
         except Exception as e:
-            db.session.rollback()  # تراجع فوراً في حال حدوث خطأ لمنع تلوث قاعدة البيانات
+            db.session.rollback()  # تراجع فوري وشامل لحماية وسلامة الجداول من التلوث التراكمي
             return jsonify({
                 "status": "error",
                 "message": f"فشل داخلي في السيرفر السحابي (500): {str(e)}"
@@ -158,7 +168,7 @@ def add_supplier_page():
     # في حالة طلب الصفحة عبر (GET)
     endpoints_config = {
         "add_supplier": url_for('admin_suppliers.add_supplier_page'),
-        "check_duplicate": "/admin/suppliers/check-duplicate"
+        "check_duplicate": url_for('admin_suppliers.check_duplicate')
     }
     
     return render_template(
@@ -171,26 +181,26 @@ def add_supplier_page():
 @admin_suppliers_bp.route('/admin/suppliers/check-duplicate', methods=['GET'])
 def check_duplicate():
     """
-    نقطة فحص التكرار اللحظية الفعالة (Live DB Debounce Check) عبر الـ API.
+    نقطة فحص التكرار اللحظية الفعالة (Live DB Debounce Check) عبر الـ API لضمان تفاعل سلس وسريع.
     """
     check_type = request.args.get('type', '')
     value = request.args.get('value', '').strip()
 
     if not check_type or not value:
-        return jsonify({"exists": False, "error": "المعاملات ناقصة"}), 400
+        return jsonify({"exists": False, "error": "المعاملات البرمجية المطلوبة ناقصة"}), 400
 
     exists = False
 
     # الفحص الفعلي المباشر داخل الجداول وعزل المدخلات المتطابقة
     if check_type == 'username':
-        exists = Supplier.query.filter_by(username=value).first() is not None
+        exists = db.session.query(Supplier).filter_by(username=value).first() is not None
     elif check_type == 'identity_number':
-        exists = Supplier.query.filter_by(identity_number=value).first() is not None
+        exists = db.session.query(Supplier).filter_by(identity_number=value).first() is not None
     elif check_type == 'owner_phone':
-        exists = Supplier.query.filter_by(owner_phone=value).first() is not None
+        exists = db.session.query(Supplier).filter_by(owner_phone=value).first() is not None
     elif check_type == 'trade_name':
-        exists = Supplier.query.filter_by(trade_name=value).first() is not None
+        exists = db.session.query(Supplier).filter_by(trade_name=value).first() is not None
     elif check_type == 'bank_acc':
-        exists = Supplier.query.filter_by(bank_acc=value).first() is not None
+        exists = db.session.query(Supplier).filter_by(bank_acc=value).first() is not None
 
     return jsonify({"exists": bool(exists)})
