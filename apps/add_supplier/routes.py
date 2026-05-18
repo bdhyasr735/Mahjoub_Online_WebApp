@@ -1,130 +1,156 @@
 import os
-import random
-import string
-from flask import Blueprint, render_template, request, jsonify, current_app
+import secrets
+from flask import Blueprint, render_template, request, jsonify, current_app, url_for
 from werkzeug.utils import secure_filename
 
-# 👑 إنشاء الـ Blueprint الخاص بحوكمة الموردين وضخ المعرفات
-admin_suppliers = Blueprint(
+# 🛡️ تعريف الـ Blueprint الخاص بإضافة وتعميد الموردين
+admin_suppliers_bp = Blueprint(
     'admin_suppliers', 
     __name__, 
     template_folder='templates',
     static_folder='static'
 )
 
-# تعيين الامتدادات المسموح برفعها لصور الوثائق الرسمية
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'pdf'}
+# ─── محاكاة لقاعدة البيانات (استبدلها بالـ Model الخاص بك في PostgreSQL/SQLAlchemy) ───
+# مثال: from apps.models import db, Supplier, Wallet
+MOCK_DB = {
+    "usernames": ["ali_2026", "admin", "mahjoub_user"],
+    "identity_numbers": ["101202303", "404505606"],
+    "owner_phones": ["771234567"],
+    "trade_names": ["مؤسسة النجاح", "مجموعة البرق"],
+    "bank_accounts": ["123456789"]
+}
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def generate_sovereign_id():
-    """توليد معرف سيادي فريد للمورد متوافق مع نظام التنبؤ بالواجهة"""
-    random_digits = ''.join(random.choices(string.digits, k=3))
-    return f"SUP-MAH{random_digits}"
+# ─── المسارات (Routes) ───
 
-def generate_wallet_code():
-    """توليد كود محفظة آلية تابعة للمورد تلقائياً"""
-    random_digits = ''.join(random.choices(string.digits, k=3))
-    return f"WEL-MAH{random_digits}"
-
-
-@admin_suppliers.route('/admin/suppliers/add', methods=['GET', 'POST'])
+@admin_suppliers_bp.route('/admin/suppliers/add', methods=['GET', 'POST'])
 def add_supplier_page():
-    """مسار عرض استمارة التعميد ومعالجة الضخ المالي والأرشفة"""
-    
+    """
+    عرض صفحة تعميد المورد (GET) ومعالجة طلب التعميد السحابي (POST).
+    """
     if request.method == 'POST':
         try:
-            # 1. سحب بيانات الوصول والتوثيق الأمنية
+            # 1. استقبال البيانات الأساسية من النموذج
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '').strip()
             identity_type = request.form.get('identity_type', '').strip()
             identity_number = request.form.get('identity_number', '').strip()
             
-            # 2. سحب بيانات المالك والمنشأة الجغرافية
             owner_name = request.form.get('owner_name', '').strip()
             trade_name = request.form.get('trade_name', '').strip()
             owner_phone = request.form.get('owner_phone', '').strip()
-            shop_phone = request.form.get('shop_phone', '').strip()  # اختياري الآن
+            shop_phone = request.form.get('shop_phone', '').strip()
+            
             province = request.form.get('province', '').strip()
             district = request.form.get('district', '').strip()
             address_detail = request.form.get('address_detail', '').strip()
             
-            # 3. سحب قنوات الصرف المالي وفئة النشاط
             fin_type = request.form.get('fin_type', '').strip()
             bank_name = request.form.get('bank_name', '').strip()
             bank_acc = request.form.get('bank_acc', '').strip()
             activity_type = request.form.get('activity_type', '').strip()
 
-            # 4. التوليد الديناميكي للمعرفات السيادية والمحفظة الآلية
-            sovereign_id = generate_sovereign_id()
-            wallet_code = generate_wallet_code()
+            # 2. التحقق الخلفي الصارم (Backend Validation) من الحقول الإلزامية
+            if not all([username, password, identity_type, identity_number, owner_name, trade_name, owner_phone, province, district, address_detail, bank_name, bank_acc]):
+                return jsonify({
+                    "status": "error",
+                    "message": "⚠️ جميع الحقول الإلزامية يجب أن تكون مكتملة وصحيحة هندسيًا."
+                }), 400
 
-            # 5. معالجة رفع صورة الوثيقة الرسمية إن وجدت بأمان
+            # 3. التحقق من عدم التكرار في قاعدة البيانات (خط الدفاع الثاني)
+            if username in MOCK_DB["usernames"]:
+                return jsonify({"status": "error", "message": "اسم المستخدم هذا محجوز مسبقاً بالتشفير السيادي."}), 400
+            if identity_number in MOCK_DB["identity_numbers"]:
+                return jsonify({"status": "error", "message": "رقم الوثيقة / الهوية مسجل مسبقاً في النظام."}), 400
+            if bank_acc in MOCK_DB["bank_accounts"]:
+                return jsonify({"status": "error", "message": "رقم الحساب المالي مرتبط بمورد آخر حالياً."}), 400
+
+            # 4. معالجة رفع صورة الوثيقة (اختياري) وحفظها بأمان
             identity_image_path = None
             if 'identity_image' in request.files:
                 file = request.files['identity_image']
                 if file and file.filename != '' and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
-                    # دمج المعرف الفريد مع الاسم لقطع دابر التداخل في السيرفر السحابي
-                    unique_filename = f"{sovereign_id}_{filename}"
-                    upload_folder = current_app.config.get('UPLOAD_FOLDER', 'static/uploads/identities')
+                    # توليد اسم عشوائي فريد لمنع تداخل الملفات
+                    unique_filename = f"doc_{secrets.token_hex(8)}_{filename}"
+                    upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads/identities')
                     
                     if not os.path.exists(upload_folder):
-                        os.makedirs(upload_folder, exist_ok=True)
+                        os.makedirs(upload_folder)
                         
                     file.save(os.path.join(upload_folder, unique_filename))
-                    identity_image_path = f"uploads/identities/{unique_filename}"
+                    identity_image_path = os.path.join(upload_folder, unique_filename)
 
-            # 🛡️ [هنا يتم ربط وتمرير البيانات لقاعدة البيانات أو محرك المايكرو-إنجين]
-            # مثال على هيكلية الحفظ المتوقعة:
-            # supplier_data = {
-            #     "sovereign_id": sovereign_id, "wallet_code": wallet_code, "username": username,
-            #     "identity_type": identity_type, "identity_number": identity_number, "owner_name": owner_name,
-            #     "trade_name": trade_name, "owner_phone": owner_phone, "shop_phone": shop_phone,
-            #     "province": province, "district": district, "address_detail": address_detail,
-            #     "fin_type": fin_type, "bank_name": bank_name, "bank_acc": bank_acc, "activity_type": activity_type,
-            #     "identity_image": identity_image_path, "status": "active"
-            # }
+            # 5. توليد المعرفات الفريدة (التعميد السيادي اللامركزي لعام 2026)
+            # هنا يتم توليد المعرفات بشكل ديناميكي فريد لكل عملية إدخال ناجحة
+            random_suffix = secrets.randbelow(900) + 100  # رقم عشوائي بين 100 و 999
+            generated_sovereign_id = f"SUP-MAH{random_suffix}"
+            generated_wallet_code = f"WEL-MAH{random_suffix}"
 
-            # 👑 صياغة الرد الاستجابي النهائي لـ AJAX لتشغيل الـ Modal بنجاح ساحق
+            # 6. حفظ البيانات في قاعدة البيانات الفعلية (مثال منطقي)
+            # new_supplier = Supplier(username=username, sovereign_id=generated_sovereign_id, ...)
+            # db.session.add(new_supplier)
+            # db.session.commit()
+
+            # 7. إرجاع استجابة الـ JSON الناجحة للنموذج لتشغيل الـ Modal
             return jsonify({
                 "status": "success",
-                "message": "تم تعميد المورد وإنشاء المحفظة بنجاح وتوثيق الهوية السيادية.",
+                "message": "تم إتمام التعميد والأرشفة السيادية بنجاح.",
                 "data": {
-                    "sovereign_id": sovereign_id,
-                    "wallet_code": wallet_code
+                    "sovereign_id": generated_sovereign_id,
+                    "wallet_code": generated_wallet_code
                 }
             }), 200
 
         except Exception as e:
+            # معالجة أي خطأ داخلي غير متوقع في السيرفر السحابي
             return jsonify({
                 "status": "error",
-                "message": f"انهيار خط معالجة السيرفر: {str(e)}"
+                "message": f"فشل داخلي في السيرفر السحابي (500): {str(e)}"
             }), 500
 
-    # في حالة طلب الصفحة عبر GET: تقديم لواجهة الإدخال مع توفير الـ Tokens الأمنية الاحتياطية
-    return render_template('admin/add_supplier.html', backup_csrf="MAHJOUB_SECURE_TOKEN_2026")
+    # في حالة طلب الصفحة عبر (GET)
+    # نقوم بتمرير قاموس الـ endpoints فارغًا أو مهيأً لتفادي أي خطأ BuildError في قوالب Jinja2
+    endpoints_config = {
+        "add_supplier": url_for('admin_suppliers.add_supplier_page'),
+        "check_duplicate": "/admin/suppliers/check-duplicate"
+    }
+    
+    return render_template(
+        'admin/add_supplier.html', 
+        endpoints=endpoints_config,
+        backup_csrf=secrets.token_hex(32)
+    )
 
 
-@admin_suppliers.route('/admin/suppliers/check-duplicate', methods=['GET'])
+@admin_suppliers_bp.route('/admin/suppliers/check-duplicate', methods=['GET'])
 def check_duplicate():
-    """🛡️ محرك التوثيق اللحظي الحامي من تكرار المعرفات وقنوات الاتصال الحيوية"""
-    check_type = request.args.get('type', '').strip()
+    """
+    نقطة فحص التكرار اللحظية (API Endpoint) أثناء الكتابة في الواجهة الأمامية (Debounce Check).
+    """
+    check_type = request.args.get('type', '')
     value = request.args.get('value', '').strip()
 
     if not check_type or not value:
-        return jsonify({"exists": False, "error": "Missing parameters"}), 400
+        return jsonify({"exists": False, "error": "المعاملات ناقصة"}), 400
 
-    # هنا يتم الربط البرمجي مع قاعدة البيانات المحددة للتحقق من التكرار
-    # سنضع الافتراض المبدئي False لضمان استمرار عمل الواجهة ومرونة تجاربك البرمجية الحالية
     exists = False
 
-    # هيكلية الفحص المنطقي:
-    # if check_type == 'username':
-    #     exists = db.suppliers.find_one({"username": value}) is not None
-    # elif check_type == 'identity_number':
-    #     exists = db.suppliers.find_one({"identity_number": value}) is not None
-    # ... وهكذا لبقية الحقول
+    # فحص القيمة بناءً على نوع الحقل الممرر من الـ Dataset
+    if check_type == 'username':
+        exists = value in MOCK_DB["usernames"]
+    elif check_type == 'identity_number':
+        exists = value in MOCK_DB["identity_numbers"]
+    elif check_type == 'owner_phone':
+        exists = value in MOCK_DB["owner_phones"]
+    elif check_type == 'trade_name':
+        exists = value in MOCK_DB["trade_names"]
+    elif check_type == 'bank_acc':
+        exists = value in MOCK_DB["bank_accounts"]
 
-    return jsonify({"exists": exists})
+    return jsonify({"exists": bool(exists)})
