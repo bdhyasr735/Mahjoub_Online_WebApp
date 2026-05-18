@@ -1,9 +1,5 @@
 # coding: utf-8
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
-
-# 🎯 التعديل الجذري: بدلاً من استيراد db الدائري من apps، نقوم بالوصول للـ db المشتركة
-# لمنع نظام بايثون من إعادة قراءة ملف الـ __init__ أثناء البناء المبدئي
 from apps import db
 
 class Wallet(db.Model):
@@ -14,6 +10,8 @@ class Wallet(db.Model):
     __tablename__ = 'supplier_wallets'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    
+    # 🎯 التعديل الحاسم: تحويل الحقل إلى String(50) ليتطابق مع sovereign_id النصي للموردين ويقبل "SUP-MAH9631"
     supplier_id = db.Column(db.String(50), db.ForeignKey('suppliers.sovereign_id'), nullable=False, unique=True)
     wallet_code = db.Column(db.String(50), nullable=False, unique=True)
     
@@ -64,7 +62,7 @@ class Wallet(db.Model):
         pass
 
     def __init__(self, **kwargs):
-        """تصفية تلقائية لمنع استثناء الـ no setter عند التأسيس السريع."""
+        """تصفية تلقائية لمنع استثناء الـ no setter عند التأسيس السريع والتطابق التام مع الـ Properties."""
         computed_properties = {'yer_available', 'sar_available', 'usd_available'}
         filtered_kwargs = {k: v for k, v in kwargs.items() if k not in computed_properties}
         super(Wallet, self).__init__(**filtered_kwargs)
