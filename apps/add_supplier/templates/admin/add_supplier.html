@@ -116,18 +116,18 @@
                     
                     <div class="mb-3">
                         <label class="form-label text-muted small">رقم هاتف المالك</label>
-                        <div class="input-group dir-ltr">
+                        <div class="input-group" style="direction: ltr !important;">
                             <span class="input-group-text bg-white border-0">+967</span>
-                            <input type="tel" name="owner_phone" class="form-control bg-light border-0 validation-field" data-valid="phone" data-db-check="owner_phone" placeholder="7XXXXXXXX" required>
+                            <input type="tel" name="owner_phone" class="form-control bg-light border-0 validation-field text-end" data-valid="phone" data-db-check="owner_phone" placeholder="7XXXXXXXX" required>
                             <span class="input-group-text bg-light border-0 validation-icon"><i class="fas fa-minus text-muted"></i></span>
                         </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label text-muted small">هاتف المنشأة (اختياري / أرضي أو سيار)</label>
-                        <div class="input-group dir-ltr">
+                        <label class="form-label text-muted small">هاتف المنشأة (اختياري)</label>
+                        <div class="input-group" style="direction: ltr !important;">
                             <span class="input-group-text bg-white border-0">+967</span>
-                            <input type="tel" name="shop_phone" class="form-control bg-light border-0" placeholder="أدخل رقم التواصل الإضافي">
+                            <input type="tel" name="shop_phone" class="form-control bg-light border-0 text-end" placeholder="أدخل رقم التواصل الإضافي">
                         </div>
                     </div>
                     
@@ -258,8 +258,7 @@ document.querySelectorAll('.validation-field').forEach(input => {
             switch(type) {
                 case 'name': 
                     isFormatValid = value.split(/\s+/).filter(word => word.length > 0).length >= 3; 
-                    style="border-color: #198754;";
-                    break;
+                    break; // ✅ تم إصلاح الثغرة وحذف سطر الـ CSS الخاطئ هنا
                 case 'min3': 
                     isFormatValid = value.length >= 3; 
                     break;
@@ -311,12 +310,14 @@ document.querySelectorAll('.validation-field').forEach(input => {
 
 function updateSubmitButtonState() {
     const submitBtn = document.getElementById('submitBtn');
-    const totalValidFields = document.querySelectorAll('.validation-field.is-valid').length;
     const hasErrors = document.querySelectorAll('.is-invalid').length > 0;
     
-    const requiredValidationCount = 5; 
+    // حساب الحقول التي تحتوي على كلاس التحقق النشط والناجح
+    const currentValidFields = document.querySelectorAll('.validation-field.is-valid').length;
+    const requiredFieldsCount = 5; 
 
-    if (totalValidFields >= requiredValidationCount && !hasErrors) {
+    // التأكد من استيفاء جميع الحقول الأساسية وتكامل النموذج ميكانيكياً
+    if (currentValidFields >= requiredFieldsCount && !hasErrors) {
         submitBtn.disabled = false;
     } else {
         submitBtn.disabled = true;
@@ -368,30 +369,27 @@ function updateFinanceOptions() {
     select.appendChild(mOpt);
 }
 
-// 🎯 تحديث الدالة الاحترافية لتغيير مظهر الزر بدلاً من تنبيه الـ alert الافتراضي
 function copySupplierCredentials(user, supId, walId, pass) {
     const textToCopy = `✨ تم تعميدك بنجاح في منصة محجوب أونلاين ✨\n\n` +
-                       `🔐 بيانات الاعتماد والوصول الخاصة بك:\n` +
-                       `--------------------------------------\n` +
-                       `👤 اسم المستخدم: ${user}\n` +
-                       `🆔 معرف المورد: ${supId}\n` +
-                       `💳 معرف المحفظة: ${walId}\n` +
-                       `🔑 كلمة المرور المؤقتة: ${pass}\n\n` +
-                       `⚠️ تنبيه: يرجى تغيير كلمة المرور المؤقتة فور تسجيل الدخول الأول لحماية حسابك.\n\n` +
-                       `🤝 شكراً لتسجيلك معنا في منصة محجوب أونلاين\n` +
-                       `🌐 المنصة اللامركزية لحوكمة التجارة الرقمية`;
+                        `🔐 بيانات الاعتماد والوصول الخاصة بك:\n` +
+                        `--------------------------------------\n` +
+                        `👤 اسم المستخدم: ${user}\n` +
+                        `🆔 معرف المورد: ${supId}\n` +
+                        `💳 معرف المحفظة: ${walId}\n` +
+                        `🔑 كلمة المرور المؤقتة: ${pass}\n\n` +
+                        `⚠️ تنبيه: يرجى تغيير كلمة المرور المؤقتة فور تسجيل الدخول الأول لحماية حسابك.\n\n` +
+                        `🤝 شكراً لتسجيلك معنا في منصة محجوب أونلاين\n` +
+                        `🌐 المنصة اللامركزية لحوكمة التجارة الرقمية`;
 
     navigator.clipboard.writeText(textToCopy).then(() => {
         const copyBtn = document.getElementById('copyCredentialsBtn');
         if (copyBtn) {
             const originalText = copyBtn.innerHTML;
             
-            // تحويل الزر إلى الحالة النشطة الناجحة (أخضر تفاعلي)
             copyBtn.innerHTML = `<i class="fas fa-check"></i> تم نسخ نص الاعتماد بنجاح!`;
             copyBtn.style.setProperty('background-color', '#198754', 'important');
             copyBtn.disabled = true;
             
-            // إعادة الزر إلى وضعه البنفسجي القياسي بعد ثانيتين بالضبط
             setTimeout(() => {
                 copyBtn.innerHTML = originalText;
                 copyBtn.style.setProperty('background-color', 'var(--royal-purple)', 'important');
@@ -471,17 +469,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h3 class="fw-bold" style="color: var(--royal-purple);">تم التعميد بنجاح!</h3>
                     </div>
 
-                    <div class="p-3 mb-3 border rounded-3 text-start bg-light" style="font-size: 0.95rem; border-left: 5px solid var(--royal-purple) !important;">
-                        <div class="mb-2" style="text-align: right; direction: rtl;">
+                    <div class="p-3 mb-3 border rounded-3 text-end bg-light" style="font-size: 0.95rem; border-right: 5px solid var(--royal-purple) !important; direction: rtl;">
+                        <div class="mb-2">
                             <strong>👤 اسم المستخدم:</strong> <span class="text-dark fw-bold">${username}</span>
                         </div>
-                        <div class="mb-2" style="text-align: right; direction: rtl;">
+                        <div class="mb-2">
                             <strong>🆔 معرف المورد السيادي:</strong> <span class="text-primary fw-bold">${finalSupplierId}</span>
                         </div>
-                        <div class="mb-2" style="text-align: right; direction: rtl;">
+                        <div class="mb-2">
                             <strong>💳 معرف المحفظة التابعة:</strong> <span class="text-success fw-bold">${finalWalletId}</span>
                         </div>
-                        <div class="mb-0" style="text-align: right; direction: rtl;">
+                        <div class="mb-0">
                             <strong>🔑 كلمة المرور:</strong> <span class="text-danger fw-bold">${password}</span>
                         </div>
                     </div>
