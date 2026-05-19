@@ -61,7 +61,7 @@ def check_duplicate():
         exists = db.session.query(Supplier.query.filter_by(trade_name=value).exists()).scalar()
     elif check_type == 'owner_phone':
         exists = db.session.query(Supplier.query.filter_by(owner_phone=value).exists()).scalar()
-    elif check_type == 'shop_phone':  # 🛡️ الحماية الجديدة المضافة لمنع تكرار هاتف المنشأة
+    elif check_type == 'shop_phone':  # 🛡️ الحماية لمنع تكرار هاتف المنشأة
         exists = db.session.query(Supplier.query.filter_by(shop_phone=value).exists()).scalar()
     elif check_type == 'bank_acc':
         exists = db.session.query(Supplier.query.filter_by(bank_acc=value).exists()).scalar()
@@ -69,8 +69,12 @@ def check_duplicate():
     return jsonify({'exists': exists})
 
 
-@admin_suppliers_bp.route('/admin/suppliers/add', methods=['POST'])
+@admin_suppliers_bp.route('/admin/suppliers/add', methods=['GET', 'POST'])
 def add_supplier_submit():
+    # 🌟 إذا كان الطلب GET، قم بعرض واجهة استمارة إضافة المورد فوراً ومنع خطأ 405
+    if request.method == 'GET':
+        return render_template('add_supplier.html') # تأكد من أن اسم ملف الـ HTML الخاص بالاستمارة يطابق هذا الاسم
+
     # استيراد محلي للموديلات هنا لحل مشكلة المحرك وفصل السيرفر بشكل قطعي
     from apps.models.supplier_db import Supplier
     from apps.models.wallet_db import Wallet
