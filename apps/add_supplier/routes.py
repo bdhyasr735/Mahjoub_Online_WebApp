@@ -6,7 +6,7 @@ import uuid
 import re
 from flask import Blueprint, request, jsonify, render_template, url_for, current_app
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash  # استيراد مكتبة التشفير الآمنة لحماية النظام
+from werkzeug.security import generate_password_hash  # 🔐 استيراد محرك التشفير السيادي لحماية النظام
 
 # 🎯 التعديل الحاسم لكسر الـ Circular Import والتوافق التام مع بوابة النماذج الموحدة:
 from apps import db 
@@ -91,7 +91,7 @@ def add_supplier_submit():
         trade_name = request.form.get('trade_name', '').strip()
         owner_phone = request.form.get('owner_phone', '').strip()
         
-        # تصحيح حقل هاتف المحل ليتوافق مع شرط قاعدة البيانات (nullable=False) ولا يرسل القيمة None فارغة
+        # 🛡️ تأمين حقل هاتف المحل الإجباري (nullable=False) لكي لا يمرر بقيمة None تسبب خطأ قاعدة البيانات
         shop_phone = request.form.get('shop_phone', '').strip() or owner_phone
         
         province = request.form.get('province')
@@ -127,7 +127,7 @@ def add_supplier_submit():
         if check_dup_username:
             return jsonify({'status': 'error', 'message': 'اسم المستخدم معتمد مسبقاً في النظام لحساب آخر.'}), 400
 
-        # التعديل الحاسم لتوليد الهاش المتوافق مع حقل password_hash
+        # 🔐 توليد الهاش الآمن المعتمد للتوافق مع حقل password_hash في الـ Model
         hashed_pwd = generate_password_hash(password)
 
         # 5. بناء السجل وضخه لقاعدة البيانات السيادية
@@ -135,7 +135,7 @@ def add_supplier_submit():
             sovereign_id=final_sovereign_id,
             wallet_code=final_wallet_code,
             username=username,
-            password_hash=hashed_pwd,  # تم التعديل إلى الاسم الدقيق المسجل في الـ Model مع التشفير الآمن
+            password_hash=hashed_pwd,  # ✅ تصحيح اسم العمود إلى password_hash وإدخال القيمة المشفرة
             identity_type=identity_type,
             identity_number=identity_number,
             identity_image=identity_image_path,
@@ -150,7 +150,7 @@ def add_supplier_submit():
             bank_name=bank_name,
             bank_acc=bank_acc,
             activity_type=activity_type,
-            status='active'  # تم تعديل الحالة لتبدأ نشطة مباشرة عند التعميد من لوحة التحكم الإدارية
+            status='active'  # جعل المورد نشطاً مباشرة للتمكين من النظام دون احتجاز 'pending'
         )
         
         db.session.add(new_supplier)
