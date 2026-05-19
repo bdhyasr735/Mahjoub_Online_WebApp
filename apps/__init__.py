@@ -17,15 +17,12 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
 
-    # 🛑 الحل: استيراد النماذج هنا فقط داخل سياق التطبيق (داخل الدالة)
+    # 🛑 استيراد النماذج داخل سياق التطبيق لمنع الاستيراد الدائري
     with app.app_context():
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import Wallet
-        
-        # لا تقم باستيراد db هنا، استخدم db الموجودة في الأعلى
         db.create_all()
-        # (باقي كود التعديلات على قاعدة البيانات كما هو...)
 
     # 🛡️ إعدادات الحماية
     login_manager.login_view = 'auth_portal.login'
@@ -35,15 +32,20 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل البلوبرينتس (كما هي)
+    # ⚙️ استيراد البلوبرينتس
     from apps.auth_portal import auth_blueprint
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.add_supplier.routes import admin_suppliers_bp
     from apps.wallet.routes import admin_wallet
 
-    app.register_blueprint(auth_blueprint, url_prefix='/auth')
-    app.register_blueprint(admin_dashboard, url_prefix='/admin')
-    app.register_blueprint(admin_suppliers_bp, url_prefix='/admin')
-    app.register_blueprint(admin_wallet, url_prefix='/admin')
+    # 🚀 تسجيل البلوبرينتس مع تحديد اسم (name) يطابق توقعات النظام في الـ HTML
+    # هذا هو سر حل خطأ 'Could not build url'
+    app.register_blueprint(auth_blueprint, url_prefix='/auth', name='auth_portal')
+    app.register_blueprint(admin_dashboard, url_prefix='/admin', name='admin_dashboard')
+    
+    # هنا الحيلة: نجعل النظام يرى الموردين باسم 'admin_suppliers' كما يبحث عنه في سجلاتك
+    app.register_blueprint(admin_suppliers_bp, url_prefix='/admin', name='admin_suppliers')
+    
+    app.register_blueprint(admin_wallet, url_prefix='/admin', name='admin_wallet')
 
     return app
