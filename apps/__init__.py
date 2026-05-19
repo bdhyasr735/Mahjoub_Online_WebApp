@@ -1,73 +1,47 @@
 # coding: utf-8
-# 🏢 المصنع المركزي للنواة - منصة محجوب أونلاين 2026
+from flask import render_template, abort
+from flask_login import login_required, current_user
+from apps.models.supplier_db import Supplier
+# نقوم باستيراد admin_dashboard من ملف __init__ الخاص بالمجلد نفسه
+from apps.admin_dashboard import admin_dashboard
 
-import os
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from config import Config
-
-# إنشاء الكائنات المركزية
-db = SQLAlchemy()
-login_manager = LoginManager()
-
-def create_app():
-    app = Flask(__name__, template_folder='templates')
-    app.config.from_object(Config)
-
-    # 🛡️ التحديث السيادي: حل مشكلة تشفير النصوص العربية
-    app.json.ensure_ascii = False
-
-    # تهيئة الإضافات
-    db.init_app(app)
-    login_manager.init_app(app)
-
-    # 🛡️ تهيئة قواعد البيانات والنماذج
-    with app.app_context():
-        import apps.models.admin_db
-        import apps.models.supplier_db
-        import apps.models.wallet_db
+@admin_dashboard.route('/dashboard', methods=['GET'])
+@login_required
+def dashboard_home():
+    """
+    مركز القيادة السيادي - المسار: /admin/dashboard
+    """
+    try:
+        # جلب البيانات
+        total_suppliers = Supplier.query.count()
         
-        try:
-            db.create_all()
-            # 🎯 محرك التصحيح التلقائي السيادي للهيكل المالي
-            db.session.execute(db.text("ALTER TABLE supplier_wallets DROP CONSTRAINT IF EXISTS supplier_wallets_supplier_id_fkey;"))
-            db.session.execute(db.text("ALTER TABLE supplier_wallets ALTER COLUMN supplier_id TYPE VARCHAR(50);"))
-            db.session.execute(db.text("ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS wallet_code VARCHAR(50) UNIQUE;"))
-            db.session.execute(db.text("ALTER TABLE supplier_wallets ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'نشطة';"))
-            db.session.execute(db.text("ALTER TABLE supplier_wallets DROP COLUMN IF EXISTS yer_available;"))
-            db.session.execute(db.text("ALTER TABLE supplier_wallets DROP COLUMN IF EXISTS sar_available;"))
-            db.session.execute(db.text("ALTER TABLE supplier_wallets DROP COLUMN IF EXISTS usd_available;"))
-            db.session.execute(db.text("""
-                ALTER TABLE supplier_wallets 
-                ADD CONSTRAINT supplier_wallets_supplier_id_fkey 
-                FOREIGN KEY (supplier_id) REFERENCES suppliers(sovereign_id);
-            """))
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"❌ تعذر توليد أو تحديث الجداول: {str(e)}")
-        finally:
-            db.session.close()
+        stats = {
+            'total_suppliers': total_suppliers,
+            'active_orders': 0,
+            'system_health': '100% مستقر'
+        }
+        
+        return render_template('admin/dashboard_content.html', 
+                               current_user=current_user, 
+                               stats=stats)
+    except Exception as e:
+        # طباعة الخطأ في السجلات للمساعدة في التشخيص
+        print(f"Error in dashboard_home: {e}")
+        return f"خطأ في تحميل مركز القيادة: {str(e)}", 500
 
-    # 🛡️ إعدادات الحماية
-    login_manager.login_view = 'auth_portal.login'
-    
-    @login_manager.user_loader
-    def load_user(user_id):
-        from apps.models.admin_db import AdminUser
-        return AdminUser.query.get(int(user_id))
+@admin_dashboard.route('/settings', methods=['GET'])
+@login_required
+def system_settings():
+    """
+    إعدادات السيادة
+    """
+    return render_template('admin/settings.html', current_user=current_user)
 
-    # 📥 الاستيراد الآمن للبلوبرينتس (تجنب الاستيراد الدائري)
-    from apps.auth_portal import auth_blueprint
-    from apps.admin_dashboard.routes import admin_dashboard
-    from apps.add_supplier.routes import admin_suppliers_bp
-    from apps.wallet.routes import admin_wallet
-
-    # ⚙️ تسجيل البلوبرينتس في النواة
-    app.register_blueprint(auth_blueprint, url_prefix='/auth')
-    app.register_blueprint(admin_dashboard, url_prefix='/admin')
-    app.register_blueprint(admin_suppliers_bp, url_prefix='/admin')
-    app.register_blueprint(admin_wallet, url_prefix='/admin')
-
-    return app
+@admin_dashboard.route('/suppliers/list', methods=['GET'])
+@login_required
+def list_suppliers():
+    """
+    سجل الموردين
+    """
+    suppliers = Supplier.query.all()
+    return render_template('admin/suppliers.html', suppliers=suppliers)
