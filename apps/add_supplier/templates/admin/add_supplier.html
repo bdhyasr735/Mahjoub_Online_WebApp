@@ -66,7 +66,7 @@
                             <option value="بطاقة شخصية">بطاقة شخصية (عادية)</option>
                             <option value="جواز سفر">جواز سفر</option>
                             <option value="سجل تجاري">سجل تجاري</option>
-                            <option value="manual">إدخال يدوي...</option>
+                            <option value="manual">إدخل يدوي...</option>
                         </select>
                         <div id="idManual" style="display: none;">
                             <input type="text" class="form-control bg-light mb-2" style="border: 1px solid var(--royal-purple);" placeholder="اكتب نوع الوثيقة..." oninput="syncManualValue(this, 'identityTypeSelect')">
@@ -415,6 +415,26 @@ async function fetchNextExpectedSequence() {
     }
 }
 
+function resetSovereignForm() {
+    if (window.supplierSuccessModal) {
+        window.supplierSuccessModal.hide();
+    }
+    
+    const form = document.getElementById('addSupplierForm');
+    form.reset();
+    
+    document.querySelectorAll('.validation-field').forEach(input => {
+        input.classList.remove('is-valid', 'is-invalid');
+        const icon = input.parentElement.querySelector('.validation-icon');
+        if (icon) {
+            icon.innerHTML = '<i class="fas fa-minus text-muted"></i>';
+        }
+    });
+    
+    updateSubmitButtonState();
+    fetchNextExpectedSequence();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const pSelect = document.getElementById('provinceSelect');
     if(pSelect) {
@@ -457,7 +477,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const finalSupplierId = result.data.sovereign_id;
                 const finalWalletId = result.data.wallet_code;
-                const nextRedirectUrl = result.redirect_url || '/admin/suppliers';
 
                 const modalContent = `
                     <div class="text-center mb-4">
@@ -497,12 +516,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span style="color: var(--royal-purple); font-weight: 700;">المنصة اللامركزية لحوكمة التجارة الرقمية</span>
                     </div>
 
-                    <a href="${nextRedirectUrl}" class="btn w-100 py-2 btn-secondary fw-bold text-decoration-none text-center" style="border-radius: 12px; background: var(--royal-purple) !important; color: white;">إغلاق ومتابعة</a>
+                    <button type="button" class="btn w-100 py-2 btn-secondary fw-bold" style="border-radius: 12px; background: var(--royal-purple) !important; color: white;" onclick="resetSovereignForm()">إغلاق وتصفية الاستمارة</button>
                 `;
 
                 document.getElementById('successModalBody').innerHTML = modalContent;
-                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-                successModal.show();
+                window.supplierSuccessModal = new bootstrap.Modal(document.getElementById('successModal'));
+                window.supplierSuccessModal.show();
+                
+                btn.disabled = false;
+                btn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
             } else {
                 alert('فشل التعميد: ' + (result.message || 'يرجى مراجعة البيانات المدخلة.'));
                 btn.disabled = false;
