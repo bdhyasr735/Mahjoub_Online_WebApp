@@ -1,13 +1,21 @@
+# coding: utf-8
+# 🏢 مسارات تعميد وأرشفة الموردين السيادية - منصة محجوب أونلاين 2026
+
 import os
 import uuid
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, current_app
+import re
+from flask import Blueprint, request, jsonify, render_template, url_for, current_app
 from werkzeug.utils import secure_filename
-# افترضنا هنا وجود موديل وقاعدة بيانات مجهزة (تعدل حسب مسارات مشروعك)
-from apps.models import db, Supplier, Wallet 
 
-add_supplier_bp = Blueprint('add_supplier', __name__, template_folder='templates')
+# 🎯 التعديل الحاسم لكسر الـ Circular Import والتوافق مع بنية النواة الجديدة:
+from apps import db 
+from apps.models.supplier_db import Supplier
+from apps.models.wallet_db import SupplierWallet  # تم تعديل الاسم ليطابق اسم الموديل في قاعدة البيانات 'supplier_wallets'
 
-# الامتدادات المسموح بها لصور الوثائق
+# تعميد البلوبرينت بالاسم المطابق تماماً لما تم استدعاؤه في الـ __init__.py
+admin_suppliers_bp = Blueprint('add_supplier', __name__, template_folder='templates')
+
+# الامتدادات المسموح بها لصور الوثائق والتأمين الحوكمي
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
 def allowed_file(filename):
@@ -15,35 +23,30 @@ def allowed_file(filename):
 
 def generate_next_sequence_codes():
     """
-    دالة سيادية لحساب التسلسل القادم ديناميكياً بناءً على آخر مورد تم تعميده.
+    دالة سيادية لحساب التسلسل القادم ديناميكياً بناءً على آخر مورد تم تعميده في النظام.
     تنتج كود مخصص للمنصة مثل: SUP-MAH9631
     """
     try:
         last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
         if last_supplier and last_supplier.sovereign_id:
-            # استخراج الرقم من المعرف الأخير (مثال: SUP-MAH9635 -> 9635)
-            import re
             match = re.search(r'\d+', last_supplier.sovereign_id)
             if match:
                 next_num = int(match.group()) + 1
                 return f"SUP-MAH{next_num}"
-        # البداية الافتراضية للمنصة في حال عدم وجود سجلات سابقة
         return "SUP-MAH9631"
     except Exception as e:
-        current_app.logger.error(f"Error generating sequence: {str(e)}")
+        current_app.logger.error(f"❌ خطأ أثناء توليد التسلسل السيادي: {str(e)}")
         return "SUP-MAH9631"
 
 
-@add_supplier_bp.route('/admin/suppliers/check-duplicate', methods=['GET'])
+@admin_suppliers_bp.route('/admin/suppliers/check-duplicate', methods=['GET'])
 def check_duplicate():
     """
-    نقطة الوصول للتحقق اللحظي عبر الفيس بوك/الواجهة (Debounce) لمنع التكرار،
-    ولجلب المعرفات المتوقعة لحظة فتح الصفحة.
+    نقطة الوصول اللحظية (Debounce Check) لمنع تكرار البيانات الحساسة وقراءة التسلسل التالي للواجهة.
     """
     check_type = request.args.get('type')
     value = request.args.get('value', '').strip()
 
-    # إذا كان الطلب لجلب التسلسل المتوقع التالي
     if check_type == 'get_next_sequence':
         next_sup = generate_next_sequence_codes()
         return jsonify({'next_sequence': next_sup})
@@ -69,7 +72,7 @@ def check_duplicate():
     return jsonify({'exists': exists})
 
 
-@add_supplier_bp.route('/admin/suppliers/add', methods=['POST'])
+@admin_suppliers_bp.route('/admin/suppliers/add', methods=['POST'])
 def add_supplier_submit():
     """
     استقبال ومعالجة نموذج تعميد المورد وإصدار المحفظة وحفظ الوثائق سحابياً.
@@ -77,7 +80,7 @@ def add_supplier_submit():
     try:
         # 1. استخراج البيانات من الواجهة الـ HTML
         username = request.form.get('username', '').strip()
-        password = request.form.get('password') # يفضل تشفيرها بـ werkzeug.security قبل الحفظ
+        password = request.form.get('password')  
         identity_type = request.form.get('identity_type')
         identity_number = request.form.get('identity_number', '').strip()
         
@@ -95,17 +98,16 @@ def add_supplier_submit():
         bank_acc = request.form.get('bank_acc', '').strip()
         activity_type = request.form.get('activity_type')
 
-        # 2. توليد المعرفات السيادية النهائية بشكل آمن ومغلق لمنع تضارب الجلسات
+        # 2. توليد المعرفات السيادية والمالية المغلقة لمنع تضارب الجلسات السحابية
         final_sovereign_id = generate_next_sequence_codes()
         final_wallet_code = final_sovereign_id.replace("SUP-", "WEL-", 1)
 
-        # 3. معالجة وحفظ صورة الوثيقة سحابياً أو محلياً (إن وجدت)
+        # 3. معالجة وحفظ صورة وثيقة الهوية الرقمية
         identity_image_path = None
         if 'identity_image' in request.files:
             file = request.files['identity_image']
             if file and file.filename != '' and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                # توليد اسم فريد للوثيقة لضمان السرية والأرشفة المنظمة
                 unique_filename = f"doc_{final_sovereign_id}_{uuid.uuid4().hex[:6]}_{filename}"
                 
                 upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads/identities')
@@ -115,17 +117,17 @@ def add_supplier_submit():
                 file.save(os.path.join(upload_folder, unique_filename))
                 identity_image_path = os.path.join(upload_folder, unique_filename)
 
-        # 4. فحص احتياطي نهائي في السيرفر لضمان عدم حدوث Duplicate Key Violation
+        # 4. فحص احترازي نهائي على السيرفر قبل الضخ لضمان سلامة البيانات المعمدة
         check_dup_username = Supplier.query.filter_by(username=username).first()
         if check_dup_username:
             return jsonify({'status': 'error', 'message': 'اسم المستخدم معتمد مسبقاً في النظام لحساب آخر.'}), 400
 
-        # 5. بناء السجل وضخه لقاعدة البيانات (تعديل الـ Fields لتطابق جداولك)
+        # 5. بناء السجل وضخه لقاعدة البيانات السيادية
         new_supplier = Supplier(
             sovereign_id=final_sovereign_id,
             wallet_code=final_wallet_code,
             username=username,
-            password=password, # تذكر تشفير كلمة المرور هنا للحماية
+            password=password,  
             identity_type=identity_type,
             identity_number=identity_number,
             identity_image=identity_image_path,
@@ -144,23 +146,20 @@ def add_supplier_submit():
         )
         
         db.session.add(new_supplier)
-        db.session.flush() # لحجز المورد وإتاحة الربط المالي الفوري
+        db.session.flush()  # حجز الكيان لاستخراج المعرف الفريد وتأمين عملية الربط المالي
 
-        # 6. تعميد وإنشاء المحفظة التابعة المرتبطة ماليًا بالمورد الجديد
-        new_wallet = Wallet(
-            supplier_id=new_supplier.id,
+        # 6. تعميد وإنشاء المحفظة التابعة المرتبطة ماليًا بالمورد الجديد (SupplierWallet)
+        new_wallet = SupplierWallet(
+            supplier_id=final_sovereign_id,  # تم الربط عبر الـ sovereign_id بناءً على تعديلات التوافق بالنواة
             wallet_code=final_wallet_code,
-            balance_yer=0.0,
-            balance_sar=0.0,
-            balance_usd=0.0,
-            status='active'
+            status='نشطة'
         )
         db.session.add(new_wallet)
         
-        # إنهاء المعاملة وحفظ البيانات بشكل قطعي وثابت
+        # إنهاء المعاملة وحفظ البيانات بشكل قطعي وثابت سحابياً
         db.session.commit()
 
-        # 7. الاستجابة بالـ JSON المتوافق تماماً مع الـ Modal والميكانيكية التفاعلية بالـ HTML
+        # 7. الاستجابة بالـ JSON المتوافق تماماً مع ميكانيكية المودال لإتمام النسخ بنجاح كما بالصورة
         return jsonify({
             'status': 'success',
             'message': 'تم تعميد المورد بنجاح في قاعدة البيانات السيادية.',
@@ -168,21 +167,21 @@ def add_supplier_submit():
                 'sovereign_id': final_sovereign_id,
                 'wallet_code': final_wallet_code
             },
-            'redirect_url': url_for('add_supplier.admin_suppliers_list') # مسار صفحة جدول الموردين بعد الإغلاق
+            'redirect_url': url_for('add_supplier.admin_suppliers_list')
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Sovereign Archive Error: {str(e)}")
+        current_app.logger.error(f"❌ Sovereign Archive Error: {str(e)}")
         return jsonify({
             'status': 'error', 
             'message': f'فشل في حفظ البيانات السحابية: {str(e)}'
         }), 500
 
 
-@add_supplier_bp.route('/admin/suppliers')
+@admin_suppliers_bp.route('/admin/suppliers/list')
 def admin_suppliers_list():
     """
-    صفحة عرض وأرشفة الموردين المعتمدين (المسار المتوقع لإعادة التوجيه بعد النجاح).
+    عرض وأرشفة الموردين المعتمدين في النظام - المسار المتوافق مع المتصفح لحل الـ 404 والـ 500.
     """
     return render_template('admin_suppliers_list.html')
