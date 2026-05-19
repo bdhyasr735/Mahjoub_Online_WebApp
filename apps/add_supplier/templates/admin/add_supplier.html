@@ -258,6 +258,7 @@ document.querySelectorAll('.validation-field').forEach(input => {
             switch(type) {
                 case 'name': 
                     isFormatValid = value.split(/\s+/).filter(word => word.length > 0).length >= 3; 
+                    style="border-color: #198754;";
                     break;
                 case 'min3': 
                     isFormatValid = value.length >= 3; 
@@ -342,7 +343,7 @@ function updateDistrictOptions() {
     if (yemenGeography[p]) {
         yemenGeography[p].forEach(d => {
             const opt = document.createElement('option');
-            const.value = d;
+            opt.value = d;
             opt.textContent = d;
             dSelect.appendChild(opt);
         });
@@ -367,6 +368,7 @@ function updateFinanceOptions() {
     select.appendChild(mOpt);
 }
 
+// 🎯 تحديث الدالة الاحترافية لتغيير مظهر الزر بدلاً من تنبيه الـ alert الافتراضي
 function copySupplierCredentials(user, supId, walId, pass) {
     const textToCopy = `✨ تم تعميدك بنجاح في منصة محجوب أونلاين ✨\n\n` +
                        `🔐 بيانات الاعتماد والوصول الخاصة بك:\n` +
@@ -384,10 +386,12 @@ function copySupplierCredentials(user, supId, walId, pass) {
         if (copyBtn) {
             const originalText = copyBtn.innerHTML;
             
+            // تحويل الزر إلى الحالة النشطة الناجحة (أخضر تفاعلي)
             copyBtn.innerHTML = `<i class="fas fa-check"></i> تم نسخ نص الاعتماد بنجاح!`;
             copyBtn.style.setProperty('background-color', '#198754', 'important');
             copyBtn.disabled = true;
             
+            // إعادة الزر إلى وضعه البنفسجي القياسي بعد ثانيتين بالضبط
             setTimeout(() => {
                 copyBtn.innerHTML = originalText;
                 copyBtn.style.setProperty('background-color', 'var(--royal-purple)', 'important');
