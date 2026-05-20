@@ -1,49 +1,17 @@
 # coding: utf-8
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from config import Config
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_required
+# تأكد من استيراد كائناتك الأساسية من ملف __init__.py الرئيسي
+from apps import db 
 
-# إنشاء الكائنات المركزية
-db = SQLAlchemy()
-login_manager = LoginManager()
+# هذا هو الاسم الذي يبحث عنه ملف __init__.py
+admin_wallet = Blueprint('admin_wallet', __name__)
 
-def create_app():
-    app = Flask(__name__, template_folder='templates')
-    app.config.from_object(Config)
-    app.json.ensure_ascii = False
+# أمثلة للمسارات (Routes) داخل هذا البلوبرينت
+@admin_wallet.route('/wallet', methods=['GET'])
+@login_required
+def wallet_page():
+    # هنا تضع منطق المحفظة الخاص بك
+    return render_template('admin/wallet.html')
 
-    # 1. تهيئة الإضافات الأساسية
-    db.init_app(app)
-    login_manager.init_app(app)
-
-    # 2. تسجيل البلوبرينتس باستيراد آمن (Local Imports) لمنع الانهيار
-    from apps.auth_portal import auth_blueprint
-    app.register_blueprint(auth_blueprint, url_prefix='/auth', name='auth_portal')
-
-    from apps.admin_dashboard.routes import admin_dashboard
-    app.register_blueprint(admin_dashboard, url_prefix='/admin', name='admin_dashboard')
-
-    from apps.add_supplier.routes import admin_suppliers_bp
-    app.register_blueprint(admin_suppliers_bp, url_prefix='/admin', name='add_supplier')
-
-    # استيراد وتسجيل المحفظة بطريقة لا تسبب كسر الإقلاع
-    from apps.wallet.routes import admin_wallet
-    app.register_blueprint(admin_wallet, url_prefix='/admin', name='admin_wallet')
-
-    # 3. سياق التطبيق لتهيئة النماذج وقاعدة البيانات
-    with app.app_context():
-        from apps.models.admin_db import AdminUser
-        from apps.models.supplier_db import Supplier
-        from apps.models.wallet_db import Wallet
-        db.create_all()
-
-    # 4. إعدادات تسجيل الدخول
-    login_manager.login_view = 'auth_portal.login'
-    
-    @login_manager.user_loader
-    def load_user(user_id):
-        from apps.models.admin_db import AdminUser
-        return AdminUser.query.get(int(user_id))
-
-    return app
+# أضف بقية المسارات الخاصة بك هنا تحت نفس الـ Blueprint
