@@ -25,7 +25,7 @@ def create_app():
     login_manager.init_app(app)
 
     with app.app_context():
-        # --- استيراد الموديلات (يجب أن يتم هنا لضمان معرفة db بها) ---
+        # --- استيراد الموديلات ---
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet
@@ -73,9 +73,10 @@ def create_app():
     from apps.add_supplier.routes import admin_suppliers_bp
     from apps.wallet.routes import admin_wallet
 
+    # تسجيل المسارات مع التأكد من الأسماء المطابقة للـ url_for
     app.register_blueprint(auth_blueprint, url_prefix='/auth', name='auth_portal')
     app.register_blueprint(admin_dashboard, url_prefix='/admin', name='admin_dashboard')
-    app.register_blueprint(admin_suppliers_bp, url_prefix='/', name='add_supplier')
+    app.register_blueprint(admin_suppliers_bp, url_prefix='/suppliers', name='add_supplier')
     app.register_blueprint(admin_wallet, url_prefix='/admin/wallet', name='admin_wallet')
     
     # معالجة الأخطاء السيادية
