@@ -1,12 +1,38 @@
 # coding: utf-8
 # ⚙️ محرك تعميد وإدارة الموردين - منصة محجوب أونلاين 2026
 
-from flask import render_template, request, jsonify, url_for
+from flask import render_template, request, jsonify
 from flask_login import login_required
 from . import admin_suppliers_bp
 from apps.models.supplier_db import Supplier, db
-# تأكد من استيراد نموذج المحفظة إذا كنت تنشئها في نفس الوقت
 from apps.models.wallet_db import SupplierWallet 
+
+@admin_suppliers_bp.route('/check-duplicate', methods=['GET'])
+@login_required
+def check_duplicate():
+    """
+    دالة للتحقق من عدم تكرار البيانات (اسم المستخدم، رقم الهاتف، إلخ)
+    """
+    field_type = request.args.get('type')
+    value = request.args.get('value')
+
+    if not field_type or not value:
+        return jsonify({"exists": False})
+
+    exists = False
+    if field_type == 'username':
+        exists = Supplier.query.filter_by(username=value).first() is not None
+    elif field_type == 'identity_number':
+        exists = Supplier.query.filter_by(identity_number=value).first() is not None
+    elif field_type == 'owner_phone':
+        exists = Supplier.query.filter_by(owner_phone=value).first() is not None
+    elif field_type == 'get_next_sequence':
+        # منطق جلب المعرف التالي (يمكنك تطويره لاحقاً)
+        count = Supplier.query.count()
+        next_id = f"SUP-MAH{9631 + count}"
+        return jsonify({"next_sequence": next_id})
+
+    return jsonify({"exists": exists})
 
 @admin_suppliers_bp.route('/add', methods=['GET', 'POST'])
 @login_required
@@ -16,43 +42,36 @@ def add_supplier_submit():
     """
     if request.method == 'POST':
         try:
-            # 1. استلام البيانات من النموذج
-            username = request.form.get('username')
-            password = request.form.get('password') # ملاحظة: يفضل تشفيره قبل الحفظ
-            owner_name = request.form.get('owner_name')
-            trade_name = request.form.get('trade_name')
-            owner_phone = request.form.get('owner_phone')
+            # استلام البيانات
+            data = request.form
             
-            # 2. توليد المعرفات (يجب أن تتطابق مع التنسيق في الواجهة)
-            # افترضنا هنا توليدها بناءً على منطق بسيط أو تسلسلي
-            new_sup_id = "SUP-MAH9631" 
-            new_wal_id = "WEL-MAH9631"
-
-            # 3. حفظ البيانات في قاعدة البيانات
+            # حفظ المورد
             new_supplier = Supplier(
-                username=username,
-                owner_name=owner_name,
-                trade_name=trade_name,
-                sovereign_id=new_sup_id
+                username=data.get('username'),
+                owner_name=data.get('owner_name'),
+                trade_name=data.get('trade_name'),
+                owner_phone=data.get('owner_phone'),
+                identity_number=data.get('identity_number'),
+                identity_type=data.get('identity_type'),
+                sovereign_id=data.get('sovereign_id') # القيمة القادمة من الحقل المخفي
             )
             db.session.add(new_supplier)
             
-            # إنشاء محفظة افتراضية للمورد
+            # إنشاء محفظة المورد
             new_wallet = SupplierWallet(
-                supplier_id=new_sup_id,
-                wallet_code=new_wal_id
+                supplier_id=data.get('sovereign_id'),
+                wallet_code=data.get('wallet_code')
             )
             db.session.add(new_wallet)
             
             db.session.commit()
 
-            # 4. إرجاع استجابة JSON للـ JavaScript
             return jsonify({
                 "status": "success",
                 "message": "تم تعميد المورد بنجاح",
                 "data": {
-                    "sovereign_id": new_sup_id,
-                    "wallet_code": new_wal_id
+                    "sovereign_id": data.get('sovereign_id'),
+                    "wallet_code": data.get('wallet_code')
                 }
             })
 
@@ -60,13 +79,11 @@ def add_supplier_submit():
             db.session.rollback()
             return jsonify({"status": "error", "message": str(e)}), 500
 
-    return render_template('add_supplier/add_supplier.html')
+    # التعديل هنا: مسار القالب الصحيح بناءً على هيكل مجلداتك
+    return render_template('admin/add_supplier.html')
 
 @admin_suppliers_bp.route('/list', methods=['GET'])
 @login_required
 def list_suppliers_data():
     suppliers = Supplier.query.all()
-    return render_template('add_supplier/list.html', suppliers=suppliers)
-
-# لتفادي خطأ Could not build url
-add_supplier_route = add_supplier_submit
+    return render_template('admin/list.html', suppliers=suppliers)
