@@ -26,12 +26,13 @@ def create_app():
         # --- استدعاء الموديلات لضمان تسجيل الجداول ---
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
+        # تم تعديل سطر الاستيراد هنا ليتطابق مع اسم الكلاس الجديد في wallet_db.py
         from apps.models.wallet_db import SupplierWallet
         
         try:
             db.create_all()
             
-            # أوامر التطهير وإعادة الهيكلة الرقمية (تم جعلها آمنة)
+            # أوامر التطهير وإعادة الهيكلة الرقمية
             commands = [
                 "ALTER TABLE supplier_wallets DROP CONSTRAINT IF EXISTS supplier_wallets_supplier_id_fkey;",
                 "ALTER TABLE supplier_wallets ALTER COLUMN supplier_id TYPE VARCHAR(50);",
@@ -46,7 +47,7 @@ def create_app():
                 try:
                     db.session.execute(db.text(cmd))
                 except Exception:
-                    pass # تخطي الأوامر التي قد تكون نُفذت مسبقاً
+                    pass 
             
             db.session.commit()
             print("🚀 سيادة وحوكمة: تم إقرار البنية الرقمية للمحافظ بنجاح.")
