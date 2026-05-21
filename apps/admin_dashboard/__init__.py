@@ -2,13 +2,14 @@
 # 🛡️ تعريف المسارات السيادية للوحة التحكم
 
 from flask import Blueprint
+import os
 
-# إنشاء الـ Blueprint
+# تعريف الـ Blueprint مع تحديد مجلد القوالب بدقة
 admin_dashboard = Blueprint(
     'admin_dashboard', 
     __name__, 
     template_folder='templates'
 )
 
-# استيراد الـ routes بعد تعريف الـ Blueprint لتجنب التداخل الحلقي (Circular Import)
+# استيراد الـ routes هنا ضروري لربط المسارات بالـ Blueprint
 from . import routes
