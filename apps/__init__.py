@@ -28,7 +28,7 @@ def create_app():
         # --- استيراد الموديلات ---
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
-        from apps.models.wallet_db import SupplierWallet
+        from apps.models.wallet_db import SupplierWallet 
         
         # إنشاء الجداول وتطبيق التعديلات البرمجية
         try:
@@ -70,12 +70,14 @@ def create_app():
     # --- استيراد وتسجيل المسارات (Blueprints) ---
     from apps.auth_portal import auth_blueprint
     from apps.admin_dashboard import admin_dashboard
-    from apps.add_supplier.routes import admin_suppliers_bp
+    # التعديل الصحيح للاستيراد:
+    from apps.add_supplier import admin_suppliers_bp 
     from apps.wallet.routes import admin_wallet
 
-    # تسجيل المسارات (يجب أن تتطابق الـ names هنا مع ما تستدعيه في url_for)
+    # تسجيل المسارات
     app.register_blueprint(auth_blueprint, url_prefix='/auth', name='auth_portal')
     app.register_blueprint(admin_dashboard, url_prefix='/admin', name='admin_dashboard')
+    # يجب أن يكون الـ name هنا 'add_supplier' ليتطابق مع url_for('add_supplier.xxx')
     app.register_blueprint(admin_suppliers_bp, url_prefix='/suppliers', name='add_supplier')
     app.register_blueprint(admin_wallet, url_prefix='/admin/wallet', name='admin_wallet')
     
