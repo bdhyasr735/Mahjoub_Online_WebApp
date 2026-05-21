@@ -1,4 +1,5 @@
 # coding: utf-8
+import os
 import sys
 import traceback
 from apps import create_app
@@ -10,10 +11,14 @@ try:
 except Exception:
     print("❌ فشل تشغيل المصنع المركزي، التفاصيل أدناه:")
     traceback.print_exc()
-    # الخروج بكود 1 يخبر Render أن هناك خطأ في التهيئة
+    # الخروج بكود 1 يخبر المنصات أن هناك خطأ في التهيئة (ضروري لـ Render)
     sys.exit(1)
 
-# هذا الجزء مخصص للتشغيل المحلي فقط (Development)
-# عند استخدام gunicorn في الإنتاج، سيتم تجاهل هذا الجزء تلقائياً
+# هذا الجزء مخصص للتشغيل المحلي أو للتوافق مع سيرفرات الـ WSGI
 if __name__ == "__main__":
-    app.run(debug=False)
+    # الحصول على المنفذ من متغيرات البيئة (Render يفرض منفذًا خاصًا)
+    # أو استخدام 5000 كقيمة افتراضية للتشغيل المحلي
+    port = int(os.environ.get("PORT", 5000))
+    
+    # التشغيل على كافة الواجهات (0.0.0.0) لضمان الوصول من المنصات الخارجية
+    app.run(host="0.0.0.0", port=port, debug=False)
