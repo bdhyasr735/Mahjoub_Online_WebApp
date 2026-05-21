@@ -3,26 +3,19 @@
 
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
-
-# استيراد db والنماذج بطريقة أكثر أماناً لتجنب Circular Imports
+from werkzeug.security import generate_password_hash # إضافة للتشفير
 from apps import db
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet
-
 import secrets
 import string
 
-# تعريف الـ Blueprint
 admin_suppliers_bp = Blueprint('add_supplier', __name__, template_folder='templates')
 
 def generate_sovereign_id():
-    """توليد معرف سيادي فريد للمورد"""
+    """توليد معرف سيادي فريد"""
     random_part = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
     return f"SUP-MAH{random_part}"
-
-def generate_wallet_code(supplier_id):
-    """توليد كود محفظة مرتبط بمعرف المورد"""
-    return supplier_id.replace("SUP-", "WEL-")
 
 @admin_suppliers_bp.route('/add', methods=['GET'])
 @login_required
@@ -38,25 +31,31 @@ def check_duplicate():
     if check_type == 'get_next_sequence':
         return jsonify({"next_sequence": generate_sovereign_id()})
 
-    exists = False
-    # التحقق من وجود القيمة في قاعدة البيانات
-    if check_type in ['username', 'identity_number', 'owner_phone', 'trade_name', 'bank_acc']:
-        exists = Supplier.query.filter(getattr(Supplier, check_type) == value).first() is not None
-
-    return jsonify({"exists": exists})
+    # استخدام try-except للتحقق لتجنب انهيار الطلب إذا كانت الحقول غير موجودة
+    try:
+        exists = False
+        if hasattr(Supplier, check_type):
+            exists = Supplier.query.filter(getattr(Supplier, check_type) == value).first() is not None
+        return jsonify({"exists": exists})
+    except Exception:
+        return jsonify({"exists": False}), 400
 
 @admin_suppliers_bp.route('/submit', methods=['POST'])
 @login_required
 def add_supplier_submit():
     try:
         sovereign_id = generate_sovereign_id()
-        wallet_code = generate_wallet_code(sovereign_id)
+        wallet_code = sovereign_id.replace("SUP-", "WEL-")
+
+        # تشفير كلمة المرور قبل الحفظ (أمان سيادي)
+        raw_password = request.form.get('password')
+        hashed_password = generate_password_hash(raw_password)
 
         new_supplier = Supplier(
             sovereign_id=sovereign_id,
             wallet_code=wallet_code,
             username=request.form.get('username'),
-            password=request.form.get('password'), 
+            password=hashed_password, 
             identity_type=request.form.get('identity_type'),
             identity_number=request.form.get('identity_number'),
             owner_name=request.form.get('owner_name'),
@@ -81,8 +80,14 @@ def add_supplier_submit():
         db.session.add(new_wallet)
         db.session.commit()
 
-        return jsonify({"status": "success", "message": "تم تعميد المورد بنجاح"})
+        return jsonify({
+            "status": "success", 
+            "message": "تم تعميد المورد بنجاح",
+            "sovereign_id": sovereign_id
+        })
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        # تسجيل الخطأ في السيرفر دون إظهار تفاصيله الحساسة للمستخدم
+        print(f"Error during submission: {e}")
+        return jsonify({"status": "error", "message": "حدث خطأ أثناء عملية التعميد"}), 500
