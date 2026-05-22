@@ -1,14 +1,7 @@
-# coding: utf-8
+# مثال: apps/admin_dashboard/__init__.py
 from flask import Blueprint
 
-# تعريف البلوبرينت (Blueprint) الخاص بلوحة القيادة
-# هذا هو الذي يتم استيراده في المصنع المركزي (apps/__init__.py)
-admin_dashboard_bp = Blueprint(
-    'admin_dashboard', 
-    __name__, 
-    template_folder='templates'
-)
+# هذا الاسم 'admin_dashboard_bp' يجب أن يطابق ما استوردته في المصنع
+admin_dashboard_bp = Blueprint('admin_dashboard_bp', __name__)
 
-# استيراد المسارات (Routes) هنا بعد تعريف البلوبرينت 
-# لتجنب خطأ الاستيراد الدائري (Circular Import Error)
 from . import routes
