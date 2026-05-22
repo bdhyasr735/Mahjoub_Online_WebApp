@@ -1,24 +1,18 @@
-<div id="dashboard-main-view" class="container-fluid py-4 animate__animated animate__fadeIn">
-    
+<div id="dashboard-main-view" class="container-fluid animate__animated animate__fadeIn">
     <div class="row g-4 mb-5">
         {% set totals = totals or {'total_yer': 0, 'total_sar': 0, 'total_usd': 0} %}
-        {% set cards = [
-            {'title': 'إجمالي الخزينة (YER)', 'val': totals.total_yer, 'bg': 'linear-gradient(135deg, #1b5e20, #2e7d32)', 'unit': '﷼'},
-            {'title': 'إجمالي الخزينة (SAR)', 'val': totals.total_sar, 'bg': 'linear-gradient(135deg, #b71c1c, #e65100)', 'unit': 'ر.س'},
-            {'title': 'إجمالي الخزينة (USD)', 'val': totals.total_usd, 'bg': 'linear-gradient(135deg, #0d47a1, #1976d2)', 'unit': '$'}
+        {% for title, val, unit, color in [
+            ('إجمالي الخزينة (YER)', totals.total_yer, '﷼', '#2e7d32'), 
+            ('إجمالي الخزينة (SAR)', totals.total_sar, 'ر.س', '#e65100'), 
+            ('إجمالي الخزينة (USD)', totals.total_usd, '$', '#1976d2')
         ] %}
-        
-        {% for card in cards %}
         <div class="col-md-4">
-            <div class="card text-white shadow-sm border-0 h-100" style="background: {{ card.bg }}; border-radius: 20px; transition: transform 0.3s ease;">
+            <div class="card text-white shadow-sm border-0 h-100" style="background: {{ color }}; border-radius: 20px; transition: transform 0.3s;">
                 <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="text-white-50 mb-0 fw-bold">{{ card.title }}</h6>
-                        <i class="fas fa-wallet opacity-50 fs-4"></i>
-                    </div>
+                    <h6 class="text-white-50 fw-bold mb-3">{{ title }}</h6>
                     <h2 class="fw-bold mb-0">
-                        {{ "{:,.2f}".format(card.val|float) }} 
-                        <span class="fs-6 fw-normal text-white-75">{{ card.unit }}</span>
+                        {{ "{:,.2f}".format(val|float) }} 
+                        <span class="fs-6 fw-normal text-white-75">{{ unit }}</span>
                     </h2>
                 </div>
             </div>
@@ -26,28 +20,15 @@
         {% endfor %}
     </div>
 
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 20px; border-right: 5px solid #632C8F;">
-                <div class="d-flex flex-column align-items-center">
-                    <div class="p-3 rounded-circle mb-3" style="background: rgba(99, 44, 143, 0.1);">
-                        <i class="fas fa-shield-alt" style="font-size: 2rem; color: #632C8F;"></i>
-                    </div>
-                    <h5 class="fw-bold text-dark">نظام حوكمة المحافظ الموحد - 2026</h5>
-                    <p class="text-muted small mt-2 w-75">
-                        تم تفعيل الربط الديناميكي بنجاح. الواجهة الآن تعمل بمعمارية التحديث اللحظي (AJAX) دون إعادة تحميل كاملة للصفحة.
-                    </p>
-                </div>
-            </div>
-        </div>
+    <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 20px; border-right: 5px solid #632C8F;">
+        <h5 class="fw-bold text-dark">نظام حوكمة المحافظ الموحد</h5>
+        <p class="text-muted small mt-2">
+            تم الحقن بنجاح في مساحة العرض الديناميكي. النظام جاهز للعمل.
+        </p>
     </div>
 </div>
 
 <style>
-    /* تأثير التلاشي للظهور السلس */
-    .animate__fadeIn { animation: fadeIn 0.6s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
-    /* تحسين البطاقات عند التحويم */
-    .card:hover { transform: translateY(-5px); cursor: default; }
+    .animate__fadeIn { animation: fadeIn 0.5s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
