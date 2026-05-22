@@ -22,14 +22,13 @@ class Supplier(db.Model):
     owner_name = db.Column(db.String(150), unique=True, nullable=False)
     owner_phone = db.Column(db.String(20), unique=True, nullable=False)       
     trade_name = db.Column(db.String(150), unique=True, nullable=False)
-    
-    # 🏬 تم إلغاء العمود الفعلي لمنع أخطاء الداتابيز واستبداله بـ Property بالأسفل
+    shop_number = db.Column(db.String(50), nullable=True)  # 🏬 عاد كعمود رسمي صريح متوافق مع الداتابيز والـ Dashboard
     shop_phone = db.Column(db.String(20), unique=True, nullable=False)
     activity_type = db.Column(db.String(50))     
     
     province = db.Column(db.String(50))
     district = db.Column(db.String(50))
-    address_detail = db.Column(db.Text)  # سيتم استغلال هذا الحقل لتخزين رقم المحل برمجياً
+    address_detail = db.Column(db.Text)
     
     fin_type = db.Column(db.String(20))          
     bank_name = db.Column(db.String(100))        
@@ -44,28 +43,6 @@ class Supplier(db.Model):
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) 
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow) 
-
-    # 🏬 حقل افتراضي ذكي (Property) لحل مشكلة عدم وجود العمود في قاعدة البيانات الحية
-    @property
-    def shop_number(self):
-        """قراءة رقم المحل من حقل تفاصيل العنوان بشكل آمن دون الحاجة لعمود بالداتابيز"""
-        if self.address_detail and "|| Shop:" in self.address_detail:
-            try:
-                return self.address_detail.split("|| Shop:")[-1].strip()
-            except:
-                return ""
-        return ""
-
-    @shop_number.setter
-    def shop_number(self, value):
-        """دمج رقم المحل تلقائياً داخل حقل تفاصيل العنوان أثناء الحفظ"""
-        clean_val = str(value).strip() if value else ""
-        if clean_val:
-            base_address = self.address_detail.split("|| Shop:")[0].strip() if self.address_detail else ""
-            if base_address:
-                self.address_detail = f"{base_address} || Shop: {clean_val}".strip()
-            else:
-                self.address_detail = f"|| Shop: {clean_val}".strip()
 
     @property
     def state_title(self):
@@ -106,7 +83,7 @@ class Supplier(db.Model):
             "username": self.username,
             "owner_name": self.owner_name,
             "trade_name": self.trade_name,
-            "shop_number": self.shop_number,  # يستمر في العمل طبيعي بالـ API والواجهة
+            "shop_number": self.shop_number,
             "shop_phone": self.shop_phone,
             "rank_grade": self.rank_grade,
             "status": self.status,
