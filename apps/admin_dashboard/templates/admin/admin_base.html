@@ -15,7 +15,6 @@
             --deep-black: #08020d; 
             --mahjoub-gold: #D4AF37;
             --sidebar-width: 280px; 
-            --sidebar-mini: 80px; 
             --transition: all 0.3s ease;
         }
 
@@ -53,7 +52,7 @@
         </div>
 
         <nav class="nav-menu">
-            <a href="{{ url_for('admin_dashboard.dashboard_home') }}" class="nav-link">
+            <a href="javascript:void(0);" onclick="loadContent('{{ url_for('admin_dashboard.dashboard_home') }}', 'مركز القيادة والسيطرة')" class="nav-link">
                 <i class="fas fa-chart-line ms-3"></i> <span>مركز القيادة</span>
             </a>
 
@@ -62,12 +61,12 @@
                 <i class="fas fa-chevron-left ms-auto" id="supArr"></i>
             </button>
             <div class="dropdown-container" id="supDrp">
-                <a href="{{ url_for('add_supplier.add_supplier_page') }}" class="nav-link small py-2">
+                <a href="javascript:void(0);" onclick="loadContent('{{ url_for('add_supplier.add_supplier_page') }}', 'تعميد مورد جديد')" class="nav-link small py-2">
                     <i class="fas fa-user-plus ms-2"></i> تعميد جديد
                 </a>
             </div>
 
-            <a href="{{ url_for('admin_wallet.wallet_home') }}" class="nav-link">
+            <a href="javascript:void(0);" onclick="loadContent('{{ url_for('admin_wallet.wallet_home') }}', 'الفضاء المالي')" class="nav-link">
                 <i class="fas fa-wallet ms-3"></i> <span>الفضاء المالي</span>
             </a>
             
@@ -79,19 +78,32 @@
 
     <main class="main-wrapper">
         <header class="top-bar">
-            <h4 class="mb-0 fw-bold">{% block header_title %}مركز القيادة والسيطرة{% endblock %}</h4>
+            <h4 class="mb-0 fw-bold" id="page-main-title">مركز القيادة والسيطرة</h4>
             <div class="badge bg-light text-dark border p-2 fw-semibold">
                 <i class="fas fa-user-shield me-1 text-muted"></i> 
                 {{ current_user.username if current_user.is_authenticated else 'مسؤول النظام' }}
             </div>
         </header>
         
-        <div class="p-4">
+        <div class="p-4" id="dynamic-content-area">
             {% block content %}{% endblock %}
         </div>
     </main>
 
     <script>
+        // محرك تحميل المحتوى ديناميكياً
+        function loadContent(url, title) {
+            document.getElementById('page-main-title').innerText = title;
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('dynamic-content-area').innerHTML = html;
+                history.pushState({}, title, url);
+            })
+            .catch(err => console.error('خطأ في الاتصال:', err));
+        }
+
+        // تحكم القوائم
         function toggleDropdown(id, arrowId) {
             const el = document.getElementById(id);
             const arrow = document.getElementById(arrowId);
