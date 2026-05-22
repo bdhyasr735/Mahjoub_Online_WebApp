@@ -1,5 +1,5 @@
 # coding: utf-8
-from flask import render_template, request, jsonify, current_app
+from flask import render_template, request, jsonify, current_app, url_for, redirect
 from flask_login import login_required
 from werkzeug.utils import secure_filename
 import os
@@ -46,7 +46,6 @@ def add_supplier_submit():
         filename = None
         if file:
             filename = secure_filename(f"{sovereign_id}_{file.filename}")
-            # التأكد من وجود مجلد الرفع
             upload_path = current_app.config['UPLOAD_FOLDER']
             if not os.path.exists(upload_path):
                 os.makedirs(upload_path)
@@ -82,8 +81,13 @@ def add_supplier_submit():
         db.session.rollback()
         return jsonify({'status': 'error', 'message': str(e)})
 
-# 3. عرض الصفحة
+# 3. عرض الصفحة (مع دعم التقديم الديناميكي الاحترافي)
 @admin_suppliers_bp.route('/add_supplier', methods=['GET'])
 @login_required
 def add_supplier_page():
-    return render_template('admin/add_supplier.html')
+    # هذا الشرط يمنع تكرار الهيكل (Header/Sidebar) عند جلب المحتوى عبر AJAX
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render_template('admin/add_supplier.html')
+    
+    # إذا تم الوصول للرابط مباشرة، يتم توجيه المستخدم للوحة التحكم
+    return redirect(url_for('admin_dashboard.dashboard_home'))
