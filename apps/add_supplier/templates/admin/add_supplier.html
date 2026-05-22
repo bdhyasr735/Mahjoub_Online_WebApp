@@ -1,4 +1,4 @@
-{% extends "admin_base.html" %}
+{% extends "apps/admin_dashboard/templates/admin/admin_base.html" %}
 
 {% block title %}تعميد مورد | محجوب أونلاين{% endblock %}
 
@@ -157,7 +157,6 @@
         exchange: ["العمقي للصرافة", "القطيبي للصرافة"] 
     };
 
-    // تحديث خيارات المديرية ديناميكياً
     function updateDistrictOptions() {
         const province = document.getElementById('provinceSelect').value;
         const districtSelect = document.getElementById('districtSelect');
@@ -170,7 +169,6 @@
         }
     }
 
-    // تحديث خيارات الجهات المالية ديناميكياً
     function updateFinanceOptions() {
         const type = document.querySelector('input[name="fin_type"]:checked').value;
         const finSelect = document.getElementById('financeSelect');
@@ -185,7 +183,6 @@
         }
     }
 
-    // إدارة حقول الإدخال اليدوي للمستندات أو الجهات غير المدرجة
     function toggleManualInput(selectElement, manualId) {
         const manualDiv = document.getElementById(manualId);
         if (selectElement.value === 'manual') {
@@ -204,26 +201,37 @@
         }
     }
 
-    // جلب التسلسل المتوقع والربط المالي فور تحميل الصفحة من المحرك المركزي
+    // جلب التسلسل المتوقع والربط المالي فور تحميل الصفحة (يدعم قاعدة البيانات السابقة والجديدة)
     function fetchNextExpectedSequence() {
         fetch("{{ url_for('add_supplier.check_duplicate', type='get_next_sequence') }}")
         .then(response => response.json())
         .then(data => {
-            if(data.next_sequence) {
-                document.getElementById('display-supplier-id').textContent = data.next_sequence;
-                document.getElementById('display-wallet-id').textContent = data.next_wallet || '...';
-                
-                // تعبئة الحقول المخفية المخصصة لقاعدة البيانات لضمان المزامنة التامة
-                document.getElementById('hidden-sovereign-id').value = data.next_sequence;
-                document.getElementById('hidden-wallet-code').value = data.next_wallet || '';
-                
-                // فك الحظر عن زر الإرسال
-                document.getElementById('submitBtn').removeAttribute('disabled');
-            }
-        }).catch(err => console.error("تعذر جلب تسلسلات التوقع:", err));
+            // سحب البيانات المتوقعة، أو إسناد قيم ابتدائية ذكية إذا كانت قاعدة البيانات فارغة تماماً
+            const finalSupplierId = data.next_sequence || "SUP-1001";
+            const finalWalletId = data.next_wallet || "WLT-1001";
+
+            document.getElementById('display-supplier-id').textContent = finalSupplierId;
+            document.getElementById('display-wallet-id').textContent = finalWalletId;
+            
+            // تعبئة الحقول المخفية لضمان تطابق البيانات عند الرفع وقراءتها في الـ Backend
+            document.getElementById('hidden-sovereign-id').value = finalSupplierId;
+            document.getElementById('hidden-wallet-code').value = finalWalletId;
+            
+            // تفعيل الزر المركزي للإرسال بعد المزامنة التامة بنجاح
+            document.getElementById('submitBtn').removeAttribute('disabled');
+        })
+        .catch(err => {
+            console.error("تعذر جلب تسلسلات التوقع من المحرك المركزي:", err);
+            // حماية سيادية: فرض قيم تسلسل افتراضية في حال وجود مشاكل شبكة مؤقتة لتلافي تجميد اللوحة
+            document.getElementById('display-supplier-id').textContent = "SUP-1001";
+            document.getElementById('display-wallet-id').textContent = "WLT-1001";
+            document.getElementById('hidden-sovereign-id').value = "SUP-1001";
+            document.getElementById('hidden-wallet-code').value = "WLT-1001";
+            document.getElementById('submitBtn').removeAttribute('disabled');
+        });
     }
 
-    // محرك الفحص والتحقق والتحكم في حالة الحقول المكررة والمدخلات (Real-time Validation)
+    // مراقبة الحقول لمنع المدخلات المكررة (اسم الحساب، السجل، البطاقة)
     document.querySelectorAll('.validation-field').forEach(field => {
         field.addEventListener('input', function() {
             const valType = this.getAttribute('data-valid');
@@ -235,14 +243,14 @@
             if (valType === 'min5' && this.value.length >= 5) isValid = true;
             if (valType === 'phone' && /^7[0-9]{8}$/.test(this.value)) isValid = true;
             if (valType === 'name' && this.value.trim().split(" ").length >= 3) isValid = true;
+            if (valType === 'acc' && this.value.length >= 4) isValid = true;
 
             if (isValid && dbCheck) {
-                // فحص عدم التكرار بقاعدة البيانات فورياً لمنع انهيار الـ DB Unique Constraint
                 fetch(`{{ url_for('add_supplier.check_duplicate') }}?type=${dbCheck}&value=${this.value}`)
                 .then(res => res.json())
                 .then(data => {
                     if(data.exists) {
-                        iconContainer.innerHTML = '<i class="fas fa-times-circle text-danger" title="مستعمل مسبقاً!"></i>';
+                        iconContainer.innerHTML = '<i class="fas fa-times-circle text-danger" title="مستعمل مسبقاً في النظام!"></i>';
                     } else {
                         iconContainer.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
                     }
@@ -255,7 +263,7 @@
         });
     });
 
-    // اعتراض عملية الإرسال التقليدية ومعالجتها عبر طلب FormData ذكي مدعوم بالـ AJAX
+    // معالجة البيانات برمجياً عبر طلبات AJAX الإستراتيجية
     document.getElementById('addSupplierForm').onsubmit = function(e) {
         e.preventDefault();
         
@@ -276,8 +284,8 @@
                     <div class="text-center p-3">
                         <i class="fas fa-check-circle text-success" style="font-size: 60px;"></i>
                         <h4 class="fw-bold mt-3 text-success">${data.message}</h4>
-                        <p class="text-muted small">تم تسجيل المورد والمحفظة بنظام الأرشفة بنجاح.</p>
-                        <button class="btn btn-success w-100 mt-2 rounded-3 fw-bold" onclick="window.location.reload()">تحديث الصفحة لشغل جديد</button>
+                        <p class="text-muted small">تم تسجيل شريك النجاح وتهيئة محفظته المالية الموحدة بنجاح.</p>
+                        <button class="btn btn-success w-100 mt-2 rounded-3 fw-bold" onclick="window.location.reload()">تحديث الصفحة لتسجيل مورد آخر</button>
                     </div>
                 `;
                 const myModal = new bootstrap.Modal(document.getElementById('successModal'));
@@ -290,13 +298,12 @@
         })
         .catch(error => {
             console.error("Error:", error);
-            alert("خطأ في الاتصال بالخادم، تأكد من سلامة كود الـ Backend.");
+            alert("خطأ في الاتصال بالسيرفر المركزي، يرجى مراجعة سجلات المحرك.");
             submitBtn.removeAttribute('disabled');
             submitBtn.innerHTML = 'اعتماد المورد الآن <i class="fas fa-paper-plane ms-2"></i>';
         });
     };
 
-    // التهيئات الأولية للمحيط عند استدعاء الواجهة
     document.addEventListener('DOMContentLoaded', () => {
         const pSelect = document.getElementById('provinceSelect');
         if (pSelect) {
