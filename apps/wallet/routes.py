@@ -8,14 +8,15 @@ from apps.models.wallet_db import SupplierWallet
 from apps.models.supplier_db import Supplier
 from sqlalchemy import func
 
-# تعريف الـ Blueprint باسم 'wallet' ليتطابق مع التسجيل في __init__.py
+# تعريف الـ Blueprint باسم 'wallet' ليتطابق مع التسجيل في apps/__init__.py
 wallet_bp = Blueprint('wallet', __name__, template_folder='templates')
 
 @wallet_bp.route('/wallet_page')
 @login_required
 def wallet_home():
     """
-    الصفحة الرئيسية للفضاء المالي
+    الصفحة الرئيسية للفضاء المالي - تم تغيير الاسم إلى wallet_home
+    ليطابق النداء في القائمة الجانبية (url_for)
     """
     # حساب الإجماليات لكل العملات
     totals = db.session.query(
@@ -24,7 +25,14 @@ def wallet_home():
         func.sum(SupplierWallet.usd_total).label('total_usd')
     ).first()
     
-    return render_template('admin/wallet_dashboard.html', totals=totals)
+    # تحويل البيانات إلى قاموس (معالجة القيم الفارغة بـ 0)
+    totals_dict = {
+        'total_yer': totals.total_yer or 0,
+        'total_sar': totals.total_sar or 0,
+        'total_usd': totals.total_usd or 0
+    }
+    
+    return render_template('admin/wallet_dashboard.html', totals=totals_dict)
 
 @wallet_bp.route('/search_api')
 @login_required
@@ -32,6 +40,7 @@ def search_api():
     query = request.args.get('query', '')
     filter_type = request.args.get('filter', 'all')
     
+    # استعلام يربط المحفظة ببيانات المورد
     wallets_query = db.session.query(SupplierWallet, Supplier).join(
         Supplier, SupplierWallet.supplier_id == Supplier.sovereign_id
     )
