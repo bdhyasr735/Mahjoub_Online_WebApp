@@ -1,32 +1,39 @@
 # coding: utf-8
+# 🏦 محرك الفضاء المالي والسيادة الرقمية - منصة محجوب أونلاين 2026
+
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required
 from apps import db 
 from apps.models.wallet_db import SupplierWallet
 from apps.models.supplier_db import Supplier
 from sqlalchemy import func
-from apps.wallet import wallet_bp # استيراد البلوبرينت المعرف في __init__.py
+from apps.wallet import wallet_bp  # استيراد البلوبرينت الموحد
 
 @wallet_bp.route('/wallet_page')
 @login_required
 def wallet_home():
     """
-    الدالة الرئيسية للفضاء المالي.
-    تأكد أن الاسم هنا 'wallet_home' ليطابق url_for('wallet.wallet_home')
+    الصفحة الرئيسية للفضاء المالي - الاسم wallet_home يطابق طلب الـ HTML
     """
+    # حساب الإجماليات لكل العملات
     totals = db.session.query(
         func.sum(SupplierWallet.yer_total).label('total_yer'),
         func.sum(SupplierWallet.sar_total).label('total_sar'),
         func.sum(SupplierWallet.usd_total).label('total_usd')
     ).first()
     
-    totals_dict = {
+    # تأمين البيانات ضد القيم الفارغة
+    totals_data = {
         'total_yer': totals.total_yer or 0,
         'total_sar': totals.total_sar or 0,
         'total_usd': totals.total_usd or 0
     }
     
-    return render_template('admin/wallet_dashboard.html', totals=totals_dict)
+    # دعم التحميل الديناميكي (AJAX)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render_template('admin/wallet_dashboard.html', totals=totals_data)
+        
+    return render_template('admin/wallet_dashboard.html', totals=totals_data)
 
 @wallet_bp.route('/search_api')
 @login_required
@@ -75,7 +82,11 @@ def adjust_balance():
     
     wallet = SupplierWallet.query.get_or_404(wallet_id)
     
-    field_map = {'YER': 'yer_total', 'SAR': 'sar_total', 'USD': 'usd_total'}
+    field_map = {
+        'YER': 'yer_total',
+        'SAR': 'sar_total',
+        'USD': 'usd_total'
+    }
     
     field = field_map.get(currency)
     if field:
@@ -88,5 +99,5 @@ def adjust_balance():
         db.session.commit()
         flash(f"تم تنفيذ العملية بنجاح على محفظة {wallet.wallet_code}", "success")
     
-    # إعادة التوجيه إلى المسار المصحح
+    # إعادة التوجيه إلى المسار الصحيح المسمى wallet_home
     return redirect(url_for('wallet.wallet_home'))
