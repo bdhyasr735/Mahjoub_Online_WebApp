@@ -1,34 +1,69 @@
-<div id="dashboard-main-view" class="container-fluid animate__animated animate__fadeIn">
-    <div class="row g-4 mb-5">
-        {% set totals = totals or {'total_yer': 0, 'total_sar': 0, 'total_usd': 0} %}
-        {% for title, val, unit, color in [
-            ('إجمالي الخزينة (YER)', totals.total_yer, '﷼', '#2e7d32'), 
-            ('إجمالي الخزينة (SAR)', totals.total_sar, 'ر.س', '#e65100'), 
-            ('إجمالي الخزينة (USD)', totals.total_usd, '$', '#1976d2')
-        ] %}
-        <div class="col-md-4">
-            <div class="card text-white shadow-sm border-0 h-100" style="background: {{ color }}; border-radius: 20px; transition: transform 0.3s;">
-                <div class="card-body p-4">
-                    <h6 class="text-white-50 fw-bold mb-3">{{ title }}</h6>
-                    <h2 class="fw-bold mb-0">
-                        {{ "{:,.2f}".format(val|float) }} 
-                        <span class="fs-6 fw-normal text-white-75">{{ unit }}</span>
-                    </h2>
+<div class="container-fluid">
+    <div class="row g-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 rounded-4" style="border-right: 5px solid var(--royal-purple);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">شركاء النجاح</p>
+                        <h4 class="fw-bold mb-0">{{ stats.total_suppliers }}</h4>
+                    </div>
+                    <div class="p-3 rounded-3 bg-light"><i class="fas fa-users text-primary"></i></div>
                 </div>
             </div>
         </div>
-        {% endfor %}
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 rounded-4" style="border-right: 5px solid #198754;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">المحافظ النشطة</p>
+                        <h4 class="fw-bold mb-0 text-success">{{ stats.active_wallets }}</h4>
+                    </div>
+                    <div class="p-3 rounded-3 bg-light"><i class="fas fa-wallet text-success"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 rounded-4" style="border-right: 5px solid #ffc107;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">تعميد معلق</p>
+                        <h4 class="fw-bold mb-0 text-warning">{{ stats.pending_approval }}</h4>
+                    </div>
+                    <div class="p-3 rounded-3 bg-light"><i class="fas fa-clock text-warning"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 rounded-4" style="border-right: 5px solid var(--mahjoub-gold);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">إجمالي السيولة</p>
+                        <h4 class="fw-bold mb-0">{{ stats.total_balance }}</h4>
+                    </div>
+                    <div class="p-3 rounded-3 bg-light"><i class="fas fa-coins text-warning"></i></div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 20px; border-right: 5px solid #632C8F;">
-        <h5 class="fw-bold text-dark">نظام حوكمة المحافظ الموحد</h5>
-        <p class="text-muted small mt-2">
-            تم الحقن بنجاح في مساحة العرض الديناميكي. النظام جاهز للعمل.
-        </p>
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-4 rounded-4">
+                <h5 class="fw-bold mb-3">حركة النظام السيادي الأخيرة</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="text-muted small">
+                            <tr><th>المورد</th><th>الحالة</th><th>التاريخ</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>مؤسسة الأمل</td><td><span class="badge bg-success-subtle text-success">مكتمل</span></td><td>22/05/2026</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-
-<style>
-    .animate__fadeIn { animation: fadeIn 0.5s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-</style>
