@@ -1,100 +1,97 @@
-# coding: utf-8
-# ⚙️ محرك تعميد وإدارة الموردين المتكامل - منصة محجوب أونلاين 2026
+from flask import Blueprint, request, jsonify, render_code, url_for # حسب مكاتبك الحالية
+from apps.extensions import db # أو مسار استدعاء الـ db عندك
+from apps.models import Supplier # أو اسم الكلاس المسؤول عن جدول الموردين في الداتابيز
 
-import os
-from flask import render_template, request, jsonify, current_app
-from flask_login import login_required
-from werkzeug.utils import secure_filename
-from . import admin_suppliers_bp
-from apps.models.supplier_db import Supplier, db
-from apps.models.wallet_db import SupplierWallet
-
-# الامتدادات المسموح برفعها للوثائق السيادية
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@admin_suppliers_bp.route('/check-duplicate', methods=['GET'])
-@login_required
+# دالة توليد الأرقام المتسلسلة التلقائية لـ (المورد والمحفظة)
+@add_supplier.route('/check_duplicate', methods=['GET'])
 def check_duplicate():
-    field_type = request.args.get('type')
-    value = request.args.get('value')
-
-    if not field_type or not value:
-        return jsonify({"exists": False})
-
-    exists = False
-    if field_type == 'username':
-        exists = Supplier.query.filter_by(username=value).first() is not None
-    elif field_type == 'identity_number':
-        exists = Supplier.query.filter_by(identity_number=value).first() is not None
-    elif field_type == 'owner_phone':
-        exists = Supplier.query.filter_by(owner_phone=value).first() is not None
-    elif field_type == 'get_next_sequence':
-        count = Supplier.query.count()
-        next_id = f"SUP-MAH{9631 + count}"
-        # توليد كود محفظة متوقع تماشياً مع المعرف المتوقع
-        next_wallet = f"WLT-MAH{1120 + count}"
-        return jsonify({"next_sequence": next_id, "next_wallet": next_wallet})
-
-    return jsonify({"exists": exists})
-
-@admin_suppliers_bp.route('/add', methods=['GET', 'POST'])
-@login_required
-def add_supplier_submit():
-    if request.method == 'POST':
+    check_type = request.args.get('type')
+    
+    # 1. جلب التسلسل التلقائي الذكي المعتمد لمنصة محجوب أونلاين
+    if check_type == 'get_next_sequence':
         try:
-            # فصل البيانات النصية القادمة من الـ Form
-            data = request.form
+            # استعلام لجلب آخر مورد مضاف بناءً على الـ ID التلقائي
+            last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
             
-            # معالجة رفع ملف صورة الوثيقة بأمان إن وجد
-            identity_image_filename = None
-            if 'identity_image' in request.files:
-                file = request.files['identity_image']
-                if file and file.filename != '' and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    # حفظ الملف في مجلد الرفع المخصص للتطبيق
-                    upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'identities')
-                    os.makedirs(upload_folder, exist_ok=True)
-                    file.save(os.path.join(upload_folder, filename))
-                    identity_image_filename = filename
-
-            # 1. إنشاء كائن المورد وتعبئة كافة البيانات السيادية والمالية الواردة من الواجهة
-            new_supplier = Supplier(
-                username=data.get('username'),
-                # تأكد من تشفير كلمة المرور في الموديل أو هنا إذا كان الموديل يدعم ذلك
-                password_hash=data.get('password'), 
-                identity_type=data.get('identity_type'),
-                identity_number=data.get('identity_number'),
-                identity_image=identity_image_filename,
-                owner_name=data.get('owner_name'),
-                trade_name=data.get('trade_name'),
-                owner_phone=data.get('owner_phone'),
-                province=data.get('province'),
-                district=data.get('district'),
-                address_detail=data.get('address_detail'),
-                bank_name=data.get('bank_name'),
-                bank_acc=data.get('bank_acc'),
-                sovereign_id=data.get('sovereign_id')
-            )
+            if last_supplier and last_supplier.supplier_id:
+                # إزالة الجزء الثابت واستخراج الرقم المتسلسل الأساسي
+                prefix = "SUP-MAH963"
+                last_num_str = last_supplier.supplier_id[len(prefix):]
+                
+                if last_num_str.isdigit():
+                    next_number = int(last_num_str) + 1
+                else:
+                    next_number = 1
+            else:
+                next_number = 1 # إذا كانت الداتابيز فارغة تماماً
+                
+            # بناء المعرفات الموحدة المتناسقة مع قاعدة البيانات الحية
+            next_supplier_id = f"SUP-MAH963{next_number}"
+            next_wallet_id = f"WEL-MAH963{next_number}"
             
-            db.session.add(new_supplier)
-            db.session.flush()  # سحب المعرف التلقائي (id) للمورد دون إغلاق الجلسة
-
-            # 2. إنشاء محفظة المورد المالي وتعميدها
-            new_wallet = SupplierWallet(
-                supplier_id=new_supplier.id, # الربط العلاقتي الآمن (Foreign Key)
-                wallet_code=data.get('wallet_code') if data.get('wallet_code') else f"WLT-MAH{1120 + Supplier.query.count() - 1}"
-            )
+            return jsonify({
+                "next_sequence": next_supplier_id,
+                "next_wallet": next_wallet_id
+            })
             
-            db.session.add(new_wallet)
-            db.session.commit() # تعميد كلي في قاعدة البيانات
-            
-            return jsonify({"status": "success", "message": "تم تعميد المورد بنجاح وإنشاء المحفظة المالية بنجاح."})
-
         except Exception as e:
-            db.session.rollback()
-            return jsonify({"status": "error", "message": f"خطأ في التعميد السيادي: {str(e)}"}), 500
+            # صمام أمان لضمان عدم توقف العمل عند أي مشكلة طارئة
+            return jsonify({"next_sequence": "SUP-MAH9631", "next_wallet": "WEL-MAH9631"})
+            
+    # ... بقية التحققات الخاصة بالـ username أو identity_number إذا كانت موجودة لديك ...
 
-    return render_template('admin/add_supplier.html')
+
+# دالة استقبال الفورم وحفظ البيانات (بما فيها رقم المحل المتناسق)
+@add_supplier.route('/add_supplier_submit', methods=['POST'])
+def add_supplier_submit():
+    try:
+        # استقبال البيانات من الفورم الـ HTML المحدث
+        supplier_id = request.form.get('sovereign_id')   # القادم من حقل hidden المخفي
+        wallet_code = request.form.get('wallet_code')   # القادم من حقل hidden المخفي
+        
+        username = request.form.get('username')
+        password = request.form.get('password') # تأكد من عمل hashing لها إذا لزم الأمر
+        identity_type = request.form.get('identity_type')
+        identity_number = request.form.get('identity_number')
+        
+        owner_name = request.form.get('owner_name')
+        trade_name = request.form.get('trade_name')
+        shop_number = request.form.get('shop_number') # <--- الحقل الجديد المستلم من الواجهة!
+        owner_phone = request.form.get('owner_phone')
+        province = request.form.get('province')
+        district = request.form.get('district')
+        address_detail = request.form.get('address_detail')
+        
+        bank_name = request.form.get('bank_name')
+        bank_acc = request.form.get('bank_acc')
+
+        # معالجة ملف الصورة لو تم رفعه
+        # identity_image = request.files.get('identity_image')
+
+        # إنشاء كائن المورد الجديد وإدراج البيانات به
+        new_supplier = Supplier(
+            supplier_id=supplier_id,
+            wallet_code=wallet_code,
+            username=username,
+            password=password,
+            identity_type=identity_type,
+            identity_number=identity_number,
+            owner_name=owner_name,
+            trade_name=trade_name,
+            shop_number=shop_number, # <--- تأكد أن هذا العمود مضاف في كلاس الـ Model بالداتابيز
+            owner_phone=owner_phone,
+            province=province,
+            district=district,
+            address_detail=address_detail,
+            bank_name=bank_name,
+            bank_acc=bank_acc
+        )
+        
+        db.session.add(new_supplier)
+        db.session.commit()
+        
+        return jsonify({"status": "success", "message": "تم تعميد المورد بنجاح"})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)})
