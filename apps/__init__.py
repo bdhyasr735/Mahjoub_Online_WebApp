@@ -5,41 +5,43 @@ from config import Config
 
 def create_app():
     """
-    دالة المصنع (Application Factory) لإنشاء تطبيق Flask.
+    دالة المصنع (Application Factory) لإنشاء تطبيق Flask وتأمين بواباته.
     """
-    # 1. إنشاء التطبيق
+    # 1. إنشاء التطبيق وشحن الإعدادات
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # 2. تهيئة الإضافات
+    # 2. تهيئة الإضافات المركزية
     db.init_app(app)
     login_manager.init_app(app)
     
-    # تحديد مسار صفحة الدخول التلقائي
+    # تحديد مسار صفحة الدخول التلقائي الآمن
     login_manager.login_view = 'auth_portal.login' 
 
-    # 3. دالة تعريف المستخدم (تحميل آمن للمستخدم)
+    # 3. دالة تعريف المستخدم (تحميل آمن للمؤسس والمسؤولين)
     @login_manager.user_loader
     def load_user(user_id):
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. تسجيل الـ Blueprints (النوافذ المستقلة)
-    # ملاحظة: يتم الاستيراد هنا لتجنب مشاكل الاستيراد الدائري (Circular Imports)
+    # 4. تسجيل الـ Blueprints (السيادة الرقمية المستقلة)
+    # يتم الاستيراد محلياً داخل الدالة لتجنب مشاكل الاستيراد الدائري (Circular Imports)
     
-    # البوابة الرئيسية
+    # بوابة التحكم بالدخول والسيادة الجمركية للمنصة
     from apps.auth_portal import auth_blueprint
+    # تأكدنا أن الاسم البرمجي الداخلي للـ Blueprint في ملف الـ routes الخاص به هو 'auth_portal'
     app.register_blueprint(auth_blueprint, url_prefix='/auth')
     
-    # لوحة التحكم
-    from apps.admin_dashboard import admin_dashboard_bp
-    app.register_blueprint(admin_dashboard_bp, url_prefix='/admin')
+    # لوحة القيادة المركزية والرقابة الفورية لـ "محجوب أونلاين"
+    from apps.admin_dashboard import admin_dashboard
+    # تعديل الاسم المتغير ليتطابق مع الاستدعاء الموحد 'admin_dashboard.dashboard'
+    app.register_blueprint(admin_dashboard, url_prefix='/admin')
     
-    # إدارة الموردين
+    # حوكمة وإدارة الموردين (شركاء النجاح)
     from apps.add_supplier import admin_suppliers_bp
     app.register_blueprint(admin_suppliers_bp, url_prefix='/suppliers')
     
-    # إدارة المحفظة: تأكد أن الاسم في wallet/__init__.py هو 'wallet'
+    # النظام المالي والربط البرمجي للمحفظة الرقمية
     from apps.wallet import wallet_bp
     app.register_blueprint(wallet_bp, url_prefix='/wallet')
 
