@@ -71,7 +71,7 @@ def add_supplier_submit():
             owner_name=request.form.get('owner_name'),
             owner_phone=request.form.get('owner_phone'),  # تم التصحيح للهيكل الحقيقي
             trade_name=request.form.get('trade_name'),
-            shop_phone=request.form.get('shop_phone') if request.form.get('shop_phone') else request.form.get('owner_phone'),  # حقل إلزامي
+            shop_phone=request.form.get('shop_phone') if request.form.get('shop_phone') else request.form.get('owner_phone'),  # field إلزامي
             activity_type=request.form.get('activity_type'),
             province=request.form.get('province'),
             district=request.form.get('district'),
@@ -115,5 +115,5 @@ def add_supplier_page():
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/add_supplier.html')
     
-    # التوجيه الموحد المتوافق تماماً مع اسم الدالة في الـ Blueprint المحدث لدينا ✅
+    # تم التصحيح الحاسم هنا واستبدال الاسم القديم بالاسم الجديد تماماً لإزالة الـ BuildError وتأمين الإقلاع السليم 🚀 ✅
     return redirect(url_for('admin_dashboard.dashboard'))
