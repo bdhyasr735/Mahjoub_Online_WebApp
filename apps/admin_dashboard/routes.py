@@ -1,13 +1,16 @@
+# coding: utf-8
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from apps import db
+from apps.extensions import db  # التصحيح هنا لضمان استخدام الكائن المركزي المستقر والموحد للمنصة 
 from apps.models.admin_db import AdminUser
 from apps.models.supplier_db import Supplier  # التعديل الهيكلي الصحيح لمنع الـ ImportError ✅
 
 # تعريف الـ Blueprint الخاص بلوحة التحكم الإدارية
 admin_dashboard = Blueprint('admin_dashboard', __name__, template_folder='templates')
 
-@admin_dashboard.route('/admin/dashboard', methods=['GET'])
+# تم إزالة /admin/ الزائدة ليتطابق التوجيه تماماً مع المتصفح وينهي خطأ الـ 404 المتكرر 🚀
+@admin_dashboard.route('/', methods=['GET'])
+@admin_dashboard.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
     # التحقق من صلاحيات المسؤول لضمان أمان السيادة المطلقة
@@ -18,10 +21,10 @@ def dashboard():
     try:
         # حساب المؤشرات الحيوية رقمياً من قواعد البيانات مباشرة
         total_suppliers = Supplier.query.count()
-    except Exception:
+    except Exception as e:
         total_suppliers = 0
 
-    # بيانات تجريبية مؤقتة لسجل العمليات والنشاطات الإدارية حتى تكتمل ربط المحافظ
+    # بيانات تجريبية مؤقتة لسجل العمليات والنشاطات الإدارية حتى يكتمل ربط المحافظ
     recent_activities = [
         {
             "id": 1024,
@@ -45,7 +48,7 @@ def dashboard():
     total_balance = "0.00"
     pending_settlements = 1
 
-    # استدعاء قالب العرض الذي قمنا بإنشائه وتمرير كافة البيانات الديناميكية له
+    # استدعاء قالب العرض وتمرير كافة البيانات الديناميكية له
     return render_template(
         'admin/dashboard_content.html',
         total_suppliers=total_suppliers,
