@@ -59,7 +59,6 @@
         }
 
         .nav-menu { padding: 1.5rem 1rem; flex-grow: 1; overflow-y: auto; }
-        /* تحسين السكرول بار داخل القائمة الجانبية إذا زادت العناصر */
         .nav-menu::-webkit-scrollbar { width: 4px; }
         .nav-menu::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
 
@@ -72,7 +71,6 @@
             text-align: right;
         }
 
-        /* تأثير المرور النشط المتناسق مع الهوية الملكية */
         .nav-link:hover, .dropdown-btn:hover, .nav-link.active, .dropdown-btn.active { 
             background: rgba(255, 255, 255, 0.15); 
             color: var(--mahjoub-gold);
@@ -122,7 +120,6 @@
         .fa-chevron-left { transition: 0.3s; margin-right: auto; }
         .rotate { transform: rotate(-90deg); }
 
-        /* دعم كامل للتجاوب على الهواتف والشاشات الصغيرة */
         @media (max-width: 991px) {
             .sidebar { right: -280px; }
             .sidebar.active { right: 0; }
@@ -155,7 +152,7 @@
                     <i class="fas fa-chevron-left" id="supplierArrow"></i>
                 </button>
                 <div class="dropdown-container" id="supplierDropdown">
-                    <a href="{{ url_for('add_supplier.add_supplier_route') if 'add_supplier' in codes else '#' }}">
+                    <a href="{{ url_for('add_supplier.add_supplier_page') }}">
                         <i class="fas fa-user-plus me-2"></i> تعميد مورد جديد
                     </a>
                     <a href="{{ url_for('admin_dashboard.dashboard') }}">
@@ -171,7 +168,7 @@
                     <i class="fas fa-chevron-left" id="walletArrow"></i>
                 </button>
                 <div class="dropdown-container" id="walletDropdown">
-                    <a href="{{ url_for('wallet.index') if 'wallet' in codes else '#' }}">
+                    <a href="{{ url_for('wallet.index') }}">
                         <i class="fas fa-scale-balanced me-2"></i> الأرصدة والتسويات
                     </a>
                     <a href="#">
@@ -213,13 +210,11 @@
     </div>
 
     <script>
-        // دالة موحدة ومتطورة للتحكم في فتح وإغلاق أي قائمة منسدلة بشكل منفصل
         function toggleDropdown(dropdownId, arrowId) {
             const dropdown = document.getElementById(dropdownId);
             const arrow = document.getElementById(arrowId);
             const isVisible = dropdown.style.display === "block";
             
-            // إغلاق القوائم الأخرى لضمان تنظيم الواجهة (اختياري)
             if (!isVisible) {
                 document.querySelectorAll('.dropdown-container').forEach(el => el.style.display = 'none');
                 document.querySelectorAll('.fa-chevron-left').forEach(el => el.classList.remove('rotate'));
