@@ -168,7 +168,7 @@
                     <i class="fas fa-chevron-left" id="walletArrow"></i>
                 </button>
                 <div class="dropdown-container" id="walletDropdown">
-                    <a href="{{ url_for('wallet.index') }}">
+                    <a href="{{ url_for('wallet.wallet_home') }}">
                         <i class="fas fa-scale-balanced me-2"></i> الأرصدة والتسويات
                     </a>
                     <a href="#">
@@ -239,7 +239,7 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
+            moals.forEach(modal => {
                 modal.addEventListener('hidden.bs.modal', function () {
                     const form = modal.querySelector('form');
                     if(form) {
