@@ -10,7 +10,7 @@ from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet
 from . import admin_suppliers_bp
 
-# 1. دالة التحقق من التكرار والـ Sequences
+# 1. دالة التحقق من التكرار والـ Sequences (تتوافق مع الفحص اللحظي الفوري)
 @admin_suppliers_bp.route('/check_duplicate', methods=['GET'])
 @login_required
 def check_duplicate():
@@ -28,14 +28,23 @@ def check_duplicate():
             'next_wallet': f"WLT-MAH{1000 + next_id}"
         })
 
-    # التحقق الحوكمة الصارم من وجود البيانات مسبقاً لمنع التكرار
+    # التحقق الحوكمة الصارم من وجود البيانات مسبقاً لمنع التكرار (الـ 5 حقول المعتمدة)
     exists = False
-    if check_type == 'username':
-        exists = Supplier.query.filter_by(username=value).first() is not None
-    elif check_type == 'identity_number':
-        exists = Supplier.query.filter_by(identity_number=value).first() is not None
+    if value:
+        if check_type == 'username':
+            exists = Supplier.query.filter_by(username=value).first() is not None
+        elif check_type == 'identity_number':
+            exists = Supplier.query.filter_by(identity_number=value).first() is not None
+        elif check_type == 'owner_phone':
+            exists = Supplier.query.filter_by(owner_phone=value).first() is not None
+        elif check_type == 'trade_name':
+            exists = Supplier.query.filter_by(trade_name=value).first() is not None
+        elif check_type == 'bank_acc':
+            exists = Supplier.query.filter_by(bank_acc=value).first() is not None
         
-    return jsonify({'exists': bool(exists)})
+    # الباك إند يرد بـ available متوافقاً مع جافاسكريبت الواجهة الأمامية
+    return jsonify({'available': not bool(exists)})
+
 
 # 2. دالة التنفيذ (التعميد المزدوج للمورد ومحفظته الإستراتيجية)
 @admin_suppliers_bp.route('/add_supplier_submit', methods=['POST'])
@@ -46,15 +55,22 @@ def add_supplier_submit():
         sovereign_id = request.form.get('sovereign_id')
         wallet_code = request.form.get('wallet_code')
         
-        # 1. معالجة وحفظ وثيقة الهوية المرفوعة إن وجدت
-        file = request.files.get('identity_image')
-        filename = None
-        if file and file.filename != '':
-            filename = secure_filename(f"{sovereign_id}_{file.filename}")
-            upload_path = current_app.config.get('UPLOAD_FOLDER', 'apps/static/uploads')
-            if not os.path.exists(upload_path):
-                os.makedirs(upload_path)
-            file.save(os.path.join(upload_path, filename))
+        # 1. معالجة وحفظ وثائق الهوية المرفوعة (دعم الملفات المتعددة الأوجه والظهر)
+        uploaded_files = request.files.getlist('identity_images')
+        saved_filenames = []
+        
+        upload_path = current_app.config.get('UPLOAD_FOLDER', 'apps/static/uploads')
+        if not os.path.exists(upload_path):
+            os.makedirs(upload_path)
+            
+        for file in uploaded_files:
+            if file and file.filename != '':
+                filename = secure_filename(f"{sovereign_id}_{file.filename}")
+                file.save(os.path.join(upload_path, filename))
+                saved_filenames.append(filename)
+        
+        # دمج أسماء الملفات بفاصلة لتخزينها في حقل نصي واحد بقاعدة البيانات
+        identity_image_str = ",".join(saved_filenames) if saved_filenames else None
 
         # تشفير كلمة المرور بشكل آمن تماماً قبل كتابتها في داتابيز السيستم
         raw_password = request.form.get('password')
@@ -67,21 +83,20 @@ def add_supplier_submit():
             password_hash=hashed_password,  # الحقل الآمن المعتمد
             identity_type=request.form.get('identity_type'),
             identity_number=request.form.get('identity_number'),
-            identity_image=filename,
+            identity_image=identity_image_str,  # تخزين روابط الصور المرفوعة
             owner_name=request.form.get('owner_name'),
-            owner_phone=request.form.get('owner_phone'),  # تم التصحيح للهيكل الحقيقي
+            owner_phone=request.form.get('owner_phone'),
             trade_name=request.form.get('trade_name'),
-            shop_phone=request.form.get('shop_phone') if request.form.get('shop_phone') else request.form.get('owner_phone'),  # field إلزامي
-            activity_type=request.form.get('activity_type'),
+            shop_phone=request.form.get('owner_phone'),  # الاعتماد المباشر لهاتف المالك كحقل إلزامي
             province=request.form.get('province'),
             district=request.form.get('district'),
-            address_detail=request.form.get('address_detail'),
+            address_detail=request.form.get('detailed_address'),  # متوافق مع الحقل الجديد بالواجهة
             bank_name=request.form.get('bank_name'),
             bank_acc=request.form.get('bank_acc'),
             wallet_code=wallet_code
         )
         
-        # دمج رقم المحل الافتراضي داخل تفاصيل العنوان تلقائياً إن وجد
+        # دمج رقم المحل إن وجد
         shop_num = request.form.get('shop_number')
         if shop_num:
             new_supplier.shop_number = shop_num
@@ -118,13 +133,10 @@ def add_supplier_submit():
         current_app.logger.error(f"خطأ في تعميد المورد: {str(e)}")
         return jsonify({'status': 'error', 'message': f'حدث خطأ تقني أثناء معالجة الطلب: {str(e)}'})
 
+
 # 3. عرض صفحة إضافة الموردين
 @admin_suppliers_bp.route('/add_supplier', methods=['GET'])
 @login_required
 def add_supplier_page():
-    # عند طلب الصفحة عبر AJAX أو عند النقر المباشر لعرض المحتوى مدمجاً داخل الهيكل الأساسي
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('ajax') == '1':
-        return render_template('admin/add_supplier.html')
-    
-    # لضمان بقاء الهيكل والدوشبورد ثابتاً وتضمين القالب بشكل مستقر وسلس
+    # لضمان بقاء الهيكل والدشبرد ثابتاً وتضمين القالب بشكل مستقر وسلس
     return render_template('admin/add_supplier.html')
