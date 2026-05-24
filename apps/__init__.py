@@ -1,32 +1,25 @@
-# coding: utf-8
 from flask import Flask
 from apps.extensions import db, login_manager
 from config import Config
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    
-    # حماية المسارات في بيئة الإنتاج
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-    # تهيئة الإضافات
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth_portal.login'
 
+    # استخدام app_context لكسر حلقة الاستيراد
     with app.app_context():
-        # 1. استيراد الموديلات داخل السياق لكسر حلقة الاستيراد
+        # استيراد الموديلات هنا فقط
         from apps.models.admin_db import AdminUser
-        from apps.models.supplier_db import Supplier
-        from apps.models.wallet_db import SupplierWallet, WalletTransaction
         
         @login_manager.user_loader
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # 2. استيراد وتسجيل البلوبرينتس (Routes)
+        # استيراد وتسجيل البلوبرينتس هنا فقط
         from apps.auth_portal.routes import auth_blueprint
         from apps.admin_dashboard.routes import admin_dashboard
         from apps.add_supplier.routes import admin_suppliers_bp
@@ -37,7 +30,9 @@ def create_app():
         app.register_blueprint(admin_suppliers_bp, url_prefix='/suppliers')
         app.register_blueprint(wallet_blueprint, url_prefix='/wallet')
 
+        db.create_all()
+
     return app
 
-# نقطة التشغيل الرئيسية
-app = create_app()
+# لا تقم بإنشاء المتغير app هنا إذا كنت تستخدم gunicorn مباشرة في Railway
+# دع Gunicorn يستدعي المصنع من خلال ملف التشغيل (run.py)
