@@ -1,175 +1,112 @@
-# -*- coding: utf-8 -*-
-"""
-📂 apps/wallet/approvals_and_settlements.py
-مركز الرقابة والتسويات المادية - لوحة تحكم الإدارة المركزية (2026)
-منصة محجوب أونلاين - سوقك الذكي
-"""
+# coding: utf-8
+# 🏦 بلوبرينت المحفظة المالية - منصة محجوب أونلاين 2026
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_required
+from apps.extensions import db
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from datetime import datetime
+import random
 
-# 🌟 التصحيح الحاسم: استدعاء محرك قواعد البيانات من الامتدادات المشتركة وليس من جذر التطبيق القديم
-from apps.extensions import db 
+wallet_blueprint = Blueprint('wallet', __name__)
 
-# استيراد نماذج الجداول السيادية (الأب والابن)
-from apps.wallet.models import Wallet, WalletTransaction, AdminSettlement
-
-# تعريف الـ Blueprint بالاسم المعتمد في المنظومة
-wallet_blueprint = Blueprint('wallet', __name__, template_folder='templates')
-
-
-@wallet_blueprint.route('/admin/governance/table', methods=['GET'])
+@wallet_blueprint.route('/management', methods=['GET'])
+@login_required
 def display_management_table():
-    """
-    1️⃣ الدالة الرئيسية: عرض جدول موافقة الطلبات والتسوية المالية
-    تقوم بحساب الإحصائيات الشاملة للنظام وتدقيق أصول المحافظ المستدعاة
-    """
-    search_query = request.args.get('search_query', '').strip()
-    
-    # حساب الأرصدة السيادية الشاملة في النظام بالكامل لشرط العرض الإحصائي
-    total_wallets_count = Wallet.query.count()
-    
-    # تجميع كلي للأرصدة في المنصة لضمان مراقبة السيولة الكلية لعام 2026
-    total_yer_system = db.session.query(db.func.sum(Wallet.yer_available)).scalar() or 0.0
-    total_sar_system = db.session.query(db.func.sum(Wallet.sar_available)).scalar() or 0.0
-    total_usd_system = db.session.query(db.func.sum(Wallet.usd_available)).scalar() or 0.0
-
-    # جلب كافة طلبات السحب النقدي المرفوعة والتي حالتها "معلقة" حصراً من جدول الأب
-    pending_withdrawals = WalletTransaction.query.filter_by(
-        transaction_type='withdrawal', 
-        status='pending'
-    ).order_by(WalletTransaction.created_at.desc()).all()
-
+    search_query = request.args.get('search_query', '')
     wallet = None
     wallet_settlements = []
+    pending_withdrawals = []
 
-    # مسار البحث والحوكمة الاستكشافية عند إدخال معرف أو كود محفظة
+    # حساب إحصائيات النظام العامة
+    total_wallets_count = SupplierWallet.query.count()
+    total_yer_system = db.session.query(db.func.sum(SupplierWallet.yer_total)).scalar() or 0
+    total_sar_system = db.session.query(db.func.sum(SupplierWallet.sar_total)).scalar() or 0
+    total_usd_system = db.session.query(db.func.sum(SupplierWallet.usd_total)).scalar() or 0
+
     if search_query:
-        wallet = Wallet.query.filter(
-            (Wallet.wallet_code == search_query) | 
-            (Wallet.supplier_id == search_query)
+        wallet = SupplierWallet.query.filter(
+            (SupplierWallet.supplier_id == search_query) | 
+            (SupplierWallet.wallet_code == search_query)
         ).first()
-
+        
         if wallet:
-            # استدعاء أرشيف السندات الاستثنائية للابن المرتبطة بهذه المحفظة فقط
-            wallet_settlements = AdminSettlement.query.filter_by(
-                wallet_code=wallet.wallet_code
-            ).order_by(AdminSettlement.created_at.desc()).all()
-        else:
-            flash(f"تنبيه حوكمي: لا يوجد كيان مالي مسجل في النظام يطابق: {search_query}", "warning")
+            wallet_settlements = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
+            pending_withdrawals = WalletTransaction.query.filter_by(wallet_id=wallet.id, status='معلقة').all()
 
-    return render_template(
-        'admin/settlement_and_withdrawal.html',
-        total_wallets_count=total_wallets_count,
-        total_yer_system=total_yer_system,
-        total_sar_system=total_sar_system,
-        total_usd_system=total_usd_system,
-        pending_withdrawals=pending_withdrawals,
-        wallet=wallet,
-        wallet_settlements=wallet_settlements,
-        current_search=search_query
-    )
+    return render_template('admin/settlement_and_withdrawal.html',
+                           total_wallets_count=total_wallets_count,
+                           total_yer_system=total_yer_system,
+                           total_sar_system=total_sar_system,
+                           total_usd_system=total_usd_system,
+                           wallet=wallet,
+                           wallet_settlements=wallet_settlements,
+                           pending_withdrawals=pending_withdrawals,
+                           current_search=search_query)
 
-
-@wallet_blueprint.route('/admin/withdrawal/decision/<int:tx_id>/<string:decision>', methods=['POST'])
-def handle_supplier_withdrawal(tx_id, decision):
-    """
-    2️⃣ دالة حوكمة طلبات السحب: اتخاذ قرار بشري بالتعميد والصرف أو الرفض العكسي
-    """
-    transaction = WalletTransaction.query.get_or_404(tx_id)
-    wallet = Wallet.query.get(transaction.wallet_id)
-    
-    if transaction.status != 'pending':
-        flash("هذه الحركة المالية تم تعميدها واتخاذ قرار بشأنها مسبقاً في النظام.", "danger")
-        return redirect(url_for('wallet.display_management_table'))
-
-    currency_attr = transaction.currency.lower()  # yer, sar, usd
-
-    if decision == 'approve':
-        # في حالة التعميد: تحويل المبلغ من المعلق إلى المسحوبات النهائية بشكل دائم
-        current_pending = getattr(wallet, f"{currency_attr}_pending") or 0.0
-        setattr(wallet, f"{currency_attr}_pending", max(0.0, current_pending - transaction.amount))
-        
-        current_withdrawn = getattr(wallet, f"{currency_attr}_withdrawn") or 0.0
-        setattr(wallet, f"{currency_attr}_withdrawn", current_withdrawn + transaction.amount)
-        
-        transaction.status = 'approved'
-        transaction.completed_at = datetime.utcnow()
-        db.session.commit()
-        flash(f"تم تعميد وصرف مبلغ {transaction.amount:,.2f} {transaction.currency} بنجاح وتحويل الحركة إلى مسحوبات نهائية.", "success")
-
-    elif decision == 'reject':
-        # في حالة الرفض البشري: فك حجز الرصيد وإعادته فوراً للرصيد المتاح للمورد
-        current_pending = getattr(wallet, f"{currency_attr}_pending") or 0.0
-        setattr(wallet, f"{currency_attr}_pending", max(0.0, current_pending - transaction.amount))
-        
-        current_available = getattr(wallet, f"{currency_attr}_available") or 0.0
-        setattr(wallet, f"{currency_attr}_available", current_available + transaction.amount)
-        
-        transaction.status = 'rejected'
-        transaction.completed_at = datetime.utcnow()
-        db.session.commit()
-        flash(f"تم رفض طلب السحب المالي وإرجاع كامل الرصيد المحجوز إلى حساب المورد المتاح.", "info")
-
-    return redirect(url_for('wallet.display_management_table'))
-
-
-@wallet_blueprint.route('/admin/settlement/execute/<string:wallet_code>', methods=['POST'])
+@wallet_blueprint.route('/execute-settlement/<wallet_code>', methods=['POST'])
+@login_required
 def execute_admin_settlement(wallet_code):
-    """
-    3️⃣ دالة إصدار السندات الاستثنائية: قيد شحن أو خصم عكسي يدوي بواسطة الإدارة
-    """
-    wallet = Wallet.query.filter_by(wallet_code=wallet_code).first_or_404()
+    wallet = SupplierWallet.query.filter_by(wallet_code=wallet_code).first_or_404()
     
-    settlement_type = request.form.get('settlement_type')  # deposit / deduct
-    currency = request.form.get('currency')                # YER / SAR / USD
-    amount = float(request.form.get('amount', 0.0))
-    financial_entity = request.form.get('financial_entity', 'الإدارة المركزية')
-    reference_number = request.form.get('reference_number', 'SETTLE-ADMIN-2026')
-    notes = request.form.get('notes', '').strip()
+    tx_type = request.form.get('settlement_type') # deposit or deduct
+    currency = request.form.get('currency')
+    amount = float(request.form.get('amount', 0))
+    
+    # تحديث الرصيد بناءً على نوع العملية
+    if tx_type == 'deposit':
+        if currency == 'YER': wallet.yer_total += amount
+        elif currency == 'SAR': wallet.sar_total += amount
+        elif currency == 'USD': wallet.usd_total += amount
+    else:
+        if currency == 'YER': wallet.yer_withdrawn += amount
+        elif currency == 'SAR': wallet.sar_withdrawn += amount
+        elif currency == 'USD': wallet.usd_withdrawn += amount
 
-    if amount <= 0:
-        flash("خطأ محاسبي: لا يمكن إصدار سند تسوية بمبلغ صفر أو سالب.", "danger")
-        return redirect(url_for('wallet.display_management_table', search_query=wallet_code))
-
-    currency_attr = currency.lower()  # yer, sar, usd
-    current_available = getattr(wallet, f"{currency_attr}_available") or 0.0
-    current_total = getattr(wallet, f"{currency_attr}_total") or 0.0
-
-    timestamp = datetime.utcnow().strftime('%M%S')
-    generated_settlement_code = f"ST-2026-{currency}-{timestamp}"
-
-    if settlement_type == 'deposit':
-        setattr(wallet, f"{currency_attr}_available", current_available + amount)
-        setattr(wallet, f"{currency_attr}_total", current_total + amount)
-        type_label = "شحن / إضافة رصيد"
-        flash_style = "success"
-
-    elif settlement_type == 'deduct':
-        if current_available < amount:
-            flash(f"فشل إصدار السند: الرصيد المتاح في المحفظة ({current_available:,.2f} {currency}) غير كافٍ لإجراء خصم قيمته {amount:,.2f}.", "danger")
-            return redirect(url_for('wallet.display_management_table', search_query=wallet_code))
-        
-        setattr(wallet, f"{currency_attr}_available", current_available - amount)
-        setattr(wallet, f"{currency_attr}_total", max(0.0, current_total - amount))
-        type_label = "خصم عكسي"
-        flash_style = "inverse"
-
-    new_settlement = AdminSettlement(
-        settlement_code=generated_settlement_code,
-        wallet_code=wallet.wallet_code,
-        settlement_type=type_label,
-        amount=amount,
+    # تسجيل الحركة في الأرشيف
+    new_tx = WalletTransaction(
+        wallet_id=wallet.id,
+        tx_code=WalletTransaction.generate_tx_code(),
+        tx_type=f"تسوية إدارية ({tx_type})",
         currency=currency,
-        financial_entity=financial_entity,
-        reference_number=reference_number,
-        reason_notes=notes,
-        created_by="المشرف المالي المركزي",
-        created_at=datetime.utcnow()
+        amount=amount,
+        financial_entity=request.form.get('financial_entity'),
+        reference_number=request.form.get('reference_number'),
+        notes=request.form.get('notes'),
+        status='ناجحة'
     )
-
-    db.session.add(new_settlement)
+    
+    db.session.add(new_tx)
     db.session.commit()
-
-    flash(f"تم اعتماد وتعميد سند التسوية الإدارية الموحد رقم ({generated_settlement_code}) بنجاح تام.", flash_style)
+    flash(f"تم اعتماد سند التسوية بنجاح: {new_tx.tx_code}", "success")
     return redirect(url_for('wallet.display_management_table', search_query=wallet_code))
+
+@wallet_blueprint.route('/handle-withdrawal/<int:tx_id>/<decision>', methods=['POST'])
+@login_required
+def handle_supplier_withdrawal(tx_id, decision):
+    tx = WalletTransaction.query.get_or_404(tx_id)
+    wallet = SupplierWallet.query.get(tx.wallet_id)
+    
+    if decision == 'approve':
+        tx.status = 'ناجحة'
+        # هنا يتم خصم المبلغ من الرصيد المعلق وإضافته للمسحوبات
+        if tx.currency == 'YER': 
+            wallet.yer_pending -= tx.amount
+            wallet.yer_withdrawn += tx.amount
+        elif tx.currency == 'SAR':
+            wallet.sar_pending -= tx.amount
+            wallet.sar_withdrawn += tx.amount
+        elif tx.currency == 'USD':
+            wallet.usd_pending -= tx.amount
+            wallet.usd_withdrawn += tx.amount
+        flash("تمت الموافقة على طلب السحب وتحديث المحفظة.", "success")
+    else:
+        tx.status = 'مرفوضة'
+        # استرجاع المبلغ المعلق للرصيد المتاح
+        if tx.currency == 'YER': wallet.yer_pending -= tx.amount
+        elif tx.currency == 'SAR': wallet.sar_pending -= tx.amount
+        elif tx.currency == 'USD': wallet.usd_pending -= tx.amount
+        flash("تم رفض طلب السحب وإعادة المبلغ للمحفظة.", "warning")
+        
+    db.session.commit()
+    return redirect(url_for('wallet.display_management_table', search_query=wallet.wallet_code))
