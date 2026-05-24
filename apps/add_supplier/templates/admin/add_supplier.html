@@ -83,7 +83,11 @@
                     
                     <div class="mb-3">
                         <label class="form-label text-muted small">الاسم الكامل للمالك</label>
-                        <input type="text" name="owner_name" class="form-control" required>
+                        <div class="input-group">
+                            <input type="text" name="owner_name" id="input-owner-name" class="form-control" required>
+                            <span class="input-group-text bg-white" id="status-owner-name"><i class="fas fa-minus text-muted"></i></span>
+                        </div>
+                        <div class="feedback-msg small mt-1" id="msg-owner-name"></div>
                     </div>
 
                     <div class="row g-2 mb-3">
@@ -97,7 +101,11 @@
                         </div>
                         <div class="col-4">
                             <label class="form-label text-muted small">رقم المحل</label>
-                            <input type="text" name="shop_number" class="form-control" required>
+                            <div class="input-group">
+                                <input type="text" name="shop_number" id="input-shop-number" class="form-control" required>
+                                <span class="input-group-text bg-white" id="status-shop-number"><i class="fas fa-minus text-muted"></i></span>
+                            </div>
+                            <div class="feedback-msg small mt-1" id="msg-shop-number"></div>
                         </div>
                     </div>
 
@@ -249,7 +257,7 @@
         }
     });
 
-    // معالجة بطاقات الربط المالي وعرضها التفاعلي بطريقتين منفصلتين
+    // معالجة بطاقات الربط المالي وعرضها التفاعلي
     const finTypeSelect = document.getElementById('finTypeSelect');
     const financialCardContainer = document.getElementById('financialCardContainer');
     const bankSubCard = document.getElementById('bankSubCard');
@@ -288,7 +296,6 @@
         });
     }
 
-    // مزامنة واجهات الاختيار للبطاقات المالية مع الحقل الخفي الموجه للباك إند
     bankSelectField.addEventListener('change', function() { updateHiddenFinancialValue(this.value); });
     companySelectField.addEventListener('change', function() { updateHiddenFinancialValue(this.value); });
     
@@ -296,17 +303,19 @@
         hiddenBankName.value = val || "";
     }
 
-    // ⚡ محرك الاستعلام الفوري والتحقق اللحظي عبر الـ AJAX التفاعلي
+    // ⚡ محرك الاستعلام الفوري والتحقق اللحظي الشامل (تمت إضافة حقل المالك ورقم المحل)
     const validationTargets = [
         { id: 'input-username', type: 'username', statusId: 'status-username', msgId: 'msg-username' },
+        { id: 'input-owner-name', type: 'owner_name', statusId: 'status-owner-name', msgId: 'msg-owner-name' },
         { id: 'input-owner-phone', type: 'owner_phone', statusId: 'status-owner-phone', msgId: 'msg-owner-phone' },
         { id: 'input-tradename', type: 'trade_name', statusId: 'status-tradename', msgId: 'msg-tradename' },
+        { id: 'input-shop-number', type: 'shop_number', statusId: 'status-shop-number', msgId: 'msg-shop-number' },
         { id: 'input-identity-number', type: 'identity_number', statusId: 'status-identity-number', msgId: 'msg-identity-number' },
         { id: 'input-bank-acc', type: 'bank_acc', statusId: 'status-bank-acc', msgId: 'msg-bank-acc' }
     ];
 
     let typingTimer;
-    const doneTypingInterval = 500; // الانتظار لنصف ثانية بعد توقف المستخدم عن الكتابة
+    const doneTypingInterval = 500;
 
     validationTargets.forEach(target => {
         const inputElement = document.getElementById(target.id);
@@ -339,25 +348,22 @@
             const msgDiv = document.getElementById(target.msgId);
             
             if (data.available === true) {
-                // متاح وعلامة الصح الخضراء
                 statusIcon.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
-                statusIcon.classList.add('bg-success-light');
+                statusIcon.className = "input-group-text bg-white";
                 msgDiv.textContent = "✓ متاح للاستخدام";
                 msgDiv.className = "feedback-msg small mt-1 text-success";
             } else {
-                // مكرر وعلامة الـ X الحمراء
                 statusIcon.innerHTML = '<i class="fas fa-times-circle text-danger"></i>';
-                statusIcon.classList.add('bg-danger-light');
+                statusIcon.className = "input-group-text bg-white";
                 msgDiv.textContent = "✗ مكرر ومسجل مسبقاً بالنظام!";
                 msgDiv.className = "feedback-msg small mt-1 text-danger";
             }
         })
         .catch(err => {
-            console.error("خطأ أثناء الفحص اللحظي للتوفر:", err);
+            console.error("خطأ أثناء الفحص اللحظي:", err);
         });
     }
 
-    // دالة النسخ إلى الحافظة للإشعارات التفاعلية للنجاح
     function copyToClipboard(text, btnElement) {
         navigator.clipboard.writeText(text).then(() => {
             const originalHTML = btnElement.innerHTML;
@@ -370,7 +376,7 @@
         }).catch(err => console.error("فشل النسخ البنيوي للحافظة:", err));
     }
 
-    // جلب التسلسل التلقائي عند التحميل الأولي للمستند
+    // جلب التسلسل التلقائي عند التحميل
     fetch("{{ url_for('add_supplier.check_duplicate', type='get_next_sequence') }}")
     .then(res => res.json())
     .then(data => {
@@ -381,7 +387,7 @@
     })
     .catch(err => console.error("Error fetching sequence:", err));
 
-    // معالجة إرسال الفورم المحدث مع دعم رفع المرفقات والملفات عبر FormData
+    // معالجة إرسال الفورم المحدث
     document.getElementById('addSupplierForm').onsubmit = function(e) {
         e.preventDefault();
         
@@ -478,12 +484,4 @@
             btnSpinner.classList.add('d-none');
             alertContainer.innerHTML = `
                 <div class="alert alert-danger alert-dismissible fade show rounded-3 p-3 mb-4" role="alert">
-                    <strong>❌ خطأ في النظام:</strong> تعذر الاتصال بالخادم. يرجى التحقق من سجلات السيرفر.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            `;
-            console.error("Submission error:", err);
-        });
-    };
-</script>
-{% endblock %}
+                    <strong>❌ خطأ في النظام:</strong> تعذر الاتصال بالخادم. يرجى التحقق من سجل
