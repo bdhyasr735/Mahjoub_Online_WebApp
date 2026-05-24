@@ -6,7 +6,6 @@ from flask_login import login_required
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from datetime import datetime
-import random
 
 wallet_blueprint = Blueprint('wallet', __name__)
 
@@ -18,7 +17,7 @@ def display_management_table():
     wallet_settlements = []
     pending_withdrawals = []
 
-    # حساب إحصائيات النظام العامة
+    # حساب إحصائيات النظام العامة بأمان
     total_wallets_count = SupplierWallet.query.count()
     total_yer_system = db.session.query(db.func.sum(SupplierWallet.yer_total)).scalar() or 0
     total_sar_system = db.session.query(db.func.sum(SupplierWallet.sar_total)).scalar() or 0
@@ -31,7 +30,8 @@ def display_management_table():
         ).first()
         
         if wallet:
-            wallet_settlements = WalletTransaction.query.filter_by(wallet_id=wallet.id).order_by(WalletTransaction.created_at.desc()).all()
+            wallet_settlements = WalletTransaction.query.filter_by(wallet_id=wallet.id)\
+                .order_by(WalletTransaction.created_at.desc()).all()
             pending_withdrawals = WalletTransaction.query.filter_by(wallet_id=wallet.id, status='معلقة').all()
 
     return render_template('admin/settlement_and_withdrawal.html',
@@ -49,36 +49,40 @@ def display_management_table():
 def execute_admin_settlement(wallet_code):
     wallet = SupplierWallet.query.filter_by(wallet_code=wallet_code).first_or_404()
     
-    tx_type = request.form.get('settlement_type') # deposit or deduct
+    tx_type = request.form.get('settlement_type')
     currency = request.form.get('currency')
-    amount = float(request.form.get('amount', 0))
-    
-    # تحديث الرصيد بناءً على نوع العملية
-    if tx_type == 'deposit':
-        if currency == 'YER': wallet.yer_total += amount
-        elif currency == 'SAR': wallet.sar_total += amount
-        elif currency == 'USD': wallet.usd_total += amount
-    else:
-        if currency == 'YER': wallet.yer_withdrawn += amount
-        elif currency == 'SAR': wallet.sar_withdrawn += amount
-        elif currency == 'USD': wallet.usd_withdrawn += amount
+    try:
+        amount = float(request.form.get('amount', 0))
+    except ValueError:
+        amount = 0
 
-    # تسجيل الحركة في الأرشيف
+    # تحديث الأرصدة
+    if tx_type == 'deposit':
+        if currency == 'YER': wallet.yer_total = (wallet.yer_total or 0) + amount
+        elif currency == 'SAR': wallet.sar_total = (wallet.sar_total or 0) + amount
+        elif currency == 'USD': wallet.usd_total = (wallet.usd_total or 0) + amount
+    else:
+        if currency == 'YER': wallet.yer_withdrawn = (wallet.yer_withdrawn or 0) + amount
+        elif currency == 'SAR': wallet.sar_withdrawn = (wallet.sar_withdrawn or 0) + amount
+        elif currency == 'USD': wallet.usd_withdrawn = (wallet.usd_withdrawn or 0) + amount
+
+    # تسجيل الحركة
     new_tx = WalletTransaction(
         wallet_id=wallet.id,
-        tx_code=WalletTransaction.generate_tx_code(),
+        tx_code=f"ADM-{datetime.now().strftime('%Y%m%d%H%M%S')}",
         tx_type=f"تسوية إدارية ({tx_type})",
         currency=currency,
         amount=amount,
-        financial_entity=request.form.get('financial_entity'),
-        reference_number=request.form.get('reference_number'),
-        notes=request.form.get('notes'),
-        status='ناجحة'
+        financial_entity=request.form.get('financial_entity', 'الإدارة المركزية'),
+        reference_number=request.form.get('reference_number', 'N/A'),
+        notes=request.form.get('notes', ''),
+        status='ناجحة',
+        created_at=datetime.utcnow()
     )
     
     db.session.add(new_tx)
     db.session.commit()
-    flash(f"تم اعتماد سند التسوية بنجاح: {new_tx.tx_code}", "success")
+    flash(f"تم اعتماد سند التسوية: {new_tx.tx_code}", "success")
     return redirect(url_for('wallet.display_management_table', search_query=wallet_code))
 
 @wallet_blueprint.route('/handle-withdrawal/<int:tx_id>/<decision>', methods=['POST'])
@@ -89,24 +93,22 @@ def handle_supplier_withdrawal(tx_id, decision):
     
     if decision == 'approve':
         tx.status = 'ناجحة'
-        # هنا يتم خصم المبلغ من الرصيد المعلق وإضافته للمسحوبات
         if tx.currency == 'YER': 
-            wallet.yer_pending -= tx.amount
-            wallet.yer_withdrawn += tx.amount
+            wallet.yer_pending = (wallet.yer_pending or 0) - tx.amount
+            wallet.yer_withdrawn = (wallet.yer_withdrawn or 0) + tx.amount
         elif tx.currency == 'SAR':
-            wallet.sar_pending -= tx.amount
-            wallet.sar_withdrawn += tx.amount
+            wallet.sar_pending = (wallet.sar_pending or 0) - tx.amount
+            wallet.sar_withdrawn = (wallet.sar_withdrawn or 0) + tx.amount
         elif tx.currency == 'USD':
-            wallet.usd_pending -= tx.amount
-            wallet.usd_withdrawn += tx.amount
-        flash("تمت الموافقة على طلب السحب وتحديث المحفظة.", "success")
+            wallet.usd_pending = (wallet.usd_pending or 0) - tx.amount
+            wallet.usd_withdrawn = (wallet.usd_withdrawn or 0) + tx.amount
+        flash("تمت الموافقة على السحب.", "success")
     else:
         tx.status = 'مرفوضة'
-        # استرجاع المبلغ المعلق للرصيد المتاح
-        if tx.currency == 'YER': wallet.yer_pending -= tx.amount
-        elif tx.currency == 'SAR': wallet.sar_pending -= tx.amount
-        elif tx.currency == 'USD': wallet.usd_pending -= tx.amount
-        flash("تم رفض طلب السحب وإعادة المبلغ للمحفظة.", "warning")
+        if tx.currency == 'YER': wallet.yer_pending = (wallet.yer_pending or 0) - tx.amount
+        elif tx.currency == 'SAR': wallet.sar_pending = (wallet.sar_pending or 0) - tx.amount
+        elif tx.currency == 'USD': wallet.usd_pending = (wallet.usd_pending or 0) - tx.amount
+        flash("تم رفض طلب السحب.", "warning")
         
     db.session.commit()
     return redirect(url_for('wallet.display_management_table', search_query=wallet.wallet_code))
