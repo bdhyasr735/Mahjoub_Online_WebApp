@@ -4,137 +4,75 @@
 
 {% block content %}
 <style>
+    /* الأنماط التصميمية */
     :root {
         --royal-purple: #632C8F;
         --royal-purple-dark: #4A1E6D;
         --pure-white: #FFFFFF;
         --soft-bg: #F4F5F8;
         --text-dark: #2A2A2A;
-        --text-muted: #7A7A7A;
         --success-green: #2E7D32;
         --pending-orange: #EF6C00;
         --danger-red: #C62828;
-        --mahjoub-gold: #D4AF37;
     }
-
-    .header-governance { background: var(--pure-white); padding: 20px 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(99, 44, 143, 0.05); margin-bottom: 25px; border-right: 6px solid var(--royal-purple); display: flex; justify-content: space-between; align-items: center; }
-    .header-title h1 { color: var(--royal-purple); font-size: 24px; font-weight: 700; margin: 0; }
-    .slogan-badge { background: rgba(99, 44, 143, 0.1); color: var(--royal-purple); padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 13px; }
-    
-    .system-stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-box { background: linear-gradient(135deg, var(--pure-white) 0%, #FAF8FC 100%); border: 1px solid rgba(99, 44, 143, 0.1); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; }
-    .stat-icon { width: 50px; height: 50px; border-radius: 10px; background: rgba(99, 44, 143, 0.08); color: var(--royal-purple); display: flex; align-items: center; justify-content: center; font-size: 22px; }
-    .stat-details h3 { font-size: 20px; font-weight: 700; color: var(--text-dark); margin: 0; }
-    
-    .search-filter-card { background: var(--pure-white); padding: 20px 25px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(99, 44, 143, 0.05); }
-    .filter-form { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
-    .input-group-custom { flex: 1; min-width: 280px; position: relative; }
-    .input-group-custom input { width: 100%; padding: 12px 15px; border: 1.5px solid #EAEAEA; border-radius: 8px; outline: none; }
-    
-    .btn-governance { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
-    .btn-primary-gov { background-color: var(--royal-purple); color: white; }
-    
-    .supplier-identity-card { background: linear-gradient(45deg, #2b1042, var(--royal-purple)); color: white; padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
-    
-    .currency-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-bottom: 35px; }
-    .wallet-card { background: var(--pure-white); border-radius: 16px; padding: 25px; border: 1px solid rgba(99, 44, 143, 0.08); }
-    .balance-amount { font-size: 32px; font-weight: 700; color: var(--royal-purple); }
-    
-    .transactions-section { background: var(--pure-white); border-radius: 16px; padding: 30px; margin-bottom: 35px; }
-    .gov-table { width: 100%; border-collapse: collapse; text-align: right; }
-    .gov-table th { background-color: var(--soft-bg); color: var(--royal-purple); padding: 15px; }
+    .gov-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .gov-table th { background-color: var(--soft-bg); padding: 15px; text-align: right; color: var(--royal-purple); }
     .gov-table td { padding: 15px; border-bottom: 1px solid #EAEAEA; }
     .status-pill { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-    .status-pill.pending { background: rgba(239, 108, 0, 0.1); color: var(--pending-orange); }
-    .btn-action-success { background-color: var(--success-green); color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; }
-    .btn-action-danger { background-color: var(--danger-red); color: white; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; }
+    .status-pending { background: rgba(239, 108, 0, 0.1); color: var(--pending-orange); }
 </style>
 
-<div class="container-fluid p-0">
-    <header class="header-governance">
-        <div class="header-title">
-            <h1><i class="fa-solid fa-scale-balanced"></i> جدول موافقة الطلبات والتسوية المالية</h1>
-            <p>منصة محجوب أونلاين لعام 2026 | الرقابة المركزية وتعميد القيود</p>
-        </div>
-        <div class="slogan-badge"><i class="fa-solid fa-shield-halved"></i> سوقك الآمن الموحد</div>
-    </header>
-
-    <section class="system-stats-bar">
-        <div class="stat-box">
-            <div class="stat-icon"><i class="fa-solid fa-vault"></i></div>
-            <div class="stat-details">
-                <p>إجمالي المحافظ</p>
-                <h3>{{ total_wallets_count }}</h3>
-            </div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-icon" style="color: var(--success-green);"><i class="fa-solid fa-money-bill-wave"></i></div>
-            <div class="stat-details">
-                <p>إجمالي YER</p>
-                <h3>{{ "{:,.2f}".format(total_yer_system) }}</h3>
-            </div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-icon" style="color: #D4AF37;"><i class="fa-solid fa-coins"></i></div>
-            <div class="stat-details">
-                <p>إجمالي SAR</p>
-                <h3>{{ "{:,.2f}".format(total_sar_system) }}</h3>
-            </div>
-        </div>
-    </section>
-
+<div class="container-fluid">
     <section class="search-filter-card">
         <form method="GET" action="{{ url_for('wallet.display_management_table') }}" class="filter-form">
-            <div class="input-group-custom">
-                <input type="text" name="search_query" value="{{ current_search or '' }}" placeholder="ابحث بمعرف المورد أو كود المحفظة...">
-            </div>
-            <button type="submit" class="btn-governance btn-primary-gov"><i class="fa-solid fa-filter"></i> بحث وفحص</button>
+            <input type="text" name="search_query" value="{{ current_search or '' }}" 
+                   placeholder="بحث بالاسم، المتجر، كود المحفظة، أو المعرّف..." class="form-control">
+            <button type="submit" class="btn btn-primary">بحث وفحص</button>
         </form>
     </section>
 
     {% if wallet %}
-    <section class="supplier-identity-card">
-        <div>
-            <h2>الكيان التجاري المستهدف</h2>
-            <p>معرّف: {{ wallet.supplier_id }} | كود المحفظة: {{ wallet.wallet_code }}</p>
-        </div>
-        <button class="btn btn-warning fw-bold" data-bs-toggle="modal" data-bs-target="#adminSettlementModal">إصدار سند تسوية</button>
-    </section>
-
-    <main class="currency-grid">
-        {% for curr in [('🇾🇪', 'الريال اليمني', wallet.yer_available, wallet.yer_total, wallet.yer_withdrawn, wallet.yer_pending, 'YER'), ('🇸🇦', 'الريال السعودي', wallet.sar_available, wallet.sar_total, wallet.sar_withdrawn, wallet.sar_pending, 'SAR'), ('🇺🇸', 'الدولار', wallet.usd_available, wallet.usd_total, wallet.usd_withdrawn, wallet.usd_pending, 'USD')] %}
-        <div class="wallet-card">
-            <div class="d-flex justify-content-between">
-                <div class="fw-bold">{{ curr[0] }} {{ curr[1] }}</div>
-                <small class="text-muted">{{ wallet.wallet_code }}</small>
-            </div>
-            <div class="balance-amount mt-3">{{ "{:,.2f}".format(curr[2] or 0) }} <span>{{ curr[6] }}</span></div>
-        </div>
-        {% endfor %}
-    </main>
-    {% endif %}
+    <div class="supplier-identity-card">
+        <h3>الكيان: {{ wallet.supplier.name }} ({{ wallet.supplier.owner_name }})</h3>
+        <p>كود المحفظة: {{ wallet.wallet_code }} | معرّف: {{ wallet.supplier_id }}</p>
+    </div>
 
     <section class="transactions-section">
+        <h4>سجل التسويات والطلبات</h4>
         <table class="gov-table">
             <thead>
                 <tr>
                     <th>كود السند</th>
                     <th>النوع</th>
                     <th>المبلغ</th>
+                    <th>الحالة</th>
                     <th>الإجراء</th>
                 </tr>
             </thead>
             <tbody>
-                {% for settle in wallet_settlements %}
+                {% for tx in wallet_settlements %}
                 <tr>
-                    <td>{{ settle.settlement_code }}</td>
-                    <td>{{ settle.settlement_type }}</td>
-                    <td>{{ "{:,.2f}".format(settle.amount) }}</td>
-                    <td>{{ settle.created_by }}</td>
+                    <td>{{ tx.settlement_code }}</td>
+                    <td>{{ tx.settlement_type }}</td> <td>{{ "{:,.2f}".format(tx.amount) }}</td>
+                    <td>
+                        {% if tx.status == 'pending' %}
+                            <span class="status-pill status-pending">قيد الانتظار</span>
+                        {% else %}
+                            <span>{{ tx.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if tx.status == 'pending' %}
+                            <form action="{{ url_for('wallet.handle_supplier_withdrawal', tx_id=tx.id, decision='approve') }}" method="POST">
+                                <button type="submit" class="btn btn-sm btn-success">اعتماد</button>
+                            </form>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </section>
+    {% endif %}
 </div>
 {% endblock %}
