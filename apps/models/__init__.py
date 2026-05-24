@@ -2,7 +2,9 @@
 # تجميع وإشهار النماذج لسهولة الاستيراد من خارج حزمة models
 
 from apps.models.admin_db import AdminUser
-from apps.models.supplier_db import Supplier  # استدعاء الموردين من ملفها المستقل والصحيح ✅
+from apps.models.supplier_db import Supplier
+# إضافة الموديل الجديد هنا:
+from apps.models.settlements_db import AdminSettlement 
 
-# أي موديلات جديدة تقوم بإنشائها مستقبلاً في ملفات أخرى، قم بإشهارها هنا كالتالي:
-# from apps.models.products import Product
+# يفضل أيضاً إضافة موديل المحفظة إذا كان موجوداً في ملف مستقل، 
+# تأكد من استيراد كل شيء تحتاجه هنا لتجنب أي مشاكل عند الاستيراد.
