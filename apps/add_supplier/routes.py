@@ -1,4 +1,5 @@
 # coding: utf-8
+import re  # استيراد مكتبة العبارات المنتظمة لاستخراج الرقم الموحد 🎯
 from flask import render_template, request, jsonify, current_app, url_for, redirect
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
@@ -8,7 +9,7 @@ import os
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet
-from . import admin_suppliers_bp # نقوم باستيراده ولكن سنعتمد الاسم البرمجي المسجل بالسيستم لتفادي خطأ الـ Build
+from . import admin_suppliers_bp 
 
 # =======================================================
 # 1. دالة العرض المصلحة (تأمين ظهور واستقرار القالب)
@@ -30,7 +31,7 @@ def add_supplier_page():
 
 
 # =======================================================
-# 2. دالة التحقق من التكرار والـ Sequences (تتوافق مع الفحص اللحظي الفوري)
+# 2. دالة التحقق من التكرار والـ Sequences (تطابق الجزء الرقمي التوأم)
 # =======================================================
 @admin_suppliers_bp.route('/check_duplicate', methods=['GET'])
 @login_required
@@ -38,15 +39,22 @@ def check_duplicate():
     check_type = request.args.get('type')
     value = request.args.get('value')
     
-    # جلب التسلسلات التالية المتوقعة بناءً على دالة الموديل المتطورة
+    # جلب التسلسلات التالية المتوقعة متطابقة رقمياً
     if check_type == 'get_next_sequence':
+        # 1. توليد كود المورد المعتمد من الموديل (مثل: SUP-MAH9635)
         next_sovereign = Supplier.generate_next_sovereign_id()
-        # توليد كود المحفظة التتابعي بناءً على آخر ID مسجل
-        last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
-        next_id = (last_supplier.id + 1) if last_supplier else 1
+        
+        # 2. استخراج الأرقام فقط من كود المورد لتوحيدها مع المحفظة
+        supplier_digits = re.findall(r'\d+', str(next_sovereign))
+        if supplier_digits:
+            clean_num = supplier_digits[0]
+        else:
+            # احتياطي في حال فشل الاستخراج
+            clean_num = "9635"
+            
         return jsonify({
             'next_sequence': next_sovereign,
-            'next_wallet': f"WLT-MAH{1000 + next_id}"
+            'next_wallet': f"WLT-MAH{clean_num}"  # إنتاج كود المحفظة التوأم رقمياً بالبادئة الصحيحة
         })
 
     # التحقق الحوكمة الصارم من وجود البيانات مسبقاً لمنع التكرار (الـ 7 حقول المعتمدة)
@@ -139,11 +147,11 @@ def add_supplier_submit():
         # التزام وحفظ الذرة المترابطة في قاعدة البيانات (Atomic Commit)
         db.session.commit()
         
-        # جلب التسلسلات القادمة تلقائياً لإرسالها للواجهة الأمامية لتحديث العدادات بدون إنعاش الصفحة
+        # جلب التسلسلات القادمة تلقائياً لإرسالها للواجهة لتحديث العدادات الفورية بعد نجاح الحفظ
         next_sovereign = Supplier.generate_next_sovereign_id()
-        last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
-        next_id = (last_supplier.id + 1) if last_supplier else 1
-        next_wallet_code = f"WLT-MAH{1000 + next_id}"
+        supplier_digits = re.findall(r'\d+', str(next_sovereign))
+        clean_num = supplier_digits[0] if supplier_digits else "9636"
+        next_wallet_code = f"WLT-MAH{clean_num}"
         
         return jsonify({
             'status': 'success', 
