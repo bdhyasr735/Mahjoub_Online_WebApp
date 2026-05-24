@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app import db
 from apps.models import Wallet, WithdrawalRequest, Transaction
-from datetime import datetime
+from datetime import datetime, timezone
 
 wallet_bp = Blueprint('wallet', __name__, url_prefix='/wallet')
 
@@ -81,7 +81,7 @@ def handle_withdrawal(request_id, action):
     currency_attr = req.currency.lower()  # yer, sar, usd
 
     if action == 'approve':
-        # تعميد الصرف ونقل المبالغ من المعلق إلى المسحوبات الفندقية الفعالة
+        # تعميد الصرف ونقل المبالغ من المعلق إلى المسحوبات الفعالة
         pending_balance = getattr(wallet, f"{currency_attr}_pending", 0.0)
         withdrawn_balance = getattr(wallet, f"{currency_attr}_withdrawn", 0.0)
         
@@ -89,7 +89,7 @@ def handle_withdrawal(request_id, action):
             setattr(wallet, f"{currency_attr}_pending", pending_balance - req.amount)
             setattr(wallet, f"{currency_attr}_withdrawn", withdrawn_balance + req.amount)
             req.status = 'approved'
-            req.processed_at = datetime.utcnow()
+            req.processed_at = datetime.now(timezone.utc) # تعديل لمنع توقف السيرفر
             
             # تسجيل عملية الخصم النهائي في جدول العمليات
             new_tx = Transaction(
@@ -114,7 +114,7 @@ def handle_withdrawal(request_id, action):
             setattr(wallet, f"{currency_attr}_pending", pending_balance - req.amount)
             setattr(wallet, f"{currency_attr}_available", available_balance + req.amount)
             req.status = 'rejected'
-            req.processed_at = datetime.utcnow()
+            req.processed_at = datetime.now(timezone.utc) # تعديل لمنع توقف السيرفر
             db.session.commit()
             flash('تم رفض طلب السحب وإعادة المبالغ المحجوزة إلى الرصيد المتاح بنجاح.', 'info')
             
@@ -149,7 +149,7 @@ def admin_settlement(wallet_code):
         # تسوية عكسية وخصم مادي
         if available_balance >= amount:
             setattr(wallet, f"{currency_attr}_available", available_balance - amount)
-            setattr(wallet, f"{currency_attr}_total", total_balance - amount)
+            setattr(wallet, f"{currency_attr._total}", total_balance - amount)
             flash_msg = f"تم خصم مبلغ {amount} {currency} بنجاح بناءً على التسوية الإدارية."
             tx_type = 'deduction'
         else:
