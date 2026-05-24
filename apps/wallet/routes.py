@@ -6,7 +6,9 @@ from flask_login import login_required
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from datetime import datetime
+import os
 
+# تعريف البلوبرينت
 wallet_blueprint = Blueprint('wallet', __name__)
 
 @wallet_blueprint.route('/management', methods=['GET'])
@@ -17,7 +19,7 @@ def display_management_table():
     wallet_settlements = []
     pending_withdrawals = []
 
-    # حساب إحصائيات النظام العامة بأمان
+    # حساب إحصائيات النظام العامة
     total_wallets_count = SupplierWallet.query.count()
     total_yer_system = db.session.query(db.func.sum(SupplierWallet.yer_total)).scalar() or 0
     total_sar_system = db.session.query(db.func.sum(SupplierWallet.sar_total)).scalar() or 0
@@ -34,6 +36,7 @@ def display_management_table():
                 .order_by(WalletTransaction.created_at.desc()).all()
             pending_withdrawals = WalletTransaction.query.filter_by(wallet_id=wallet.id, status='معلقة').all()
 
+    # استخدام المسار الكامل للمجلد للتحايل على مشاكل التوجيه
     return render_template('admin/settlement_and_withdrawal.html',
                            total_wallets_count=total_wallets_count,
                            total_yer_system=total_yer_system,
@@ -97,18 +100,4 @@ def handle_supplier_withdrawal(tx_id, decision):
             wallet.yer_pending = (wallet.yer_pending or 0) - tx.amount
             wallet.yer_withdrawn = (wallet.yer_withdrawn or 0) + tx.amount
         elif tx.currency == 'SAR':
-            wallet.sar_pending = (wallet.sar_pending or 0) - tx.amount
-            wallet.sar_withdrawn = (wallet.sar_withdrawn or 0) + tx.amount
-        elif tx.currency == 'USD':
-            wallet.usd_pending = (wallet.usd_pending or 0) - tx.amount
-            wallet.usd_withdrawn = (wallet.usd_withdrawn or 0) + tx.amount
-        flash("تمت الموافقة على السحب.", "success")
-    else:
-        tx.status = 'مرفوضة'
-        if tx.currency == 'YER': wallet.yer_pending = (wallet.yer_pending or 0) - tx.amount
-        elif tx.currency == 'SAR': wallet.sar_pending = (wallet.sar_pending or 0) - tx.amount
-        elif tx.currency == 'USD': wallet.usd_pending = (wallet.usd_pending or 0) - tx.amount
-        flash("تم رفض طلب السحب.", "warning")
-        
-    db.session.commit()
-    return redirect(url_for('wallet.display_management_table', search_query=wallet.wallet_code))
+            wallet.sar_pending = (wallet.sar_pending or
