@@ -8,7 +8,7 @@ import os
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet
-from . import admin_suppliers_bp
+from . import admin_suppliers_bp # نقوم باستيراده ولكن سنعتمد الاسم البرمجي المسجل بالسيستم لتفادي خطأ الـ Build
 
 # 1. دالة التحقق من التكرار والـ Sequences (تتوافق مع الفحص اللحظي الفوري)
 @admin_suppliers_bp.route('/check_duplicate', methods=['GET'])
@@ -139,5 +139,4 @@ def add_supplier_submit():
 @admin_suppliers_bp.route('/add_supplier', methods=['GET'])
 @login_required
 def add_supplier_page():
-    # لضمان بقاء الهيكل والدشبرد ثابتاً وتضمين القالب بشكل مستقر وسلس
     return render_template('admin/add_supplier.html')
