@@ -7,8 +7,11 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from datetime import datetime
-# استيراد محرّك قواعد البيانات ونماذج الجداول السيادية (الأب والابن)
-from app import db  # أو المسار الفعلي لـ db في مشروعك
+
+# 🌟 التصحيح الحاسم: استدعاء محرك قواعد البيانات من الامتدادات المشتركة وليس من جذر التطبيق القديم
+from apps.extensions import db 
+
+# استيراد نماذج الجداول السيادية (الأب والابن)
 from apps.wallet.models import Wallet, WalletTransaction, AdminSettlement
 
 # تعريف الـ Blueprint بالاسم المعتمد في المنظومة
@@ -84,11 +87,9 @@ def handle_supplier_withdrawal(tx_id, decision):
 
     if decision == 'approve':
         # في حالة التعميد: تحويل المبلغ من المعلق إلى المسحوبات النهائية بشكل دائم
-        # تقليل المعلق
         current_pending = getattr(wallet, f"{currency_attr}_pending") or 0.0
         setattr(wallet, f"{currency_attr}_pending", max(0.0, current_pending - transaction.amount))
         
-        # زيادة إجمالي المسحوبات الكلية للتوثيق المحاسبي في جدول الأب
         current_withdrawn = getattr(wallet, f"{currency_attr}_withdrawn") or 0.0
         setattr(wallet, f"{currency_attr}_withdrawn", current_withdrawn + transaction.amount)
         
@@ -99,11 +100,9 @@ def handle_supplier_withdrawal(tx_id, decision):
 
     elif decision == 'reject':
         # في حالة الرفض البشري: فك حجز الرصيد وإعادته فوراً للرصيد المتاح للمورد
-        # تقليل المعلق
         current_pending = getattr(wallet, f"{currency_attr}_pending") or 0.0
         setattr(wallet, f"{currency_attr}_pending", max(0.0, current_pending - transaction.amount))
         
-        # إعادة المبلغ للرصيد المتاح الصافي
         current_available = getattr(wallet, f"{currency_attr}_available") or 0.0
         setattr(wallet, f"{currency_attr}_available", current_available + transaction.amount)
         
@@ -119,7 +118,6 @@ def handle_supplier_withdrawal(tx_id, decision):
 def execute_admin_settlement(wallet_code):
     """
     3️⃣ دالة إصدار السندات الاستثنائية: قيد شحن أو خصم عكسي يدوي بواسطة الإدارة
-    يتم توجيهه بالكامل للجدول المستقل 'AdminSettlement' حماية للحسابات المالية من التلاعب
     """
     wallet = Wallet.query.filter_by(wallet_code=wallet_code).first_or_404()
     
@@ -138,19 +136,16 @@ def execute_admin_settlement(wallet_code):
     current_available = getattr(wallet, f"{currency_attr}_available") or 0.0
     current_total = getattr(wallet, f"{currency_attr}_total") or 0.0
 
-    # توليد كود حوكمي مشفر فريد للسند الإداري الجديد لعام 2026
     timestamp = datetime.utcnow().strftime('%M%S')
     generated_settlement_code = f"ST-2026-{currency}-{timestamp}"
 
     if settlement_type == 'deposit':
-        # شحن يدوي: يرفع الرصيد المتاح الكلي وإجمالي الأرباح التاريخية
         setattr(wallet, f"{currency_attr}_available", current_available + amount)
         setattr(wallet, f"{currency_attr}_total", current_total + amount)
         type_label = "شحن / إضافة رصيد"
         flash_style = "success"
 
     elif settlement_type == 'deduct':
-        # خصم عكسي: التحقق أولاً من كفاية الرصيد المتاح لمنع كسر الحساب بالسالب
         if current_available < amount:
             flash(f"فشل إصدار السند: الرصيد المتاح في المحفظة ({current_available:,.2f} {currency}) غير كافٍ لإجراء خصم قيمته {amount:,.2f}.", "danger")
             return redirect(url_for('wallet.display_management_table', search_query=wallet_code))
@@ -160,7 +155,6 @@ def execute_admin_settlement(wallet_code):
         type_label = "خصم عكسي"
         flash_style = "inverse"
 
-    # إنشاء قيد وتسجيل السند رسمياً في حقول جدول الابن الحمائي المستقل
     new_settlement = AdminSettlement(
         settlement_code=generated_settlement_code,
         wallet_code=wallet.wallet_code,
@@ -170,7 +164,7 @@ def execute_admin_settlement(wallet_code):
         financial_entity=financial_entity,
         reference_number=reference_number,
         reason_notes=notes,
-        created_by="المشرف المالي المركزي",  # يمكن ربطه بـ current_user.username إذا كنت تستخدم Flask-Login
+        created_by="المشرف المالي المركزي",
         created_at=datetime.utcnow()
     )
 
