@@ -28,12 +28,12 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. تسجيل النماذج المالية والسيادية داخل سياق التطبيق لضمان وعي قاعدة البيانات بها
+    # 4. تسجيل النماذج وتوليد الجداول تلقائياً عند الإقلاع (بديل الترمينال)
     with app.app_context():
-        from apps.models import wallet_db  # استدعاء نماذج المحفظة والتسويات الجديدة
+        from apps.models import wallet_db  # استدعاء النماذج المالية والسيادية الجديدة
+        db.create_all()  # 🔥 هذا الأمر سيقوم بإنشاء الجداول والتحسينات الجديدة فوراً في السيرفر
 
     # 5. تسجيل الـ Blueprints (السيادة الرقمية المستقلة)
-    # استيراد محلي لتجنب مشاكل الاستيراد الدائري (Circular Imports)
     
     # بوابة التحكم بالدخول والسيادة الجمركية للمنصة
     from apps.auth_portal import auth_blueprint
@@ -47,7 +47,7 @@ def create_app():
     from apps.add_supplier import admin_suppliers_bp
     app.register_blueprint(admin_suppliers_bp, url_prefix='/suppliers')
     
-    # النظام المالي والربط البرمجي للمحفظة الرقمية (تعديل الاسم ليتوافق مع الـ Blueprint المحقق)
+    # النظام المالي والربط البرمجي للمحفظة الرقمية
     from apps.wallet import wallet_blueprint
     app.register_blueprint(wallet_blueprint, url_prefix='/wallet')
 
