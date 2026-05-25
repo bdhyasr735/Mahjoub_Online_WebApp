@@ -11,10 +11,10 @@ from sqlalchemy import or_
 @login_required
 def view_statement():
     """
-    عرض كشف حساب الموردين مع دعم الفلترة.
-    تم نقل الاستيراد إلى داخل الدالة لكسر حلقة الاستيراد (Circular Import).
+    عرض كشف حساب الموردين مع دعم الفلترة حسب العملة والتاريخ.
+    تم نقل الاستيرادات إلى هنا لكسر حلقة الاستيراد الدائرية.
     """
-    # استيراد محلي لكسر حلقة الاستيراد
+    # الاستيراد داخل الدالة فقط - الحل السحري لإنهاء انهيار السيرفر
     from apps.models.supplier_db import Supplier
     from apps.models.statement_db import SupplierStatement
 
@@ -40,7 +40,7 @@ def view_statement():
                 # إنشاء استعلام الكشف
                 query = SupplierStatement.query.filter_by(supplier_id=selected_supplier.id)
                 
-                # تطبيق الفلاتر
+                # تطبيق الفلاتر الإضافية
                 if currency != 'ALL':
                     query = query.filter_by(currency=currency)
                 if start_date:
@@ -48,6 +48,7 @@ def view_statement():
                 if end_date:
                     query = query.filter(SupplierStatement.created_at <= end_date)
                 
+                # جلب البيانات مرتبة زمنياً
                 statements = query.order_by(SupplierStatement.created_at.desc()).all()
             else:
                 flash("لم يتم العثور على مورد بهذه البيانات.", "warning")
