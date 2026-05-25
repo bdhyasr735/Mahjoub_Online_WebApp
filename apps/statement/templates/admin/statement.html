@@ -1,1 +1,54 @@
+{% extends "admin/admin_base.html" %}
 
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>كشف حساب المورد</h3>
+        <button onclick="window.print()" class="btn btn-primary shadow-sm">
+            <i class="fas fa-print"></i> طباعة الكشف
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>العملية</th>
+                            <th>العملة</th>
+                            <th class="text-danger">مدين (خصم)</th>
+                            <th class="text-success">دائن (إضافة)</th>
+                            <th class="fw-bold">الرصيد التراكمي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stmt in statements %}
+                        <tr>
+                            <td>{{ stmt.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ stmt.description }}</td>
+                            <td>{{ stmt.currency }}</td>
+                            <td class="text-danger">{{ "{:,.2f}".format(stmt.debit) }}</td>
+                            <td class="text-success">{{ "{:,.2f}".format(stmt.credit) }}</td>
+                            <td class="fw-bold">{{ "{:,.2f}".format(stmt.running_balance) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">لا توجد حركات مالية مسجلة بعد.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        .btn, .sidebar, .navbar { display: none !important; }
+        .card { border: none !important; }
+    }
+</style>
+{% endblock %}
