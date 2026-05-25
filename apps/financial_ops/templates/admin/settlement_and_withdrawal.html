@@ -1,16 +1,22 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
+<style>
+    /* تخصيص اللون البنفسجي للهوية */
+    .table-custom-purple { background-color: #6a1b9a !important; color: white; }
+    .btn-outline-custom { border-color: #6a1b9a; color: #6a1b9a; }
+    .btn-outline-custom:hover, .btn-outline-custom.active { background-color: #6a1b9a; color: white; }
+</style>
+
 <div class="container-fluid py-4">
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-9">
-                    <input type="text" id="liveSearch" class="form-control form-control-lg" 
-                           placeholder="🔍 البحث الفوري: أدخل اسم المتجر أو كود المحفظة...">
+                    <input type="text" id="liveSearch" class="form-control form-control-lg" placeholder="🔍 ابحث بالاسم، المتجر، أو رقم المحفظة...">
                 </div>
                 <div class="col-md-3">
-                    <button class="btn btn-warning w-100 btn-lg" data-bs-toggle="modal" data-bs-target="#newSettlementModal">
+                    <button class="btn btn-warning w-100 btn-lg shadow-sm">
                         <i class="fas fa-plus"></i> سند تسوية جديد
                     </button>
                 </div>
@@ -20,22 +26,21 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="btn-group shadow-sm">
-            <button class="btn btn-outline-primary" onclick="filterTable('all')">عرض الكل</button>
-            <button class="btn btn-outline-warning" onclick="filterTable('pending')">قيد الانتظار</button>
-            <button class="btn btn-outline-success" onclick="filterTable('approved')">تم الاعتماد</button>
-            <button class="btn btn-outline-danger" onclick="filterTable('rejected')">الملغي</button>
+            <button class="btn btn-outline-custom active" onclick="filterTable('all')">عرض الكل</button>
+            <button class="btn btn-outline-custom" onclick="filterTable('pending')">قيد الانتظار</button>
+            <button class="btn btn-outline-custom" onclick="filterTable('approved')">تم الاعتماد</button>
+            <button class="btn btn-outline-custom" onclick="filterTable('rejected')">الملغي</button>
         </div>
-        <div class="input-group w-auto">
-            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-            <input type="date" class="form-control" id="dateFilter">
-        </div>
+        <input type="date" class="form-control w-auto shadow-sm">
     </div>
 
     <div class="table-responsive bg-white rounded shadow-sm">
-        <table class="table table-hover align-middle" id="mainTable">
-            <thead class="table-dark">
+        <table class="table table-hover align-middle mb-0" id="mainTable">
+            <thead class="table-custom-purple">
                 <tr>
                     <th>التاريخ</th>
+                    <th>الكيان (المتجر/المالك)</th>
+                    <th>كود المحفظة</th>
                     <th>المرجع</th>
                     <th>المبلغ</th>
                     <th>الحالة</th>
@@ -43,26 +48,39 @@
                 </tr>
             </thead>
             <tbody id="tableBody">
-                </tbody>
+                {% for tx in pending_withdrawals %}
+                <tr class="op-row" data-status="pending">
+                    <td>{{ tx.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <strong>{{ tx.wallet.supplier.name }}</strong><br>
+                        <small class="text-muted">{{ tx.wallet.supplier.owner_name }}</small>
+                    </td>
+                    <td>{{ tx.wallet.wallet_code }}</td>
+                    <td>{{ tx.id }}</td>
+                    <td>{{ "{:,.2f}".format(tx.amount) }}</td>
+                    <td><span class="badge bg-warning text-dark">قيد الانتظار</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-success">اعتماد</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
 </div>
 
 <script>
-// بحث فوري
+function filterTable(status) {
+    document.querySelectorAll('.op-row').forEach(row => {
+        row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
+    });
+}
+// البحث التلقائي
 document.getElementById('liveSearch').addEventListener('input', function(e) {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('#tableBody tr').forEach(row => {
         row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
     });
 });
-
-// فلترة الحالة
-function filterTable(status) {
-    document.querySelectorAll('#tableBody tr').forEach(row => {
-        if (status === 'all' || row.dataset.status === status) row.style.display = '';
-        else row.style.display = 'none';
-    });
-}
 </script>
 {% endblock %}
