@@ -47,15 +47,6 @@
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <tr class="op-row" data-status="pending">
-                    <td>2026-05-25 14:00</td>
-                    <td><strong>متجر التقنية</strong><br><small class="text-muted">أحمد علي</small></td>
-                    <td>W-9901</td>
-                    <td>#1001</td>
-                    <td class="fw-bold">1,500.00</td>
-                    <td><span class="badge bg-warning text-dark">قيد الانتظار</span></td>
-                    <td><button class="btn btn-sm btn-success" onclick="openApprovalModal(1, 'متجر التقنية', 1500)">اعتماد</button></td>
-                </tr>
                 {% for tx in pending_withdrawals %}
                 <tr class="op-row" data-status="pending">
                     <td>{{ tx.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
@@ -83,17 +74,20 @@
 <div class="modal fade" id="approvalModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white"><h5>إتمام تصفية مالية</h5></div>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">إتمام تصفية مالية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
             <form id="approvalForm" method="POST">
                 <div class="modal-body">
                     <input type="hidden" name="tx_id" id="modalTxId">
                     <div class="mb-3">
-                        <label>رقم الحوالة:</label>
-                        <input type="text" name="ref_number" class="form-control" required>
+                        <label class="form-label">رقم الحوالة:</label>
+                        <input type="text" name="ref_number" class="form-control" required placeholder="أدخل رقم الحوالة المرجعي">
                     </div>
                     <div class="mb-3">
-                        <label>جهة التحويل:</label>
-                        <input type="text" name="financial_entity" class="form-control" required>
+                        <label class="form-label">جهة التحويل:</label>
+                        <input type="text" name="financial_entity" class="form-control" required placeholder="مثال: بنك القطيبي">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -106,23 +100,7 @@
 </div>
 
 <script>
-function openApprovalModal(id, name, amount) {
+// فتح المودال وتعيين مسار الفورم
+function openApprovalModal(id) {
     document.getElementById('modalTxId').value = id;
-    document.getElementById('approvalForm').action = `/financial_ops/withdrawal/handle/${id}/approve`;
-    new bootstrap.Modal(document.getElementById('approvalModal')).show();
-}
-
-function filterTable(status) {
-    document.querySelectorAll('.op-row').forEach(row => {
-        row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
-    });
-}
-
-document.getElementById('liveSearch').addEventListener('input', function(e) {
-    const term = e.target.value.toLowerCase();
-    document.querySelectorAll('#tableBody tr').forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
-    });
-});
-</script>
-{% endblock %}
+    document.getElementById('approvalForm').action = `/financial_ops/withdrawal
