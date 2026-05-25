@@ -1,6 +1,5 @@
 # coding: utf-8
 # 📂 apps/statement/routes.py
-# ⚙️ محرك كشوفات الموردين المركزية - نظام محجوب أونلاين 2026
 
 from flask import render_template, request, flash
 from flask_login import login_required
@@ -12,7 +11,6 @@ from sqlalchemy import or_
 @statement_blueprint.route('/view', methods=['GET'])
 @login_required
 def view_statement():
-    # 1. التقاط مدخلات البحث والفلترة
     q = request.args.get('q', '')
     currency = request.args.get('currency', 'ALL')
     report_type = request.args.get('report_type', 'detailed')
@@ -22,7 +20,6 @@ def view_statement():
     selected_supplier = None
     statements = []
 
-    # 2. منطق البحث الذكي
     if q:
         try:
             selected_supplier = Supplier.query.filter(or_(
@@ -31,21 +28,19 @@ def view_statement():
                 Supplier.sovereign_id == q
             )).first()
             
-            # 3. استخدام محرك التقارير مع حماية ضد الانهيار
             if selected_supplier:
                 statements = ReportGenerator.get_detailed_transactions(
                     supplier_id=selected_supplier.id,
                     currency=currency,
                     start_date=start_date,
                     end_date=end_date
-                ) or [] # التأكد من عدم رجوع None
+                ) or []
             else:
                 flash("لم يتم العثور على مورد بهذه البيانات.", "warning")
         
         except Exception as e:
-            # في حال حدوث أي خطأ في قاعدة البيانات أو التوليد، لا ينهار النظام
             print(f"Error generating statement: {e}")
-            flash("حدث خطأ أثناء تحميل الكشف، يرجى المحاولة لاحقاً.", "danger")
+            flash("حدث خطأ أثناء تحميل الكشف.", "danger")
             statements = []
 
     return render_template(
