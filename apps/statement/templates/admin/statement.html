@@ -5,10 +5,8 @@
 {% block content %}
 <style>
     .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(99, 44, 143, 0.1); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.05); }
-    .btn-mahjoub { background: #632C8F; color: white; border-radius: 12px; transition: 0.3s; }
-    .btn-mahjoub:hover { background: #4A1E6D; color: #D4AF37; }
+    .search-glow { border: 2px solid #632C8F !important; transition: 0.3s; }
     .table thead { background: #632C8F; color: white; }
-    .table th { border: none !important; }
     .debit-val { color: #dc3545; font-weight: bold; }
     .credit-val { color: #198754; font-weight: bold; }
 </style>
@@ -16,75 +14,65 @@
 <div class="container-fluid">
     <div class="card glass-card mb-4">
         <div class="card-body p-4">
-            <form method="GET" action="{{ url_for('statement_blueprint.view_statement') }}" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="small fw-bold text-muted mb-1">اسم المورد / المعرف</label>
-                    <input type="text" name="q" class="form-control" placeholder="ابحث هنا..." value="{{ request.args.get('q', '') }}">
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="small fw-bold text-muted mb-1">استدعاء لحظي (اسم المورد أو الرقم الموحد)</label>
+                    <input type="text" id="dynamicSearch" class="form-control form-control-lg search-glow" 
+                           placeholder="اكتب للبحث السريع..." value="{{ request.args.get('q', '') }}">
                 </div>
-                <div class="col-md-2">
-                    <label class="small fw-bold text-muted mb-1">العملة</label>
-                    <select name="currency" class="form-select">
-                        <option value="ALL">كل العملات</option>
-                        <option value="USD" {% if currency_filter == 'USD' %}selected{% endif %}>USD</option>
-                        <option value="YER" {% if currency_filter == 'YER' %}selected{% endif %}>YER</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="small fw-bold text-muted mb-1">من تاريخ</label>
-                    <input type="date" name="start_date" class="form-control" value="{{ start_date or '' }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="small fw-bold text-muted mb-1">إلى تاريخ</label>
-                    <input type="date" name="end_date" class="form-control" value="{{ end_date or '' }}">
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-mahjoub w-100 py-2">عرض الكشف</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {% if selected_supplier %}
-    <div class="card glass-card">
-        <div class="card-header bg-transparent py-3 border-0 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 text-primary fw-bold">كشف حساب: <span class="text-dark">{{ selected_supplier.trade_name }}</span></h5>
-            <button onclick="window.print()" class="btn btn-outline-dark"><i class="fas fa-print"></i> طباعة</button>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th class="text-center">التاريخ</th>
-                            <th>البيان</th>
-                            <th class="text-center">رقم السند</th>
-                            <th class="text-center">مدين</th>
-                            <th class="text-center">دائن</th>
-                            <th class="text-center">الرصيد</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for stmt in statements %}
-                        <tr>
-                            <td class="text-center text-muted">{{ stmt.created_at.strftime('%Y-%m-%d') }}</td>
-                            <td>{{ stmt.description or '---' }}</td>
-                            <td class="text-center">{{ stmt.reference_number or '---' }}</td>
-                            <td class="text-center debit-val">{{ stmt.debit if stmt.debit > 0 else '-' }}</td>
-                            <td class="text-center credit-val">{{ stmt.credit if stmt.credit > 0 else '-' }}</td>
-                            <td class="text-center fw-bold text-primary">{{ stmt.running_balance }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">لا توجد حركات مسجلة لهذه الفترة.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
-    {% elif request.args.get('q') %}
-    <div class="alert alert-warning border-0 rounded-pill text-center shadow-sm">لم يتم العثور على مورد بهذه البيانات.</div>
-    {% endif %}
+
+    <div id="resultsArea">
+        {% if selected_supplier %}
+        <div class="card glass-card">
+            <div class="card-header bg-transparent py-3 border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-primary fw-bold">كشف حساب: <span class="text-dark">{{ selected_supplier.trade_name }}</span></h5>
+                <button onclick="window.print()" class="btn btn-outline-dark"><i class="fas fa-print"></i> طباعة</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="text-center">التاريخ</th>
+                                <th>البيان</th>
+                                <th class="text-center">رقم السند</th>
+                                <th class="text-center">مدين</th>
+                                <th class="text-center">دائن</th>
+                                <th class="text-center">الرصيد</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stmt in statements %}
+                            <tr>
+                                <td class="text-center text-muted">{{ stmt.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ stmt.description or '---' }}</td>
+                                <td class="text-center">{{ stmt.reference_number or '---' }}</td>
+                                <td class="text-center debit-val">{{ stmt.debit if stmt.debit > 0 else '-' }}</td>
+                                <td class="text-center credit-val">{{ stmt.credit if stmt.credit > 0 else '-' }}</td>
+                                <td class="text-center fw-bold text-primary">{{ stmt.running_balance }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+    // الاستدعاء الديناميكي عند الكتابة
+    const searchInput = document.getElementById('dynamicSearch');
+    searchInput.addEventListener('input', function() {
+        let query = this.value;
+        if (query.length > 2) {
+            // تحديث رابط الصفحة تلقائياً مع الحفاظ على التفاعل
+            window.location.href = "{{ url_for('statement_blueprint.view_statement') }}?q=" + encodeURIComponent(query);
+        }
+    });
+</script>
 {% endblock %}
