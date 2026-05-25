@@ -6,8 +6,12 @@ from apps.models.wallet_db import SupplierWallet as Wallet, WalletTransaction
 from apps.models.supplier_db import Supplier
 from apps.models.settlements_db import AdminSettlement
 
-# تعريف البلوبرينت بالاسم الجديد
-financial_blueprint = Blueprint('financial_ops', __name__)
+# تعديل المطلوب: إضافة template_folder ليشير إلى المجلد المحلي داخل financial_ops
+financial_blueprint = Blueprint(
+    'financial_ops', 
+    __name__, 
+    template_folder='templates'
+)
 
 @financial_blueprint.route('/management', methods=['GET'])
 @login_required
