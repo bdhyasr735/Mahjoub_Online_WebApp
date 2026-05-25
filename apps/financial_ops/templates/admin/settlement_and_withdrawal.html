@@ -2,38 +2,12 @@
 
 {% block content %}
 <style>
-    /* تخصيص اللون البنفسجي للهوية */
     .table-custom-purple { background-color: #6a1b9a !important; color: white; }
     .btn-outline-custom { border-color: #6a1b9a; color: #6a1b9a; }
     .btn-outline-custom:hover, .btn-outline-custom.active { background-color: #6a1b9a; color: white; }
 </style>
 
 <div class="container-fluid py-4">
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-9">
-                    <input type="text" id="liveSearch" class="form-control form-control-lg" placeholder="🔍 ابحث بالاسم، المتجر، أو رقم المحفظة...">
-                </div>
-                <div class="col-md-3">
-                    <button class="btn btn-warning w-100 btn-lg shadow-sm">
-                        <i class="fas fa-plus"></i> سند تسوية جديد
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="btn-group shadow-sm">
-            <button class="btn btn-outline-custom active" onclick="filterTable('all')">عرض الكل</button>
-            <button class="btn btn-outline-custom" onclick="filterTable('pending')">قيد الانتظار</button>
-            <button class="btn btn-outline-custom" onclick="filterTable('approved')">تم الاعتماد</button>
-            <button class="btn btn-outline-custom" onclick="filterTable('rejected')">الملغي</button>
-        </div>
-        <input type="date" class="form-control w-auto shadow-sm">
-    </div>
-
     <div class="table-responsive bg-white rounded shadow-sm">
         <table class="table table-hover align-middle mb-0" id="mainTable">
             <thead class="table-custom-purple">
@@ -50,7 +24,7 @@
             <tbody id="tableBody">
                 {% for tx in pending_withdrawals %}
                 <tr class="op-row" data-status="pending">
-                    <td class="text-nowrap">{{ tx.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ tx.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td>
                         <strong>{{ tx.wallet.supplier.name }}</strong><br>
                         <small class="text-muted">{{ tx.wallet.supplier.owner_name }}</small>
@@ -60,9 +34,10 @@
                     <td class="fw-bold">{{ "{:,.2f}".format(tx.amount) }}</td>
                     <td><span class="badge bg-warning text-dark">قيد الانتظار</span></td>
                     <td>
-                        <form action="{{ url_for('financial_ops.handle_supplier_withdrawal', tx_id=tx.id, decision='approve') }}" method="POST">
-                            <button type="submit" class="btn btn-sm btn-success">اعتماد</button>
-                        </form>
+                        <button type="button" class="btn btn-sm btn-success" 
+                                onclick="openApprovalModal({{ tx.id }}, '{{ tx.wallet.supplier.name }}', {{ tx.amount }})">
+                            اعتماد
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -71,13 +46,44 @@
     </div>
 </div>
 
+<div class="modal fade" id="approvalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white"><h5>إتمام تصفية مالية</h5></div>
+            <form id="approvalForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="tx_id" id="modalTxId">
+                    <div class="mb-3">
+                        <label>رقم الحوالة:</label>
+                        <input type="text" name="ref_number" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>جهة التحويل (مثال: بنك القطيبي):</label>
+                        <input type="text" name="financial_entity" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">اعتماد وطباعة الإشعار</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+function openApprovalModal(id, name, amount) {
+    document.getElementById('modalTxId').value = id;
+    document.getElementById('approvalForm').action = `/financial_ops/withdrawal/handle/${id}/approve`;
+    new bootstrap.Modal(document.getElementById('approvalModal')).show();
+}
+
+// الفلترة والبحث
 function filterTable(status) {
     document.querySelectorAll('.op-row').forEach(row => {
         row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
     });
 }
-// البحث التلقائي
 document.getElementById('liveSearch').addEventListener('input', function(e) {
     const term = e.target.value.toLowerCase();
     document.querySelectorAll('#tableBody tr').forEach(row => {
