@@ -7,7 +7,7 @@ from sqlalchemy import or_
 @statement_blueprint.route('/view', methods=['GET'])
 @login_required
 def view_statement():
-    # الاستيراد داخل الدالة فقط - الحل السحري لمنع Circular Import
+    # الاستيراد داخل الدالة فقط لمنع Circular Import
     from apps.models.supplier_db import Supplier
     from apps.models.statement_db import SupplierStatement
 
@@ -29,8 +29,10 @@ def view_statement():
             )).first()
             
             if selected_supplier:
+                # إنشاء استعلام الكشف
                 query = SupplierStatement.query.filter_by(supplier_id=selected_supplier.id)
                 
+                # تطبيق الفلاتر
                 if currency != 'ALL':
                     query = query.filter_by(currency=currency)
                 if start_date:
@@ -38,10 +40,18 @@ def view_statement():
                 if end_date:
                     query = query.filter(SupplierStatement.created_at <= end_date)
                 
-                statements = query.order_by(SupplierStatement.created_at.desc()).all()
+                # جلب البيانات مرتبة من الأقدم للأحدث (للمحاسبة) أو حسب طلبك
+                statements = query.order_by(SupplierStatement.created_at.asc()).all()
             else:
                 flash("لم يتم العثور على مورد بهذه البيانات.", "warning")
         except Exception as e:
-            flash("حدث خطأ تقني.", "danger")
+            flash(f"حدث خطأ تقني: {str(e)}", "danger")
 
-    return render_template('admin/statement.html', selected_supplier=selected_supplier, statements=statements)
+    return render_template(
+        'admin/statement.html', 
+        selected_supplier=selected_supplier, 
+        statements=statements,
+        currency_filter=currency,
+        start_date=start_date,
+        end_date=end_date
+    )
