@@ -6,7 +6,7 @@ from apps.models.wallet_db import SupplierWallet as Wallet, WalletTransaction
 from apps.models.supplier_db import Supplier
 from apps.models.settlements_db import AdminSettlement
 
-# تعديل المطلوب: إضافة template_folder ليشير إلى المجلد المحلي داخل financial_ops
+# تعريف البلوبرينت مع تحديد مسار القوالب لتجنب خطأ TemplateNotFound
 financial_blueprint = Blueprint(
     'financial_ops', 
     __name__, 
