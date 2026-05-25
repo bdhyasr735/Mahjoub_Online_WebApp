@@ -1,6 +1,7 @@
 # coding: utf-8
 # 🛡️ جدول إدارة النظام - منصة محجوب أونلاين 2026
-from apps import db, login_manager
+# تم تعديل الاستيراد من apps.extensions لكسر حلقة Circular Import
+from apps.extensions import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
