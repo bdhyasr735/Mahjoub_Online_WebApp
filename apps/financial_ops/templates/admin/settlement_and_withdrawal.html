@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container-fluid py-4">
     <section class="search-filter-card bg-white p-4 rounded shadow-sm mb-4">
-        <form method="GET" action="{{ url_for('wallet.display_management_table') }}" class="d-flex gap-2">
+        <form method="GET" action="{{ url_for('financial_ops.display_management_table') }}" class="d-flex gap-2">
             <input type="text" name="search_query" value="{{ current_search or '' }}" 
                    class="form-control" placeholder="ابحث بالاسم، المتجر، أو كود المحفظة...">
             <button type="submit" class="btn btn-primary"><i class="fa-solid fa-search"></i> بحث وفحص</button>
@@ -42,7 +42,7 @@
                         <td>{{ "{:,.2f}".format(tx.amount) }}</td>
                         <td><span class="badge bg-warning text-dark">قيد الانتظار</span></td>
                         <td>
-                            <form action="{{ url_for('wallet.handle_supplier_withdrawal', tx_id=tx.id, decision='approve') }}" method="POST">
+                            <form action="{{ url_for('financial_ops.handle_supplier_withdrawal', tx_id=tx.id, decision='approve') }}" method="POST">
                                 <button type="submit" class="btn btn-success btn-sm">اعتماد العملية</button>
                             </form>
                         </td>
