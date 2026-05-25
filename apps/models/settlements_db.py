@@ -1,10 +1,11 @@
 # coding: utf-8
 # 📂 apps/models/settlements_db.py
 # 📜 مستند حوكمة إدارة التسويات المالية الاستثنائية والسندات الإدارية - منصة محجوب أونلاين 2026
+# تم تعديل الاستيراد من apps.extensions لكسر حلقة Circular Import
 
 import random
 from datetime import datetime
-from apps import db
+from apps.extensions import db
 
 class AdminSettlement(db.Model):
     """
@@ -15,7 +16,7 @@ class AdminSettlement(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     
-    # الربط الحوكمي مع ملف الأب (SupplierWallet) عن طريق القيم المباشرة لمنع الـ Circular Import
+    # الربط الحوكمي مع ملف الأب (SupplierWallet)
     wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
     wallet_code = db.Column(db.String(50), nullable=False) # لسهولة الاستعلام المباشر والسريع من النافذة
     
