@@ -1,81 +1,36 @@
 {% extends "admin/admin_base.html" %}
-
-{% block header_title %}نظام الكشوفات المركزي{% endblock %}
-
 {% block content %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<style>
-    .glass-card { background: rgba(255, 255, 255, 0.98); border-radius: 20px; border: 1px solid #e0d0f0; box-shadow: 0 10px 30px rgba(99, 44, 143, 0.08); }
-    .select2-container--default .select2-selection--single { height: 50px; padding: 10px; border-radius: 15px; border: 2px solid #632C8F; }
-    .stat-card { background: linear-gradient(135deg, #632C8F, #4A1E6D); color: white; border-radius: 15px; }
-</style>
-
 <div class="container-fluid">
-    <div class="card glass-card p-4 mb-4">
-        <div class="row g-3 align-items-center">
-            <div class="col-md-6">
-                <label class="fw-bold text-muted mb-2">بحث ذكي عن المورد</label>
-                <select id="supplierSearch" class="form-select" style="width: 100%;"></select>
-            </div>
-            <div class="col-md-3">
-                <label class="fw-bold text-muted mb-2">من تاريخ</label>
-                <input type="date" id="startDate" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label class="fw-bold text-muted mb-2">إلى تاريخ</label>
-                <input type="date" id="endDate" class="form-control">
-            </div>
-        </div>
+    <div class="card glass-card p-4">
+        <select id="supplierSearch" class="form-control" style="width: 100%"></select>
     </div>
 
-    <div id="statsRow" class="row mb-4"></div>
-
-    <div class="card glass-card p-0">
-        <div class="card-body p-0">
-            <table class="table table-hover align-middle mb-0">
-                <thead style="background: #632C8F; color: white;">
-                    <tr>
-                        <th>التاريخ</th><th>البيان</th><th>السند</th><th>مدين</th><th>دائن</th><th>الرصيد</th>
-                    </tr>
-                </thead>
-                <tbody id="statementBody">
-                    <tr><td colspan="6" class="text-center py-5">يرجى اختيار المورد لعرض الكشف</td></tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="row mt-4" id="dashboard" style="display:none;">
+        <div class="col-md-3"><div class="card p-3"><h6>صافي الربح</h6><h3 id="profitVal">0</h3></div></div>
+        <div class="col-md-3"><div class="card p-3"><h6>رصيد YER</h6><h3 id="yerVal">0</h3></div></div>
+        <div class="col-md-3"><div class="card p-3"><h6>رصيد SAR</h6><h3 id="sarVal">0</h3></div></div>
+        <div class="col-md-3"><div class="card p-3"><h6>رصيد USD</h6><h3 id="usdVal">0</h3></div></div>
     </div>
+
+    <table class="table mt-4">
+        <thead><tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead>
+        <tbody id="stmtBody"></tbody>
+    </table>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $('#supplierSearch').select2({
-        ajax: {
-            url: '/admin/suppliers/search', // تأكد من وجود هذا المسار في الـ routes
-            dataType: 'json',
-            processResults: function (data) { return { results: data }; }
-        },
-        placeholder: 'اكتب اسم المورد أو الرقم الموحد...'
+$('#supplierSearch').select2({
+    ajax: { url: '/api/suppliers/search', dataType: 'json' }
+}).on('select2:select', function(e) {
+    let id = e.params.data.id;
+    fetch('/api/statement/data?id=' + id)
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('dashboard').style.display = 'flex';
+        document.getElementById('profitVal').innerText = data.total_profit;
+        document.getElementById('yerVal').innerText = data.wallet.yer;
+        // ملء الجدول هنا...
     });
-
-    // عند تغيير المورد أو التاريخ يتم تحديث الجدول تلقائياً
-    $('#supplierSearch, #startDate, #endDate').on('change', function() {
-        let supplierId = $('#supplierSearch').val();
-        let start = $('#startDate').val();
-        let end = $('#endDate').val();
-        
-        if(supplierId) {
-            fetch(`/statement/get_data?id=${supplierId}&start=${start}&end=${end}`)
-                .then(res => res.json())
-                .then(data => {
-                    // تحديث الجدول والإجماليات
-                    updateUI(data);
-                });
-        }
-    });
-
-    function updateUI(data) {
-        // منطق تحديث الجدول ديناميكياً (DOM Manipulation)
-    }
+});
 </script>
 {% endblock %}
