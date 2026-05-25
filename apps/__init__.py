@@ -1,4 +1,5 @@
 # coding: utf-8
+# 🏗️ مصنع التطبيق المركزي (Application Factory) - منصة محجوب أونلاين 2026
 from flask import Flask
 from config import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -16,7 +17,7 @@ def create_app():
     login_manager.login_view = 'auth_portal.login'
 
     with app.app_context():
-        # 1. استيراد الموديلات
+        # 1. استيراد الموديلات (المخزن)
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -26,26 +27,22 @@ def create_app():
         # 2. إنشاء الجداول
         db.create_all() 
         
-        # 3. حماية برمجية متكاملة (Schema Sync)
+        # 3. حماية برمجية متكاملة (Schema Sync) - لضمان توافق الأعمدة
         try:
             with db.engine.begin() as conn:
-                # إصلاح جدول الكشوفات
                 conn.execute(text("ALTER TABLE supplier_statements ADD COLUMN IF NOT EXISTS supplier_id INTEGER"))
-                
-                # إصلاح جدول الحركات المالية وإضافة حقول التجزئة والربح
                 conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS cost_price NUMERIC(15, 2) DEFAULT 0.00"))
                 conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS retail_price NUMERIC(15, 2) DEFAULT 0.00"))
                 conn.execute(text("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS profit_margin NUMERIC(15, 2) DEFAULT 0.00"))
-            
-            print("نظام الحماية: تم مزامنة هيكل جداول قاعدة البيانات بنجاح.")
+            print("نظام الحماية: تم مزامنة هيكل الجداول بنجاح.")
         except Exception as e:
-            print(f"نظام الحماية: حدث خطأ أثناء مزامنة الجداول: {e}")
+            print(f"نظام الحماية: حدث خطأ أثناء المزامنة: {e}")
         
         @login_manager.user_loader
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # 4. تسجيل البلوبرينتس
+        # 4. تسجيل البلوبرينتس (المنافذ)
         from apps.auth_portal.routes import auth_blueprint
         from apps.admin_dashboard.routes import admin_dashboard
         from apps.add_supplier.routes import admin_suppliers_bp
