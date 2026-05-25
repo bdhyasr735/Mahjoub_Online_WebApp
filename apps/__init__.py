@@ -16,21 +16,22 @@ def create_app():
     login_manager.login_view = 'auth_portal.login'
 
     with app.app_context():
-        # 1. استيراد الموديلات (يجب أن تحتوي الموديلات على كافة الأعمدة المطلوبة)
+        # 1. استيراد الموديلات داخل سياق التطبيق
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
         from apps.models.settlements_db import AdminSettlement
         from apps.models.statement_db import SupplierStatement 
         
-        # 2. إنشاء الجداول (هذا يكفي لمزامنة قاعدة البيانات)
+        # 2. إنشاء الجداول
         db.create_all() 
         
+        # 3. دالة تحميل المستخدم يجب أن تكون داخل السياق
         @login_manager.user_loader
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # 3. تسجيل البلوبرينتس
+        # 4. تسجيل البلوبرينتس (استيراد محلي داخل الدالة لكسر الحلقة)
         from apps.auth_portal.routes import auth_blueprint
         from apps.admin_dashboard.routes import admin_dashboard
         from apps.add_supplier.routes import admin_suppliers_bp
@@ -45,4 +46,5 @@ def create_app():
 
     return app
 
+# يتم إنشاء التطبيق هنا ليتم استخدامه بواسطة Gunicorn
 app = create_app()
