@@ -36,12 +36,14 @@ def create_app():
         from apps.auth_portal.routes import auth_blueprint
         from apps.admin_dashboard.routes import admin_dashboard
         from apps.add_supplier.routes import admin_suppliers_bp
-        from apps.wallet.routes import wallet_blueprint 
+        # تم التعديل هنا ليتناسب مع المجلد الجديد
+        from apps.financial_ops.routes import financial_blueprint 
 
         app.register_blueprint(auth_blueprint, url_prefix='/auth')
         app.register_blueprint(admin_dashboard)
         app.register_blueprint(admin_suppliers_bp, url_prefix='/suppliers')
-        app.register_blueprint(wallet_blueprint, url_prefix='/wallet')
+        # تم التعديل هنا ليتناسب مع المجلد الجديد
+        app.register_blueprint(financial_blueprint, url_prefix='/finance')
 
     return app
 
