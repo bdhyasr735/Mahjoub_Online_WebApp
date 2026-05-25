@@ -13,7 +13,7 @@ from sqlalchemy import or_
 def view_statement():
     """
     محرك عرض كشف حساب الموردين.
-    تم نقل استيراد Supplier إلى هنا لكسر حلقة الاستيراد الدائرية.
+    تم استيراد Supplier محلياً لكسر حلقة الاستيراد الدائرية.
     """
     from apps.models.supplier_db import Supplier
     
@@ -28,4 +28,37 @@ def view_statement():
     statements = []
 
     # 2. منطق البحث الذكي
-    if q
+    if q:
+        try:
+            # البحث عن المورد عبر الاسم التجاري، اسم المالك، أو الرقم السيادي
+            selected_supplier = Supplier.query.filter(or_(
+                Supplier.trade_name.ilike(f'%{q}%'),
+                Supplier.owner_name.ilike(f'%{q}%'),
+                Supplier.sovereign_id == q
+            )).first()
+            
+            # 3. جلب البيانات باستخدام محرك التقارير
+            if selected_supplier:
+                statements = ReportGenerator.get_detailed_transactions(
+                    supplier_id=selected_supplier.id,
+                    currency=currency,
+                    start_date=start_date,
+                    end_date=end_date
+                ) or []
+            else:
+                flash("لم يتم العثور على مورد بهذه البيانات.", "warning")
+        
+        except Exception as e:
+            print(f"Error in view_statement: {e}")
+            flash("حدث خطأ تقني أثناء تحميل الكشف، يرجى المحاولة لاحقاً.", "danger")
+            statements = []
+
+    return render_template(
+        'admin/statement.html',
+        selected_supplier=selected_supplier,
+        statements=statements,
+        report_type=report_type,
+        currency_filter=currency,
+        start_date=start_date,
+        end_date=end_date
+    )
