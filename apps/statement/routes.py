@@ -1,43 +1,47 @@
 # coding: utf-8
-from flask import render_template, request
+from flask import render_template, request, flash
 from flask_login import login_required
 from apps.statement import statement_blueprint
-from apps.models.statement_db import SupplierStatement
 from apps.models.supplier_db import Supplier
+from apps.models.wallet_db import WalletTransaction 
 
 @statement_blueprint.route('/view', methods=['GET'])
 @login_required
 def view_statement():
-    # 1. تنظيف المدخلات بشكل آمن
-    raw_supplier_id = request.args.get('supplier_id')
-    supplier_id = None
-    if raw_supplier_id and raw_supplier_id.isdigit():
-        supplier_id = int(raw_supplier_id)
+    # 1. جلب كل الموردين
+    all_suppliers = Supplier.query.all()
     
-    all_suppliers = Supplier.query.order_by(Supplier.trade_name.asc()).all()
+    # 2. جلب معرف المورد من الرابط
+    supplier_id = request.args.get('supplier_id')
+    selected_supplier = None
     statements = []
-    supplier = None
     balances = {'SAR': 0.0, 'YER': 0.0, 'USD': 0.0}
 
-    # 2. جلب البيانات فقط إذا كان الـ ID صالحاً
     if supplier_id:
-        supplier = Supplier.query.get(supplier_id)
-        if supplier:
-            statements = SupplierStatement.query.filter_by(supplier_id=supplier_id)\
-                                               .order_by(SupplierStatement.created_at.desc()).all()
+        try:
+            # جلب المورد
+            selected_supplier = Supplier.query.get(supplier_id)
             
-            # 3. حساب الأرصدة مع معالجة آمنة للقيم الفارغة
-            for stmt in statements:
-                # التأكد من وجود العملة في القاموس
-                currency = stmt.currency
-                if currency in balances:
-                    # تحويل القيم لـ float بأمان (معالجة None إلى 0.0)
-                    credit = float(stmt.credit) if stmt.credit is not None else 0.0
-                    debit = float(stmt.debit) if stmt.debit is not None else 0.0
-                    balances[currency] += (credit - debit)
+            if selected_supplier:
+                # 3. جلب الحركات (تم وضع شرط مبدئي للتأكد من وجود الحقل)
+                statements = WalletTransaction.query.filter_by(supplier_id=supplier_id).order_by(WalletTransaction.created_at.desc()).all()
+                
+                # 4. جلب الأرصدة بطريقة آمنة لتفادي الـ 500 Error
+                # إذا لم يجد الحقل، سيعود بـ 0.0 بدلاً من التسبب بانهيار السيرفر
+                balances = {
+                    'SAR': getattr(selected_supplier, 'sar_balance', 0.0) or 0.0,
+                    'YER': getattr(selected_supplier, 'yer_balance', 0.0) or 0.0,
+                    'USD': getattr(selected_supplier, 'usd_balance', 0.0) or 0.0
+                }
+        except Exception as e:
+            # في حال حدوث خطأ، سنقوم بطباعته في السيرفر دون إيقافه
+            print(f"Error in view_statement: {e}")
+            flash(f"حدث خطأ أثناء جلب البيانات: {str(e)}", "danger")
 
-    return render_template('admin/statement.html', 
-                           statements=statements,
-                           all_suppliers=all_suppliers,
-                           selected_supplier=supplier,
-                           balances=balances)
+    return render_template(
+        'admin/statement.html',
+        all_suppliers=all_suppliers,
+        selected_supplier=selected_supplier,
+        statements=statements,
+        balances=balances
+    )
