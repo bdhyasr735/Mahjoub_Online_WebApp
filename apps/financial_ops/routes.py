@@ -6,7 +6,7 @@ from apps.models.wallet_db import SupplierWallet as Wallet, WalletTransaction
 from apps.models.supplier_db import Supplier
 from apps.models.settlements_db import AdminSettlement
 
-# تعريف البلوبرينت مع تحديد مجلد القوالب المحلي
+# تعريف البلوبرينت
 financial_blueprint = Blueprint(
     'financial_ops', 
     __name__, 
@@ -31,9 +31,15 @@ def display_management_table():
         ).first()
         
         if wallet:
-            # جلب البيانات المرتبطة بالمحفظة
-            pending_withdrawals = WalletTransaction.query.filter_by(wallet_id=wallet.id).all()
-            settlements = AdminSettlement.query.filter_by(wallet_id=wallet.id).order_by(AdminSettlement.created_at.desc()).all()
+            # طلبات السحب (التي تحتاج لاعتماد)
+            pending_withdrawals = WalletTransaction.query.filter_by(
+                wallet_id=wallet.id
+            ).order_by(WalletTransaction.created_at.desc()).all()
+            
+            # سجلات التسويات (باستخدام العلاقة الجديدة)
+            settlements = AdminSettlement.query.filter_by(
+                wallet_id=wallet.id
+            ).order_by(AdminSettlement.created_at.desc()).all()
     
     return render_template(
         'admin/settlement_and_withdrawal.html',
@@ -58,10 +64,10 @@ def handle_supplier_withdrawal(tx_id, decision):
     db.session.commit()
     return redirect(url_for('financial_ops.display_management_table', search_query=request_obj.wallet.wallet_code))
 
-# مسار لجلب البيانات بصيغة JSON للبحث التلقائي (اختياري لاحقاً)
-@financial_blueprint.route('/api/search', methods=['GET'])
+# مسار مستقبلي لإنشاء سند تسوية جديد
+@financial_blueprint.route('/settlement/create', methods=['POST'])
 @login_required
-def api_search():
-    query = request.args.get('q', '')
-    # يمكنك إضافة منطق البحث هنا للـ AJAX
-    return jsonify({"status": "ready", "query": query})
+def create_settlement():
+    # هنا سيتم إضافة منطق إنشاء السند لاحقاً
+    flash("تم تجهيز منطق إنشاء السند", "info")
+    return redirect(url_for('financial_ops.display_management_table'))
