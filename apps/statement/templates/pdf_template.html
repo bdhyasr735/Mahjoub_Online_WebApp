@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>كشف الحساب المالي - محجوب أونلاين</title>
     <style>
-        /* 🛡️ تهيئة مقاسات الصفحة المخصصة للطباعة وحساب ترقيم الصفحات تلقائياً */
+        /* 🛡️ تهيئة مقاسات الصفحة المخصصة للطباعة */
         @page {
             size: A4;
             margin: 20mm 15mm;
@@ -31,7 +31,6 @@
             line-height: 1.4;
         }
         
-        /* 🟣 الترويسة العلوية بالهوية البصرية للمنصة */
         .header-container {
             border-bottom: 3px solid #632C8F;
             padding-bottom: 10px;
@@ -62,92 +61,21 @@
             border-radius: 4px;
         }
         
-        /* 📊 جدول البيانات التعريفية للكشف */
-        .meta-table {
-            width: 100%;
-            margin-bottom: 25px;
-            border-collapse: collapse;
-        }
+        .meta-table { width: 100%; margin-bottom: 25px; border-collapse: collapse; }
+        .meta-table td { padding: 5px 10px; font-size: 11pt; }
+        .meta-label { font-weight: bold; color: #555555; width: 15%; }
+        .meta-value { color: #111111; width: 35%; }
         
-        .meta-table td {
-            padding: 5px 10px;
-            font-size: 11pt;
-        }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .data-table th { background-color: #632C8F; color: #ffffff; font-weight: bold; font-size: 11pt; padding: 10px; border: 1px solid #632C8F; text-align: center; }
+        .data-table td { padding: 9px 7px; font-size: 10pt; border: 1px solid #e0e0e0; text-align: center; }
+        .data-table tr:nth-child(even) { background-color: #fafafa; }
         
-        .meta-label {
-            font-weight: bold;
-            color: #555555;
-            width: 15%;
-        }
-        
-        .meta-value {
-            color: #111111;
-            width: 35%;
-        }
-        
-        /* 🧾 جدول رصد الحركات التفصيلية */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        
-        .data-table th {
-            background-color: #632C8F;
-            color: #ffffff;
-            font-weight: bold;
-            font-size: 11pt;
-            padding: 10px;
-            border: 1px solid #632C8F;
-            text-align: center;
-        }
-        
-        .data-table td {
-            padding: 9px 7px;
-            font-size: 10pt;
-            border: 1px solid #e0e0e0;
-            text-align: center;
-        }
-        
-        .data-table tr:nth-child(even) {
-            background-color: #fafafa;
-        }
-        
-        /* 🧮 صندوق مجاميع الحسابات الحصين */
-        .summary-box {
-            margin-top: 30px;
-            width: 40%;
-            float: left;
-            border-collapse: collapse;
-        }
-        
-        .summary-box td {
-            padding: 8px 12px;
-            font-size: 11pt;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .summary-label {
-            background-color: #f4f0f8;
-            font-weight: bold;
-            color: #333333;
-        }
-        
-        .summary-value {
-            font-weight: bold;
-            text-align: left;
-        }
-        
-        /* 🔲 رسالة حماية برمجية مخصصة عند خلو الحساب من الحركات */
-        .empty-message {
-            text-align: center;
-            padding: 30px;
-            font-style: italic;
-            color: #777777;
-            font-size: 12pt;
-            border: 1px dashed #cccccc;
-            background-color: #fafafa;
-        }
+        .summary-box { margin-top: 30px; width: 40%; float: left; border-collapse: collapse; }
+        .summary-box td { padding: 8px 12px; font-size: 11pt; border: 1px solid #e0e0e0; }
+        .summary-label { background-color: #f4f0f8; font-weight: bold; color: #333333; }
+        .summary-value { font-weight: bold; text-align: left; }
+        .empty-message { text-align: center; padding: 30px; font-style: italic; color: #777777; font-size: 12pt; border: 1px dashed #cccccc; background-color: #fafafa; }
     </style>
 </head>
 <body>
@@ -172,36 +100,28 @@
         <tr>
             <td class="meta-label">الحساب / المورد:</td>
             <td class="meta-value">{{ supplier_name }}</td>
-            <td class="meta-label">الفترة الزمنية:</td>
-            <td class="meta-value">من {{ start_date }} إلى {{ end_date }}</td>
-        </tr>
-        <tr>
-            <td class="meta-label">العملة المحددة:</td>
-            <td class="meta-value">
-                {% if currency == 'ALL' %}كل العملات التداولية{% else %}{{ currency }}{% endif %}
-            </td>
-            <td class="meta-label">حالة التقرير:</td>
-            <td class="meta-value" style="color: green; font-weight: bold;">معتمد ومستقر حاسوبياً</td>
+            <td class="meta-label">كود المحفظة:</td>
+            <td class="meta-value">{{ wallet_code }}</td>
         </tr>
     </table>
 
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 15%;">التاريخ</th>
-                <th style="width: 20%;">الحساب / المورد</th>
-                <th style="width: 30%;">البيان / الوصف التفصيلي</th>
-                <th style="width: 10%;">العملة</th>
-                <th style="width: 10%;">مدين (-)</th>
-                <th style="width: 10%;">دائن (+)</th>
-                <th style="width: 15%;">الرصيد التراكمي</th>
+                <th>التاريخ</th>
+                <th>الحساب / المورد</th>
+                <th>البيان / الوصف التفصيلي</th>
+                <th>العملة</th>
+                <th>مدين (-)</th>
+                <th>دائن (+)</th>
+                <th>الرصيد التراكمي</th>
             </tr>
         </thead>
         <tbody>
             {% for statement in statements %}
             <tr>
                 <td>{{ statement.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
-                <td>{{ statement.supplier_name }}</td>
+                <td>{{ supplier_name }}</td>
                 <td style="text-align: right;">{{ statement.description }}</td>
                 <td>{{ statement.currency }}</td>
                 <td style="color: #c0392b;">{{ "{:,.2f}".format(statement.debit or 0) }}</td>
@@ -210,9 +130,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="7" class="empty-message">
-                    لا توجد حركات مالية مسجلة لهذا الحساب خلال الفترة الزمنية المحددة.
-                </td>
+                <td colspan="7" class="empty-message">لا توجد حركات مالية مسجلة.</td>
             </tr>
             {% endfor %}
         </tbody>
