@@ -4,152 +4,87 @@
     <meta charset="UTF-8">
     <title>كشف الحساب المالي - محجوب أونلاين</title>
     <style>
-        /* 🛡️ تهيئة مقاسات الصفحة المخصصة للطباعة */
-        @page {
-            size: A4;
-            margin: 20mm 15mm;
-            @bottom-left {
-                content: "صفحة " counter(page) " من " counter(pages);
-                font-family: 'Arial', sans-serif;
-                font-size: 9pt;
-                color: #777777;
-            }
-            @bottom-right {
-                content: "سوقك الذكي - محجوب أونلاين";
-                font-family: 'Arial', sans-serif;
-                font-size: 9pt;
-                color: #632C8F;
-                font-weight: bold;
-            }
+        /* 🛡️ تنسيق الطباعة */
+        @media print {
+            .no-print { display: none !important; }
+            body { margin: 0; padding: 20px; }
         }
         
-        body {
-            font-family: 'Arial', sans-serif;
-            color: #333333;
-            margin: 0;
-            padding: 0;
-            line-height: 1.4;
+        body { font-family: 'Arial', sans-serif; color: #333; margin: 0; padding: 20px; background: #f8f9fa; }
+        
+        /* 🛠️ شريط أدوات العرض */
+        .toolbar { 
+            background: #632C8F; color: white; padding: 15px; border-radius: 10px; 
+            margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; 
         }
-        
-        .header-container {
-            border-bottom: 3px solid #632C8F;
-            padding-bottom: 10px;
-            margin-bottom: 25px;
+        .btn-action { 
+            background: white; color: #632C8F; border: none; padding: 10px 20px; 
+            border-radius: 8px; cursor: pointer; font-weight: bold; 
         }
+
+        /* تنسيقات الجدول والتقارير */
+        .report-container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .company-title { font-size: 24pt; color: #632C8F; font-weight: bold; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .data-table th { background-color: #632C8F; color: #ffffff; padding: 10px; text-align: center; }
+        .data-table td { padding: 10px; border: 1px solid #ddd; text-align: center; }
         
-        .company-title {
-            font-size: 24pt;
-            color: #632C8F;
-            font-weight: bold;
-            margin: 0;
-        }
-        
-        .company-slogan {
-            font-size: 11pt;
-            color: #555555;
-            margin: 5px 0 0 0;
-        }
-        
-        .report-title {
-            text-align: center;
-            font-size: 18pt;
-            font-weight: bold;
-            background-color: #f4f0f8;
-            color: #632C8F;
-            padding: 8px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        
-        .meta-table { width: 100%; margin-bottom: 25px; border-collapse: collapse; }
-        .meta-table td { padding: 5px 10px; font-size: 11pt; }
-        .meta-label { font-weight: bold; color: #555555; width: 15%; }
-        .meta-value { color: #111111; width: 35%; }
-        
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .data-table th { background-color: #632C8F; color: #ffffff; font-weight: bold; font-size: 11pt; padding: 10px; border: 1px solid #632C8F; text-align: center; }
-        .data-table td { padding: 9px 7px; font-size: 10pt; border: 1px solid #e0e0e0; text-align: center; }
-        .data-table tr:nth-child(even) { background-color: #fafafa; }
-        
-        .summary-box { margin-top: 30px; width: 40%; float: left; border-collapse: collapse; }
-        .summary-box td { padding: 8px 12px; font-size: 11pt; border: 1px solid #e0e0e0; }
-        .summary-label { background-color: #f4f0f8; font-weight: bold; color: #333333; }
-        .summary-value { font-weight: bold; text-align: left; }
-        .empty-message { text-align: center; padding: 30px; font-style: italic; color: #777777; font-size: 12pt; border: 1px dashed #cccccc; background-color: #fafafa; }
+        .summary-box { margin-top: 30px; width: 300px; float: left; border: 1px solid #eee; }
+        .summary-box td { padding: 10px; border: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-    <div class="header-container">
-        <table style="width: 100%;">
-            <tr>
-                <td>
-                    <div class="company-title">محجوب أونلاين</div>
-                    <div class="company-slogan">سوقك الذكي (Your Smart Marketplace)</div>
-                </td>
-                <td style="text-align: left; font-size: 10pt; color: #666666; vertical-align: bottom;">
-                    تاريخ الطبع الرقمي: {{ generated_at }}
-                </td>
-            </tr>
+    <div class="toolbar no-print">
+        <div>عرض كشف الحساب - محجوب أونلاين</div>
+        <div>
+            <button class="btn-action" onclick="window.print()">🖨️ طباعة التقرير</button>
+            <button class="btn-action" onclick="window.close()">✖️ إغلاق</button>
+        </div>
+    </div>
+
+    <div class="report-container">
+        <div class="company-title">محجوب أونلاين</div>
+        <hr style="border: 1px solid #632C8F;">
+
+        <h3>كشف حساب: {{ supplier_name }}</h3>
+        <p><strong>كود المحفظة (WEL):</strong> {{ wallet_code }} | <strong>العملة:</strong> {{ currency }}</p>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>التاريخ</th><th>البيان</th><th>العملة</th>
+                    <th>مدين</th><th>دائن</th><th>الرصيد التراكمي</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for statement in statements %}
+                <tr>
+                    <td>{{ statement.created_at.strftime('%Y/%m/%d') }}</td>
+                    <td style="text-align: right;">{{ statement.description }}</td>
+                    <td>{{ statement.currency }}</td>
+                    <td style="color: #c0392b;">{{ "{:,.2f}".format(statement.debit or 0) }}</td>
+                    <td style="color: #27ae60;">{{ "{:,.2f}".format(statement.credit or 0) }}</td>
+                    <td style="font-weight: bold;">{{ "{:,.2f}".format(statement.running_balance or 0) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <table class="summary-box">
+            <tr><td>إجمالي المدين:</td><td>{{ "{:,.2f}".format(total_debit) }}</td></tr>
+            <tr><td>إجمالي الدائن:</td><td>{{ "{:,.2f}".format(total_credit) }}</td></tr>
+            <tr style="background:#632C8F; color:white;"><td>صافي الرصيد:</td><td>{{ "{:,.2f}".format(net_balance) }}</td></tr>
         </table>
     </div>
 
-    <div class="report-title">كشـف الحـساب المـالي التـفصيلي</div>
-
-    <table class="meta-table">
-        <tr>
-            <td class="meta-label">الحساب / المورد:</td>
-            <td class="meta-value">{{ supplier_name }}</td>
-            <td class="meta-label">كود المحفظة:</td>
-            <td class="meta-value">{{ wallet_code }}</td>
-        </tr>
-    </table>
-
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>التاريخ</th>
-                <th>الحساب / المورد</th>
-                <th>البيان / الوصف التفصيلي</th>
-                <th>العملة</th>
-                <th>مدين (-)</th>
-                <th>دائن (+)</th>
-                <th>الرصيد التراكمي</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for statement in statements %}
-            <tr>
-                <td>{{ statement.created_at.strftime('%Y/%m/%d %H:%M') }}</td>
-                <td>{{ supplier_name }}</td>
-                <td style="text-align: right;">{{ statement.description }}</td>
-                <td>{{ statement.currency }}</td>
-                <td style="color: #c0392b;">{{ "{:,.2f}".format(statement.debit or 0) }}</td>
-                <td style="color: #27ae60;">{{ "{:,.2f}".format(statement.credit or 0) }}</td>
-                <td style="font-weight: bold;">{{ "{:,.2f}".format(statement.running_balance or 0) }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="7" class="empty-message">لا توجد حركات مالية مسجلة.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <table class="summary-box">
-        <tr>
-            <td class="summary-label">إجمالي المدين:</td>
-            <td class="summary-value" style="color: #c0392b;">{{ "{:,.2f}".format(total_debit) }}</td>
-        </tr>
-        <tr>
-            <td class="summary-label">إجمالي الدائن:</td>
-            <td class="summary-value" style="color: #27ae60;">{{ "{:,.2f}".format(total_credit) }}</td>
-        </tr>
-        <tr style="border-top: 2px solid #632C8F;">
-            <td class="summary-label" style="background-color: #632C8F; color: white;">صافي الرصيد الحالي:</td>
-            <td class="summary-value" style="background-color: #f4f0f8; color: #632C8F; font-size: 12pt;">{{ "{:,.2f}".format(net_balance) }}</td>
-        </tr>
-    </table>
-
+    <script>
+        // فتح نافذة الطباعة تلقائياً عند فتح صفحة العرض
+        window.onload = function() {
+            console.log("التقرير جاهز للطباعة...");
+            // يمكنك إلغاء التعليق عن السطر التالي ليطبع تلقائياً عند الفتح
+            // window.print();
+        };
+    </script>
 </body>
 </html>
