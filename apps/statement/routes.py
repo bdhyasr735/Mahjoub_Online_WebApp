@@ -19,7 +19,6 @@ def view_statement():
 @statement_blueprint.route('/api/statement/summary_all', methods=['GET'])
 @login_required
 def api_get_all_summary():
-    # تمرير العملة لضمان التصفية الصحيحة للملخص
     curr = request.args.get('currency', 'ALL')
     summary_data = ReportGenerator.get_all_wallets_summary(currency=curr)
     return jsonify({'results': summary_data})
@@ -75,7 +74,7 @@ def api_get_report():
         'details': [{
             'date': s.created_at.strftime('%Y-%m-%d %H:%M'),
             'desc': getattr(s, 'description', '---'),
-            'ref': getattr(s, 'reference_number', '---'),
+            'ref': '---',  # تم استبدال reference_number بقيمة ثابتة لعدم وجود العمود
             'currency': getattr(s, 'currency', 'USD'),
             'debit': float(s.debit or 0),
             'credit': float(s.credit or 0),
@@ -95,7 +94,6 @@ def export_report_pdf():
     start_date = datetime.strptime(start_str, '%Y-%m-%d') if start_str else None
     end_date = datetime.strptime(end_str, '%Y-%m-%d') if end_str else None
 
-    # جلب بيانات المورد للترويسة
     wallet_code = "---"
     supplier_name = "تقرير شامل للمنصة"
     
