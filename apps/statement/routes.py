@@ -99,12 +99,13 @@ def api_get_report():
             'total_profit': float(total_profit)
         },
         'details': [{
-            'date': s.created_at.strftime('%Y-%m-%d %H:%M'),
-            'desc': s.description or '---',
-            'ref': s.reference_number or '---',
-            'currency': s.currency,
-            'debit': float(s.debit),
-            'credit': float(s.credit),
-            'balance': float(s.running_balance)
+            'date': s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '---',
+            'desc': getattr(s, 'description', getattr(s, 'desc', '---')) or '---',
+            # 👇 التعديل الوقائي هنا: جلب رقم المرجع بشكل آمن تماماً عبر getattr لمنع الانهيار
+            'ref': getattr(s, 'reference_number', getattr(s, 'ref', '---')) or '---',
+            'currency': getattr(s, 'currency', 'USD'),
+            'debit': float(s.debit or 0),
+            'credit': float(s.credit or 0),
+            'balance': float(s.running_balance or 0)
         } for s in statements]
     })
