@@ -69,13 +69,13 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light" id="tableHeader">
                     <tr>
-                        <th>التاريخ</th><th>البيان</th><th>المرجع/السند</th>
+                        <th>التاريخ</th><th>البيان</th>
                         <th class="text-center">العملة</th><th class="text-center">مدين</th>
                         <th class="text-center">دائن</th><th class="text-center">الرصيد التراكمي</th>
                     </tr>
                 </thead>
                 <tbody id="statementBody">
-                    <tr><td colspan="7" class="text-center py-5">يرجى اختيار المورد أو العرض الشامل للبدء</td></tr>
+                    <tr><td colspan="6" class="text-center py-5">يرجى اختيار المورد أو العرض الشامل للبدء</td></tr>
                 </tbody>
             </table>
         </div>
@@ -92,7 +92,6 @@
     var pickerEnd = moment();
 
     $(function() {
-        // إعداد البحث الذكي
         $('#supplierSearch').select2({
             placeholder: "🔍 ابحث باسم المورد أو كود WEL",
             ajax: {
@@ -107,7 +106,6 @@
             }
         });
 
-        // إعداد التقويم مع الخيار السنوي
         $('#reportrange').daterangepicker({
             startDate: pickerStart, endDate: pickerEnd,
             locale: { format: 'YYYY/MM/DD', applyLabel: 'تطبيق', cancelLabel: 'إلغاء' },
@@ -124,12 +122,11 @@
         });
         $('#reportrange span').html(pickerStart.format('YYYY/MM/DD') + ' - ' + pickerEnd.format('YYYY/MM/DD'));
 
-        // زر تصدير PDF
         $('#btnExportPDF').on('click', function() {
             let url = "{{ url_for('statement_blueprint.export_report_pdf') }}?supplier_id=" + ($('#supplierSearch').val() || 'ALL') + 
-                      "&currency=" + $('#currencyFilter').val() + 
-                      "&start_date=" + pickerStart.format('YYYY-MM-DD') + 
-                      "&end_date=" + pickerEnd.format('YYYY-MM-DD');
+                    "&currency=" + $('#currencyFilter').val() + 
+                    "&start_date=" + pickerStart.format('YYYY-MM-DD') + 
+                    "&end_date=" + pickerEnd.format('YYYY-MM-DD');
             window.open(url, '_blank');
         });
     });
@@ -147,7 +144,8 @@
 
             let html = '';
             data.details.forEach(s => {
-                html += `<tr><td>${s.date}</td><td>${s.desc}</td><td>${s.ref}</td><td>${s.currency}</td><td class="text-danger">${s.debit.toLocaleString()}</td><td class="text-success">${s.credit.toLocaleString()}</td><td class="fw-bold">${s.balance.toLocaleString()}</td></tr>`;
+                // ملاحظة: تم إزالة s.ref من الجدول
+                html += `<tr><td>${s.date}</td><td>${s.desc}</td><td>${s.currency}</td><td class="text-danger">${s.debit.toLocaleString()}</td><td class="text-success">${s.credit.toLocaleString()}</td><td class="fw-bold">${s.balance.toLocaleString()}</td></tr>`;
             });
             $('#statementBody').html(html);
         });
