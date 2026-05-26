@@ -168,9 +168,9 @@
                         <td class="fw-bold">${s.desc}</td>
                         <td><span class="badge bg-light text-dark border">${s.ref}</span></td>
                         <td class="text-center fw-bold text-secondary">${s.currency}</td>
-                        <td class="text-center text-danger fw-bold">${s.debit > 0 ? s.debit.toLocaleString() : '-'}</td>
-                        <td class="text-center text-success fw-bold">${s.credit > 0 ? s.credit.toLocaleString() : '-'}</td>
-                        <td class="text-center fw-bold text-primary">${s.balance.toLocaleString()}</td>
+                        <td class="text-center text-danger fw-bold">${s.debit > 0 ? s.debit.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                        <td class="text-center text-success fw-bold">${s.credit > 0 ? s.credit.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                        <td class="text-center fw-bold text-primary">${s.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     </tr>`;
                 });
             } else {
