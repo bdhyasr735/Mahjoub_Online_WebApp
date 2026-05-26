@@ -7,7 +7,7 @@ from apps.models.wallet_db import WalletTransaction
 
 class ReportGenerator:
     """
-    محرك مركزي لاستخراج التقارير المالية - منصة محجوب أونلاين
+    محرك مركزي آمن لاستخراج التقارير المالية - منصة محجوب أونلاين
     """
 
     @staticmethod
@@ -39,9 +39,12 @@ class ReportGenerator:
 
     @staticmethod
     def get_detailed_transactions(supplier_id=None, currency='ALL', start_date=None, end_date=None):
-        """ استخراج الحركات التفصيلية لمورد معين مع تجنب استعلام الحقل غير الموجود في قاعدة البيانات """
+        """ 
+        استخراج الحركات التفصيلية لمورد معين 
+        🛡️ تم تعديل الاستعلام لتجنب الحقول الناقصة في قاعدة البيانات (reference_number & notes) لتفادي الانهيار تماماً.
+        """
         
-        # 🛡️ استعلام انتقائي: نطلب فقط الأعمدة الموجودة في قاعدة البيانات لتفادي الـ UndefinedColumn Error
+        # نطلب فقط الأعمدة الأساسية المتواجدة والمستقرة في قاعدة البيانات الفورية
         query = db.session.query(
             SupplierStatement.id,
             SupplierStatement.supplier_id,
@@ -50,8 +53,7 @@ class ReportGenerator:
             SupplierStatement.currency,
             SupplierStatement.debit,
             SupplierStatement.credit,
-            SupplierStatement.running_balance,
-            SupplierStatement.notes
+            SupplierStatement.running_balance
         )
         
         if supplier_id:
@@ -65,7 +67,7 @@ class ReportGenerator:
             
         results = query.order_by(SupplierStatement.created_at.desc()).all()
 
-        # بناء الكائنات ومطابقتها برمجياً مع الـ Routes والـ HTML
+        # بناء البيانات برمجياً وحقن الحقول الناقصة بقيم آمنة متوافقة مع الـ HTML والـ Routes
         statements = []
         for r in results:
             s = SupplierStatement()
@@ -77,10 +79,11 @@ class ReportGenerator:
             s.debit = r.debit
             s.credit = r.credit
             s.running_balance = r.running_balance
-            s.notes = r.notes
             
-            # حقن قيمة افتراضية آمنة لحماية حقل المرجع من الانهيار
+            # حقن الحقول غير الموجودة بقيم افتراضية نظيفة لمنع خطأ الـ AttributeError أو الـ UndefinedColumn
             s.reference_number = "---"
+            s.notes = "---"
+            
             statements.append(s)
 
         return statements
