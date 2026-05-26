@@ -16,19 +16,20 @@
     .btn-mahjoub { background-color: var(--mahjoub-purple); color: white; border-radius: 10px; }
     .btn-pdf { background-color: #27ae60; color: white; border-radius: 10px; }
     .btn-wallet { background-color: #007bff; color: white; border-radius: 10px; border: none; }
+    .text-purple { color: var(--mahjoub-purple); }
 </style>
 
 <div class="container-fluid py-4" style="direction: rtl; text-align: right;">
     <div class="card mahjoub-toolbar p-4 mb-4">
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label class="small fw-bold text-muted mb-2">البحث الذكي عن المورد</label>
+                <label class="small fw-bold text-muted mb-2">البحث الذكي عن المورد (WEL)</label>
                 <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
             </div>
             <div class="col-md-2">
                 <label class="small fw-bold text-muted mb-2">ملخص الأرصدة</label>
                 <button class="btn btn-wallet w-100" style="height: 45px;" onclick="loadAllWalletsSummary()">
-                    <i class="fas fa-wallet"></i> عرض ملخص المحافظ
+                    <i class="fas fa-wallet"></i> ملخص المحافظ
                 </button>
             </div>
             <div class="col-md-2">
@@ -73,20 +74,43 @@
                         <th class="text-center">دائن</th><th class="text-center">الرصيد التراكمي</th>
                     </tr>
                 </thead>
-                <tbody id="statementBody"></tbody>
+                <tbody id="statementBody">
+                    <tr><td colspan="7" class="text-center py-5">يرجى اختيار المورد أو العرض الشامل للبدء</td></tr>
+                </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 
 <script>
     var pickerStart = moment().startOf('month');
     var pickerEnd = moment();
 
     $(function() {
+        // إعداد البحث الذكي
+        $('#supplierSearch').select2({
+            placeholder: "🔍 ابحث باسم المورد أو كود WEL",
+            ajax: {
+                url: "{{ url_for('statement_blueprint.api_search_suppliers') }}",
+                dataType: 'json',
+                delay: 250,
+                data: function (params) { return { q: params.term }; },
+                processResults: function (data) { 
+                    data.results.unshift({ id: 'ALL', text: '🌐 جميع الحسابات والموردين (عرض شامل)' });
+                    return { results: data.results }; 
+                }
+            }
+        });
+
         // إعداد التقويم مع الخيار السنوي
         $('#reportrange').daterangepicker({
             startDate: pickerStart, endDate: pickerEnd,
+            locale: { format: 'YYYY/MM/DD', applyLabel: 'تطبيق', cancelLabel: 'إلغاء' },
             ranges: {
                'اليوم': [moment(), moment()],
                'هذا الشهر': [moment().startOf('month'), moment().endOf('month')],
@@ -98,8 +122,9 @@
             $('#reportrange span').html(start.format('YYYY/MM/DD') + ' - ' + end.format('YYYY/MM/DD'));
             loadFinancialData();
         });
-        
-        // ربط زر الـ PDF
+        $('#reportrange span').html(pickerStart.format('YYYY/MM/DD') + ' - ' + pickerEnd.format('YYYY/MM/DD'));
+
+        // زر تصدير PDF
         $('#btnExportPDF').on('click', function() {
             let url = "{{ url_for('statement_blueprint.export_report_pdf') }}?supplier_id=" + ($('#supplierSearch').val() || 'ALL') + 
                       "&currency=" + $('#currencyFilter').val() + 
@@ -109,21 +134,38 @@
         });
     });
 
+    function loadFinancialData() {
+        let supplierId = $('#supplierSearch').val() || 'ALL';
+        let url = "{{ url_for('statement_blueprint.api_get_report') }}?id=" + supplierId + "&currency=" + $('#currencyFilter').val() + "&start=" + pickerStart.format('YYYY-MM-DD') + "&end=" + pickerEnd.format('YYYY-MM-DD');
+
+        fetch(url).then(res => res.json()).then(data => {
+            $('#summaryCards').fadeIn();
+            $('#totalProfit').text(data.summary.total_profit.toLocaleString());
+            $('#totalDebit').text(data.summary.total_debit.toLocaleString());
+            $('#totalCredit').text(data.summary.total_credit.toLocaleString());
+            $('#netBalance').text(data.summary.net_balance.toLocaleString());
+
+            let html = '';
+            data.details.forEach(s => {
+                html += `<tr><td>${s.date}</td><td>${s.desc}</td><td>${s.ref}</td><td>${s.currency}</td><td class="text-danger">${s.debit.toLocaleString()}</td><td class="text-success">${s.credit.toLocaleString()}</td><td class="fw-bold">${s.balance.toLocaleString()}</td></tr>`;
+            });
+            $('#statementBody').html(html);
+        });
+    }
+
     function loadAllWalletsSummary() {
         $('#summaryCards').fadeOut();
         $('#tableTitle').html('<i class="fas fa-wallet me-2"></i> ملخص أرصدة المحافظ (WEL)');
-        $('#tableHeader').html('<tr><th>الاسم</th><th>المالك</th><th>كود المحفظة (WEL)</th><th>الرصيد</th><th>الحالة</th></tr>');
+        $('#tableHeader').html('<tr><th>الاسم التجاري</th><th>اسم المالك</th><th>كود المحفظة (WEL)</th><th>الرصيد</th><th>الحالة</th></tr>');
         
         fetch("{{ url_for('statement_blueprint.api_get_all_summary') }}?currency=" + $('#currencyFilter').val())
         .then(res => res.json()).then(data => {
             let html = '';
             data.results.forEach(s => {
-                html += `<tr><td>${s.trade_name}</td><td>${s.owner_name}</td><td><code>${s.wallet_code}</code></td>
-                         <td>${s.balance.toLocaleString()}</td><td><span class="badge ${s.balance >= 0 ? 'bg-success' : 'bg-danger'}">${s.balance >= 0 ? 'دائن' : 'مدين'}</span></td></tr>`;
+                html += `<tr><td>${s.trade_name}</td><td>${s.owner_name}</td><td><code>${s.wallet_code}</code></td><td>${s.balance.toLocaleString()}</td><td><span class="badge ${s.balance >= 0 ? 'bg-success' : 'bg-danger'}">${s.balance >= 0 ? 'دائن' : 'مدين'}</span></td></tr>`;
             });
             $('#statementBody').html(html);
         });
     }
-    // ... بقية الدوال (loadFinancialData) تبقى كما هي مع التأكد من تمرير العملة
 </script>
 {% endblock %}
