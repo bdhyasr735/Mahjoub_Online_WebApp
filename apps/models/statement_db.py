@@ -1,25 +1,34 @@
-# 📂 apps/utils/report_generator.py
-from apps.models.statement_db import SupplierStatement
-from sqlalchemy import and_
+# coding: utf-8
+# 📂 apps/models/statement_db.py
 
-class ReportGenerator:
+from apps.extensions import db
+from datetime import datetime
+
+class SupplierStatement(db.Model):
+    """
+    نموذج العمليات المحاسبية للموردين
+    """
+    __tablename__ = 'supplier_statements'
     
-    @staticmethod
-    def get_detailed_transactions(supplier_id, currency, start_date, end_date):
-        # بناء الفلاتر ديناميكياً
-        filters = []
-        if supplier_id != 'ALL':
-            filters.append(SupplierStatement.supplier_id == supplier_id)
-        if currency != 'ALL':
-            filters.append(SupplierStatement.currency == currency)
-        if start_date:
-            filters.append(SupplierStatement.created_at >= start_date)
-        if end_date:
-            filters.append(SupplierStatement.created_at <= end_date)
-            
-        return SupplierStatement.query.filter(and_(*filters)).order_by(SupplierStatement.created_at.asc()).all()
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # الربط مع المورد (العلاقة هنا تتم عبر الـ ID مباشرة)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    
+    # تفاصيل العملية
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    description = db.Column(db.String(255), nullable=True) 
+    
+    # البيانات المالية
+    currency = db.Column(db.String(10), default='USD') # USD, YER, SAR
+    debit = db.Column(db.Float, default=0.0)    # مدين (ما عليك للمورد)
+    credit = db.Column(db.Float, default=0.0)   # دائن (ما للمورد عندك)
+    
+    # الرصيد التراكمي
+    running_balance = db.Column(db.Float, nullable=False)
+    
+    # ملاحظات
+    notes = db.Column(db.Text, nullable=True)
 
-    @staticmethod
-    def calculate_net_profit(currency, start_date, end_date):
-        # منطق حساب الأرباح (يمكنك تخصيصه لاحقاً)
-        return 0.0
+    def __repr__(self):
+        return f'<SupplierStatement {self.id} - Supplier ID: {self.supplier_id}>'
