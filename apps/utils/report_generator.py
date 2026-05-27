@@ -54,4 +54,6 @@ class ReportGenerator:
     @staticmethod
     def calculate_net_profit(currency, start_date, end_date):
         """حساب إجمالي الأرباح في الفترة المحددة"""
+        # في حال أردت تفعيل حساب الأرباح مستقبلاً، يتم هنا استخدام 
+        # دالة sum() من sqlalchemy عبر db.session.query
         return 0.0
