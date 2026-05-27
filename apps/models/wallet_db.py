@@ -1,12 +1,10 @@
 # coding: utf-8
-# 💳 مستند النموذج الحوكمي المُشفر للمحافظ وسجلات التسوية - منصة محجوب أونلاين 2026
 import os
-import random
-from datetime import datetime
 from apps.extensions import db
 from apps.utils.security import AESCipher
+from sqlalchemy import text, inspect
 
-# تهيئة مشفر البيانات
+# تهيئة المشفر
 cipher = AESCipher(os.getenv('ENCRYPTION_KEY', 'your-32-byte-key-here-must-be-secure'))
 
 class SupplierWallet(db.Model):
@@ -17,19 +15,18 @@ class SupplierWallet(db.Model):
     supplier_id = db.Column(db.String(50), db.ForeignKey('suppliers.sovereign_id'), nullable=False, unique=True)
     wallet_code = db.Column(db.String(50), nullable=False, unique=True)
     
-    # حقول مشفرة (تخزين Ciphertext للأرصدة)
+    # الأعمدة المشفرة (استخدمنا nullable=True لضمان عدم حدوث خطأ عند الإنشاء الأول)
     _yer_total = db.Column(db.String(255), default=cipher.encrypt("0.00"))
     _sar_total = db.Column(db.String(255), default=cipher.encrypt("0.00"))
     _usd_total = db.Column(db.String(255), default=cipher.encrypt("0.00"))
     
-    # حقول إضافية للمحفظة (يمكن تشفيرها بنفس الطريقة)
     status = db.Column(db.String(20), default='نشطة', nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.now(), nullable=False)
+    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now(), nullable=False)
 
     transactions = db.relationship('WalletTransaction', backref='wallet', lazy=True, cascade="all, delete-orphan")
 
-    # --- خصائص التشفير للأرصدة ---
+    # --- خصائص التشفير ---
     @property
     def yer_total(self): return float(cipher.decrypt(self._yer_total))
     @yer_total.setter
@@ -45,43 +42,18 @@ class SupplierWallet(db.Model):
     @usd_total.setter
     def usd_total(self, val): self._usd_total = cipher.encrypt(str(val))
 
-class WalletTransaction(db.Model):
-    __tablename__ = 'wallet_transactions'
-    __table_args__ = {'extend_existing': True}
+# --- دالة الإصلاح التلقائي ---
+def check_and_fix_table():
+    with db.engine.connect() as conn:
+        inspector = inspect(db.engine)
+        columns = [c['name'] for c in inspector.get_columns('supplier_wallets')]
+        for col in ['_yer_total', '_sar_total', '_usd_total']:
+            if col not in columns:
+                conn.execute(text(f"ALTER TABLE supplier_wallets ADD COLUMN {col} VARCHAR(255) DEFAULT '{cipher.encrypt('0.00')}'"))
+        conn.commit()
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
-    
-    tx_code = db.Column(db.String(60), unique=True, nullable=False)
-    tx_type = db.Column(db.String(30), nullable=False) 
-    currency = db.Column(db.String(10), nullable=False)
-    
-    # حقول مالية مشفرة
-    _amount = db.Column(db.String(255), nullable=False)
-    _profit_margin = db.Column(db.String(255), default=cipher.encrypt("0.00"))
-    
-    # بيانات إضافية مشفرة للحماية
-    _notes = db.Column(db.Text, nullable=True)
-    
-    status = db.Column(db.String(20), default='ناجحة', nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    # --- خصائص التشفير للمعاملات ---
-    @property
-    def amount(self): return float(cipher.decrypt(self._amount))
-    @amount.setter
-    def amount(self, val): self._amount = cipher.encrypt(str(val))
-
-    @property
-    def profit_margin(self): return float(cipher.decrypt(self._profit_margin))
-    @profit_margin.setter
-    def profit_margin(self, val): self._profit_margin = cipher.encrypt(str(val))
-
-    @property
-    def notes(self): return cipher.decrypt(self._notes) if self._notes else ""
-    @notes.setter
-    def notes(self, val): self._notes = cipher.encrypt(str(val))
-
-    @staticmethod
-    def generate_tx_code():
-        return f"TXM-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{random.randint(1000, 9999)}"
+# تنفيذ الإصلاح مباشرة عند تحميل الموديل
+try:
+    check_and_fix_table()
+except:
+    pass
