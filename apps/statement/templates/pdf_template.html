@@ -55,7 +55,7 @@
 <div class="info-container">
     <div class="info-item">
         <p><strong>المورد:</strong> {{ supplier_name }}</p>
-        <p><strong>كود المحفظة:</strong> {{ wallet_code }}</p>
+        <p><strong>كود المحفظة:</strong> <code>{{ wallet_code }}</code></p>
     </div>
     <div class="info-item">
         <p><strong>التاريخ:</strong> {{ generated_at }}</p>
@@ -78,11 +78,13 @@
         {% for s in statements %}
         <tr>
             <td>{{ s.created_at.strftime('%Y-%m-%d') }}</td>
-            <td style="text-align: right;">{{ s.description }}</td>
-            <td>{{ "{:,.2f}".format(s.debit) }}</td>
-            <td>{{ "{:,.2f}".format(s.credit) }}</td>
-            <td style="font-weight: bold;">{{ "{:,.2f}".format(s.running_balance) }}</td>
+            <td style="text-align: right;">{{ s.description or '---' }}</td>
+            <td>{{ "{:,.2f}".format(s.debit or 0) }}</td>
+            <td>{{ "{:,.2f}".format(s.credit or 0) }}</td>
+            <td style="font-weight: bold;">{{ "{:,.2f}".format(s.running_balance or 0) }}</td>
         </tr>
+        {% else %}
+        <tr><td colspan="5">لا توجد حركات في هذه الفترة</td></tr>
         {% endfor %}
     </tbody>
 </table>
@@ -105,7 +107,6 @@
 </div>
 
 <script>
-    // تفعيل الطباعة التلقائية عند فتح الصفحة
     window.onload = function() {
         setTimeout(function() { window.print(); }, 500);
     };
