@@ -1,25 +1,18 @@
-# coding: utf-8
 import os
 from apps import create_app
 from apps.extensions import db
 from sqlalchemy import text
 
-# إنشاء التطبيق
 app = create_app()
 
 def run_db_migrations():
-    """دالة واحدة شاملة لتحديث هيكل قاعدة البيانات عند الإقلاع"""
+    """تحديث هيكل قاعدة البيانات تلقائياً عند الإقلاع"""
     with app.app_context():
         try:
             print("🔧 جاري التحقق من تحديثات قاعدة البيانات...")
             
-            # أوامر التحديث (ALTER TABLE)
+            # أوامر SQL لإضافة الأعمدة إذا لم تكن موجودة
             commands = [
-                # تحديث الموردين
-                "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'عام'",
-                "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS behavior_score FLOAT DEFAULT 100.0",
-                "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS total_transactions INTEGER DEFAULT 0",
-                # تحديث المحافظ
                 "ALTER TABLE supplier_wallets ADD COLUMN IF NOT EXISTS _yer_total VARCHAR(255) DEFAULT '0.00'",
                 "ALTER TABLE supplier_wallets ADD COLUMN IF NOT EXISTS _sar_total VARCHAR(255) DEFAULT '0.00'",
                 "ALTER TABLE supplier_wallets ADD COLUMN IF NOT EXISTS _usd_total VARCHAR(255) DEFAULT '0.00'"
