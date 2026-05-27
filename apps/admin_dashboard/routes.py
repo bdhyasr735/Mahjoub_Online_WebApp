@@ -7,8 +7,13 @@ from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.utils.security import cipher_suite # استيراد الأداة الآمنة
 
-# تعريف الـ Blueprint الخاص بلوحة التحكم
-admin_dashboard = Blueprint('admin_dashboard', __name__)
+# تعريف الـ Blueprint الخاص بلوحة التحكم مع تحديد مجلد القوالب المحلي
+# هذا التعديل يحل مشكلة TemplateNotFound
+admin_dashboard = Blueprint(
+    'admin_dashboard', 
+    __name__, 
+    template_folder='templates'
+)
 
 @admin_dashboard.route('/admin/dashboard', methods=['GET'])
 @login_required
@@ -39,6 +44,8 @@ def dashboard():
         # 4. التسويات المعلقة
         pending_settlements = WalletTransaction.query.filter_by(status='معلقة').count()
 
+        # لاحظ: المسار 'admin/dashboard_content.html' سيتم البحث عنه داخل 
+        # apps/admin_dashboard/templates/admin/dashboard_content.html
         return render_template(
             'admin/dashboard_content.html',
             total_suppliers=total_suppliers,
