@@ -13,20 +13,21 @@ admin_dashboard = Blueprint('admin_dashboard', __name__)
 @login_required
 def dashboard():
     """
-    تحميل بيانات لوحة التحكم.
-    تم تنظيم الاستيرادات لتكون في الأعلى لضمان سرعة الاستجابة.
+    تحميل بيانات لوحة التحكم مع معالجة آمنة للأخطاء.
     """
     try:
-        # 1. إحصائيات سريعة
+        # 1. إحصائيات الموردين
         total_suppliers = Supplier.query.count()
         
-        # 2. حساب الأرصدة (استخدام الموديل مباشرة بكفاءة)
-        # ملاحظة: تعتمد هذه العمليات على الموديلات التي تستخدم المشفر (AESCipher)
+        # 2. حساب الأرصدة (معالجة آمنة للقيم في حال كانت None أو مشفرة)
         wallets = SupplierWallet.query.all()
         
-        # نستخدم [0] لتجنب أي خطأ في حال كانت القائمة فارغة
-        total_sar_balance = sum([w.sar_total for w in wallets])
-        total_yer_balance = sum([w.yer_total for w in wallets])
+        # نستخدم (w.sar_total or 0) لضمان عدم وجود قيمة فارغة تسبب خطأ في sum
+        total_sar_balance = sum([float(w.sar_total or 0) for w in wallets])
+        total_yer_balance = sum([float(w.yer_total or 0) for w in wallets])
+        
+        # إجمالي الرصيد للعرض في القالب (بما أن القالب يتوقع total_balance)
+        total_balance = total_sar_balance + (total_yer_balance / 3.75) # مثال للتحويل إذا لزم الأمر
         
         # 3. آخر 5 عمليات
         recent_activities = WalletTransaction.query.order_by(
@@ -39,14 +40,19 @@ def dashboard():
         return render_template(
             'admin/dashboard_content.html',
             total_suppliers=total_suppliers,
-            total_sar_balance=total_sar_balance,
-            total_yer_balance=total_yer_balance,
+            total_balance=f"{total_balance:,.2f}",
             pending_settlements=pending_settlements,
             recent_activities=recent_activities
         )
         
     except Exception as e:
-        # تسجيل الخطأ في الـ Logs الخاصة بـ Railway للتشخيص
+        # تسجيل الخطأ بالتفصيل في سجلات Railway للتشخيص
         print(f"❌ Error loading dashboard: {str(e)}")
-        # إرجاع رسالة خطأ واضحة بدلاً من انهيار الصفحة
-        return "حدث خطأ أثناء تحميل لوحة التحكم، يرجى مراجعة سجلات النظام.", 500
+        # في حال حدوث أي خطأ، لا نترك الصفحة تنهار، بل نظهر رسالة ودية
+        return """
+        <div style="text-align:center; margin-top:50px; font-family:sans-serif;">
+            <h2>حدث خطأ أثناء تحميل لوحة التحكم</h2>
+            <p>يرجى التأكد من أن هيكل قاعدة البيانات محدث.</p>
+            <a href="/admin/dashboard">حاول مجدداً</a>
+        </div>
+        """, 500
