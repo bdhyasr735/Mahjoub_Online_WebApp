@@ -1,10 +1,15 @@
 # coding: utf-8
-# 🔑 مستند النموذج الحوكمي للموردين - منصة محجوب أونلاين 2026
+# 🔑 مستند النموذج الحوكمي المشفر للموردين - منصة محجوب أونلاين 2026
 
 import random
+import os
 from apps.extensions import db
 from datetime import datetime
 from sqlalchemy.orm import validates
+from apps.utils.security import AESCipher # مفترض وجوده في ملف الأمان
+
+# تهيئة مشفر البيانات
+cipher = AESCipher(os.getenv('ENCRYPTION_KEY', 'your-32-byte-key-here-must-be-secure'))
 
 class Supplier(db.Model):
     __tablename__ = 'suppliers'
@@ -13,100 +18,85 @@ class Supplier(db.Model):
     sovereign_id = db.Column(db.String(50), unique=True, nullable=False, index=True) 
     wallet_code = db.Column(db.String(50), unique=True, nullable=False)
     
-    # ربط العلاقة مع كشوفات الحسابات باستخدام اسم الموديل كسلسلة نصية لتجنب الاستيراد الدائري
-    statements = db.relationship('SupplierStatement', backref='supplier', lazy='dynamic')
-
+    # حقول مشفرة (تخزين Ciphertext)
+    _owner_name = db.Column(db.String(255), nullable=False)
+    _owner_phone = db.Column(db.String(255), nullable=False)
+    _trade_name = db.Column(db.String(255), nullable=False)
+    _shop_phone = db.Column(db.String(255), nullable=False)
+    _bank_acc = db.Column(db.String(255), nullable=False)
+    
+    # حقول التصنيف والتعلم الذكي
+    category = db.Column(db.String(50), default='عام') 
+    behavior_score = db.Column(db.Float, default=100.0)
+    total_transactions = db.Column(db.Integer, default=0)
+    
+    # حقول إدارية
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     identity_type = db.Column(db.String(50), nullable=False)   
     identity_number = db.Column(db.String(50), unique=True, nullable=False)  
     identity_image = db.Column(db.String(255))   
-    owner_name = db.Column(db.String(150), unique=True, nullable=False)
-    owner_phone = db.Column(db.String(20), unique=True, nullable=False)        
-    trade_name = db.Column(db.String(150), unique=True, nullable=False)
-    shop_phone = db.Column(db.String(20), unique=True, nullable=False)
-    activity_type = db.Column(db.String(50))      
+    activity_type = db.Column(db.String(50))     
     province = db.Column(db.String(50))
     district = db.Column(db.String(50))
     address_detail = db.Column(db.Text) 
     fin_type = db.Column(db.String(20))          
     bank_name = db.Column(db.String(100))        
-    bank_acc = db.Column(db.String(50), unique=True, nullable=False)          
     status = db.Column(db.String(20), nullable=False, default='pending') 
     rank_grade = db.Column(db.String(20), nullable=False, default='ريادي') 
     registration_source = db.Column(db.String(30), nullable=False, default='الموقع الخارجي') 
-    created_by_id = db.Column(db.Integer, nullable=True)  
-    updated_by_id = db.Column(db.Integer, nullable=True)  
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) 
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow) 
+    created_at = db.Column(db.DateTime, default=datetime.utcnow) 
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # --- خصائص التشفير الذكي (Properties) ---
+
+    @property
+    def owner_name(self): return cipher.decrypt(self._owner_name)
+    @owner_name.setter
+    def owner_name(self, value): self._owner_name = cipher.encrypt(value)
+
+    @property
+    def trade_name(self): return cipher.decrypt(self._trade_name)
+    @trade_name.setter
+    def trade_name(self, value): self._trade_name = cipher.encrypt(value)
+
+    # --- منطق التعلم الذكي ---
+
+    def learn_from_interaction(self, is_positive):
+        """نظام التعلم من سلوك البشر"""
+        self.behavior_score += (0.5 if is_positive else -2.0)
+        self.total_transactions += 1
+        
+        # التكيف التلقائي للفئة
+        if self.behavior_score > 150: self.category = 'مورد استراتيجي'
+        elif self.behavior_score < 50: self.category = 'مورد تحت المراقبة'
+        db.session.commit()
+
+    @property
+    def get_smart_status(self):
+        if self.behavior_score < 50: return "مورد عالي المخاطر"
+        return self.state_title
+
+    # --- الدوال الأساسية ---
 
     @property
     def balance(self):
-        # استيراد محلي داخل الدالة لكسر دائرة الاعتماد
         from apps.models.statement_db import SupplierStatement
-        last_stmt = self.statements.order_by(SupplierStatement.created_at.desc()).first()
-        return last_stmt.running_balance if last_stmt else 0.0
-
-    @property
-    def shop_number(self):
-        if self.address_detail and "|| Shop:" in self.address_detail:
-            try:
-                return self.address_detail.split("|| Shop:")[-1].strip()
-            except:
-                return ""
-        return ""
-
-    @shop_number.setter
-    def shop_number(self, value):
-        clean_val = str(value).strip() if value else ""
-        if clean_val:
-            base_address = self.address_detail.split("|| Shop:")[0].strip() if self.address_detail else ""
-            if base_address:
-                self.address_detail = f"{base_address} || Shop: {clean_val}".strip()
-            else:
-                self.address_detail = f"|| Shop: {clean_val}".strip()
-
-    @property
-    def state_title(self):
-        sovereign_matrix = {
-            'ريادي': {'active': 'مُطلق', 'pending': 'مراجعة', 'suspended': 'محتجز'},
-            'سيادي': {'active': 'نافذ / مُهيمِن', 'pending': 'مراجعة الصلاحية', 'suspended': 'مُقيد / مجمد السيادة'},
-            'ملكي': {'active': 'حَصين', 'pending': 'مستقر / صيانة خاصة', 'suspended': 'معلق الحصانة'}
-        }
-        current_rank_dict = sovereign_matrix.get(self.rank_grade, sovereign_matrix['ريادي'])
-        return current_rank_dict.get(self.status, 'تحت التدقيق السيادي')
-
-    @validates('username', 'identity_number', 'owner_name', 'owner_phone', 'trade_name', 'shop_phone', 'bank_acc')
-    def validate_sovereign_fields(self, key, value):
-        clean_value = str(value).strip() if value is not None else ""
-        if not clean_value:
-            raise ValueError(f"خطأ حوكمي صارم: الحقل السيادي ({key}) لا يمكن أن يكون فارغاً.")
-        return clean_value
+        last = SupplierStatement.query.filter_by(supplier_id=self.id).order_by(SupplierStatement.created_at.desc()).first()
+        return last.running_balance if last else 0.0
 
     @staticmethod
     def generate_next_sovereign_id():
-        last_supplier = Supplier.query.order_by(Supplier.id.desc()).first()
-        if last_supplier and last_supplier.sovereign_id:
-            try:
-                parts = last_supplier.sovereign_id.split('MAH963')
-                last_num = int(parts[-1])
-                return f"SUP-MAH963{last_num + 1}"
-            except (ValueError, IndexError):
-                return f"SUP-MAH963{random.randint(100, 999)}"
-        return "SUP-MAH9631"
+        last = Supplier.query.order_by(Supplier.id.desc()).first()
+        num = int(last.sovereign_id.split('MAH963')[-1]) + 1 if last else 1
+        return f"SUP-MAH963{num}"
 
     def to_dict(self):
         return {
-            "id": self.id,
             "sovereign_id": self.sovereign_id,
-            "wallet_code": self.wallet_code,
-            "username": self.username,
-            "owner_name": self.owner_name,
             "trade_name": self.trade_name,
-            "shop_number": self.shop_number, 
-            "shop_phone": self.shop_phone,
-            "rank_grade": self.rank_grade,
-            "status": self.status,
-            "state_title": self.state_title,
-            "balance": self.balance
+            "category": self.category,
+            "behavior_score": self.behavior_score,
+            "balance": self.balance,
+            "status": self.get_smart_status
         }
