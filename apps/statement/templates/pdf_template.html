@@ -2,31 +2,48 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <title>كشف حساب - {{ supplier_name }}</title>
     <style>
-        body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; }
-        .header { border-bottom: 2px solid #632C8F; padding-bottom: 10px; margin-bottom: 20px; text-align: center; }
-        .info-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
-        .info-table td { padding: 5px; }
+        :root { --primary-color: #632C8F; --text-color: #333; }
+        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 40px; color: var(--text-color); line-height: 1.6; }
+        
+        /* الهيدر */
+        .header { text-align: center; border-bottom: 3px solid var(--primary-color); padding-bottom: 15px; margin-bottom: 30px; }
+        .header h1 { color: var(--primary-color); margin: 0; font-size: 26px; }
+        
+        /* جدول المعلومات */
+        .info-container { display: flex; justify-content: space-between; background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #eee; }
+        .info-item { font-size: 14px; }
+        .info-item strong { color: var(--primary-color); margin-left: 5px; }
+
+        /* جدول الحركات */
         .statement-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .statement-table th { background-color: #632C8F; color: white; padding: 10px; text-align: right; }
-        .statement-table td { border-bottom: 1px solid #ddd; padding: 8px; }
-        .summary-box { float: left; width: 300px; margin-top: 20px; }
+        .statement-table th { background-color: var(--primary-color); color: white; padding: 12px; text-align: center; }
+        .statement-table td { border: 1px solid #eee; padding: 10px; text-align: center; }
+        .statement-table tr:nth-child(even) { background-color: #fcfcfc; }
+
+        /* صندوق الإجمالي */
+        .summary-box { width: 320px; margin-top: 30px; float: left; border: 2px solid var(--primary-color); border-radius: 8px; overflow: hidden; }
+        .summary-box td { padding: 10px; border-bottom: 1px solid #eee; }
+        .summary-box tr:last-child { background-color: var(--primary-color); color: white; font-weight: bold; }
+
+        /* التوقيعات */
+        .signature-area { margin-top: 100px; display: flex; justify-content: space-around; font-weight: bold; }
         
         /* تنسيقات الطباعة */
         @media print {
             .no-print { display: none !important; }
-            .footer { position: fixed; bottom: 0; }
+            body { padding: 0; }
         }
         
-        .footer { text-align: center; margin-top: 50px; font-size: 12px; border-top: 1px solid #ccc; padding-top: 10px; }
-        .signature-area { display: flex; justify-content: space-between; margin-top: 60px; }
+        .footer { text-align: center; margin-top: 80px; font-size: 11px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="no-print" style="margin-bottom: 20px;">
-    <button onclick="window.close()" style="background:#dc3545; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">
-        <i class="fas fa-times"></i> إغلاق النافذة
+<div class="no-print" style="margin-bottom: 20px; text-align: left;">
+    <button onclick="window.print()" style="background:var(--primary-color); color:white; border:none; padding:10px 25px; border-radius:5px; cursor:pointer;">
+        🖨️ طباعة التقرير
     </button>
 </div>
 
@@ -35,19 +52,17 @@
     <p>محجوب أونلاين | النظام المالي الموحد</p>
 </div>
 
-<table class="info-table">
-    <tr>
-        <td><strong>المورد:</strong> {{ supplier_name }}</td>
-        <td><strong>التاريخ:</strong> {{ generated_at }}</td>
-    </tr>
-    <tr>
-        <td><strong>كود المحفظة:</strong> {{ wallet_code }}</td>
-        <td><strong>العملة:</strong> {{ currency }}</td>
-    </tr>
-    <tr>
-        <td colspan="2"><strong>طُبع بواسطة:</strong> {{ current_user.username }}</td>
-    </tr>
-</table>
+<div class="info-container">
+    <div class="info-item">
+        <p><strong>المورد:</strong> {{ supplier_name }}</p>
+        <p><strong>كود المحفظة:</strong> {{ wallet_code }}</p>
+    </div>
+    <div class="info-item">
+        <p><strong>التاريخ:</strong> {{ generated_at }}</p>
+        <p><strong>العملة:</strong> {{ currency }}</p>
+        <p><strong>طُبع بواسطة:</strong> {{ current_user.username }}</p>
+    </div>
+</div>
 
 <table class="statement-table">
     <thead>
@@ -63,32 +78,26 @@
         {% for s in statements %}
         <tr>
             <td>{{ s.created_at.strftime('%Y-%m-%d') }}</td>
-            <td>{{ s.description }}</td>
+            <td style="text-align: right;">{{ s.description }}</td>
             <td>{{ "{:,.2f}".format(s.debit) }}</td>
             <td>{{ "{:,.2f}".format(s.credit) }}</td>
-            <td>{{ "{:,.2f}".format(s.running_balance) }}</td>
+            <td style="font-weight: bold;">{{ "{:,.2f}".format(s.running_balance) }}</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 
-<div class="summary-box">
-    <table class="info-table">
-        <tr style="background: #f4f4f4;"><td>إجمالي المدين:</td><td><strong>{{ "{:,.2f}".format(total_debit) }}</strong></td></tr>
-        <tr style="background: #f4f4f4;"><td>إجمالي الدائن:</td><td><strong>{{ "{:,.2f}".format(total_credit) }}</strong></td></tr>
-        <tr style="background: #632C8F; color: white;"><td>صافي الرصيد:</td><td><strong>{{ "{:,.2f}".format(net_balance) }}</strong></td></tr>
-    </table>
-</div>
+<table class="summary-box">
+    <tr><td>إجمالي المدين:</td><td>{{ "{:,.2f}".format(total_debit) }}</td></tr>
+    <tr><td>إجمالي الدائن:</td><td>{{ "{:,.2f}".format(total_credit) }}</td></tr>
+    <tr><td>صافي الرصيد:</td><td>{{ "{:,.2f}".format(net_balance) }}</td></tr>
+</table>
+
+<div style="clear: both;"></div>
 
 <div class="signature-area">
-    <div style="text-align:center;">
-        <p>توقيع المحاسب</p>
-        <br>__________
-    </div>
-    <div style="text-align:center;">
-        <p>توقيع المورد</p>
-        <br>__________
-    </div>
+    <div style="text-align:center;">توقيع المحاسب<br>___________</div>
+    <div style="text-align:center;">توقيع المورد<br>___________</div>
 </div>
 
 <div class="footer">
@@ -96,8 +105,9 @@
 </div>
 
 <script>
+    // تفعيل الطباعة التلقائية عند فتح الصفحة
     window.onload = function() {
-        window.print();
+        setTimeout(function() { window.print(); }, 500);
     };
 </script>
 
