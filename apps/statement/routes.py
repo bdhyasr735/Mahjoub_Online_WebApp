@@ -43,7 +43,7 @@ def api_get_all_summary():
     summary_data = ReportGenerator.get_all_wallets_summary(currency=curr)
     return jsonify({'results': summary_data})
 
-# 3. تقرير كشف الحساب (التفصيلي)
+# 3. تقرير كشف الحساب (التفصيلي) - تم تحسين المعالجة لمنع الأخطاء
 @statement_blueprint.route('/api/statement/report', methods=['GET'])
 @login_required
 def api_get_report():
@@ -53,10 +53,16 @@ def api_get_report():
         start_str = request.args.get('start')
         end_str = request.args.get('end')
 
-        start_date = datetime.strptime(start_str, '%Y-%m-%d') if start_str and start_str != 'null' else None
-        end_date = datetime.strptime(end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59) if end_str and end_str != 'null' else None
+        # تحويل آمن للتواريخ لمنع أخطاء السيرفر
+        start_date = datetime.strptime(start_str, '%Y-%m-%d') if start_str and start_str not in ['null', 'undefined'] else None
+        end_date = datetime.strptime(end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59) if end_str and end_str not in ['null', 'undefined'] else None
 
         statements = ReportGenerator.get_detailed_transactions(s_id, curr, start_date, end_date)
+        
+        # إذا لم توجد نتائج، نرسل أصفاراً لتجنب انهيار الصفحة
+        if not statements:
+            return jsonify({'summary': {'total_debit': 0, 'total_credit': 0, 'net_balance': 0, 'total_profit': 0}, 'details': []})
+
         total_profit = ReportGenerator.calculate_net_profit(curr, start_date, end_date)
 
         return jsonify({
@@ -64,7 +70,7 @@ def api_get_report():
                 'total_debit': float(sum(s.debit or 0 for s in statements)),
                 'total_credit': float(sum(s.credit or 0 for s in statements)),
                 'net_balance': float(sum(s.credit or 0 for s in statements) - sum(s.debit or 0 for s in statements)),
-                'total_profit': float(total_profit)
+                'total_profit': float(total_profit or 0)
             },
             'details': [{
                 'date': s.created_at.strftime('%Y-%m-%d'),
@@ -87,8 +93,8 @@ def export_report_pdf():
     start_str = request.args.get('start_date')
     end_str = request.args.get('end_date')
     
-    start_date = datetime.strptime(start_str, '%Y-%m-%d') if start_str and start_str != 'null' else None
-    end_date = datetime.strptime(end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59) if end_str and end_str != 'null' else None
+    start_date = datetime.strptime(start_str, '%Y-%m-%d') if start_str and start_str not in ['null', 'undefined'] else None
+    end_date = datetime.strptime(end_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59) if end_str and end_str not in ['null', 'undefined'] else None
 
     wallet_code = "---"
     supplier_name = "تقرير شامل للمنصة"
