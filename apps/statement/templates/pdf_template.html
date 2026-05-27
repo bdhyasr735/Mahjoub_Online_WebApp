@@ -7,44 +7,32 @@
         :root { --primary-color: #632C8F; --text-color: #333; }
         body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 40px; color: var(--text-color); line-height: 1.6; }
         
-        /* الهيدر */
         .header { text-align: center; border-bottom: 3px solid var(--primary-color); padding-bottom: 15px; margin-bottom: 30px; }
         .header h1 { color: var(--primary-color); margin: 0; font-size: 26px; }
         
-        /* جدول المعلومات */
         .info-container { display: flex; justify-content: space-between; background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #eee; }
         .info-item { font-size: 14px; }
         .info-item strong { color: var(--primary-color); margin-left: 5px; }
 
-        /* جدول الحركات */
         .statement-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .statement-table th { background-color: var(--primary-color); color: white; padding: 12px; text-align: center; }
         .statement-table td { border: 1px solid #eee; padding: 10px; text-align: center; }
-        .statement-table tr:nth-child(even) { background-color: #fcfcfc; }
+        .statement-table tr:nth-child(even) { background-color: #f8f8f8; }
 
-        /* صندوق الإجمالي */
         .summary-box { width: 320px; margin-top: 30px; float: left; border: 2px solid var(--primary-color); border-radius: 8px; overflow: hidden; }
         .summary-box td { padding: 10px; border-bottom: 1px solid #eee; }
         .summary-box tr:last-child { background-color: var(--primary-color); color: white; font-weight: bold; }
 
-        /* التوقيعات */
         .signature-area { margin-top: 100px; display: flex; justify-content: space-around; font-weight: bold; }
         
-        /* تنسيقات الطباعة */
-        @media print {
-            .no-print { display: none !important; }
-            body { padding: 0; }
-        }
-        
+        @media print { .no-print { display: none !important; } }
         .footer { text-align: center; margin-top: 80px; font-size: 11px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="no-print" style="margin-bottom: 20px; text-align: left;">
-    <button onclick="window.print()" style="background:var(--primary-color); color:white; border:none; padding:10px 25px; border-radius:5px; cursor:pointer;">
-        🖨️ طباعة التقرير
-    </button>
+    <button onclick="window.print()" style="background:var(--primary-color); color:white; border:none; padding:10px 25px; border-radius:5px; cursor:pointer;">🖨️ طباعة التقرير</button>
 </div>
 
 <div class="header">
@@ -60,7 +48,6 @@
     <div class="info-item">
         <p><strong>التاريخ:</strong> {{ generated_at }}</p>
         <p><strong>العملة:</strong> {{ currency }}</p>
-        <p><strong>طُبع بواسطة:</strong> {{ current_user.username }}</p>
     </div>
 </div>
 
@@ -75,7 +62,7 @@
         </tr>
     </thead>
     <tbody>
-        {% for s in statements %}
+        {% for s in report_data %}
         <tr>
             <td>{{ s.created_at.strftime('%Y-%m-%d') }}</td>
             <td style="text-align: right;">{{ s.description or '---' }}</td>
@@ -90,9 +77,7 @@
 </table>
 
 <table class="summary-box">
-    <tr><td>إجمالي المدين:</td><td>{{ "{:,.2f}".format(total_debit) }}</td></tr>
-    <tr><td>إجمالي الدائن:</td><td>{{ "{:,.2f}".format(total_credit) }}</td></tr>
-    <tr><td>صافي الرصيد:</td><td>{{ "{:,.2f}".format(net_balance) }}</td></tr>
+    <tr><td>صافي الرصيد:</td><td>{{ "{:,.2f}".format(net_balance or 0) }}</td></tr>
 </table>
 
 <div style="clear: both;"></div>
@@ -107,9 +92,7 @@
 </div>
 
 <script>
-    window.onload = function() {
-        setTimeout(function() { window.print(); }, 500);
-    };
+    window.onload = function() { setTimeout(function() { window.print(); }, 500); };
 </script>
 
 </body>
