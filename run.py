@@ -11,21 +11,27 @@ def auto_fix_db():
         try:
             print("🔧 جاري التحقق من هيكل قاعدة البيانات...")
             inspector = inspect(db.engine)
+            
+            # التأكد من وجود الجدول أولاً
             if 'wallet_transactions' in inspector.get_table_names():
+                # الحصول على قائمة الأعمدة الحالية
                 columns = [c['name'] for c in inspector.get_columns('wallet_transactions')]
                 
-                # إضافة الأعمدة إذا كانت مفقودة
-                if '_amount' not in columns:
-                    db.session.execute(text("ALTER TABLE wallet_transactions ADD COLUMN _amount VARCHAR(255)"))
-                    db.session.execute(text("ALTER TABLE wallet_transactions ADD COLUMN _profit_margin VARCHAR(255)"))
-                    db.session.execute(text("ALTER TABLE wallet_transactions ADD COLUMN _notes VARCHAR(255)"))
-                    db.session.commit()
-                    print("✅ تم تحديث أعمدة قاعدة البيانات بنجاح.")
+                # الأعمدة التي يحتاجها الكود الجديد
+                needed_cols = ['_amount', '_profit_margin', '_notes']
+                
+                for col in needed_cols:
+                    if col not in columns:
+                        print(f"➕ جاري إضافة العمود المفقود: {col}")
+                        db.session.execute(text(f"ALTER TABLE wallet_transactions ADD COLUMN {col} VARCHAR(255)"))
+                
+                db.session.commit()
+                print("✅ تم تحديث أعمدة قاعدة البيانات بنجاح.")
         except Exception as e:
-            print(f"❌ فشل تحديث قاعدة البيانات: {e}")
+            print(f"❌ خطأ أثناء الإصلاح التلقائي: {e}")
             db.session.rollback()
 
-# تشغيل وظيفة الإصلاح
+# استدعاء دالة الإصلاح قبل تشغيل التطبيق
 auto_fix_db()
 
 if __name__ == "__main__":
