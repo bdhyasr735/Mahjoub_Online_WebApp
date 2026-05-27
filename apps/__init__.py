@@ -1,54 +1,35 @@
 # coding: utf-8
-# 🏗️ مصنع التطبيق المركزي (Application Factory) - منصة محجوب أونلاين 2026
-import os
-from flask import Flask
-from config import Config
-from werkzeug.middleware.proxy_fix import ProxyFix
-from apps.utils.security import AESCipher # استيراد المشفر
+from apps import create_app
+from apps.extensions import db  # الاستيراد الصحيح من ملف الامتدادات
+from apps.models.supplier_db import Supplier
+from apps.models.statement_db import SupplierStatement
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
+from apps.models.admin_db import AdminUser
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
-    
-    # تهيئة المشفر وربطه بـ app
-    app.cipher = AESCipher(app.config.get('ENCRYPTION_KEY', os.getenv('ENCRYPTION_KEY')))
-    
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-
-    from apps.extensions import db, login_manager
-    db.init_app(app)
-    login_manager.init_app(app)
-    login_manager.login_view = 'auth_portal.login'
-
+def run_migration():
+    # تهيئة المصنع أولاً ليعمل كل شيء
+    app = create_app()
     with app.app_context():
-        # 1. استيراد الموديلات داخل سياق التطبيق
-        from apps.models.admin_db import AdminUser
-        from apps.models.supplier_db import Supplier
-        from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        from apps.models.settlements_db import AdminSettlement
-        from apps.models.statement_db import SupplierStatement 
+        print("🚀 بدء عملية الترحيل المشفر...")
         
-        # 2. إنشاء الجداول
-        db.create_all() 
+        # 1. ترحيل الموردين
+        suppliers = Supplier.query.all()
+        for s in suppliers:
+            # التشفير يحدث هنا بفضل خصائص الموديل
+            s.owner_name = s.owner_name 
+            s.trade_name = s.trade_name
+            print(f"✅ تم معالجة المورد: {s.sovereign_id}")
         
-        # 3. دالة تحميل المستخدم يجب أن تكون داخل السياق
-        @login_manager.user_loader
-        def load_user(user_id):
-            return AdminUser.query.get(int(user_id))
+        # 2. ترحيل كشوفات الحسابات
+        statements = SupplierStatement.query.all()
+        for stmt in statements:
+            stmt.description = stmt.description
+            # بقية الحقول...
+            
+        # ... (أكمل باقي الترحيل بنفس الطريقة) ...
 
-        # 4. تسجيل البلوبرينتس
-        from apps.auth_portal.routes import auth_blueprint
-        from apps.admin_dashboard.routes import admin_dashboard
-        from apps.add_supplier.routes import admin_suppliers_bp
-        from apps.financial_ops.routes import financial_blueprint 
-        from apps.statement import statement_blueprint
+        db.session.commit()
+        print("🎉 اكتملت العملية بنجاح!")
 
-        app.register_blueprint(auth_blueprint, url_prefix='/auth')
-        app.register_blueprint(admin_dashboard)
-        app.register_blueprint(admin_suppliers_bp, url_prefix='/suppliers')
-        app.register_blueprint(financial_blueprint, url_prefix='/finance')
-        app.register_blueprint(statement_blueprint, url_prefix='/statement')
-
-    return app
-
-app = create_app()
+if __name__ == "__main__":
+    run_migration()
