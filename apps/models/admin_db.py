@@ -1,7 +1,7 @@
 # coding: utf-8
 # 🛡️ جدول إدارة النظام المشفر - منصة محجوب أونلاين 2026
 import os
-from apps.extensions import db, login_manager
+from apps.extensions import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -15,9 +15,11 @@ class AdminUser(db.Model, UserMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     
-    # حقول مشفرة (تخزين Ciphertext)
-    _full_name = db.Column(db.String(255), nullable=False)
-    _email = db.Column(db.String(255), unique=True, nullable=False)
+    # الأعمدة في قاعدة البيانات (بدون شرطة سفلية)
+    # ملاحظة: إذا كان اسم العمود في قاعدة البيانات حالياً هو '_full_name'، 
+    # فيجب عليك تعديل اسم العمود في جدول Postgres عبر أمر SQL أو تغيير الكود أدناه لـ '_full_name'
+    full_name_encrypted = db.Column('full_name', db.String(255), nullable=False)
+    email_encrypted = db.Column('email', db.String(255), unique=True, nullable=False)
     
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -29,23 +31,27 @@ class AdminUser(db.Model, UserMixin):
     # --- خصائص التشفير ---
 
     @property
-    def full_name(self): return cipher.decrypt(self._full_name)
+    def full_name(self): 
+        return cipher.decrypt(self.full_name_encrypted)
+    
     @full_name.setter
-    def full_name(self, value): self._full_name = cipher.encrypt(str(value))
+    def full_name(self, value): 
+        self.full_name_encrypted = cipher.encrypt(str(value))
 
     @property
-    def email(self): return cipher.decrypt(self._email)
+    def email(self): 
+        return cipher.decrypt(self.email_encrypted)
+    
     @email.setter
-    def email(self, value): self._email = cipher.encrypt(str(value))
+    def email(self, value): 
+        self.email_encrypted = cipher.encrypt(str(value))
 
     # --- طرق الأمان ---
 
     def set_password(self, password):
-        """تشفير كلمة المرور (Hash) - تظل كما هي لأنها محمية بـ Werkzeug"""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """التحقق من كلمة المرور"""
         return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
