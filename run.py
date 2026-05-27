@@ -28,6 +28,27 @@ def apply_schema_fixes():
             print(f"⚠️ خطأ أثناء تحديث القاعدة: {e}")
             db.session.rollback()
 
+from sqlalchemy import text
+from apps.extensions import db
+
+# ضع هذا الكود داخل ملف التشغيل الرئيسي (run.py أو main.py)
+# تأكد من استدعاء هذه الدالة بعد إعداد الـ app وقبل تشغيله
+def fix_database_schema():
+    with app.app_context():
+        try:
+            # إضافة الأعمدة الناقصة في جدول المحافظ
+            db.session.execute(text("ALTER TABLE supplier_wallets ADD COLUMN IF NOT EXISTS _yer_total VARCHAR(255) DEFAULT '0.00'"))
+            db.session.execute(text("ALTER TABLE supplier_wallets ADD COLUMN IF NOT EXISTS _sar_total VARCHAR(255) DEFAULT '0.00'"))
+            db.session.execute(text("ALTER TABLE supplier_wallets ADD COLUMN IF NOT EXISTS _usd_total VARCHAR(255) DEFAULT '0.00'"))
+            db.session.commit()
+            print("✅ تم تحديث هيكل قاعدة البيانات وإضافة الأعمدة المشفرة بنجاح.")
+        except Exception as e:
+            print(f"❌ فشل تحديث القاعدة: {e}")
+
+# قم باستدعاء الدالة هنا قبل app.run()
+# fix_database_schema()
+
+
 # تشغيل الفحص عند الإقلاع
 apply_schema_fixes()
 
