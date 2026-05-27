@@ -1,22 +1,190 @@
-function openPDFModal() {
-    let viewType = $('#viewType').val(); // الحصول على نوع العرض (تفصيلي أو ملخص)
-    let baseUrl = "";
-    let params = "";
+{% extends "admin/admin_base.html" %}
 
-    if (viewType === 'summary') {
-        // إذا كان العرض ملخصاً، نستخدم مسار الملخص (يمكنك إنشاء مسار جديد للملخص إذا أردت)
-        // حالياً سنستخدم نفس مسار الطباعة مع تعديل المتغيرات
-        baseUrl = "{{ url_for('statement_blueprint.export_summary_pdf') }}"; 
-        params = "?currency=" + $('#currencyFilter').val();
-    } else {
-        // إذا كان العرض تفصيلياً
-        baseUrl = "{{ url_for('statement_blueprint.export_report_pdf') }}";
-        params = "?supplier_id=" + ($('#supplierSearch').val() || 'ALL') + 
-                 "&currency=" + $('#currencyFilter').val() + 
-                 "&start_date=" + pickerStart.format('YYYY-MM-DD') + 
-                 "&end_date=" + pickerEnd.format('YYYY-MM-DD');
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
+<style>
+    :root { --mahjoub-purple: #632C8F; }
+    .mahjoub-toolbar { background: #fff; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-right: 5px solid var(--mahjoub-purple); }
+    .stat-card { border-radius: 15px; border: none; color: white; padding: 20px; transition: transform 0.2s ease; }
+    .btn-mahjoub { background-color: var(--mahjoub-purple); color: white; border-radius: 10px; }
+    .text-purple { color: var(--mahjoub-purple); }
+</style>
+
+<div class="container-fluid py-4" style="direction: rtl; text-align: right;">
+    <div class="card mahjoub-toolbar p-4 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="small fw-bold text-muted mb-2">البحث / المورد</label>
+                <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted mb-2">نوع العرض</label>
+                <select id="viewType" class="form-select" style="height: 45px; border-radius: 10px;">
+                    <option value="detailed">عرض تفصيلي</option>
+                    <option value="summary">ملخص الأرصدة</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted mb-2">العملة</label>
+                <select id="currencyFilter" class="form-select" style="height: 45px; border-radius: 10px;">
+                    <option value="ALL">كل العملات</option>
+                    {% for curr in currencies %}<option value="{{ curr }}">{{ curr }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted mb-2">الفترة</label>
+                <div id="reportrange" class="form-control" style="cursor: pointer; height: 45px; display: flex; align-items: center; border-radius: 10px;">
+                    <i class="fa fa-calendar me-2 text-muted"></i> <span></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-mahjoub flex-grow-1" onclick="refreshData()"><i class="fas fa-sync"></i> تحديث</button>
+                    <button class="btn btn-success flex-grow-1" onclick="openPDFModal()"><i class="fas fa-file-pdf"></i> عرض الكشف</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="summaryCards" class="row mb-4">
+        <div class="col-md-3"><div class="card stat-card bg-primary"><h6>إجمالي الأرباح</h6><h2 id="totalProfit">0.00</h2></div></div>
+        <div class="col-md-3"><div class="card stat-card bg-danger"><h6>إجمالي المدين</h6><h2 id="totalDebit">0.00</h2></div></div>
+        <div class="col-md-3"><div class="card stat-card bg-success"><h6>إجمالي الدائن</h6><h2 id="totalCredit">0.00</h2></div></div>
+        <div class="col-md-3"><div class="card stat-card bg-info"><h6>صافي الرصيد</h6><h2 id="netBalance">0.00</h2></div></div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white py-3 border-0">
+            <h6 class="mb-0 fw-bold text-purple" id="tableTitle"><i class="fas fa-list-ul me-2"></i> سجل العمليات</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light" id="tableHeader"></thead>
+                <tbody id="statementBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="pdfModal" tabindex="-1">
+    <div class="modal-dialog modal-xl" style="max-width: 90%;">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title text-purple"><i class="fas fa-file-invoice"></i> معاينة كشف الحساب</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="pdfFrame" style="width:100%; height:75vh; border:none;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button class="btn btn-primary" onclick="printFrame()"><i class="fas fa-print"></i> طباعة الكشف</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+<script>
+    var pickerStart = moment().startOf('month');
+    var pickerEnd = moment();
+
+    $(function() {
+        $('#supplierSearch').select2({
+            placeholder: "🔍 ابحث باسم المورد أو كود SUP",
+            ajax: {
+                url: "{{ url_for('statement_blueprint.api_search_suppliers') }}",
+                dataType: 'json',
+                delay: 250,
+                data: function (params) { return { q: params.term }; },
+                processResults: function (data) { 
+                    data.results.unshift({ id: 'ALL', text: '🌐 العرض الشامل للمنصة' });
+                    return { results: data.results }; 
+                }
+            }
+        });
+
+        $('#supplierSearch, #viewType, #currencyFilter').on('change', refreshData);
+
+        $('#reportrange').daterangepicker({
+            startDate: pickerStart, endDate: pickerEnd,
+            locale: { format: 'YYYY/MM/DD' }
+        }, function(start, end) {
+            pickerStart = start; pickerEnd = end;
+            $('#reportrange span').html(start.format('YYYY/MM/DD') + ' - ' + end.format('YYYY/MM/DD'));
+            refreshData();
+        });
+
+        $('#reportrange span').html(pickerStart.format('YYYY/MM/DD') + ' - ' + pickerEnd.format('YYYY/MM/DD'));
+        refreshData();
+    });
+
+    function refreshData() {
+        if ($('#viewType').val() === 'summary') {
+            loadAllWalletsSummary();
+        } else {
+            loadFinancialData();
+        }
     }
 
-    $('#pdfFrame').attr('src', baseUrl + params);
-    new bootstrap.Modal(document.getElementById('pdfModal')).show();
-}
+    function loadFinancialData() {
+        $('#summaryCards').show();
+        $('#tableHeader').html('<tr><th>التاريخ</th><th>البيان</th><th>العملة</th><th>مدين</th><th>دائن</th><th>الرصيد التراكمي</th></tr>');
+        let url = "{{ url_for('statement_blueprint.api_get_report') }}?id=" + ($('#supplierSearch').val() || 'ALL') + "&currency=" + $('#currencyFilter').val() + "&start=" + pickerStart.format('YYYY-MM-DD') + "&end=" + pickerEnd.format('YYYY-MM-DD');
+        $('#statementBody').html('<tr><td colspan="6" class="text-center py-3 text-muted">جاري تحميل البيانات...</td></tr>');
+
+        fetch(url).then(res => res.json()).then(data => {
+            if (data.error) return;
+            $('#totalProfit').text(data.summary.total_profit.toLocaleString());
+            $('#totalDebit').text(data.summary.total_debit.toLocaleString());
+            $('#totalCredit').text(data.summary.total_credit.toLocaleString());
+            $('#netBalance').text(data.summary.net_balance.toLocaleString());
+
+            if (!data.details || data.details.length === 0) {
+                $('#statementBody').html('<tr><td colspan="6" class="text-center py-4 text-secondary">لا توجد سجلات.</td></tr>');
+            } else {
+                let html = data.details.map(s => `<tr><td>${s.date}</td><td>${s.desc}</td><td>${s.currency}</td><td class="text-danger">${s.debit.toLocaleString()}</td><td class="text-success">${s.credit.toLocaleString()}</td><td class="fw-bold">${s.balance.toLocaleString()}</td></tr>`).join('');
+                $('#statementBody').html(html);
+            }
+        });
+    }
+
+    function loadAllWalletsSummary() {
+        $('#summaryCards').hide();
+        $('#tableHeader').html('<tr><th>الاسم التجاري</th><th>اسم المالك</th><th>كود SUP</th><th>الرصيد</th><th>الحالة</th></tr>');
+        fetch("{{ url_for('statement_blueprint.api_get_all_summary') }}?currency=" + $('#currencyFilter').val())
+        .then(res => res.json()).then(data => {
+            let html = data.results.map(s => `<tr><td>${s.trade_name}</td><td>${s.owner_name}</td><td><code>${s.wallet_code}</code></td><td>${s.balance.toLocaleString()}</td><td><span class="badge ${s.balance >= 0 ? 'bg-success' : 'bg-danger'}">${s.balance >= 0 ? 'دائن' : 'مدين'}</span></td></tr>`).join('');
+            $('#statementBody').html(html || '<tr><td colspan="5" class="text-center">لا توجد بيانات.</td></tr>');
+        });
+    }
+
+    function openPDFModal() {
+        let viewType = $('#viewType').val();
+        let url = "";
+
+        if (viewType === 'summary') {
+            url = "{{ url_for('statement_blueprint.export_summary_pdf') }}?currency=" + $('#currencyFilter').val();
+        } else {
+            url = "{{ url_for('statement_blueprint.export_report_pdf') }}?supplier_id=" + ($('#supplierSearch').val() || 'ALL') + 
+                  "&currency=" + $('#currencyFilter').val() + 
+                  "&start_date=" + pickerStart.format('YYYY-MM-DD') + "&end_date=" + pickerEnd.format('YYYY-MM-DD');
+        }
+
+        $('#pdfFrame').attr('src', url);
+        new bootstrap.Modal(document.getElementById('pdfModal')).show();
+    }
+
+    function printFrame() {
+        var iframe = document.getElementById('pdfFrame');
+        iframe.contentWindow.print();
+    }
+</script>
+{% endblock %}
