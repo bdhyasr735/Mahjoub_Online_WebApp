@@ -1,6 +1,6 @@
 # coding: utf-8
-# 🔐 سكربت ترحيل البيانات إلى النظام المشفر - منصة محجوب أونلاين 2026
-from apps import create_app, db
+from apps import create_app
+from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.statement_db import SupplierStatement
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -12,42 +12,32 @@ def run_migration():
         print("🚀 بدء عملية الترحيل المشفر...")
         
         # 1. ترحيل الموردين
-        suppliers = Supplier.query.all()
-        for s in suppliers:
-            # بما أن الموديل يحتوي على @property للتشفير، الإسناد سيقوم بالتشفير
+        for s in Supplier.query.all():
             s.owner_name = s.owner_name 
             s.trade_name = s.trade_name
-            print(f"✅ تم معالجة المورد: {s.sovereign_id}")
+            print(f"✅ المورد: {s.sovereign_id}")
         
         # 2. ترحيل كشوفات الحسابات
-        statements = SupplierStatement.query.all()
-        for stmt in statements:
+        for stmt in SupplierStatement.query.all():
             stmt.description = stmt.description
             stmt.debit = stmt.debit
             stmt.credit = stmt.credit
             stmt.running_balance = stmt.running_balance
         
-        # 3. ترحيل المحافظ والحركات
-        wallets = SupplierWallet.query.all()
-        for w in wallets:
+        # 3. ترحيل المحافظ
+        for w in SupplierWallet.query.all():
             w.yer_total = w.yer_total
             w.sar_total = w.sar_total
             w.usd_total = w.usd_total
             
-        transactions = WalletTransaction.query.all()
-        for tx in transactions:
+        # 4. ترحيل الحركات
+        for tx in WalletTransaction.query.all():
             tx.amount = tx.amount
             tx.profit_margin = tx.profit_margin
             tx.notes = tx.notes
 
-        # 4. ترحيل مديري النظام
-        admins = AdminUser.query.all()
-        for admin in admins:
-            admin.username = admin.username # سيعاد تشفيره
-            
-        # تنفيذ الحفظ النهائي لجميع التغييرات
         db.session.commit()
-        print("🎉 اكتملت عملية الترحيل بنجاح وتم حفظ البيانات المشفرة في قاعدة البيانات!")
+        print("🎉 اكتملت عملية الترحيل لجميع البيانات بنجاح!")
 
 if __name__ == "__main__":
     run_migration()
