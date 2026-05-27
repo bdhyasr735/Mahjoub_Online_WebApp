@@ -87,15 +87,17 @@ def api_get_report():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# 4 & 5. تصدير التقارير (PDF templates)
-# ملاحظة: تأكد من أن ملفات القوالب (pdf_template.html) موجودة في مجلد templates/
+# 4. تصدير التقارير (PDF) - تم تصحيح استدعاء render_template
 @statement_blueprint.route('/api/statement/report/pdf', methods=['GET'])
 @login_required
 def export_report_pdf():
-    # ... (تم الإبقاء على منطقك الأصلي كما هو لقوته)
-    s_id = get_clean_param('supplier_id')
-    curr = get_clean_param('currency')
-    # ... (يتبع نفس المنطق في جلب البيانات)
-    return render_template('pdf_template.html', ...)
-
-# ... (بقية دوال PDF)
+    try:
+        s_id = get_clean_param('supplier_id')
+        curr = get_clean_param('currency')
+        # جلب البيانات اللازمة للتقرير
+        data = ReportGenerator.get_detailed_transactions(s_id, curr)
+        
+        # تمرير البيانات كمتغير مسمى (report_data) لتجنب الخطأ السابق
+        return render_template('pdf_template.html', report_data=data)
+    except Exception as e:
+        return jsonify({'error': f"PDF Generation failed: {str(e)}"}), 500
