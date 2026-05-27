@@ -10,6 +10,7 @@
     .stat-card { border-radius: 15px; border: none; color: white; padding: 20px; transition: transform 0.2s ease; }
     .btn-mahjoub { background-color: var(--mahjoub-purple); color: white; border-radius: 10px; }
     .text-purple { color: var(--mahjoub-purple); }
+    .table-container { min-height: 400px; }
 </style>
 
 <div class="container-fluid py-4" style="direction: rtl; text-align: right;">
@@ -55,7 +56,7 @@
         <div class="col-md-3"><div class="card stat-card bg-info"><h6>صافي الرصيد</h6><h2 id="netBalance">0.00</h2></div></div>
     </div>
 
-    <div class="card shadow-sm border-0 rounded-4">
+    <div class="card shadow-sm border-0 rounded-4 table-container">
         <div class="card-header bg-white py-3 border-0">
             <h6 class="mb-0 fw-bold text-purple" id="tableTitle"><i class="fas fa-list-ul me-2"></i> سجل العمليات</h6>
         </div>
@@ -111,6 +112,7 @@
             }
         });
 
+        // تفعيل التحديث التلقائي عند تغيير أي فلتر
         $('#supplierSearch, #viewType, #currencyFilter').on('change', refreshData);
 
         $('#reportrange').daterangepicker({
@@ -137,7 +139,12 @@
     function loadFinancialData() {
         $('#summaryCards').show();
         $('#tableHeader').html('<tr><th>التاريخ</th><th>البيان</th><th>العملة</th><th>مدين</th><th>دائن</th><th>الرصيد التراكمي</th></tr>');
-        let url = "{{ url_for('statement_blueprint.api_get_report') }}?id=" + ($('#supplierSearch').val() || 'ALL') + "&currency=" + $('#currencyFilter').val() + "&start=" + pickerStart.format('YYYY-MM-DD') + "&end=" + pickerEnd.format('YYYY-MM-DD');
+        
+        let url = "{{ url_for('statement_blueprint.api_get_report') }}?id=" + ($('#supplierSearch').val() || 'ALL') + 
+                  "&currency=" + $('#currencyFilter').val() + 
+                  "&start=" + pickerStart.format('YYYY-MM-DD') + 
+                  "&end=" + pickerEnd.format('YYYY-MM-DD');
+        
         $('#statementBody').html('<tr><td colspan="6" class="text-center py-3 text-muted">جاري تحميل البيانات...</td></tr>');
 
         fetch(url).then(res => res.json()).then(data => {
