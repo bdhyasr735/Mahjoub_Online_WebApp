@@ -29,7 +29,7 @@ def api_search_suppliers():
         
         results = [{
             'id': s.id, 
-            'text': f"{getattr(s, 'trade_name', '---')} (المالك: {getattr(s, 'owner_name', '---')}) - WEL: {getattr(s, 'sovereign_id', '---')}"
+            'text': f"{getattr(s, 'trade_name', '---')} (المالك: {getattr(s, 'owner_name', '---')}) - SUP: {getattr(s, 'sovereign_id', '---')}"
         } for s in suppliers]
         return jsonify({"results": results})
     except Exception:
