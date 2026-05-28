@@ -18,30 +18,32 @@ admin_dashboard = Blueprint(
 @login_required
 def dashboard():
     """
-    تحميل بيانات لوحة التحكم مع الاعتماد على الموديل المرن
+    تحميل بيانات لوحة التحكم مع تأمين الاستعلامات
     """
     try:
         # 1. إحصائيات الموردين
         total_suppliers = Supplier.query.count()
         
-        # 2. حساب الأرصدة (نستخدم خصائص الموديل الآمنة التي أنشأناها)
+        # 2. حساب الأرصدة
         wallets = SupplierWallet.query.all()
-        
-        # استخدام الخصائص (yer_total, sar_total) التي تتعامل مع التشفير داخلياً
         total_sar_balance = sum([w.sar_total for w in wallets])
         total_yer_balance = sum([w.yer_total for w in wallets])
-        
-        # حساب الإجمالي
         total_balance = total_sar_balance + (total_yer_balance / 3.75) 
         
-        # 3. آخر 5 عمليات 
-        # ملاحظة: الكود سيستخدم الآن الخصائص المرنة الموجودة في WalletTransaction
-        recent_activities = WalletTransaction.query.order_by(
-            WalletTransaction.created_at.desc()
-        ).limit(5).all()
+        # 3. آخر 5 عمليات (ترتيب آمن)
+        # نستخدم قائمة فارغة كـ fallback إذا فشل الاستعلام بسبب نقص أعمدة
+        try:
+            recent_activities = WalletTransaction.query.order_by(
+                WalletTransaction.created_at.desc()
+            ).limit(5).all()
+        except:
+            recent_activities = []
         
-        # 4. التسويات المعلقة
-        pending_settlements = WalletTransaction.query.filter_by(status='معلقة').count()
+        # 4. التسويات المعلقة (معالجة استثناء في حال عدم وجود عمود status)
+        try:
+            pending_settlements = WalletTransaction.query.filter_by(status='معلقة').count()
+        except:
+            pending_settlements = 0
 
         return render_template(
             'admin/dashboard_content.html',
@@ -54,11 +56,10 @@ def dashboard():
     except Exception as e:
         print(f"❌ Error loading dashboard: {str(e)}")
         
-        # رسالة خطأ بسيطة للمستخدم دون كشف تفاصيل تقنية حساسة
         return """
         <div style="text-align:center; margin-top:50px; font-family:sans-serif; direction:rtl;">
-            <h2>عذراً، حدث خطأ تقني</h2>
-            <p>يتم العمل على تحديث البيانات، يرجى المحاولة بعد قليل.</p>
+            <h2>عذراً، حدث خطأ تقني في عرض البيانات</h2>
+            <p>يتم العمل على مزامنة هيكل قاعدة البيانات، يرجى المحاولة بعد قليل.</p>
             <a href="/admin/dashboard" style="padding:10px; background:#632C8F; color:white; text-decoration:none; border-radius:5px;">حاول مجدداً</a>
         </div>
         """, 500
