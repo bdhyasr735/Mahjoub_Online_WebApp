@@ -3,7 +3,7 @@ import os
 from apps.extensions import db
 from apps.utils.security import AESCipher
 
-# تهيئة المشفر - نستخدم default لضمان عدم انهيار التطبيق إذا نسينا المفتاح
+# تهيئة المشفر
 cipher = AESCipher(os.getenv('ENCRYPTION_KEY', 'default-fallback-key-32-chars-long!'))
 
 class SupplierWallet(db.Model):
@@ -49,20 +49,28 @@ class WalletTransaction(db.Model):
     tx_type = db.Column(db.String(30), nullable=False) 
     currency = db.Column(db.String(10), nullable=False)
     
-    # الأعمدة المشفرة الجديدة
+    # 1. الأعمدة المشفرة الجديدة (بشرطة سفلية)
     _amount = db.Column(db.String(255), nullable=True)
     _profit_margin = db.Column(db.String(255), nullable=True)
     _notes = db.Column(db.Text, nullable=True)
     
+    # 2. إضافة الأعمدة القديمة كـ Nullable لتجنب خطأ UndefinedColumn
+    # (SQLAlchemy سيقوم بتجاهلهم إذا كانوا موجودين فعلياً في القاعدة أو يضيفهم كأعمدة وهمية)
+    amount = db.Column(db.String(255), nullable=True)
+    profit_margin = db.Column(db.String(255), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    
     status = db.Column(db.String(20), default='ناجحة', nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now(), nullable=False)
 
-    # --- خصائص التشفير مع دعم مرن للحقول ---
+    # --- الخصائص الذكية (تقرأ من الجديد، وإذا فشلت تقرأ من القديم) ---
     @property
     def amount(self): 
-        # يحاول فك تشفير الحقل الجديد، إذا فشل أو كان فارغاً يعيد 0.0
-        try: 
+        try:
+            # نحاول قراءة العمود الجديد أولاً
             if self._amount: return float(cipher.decrypt(self._amount))
+            # ثم القديم
+            if self.amount: return float(cipher.decrypt(self.amount))
             return 0.0
         except: return 0.0
     
@@ -73,6 +81,7 @@ class WalletTransaction(db.Model):
     def profit_margin(self): 
         try: 
             if self._profit_margin: return float(cipher.decrypt(self._profit_margin))
+            if self.profit_margin: return float(cipher.decrypt(self.profit_margin))
             return 0.0
         except: return 0.0
         
@@ -81,7 +90,10 @@ class WalletTransaction(db.Model):
 
     @property
     def notes(self): 
-        try: return cipher.decrypt(self._notes) if self._notes else ""
+        try: 
+            if self._notes: return cipher.decrypt(self._notes)
+            if self.notes: return cipher.decrypt(self.notes)
+            return ""
         except: return ""
         
     @notes.setter
