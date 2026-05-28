@@ -1,13 +1,12 @@
 # coding: utf-8
 from flask import Blueprint
 
-# تعريف الـ Blueprint بالاسم المعتمد 'add_supplier' الحاكم لعمليات الـ url_for
-admin_suppliers_bp = Blueprint(
+# تعريف البلوبرينت وتحديد مسار القوالب ليكون داخل المجلد الخاص به
+add_supplier = Blueprint(
     'add_supplier', 
     __name__, 
-    template_folder='templates',
-    static_folder='static'  # تأمين مسار الملفات الساكنة الخاصة بالموديل عند الحاجة
+    template_folder='templates'
 )
 
-# استدعاء المسارات (Routes) بشكل سفلي لربطها بالـ Blueprint بعد تعريفه لتجنب الـ Circular Import
+# نقوم بعمل استيراد للمسارات هنا لضمان تفعيلها عند استدعاء البلوبرينت
 from . import routes
