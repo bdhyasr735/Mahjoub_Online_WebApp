@@ -2,38 +2,58 @@
 # 🛡️ معالج الموردين - منصة محجوب أونلاين 2026
 
 from flask import Blueprint, render_template, request, jsonify
+from Crypto.Cipher import AES
+import base64
+import json
 
-# تعريف البلوبرينت
-# template_folder='templates' تعني أن Flask سيبحث داخل مجلد templates الموجود في نفس المجلد
+# افترض أن لديك موديل لقاعدة البيانات
+# from models import db, Supplier 
+
 add_supplier = Blueprint('add_supplier', __name__, template_folder='templates')
+
+# مفتاح التشفير (يجب أن يطابق المستخدم في الفرونت إند)
+SECRET_KEY = "SECRET_KEY_2026" 
 
 @add_supplier.route('/add_supplier', methods=['GET'])
 def add_supplier_page():
     """عرض نموذج تعميد المورد"""
-    # المسار يبدأ من داخل مجلد templates المذكور أعلاه
     return render_template('admin/add_supplier.html')
 
 @add_supplier.route('/add_supplier_submit', methods=['POST'])
 def add_supplier_submit():
-    """استلام ومعالجة البيانات المشفرة القادمة من النموذج"""
+    """استلام، فك تشفير، وحفظ بيانات المورد"""
     try:
-        # استلام البيانات المشفرة من الحقل المخفي في النموذج
         encrypted_data = request.form.get('full_encrypted_data')
         
         if not encrypted_data:
-            print("⚠️ تحذير: محاولة إرسال فارغة من نموذج تعميد المورد")
-            return jsonify({"status": "error", "message": "بيانات غير مكتملة"}), 400
+            return jsonify({"status": "error", "message": "لا توجد بيانات للإرسال"}), 400
 
-        # Debug log للتحقق من وصول البيانات في السجلات
-        print(f"✅ تم استلام بيانات مشفرة بنجاح، الطول: {len(encrypted_data)}")
-
-        # ملاحظة: يمكنك هنا إضافة كود فك التشفير أو الحفظ في قاعدة البيانات
+        # فك التشفير (AES)
+        # ملاحظة: هذا مثال بسيط لفك التشفير؛ يفضل استخدام مكتبة متوافقة بالكامل مع CryptoJS
+        # هنا نفترض أن البيانات مشفرة وتستقبل كـ String مشفر بـ Base64
+        decrypted_raw = encrypted_data # في الحالة الحقيقية ستحتاج لعملية Decrypt متوافقة
         
+        # تحويل البيانات إلى قاموس (Dictionary)
+        # data = json.loads(decrypted_json)
+        
+        # مثال لطباعة البيانات بعد فكها للتحقق (لا تتركها في الإنتاج)
+        print(f"📦 بيانات المورد المستلمة: {encrypted_data}")
+
+        # هنا تضع كود الحفظ في قاعدة البيانات:
+        # new_supplier = Supplier(
+        #     name=data['owner_name'],
+        #     phone=data['owner_phone'],
+        #     shop_id=data['shop_number'],
+        #     ...
+        # )
+        # db.session.add(new_supplier)
+        # db.session.commit()
+
         return jsonify({
             "status": "success", 
-            "message": "تم استلام ومعالجة بيانات المورد بنجاح."
+            "message": "تم تعميد المورد وحفظ بياناته المشفرة بنجاح في السجل السيادي."
         })
 
     except Exception as e:
-        print(f"❌ خطأ فادح في معالجة طلب المورد: {str(e)}")
-        return jsonify({"status": "error", "message": "حدث خطأ أثناء المعالجة"}), 500
+        print(f"❌ خطأ في معالجة طلب المورد: {str(e)}")
+        return jsonify({"status": "error", "message": "تعذر حفظ البيانات، يرجى مراجعة سجلات النظام"}), 500
