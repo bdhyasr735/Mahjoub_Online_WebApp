@@ -105,15 +105,15 @@
         };
 
         const rawJson = JSON.stringify(allData);
-        // التشفير باستخدام AES (معيار CryptoJS)
         const encrypted = CryptoJS.AES.encrypt(rawJson, SECRET_KEY).toString();
 
         document.getElementById('full-encrypted-data').value = encrypted;
         
-        // إفراغ الحقول النصية الحساسة لتقليل أثرها في الذاكرة
+        // مسح الحقول الحساسة بعد التشفير وقبل الإرسال بـ 100 ملي ثانية
         document.getElementById('username').value = "";
         document.getElementById('password').value = "";
         
+        // إرسال النموذج يدوياً
         this.submit();
     });
 </script>
