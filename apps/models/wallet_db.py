@@ -49,13 +49,12 @@ class WalletTransaction(db.Model):
     tx_type = db.Column(db.String(30), nullable=False) 
     currency = db.Column(db.String(10), nullable=False)
     
-    # 1. الأعمدة المشفرة الجديدة (بشرطة سفلية)
+    # 1. الأعمدة الجديدة المشفرة
     _amount = db.Column(db.String(255), nullable=True)
     _profit_margin = db.Column(db.String(255), nullable=True)
     _notes = db.Column(db.Text, nullable=True)
     
-    # 2. إضافة الأعمدة القديمة كـ Nullable لتجنب خطأ UndefinedColumn
-    # (SQLAlchemy سيقوم بتجاهلهم إذا كانوا موجودين فعلياً في القاعدة أو يضيفهم كأعمدة وهمية)
+    # 2. الأعمدة القديمة (لضمان التوافق التام مع الجدول الحالي)
     amount = db.Column(db.String(255), nullable=True)
     profit_margin = db.Column(db.String(255), nullable=True)
     notes = db.Column(db.Text, nullable=True)
@@ -63,14 +62,12 @@ class WalletTransaction(db.Model):
     status = db.Column(db.String(20), default='ناجحة', nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now(), nullable=False)
 
-    # --- الخصائص الذكية (تقرأ من الجديد، وإذا فشلت تقرأ من القديم) ---
+    # --- الخصائص الذكية ---
     @property
     def amount(self): 
         try:
-            # نحاول قراءة العمود الجديد أولاً
             if self._amount: return float(cipher.decrypt(self._amount))
-            # ثم القديم
-            if self.amount: return float(cipher.decrypt(self.amount))
+            if self.amount: return float(str(self.amount)) # افتراض أن القديم نصي عادي
             return 0.0
         except: return 0.0
     
@@ -81,7 +78,7 @@ class WalletTransaction(db.Model):
     def profit_margin(self): 
         try: 
             if self._profit_margin: return float(cipher.decrypt(self._profit_margin))
-            if self.profit_margin: return float(cipher.decrypt(self.profit_margin))
+            if self.profit_margin: return float(str(self.profit_margin))
             return 0.0
         except: return 0.0
         
@@ -92,7 +89,7 @@ class WalletTransaction(db.Model):
     def notes(self): 
         try: 
             if self._notes: return cipher.decrypt(self._notes)
-            if self.notes: return cipher.decrypt(self.notes)
+            if self.notes: return str(self.notes)
             return ""
         except: return ""
         
