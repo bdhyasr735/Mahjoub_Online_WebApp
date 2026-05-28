@@ -13,57 +13,49 @@
     <style>
         :root {
             --royal-purple: #632C8F;
-            --royal-purple-dark: #2a113e; /* تم تعميق اللون هنا */
+            --royal-purple-dark: #2a113e;
             --deep-black: #08020d;
             --mahjoub-gold: #D4AF37;
-            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-bg: rgba(255, 255, 255, 0.95);
             --sidebar-width: 280px;
-            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --transition: all 0.3s ease;
         }
-        body { font-family: 'Cairo', sans-serif; background: #f0f2f5; margin: 0; display: flex; overflow-x: hidden; direction: rtl; }
+        body { font-family: 'Cairo', sans-serif; background: #f0f2f5; margin: 0; display: flex; direction: rtl; }
         
-        /* تم تحديث الخلفية للون ثابت داكن */
         .sidebar { 
-            width: var(--sidebar-width); 
-            background-color: var(--royal-purple-dark); 
-            height: 100vh; 
-            position: fixed; 
-            right: 0; 
-            top: 0; 
-            z-index: 1100; 
-            transition: var(--transition); 
-            box-shadow: -5px 0 25px rgba(0,0,0,0.15); 
-            display: flex; 
-            flex-direction: column; 
+            width: var(--sidebar-width); background-color: var(--royal-purple-dark); 
+            height: 100vh; position: fixed; right: 0; top: 0; z-index: 1100;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.15); display: flex; flex-direction: column;
         }
-
-        .sidebar-header { padding: 2.5rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.15); text-align: center; }
-        .logo-img { width: 85px; height: auto; filter: brightness(0) invert(1) drop-shadow(0 0 12px rgba(255, 255, 255, 0.35)); margin-bottom: 15px; }
-        .nav-menu { padding: 1.5rem 1rem; flex-grow: 1; overflow-y: auto; }
-        .nav-link, .dropdown-btn { display: flex; align-items: center; padding: 14px 18px; color: rgba(255, 255, 255, 0.9); text-decoration: none; border-radius: 15px; margin-bottom: 8px; transition: var(--transition); cursor: pointer; border: none; background: transparent; width: 100%; font-weight: 600; text-align: right; }
-        .nav-link:hover, .dropdown-btn:hover, .nav-link.active, .dropdown-btn.active { background: rgba(255, 255, 255, 0.1); color: var(--mahjoub-gold); transform: translateX(-5px); }
-        .dropdown-container { display: none; background: rgba(0,0,0,0.2); border-radius: 12px; margin-bottom: 10px; overflow: hidden; animation: slideDown 0.4s ease; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .dropdown-container a { padding: 12px 45px; font-size: 0.9rem; color: rgba(255, 255, 255, 0.8); display: block; text-decoration: none; transition: 0.3s; }
-        .dropdown-container a:hover { color: var(--mahjoub-gold); background: rgba(255,255,255,0.05); padding-right: 55px; }
-        .main-wrapper { margin-right: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-height: 100vh; transition: var(--transition); }
-        .top-bar { background: var(--glass-bg); backdrop-filter: blur(10px); height: 75px; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid rgba(0,0,0,0.05); }
-        .user-badge { background: rgba(99, 44, 143, 0.1); padding: 8px 20px; border-radius: 50px; border: 1px solid var(--royal-purple); color: var(--royal-purple); font-weight: 700; }
-        #loader { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(5px); z-index: 9999; place-items: center; }
-        .fa-chevron-left { transition: 0.3s; margin-right: auto; }
+        .sidebar-header { padding: 2rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
+        .logo-img { width: 70px; filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.3)); margin-bottom: 10px; }
+        .nav-menu { padding: 1rem; flex-grow: 1; overflow-y: auto; }
+        .nav-link, .dropdown-btn { 
+            display: flex; align-items: center; padding: 12px 15px; color: rgba(255, 255, 255, 0.85); 
+            text-decoration: none; border-radius: 12px; margin-bottom: 5px; transition: var(--transition);
+            border: none; background: transparent; width: 100%; font-weight: 600; text-align: right;
+        }
+        .nav-link:hover, .dropdown-btn:hover, .nav-link.active { background: rgba(255, 255, 255, 0.1); color: var(--mahjoub-gold); }
+        .dropdown-container { display: none; background: rgba(0,0,0,0.2); border-radius: 10px; margin-bottom: 5px; }
+        .dropdown-container a { padding: 10px 40px; font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); display: block; text-decoration: none; }
+        .dropdown-container a:hover { color: var(--mahjoub-gold); padding-right: 45px; }
+        .main-wrapper { margin-right: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-height: 100vh; }
+        .top-bar { background: var(--glass-bg); backdrop-filter: blur(10px); height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .user-badge { background: rgba(99, 44, 143, 0.1); padding: 5px 15px; border-radius: 20px; border: 1px solid var(--royal-purple); color: var(--royal-purple); font-weight: 700; font-size: 0.9rem; }
         .rotate { transform: rotate(-90deg); }
-        @media (max-width: 991px) { .sidebar { right: -280px; } .sidebar.active { right: 0; } .main-wrapper { margin-right: 0; width: 100%; } }
+        #loader { position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
+
     <div id="loader" class="d-none">
-        <div class="spinner-grow" style="width: 3rem; height: 3rem; color: var(--royal-purple) !important;"></div>
+        <div class="spinner-border" style="width: 3rem; height: 3rem; color: var(--royal-purple);"></div>
     </div>
 
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar">
         <div class="sidebar-header">
-            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="logo-img" alt="سوقك الذكي">
-            <h2 class="text-white h5 fw-bold mb-1">محجوب أونلاين</h2>
+            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="logo-img" alt="Logo">
+            <h5 class="text-white fw-bold mb-0">محجوب أونلاين</h5>
         </div>
 
         <nav class="nav-menu">
@@ -71,29 +63,25 @@
                 <i class="fas fa-chart-line me-3"></i> <span>مركز القيادة</span>
             </a>
 
-            <div class="dropdown-section">
-                <button class="dropdown-btn" onclick="toggleDropdown('supplierDropdown', 'supplierArrow')">
-                    <i class="fas fa-handshake me-3"></i> <span>شركاء النجاح</span>
-                    <i class="fas fa-chevron-left" id="supplierArrow"></i>
-                </button>
-                <div class="dropdown-container" id="supplierDropdown">
-                    <a href="{{ url_for('add_supplier.add_supplier_page') }}"><i class="fas fa-user-plus me-2"></i> تعميد مورد جديد</a>
-                    <a href="{{ url_for('admin_dashboard.dashboard') }}"><i class="fas fa-database me-2"></i> سجل الموردين</a>
-                </div>
+            <button class="dropdown-btn" onclick="toggleDropdown('supplierDropdown', this)">
+                <i class="fas fa-handshake me-3"></i> <span>شركاء النجاح</span>
+                <i class="fas fa-chevron-left ms-auto transition"></i>
+            </button>
+            <div class="dropdown-container" id="supplierDropdown">
+                <a href="{{ url_for('add_supplier.add_supplier_page') }}"><i class="fas fa-user-plus me-2"></i> تعميد مورد جديد</a>
+                <a href="#"><i class="fas fa-database me-2"></i> سجل الموردين</a>
             </div>
 
-            <div class="dropdown-section">
-                <button class="dropdown-btn" onclick="toggleDropdown('walletDropdown', 'walletArrow')">
-                    <i class="fas fa-wallet me-3"></i> <span>إدارة العمليات المالية</span>
-                    <i class="fas fa-chevron-left" id="walletArrow"></i>
-                </button>
-                <div class="dropdown-container" id="walletDropdown">
-                    <a href="{{ url_for('financial_ops.display_management_table') }}"><i class="fas fa-scale-balanced me-2"></i> الطلبات والتسويات</a>
-                    <a href="{{ url_for('statement_blueprint.view_statement') }}"><i class="fas fa-file-invoice-dollar me-2"></i> كشوفات الحسابات</a>
-                </div>
+            <button class="dropdown-btn" onclick="toggleDropdown('walletDropdown', this)">
+                <i class="fas fa-wallet me-3"></i> <span>إدارة العمليات المالية</span>
+                <i class="fas fa-chevron-left ms-auto transition"></i>
+            </button>
+            <div class="dropdown-container" id="walletDropdown">
+                <a href="{{ url_for('financial_ops.display_management_table') }}"><i class="fas fa-scale-balanced me-2"></i> الطلبات والتسويات</a>
+                <a href="{{ url_for('statement_blueprint.view_statement') }}"><i class="fas fa-file-invoice-dollar me-2"></i> كشوفات الحسابات</a>
             </div>
 
-            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link text-danger mt-auto">
+            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link text-danger mt-5">
                 <i class="fas fa-power-off me-3"></i> <span>تسجيل خروج</span>
             </a>
         </nav>
@@ -101,19 +89,31 @@
 
     <div class="main-wrapper">
         <header class="top-bar">
-            <h4 class="mb-0 fw-bold">{% block header_title %}لوحة التحكم{% endblock %}</h4>
-            <div class="user-badge">{{ current_user.username if current_user.is_authenticated else 'زائر' }}</div>
+            <h5 class="mb-0 fw-bold text-dark">{% block header_title %}لوحة التحكم{% endblock %}</h5>
+            <div class="user-badge"><i class="fas fa-user-circle me-1"></i> {{ current_user.username }}</div>
         </header>
-        <div class="p-4 content-area">{% block content %}{% endblock %}</div>
+        <div class="p-4">{% block content %}{% endblock %}</div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function toggleDropdown(id, arrow) {
+        function toggleDropdown(id, btn) {
             const drop = document.getElementById(id);
-            const arr = document.getElementById(arrow);
-            drop.style.display = (drop.style.display === "block") ? "none" : "block";
-            arr.classList.toggle("rotate");
+            const arrow = btn.querySelector('.fa-chevron-left');
+            const isShown = drop.style.display === "block";
+            
+            drop.style.display = isShown ? "none" : "block";
+            arrow.classList.toggle("rotate", !isShown);
         }
+
+        // إظهار اللودر عند التنقل
+        document.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                if(this.href && !this.href.includes('#')) {
+                    document.getElementById('loader').classList.remove('d-none');
+                }
+            });
+        });
     </script>
 </body>
 </html>
