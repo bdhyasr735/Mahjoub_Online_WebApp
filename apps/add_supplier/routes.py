@@ -1,55 +1,59 @@
 from flask import Blueprint, render_template, request, jsonify
-from Crypto.Cipher import AES # مكتبة PyCryptodome (استخدم pip install pycryptodome)
+from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
 import base64
-import json
+import hashlib
 
 add_supplier = Blueprint('add_supplier', __name__, template_folder='templates')
 
-# مفتاح التشفير (يجب أن يطابق ما هو موجود في JavaScript)
-# ملاحظة: في بيئة العمل الحقيقية استخدم المتغيرات البيئية os.environ.get('SECRET_KEY')
-SECRET_KEY = "YOUR_SUPER_SECRET_AES_KEY_256"
+# كلمة السر الموحدة (يجب أن تكون متطابقة في JS و Python)
+SECRET_PASSWORD = "YOUR_SUPER_SECRET_AES_KEY_256"
 
-def decrypt_data(encrypted_data):
-    """محرك فك التشفير المعتمد على AES-256"""
-    # فك تشفير البيانات المرسلة من المتصفح
-    try:
-        # هنا نفترض استخدام CryptoJS الذي يضيف salt ويستخدم تشفير OpenSSL
-        # هذا مثال توضيحي لعملية فك التشفير
-        decrypted = # [منطق فك التشفير هنا حسب التوافق مع CryptoJS]
-        return json.loads(decrypted)
-    except Exception as e:
-        print(f"خطأ في فك التشفير: {e}")
-        return None
+def decrypt_aes_cryptojs(encrypted_text, password):
+    """فك تشفير رسالة مشفرة بواسطة CryptoJS (AES)"""
+    # 1. فك تشفير Base64
+    encrypted_data = base64.b64decode(encrypted_text)
+    
+    # 2. التحقق من تنسيق OpenSSL "Salted__"
+    if encrypted_data[:8] != b'Salted__':
+        raise ValueError("تنسيق التشفير غير مدعوم")
+    
+    salt = encrypted_data[8:16]
+    ciphertext = encrypted_data[16:]
+    
+    # 3. اشتقاق المفتاح و IV باستخدام PBKDF2 (تنسيق OpenSSL الافتراضي)
+    # 32 bytes key, 16 bytes iv
+    key_iv = PBKDF2(password, salt, 48, count=10000, hmac_hash_module=hashlib.sha256)
+    key = key_iv[:32]
+    iv = key_iv[32:]
+    
+    # 4. فك التشفير
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    decrypted_data = cipher.decrypt(ciphertext)
+    
+    # 5. إزالة الحشوة (Padding)
+    padding_len = decrypted_data[-1]
+    return decrypted_data[:-padding_len].decode('utf-8')
 
 @add_supplier.route('/add_supplier_submit', methods=['POST'])
 def add_supplier_submit():
-    # 1. استلام الحزمة المشفرة بالكامل
+    # استلام البيانات المشفرة
     encrypted_payload = request.form.get('full_encrypted_data')
     
-    # 2. فك التشفير لاستخراج البيانات (التي تم دمجها كـ JSON في الواجهة)
-    data = decrypt_data(encrypted_payload)
-    
-    if not data:
-        return jsonify({"status": "error", "message": "فشل فك التشفير الأمني"}), 400
-    
-    # 3. معالجة البيانات بعد فكها
-    try:
-        # استخراج البيانات من الكائن المفكك
-        auth = data.get('auth', {})
-        identity = data.get('identity', {})
-        
-        # [هنا تضع منطق إضافة المورد لقاعدة البيانات]
-        # مثال:
-        # new_supplier = Supplier(username=auth['username'], trade_name=identity['trade'], ...)
-        # db.session.add(new_supplier)
-        # db.session.commit()
-        
-        return jsonify({"status": "success", "message": "تم استلام ومعالجة البيانات المشفرة بنجاح"})
-    
-    except Exception as e:
-        return jsonify({"status": "error", "message": "خطأ في معالجة البيانات: " + str(e)}), 500
+    if not encrypted_payload:
+        return jsonify({"status": "error", "message": "لا توجد بيانات مشفرة"}), 400
 
-@add_supplier.route('/add_supplier', methods=['GET'])
-def render_form():
-    return render_template('admin/full_encrypted_supplier_form.html')
+    try:
+        # فك التشفير
+        decrypted_json = decrypt_aes_cryptojs(encrypted_payload, SECRET_PASSWORD)
+        import json
+        data = json.loads(decrypted_json)
+        
+        # معالجة البيانات (مثال)
+        # new_supplier = Supplier(username=data['username'], ...)
+        # db.session.add(new_supplier)
+        
+        return jsonify({"status": "success", "message": "تم فك التشفير والمعالجة بنجاح"})
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"خطأ في المعالجة: {str(e)}"}), 500
