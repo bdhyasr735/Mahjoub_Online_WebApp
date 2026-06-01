@@ -1,7 +1,9 @@
-from apps import create_app
+import os
+import sys
 
-app = create_app()
+# إضافة المجلد الرئيسي إلى مسار بايثون ليتمكن من استيراد apps
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Vercel يحتاج إلى متغير اسمه app
-if __name__ == "__main__":
-    app.run()
+from run import app
+
+# Vercel يحتاج لمتغير باسم app
