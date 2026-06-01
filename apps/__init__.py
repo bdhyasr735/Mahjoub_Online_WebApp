@@ -10,11 +10,11 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # 🔐 تهيئة التشفير (تم تعطيل الاستيراد المباشر لتجنب انهيار النظام بسبب نقص المكتبات)
+    # 🔐 تهيئة التشفير (تم تجاوز الاستيراد المباشر لضمان استقرار السيرفر السحابي)
     app.cipher = None 
     print("ℹ️ نظام التشفير: تم تجاوز الاستيراد للحفاظ على استقرار التطبيق.")
 
-    # 🛡️ إعداد ProxyFix لاستقبال النطاقات والشرطات من Vercel بشكل سليم
+    # 🛡️ إعداد ProxyFix لاستقبال النطاقات والروابط من Vercel بشكل سليم
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     db.init_app(app)
@@ -22,19 +22,19 @@ def create_app():
     login_manager.login_view = 'auth_blueprint.login' 
 
     with app.app_context():
-        # دالة تسجيل آمنة تمنع انهيار النظام وتدعم استجابة مرنة لكافة النطاقات
+        # دالة تسجيل آمنة تمنع انهيار النظام وتضمن مرونة عالية
         def safe_register(blueprint, url_prefix=None):
             try:
                 if url_prefix:
                     app.register_blueprint(blueprint, url_prefix=url_prefix)
                 else:
                     app.register_blueprint(blueprint)
-                print(f"✅ تم تسجيل: {blueprint.name}")
+                print(f"✅ تم تسجيل بنجاح: {blueprint.name}")
             except Exception as e:
                 print(f"⚠️ تحذير: فشل تسجيل البلوبرينت {blueprint.name}: {e}")
 
         try:
-            # 1. استيراد الموديلات الأساسية
+            # 1. استيراد الموديلات الأساسية لقاعدة البيانات الحية
             from apps.models.admin_db import AdminUser
             from apps.models.supplier_db import Supplier
             from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -50,7 +50,7 @@ def create_app():
                 except:
                     return None
 
-            # 2. استيراد وتسجيل البلوبرينتس (بدون قيود النطاقات الصارمة لمرونة التوجيه في Vercel)
+            # 2. استيراد وتسجيل البلوبرينتس (بدون قيود النطاقات الفرعية برمجياً لضمان استقرار Vercel)
             try:
                 from apps.auth_portal.routes import auth_blueprint
                 safe_register(auth_blueprint, url_prefix='/auth')
@@ -59,7 +59,7 @@ def create_app():
 
             try:
                 from apps.admin_dashboard.routes import admin_dashboard
-                safe_register(admin_dashboard) # لكي يخدم الرابط الرئيسي / مباشرة
+                safe_register(admin_dashboard) # يخدم المسارات الأساسية مباشرة
             except Exception as e:
                 print(f"❌ تعذر تحميل admin_dashboard: {e}")
 
@@ -81,12 +81,12 @@ def create_app():
             except Exception as e:
                 print(f"❌ تعذر تحميل statement_blueprint: {e}")
             
-            # 🔄 توجيه ذكي مضاف تلقائياً: عند الدخول للنطاق الصافي، يتم النقل فوراً لبوابة النفاذ
+            # 🔄 توجيه تلقائي: عند دخول المالك للنطاق الصافي، يتم نقله فوراً لصفحة تسجيل الدخول
             @app.route('/')
             def root_redirect():
                 return redirect('/auth/login')
             
-            print("🚀 تم تشغيل محرك المنصة بنجاح وتوحيد التوجيه الديناميكي البوابي.")
+            print("🚀 تم تشغيل محرك المنصة بنجاح وتوحيد التوجيه السحابي الديناميكي.")
 
         except Exception as e:
             print(f"❌ خطأ جسيم في تهيئة التطبيق: {e}")
