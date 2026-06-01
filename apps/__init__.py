@@ -1,7 +1,7 @@
 # coding: utf-8
 # 🏗️ مصنع التطبيق المركزي (Application Factory) - منصة محجوب أونلاين 2026
 
-from flask import Flask
+from flask import Flask, redirect
 from config import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
 from apps.extensions import db, login_manager
@@ -50,7 +50,7 @@ def create_app():
                 except:
                     return None
 
-            # 2. استيراد وتسجيل البلوبرينتس (إزالة قيود النطاق الفرعي الصارمة لحل مشكلة 404)
+            # 2. استيراد وتسجيل البلوبرينتس (بدون قيود النطاقات الصارمة لمرونة التوجيه في Vercel)
             try:
                 from apps.auth_portal.routes import auth_blueprint
                 safe_register(auth_blueprint, url_prefix='/auth')
@@ -81,7 +81,12 @@ def create_app():
             except Exception as e:
                 print(f"❌ تعذر تحميل statement_blueprint: {e}")
             
-            print("🚀 تم تشغيل محرك المنصة بنجاح واستعادة المسارات الافتراضية.")
+            # 🔄 توجيه ذكي مضاف تلقائياً: عند الدخول للنطاق الصافي، يتم النقل فوراً لبوابة النفاذ
+            @app.route('/')
+            def root_redirect():
+                return redirect('/auth/login')
+            
+            print("🚀 تم تشغيل محرك المنصة بنجاح وتوحيد التوجيه الديناميكي البوابي.")
 
         except Exception as e:
             print(f"❌ خطأ جسيم في تهيئة التطبيق: {e}")
