@@ -1,2 +1,25 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mahjoub-online"
+version = "1.0.0"
+description = "منصة الحوكمة الرقمية المتكاملة - محجوب أونلاين"
+dependencies = [
+    "flask",
+    "flask-sqlalchemy",
+    "flask-login",
+    "flask-migrate",
+    "gunicorn",
+    "werkzeug",
+    "email-validator",
+    "cryptography"
+]
+
 [tool.vercel]
+# هنا قمنا بتغيير نقطة الدخول لتشير إلى ملف run.py والمتغير app بداخله
 entrypoint = "run.py:app"
+
+[tool.setuptools]
+packages = ["apps"]
