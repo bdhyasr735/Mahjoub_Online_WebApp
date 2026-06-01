@@ -1,3 +1,2 @@
-from run import app
-
-# Vercel سيقرأ هذا الملف، ويقوم بتصدير 'app' ليتمكن من تشغيل الموقع
+from apps import create_app
+app = create_app()
