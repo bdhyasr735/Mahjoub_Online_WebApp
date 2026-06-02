@@ -1,2 +1,4 @@
 # coding: utf-8
-from apps.utils.cipher import AESCipher
+# 📂 apps/utils/__init__.py
+
+from .cipher import AESCipher
