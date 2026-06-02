@@ -112,7 +112,6 @@
             }
         });
 
-        // تفعيل التحديث التلقائي عند تغيير أي فلتر
         $('#supplierSearch, #viewType, #currencyFilter').on('change', refreshData);
 
         $('#reportrange').daterangepicker({
@@ -175,15 +174,11 @@
 
     function openPDFModal() {
         let viewType = $('#viewType').val();
-        let url = "";
-
-        if (viewType === 'summary') {
-            url = "{{ url_for('statement_blueprint.export_summary_pdf') }}?currency=" + $('#currencyFilter').val();
-        } else {
-            url = "{{ url_for('statement_blueprint.export_report_pdf') }}?supplier_id=" + ($('#supplierSearch').val() || 'ALL') + 
-                  "&currency=" + $('#currencyFilter').val() + 
-                  "&start_date=" + pickerStart.format('YYYY-MM-DD') + "&end_date=" + pickerEnd.format('YYYY-MM-DD');
-        }
+        let url = viewType === 'summary' 
+            ? "{{ url_for('statement_blueprint.export_summary_pdf') }}?currency=" + $('#currencyFilter').val()
+            : "{{ url_for('statement_blueprint.export_report_pdf') }}?supplier_id=" + ($('#supplierSearch').val() || 'ALL') + 
+              "&currency=" + $('#currencyFilter').val() + 
+              "&start_date=" + pickerStart.format('YYYY-MM-DD') + "&end_date=" + pickerEnd.format('YYYY-MM-DD');
 
         $('#pdfFrame').attr('src', url);
         new bootstrap.Modal(document.getElementById('pdfModal')).show();
