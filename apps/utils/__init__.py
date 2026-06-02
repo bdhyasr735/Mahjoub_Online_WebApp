@@ -1,1 +1,2 @@
-from apps.utils import AESCipher
+# coding: utf-8
+from apps.utils.cipher import AESCipher
