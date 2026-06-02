@@ -37,7 +37,7 @@ def create_app():
             from apps.models.settlements_db import AdminSettlement
             from apps.models.statement_db import SupplierStatement 
             
-            # بناء الجداول تلقائياً (تأكد من استخدام قاعدة بيانات سحابية خارجية لبيئة Vercel)
+            # 🌐 تم الربط السحابي: بناء الجداول تلقائياً في قاعدة بيانات Supabase الخارجية فور الإقلاع الأول
             db.create_all() 
 
             @login_manager.user_loader
@@ -66,7 +66,7 @@ def create_app():
             from apps.admin_dashboard.routes import admin_dashboard
             safe_register(admin_dashboard, url_prefix='/admin')
             
-            print("🚀 محرك المنصة المركزي يعمل بكفاءة واستقرار عالي.")
+            print("🚀 محرك المنصة المركزي يعمل بكفاءة واستقرار عالي مع قاعدة البيانات السحابية.")
 
             # 🔄 التوجيه الديناميكي الرئيسي المباشر لتغطية جذر النطاق الفرعي وتحويله فوراً لصفحة الدخول
             @app.route('/')
