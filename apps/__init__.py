@@ -19,6 +19,9 @@ def create_app():
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
+        # ⚡ إضافة هامة: التأكد من استيراد كائن db داخل السياق لضمان الاتصال السحابي
+        from apps.extensions import db
+        
         # استيراد النماذج (Models) لضمان معرفة SQLAlchemy بها
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
@@ -26,7 +29,7 @@ def create_app():
         from apps.models.settlements_db import AdminSettlement
         from apps.models.statement_db import SupplierStatement 
         
-        # ⚡ تحديث ذكي: إنشاء الجداول فقط إذا لم تكن موجودة لمنع تكرار الأخطاء في بيئة Serverless
+        # ⚡ تحديث: إنشاء الجداول والتأكد من الاتصال بـ Supabase
         try:
             db.create_all()
             print("✅ تم التحقق من سلامة قاعدة البيانات والاتصال بـ Supabase.")
