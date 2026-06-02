@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [tool.vercel]
-# 🔑 تم التعديل السيادي: إزالة امتداد .py ليتوافق الملف مع آلية الاستدعاء كموديول (Module Import) في سيرفرات Vercel
+# 🔑 نقطة دخول التطبيق: Vercel يحتاج إلى موديول وليس ملف نصي، لذا نستخدم "run:app"
 entrypoint = "run:app"
 
 [tool.setuptools]
