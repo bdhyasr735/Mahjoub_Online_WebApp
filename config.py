@@ -8,10 +8,10 @@ class Config:
     # 🛡️ مفتاح الأمان السيادي للمنصة (يُجلب من متغيرات البيئة في Vercel)
     SECRET_KEY = os.environ.get('SECRET_KEY', 'SOVEREIGN_KEY_2026')
     
-    # 1. جلب رابط قاعدة البيانات السحابية (Supabase)
+    # 1. جلب رابط قاعدة البيانات السحابية (Supabase) المضاف في Vercel
     db_url = os.environ.get('DATABASE_URL')
     
-    # 2. ⚡ إصلاح بادئة الرابط ليتوافق مع SQLAlchemy الحديثة (مهم جداً لـ PostgreSQL)
+    # 2. ⚡ إصلاح بادئة الرابط ليتوافق مع SQLAlchemy الحديثة (مهم لـ PostgreSQL)
     if db_url and db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
         
