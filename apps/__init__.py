@@ -1,40 +1,36 @@
 # coding: utf-8
-# 🏗️ مصنع التطبيق المركزي (Application Factory) - منصة محجوب أونلاين 2026
-
 from flask import Flask, redirect
 from config import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
-from apps.extensions import db, login_manager
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # 🛡️ إعداد ProxyFix (ضروري لـ Vercel لاستلام الـ Headers الصحيحة)
+    # 🛡️ إعداد ProxyFix
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
+    # استيراد db هنا لضمان رؤيته داخل الدالة
+    from apps.extensions import db, login_manager
+    
     # تهيئة الإضافات
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # ⚡ إضافة هامة: التأكد من استيراد كائن db داخل السياق لضمان الاتصال السحابي
-        from apps.extensions import db
-        
-        # استيراد النماذج (Models) لضمان معرفة SQLAlchemy بها
+        # استيراد النماذج (Models)
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
         from apps.models.settlements_db import AdminSettlement
         from apps.models.statement_db import SupplierStatement 
         
-        # ⚡ تحديث: إنشاء الجداول والتأكد من الاتصال بـ Supabase
+        # إنشاء الجداول
         try:
             db.create_all()
-            print("✅ تم التحقق من سلامة قاعدة البيانات والاتصال بـ Supabase.")
         except Exception as e:
-            print(f"⚠️ تنبيه قاعدة البيانات: {e}")
+            print(f"⚠️ خطأ في إنشاء قاعدة البيانات: {e}")
 
         @login_manager.user_loader
         def load_user(user_id):
