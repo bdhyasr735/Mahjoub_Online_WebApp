@@ -4,7 +4,8 @@
 
 from apps.models.admin_db import AdminUser
 from apps.models.supplier_db import Supplier
-from apps.models.wallet_db import SupplierWallet as Wallet, WalletTransaction
+# تم تحديث الاستيراد ليعكس اسم الكلاس الجديد 'Wallet'
+from apps.models.wallet_db import Wallet, WalletTransaction
 from apps.models.settlements_db import AdminSettlement
 from apps.models.statement_db import SupplierStatement
 
