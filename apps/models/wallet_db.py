@@ -1,17 +1,14 @@
 # coding: utf-8
+# 📂 apps/models/wallet_db.py
 import os
 from apps.extensions import db
-from apps.utils.security import AESCipher
+from apps.utils import AESCipher  # ✅ تم التعديل للاستيراد من المجلد مباشرة
 
-# جلب المفتاح من البيئة (تأكد من إضافته في إعدادات Render)
-encryption_key = os.getenv('ENCRYPTION_KEY')
-
-if not encryption_key:
-    print("⚠️ تحذير: لم يتم العثور على ENCRYPTION_KEY في البيئة! تم استخدام مفتاح افتراضي.")
-    encryption_key = '00000000000000000000000000000000'
-
+# جلب المفتاح من البيئة
+encryption_key = os.getenv('ENCRYPTION_KEY', '00000000000000000000000000000000')
 cipher = AESCipher(encryption_key)
 
+# بقية الكود كما هو...
 class Wallet(db.Model):
     __tablename__ = 'supplier_wallets'
     __table_args__ = {'extend_existing': True}
