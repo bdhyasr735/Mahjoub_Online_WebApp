@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع الرئيسي للتطبيق (Application Factory)
+# 📂 apps/__init__.py - المصنع الرئيسي (محصن ضد الاستيراد الدائري)
 
 from flask import Flask, redirect
 from config import Config
@@ -10,56 +10,41 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # 🛡️ إعداد ProxyFix (ضروري لضبط الـ IP والبروتوكول بشكل سليم خلف بروكسي Render)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
-    # تهيئة الإضافات المربوطة بالتطبيق
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # ✅ استيراد النماذج (Models) داخل الـ Context لربط الجداول بـ SQLAlchemy بسلاسة
-        from apps.models import (
-            AdminUser, 
-            Supplier, 
-            Wallet, 
-            WalletTransaction, 
-            AdminSettlement, 
-            SupplierStatement
-        )
+        # --- استيراد محلي (داخل الـ Context فقط) لكسر الحلقة الدائرية ---
+        from apps.models.admin_db import AdminUser
+        from apps.models.supplier_db import Supplier
+        from apps.models.wallet_db import Wallet, WalletTransaction
+        from apps.models.settlements_db import AdminSettlement
+        from apps.models.statement_db import SupplierStatement
         
-        # إنشاء الجداول تلقائياً في قاعدة البيانات إن لم تكن موجودة
         db.create_all()
-        print("⚡ [Database] تم التحقق من سلامة النماذج (Models) ومزامنة الجداول بنجاح.")
+        print("⚡ [Database] تم بناء الجداول بنجاح.")
 
         @login_manager.user_loader
         def load_user(user_id):
-            return AdminUser.query.get(int(user_id)) if user_id else None
+            # الاستيراد داخل الدالة يمنع أيضاً أي تضارب
+            return AdminUser.query.get(int(user_id))
 
-        # --- تسجيل المسارات (Blueprints) للنظام القياسي ---
-        
-        # 1. بوابة الدخول والصلاحيات
+        # --- استيراد المسارات (Blueprints) محلياً ---
         from apps.auth_portal.routes import auth_blueprint
-        app.register_blueprint(auth_blueprint, url_prefix='')
-
-        # 2. إدارة الموردين والشركاء
         from apps.add_supplier.routes import add_supplier as add_supplier_bp
-        app.register_blueprint(add_supplier_bp, url_prefix='/suppliers')
-
-        # 3. العمليات المالية والتسويات
         from apps.financial_ops.routes import financial_blueprint
-        app.register_blueprint(financial_blueprint, url_prefix='/financial_ops')
-
-        # 4. تقارير كشوف الحساب والتدقيق
         from apps.statement.routes import statement_blueprint
-        app.register_blueprint(statement_blueprint, url_prefix='/statement')
-
-        # 5. لوحة التحكم الإدارية الرئيسية
         from apps.admin_dashboard.routes import admin_dashboard
+
+        app.register_blueprint(auth_blueprint, url_prefix='')
+        app.register_blueprint(add_supplier_bp, url_prefix='/suppliers')
+        app.register_blueprint(financial_blueprint, url_prefix='/financial_ops')
+        app.register_blueprint(statement_blueprint, url_prefix='/statement')
         app.register_blueprint(admin_dashboard, url_prefix='/admin')
         
-        # إعادة توجيه المسار الرئيسي مباشرة إلى بوابة تسجيل الدخول
         @app.route('/')
         def root_redirect():
             return redirect('/login')
