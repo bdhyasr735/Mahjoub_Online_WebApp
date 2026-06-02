@@ -1,13 +1,9 @@
 # coding: utf-8
-# 📂 apps/financial_ops/routes.py - نظام العمليات المالية والسيادة
+# 📂 apps/financial_ops/routes.py - نظام العمليات المالية والمحاسبية المحصن
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from apps.extensions import db
-from apps.models.wallet_db import SupplierWallet as Wallet, WalletTransaction
-from apps.models.supplier_db import Supplier
-from apps.models.settlements_db import AdminSettlement
-from apps.models.statement_db import SupplierStatement
 
 # تعريف الـ Blueprint
 financial_blueprint = Blueprint(
@@ -16,17 +12,20 @@ financial_blueprint = Blueprint(
     template_folder='templates'
 )
 
-# 1. عرض جدول إدارة العمليات والبحث
 @financial_blueprint.route('/management', methods=['GET'])
 @login_required
 def display_management_table():
+    # 1. الاستيراد المحلي للنماذج الضرورية للبحث
+    from apps.models.wallet_db import SupplierWallet as Wallet, WalletTransaction
+    from apps.models.supplier_db import Supplier
+    from apps.models.settlements_db import AdminSettlement
+
     search_query = request.args.get('search_query')
     wallet = None
     pending_withdrawals = []
     settlements = []
     
     if search_query:
-        # البحث عن المحفظة عبر الكود أو اسم المورد أو المالك
         wallet = Wallet.query.join(Supplier).filter(
             (Wallet.wallet_code.ilike(f'%{search_query}%')) |
             (Supplier.username.ilike(f'%{search_query}%')) |
@@ -50,10 +49,14 @@ def display_management_table():
         current_search=search_query
     )
 
-# 2. معالجة عمليات السحب (اعتماد أو رفض)
 @financial_blueprint.route('/withdrawal/handle/<int:tx_id>/<decision>', methods=['POST'])
 @login_required
 def handle_supplier_withdrawal(tx_id, decision):
+    # 2. الاستيراد المحلي للنماذج الضرورية للمعالجة المالية
+    from apps.models.wallet_db import WalletTransaction
+    from apps.models.settlements_db import AdminSettlement
+    from apps.models.statement_db import SupplierStatement
+
     tx = WalletTransaction.query.get_or_404(tx_id)
     
     try:
@@ -61,7 +64,6 @@ def handle_supplier_withdrawal(tx_id, decision):
             ref_number = request.form.get('ref_number', 'N/A')
             financial_entity = request.form.get('financial_entity', 'N/A')
             
-            # أ- إنشاء سند التسوية الإداري
             new_settlement = AdminSettlement(
                 wallet_id=tx.wallet_id,
                 wallet_code=tx.wallet.wallet_code,
@@ -75,11 +77,10 @@ def handle_supplier_withdrawal(tx_id, decision):
                 status='منفذة'
             )
             db.session.add(new_settlement)
-            db.session.flush() # للحصول على الـ ID قبل الـ commit
+            db.session.flush()
             
-            # ب- الترحيل التلقائي إلى كشف حساب المورد
             last_stmt = SupplierStatement.query.filter_by(supplier_id=tx.wallet.supplier.id)\
-                                             .order_by(SupplierStatement.created_at.desc()).first()
+                                           .order_by(SupplierStatement.created_at.desc()).first()
             
             current_balance = float(last_stmt.running_balance) if last_stmt else 0.0
             
@@ -99,9 +100,7 @@ def handle_supplier_withdrawal(tx_id, decision):
             db.session.add(new_statement)
             db.session.commit()
             
-            return render_template('admin/settlement_notice.html', 
-                                   tx=tx, 
-                                   settlement=new_settlement)
+            return render_template('admin/settlement_notice.html', tx=tx, settlement=new_settlement)
         
         else:
             tx.status = 'مرفوضة'
@@ -114,10 +113,8 @@ def handle_supplier_withdrawal(tx_id, decision):
         
     return redirect(url_for('financial_ops.display_management_table', search_query=tx.wallet.wallet_code))
 
-# 3. إنشاء سند تسوية يدوي
 @financial_blueprint.route('/settlement/create', methods=['POST'])
 @login_required
 def create_settlement():
-    # هنا سيتم وضع منطق السند اليدوي مستقبلاً
     flash("تم تجهيز منطق إنشاء السند الإداري", "info")
     return redirect(url_for('financial_ops.display_management_table'))
