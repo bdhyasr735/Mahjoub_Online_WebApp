@@ -1,5 +1,6 @@
 # coding: utf-8
-# 📂 apps/financial_ops/routes.py
+# 📂 apps/financial_ops/routes.py - نظام العمليات المالية والسيادة
+
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from apps.extensions import db
@@ -8,13 +9,14 @@ from apps.models.supplier_db import Supplier
 from apps.models.settlements_db import AdminSettlement
 from apps.models.statement_db import SupplierStatement
 
-# تأكد أن اسم الـ Blueprint هنا هو 'financial_ops'
+# تعريف الـ Blueprint
 financial_blueprint = Blueprint(
     'financial_ops', 
     __name__, 
     template_folder='templates'
 )
 
+# 1. عرض جدول إدارة العمليات والبحث
 @financial_blueprint.route('/management', methods=['GET'])
 @login_required
 def display_management_table():
@@ -24,6 +26,7 @@ def display_management_table():
     settlements = []
     
     if search_query:
+        # البحث عن المحفظة عبر الكود أو اسم المورد أو المالك
         wallet = Wallet.query.join(Supplier).filter(
             (Wallet.wallet_code.ilike(f'%{search_query}%')) |
             (Supplier.username.ilike(f'%{search_query}%')) |
@@ -47,64 +50,74 @@ def display_management_table():
         current_search=search_query
     )
 
+# 2. معالجة عمليات السحب (اعتماد أو رفض)
 @financial_blueprint.route('/withdrawal/handle/<int:tx_id>/<decision>', methods=['POST'])
 @login_required
 def handle_supplier_withdrawal(tx_id, decision):
     tx = WalletTransaction.query.get_or_404(tx_id)
     
-    if decision == 'approve':
-        ref_number = request.form.get('ref_number', 'N/A')
-        financial_entity = request.form.get('financial_entity', 'N/A')
+    try:
+        if decision == 'approve':
+            ref_number = request.form.get('ref_number', 'N/A')
+            financial_entity = request.form.get('financial_entity', 'N/A')
+            
+            # أ- إنشاء سند التسوية الإداري
+            new_settlement = AdminSettlement(
+                wallet_id=tx.wallet_id,
+                wallet_code=tx.wallet.wallet_code,
+                settlement_code=AdminSettlement.generate_settlement_code(),
+                settlement_type='سحب رصيد',
+                currency='SAR',
+                amount=tx.amount,
+                reference_number=ref_number,
+                financial_entity=financial_entity,
+                reason_notes=f"تسوية سحب للمورد {tx.wallet.supplier.trade_name}",
+                status='منفذة'
+            )
+            db.session.add(new_settlement)
+            db.session.flush() # للحصول على الـ ID قبل الـ commit
+            
+            # ب- الترحيل التلقائي إلى كشف حساب المورد
+            last_stmt = SupplierStatement.query.filter_by(supplier_id=tx.wallet.supplier.id)\
+                                             .order_by(SupplierStatement.created_at.desc()).first()
+            
+            current_balance = float(last_stmt.running_balance) if last_stmt else 0.0
+            
+            new_statement = SupplierStatement(
+                supplier_id=tx.wallet.supplier.id,
+                wallet_id=tx.wallet_id,
+                description=f"سحب رصيد - مرجع: {ref_number}",
+                currency='SAR',
+                debit=tx.amount, 
+                credit=0.00,
+                running_balance=current_balance - float(tx.amount),
+                reference_type='SETTLEMENT',
+                reference_id=new_settlement.id
+            )
+            
+            tx.status = 'ناجحة'
+            db.session.add(new_statement)
+            db.session.commit()
+            
+            return render_template('admin/settlement_notice.html', 
+                                   tx=tx, 
+                                   settlement=new_settlement)
         
-        # إنشاء سند تسوية إداري
-        new_settlement = AdminSettlement(
-            wallet_id=tx.wallet_id,
-            wallet_code=tx.wallet.wallet_code,
-            settlement_code=AdminSettlement.generate_settlement_code(),
-            settlement_type='سحب رصيد',
-            currency='SAR',
-            amount=tx.amount,
-            reference_number=ref_number,
-            financial_entity=financial_entity,
-            reason_notes=f"تسوية سحب للمورد {tx.wallet.supplier.trade_name}",
-            status='منفذة'
-        )
+        else:
+            tx.status = 'مرفوضة'
+            db.session.commit()
+            flash("تم رفض العملية بنجاح", "warning")
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f"حدث خطأ أثناء المعالجة: {str(e)}", "danger")
         
-        # الترحيل التلقائي إلى كشف حساب المورد (بدون عمولات)
-        last_stmt = SupplierStatement.query.filter_by(supplier_id=tx.wallet.supplier.id)\
-                                           .order_by(SupplierStatement.created_at.desc()).first()
-        
-        current_balance = float(last_stmt.running_balance) if last_stmt else 0.0
-        
-        new_statement = SupplierStatement(
-            supplier_id=tx.wallet.supplier.id,
-            wallet_id=tx.wallet_id,
-            description=f"سحب رصيد - مرجع: {ref_number}",
-            currency='SAR',
-            debit=tx.amount, 
-            credit=0.00,
-            running_balance=current_balance - float(tx.amount),
-            reference_type='SETTLEMENT',
-            reference_id=new_settlement.id
-        )
-        
-        tx.status = 'ناجحة'
-        db.session.add(new_settlement)
-        db.session.add(new_statement)
-        db.session.commit()
-        
-        return render_template('admin/settlement_notice.html', 
-                               tx=tx, 
-                               settlement=new_settlement)
-    
-    else:
-        tx.status = 'مرفوضة'
-        db.session.commit()
-        flash("تم رفض العملية", "danger")
-        return redirect(url_for('financial_ops.display_management_table', search_query=tx.wallet.wallet_code))
+    return redirect(url_for('financial_ops.display_management_table', search_query=tx.wallet.wallet_code))
 
+# 3. إنشاء سند تسوية يدوي
 @financial_blueprint.route('/settlement/create', methods=['POST'])
 @login_required
 def create_settlement():
-    flash("تم تجهيز منطق إنشاء السند", "info")
+    # هنا سيتم وضع منطق السند اليدوي مستقبلاً
+    flash("تم تجهيز منطق إنشاء السند الإداري", "info")
     return redirect(url_for('financial_ops.display_management_table'))
