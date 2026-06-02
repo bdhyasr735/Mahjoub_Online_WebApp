@@ -1,16 +1,18 @@
-# coding: utf-8
-import os
+# 📂 apps/financial_ops/__init__.py
+
 from flask import Blueprint
 
-# تحديد المسار المطلق لمجلد القوالب لضمان استقلاليته
-template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+# تعريف البلوبرينت المالي
+financial_bp = Blueprint('financial_ops', __name__, template_folder='templates')
 
-# تعريف البلوبرينت
-financial_blueprint = Blueprint(
-    'financial_ops', 
-    __name__, 
-    template_folder=template_dir 
-)
-
-# استيراد المسارات (Routes) هنا لضمان تسجيلها داخل البلوبرينت
+# استيراد المسارات لتفعيلها داخل البلوبرينت
+# ملاحظة: يتم الاستيراد هنا لتجنب Circular Imports
 from apps.financial_ops import routes
+
+def register_financial_ops(app):
+    """تسجيل بلوبرينت العمليات المالية بشكل آمن"""
+    try:
+        app.register_blueprint(financial_bp, url_prefix='/financial')
+        print("✅ تم تسجيل بلوبرينت العمليات المالية (Financial Ops) بنجاح.")
+    except Exception as e:
+        print(f"❌ فشل تسجيل بلوبرينت العمليات المالية: {e}")
