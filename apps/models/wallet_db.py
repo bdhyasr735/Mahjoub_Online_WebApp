@@ -1,8 +1,7 @@
 # coding: utf-8
-# 📂 apps/models/wallet_db.py
 import os
 from apps.extensions import db
-from apps.utils import AESCipher  # ✅ تم تعديل هذا السطر ليتوافق مع الحزمة الرئيسية
+from apps.utils import AESCipher
 
 # جلب المفتاح من البيئة (تأكد من إضافته في إعدادات Render)
 encryption_key = os.getenv('ENCRYPTION_KEY')
@@ -21,7 +20,7 @@ class Wallet(db.Model):
     supplier_id = db.Column(db.String(50), db.ForeignKey('suppliers.sovereign_id'), nullable=False, unique=True)
     wallet_code = db.Column(db.String(50), nullable=False, unique=True)
     
-    # حقول مشفرة
+    # حقول مشفرة - تم ضبط الـ default ليعتمد على التشفير مباشرة
     _yer_total = db.Column(db.String(255), default=lambda: cipher.encrypt("0.0"))
     _sar_total = db.Column(db.String(255), default=lambda: cipher.encrypt("0.0"))
     _usd_total = db.Column(db.String(255), default=lambda: cipher.encrypt("0.0"))
@@ -35,24 +34,37 @@ class Wallet(db.Model):
     # الخصائص (Properties) لفك التشفير التلقائي
     @property
     def yer_total(self): 
-        try: return float(cipher.decrypt(self._yer_total))
-        except: return 0.0
+        try:
+            return float(cipher.decrypt(self._yer_total))
+        except Exception:
+            return 0.0
+
     @yer_total.setter
-    def yer_total(self, val): self._yer_total = cipher.encrypt(str(val))
+    def yer_total(self, val):
+        self._yer_total = cipher.encrypt(str(val))
 
     @property
     def sar_total(self): 
-        try: return float(cipher.decrypt(self._sar_total))
-        except: return 0.0
+        try:
+            return float(cipher.decrypt(self._sar_total))
+        except Exception:
+            return 0.0
+
     @sar_total.setter
-    def sar_total(self, val): self._sar_total = cipher.encrypt(str(val))
+    def sar_total(self, val):
+        self._sar_total = cipher.encrypt(str(val))
 
     @property
     def usd_total(self): 
-        try: return float(cipher.decrypt(self._usd_total))
-        except: return 0.0
+        try:
+            return float(cipher.decrypt(self._usd_total))
+        except Exception:
+            return 0.0
+
     @usd_total.setter
-    def usd_total(self, val): self._usd_total = cipher.encrypt(str(val))
+    def usd_total(self, val):
+        self._usd_total = cipher.encrypt(str(val))
+
 
 class WalletTransaction(db.Model):
     __tablename__ = 'wallet_transactions'
@@ -80,26 +92,38 @@ class WalletTransaction(db.Model):
     @property
     def amount(self): 
         try:
-            if self._amount: return float(cipher.decrypt(self._amount))
+            if self._amount:
+                return float(cipher.decrypt(self._amount))
             return float(self.legacy_amount) if self.legacy_amount else 0.0
-        except: return 0.0
+        except Exception:
+            return 0.0
+
     @amount.setter
-    def amount(self, val): self._amount = cipher.encrypt(str(val))
+    def amount(self, val):
+        self._amount = cipher.encrypt(str(val))
 
     @property
     def profit_margin(self): 
         try: 
-            if self._profit_margin: return float(cipher.decrypt(self._profit_margin))
+            if self._profit_margin:
+                return float(cipher.decrypt(self._profit_margin))
             return float(self.legacy_profit_margin) if self.legacy_profit_margin else 0.0
-        except: return 0.0
+        except Exception:
+            return 0.0
+
     @profit_margin.setter
-    def profit_margin(self, val): self._profit_margin = cipher.encrypt(str(val))
+    def profit_margin(self, val):
+        self._profit_margin = cipher.encrypt(str(val))
 
     @property
     def notes(self): 
         try: 
-            if self._notes: return cipher.decrypt(self._notes)
+            if self._notes:
+                return cipher.decrypt(self._notes)
             return str(self.legacy_notes) if self.legacy_notes else ""
-        except: return ""
+        except Exception:
+            return ""
+
     @notes.setter
-    def notes(self, val): self._notes = cipher.encrypt(str(val))
+    def notes(self, val):
+        self._notes = cipher.encrypt(str(val))
