@@ -11,37 +11,27 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # 🛡️ إعداد ProxyFix لضبط البروتوكولات والـ IPs في بيئة Render
+    # 🛡️ إعداد ProxyFix لضبط البروتوكولات في Render
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
-    # تهيئة الإضافات الأساسية
     db.init_app(app)
     login_manager.init_app(app)
-    
-    # تصحيح مسار الدخول الإداري
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # 1. تهيئة قاعدة البيانات مع معالجة الأخطاء
+        # تهيئة قاعدة البيانات
         try:
             from apps.models.admin_db import AdminUser
-            from apps.models.supplier_db import Supplier
-            from apps.models.wallet_db import SupplierWallet, WalletTransaction
-            from apps.models.settlements_db import AdminSettlement
-            from apps.models.statement_db import SupplierStatement
             db.create_all()
         except Exception as e:
-            print(f"❌ [Database Error] فشل تهيئة قاعدة البيانات: {e}")
+            print(f"❌ [Database Error]: {e}")
 
-        # 2. تهيئة لودر المستخدم
         @login_manager.user_loader
         def load_user(user_id):
-            try:
-                return AdminUser.query.get(int(user_id))
-            except:
-                return None
+            try: return AdminUser.query.get(int(user_id))
+            except: return None
 
-        # 3. تسجيل المسارات (Blueprints)
+        # تسجيل المسارات
         blueprints = [
             ('apps.auth_portal.routes', 'auth_portal', ''), 
             ('apps.add_supplier.routes', 'add_supplier', '/suppliers'),
@@ -54,29 +44,29 @@ def create_app():
         for module_path, bp_name, prefix in blueprints:
             try:
                 module = __import__(module_path, fromlist=[bp_name])
-                blueprint = getattr(module, bp_name)
-                app.register_blueprint(blueprint, url_prefix=prefix)
+                app.register_blueprint(getattr(module, bp_name), url_prefix=prefix)
             except Exception as e:
                 print(f"⚠️ [Warning] فشل تسجيل {bp_name}: {e}")
         
-        # 4. توجيه المسارات الأمنية (إعادة توجيه الجذر للمسار السري)
+        # 4. توجيه المسارات الأمنية (منع الفهرسة)
         @app.route('/')
         def root_redirect():
-            # سحب المسار السري من المتغيرات البيئية أو استخدام الافتراضي
-            secret_path = os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x')
-            return redirect(secret_path)
+            return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x'))
 
         @app.route('/robots.txt')
         def robots_txt():
             return "User-agent: *\nDisallow: /", 200, {'Content-Type': 'text/plain'}
 
-        # 🛡️ جدار الحماية (Security Headers)
+        # 🛡️ جدار الحماية (Security Headers) - حماية سيادية
         @app.after_request
         def add_security_headers(response):
-            response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet"
+            # حماية شاملة ضد الزحف، الإطارات، والحقن
+            response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet, noimageindex"
             response.headers["X-Frame-Options"] = "DENY"
             response.headers["X-Content-Type-Options"] = "nosniff"
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+            # ترويسة سياسة أمان المحتوى لضمان استقرار العمل
+            response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com;"
             return response
 
     return app
