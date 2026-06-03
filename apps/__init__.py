@@ -16,6 +16,8 @@ def create_app():
     # تهيئة الإضافات الأساسية
     db.init_app(app)
     login_manager.init_app(app)
+    
+    # تم التصحيح: استخدام الاسم المسجل في الـ blueprints
     login_manager.login_view = 'auth_blueprint.login' 
 
     with app.app_context():
@@ -55,10 +57,10 @@ def create_app():
             except Exception as e:
                 print(f"⚠️ [Warning] فشل تسجيل {bp_name}: {e}")
         
-        # 4. توجيه المسارات الأمنية (تم تعديل الـ redirect ليعتمد على المسار الصحيح)
+        # 4. توجيه المسارات الأمنية (تم التصحيح ليتوافق مع auth_blueprint)
         @app.route('/')
         def root_redirect():
-            # هذا يوجه المستخدم للمسار المعرف باسم 'login' داخل auth_blueprint
+            # التوجيه الآن يستخدم الاسم الصحيح المسجل في القائمة أعلاه
             return redirect(url_for('auth_blueprint.login'))
 
         @app.route('/robots.txt')
