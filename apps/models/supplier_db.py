@@ -1,7 +1,7 @@
 # coding: utf-8
 import os
 from apps.extensions import db
-from apps.utils.security import AESCipher # استيراد الكلاس مباشرة
+from apps.utils.security import AESCipher 
 
 class Supplier(db.Model):
     __tablename__ = 'suppliers'
@@ -27,11 +27,11 @@ class Supplier(db.Model):
     identity_type = db.Column('identity_type', db.String(50), nullable=False)   
     identity_number = db.Column('identity_number', db.String(50), unique=True, nullable=False)  
     identity_image = db.Column('identity_image', db.String(255))   
-    activity_type = db.Column('activity_type', db.String(50))     
+    activity_type = db.Column('activity_type', db.String(50))      
     province = db.Column('province', db.String(50))
     district = db.Column('district', db.String(50))
     address_detail = db.Column('address_detail', db.Text) 
-    fin_type = db.Column('fin_type', db.String(20))            
+    fin_type = db.Column('fin_type', db.String(20))           
     bank_name = db.Column('bank_name', db.String(100))        
     status = db.Column('status', db.String(20), nullable=False, default='pending') 
     rank_grade = db.Column('rank_grade', db.String(20), nullable=False, default='ريادي') 
@@ -39,7 +39,7 @@ class Supplier(db.Model):
     created_at = db.Column('created_at', db.DateTime, default=db.func.current_timestamp()) 
     updated_at = db.Column('updated_at', db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    # --- بوابات التشفير التلقائي (تستخدم AESCipher مباشرة) ---
+    # --- بوابات التشفير التلقائي ---
     @property
     def owner_name(self): return AESCipher.decrypt(self.owner_name_enc)
     @owner_name.setter
@@ -65,13 +65,17 @@ class Supplier(db.Model):
     @bank_acc.setter
     def bank_acc(self, value): self.bank_acc_enc = AESCipher.encrypt(str(value))
 
-    # --- الدوال الوظيفية ---
+    # --- الدوال الوظيفية مع صمامات الأمان ---
     def learn_from_interaction(self, is_positive):
         self.behavior_score += (0.5 if is_positive else -2.0)
         self.total_transactions += 1
 
     @property
     def balance(self):
-        from apps.models.statement_db import SupplierStatement
-        last = SupplierStatement.query.filter_by(supplier_id=self.id).order_by(SupplierStatement.created_at.desc()).first()
-        return last.running_balance if last else 0.0
+        """حساب الرصيد مع حماية ضد الانهيار في حال عدم توفر كشوفات"""
+        try:
+            from apps.models.statement_db import SupplierStatement
+            last = SupplierStatement.query.filter_by(supplier_id=self.id).order_by(SupplierStatement.created_at.desc()).first()
+            return last.running_balance if last else 0.0
+        except Exception:
+            return 0.0
