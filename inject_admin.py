@@ -1,4 +1,5 @@
 # 📂 inject_admin.py
+# تم تعديل الكود لدعم الاسم باللغة العربية والزراعة المباشرة
 from apps import create_app
 from apps.extensions import db
 from apps.models.admin_db import AdminUser
@@ -6,24 +7,24 @@ from apps.models.admin_db import AdminUser
 def inject_sovereign_admin(username, password, phone):
     app = create_app()
     with app.app_context():
-        # التحقق مما إذا كان المستخدم موجوداً لتجنب التكرار
+        # التحقق من وجود المستخدم (الاسم باللغة العربية: محجوب)
         existing = AdminUser.query.filter_by(username=username).first()
         if existing:
-            print(f"⚠️ المستخدم {username} موجود مسبقاً. تم التخطي.")
+            print(f"⚠️ المستخدم {username} موجود مسبقاً في قاعدة البيانات.")
             return
 
-        # إنشاء المستخدم الجديد
+        # إنشاء المستخدم الجديد باسم "محجوب"
         new_admin = AdminUser(
             username=username,
             phone_number=phone,
-            role='Owner' # دور المالك السيادي
+            role='Owner' 
         )
-        new_admin.set_password(password) # تشفير كلمة المرور عبر الموديل المحصن
+        new_admin.set_password(password)
         
         db.session.add(new_admin)
         db.session.commit()
-        print(f"✅ تم حقن الهوية السيادية للمستخدم: {username}")
+        print(f"✅ تم حقن الهوية السيادية بنجاح للمستخدم: {username}")
 
 if __name__ == "__main__":
-    # استبدل القيم هنا بما تريد
-    inject_sovereign_admin("mahjoub", "YourSecurePassword2026", "0000000000")
+    # الزراعة المباشرة باسم "محجوب" وكلمة مرور "123"
+    inject_sovereign_admin("محجوب", "123", "0000000000")
