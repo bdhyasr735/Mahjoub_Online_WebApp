@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
     <meta name="googlebot" content="noindex, nofollow">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
     
     <title>بوابة الوصول السيادية</title>
     
@@ -14,82 +17,119 @@
     
     <style>
         :root {
-            --royal-purple: #632C8F; 
+            --royal-purple: #632C8F;
             --sovereign-gold: #D4AF37;
-            --pure-white: #ffffff;
             --deep-space: #1a0b2e;
         }
 
         body {
-            margin: 0; padding: 0;
+            margin: 0;
+            padding: 0;
             font-family: 'Cairo', sans-serif;
             background: radial-gradient(circle at center, #2a114d 0%, var(--deep-space) 100%);
             height: 100vh;
-            display: flex; justify-content: center; align-items: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
             color: #fff;
+            user-select: none;
         }
 
         .sovereign-card {
-            background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(30px);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(40px);
             border-radius: 40px;
-            border: 1px solid rgba(212, 175, 55, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.4);
             padding: 50px;
             text-align: center;
-            width: 100%; max-width: 400px;
-            box-shadow: 0 30px 70px rgba(0,0,0,0.8);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.9);
         }
 
         .logo-section img {
-            width: 90px; margin-bottom: 20px;
-            filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255,255,255,0.3));
+            width: 90px;
+            margin-bottom: 20px;
+            filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
         }
 
         .brand-name {
-            font-size: 1.8rem; font-weight: 900;
-            color: var(--sovereign-gold); margin: 0;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--sovereign-gold);
+            margin: 0;
         }
 
         .philosophy-text {
-            font-size: 0.7rem; color: #a090b5;
-            margin-bottom: 30px; text-transform: uppercase;
+            font-size: 0.7rem;
+            color: #a090b5;
+            margin-bottom: 30px;
+            text-transform: uppercase;
         }
 
-        .input-box { position: relative; margin-bottom: 20px; }
+        .input-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
 
         .input-box input {
-            width: 100%; padding: 15px 50px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 15px; color: #fff;
-            outline: none; box-sizing: border-box;
+            width: 100%;
+            padding: 15px 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            color: #fff;
+            outline: none;
+            box-sizing: border-box;
             transition: 0.3s;
         }
 
-        .input-box input:focus { border-color: var(--sovereign-gold); }
+        .input-box input:focus {
+            border-color: var(--sovereign-gold);
+        }
 
         .input-box i.main-icon {
-            position: absolute; right: 15px; top: 50%;
-            transform: translateY(-50%); color: var(--sovereign-gold);
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--sovereign-gold);
         }
 
         .toggle-password {
-            position: absolute; left: 15px; top: 50%;
-            transform: translateY(-50%); cursor: pointer; color: #666;
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #666;
         }
 
         .btn-access {
-            width: 100%; padding: 15px;
+            width: 100%;
+            padding: 15px;
             background: var(--sovereign-gold);
-            border: none; border-radius: 15px;
-            color: var(--deep-space); font-weight: 900;
-            cursor: pointer; transition: 0.3s;
+            border: none;
+            border-radius: 15px;
+            color: var(--deep-space);
+            font-weight: 900;
+            cursor: pointer;
+            transition: 0.3s;
         }
 
-        .btn-access:hover { background: #fff; }
+        .btn-access:hover {
+            background: #fff;
+        }
 
-        .flash-message { padding: 10px; border-radius: 10px; margin-bottom: 15px; font-size: 0.8rem; background: rgba(255,0,0,0.2); border: 1px solid red; }
+        .flash-message {
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 0.8rem;
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid red;
+        }
     </style>
 </head>
 <body>
@@ -109,7 +149,7 @@
             {% endif %}
         {% endwith %}
 
-        <form action="{{ url_for('auth_portal.login') }}" method="POST" autocomplete="off">
+        <form action="{{ url_for('auth_portal.login') }}" method="POST" autocomplete="off" spellcheck="false">
             <div class="input-box">
                 <i class="fas fa-user-shield main-icon"></i>
                 <input type="text" name="username" placeholder="الهوية الرقمية" required autocomplete="off">
@@ -126,6 +166,9 @@
     </div>
 
     <script>
+        // تعطيل سجلات المتصفح الأمنية
+        console.log = function() {};
+        
         const passwordField = document.getElementById('password-field');
         const toggleIcon = document.getElementById('password-toggle-icon');
 
