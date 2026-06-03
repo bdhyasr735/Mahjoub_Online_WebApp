@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع المحصن والمحمي (نسخة A+ Security)
+# 📂 apps/__init__.py - المصنع المحصن والمحمي (نسخة A+ Security النهائية)
 
 import os
 from flask import Flask, redirect
@@ -19,10 +19,16 @@ def create_app():
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # تهيئة قاعدة البيانات بأمان
+        # 🛡️ بناء قاعدة البيانات: استيراد شامل لكافة النماذج لضمان عدم وجود جداول مفقودة
         try:
             from apps.models.admin_db import AdminUser
-            db.create_all()
+            from apps.models.supplier_db import Supplier
+            from apps.models.wallet_db import SupplierWallet, WalletTransaction
+            from apps.models.statement_db import SupplierStatement
+            from apps.models.settlements_db import AdminSettlement
+            
+            db.create_all() 
+            print("✅ تم بناء/تحديث جداول قاعدة البيانات بنجاح.")
         except Exception as e:
             print(f"❌ [Database Error]: {e}")
 
@@ -48,7 +54,7 @@ def create_app():
                 app.register_blueprint(getattr(module, bp_name), url_prefix=prefix)
                 print(f"✅ تم تسجيل {bp_name} بنجاح.")
             except Exception as e:
-                print(f"⚠️ تحذير: فشل تسجيل {bp_name}، السيرفر سيستمر بالعمل. الخطأ: {e}")
+                print(f"⚠️ تحذير: فشل تسجيل {bp_name}، الخطأ: {e}")
 
         # 4. توجيه المسارات الأمنية (الخداع الاستراتيجي)
         @app.route('/')
@@ -62,15 +68,10 @@ def create_app():
         # 🛡️ الحماية الأمنية المتقدمة (Security Headers لتقييم A+)
         @app.after_request
         def add_security_headers(response):
-            # Strict Transport Security (HSTS)
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-            # Content Security Policy (CSP)
             response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
-            # Referrer Policy
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-            # Permissions Policy
             response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-            # الحماية التقليدية
             response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet, noimageindex"
             response.headers["X-Frame-Options"] = "DENY"
             response.headers["X-Content-Type-Options"] = "nosniff"
