@@ -60,4 +60,4 @@ def dashboard():
         print(f"❌ Critical Dashboard Error: {str(e)}")
         return render_template('admin/dashboard_content.html', **stats)
 
-# يمكنك إضافة مسارات أخرى للوحة التحكم هنا لاحقاً بنفس الأسلوب
+# تأكد أنك ستضيف مسارات أخرى هنا بنفس الهيكلية (مثلاً route للموردين)
