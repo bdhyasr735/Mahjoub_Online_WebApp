@@ -9,6 +9,7 @@ from apps.extensions import db
 from . import auth_blueprint
 
 # 🔑 جلب المسار السري لصفحة الدخول من إعدادات خادم Render
+# سيستخدم المسار الافتراضي /gatekeeper_secure_entry_2026 إذا لم يوجد متغير بيئة
 SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/gatekeeper_secure_entry_2026')
 
 # -------------------------------------------------------------------------
@@ -16,10 +17,10 @@ SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/gatekeeper_secure_entry
 # -------------------------------------------------------------------------
 @auth_blueprint.route(SECRET_LOGIN_PATH, methods=['GET', 'POST'])
 def login():
-    # استيراد الموديل داخل الدالة لتجنب الاستيراد الدائري
+    """المسار الذي يتم فيه التحقق الفعلي من هوية المالك"""
     from apps.models.admin_db import AdminUser
     
-    # إذا كان المستخدم مسجلاً دخوله مسبقاً، وجهه مباشرة للوحة التحكم
+    # إذا كان المستخدم مسجلاً دخوله مسبقاً، وجهه للوحة التحكم
     if current_user.is_authenticated:
         return redirect(url_for('admin_dashboard.dashboard'))
 
@@ -30,13 +31,10 @@ def login():
         # استعلام عن المستخدم
         user = AdminUser.query.filter_by(username=username).first()
         
-        # التحقق من البيانات
+        # التحقق من البيانات والمطابقة الأمنية
         if user and user.check_password(password):
             if user.role in ['Owner', 'Admin']:
                 login_user(user)
-                # تحديث آخر توقيت دخول (تأكد أن الحقل موجود في الموديل، وإلا احذف هذا السطر)
-                # user.last_login = db.func.current_timestamp()
-                # db.session.commit()
                 return redirect(url_for('admin_dashboard.dashboard'))
             else:
                 flash('ليس لديك صلاحيات الوصول.', 'warning')
@@ -50,7 +48,7 @@ def login():
 # -------------------------------------------------------------------------
 @auth_blueprint.route('/login', methods=['GET', 'POST'])
 def decoy_login():
-    """طرد برمجيات الفحص الآلي وإيهامهم بأن المسار معطل"""
+    """طرد برمجيات الفحص الآلي وإيهامهم بأن المسار معطل تماماً"""
     abort(404)
 
 # -------------------------------------------------------------------------
@@ -61,5 +59,5 @@ def decoy_login():
 def logout():
     """تسجيل خروج المستخدم وإعادته بأمان للمسار السري"""
     logout_user()
-    # تم التصحيح: استخدام auth_blueprint.login للربط الصحيح
+    # هنا نستخدم اسم البلوبرينت + النقطة + اسم الدالة المربوطة بالمسار السري
     return redirect(url_for('auth_blueprint.login'))
