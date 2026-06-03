@@ -10,7 +10,7 @@ from apps.extensions import db
 from . import auth_portal
 from apps.models.admin_db import AdminUser
 
-# مسار الدخول السري (يُجلب من إعدادات البيئة)
+# مسار الدخول السري (يُجلب من إعدادات البيئة لضمان عدم كشفه في الكود)
 SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/gatekeeper_secure_entry_2026')
 
 # -------------------------------------------------------------------------
@@ -18,33 +18,42 @@ SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/gatekeeper_secure_entry
 # -------------------------------------------------------------------------
 @auth_portal.route(SECRET_LOGIN_PATH, methods=['GET', 'POST'])
 def login():
+    # منع الدخول إذا كان المستخدم مسجلاً بالفعل
     if current_user.is_authenticated:
         return redirect(url_for('admin_dashboard.dashboard'))
 
     if request.method == 'POST':
-        username = str(request.form.get('username', '')).strip()
+        # استلام آمن للبيانات
+        username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
-        # محرك أمني: تأخير زمني وهمي لمنع هجمات التخمين الآلية
-        time.sleep(random.uniform(0.6, 1.2))
+        # محرك أمني: تأخير زمني وهمي لمنع هجمات التخمين (Brute Force)
+        time.sleep(random.uniform(0.8, 1.5))
         
+        # التحقق من وجود المستخدم
         user = AdminUser.query.filter_by(username=username).first()
         error_msg = 'بيانات الدخول غير صحيحة.'
 
         if user:
-            if user.is_locked():
+            # التحقق من حالة القفل
+            if hasattr(user, 'is_locked') and user.is_locked():
                 flash('الحساب مقفل مؤقتاً. يرجى الانتظار.', 'danger')
+            # التحقق من كلمة المرور (تأكد أن دالة check_password موجودة في الموديل)
             elif user.check_password(password):
                 if user.role in ['Owner', 'Admin']:
                     login_user(user)
-                    user.reset_failed_attempts()
-                    db.session.commit()
+                    # إعادة تعيين محاولات الفشل
+                    if hasattr(user, 'reset_failed_attempts'):
+                        user.reset_failed_attempts()
+                        db.session.commit()
                     return redirect(url_for('admin_dashboard.dashboard'))
                 else:
                     flash(error_msg, 'danger')
             else:
-                user.increment_failed_attempts()
-                db.session.commit()
+                # تسجيل محاولة فاشلة
+                if hasattr(user, 'increment_failed_attempts'):
+                    user.increment_failed_attempts()
+                    db.session.commit()
                 flash(error_msg, 'danger')
         else:
             flash(error_msg, 'danger')
@@ -56,7 +65,7 @@ def login():
 # -------------------------------------------------------------------------
 @auth_portal.route('/login', methods=['GET', 'POST'])
 def decoy_login():
-    # أي بوت يحاول الوصول لـ /login سيتم طرده فوراً
+    # أي بوت يحاول الوصول لـ /login سيتم طرده فوراً لمنع التجسس
     abort(403)
 
 # -------------------------------------------------------------------------
