@@ -3,47 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- حماية ضد محركات البحث والزحف -->
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+    <!-- سياسة أمن المحتوى لتعزيز الحماية -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com;">
+    
     <title>التحقق الأمني | محجوب أونلاين</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root { --royal-purple: #632C8F; --sovereign-gold: #D4AF37; --deep-space: #1a0b2e; }
         body { margin: 0; font-family: 'Cairo', sans-serif; background: radial-gradient(circle at center, #2a114d 0%, var(--deep-space) 100%); height: 100vh; display: flex; justify-content: center; align-items: center; color: #fff; }
         .sovereign-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border-radius: 35px; border: 1px solid rgba(212, 175, 55, 0.2); padding: 45px; text-align: center; width: 100%; max-width: 400px; box-shadow: 0 25px 60px rgba(0,0,0,0.7); }
-        .brand-name { color: var(--sovereign-gold); margin-bottom: 10px; }
+        .brand-name { color: var(--sovereign-gold); margin-bottom: 10px; font-size: 1.5rem; }
         .philosophy-text { font-size: 0.8rem; color: #b3a2c7; margin-bottom: 25px; }
         .input-box { position: relative; margin-bottom: 20px; }
-        .input-box input { width: 100%; padding: 15px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; color: #fff; text-align: center; font-size: 1.5rem; letter-spacing: 10px; outline: none; }
+        .input-box input { width: 100%; padding: 15px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; color: #fff; text-align: center; font-size: 1.5rem; letter-spacing: 10px; outline: none; transition: 0.3s; }
+        .input-box input:focus { border-color: var(--sovereign-gold); background: rgba(255,255,255,0.12); }
         .btn-access { width: 100%; padding: 15px; background: linear-gradient(90deg, var(--sovereign-gold), #b8860b); border: none; border-radius: 15px; color: var(--deep-space); font-weight: 800; cursor: pointer; transition: 0.3s; }
-        #timer { font-size: 1rem; color: var(--sovereign-gold); margin-top: 15px; font-weight: bold; }
+        .btn-access:disabled { opacity: 0.5; cursor: not-allowed; }
+        #timer { font-size: 0.9rem; color: var(--sovereign-gold); margin: 15px 0; font-weight: bold; }
+        .alt-actions { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; display: none; }
+        .alt-actions a { color: #b3a2c7; text-decoration: none; font-size: 0.8rem; display: block; margin-top: 10px; transition: 0.3s; }
+        .alt-actions a:hover { color: var(--sovereign-gold); }
     </style>
 </head>
 <body>
     <div class="sovereign-card">
         <h1 class="brand-name">التحقق الأمني</h1>
-        <p class="philosophy-text">تم إرسال كود التحقق عبر واتساب</p>
+        <p class="philosophy-text">تم إرسال كود التحقق عبر واتساب السيادي</p>
         
         <form action="{{ url_for('auth_portal.verify_otp') }}" method="POST">
+            <!-- حماية CSRF ضرورية هنا -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
             <div class="input-box">
-                <input type="text" name="otp" placeholder="000000" maxlength="6" required autofocus>
+                <input type="text" name="otp" placeholder="000000" maxlength="6" required autofocus autocomplete="off">
             </div>
             <button type="submit" id="submit-btn" class="btn-access">تأكيد الهوية</button>
         </form>
 
         <div id="timer">02:00</div>
+
+        <div class="alt-actions" id="alt-actions">
+            <a href="{{ url_for('auth_portal.resend_otp') }}"><i class="fas fa-redo"></i> إعادة إرسال الكود</a>
+            <a href="{{ url_for('auth_portal.upload_identity') }}"><i class="fas fa-id-card"></i> إرسال وثيقة إثبات هوية بديلة</a>
+        </div>
     </div>
 
     <script>
-        let timeLeft = 120; // 120 ثانية = دقيقتين
+        // نظام المحاولات والقفل الذكي (تصاعدي)
+        let attempts = parseInt(localStorage.getItem('auth_attempts')) || 0;
+        let lockUntil = parseInt(localStorage.getItem('lock_until')) || 0;
+        
         const timerDisplay = document.getElementById('timer');
         const submitBtn = document.getElementById('submit-btn');
+        const altActions = document.getElementById('alt-actions');
 
+        function checkLock() {
+            let now = new Date().getTime();
+            if (now < lockUntil) {
+                submitBtn.disabled = true;
+                let remaining = Math.ceil((lockUntil - now) / 1000);
+                timerDisplay.innerText = `محاولات فاشلة، انتظر: ${remaining} ثانية`;
+                setTimeout(checkLock, 1000);
+            } else {
+                submitBtn.disabled = false;
+            }
+        }
+
+        // تفعيل العداد عند التحميل
+        let timeLeft = 120;
         const countdown = setInterval(() => {
             if (timeLeft <= 0) {
                 clearInterval(countdown);
-                timerDisplay.innerHTML = "انتهت صلاحية الكود. <a href='{{ url_for('auth_portal.login') }}' style='color:#fff'>إعادة إرسال؟</a>";
-                submitBtn.disabled = true;
-                submitBtn.style.opacity = "0.5";
+                timerDisplay.innerHTML = "انتهت صلاحية الكود.";
+                altActions.style.display = "block";
             } else {
                 let mins = Math.floor(timeLeft / 60);
                 let secs = timeLeft % 60;
@@ -51,6 +87,8 @@
                 timeLeft--;
             }
         }, 1000);
+
+        checkLock();
     </script>
 </body>
 </html>
