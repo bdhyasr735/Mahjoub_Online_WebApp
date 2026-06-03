@@ -1,5 +1,6 @@
 # coding: utf-8
 # 📂 apps/auth_portal/routes.py - مسارات المصادقة المحصنة بالتخفي والتأمين السيادي
+
 import os
 from flask import render_template, request, redirect, url_for, flash, abort
 from flask_login import login_user, logout_user, login_required, current_user
@@ -44,7 +45,7 @@ def login():
     return render_template('auth/login.html')
 
 # -------------------------------------------------------------------------
-# 2. 🛡️ مسار الكمين (Decoy Route) لتمويه المخترقين
+# 2. 🛡️ مسار الكمين (Decoy Route) لتمويه المخترقين وفحص البوتات
 # -------------------------------------------------------------------------
 @auth_blueprint.route('/login', methods=['GET', 'POST'])
 def decoy_login():
@@ -59,5 +60,5 @@ def decoy_login():
 def logout():
     """تسجيل خروج المستخدم وإعادته بأمان للمسار السري"""
     logout_user()
-    # هنا نستخدم اسم البلوبرينت + النقطة + اسم الدالة المربوطة بالمسار السري
+    # استخدام اسم الـ Blueprint المعتمد في التطبيق
     return redirect(url_for('auth_blueprint.login'))
