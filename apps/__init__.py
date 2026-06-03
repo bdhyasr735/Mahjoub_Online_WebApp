@@ -57,15 +57,13 @@ def create_app():
         def robots_txt():
             return "User-agent: *\nDisallow: /", 200, {'Content-Type': 'text/plain'}
 
-        # 🛡️ جدار الحماية (Security Headers) - حماية سيادية
+        # 🛡️ جدار الحماية (Security Headers)
         @app.after_request
         def add_security_headers(response):
-            # حماية شاملة ضد الزحف، الإطارات، والحقن
             response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet, noimageindex"
             response.headers["X-Frame-Options"] = "DENY"
             response.headers["X-Content-Type-Options"] = "nosniff"
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-            # ترويسة سياسة أمان المحتوى لضمان استقرار العمل
             response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com;"
             return response
 
