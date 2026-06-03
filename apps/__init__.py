@@ -16,10 +16,10 @@ def create_app():
     # تهيئة الإضافات الأساسية
     db.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'auth_portal.login' 
+    login_manager.login_view = 'auth_blueprint.login' 
 
     with app.app_context():
-        # 1. تهيئة قاعدة البيانات بأسلوب مرن ومقاوم للانهيار
+        # 1. تهيئة قاعدة البيانات
         try:
             from apps.models.admin_db import AdminUser
             from apps.models.supplier_db import Supplier
@@ -31,18 +31,20 @@ def create_app():
         except Exception as e:
             print(f"❌ [Database Error] فشل تهيئة قاعدة البيانات: {e}")
 
-        # 2. تهيئة لودر المستخدم (User Loader) لإدارة الجلسات
+        # 2. تهيئة لودر المستخدم
         @login_manager.user_loader
         def load_user(user_id):
             return AdminUser.query.get(int(user_id)) if user_id else None
 
-        # 3. تسجيل المسارات (Blueprints) بأسلوب الحلقات الآمنة
+        # 3. تسجيل المسارات (Blueprints)
+        # تم إضافة محرك الويب هوك (api.webhook) ضمن قائمة المسارات
         blueprints = [
             ('apps.auth_portal.routes', 'auth_blueprint', ''),
             ('apps.add_supplier.routes', 'add_supplier', '/suppliers'),
             ('apps.financial_ops.routes', 'financial_blueprint', '/financial_ops'),
             ('apps.statement.routes', 'statement_blueprint', '/statement'),
-            ('apps.admin_dashboard.routes', 'admin_dashboard', '/admin')
+            ('apps.admin_dashboard.routes', 'admin_dashboard', '/admin'),
+            ('api.webhook', 'webhook_bp', '') # 👈 إضافة محرك الويب هوك المستقل
         ]
 
         for module_path, bp_name, prefix in blueprints:
@@ -54,34 +56,26 @@ def create_app():
             except Exception as e:
                 print(f"⚠️ [Warning] فشل تسجيل {bp_name}، السيرفر سيستمر بالعمل: {e}")
         
-        # 4. توجيه المسار الرئيسي بالتطبيق ديناميكياً للمسار السري الذكي
+        # 4. توجيه المسارات الأمنية والردود
         @app.route('/')
         def root_redirect():
-            return redirect(url_for('auth_portal.login'))
+            return redirect(url_for('auth_blueprint.login'))
 
-        # 🤖 [الطبقة الأولى] مسار ديناميكي لملف robots.txt لمنع زحف البوتات
         @app.route('/robots.txt')
         def robots_txt():
             response = app.make_response("User-agent: *\nDisallow: /")
             response.headers["Content-Type"] = "text/plain"
             return response
 
-        # 🛡️ [الطبقة الثانية] حقن جدار الحماية السيادي (Security Headers) لرفع التقييم لـ (أ)
+        # 🛡️ جدار الحماية (Security Headers)
         @app.after_request
         def add_security_headers(response):
-            # أ. منع الأرشفة والحفظ نهائياً في خوادم البحث والكاش (Google Cache)
             response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet"
-            
-            # ب. حماية ضد ثغرات Clickjacking ومنع وضع السيرفر داخل إطارات خارجية (iFrames)
             response.headers["X-Frame-Options"] = "DENY"
-            
-            # ج. منع المتصفح من تخمين نوع الملفات لحظر الملفات الخبيثة المتخفية
             response.headers["X-Content-Type-Options"] = "nosniff"
-            
-            # د. أمن النقل المشدد (HSTS) - إجبار المتصفح على الاتصال المشفر دائماً لمدة سنة كاملة
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
             
-            # هـ. سياسة أمان المحتوى (CSP) - حظر حقن الأكواد الخبيثة مع السماح بسحابة Qomra وواجهات Meta
+            # السماح بالاتصال مع Meta في سياسة CSP
             response.headers['Content-Security-Policy'] = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
@@ -91,10 +85,7 @@ def create_app():
                 "connect-src 'self' https://api.qumra.cloud https://graph.facebook.com;"
             )
             
-            # و. سياسة الإحالة (Referrer Policy) - حماية بيانات الرابط السري من التسريب للخارج عند الانتقال لروابط أخرى
             response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-            
-            # ز. سياسة الأذونات (Permissions Policy) - إغلاق الكاميرا والموقع الجغرافي تماماً لقطع أي محاولة استغلال
             response.headers['Permissions-Policy'] = 'geolocation=(), camera=(), microphone=(), payment=()'
             
             return response
