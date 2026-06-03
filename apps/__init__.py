@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع المحصن والمحمي (نسخة الاستمرارية)
+# 📂 apps/__init__.py - المصنع المحصن والمحمي (نسخة A+ Security)
 
 import os
 from flask import Flask, redirect
@@ -16,7 +16,6 @@ def create_app():
     
     db.init_app(app)
     login_manager.init_app(app)
-    # ربط البوابة بالمسار المعتمد
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
@@ -34,7 +33,6 @@ def create_app():
             except: return None
 
         # 🛡️ التسجيل الدفاعي (Defensive Registration)
-        # هذا الجزء يضمن بقاء السيرفر حياً حتى لو فشل تحميل أي وحدة
         blueprints_map = [
             ('apps.auth_portal.routes', 'auth_portal', ''),
             ('apps.add_supplier.routes', 'add_supplier', '/suppliers'),
@@ -55,16 +53,24 @@ def create_app():
         # 4. توجيه المسارات الأمنية (الخداع الاستراتيجي)
         @app.route('/')
         def root_redirect():
-            # تحويل الزائر للجذر إلى مسار الكمين
             return redirect('/login')
 
         @app.route('/robots.txt')
         def robots_txt():
             return "User-agent: *\nDisallow: /", 200, {'Content-Type': 'text/plain'}
 
-        # 🛡️ الحماية من الفهرسة والتطفل
+        # 🛡️ الحماية الأمنية المتقدمة (Security Headers لتقييم A+)
         @app.after_request
         def add_security_headers(response):
+            # Strict Transport Security (HSTS)
+            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+            # Content Security Policy (CSP)
+            response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
+            # Referrer Policy
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            # Permissions Policy
+            response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+            # الحماية التقليدية
             response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet, noimageindex"
             response.headers["X-Frame-Options"] = "DENY"
             response.headers["X-Content-Type-Options"] = "nosniff"
