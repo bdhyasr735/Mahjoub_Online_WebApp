@@ -20,7 +20,6 @@
 
         body { font-family: 'Cairo', sans-serif; background-color: #f4f7f6; margin: 0; }
 
-        /* الشريط الجانبي - السيادة */
         .sidebar {
             width: var(--sidebar-width);
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
@@ -31,60 +30,35 @@
             z-index: 1000;
             transition: var(--transition);
             box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            overflow-y: auto;
         }
 
         .logo-container { padding: 30px 10px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.2); }
-        .sidebar-logo { width: 70px; filter: brightness(0) invert(1); transition: var(--transition); }
+        .sidebar-logo { width: 70px; filter: brightness(0) invert(1); }
 
         .nav-menu { padding: 20px 15px; }
-        .nav-item-wrapper { margin-bottom: 5px; }
-        
         .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 14px 15px;
-            color: rgba(255,255,255,0.7);
-            text-decoration: none;
-            border-radius: 12px;
-            transition: var(--transition);
-            cursor: pointer;
+            display: flex; align-items: center; padding: 14px 15px;
+            color: rgba(255,255,255,0.7); text-decoration: none;
+            border-radius: 12px; transition: var(--transition); cursor: pointer;
         }
-        .nav-link:hover, .nav-link.active {
-            background: rgba(212, 175, 55, 0.15);
-            color: var(--mahjoub-gold);
-            transform: translateX(-5px);
-        }
+        .nav-link:hover { background: rgba(212, 175, 55, 0.15); color: var(--mahjoub-gold); }
         
         .dropdown-content {
-            display: none;
-            list-style: none;
-            padding: 0 35px 0 0;
-            border-right: 2px solid var(--mahjoub-gold);
-            margin: 5px 0;
+            display: none; list-style: none; padding: 0 35px 0 0;
+            border-right: 2px solid var(--mahjoub-gold); margin: 5px 0;
         }
         .dropdown-content a { color: #aaa; text-decoration: none; padding: 8px 0; display: block; font-size: 0.9rem; }
         .dropdown-content a:hover { color: var(--mahjoub-gold); }
 
-        /* منطقة المحتوى */
         .main-wrapper { margin-right: var(--sidebar-width); transition: var(--transition); }
-        
-        .top-navbar {
-            background: #fff;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-
+        .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .content-body { padding: 30px; }
 
-        /* التجاوب مع الجوالات */
         @media (max-width: 992px) {
             .sidebar { width: 80px; }
-            .sidebar .nav-link span, .sidebar .sidebar-title, .sidebar .dropdown-content { display: none !important; }
+            .sidebar .nav-link span, .sidebar .sidebar-title, .dropdown-content { display: none !important; }
             .main-wrapper { margin-right: 80px; }
-            .sidebar-logo { width: 40px; }
         }
     </style>
 </head>
@@ -93,57 +67,48 @@
     <aside class="sidebar">
         <div class="logo-container">
             <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="sidebar-logo">
-            <h6 class="sidebar-title text-white mt-3">الإدارة المركزية</h6>
+            <h6 class="text-white mt-3">الإدارة المركزية</h6>
         </div>
 
         <nav class="nav-menu">
-            <div class="nav-item-wrapper">
-                <a href="#" class="nav-link"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a>
-            </div>
+            <a href="#" class="nav-link"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a>
 
-            <div class="nav-item-wrapper">
-                <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-box-open me-3"></i> <span>المنتجات</span> <i class="fas fa-chevron-down ms-auto"></i></div>
-                <ul class="dropdown-content">
-                    <li><a href="#">إضافة منتج</a></li>
-                    <li><a href="#">مراجعة المنتجات</a></li>
-                </ul>
-            </div>
+            <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-box-open me-3"></i> <span>المنتجات</span> <i class="fas fa-chevron-down ms-auto"></i></div>
+            <ul class="dropdown-content">
+                <li><a href="#">إضافة منتج</a></li>
+                <li><a href="#">مراجعة المنتجات</a></li>
+            </ul>
 
-            <div class="nav-item-wrapper">
-                <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-handshake me-3"></i> <span>إدارة الموردين</span> <i class="fas fa-chevron-down ms-auto"></i></div>
-                <ul class="dropdown-content">
-                    <li><a href="#">إضافة مورد</a></li>
-                    <li><a href="#">قائمة الموردين</a></li>
-                </ul>
-            </div>
+            <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-handshake me-3"></i> <span>إدارة الموردين</span> <i class="fas fa-chevron-down ms-auto"></i></div>
+            <ul class="dropdown-content">
+                <li><a href="#">إضافة مورد</a></li>
+                <li><a href="#">قائمة الموردين</a></li>
+            </ul>
 
-            <div class="nav-item-wrapper">
-                <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-wallet me-3"></i> <span>الرقابة المالية</span> <i class="fas fa-chevron-down ms-auto"></i></div>
-                <ul class="dropdown-content">
-                    <li><a href="#">الخزينة المركزية</a></li>
-                    <li><a href="#">الأرباح</a></li>
-                </ul>
-            </div>
+            <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-wallet me-3"></i> <span>الرقابة المالية</span> <i class="fas fa-chevron-down ms-auto"></i></div>
+            <ul class="dropdown-content">
+                <li><a href="#">خزينة المنصة المركزية</a></li>
+                <li><a href="#">تسويات الموردين</a></li>
+                <li><a href="#">الأرباح المركزية</a></li>
+                <li><a href="#">طلبات التسوية</a></li>
+            </ul>
 
             <hr class="text-white my-3">
-
             <a href="#" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-3"></i> <span>خروج آمن</span></a>
         </nav>
     </aside>
 
     <main class="main-wrapper">
         <header class="top-navbar">
-            <div class="user-info">
-                <strong>{{ current_user.name if current_user.is_authenticated else 'المسؤول' }}</strong>
-            </div>
-            <div class="badge bg-warning text-dark p-2 px-3">بيئة التحكم السيادية</div>
+            <strong>{{ current_user.name if current_user.is_authenticated else 'المسؤول' }}</strong>
+            <div class="badge bg-warning text-dark p-2">بيئة التحكم السيادية</div>
         </header>
 
         <section class="content-body">
             {% block content %}
             <div class="card p-5 text-center border-0 shadow-sm">
                 <h3>مرحباً بك في لوحة تحكم محجوب أونلاين</h3>
-                <p>اختر قسماً من القائمة الجانبية للبدء بالإدارة.</p>
+                <p>النظام جاهز. تم تفعيل كافة الأقسام المالية والإدارية.</p>
             </div>
             {% endblock %}
         </section>
@@ -152,8 +117,9 @@
     <script>
         function toggleSub(el) {
             let drop = el.nextElementSibling;
-            drop.style.display = (drop.style.display === "block") ? "none" : "block";
-            el.querySelector('.fa-chevron-down').style.transform = (drop.style.display === "block") ? "rotate(180deg)" : "rotate(0deg)";
+            let isOpen = (drop.style.display === "block");
+            drop.style.display = isOpen ? "none" : "block";
+            el.querySelector('.fa-chevron-down').style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
         }
     </script>
 </body>
