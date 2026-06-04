@@ -14,8 +14,8 @@ def create_app():
 
     # 🛡️ إعدادات الأمان للجلسات (Session Security)
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
-    app.config['SESSION_COOKIE_HTTPONLY'] = True  # حماية ضد سرقة الجلسة (XSS)
-    app.config['SESSION_COOKIE_SECURE'] = True    # فرض الاتصال الآمن (HTTPS فقط)
+    app.config['SESSION_COOKIE_HTTPONLY'] = True  
+    app.config['SESSION_COOKIE_SECURE'] = True    
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
     # 🛡️ الحماية من التزييف (ProxyFix لضمان صحة عناوين الـ IP)
@@ -28,6 +28,7 @@ def create_app():
     with app.app_context():
         # 🛡️ إعدادات قاعدة البيانات الدفاعية
         try:
+            # استيراد النماذج لضمان تسجيل الجداول في db
             from apps.models.admin_db import AdminUser
             from apps.models.supplier_db import Supplier
             from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -44,13 +45,14 @@ def create_app():
             except: return None
 
         # 🛡️ تسجيل دفاعي صارم
+        # تأكد أن bp_name هو نفس الاسم الذي عرفته في Blueprint() داخل كل module
         blueprints_map = [
             ('apps.auth_portal.routes', 'auth_portal', ''),
             ('apps.add_supplier.routes', 'add_supplier', '/suppliers'),
             ('apps.financial_ops.routes', 'financial_blueprint', '/financial_ops'),
             ('apps.statement.routes', 'statement_blueprint', '/statement'),
             ('apps.admin_dashboard.routes', 'admin_dashboard', '/admin'),
-            ('api.webhook', 'webhook_bp', '')
+            ('api.webhook', 'webhook_bp', '/api')
         ]
 
         for module_path, bp_name, prefix in blueprints_map:
@@ -58,7 +60,7 @@ def create_app():
                 module = __import__(module_path, fromlist=[bp_name])
                 app.register_blueprint(getattr(module, bp_name), url_prefix=prefix)
             except Exception as e:
-                print(f"⚠️ Security Alert: Failed to register {bp_name}")
+                print(f"⚠️ Security Alert: Failed to register {bp_name} - Error: {e}")
 
         # 🛡️ حظر الزحف والأرشفة جذرياً
         @app.route('/robots.txt')
@@ -69,14 +71,13 @@ def create_app():
         def root_redirect():
             return redirect('/login')
 
-        # 🛡️ الحماية المتقدمة (Security Headers مع التعديل اللازم لعمل التصميم)
+        # 🛡️ الحماية المتقدمة (Security Headers)
         @app.after_request
         def add_security_headers(response):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline'; "
-                # تم إضافة cdn.jsdelivr.net و cdnjs.cloudflare.com للسماح بالتنسيق
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
                 "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
                 "img-src 'self' https://cdn.qumra.cloud; "
