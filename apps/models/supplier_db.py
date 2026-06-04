@@ -21,6 +21,8 @@ class Supplier(db.Model):
     # حقول البيانات المشفرة
     trade_name_enc = db.Column(db.String(255), nullable=False)
     owner_name_enc = db.Column(db.String(255), nullable=False)
+    id_type_enc = db.Column(db.String(255)) # نوع الهوية
+    supply_category_enc = db.Column(db.String(255)) # فئة التوريد
     owner_phone_enc = db.Column(db.String(255), nullable=False)
     shop_phone_enc = db.Column(db.String(255), nullable=False)
     province_enc = db.Column(db.String(255))
@@ -51,6 +53,16 @@ class Supplier(db.Model):
     def owner_name(self): return AESCipher.decrypt(self.owner_name_enc)
     @owner_name.setter
     def owner_name(self, value): self.owner_name_enc = AESCipher.encrypt(str(value))
+
+    @property
+    def id_type(self): return AESCipher.decrypt(self.id_type_enc)
+    @id_type.setter
+    def id_type(self, value): self.id_type_enc = AESCipher.encrypt(str(value))
+
+    @property
+    def supply_category(self): return AESCipher.decrypt(self.supply_category_enc)
+    @supply_category.setter
+    def supply_category(self, value): self.supply_category_enc = AESCipher.encrypt(str(value))
 
     @property
     def owner_phone(self): return AESCipher.decrypt(self.owner_phone_enc)
