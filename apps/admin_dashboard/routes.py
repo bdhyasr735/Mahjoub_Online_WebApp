@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/admin_dashboard/routes.py - لوحة التحكم السيادية (مكتمل)
+# 📂 apps/admin_dashboard/routes.py - لوحة التحكم السيادية (مُحدث بالبيانات الشخصية)
 
 from flask import Blueprint, render_template, abort, session
 from flask_login import login_required, current_user
@@ -33,9 +33,13 @@ def dashboard():
 
     try:
         # استخراج الإحصائيات المالية
-        # نستخدم .scalar() للتأكد من إرجاع قيمة رقمية
         total_sar = db.session.query(func.sum(SupplierWallet.sar_total)).scalar() or 0
         total_yer = db.session.query(func.sum(SupplierWallet.yer_total)).scalar() or 0
+        
+        # 🔑 استدعاء بيانات المستخدم والمتجر (مع توفير قيم افتراضية آمنة)
+        # نستخدم getattr للبحث عن الحقول، إذا لم توجد نستخدم قيم افتراضية
+        user_name = getattr(current_user, 'name', 'المسؤول')
+        store_name = getattr(current_user, 'store_name', 'محجوب أونلاين')
         
         # تجميع البيانات للوحة التحكم
         context = {
@@ -43,15 +47,16 @@ def dashboard():
             'total_balance_sar': float(total_sar),
             'total_balance_yer': float(total_yer),
             'recent_transactions': WalletTransaction.query.order_by(WalletTransaction.id.desc()).limit(10).all(),
-            'now': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            'now': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'user_name': user_name,      # إرسال الاسم للقالب
+            'store_name': store_name     # إرسال اسم المتجر للقالب
         }
         
-        # تقديم القالب (تأكد من مطابقة اسم الملف في مجلد templates)
+        # تقديم القالب
         return render_template('admin/dashboard_content.html', **context)
         
     except Exception as e:
-        # 🔐 حماية عند حدوث خطأ: سجل الخطأ واعرض رسالة عامة للمستخدم
-        # لغرض التطوير نتركها كما هي، وفي الإنتاج يفضل استخدام logger
+        # 🔐 حماية عند حدوث خطأ
         return f"🚨 خطأ تقني في استدعاء قاعدة البيانات: {str(e)}", 500
 
 # إضافات مستقبلية للتحكم السيادي
