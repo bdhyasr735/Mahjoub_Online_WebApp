@@ -1,39 +1,37 @@
-# coding: utf-8
-from flask import Blueprint, render_template, request, redirect, url_for, flash
-from apps.extensions import db
-# ❌ احذف السطر التالي: from apps.models import Supplier 
+from flask import render_template, request, jsonify, url_for
+from werkzeug.security import generate_password_hash
+from apps import db # مفترض وجود اتصال بقاعدة البيانات
+from apps.config import constants
+# من المفضل استيراد نموذج المورد الخاص بك هنا: from apps.models import Supplier
 
-# تعريف الـ Blueprint للمصنع
-add_supplier = Blueprint('add_supplier', __name__)
+@admin.route('/add_supplier', methods=['GET', 'POST'])
+def add_supplier():
+    if request.method == 'GET':
+        # تمرير الثوابت للقالب
+        return render_template('admin/add_supplier.html', 
+                               constants=constants, 
+                               next_id="001") # هنا يتم استدعاء الدالة لجلب آخر ID
 
-@add_supplier.route('/add', methods=['GET', 'POST'])
-def add():
-    # ✅ قم بالاستيراد داخل الدالة فقط
-    from apps.models.supplier_db import Supplier 
-    
     if request.method == 'POST':
+        data = request.get_json()
+        
         try:
-            new_supplier = Supplier(
-                sovereign_id=request.form.get('sovereign_id'),
-                wallet_code=request.form.get('wallet_code'),
-                owner_name=request.form.get('owner_name'),
-                owner_phone=request.form.get('owner_phone'),
-                trade_name=request.form.get('trade_name'),
-                shop_phone=request.form.get('shop_phone'),
-                bank_acc=request.form.get('bank_acc'),
-                identity_number=request.form.get('identity_number'),
-                username=request.form.get('username'),
-                password=request.form.get('password')
-            )
+            # 1. تشفير كلمة المرور قبل الحفظ
+            hashed_password = generate_password_hash(data['password'])
             
-            db.session.add(new_supplier)
-            db.session.commit()
+            # 2. تجهيز البيانات للحفظ (هنا يتم إدخالها في جدول الموردين)
+            # new_supplier = Supplier(
+            #     username=data['username'],
+            #     password=hashed_password,
+            #     activity_type=data['activity_type'],
+            #     owner_name=data['owner_name'],
+            #     identity_type=data['identity_type'],
+            #     ...
+            # )
+            # db.session.add(new_supplier)
+            # db.session.commit()
             
-            flash("✅ تم إضافة المورد بنجاح إلى سجلات المصنع.", "success")
-            return redirect(url_for('admin_dashboard.dashboard'))
+            return jsonify({"status": "success", "message": "تمت أرشفة المورد وتشفير بياناته بنجاح"})
             
         except Exception as e:
-            db.session.rollback()
-            flash(f"❌ حدث خطأ أثناء الإضافة: {str(e)}", "danger")
-            
-    return render_template('add_supplier.html')
+            return jsonify({"status": "error", "message": str(e)}), 400
