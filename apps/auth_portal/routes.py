@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/auth_portal/routes.py - مسارات الدخول المباشر المحصنة
+# 📂 apps/auth_portal/routes.py - مسارات الدخول المباشر المحصنة والمشفرة
 
 import os
 import time
@@ -22,53 +22,56 @@ def login():
         return redirect(url_for('admin_dashboard.dashboard'))
 
     if request.method == 'POST':
+        # استخدام .strip() لمنع أخطاء المسافات الزائدة
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
-        # 🛡️ تأخير زمني لمنع القوة الغاشمة (Brute Force)
-        time.sleep(random.uniform(0.8, 1.5))
-        
-        error_msg = 'بيانات الدخول غير صحيحة.'
+        # 🛡️ تأخير زمني عشوائي لإحباط هجمات القوة الغاشمة (Brute Force)
+        time.sleep(random.uniform(1.0, 2.0))
         
         try:
             user = AdminUser.query.filter_by(username=username).first()
             
-            if user:
-                # 🛡️ التحقق من القفل
-                if hasattr(user, 'is_locked') and user.is_locked():
-                    flash('الحساب مقفل مؤقتاً.', 'danger')
-                
-                # التحقق من كلمة المرور
-                elif user.check_password(password):
-                    if user.role in ['Owner', 'Admin']:
-                        login_user(user)
-                        if hasattr(user, 'reset_failed_attempts'):
-                            user.reset_failed_attempts()
-                            db.session.commit()
-                        return redirect(url_for('admin_dashboard.dashboard'))
-                    else:
-                        flash(error_msg, 'danger')
-                else:
-                    # تسجيل فشل المحاولة
-                    if hasattr(user, 'increment_failed_attempts'):
-                        user.increment_failed_attempts()
+            # 1. التحقق من وجود اسم المستخدم
+            if not user:
+                flash('اسم المستخدم غير مسجل في المنصة اللامركزية.', 'danger')
+                return render_template('auth/login.html')
+
+            # 2. التحقق من القفل (تجاوز المحاولات الخاطئة)
+            if hasattr(user, 'is_locked') and user.is_locked():
+                flash('الحساب مقفل مؤقتاً بسبب كثرة المحاولات.', 'danger')
+                return render_template('auth/login.html')
+            
+            # 3. التحقق من كلمة المرور
+            if user.check_password(password):
+                if user.role in ['Owner', 'Admin']:
+                    login_user(user)
+                    if hasattr(user, 'reset_failed_attempts'):
+                        user.reset_failed_attempts()
                         db.session.commit()
-                    flash(error_msg, 'danger')
+                    return redirect(url_for('admin_dashboard.dashboard'))
+                else:
+                    flash('ليس لديك صلاحية الدخول لهذه البوابة.', 'danger')
             else:
-                flash(error_msg, 'danger')
-                
+                # كلمة المرور غير صحيحة
+                if hasattr(user, 'increment_failed_attempts'):
+                    user.increment_failed_attempts()
+                    db.session.commit()
+                flash('كلمة المرور غير صحيحة.', 'danger')
+                    
         except Exception as e:
+            # تسجيل الخطأ في السجلات (Logs) وليس للمستخدم مباشرة
             print(f"🚨 خطأ فني في بوابة الدخول: {e}")
-            flash('عذراً، النظام غير متاح حالياً. يرجى المحاولة لاحقاً.', 'warning')
+            flash('حدث خطأ في الاتصال بالمنصة، يرجى المحاولة لاحقاً.', 'warning')
     
-    # تأكد أن المجلد هو 'auth' داخل مجلد templates الخاص بالـ Blueprint
     return render_template('auth/login.html')
 
 # -------------------------------------------------------------------------
-# 2. مسار الكمين (Decoy) - لخداع البوتات
+# 2. مسار الكمين (Decoy) - لمنع الزحف التلقائي (Bots Crawling)
 # -------------------------------------------------------------------------
 @auth_portal.route('/login', methods=['GET', 'POST'])
 def decoy_login():
+    # أي محاولة وصول لهذا المسار ستؤدي لحظر الطلب
     abort(403)
 
 # -------------------------------------------------------------------------
