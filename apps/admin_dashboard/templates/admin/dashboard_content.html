@@ -1,225 +1,31 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}القيادة المركزية | محجوب أونلاين{% endblock %}</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    
-    <style>
-        :root {
-            --royal-purple: #1a0b2e;
-            --deep-black: #08020d;
-            --mahjoub-gold: #D4AF37;
-            --sidebar-width: 280px;
-            --sidebar-mini: 85px;
-            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+{% extends 'admin/admin_base.html' %}
 
-        body { 
-            font-family: 'Cairo', sans-serif; 
-            background: #f8f9fa; 
-            margin: 0; display: flex; direction: rtl; min-height: 100vh;
-            overflow-x: hidden;
-        }
+{% block title %}القيادة المركزية | الإحصائيات{% endblock %}
 
-        /* --- السايدبار الإداري (The Command Center) --- */
-        .sidebar {
-            width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
-            height: 100vh; position: fixed; right: 0; top: 0;
-            z-index: 1100; display: flex; flex-direction: column;
-            transition: var(--transition);
-            box-shadow: -5px 0 20px rgba(0,0,0,0.3);
-        }
+{% block content %}
+<div class="container-fluid">
+    <!-- عنوان الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold" style="color: var(--royal-purple);">لوحة تحكم النظام</h3>
+        <button class="btn btn-gold text-white" style="background: var(--mahjoub-gold);">
+            <i class="fas fa-sync-alt"></i> تحديث البيانات
+        </button>
+    </div>
 
-        .sidebar-header { 
-            padding: 2rem 1rem; text-align: center; 
-            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
-        }
-        
-        .logo-img { 
-            width: 65px; height: auto; 
-            filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
-            margin-bottom: 15px; 
-        }
-        
-        .sidebar-header h2 { color: white; font-size: 1.1rem; margin: 0; font-weight: 800; letter-spacing: 1px; }
-        .platform-desc { color: var(--mahjoub-gold); font-size: 0.7rem; font-weight: 600; margin-top: 5px; opacity: 0.8; }
-
-        .nav-menu { padding: 1.5rem 0.8rem; flex-grow: 1; overflow-y: auto; }
-        .nav-link {
-            display: flex; align-items: center; padding: 12px 15px;
-            color: rgba(255, 255, 255, 0.7); text-decoration: none;
-            border-radius: 12px; margin-bottom: 8px; transition: var(--transition);
-            cursor: pointer; white-space: nowrap;
-        }
-
-        .nav-link i { min-width: 35px; font-size: 1.1rem; text-align: center; }
-        .nav-link:hover, .nav-link.active {
-            background: rgba(212, 175, 55, 0.12); color: var(--mahjoub-gold);
-            transform: translateX(-5px);
-        }
-
-        .dropdown-content {
-            display: none; list-style: none; padding: 0; margin-right: 2.5rem;
-            border-right: 1px solid rgba(212, 175, 55, 0.3);
-            margin-bottom: 10px;
-        }
-        .dropdown-content li a {
-            padding: 8px 15px; color: rgba(255,255,255,0.5);
-            display: flex; align-items: center; gap: 10px; text-decoration: none; font-size: 0.85rem;
-            transition: 0.3s;
-        }
-        .dropdown-content li a:hover { color: var(--mahjoub-gold); padding-right: 20px; }
-
-        .main-wrapper { 
-            margin-right: var(--sidebar-width); width: 100%; 
-            transition: var(--transition); display: flex; flex-direction: column;
-            min-width: 0;
-        }
-
-        .top-bar {
-            background: white; height: 75px; display: flex; align-items: center;
-            justify-content: space-between; padding: 0 2rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-            position: sticky; top: 0; z-index: 1000;
-        }
-
-        .admin-badge {
-            background: rgba(212, 175, 55, 0.1); padding: 8px 20px; border-radius: 50px;
-            border: 1px solid var(--mahjoub-gold); display: flex; align-items: center; gap: 10px;
-        }
-
-        .user-profile { display: flex; align-items: center; gap: 12px; }
-        .user-avatar { 
-            width: 42px; height: 42px; background: var(--royal-purple); 
-            border-radius: 12px; display: flex; align-items: center; 
-            justify-content: center; color: var(--mahjoub-gold);
-            box-shadow: 0 4px 10px rgba(26, 11, 46, 0.2);
-        }
-
-        .content-area { padding: 2rem; min-height: calc(100vh - 75px); }
-
-        @media (max-width: 992px) {
-            .sidebar { width: var(--sidebar-mini); }
-            .sidebar-header h2, .platform-desc, .nav-link span, .chevron, .dropdown-content { display: none !important; }
-            .main-wrapper { margin-right: var(--sidebar-mini); }
-            .logo-img { width: 40px; }
-        }
-    </style>
-</head>
-<body>
-
-    <aside class="sidebar shadow">
-        <div class="sidebar-header">
-            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="logo-img" alt="Mahjoub Online">
-            <h2>الإدارة المركزية</h2>
-            <div class="platform-desc">نظام حوكمة سوقك الذكي</div>
+    <!-- كروت الإحصائيات -->
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card p-4 border-0 shadow-sm">
+                <h6 class="text-muted">إجمالي الموردين</h6>
+                <h2 class="fw-bold">{{ total_suppliers }}</h2>
+            </div>
         </div>
-
-        <nav class="nav-menu">
-            <a href="{{ url_for('admin_panel.admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_panel.admin_dashboard' %}active{% endif %}">
-                <i class="fas fa-chart-line"></i>
-                <span>الإحصائيات العامة</span>
-            </a>
-
-            <!-- إدارة الموردين -->
-            <div class="nav-item">
-                <div class="nav-link" onclick="toggleDropdown(this)">
-                    <i class="fas fa-handshake"></i>
-                    <span>إدارة الموردين</span>
-                    <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.3s;"></i>
-                </div>
-                <ul class="dropdown-content">
-                    <li><a href="{{ url_for('admin_panel.admin_dashboard') }}"><i class="fas fa-users-gear"></i> جميع الموردين</a></li>
-                    <li><a href="#"><i class="fas fa-user-plus"></i> طلبات الانضمام</a></li>
-                </ul>
+        <div class="col-md-4">
+            <div class="card p-4 border-0 shadow-sm">
+                <h6 class="text-muted">الرصيد الكلي</h6>
+                <h2 class="fw-bold text-success">{{ total_balance }} ريال</h2>
             </div>
-
-            <!-- إدارة المستخدمين -->
-            <div class="nav-item">
-                <div class="nav-link" onclick="toggleDropdown(this)">
-                    <i class="fas fa-users"></i>
-                    <span>قاعدة العملاء</span>
-                    <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.3s;"></i>
-                </div>
-                <ul class="dropdown-content">
-                    <li><a href="#"><i class="fas fa-user-shield"></i> المدراء</a></li>
-                    <li><a href="#"><i class="fas fa-user-tag"></i> العملاء</a></li>
-                </ul>
-            </div>
-
-            <!-- الرقابة المالية -->
-            <div class="nav-item">
-                <div class="nav-link" onclick="toggleDropdown(this)">
-                    <i class="fas fa-monument"></i>
-                    <span>الرقابة المالية</span>
-                    <i class="fas fa-chevron-down chevron ms-auto" style="font-size: 0.7rem; transition: 0.3s;"></i>
-                </div>
-                <ul class="dropdown-content">
-                    <li><a href="#"><i class="fas fa-file-invoice-dollar"></i> تسويات الموردين</a></li>
-                    <li><a href="#"><i class="fas fa-wallet"></i> الأرباح المركزية</a></li>
-                </ul>
-            </div>
-
-            <!-- خروج آمن من لوحة الإدارة -->
-            <a href="{{ url_for('admin_panel.logout') }}" class="nav-link mt-auto" style="color: #ff7675; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem;">
-                <i class="fas fa-door-open"></i>
-                <span>خروج آمن</span>
-            </a>
-        </nav>
-    </aside>
-
-    <main class="main-wrapper">
-        <header class="top-bar">
-            <div class="user-profile">
-                <div class="user-avatar">
-                    <i class="fas fa-user-tie"></i>
-                </div>
-                <div>
-                    <div style="font-weight: 800; color: var(--royal-purple); line-height: 1.2;">علي محجوب</div>
-                    <small style="color: #aaa; font-size: 0.75rem;">المسؤول الأعلى للنظام</small>
-                </div>
-            </div>
-
-            <div class="admin-badge d-none d-md-flex">
-                <i class="fas fa-vial-circle-check" style="color: var(--mahjoub-gold);"></i>
-                <strong style="color: var(--royal-purple); font-size: 0.9rem;">بيئة التحكم السيادية</strong>
-            </div>
-        </header>
-
-        <div class="content-area">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                {% for category, message in messages %}
-                  <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm border-0 mb-4">
-                      <i class="fas fa-shield-halved me-2"></i> {{ message }}
-                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                  </div>
-                {% endfor %}
-              {% endif %}
-            {% endwith %}
-
-            {% block content %}{% endblock %}
         </div>
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function toggleDropdown(element) {
-            const content = element.nextElementSibling;
-            const chevron = element.querySelector('.chevron');
-            document.querySelectorAll('.dropdown-content').forEach(el => { if (el !== content) el.style.display = 'none'; });
-            document.querySelectorAll('.chevron').forEach(ch => { if (ch !== chevron) ch.style.transform = "rotate(0deg)"; });
-            const isOpen = content.style.display === "block";
-            content.style.display = isOpen ? "none" : "block";
-            if(chevron) chevron.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
-        }
-    </script>
-</body>
-</html>
+    </div>
+</div>
+{% endblock %}
