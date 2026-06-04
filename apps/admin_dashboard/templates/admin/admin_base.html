@@ -63,10 +63,9 @@
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .content-body { padding: 30px; }
 
-        /* تنسيق بيانات المستخدم والمتجر */
+        /* تنسيق بيانات المستخدم */
         .user-identity { text-align: right; }
-        .user-name { font-weight: 800; color: var(--royal-purple); display: block; font-size: 1.1rem; }
-        .store-name { font-size: 0.85rem; color: var(--mahjoub-gold); font-weight: 600; }
+        .user-name { font-weight: 800; color: var(--royal-purple); font-size: 1.2rem; display: flex; align-items: center; }
 
         @media (max-width: 992px) {
             .sidebar { width: 80px; }
@@ -86,7 +85,7 @@
 
         <nav class="nav-menu">
             <div class="nav-item-wrapper"><a href="#" class="nav-link"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a></div>
-
+            
             <div class="nav-item-wrapper">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-box-open me-3"></i> <span>المنتجات</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
@@ -124,8 +123,7 @@
     <main class="main-wrapper">
         <header class="top-navbar">
             <div class="user-identity">
-                <span class="user-name">{{ current_user.name if current_user.is_authenticated else 'المسؤول' }}</span>
-                <span class="store-name"><i class="fas fa-store me-1"></i> {{ current_user.store_name if current_user.store_name else 'محجوب أونلاين' }}</span>
+                <span class="user-name"><i class="fas fa-user-circle me-2"></i> {{ current_user.username if current_user.is_authenticated else 'المسؤول' }}</span>
             </div>
             <div class="badge bg-warning text-dark p-2 px-3">بيئة التحكم السيادية</div>
         </header>
