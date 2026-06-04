@@ -33,13 +33,13 @@ def dashboard():
 
     try:
         # استخراج الإحصائيات المالية
-        total_sar = db.session.query(func.sum(SupplierWallet.sar_total)).scalar() or 0
-        total_yer = db.session.query(func.sum(SupplierWallet.yer_total)).scalar() or 0
+        total_sar = db.session.query(func.sum(SupplierWallet.sar_total)).scalar() or 0.0
+        total_yer = db.session.query(func.sum(SupplierWallet.yer_total)).scalar() or 0.0
         
-        # 🔑 استدعاء بيانات المستخدم والمتجر (مع توفير قيم افتراضية آمنة)
-        # نستخدم getattr للبحث عن الحقول، إذا لم توجد نستخدم قيم افتراضية
-        user_name = getattr(current_user, 'name', 'المسؤول')
-        store_name = getattr(current_user, 'store_name', 'محجوب أونلاين')
+        # 🔑 استدعاء بيانات المستخدم والمتجر 
+        # نستخدم username لأن هذا ما هو معرف فعلياً في جدول admin_users
+        user_name = current_user.username if current_user.is_authenticated else 'المسؤول'
+        store_name = 'محجوب أونلاين' # اسم ثابت للمتجر كما هو مطلوب
         
         # تجميع البيانات للوحة التحكم
         context = {
