@@ -13,7 +13,6 @@ def create_app():
     app.config.from_object(Config)
 
     # 🛡️ إعدادات الأمان للجلسات (Session Security)
-    # إغلاق الجلسة تلقائياً بعد 15 دقيقة من الخمول
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # حماية ضد سرقة الجلسة (XSS)
     app.config['SESSION_COOKIE_SECURE'] = True    # فرض الاتصال الآمن (HTTPS فقط)
@@ -70,15 +69,16 @@ def create_app():
         def root_redirect():
             return redirect('/login')
 
-        # 🛡️ الحماية المتقدمة (Security Headers)
+        # 🛡️ الحماية المتقدمة (Security Headers مع التعديل اللازم لعمل التصميم)
         @app.after_request
         def add_security_headers(response):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
             response.headers["Content-Security-Policy"] = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline'; "
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
-                "font-src 'self' https://fonts.gstatic.com; "
+                # تم إضافة cdn.jsdelivr.net و cdnjs.cloudflare.com للسماح بالتنسيق
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+                "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
                 "img-src 'self' https://cdn.qumra.cloud; "
                 "frame-ancestors 'none';"
             )
