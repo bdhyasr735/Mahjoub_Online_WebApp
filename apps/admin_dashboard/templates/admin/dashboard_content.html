@@ -35,8 +35,12 @@
                     </div>
                     <div class="ms-3"><h6 class="text-muted mb-0">الأرصدة المركزية</h6></div>
                 </div>
-                <h5 class="fw-bold mb-0">{{ "%.2f"|format(total_balance_sar) }} <small>ر.س</small></h5>
-                <h5 class="fw-bold mb-0">{{ "%.2f"|format(total_balance_yer) }} <small>ر.ي</small></h5>
+                {% if total_balance_sar is defined %}
+                    <h5 class="fw-bold mb-0">{{ "%.2f"|format(total_balance_sar) }} <small>ر.س</small></h5>
+                    <h5 class="fw-bold mb-0">{{ "%.2f"|format(total_balance_yer) }} <small>ر.ي</small></h5>
+                {% else %}
+                    <h6 class="text-muted">نظام المحفظة قيد التحديث...</h6>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -56,16 +60,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for tx in recent_transactions %}
-                            <tr>
-                                <td>#{{ tx.id }}</td>
-                                <td>{{ tx.amount }}</td>
-                                <td>{{ tx.transaction_type }}</td>
-                                <td><span class="badge bg-info">{{ tx.status }}</span></td>
-                            </tr>
+                            {% if recent_transactions is defined and recent_transactions %}
+                                {% for tx in recent_transactions %}
+                                <tr>
+                                    <td>#{{ tx.id }}</td>
+                                    <td>{{ tx.amount }}</td>
+                                    <td>{{ tx.transaction_type }}</td>
+                                    <td><span class="badge bg-info">{{ tx.status }}</span></td>
+                                </tr>
+                                {% endfor %}
                             {% else %}
-                            <tr><td colspan="4" class="text-center text-muted">لا توجد عمليات مسجلة حالياً</td></tr>
-                            {% endfor %}
+                                <tr><td colspan="4" class="text-center text-muted">لا توجد عمليات مالية حالياً في انتظار التحديث</td></tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
