@@ -1,17 +1,19 @@
-# apps/api/search.py
+# 📂 apps/api/search.py
 from flask import Blueprint, request, jsonify
 from apps.models.supplier_db import Supplier
 
-# تم التعديل هنا ليطابق ما هو مسجل في __init__.py
+# تم التعديل ليطابق ما هو مسجل في المصنع __init__.py
 api_search = Blueprint('api_search', __name__)
 
-@api_search.route('/api/search', methods=['GET']) # تم التعديل أيضاً هنا
+# تعديل المسار إلى '/search' فقط، لأن المصنع يضيف '/api' تلقائياً
+@api_search.route('/search', methods=['GET']) 
 def search_suppliers():
     query = request.args.get('q', '')
     
     if not query:
         return jsonify({"results": []})
 
+    # البحث باستخدام ilike
     suppliers = Supplier.query.filter(
         (Supplier.search_name.ilike(f'%{query}%')) | 
         (Supplier.search_phone.ilike(f'%{query}%'))
