@@ -29,30 +29,47 @@
     .stat-box small { color: #f0f0f0; font-weight: 500; display: block; margin-bottom: 5px; }
     .stat-box h3 { color: var(--mahjoub-gold); margin: 0; }
 
-    .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; padding: 20px; }
-    .btn-mahjoub { background-color: var(--mahjoub-purple) !important; color: white !important; }
+    .mahjoub-card { 
+        border-radius: 20px; 
+        border: none; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        background: #fff; 
+        padding: 20px; 
+    }
+    
+    .btn-mahjoub { 
+        background-color: var(--mahjoub-purple) !important; 
+        color: white !important; 
+        transition: 0.3s;
+    }
     .btn-mahjoub:hover { background-color: var(--mahjoub-gold) !important; }
+
+    /* تحسين Select2 داخل الكرت */
+    .select2-container--default .select2-selection--single {
+        height: 50px !important;
+        padding: 10px !important;
+        border-radius: 10px !important;
+    }
 </style>
 
 <div class="container-fluid py-4">
-    <!-- صف البطاقات الملون -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="stat-box bg-purple">
                 <small>إجمالي أرصدة النظام (SAR)</small>
-                <h3 class="fw-bold">{{ total_system_sar }}</h3>
+                <h3 class="fw-bold">{{ "{:,.2f}".format(total_system_sar) }}</h3>
             </div>
         </div>
         <div class="col-md-4">
             <div class="stat-box bg-green">
                 <small>إجمالي أرصدة النظام (YER)</small>
-                <h3 class="fw-bold">{{ total_system_yer }}</h3>
+                <h3 class="fw-bold">{{ "{:,.2f}".format(total_system_yer) }}</h3>
             </div>
         </div>
         <div class="col-md-4">
             <div class="stat-box bg-orange">
                 <small>إجمالي أرصدة النظام (USD)</small>
-                <h3 class="fw-bold">{{ total_system_usd }}</h3>
+                <h3 class="fw-bold">{{ "{:,.2f}".format(total_system_usd) }}</h3>
             </div>
         </div>
     </div>
@@ -60,7 +77,7 @@
     <div class="mahjoub-card">
         <h5 class="mb-3" style="color: var(--mahjoub-purple);"><i class="fas fa-search"></i> بحث ذكي في الموردين</h5>
         <div class="input-group input-group-lg">
-            <select id="supplierSearch" class="form-control"></select>
+            <select id="supplierSearch" class="form-control" style="width: 80%;"></select>
             <button class="btn btn-mahjoub px-4" onclick="loadWallet()">عرض المحفظة</button>
         </div>
     </div>
@@ -77,18 +94,34 @@
     $(document).ready(function() {
         $('#supplierSearch').select2({
             placeholder: "ابحث عن المورد بالاسم أو رقم الهاتف...",
-            ajax: { url: '/api/search_suppliers', dataType: 'json', delay: 250, data: params => ({ q: params.term }), processResults: data => ({ results: data }) }
+            allowClear: true,
+            ajax: { 
+                url: '/api/search_suppliers', 
+                dataType: 'json', 
+                delay: 250, 
+                data: params => ({ q: params.term }), 
+                processResults: data => ({ results: data }) 
+            }
         });
     });
 
     function loadWallet(page = 1) {
         let supplierId = $('#supplierSearch').val();
-        if(!supplierId) return alert('يرجى اختيار مورد أولاً');
+        if(!supplierId) {
+            Swal.fire('تنبيه', 'يرجى اختيار مورد من القائمة أولاً', 'warning');
+            return;
+        }
+        
+        // إظهار تحميل بسيط
+        document.getElementById('walletDisplayArea').innerHTML = '<div class="text-center py-5">جاري التحميل...</div>';
         
         fetch(`/wallet/view/${supplierId}?page=${page}`)
         .then(r => r.text())
         .then(html => {
             document.getElementById('walletDisplayArea').innerHTML = html;
+        })
+        .catch(err => {
+            document.getElementById('walletDisplayArea').innerHTML = '<div class="alert alert-danger">حدث خطأ أثناء جلب البيانات.</div>';
         });
     }
 </script>
