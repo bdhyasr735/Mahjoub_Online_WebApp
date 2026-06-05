@@ -1,42 +1,70 @@
-# coding: utf-8
-# 📂 apps/wallet/routes.py - المحرك المالي للمحفظة
-
-from flask import Blueprint, render_template, request, jsonify
+# 📂 apps/wallet/routes.py - المحرك المالي السيادي
+from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required
+from sqlalchemy import func
+from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 
-# تعريف التطبيق المستقل (Blueprint)
-wallet_bp = Blueprint('wallet_app', __name__, template_folder='templates')
+# إنشاء البلوبيرنت (المصنع)
+wallet_bp = Blueprint('wallet_app', __name__)
 
-# 1. محرك البحث (يُستخدم في شريط البحث الذكي)
-@wallet_bp.route('/api/search', methods=['GET'])
+@wallet_bp.route('/dashboard')
 @login_required
-def search_suppliers():
-    query = request.args.get('q', '')
-    if len(query) < 2: return jsonify([])
+def dashboard():
+    """
+    محرك لوحة التحكم: يعرض الإحصائيات الشاملة للمنصة (بالعملات الثلاث)
+    """
+    # استعلام ذكي وسريع لحساب الإجماليات من المليون محفظة
+    totals = db.session.query(
+        func.sum(SupplierWallet.balance_sar),
+        func.sum(SupplierWallet.balance_yer),
+        func.sum(SupplierWallet.balance_usd)
+    ).first()
     
-    # بحث سريع في الموردين
-    suppliers = Supplier.query.filter(Supplier.name.ilike(f'%{query}%')).limit(10).all()
-    return jsonify([{'id': s.id, 'name': s.name} for s in suppliers])
+    return render_template('admin/wallet_dashboard.html', 
+                           total_system_sar=totals[0] or 0,
+                           total_system_yer=totals[1] or 0,
+                           total_system_usd=totals[2] or 0)
 
-# 2. محرك استدعاء المحفظة (يُستخدم لعرض بيانات المورد في النافذة)
 @wallet_bp.route('/view/<int:supplier_id>')
 @login_required
 def view_wallet(supplier_id):
+    """
+    محرك عرض محفظة المورد: يجمع بين هوية المورد، رصيده، وسجل عملياته
+    """
+    # 1. جلب المورد
     supplier = Supplier.query.get_or_404(supplier_id)
+    
+    # 2. جلب المحفظة المرتبطة
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
     
-    # إذا لم توجد محفظة، ننشئ كائناً فارغاً
-    if not wallet:
-        wallet = type('obj', (object,), {'balance_sar': 0, 'balance_yer': 0, 'balance_usd': 0})
-        transactions = []
-    else:
+    # 3. جلب سجل الحركات (آخر 50 عملية لضمان السرعة)
+    transactions = []
+    if wallet:
         transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id)\
-            .order_by(WalletTransaction.created_at.desc()).limit(20).all()
-
-    # هنا يتم استدعاء ملف الـ HTML "الرشيق" الذي صممناه
+                        .order_by(WalletTransaction.created_at.desc())\
+                        .limit(50).all()
+    
     return render_template('admin/wallet_app.html', 
                            supplier=supplier, 
                            wallet=wallet, 
                            transactions=transactions)
+
+@wallet_bp.route('/api/stats')
+@login_required
+def get_stats():
+    """
+    محرك API لتحديث الإحصائيات حياً (Live Updates)
+    """
+    totals = db.session.query(
+        func.sum(SupplierWallet.balance_sar),
+        func.sum(SupplierWallet.balance_yer),
+        func.sum(SupplierWallet.balance_usd)
+    ).first()
+    
+    return jsonify({
+        'sar': float(totals[0] or 0),
+        'yer': float(totals[1] or 0),
+        'usd': float(totals[2] or 0)
+    })
