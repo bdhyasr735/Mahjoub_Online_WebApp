@@ -1,65 +1,57 @@
-{% extends "admin/admin_base.html" %}
-
-{% block content %}
-<style>
-    .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; }
-    .stat-box { border-radius: 15px; padding: 20px; color: #fff; transition: 0.3s; }
-    .stat-box:hover { transform: translateY(-5px); }
-    .bg-gradient-sar { background: linear-gradient(135deg, #2c3e50, #4a6785); }
-    .bg-gradient-yer { background: linear-gradient(135deg, #27ae60, #2ecc71); }
-    .bg-gradient-usd { background: linear-gradient(135deg, #2980b9, #3498db); }
-</style>
-
-<div class="container-fluid py-4">
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="stat-box bg-gradient-sar">
-                <small class="text-white-50">إجمالي أرصدة النظام (SAR)</small>
-                <h3 class="fw-bold">{{ total_system_sar }}</h3>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-box bg-gradient-yer">
-                <small class="text-white-50">إجمالي أرصدة النظام (YER)</small>
-                <h3 class="fw-bold">{{ total_system_yer }}</h3>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-box bg-gradient-usd">
-                <small class="text-white-50">إجمالي أرصدة النظام (USD)</small>
-                <h3 class="fw-bold">{{ total_system_usd }}</h3>
-            </div>
-        </div>
+<div class="mahjoub-card p-4">
+    <h4>محفظة المورد: {{ supplier.trade_name }}</h4>
+    <div class="row mb-4">
+        <div class="col-4">الرصيد SAR: <strong>{{ wallet.balance_sar }}</strong></div>
+        <div class="col-4">الرصيد YER: <strong>{{ wallet.balance_yer }}</strong></div>
+        <div class="col-4">الرصيد USD: <strong>{{ wallet.balance_usd }}</strong></div>
     </div>
 
-    <div class="mahjoub-card p-4">
-        <h5 class="mb-3 text-primary"><i class="fas fa-search"></i> بحث ذكي في مليون مورد</h5>
-        <div class="input-group input-group-lg">
-            <select id="supplierSearch" class="form-control"></select>
-            <button class="btn btn-primary px-4" onclick="loadWallet()">عرض المحفظة</button>
-        </div>
-    </div>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>التاريخ</th>
+                <th>البيان</th>
+                <th>العملة</th>
+                <th>المبلغ</th>
+                <th>النوع</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+            <tr>
+                <td>{{ tx.created_at.strftime('%Y-%m-%d') }}</td>
+                <td>{{ tx.description }}</td>
+                <td>{{ tx.currency }}</td>
+                <td class="{{ 'text-success' if tx.transaction_type == 'credit' else 'text-danger' }}">
+                    {{ tx.amount }}
+                </td>
+                <td>{{ tx.transaction_type }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-    <div id="walletDisplayArea" class="mt-4">
-        <div class="text-center py-5 text-muted">
-            <i class="fas fa-wallet fa-4x mb-3 opacity-25"></i>
-            <h5>لا يوجد مورد محدد، ابحث لعرض تفاصيل المحفظة</h5>
-        </div>
-    </div>
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="#" onclick="loadWalletPage('{{ supplier.id }}', {{ pagination.prev_num }}); return false;">السابق</a>
+            </li>
+            <li class="page-item active">
+                <span class="page-link">{{ pagination.page }}</span>
+            </li>
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="#" onclick="loadWalletPage('{{ supplier.id }}', {{ pagination.next_num }}); return false;">التالي</a>
+            </li>
+        </ul>
+    </nav>
 </div>
 
 <script>
-    // عند اختيار مورد، يتم استدعاء المحرك
-    function loadWallet() {
-        let supplierId = $('#supplierSearch').val();
-        if(!supplierId) return;
-        
-        // استدعاء محرك المحفظة الذي صممناه
-        fetch(`/wallet/view/${supplierId}`)
+    function loadWalletPage(supplierId, page) {
+        fetch(`/wallet/view/${supplierId}?page=${page}`)
         .then(r => r.text())
         .then(html => {
             document.getElementById('walletDisplayArea').innerHTML = html;
         });
     }
 </script>
-{% endblock %}
