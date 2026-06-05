@@ -1,4 +1,4 @@
-# 📂 apps/wallet/routes.py - نظام المحافظ (مُحدث لدعم الترقيم)
+# 📂 apps/wallet/routes.py - المحرك المالي الاحترافي
 from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required
 from sqlalchemy import func
@@ -6,28 +6,31 @@ from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 
-# تعريف الـ Blueprint
+# تعريف المحرك (يجب أن يطابق الاسم المستخدم في __init__.py)
 wallet_app = Blueprint('wallet_app', __name__)
 
 @wallet_app.route('/view/<int:supplier_id>')
 @login_required
 def view_wallet(supplier_id):
-    # جلب بيانات المورد والمحفظة
+    # 1. جلب بيانات المورد والمحفظة الخاصة به
     supplier = Supplier.query.get_or_404(supplier_id)
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
     
-    # تحديد رقم الصفحة (الافتراضي هو الصفحة 1)
+    # في حال عدم وجود محفظة للمورد، ننشئها أو نرسل قيمة فارغة
+    if not wallet:
+        return "هذا المورد لا يمتلك محفظة حالياً.", 404
+
+    # 2. تحديد رقم الصفحة للترقيم (Pagination)
     page = request.args.get('page', 1, type=int)
     
-    # جلب العمليات مع نظام الترقيم (20 عملية لكل صفحة)
-    # نستخدم paginate بدلاً من limit لسهولة التنقل
+    # 3. جلب العمليات المالية بنظام الترقيم (20 عملية في كل صفحة)
     pagination = WalletTransaction.query.filter_by(wallet_id=wallet.id)\
         .order_by(WalletTransaction.created_at.desc())\
         .paginate(page=page, per_page=20, error_out=False)
     
     transactions = pagination.items
     
-    # إرسال البيانات للواجهة
+    # 4. إرسال البيانات إلى ملف التفاصيل (Fragment)
     return render_template('admin/wallet_app_detail.html', 
                            supplier=supplier, 
                            wallet=wallet, 
@@ -37,7 +40,7 @@ def view_wallet(supplier_id):
 @wallet_app.route('/api/stats')
 @login_required
 def get_stats():
-    # حساب إجمالي أرصدة النظام (اختياري حسب حاجتك في الواجهة)
+    # 5. حساب إجمالي أرصدة النظام (لصناديق الإحصائيات في الصفحة الرئيسية)
     totals = db.session.query(
         func.sum(SupplierWallet.balance_sar),
         func.sum(SupplierWallet.balance_yer),
