@@ -1,4 +1,6 @@
 # coding: utf-8
+# 📂 apps/__init__.py - المصنع الاحترافي والمحصن (نسخة الإنتاج المستقرة)
+
 import os
 from datetime import timedelta
 from flask import Flask, redirect
@@ -6,50 +8,54 @@ from config import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
 from apps.extensions import db, login_manager, migrate
 
-# 🛡️ استيراد البلوبيرنتس بشكل مباشر وصريح (لتجنب أخطاء الاستيراد)
-from apps.auth_portal.routes import auth_portal
-from apps.add_supplier.routes import add_supplier_bp
-from apps.financial_ops.routes import financial_blueprint
-from apps.admin_dashboard.routes import admin_dashboard
-from apps.api.search import api_search
-from apps.wallet.routes import wallet_app
-
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # 🛡️ إعدادات الأمان
+    # 🛡️ إعدادات الأمان للجلسات
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
     app.config['SESSION_COOKIE_HTTPONLY'] = True  
     app.config['SESSION_COOKIE_SECURE'] = True    
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
+    # 🛡️ الحماية من التزييف (ProxyFix)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
+    # 🛡️ تهيئة الإضافات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # استيراد النماذج
+        # 🛡️ استيراد النماذج
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
         from apps.models.vault_db import AdminVault, VaultTransaction
         
+        # 🛡️ إدارة المستخدم
         @login_manager.user_loader
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # 🛡️ تسجيل المسارات مباشرة (تجنب الحلقات المعقدة)
-        app.register_blueprint(auth_portal)
-        app.register_blueprint(add_supplier_bp, url_prefix='/suppliers')
-        app.register_blueprint(financial_blueprint, url_prefix='/financial_ops')
-        app.register_blueprint(admin_dashboard, url_prefix='/admin')
-        app.register_blueprint(api_search, url_prefix='/api')
-        app.register_blueprint(wallet_app, url_prefix='/wallet')
+        # 🛡️ تسجيل دفاعي صارم للمسارات (منع انهيار السيرفر)
+        def safe_register(module_path, attr_name, prefix):
+            try:
+                module = __import__(module_path, fromlist=[attr_name])
+                blueprint = getattr(module, attr_name)
+                app.register_blueprint(blueprint, url_prefix=prefix)
+            except Exception as e:
+                print(f"⚠️ Security Alert: Failed to register {attr_name} - Error: {e}")
 
+        safe_register('apps.auth_portal.routes', 'auth_portal', '')
+        safe_register('apps.add_supplier.routes', 'add_supplier_bp', '/suppliers')
+        safe_register('apps.financial_ops.routes', 'financial_blueprint', '/financial_ops')
+        safe_register('apps.admin_dashboard.routes', 'admin_dashboard', '/admin')
+        safe_register('apps.api.search', 'api_search', '/api')
+        safe_register('apps.wallet.routes', 'wallet_app', '/wallet')
+
+        # 🛡️ مسارات النظام الأساسية
         @app.route('/robots.txt')
         def robots_txt():
             return "User-agent: *\nDisallow: /", 200, {'Content-Type': 'text/plain'}
@@ -58,6 +64,7 @@ def create_app():
         def root_redirect():
             return redirect('/login')
 
+        # 🛡️ الحماية المتقدمة (Security Headers)
         @app.after_request
         def add_security_headers(response):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
@@ -74,4 +81,5 @@ def create_app():
 
     return app
 
+# إطلاق المصنع
 app = create_app()
