@@ -1,83 +1,65 @@
-{% extends 'admin/admin_base.html' %}
-
-{% block title %}لوحة القيادة المركزية | محجوب أونلاين{% endblock %}
+{% extends "admin/admin_base.html" %}
 
 {% block content %}
 <style>
-    .wallet-card { border-radius: 15px; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .wallet-card:hover { transform: translateY(-5px); }
-    .balance-val { font-size: 1.25rem; font-weight: bold; }
-    .scroll-table { max-height: 350px; overflow-y: auto; background: #fff; }
-    .btn-action { font-size: 0.85rem; border-radius: 10px; }
+    .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; }
+    .stat-box { border-radius: 15px; padding: 20px; color: #fff; transition: 0.3s; }
+    .stat-box:hover { transform: translateY(-5px); }
+    .bg-gradient-sar { background: linear-gradient(135deg, #2c3e50, #4a6785); }
+    .bg-gradient-yer { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+    .bg-gradient-usd { background: linear-gradient(135deg, #2980b9, #3498db); }
 </style>
 
-<div class="container-fluid p-2">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="text-primary fw-bold mb-0">محفظة: {{ supplier.name }}</h5>
-        <span class="badge bg-secondary">ID: {{ supplier.id }}</span>
-    </div>
-    
-    <div class="row g-2 mb-3">
-        <div class="col-4">
-            <div class="wallet-card bg-dark text-white p-2 text-center">
-                <small style="font-size: 0.7rem;">SAR</small>
-                <div class="balance-val">{{ wallet.balance_sar }}</div>
+<div class="container-fluid py-4">
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stat-box bg-gradient-sar">
+                <small class="text-white-50">إجمالي أرصدة النظام (SAR)</small>
+                <h3 class="fw-bold">{{ total_system_sar }}</h3>
             </div>
         </div>
-        <div class="col-4">
-            <div class="wallet-card bg-success text-white p-2 text-center">
-                <small style="font-size: 0.7rem;">YER</small>
-                <div class="balance-val">{{ wallet.balance_yer }}</div>
+        <div class="col-md-4">
+            <div class="stat-box bg-gradient-yer">
+                <small class="text-white-50">إجمالي أرصدة النظام (YER)</small>
+                <h3 class="fw-bold">{{ total_system_yer }}</h3>
             </div>
         </div>
-        <div class="col-4">
-            <div class="wallet-card bg-primary text-white p-2 text-center">
-                <small style="font-size: 0.7rem;">USD</small>
-                <div class="balance-val">{{ wallet.balance_usd }}</div>
+        <div class="col-md-4">
+            <div class="stat-box bg-gradient-usd">
+                <small class="text-white-50">إجمالي أرصدة النظام (USD)</small>
+                <h3 class="fw-bold">{{ total_system_usd }}</h3>
             </div>
         </div>
     </div>
 
-    <div class="scroll-table border rounded p-1">
-        <table class="table table-sm table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th style="font-size: 0.8rem;">التاريخ</th>
-                    <th style="font-size: 0.8rem;">العملية</th>
-                    <th style="font-size: 0.8rem;">المبلغ</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for tx in transactions %}
-                <tr>
-                    <td style="font-size: 0.75rem;">{{ tx.created_at.strftime('%d/%m %H:%M') }}</td>
-                    <td style="font-size: 0.75rem;">{{ tx.description }}</td>
-                    <td class="fw-bold {{ 'text-success' if tx.transaction_type == 'credit' else 'text-danger' }}" style="font-size: 0.75rem;">
-                        {{ '+' if tx.transaction_type == 'credit' else '-' }}{{ tx.amount }}
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="3" class="text-center text-muted py-3">لا توجد عمليات</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="mahjoub-card p-4">
+        <h5 class="mb-3 text-primary"><i class="fas fa-search"></i> بحث ذكي في مليون مورد</h5>
+        <div class="input-group input-group-lg">
+            <select id="supplierSearch" class="form-control"></select>
+            <button class="btn btn-primary px-4" onclick="loadWallet()">عرض المحفظة</button>
+        </div>
     </div>
 
-    <div class="row g-2 mt-3">
-        <div class="col-6">
-            <button class="btn btn-outline-primary btn-action w-100" onclick="handleWalletAction('transfer')">تحويل رصيد</button>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-outline-danger btn-action w-100" onclick="handleWalletAction('adjust')">تسوية مالية</button>
+    <div id="walletDisplayArea" class="mt-4">
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-wallet fa-4x mb-3 opacity-25"></i>
+            <h5>لا يوجد مورد محدد، ابحث لعرض تفاصيل المحفظة</h5>
         </div>
     </div>
 </div>
 
 <script>
-    function handleWalletAction(actionType) {
-        // هذا المكان مخصص لربط الأزرار بـ API خاص بالعمليات
-        alert("جاري تنفيذ إجراء: " + actionType);
-        // مثال: fetch('/wallet/api/...' + actionType)
+    // عند اختيار مورد، يتم استدعاء المحرك
+    function loadWallet() {
+        let supplierId = $('#supplierSearch').val();
+        if(!supplierId) return;
+        
+        // استدعاء محرك المحفظة الذي صممناه
+        fetch(`/wallet/view/${supplierId}`)
+        .then(r => r.text())
+        .then(html => {
+            document.getElementById('walletDisplayArea').innerHTML = html;
+        });
     }
 </script>
 {% endblock %}
