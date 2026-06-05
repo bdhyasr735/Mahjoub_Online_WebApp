@@ -32,20 +32,19 @@ def create_app():
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         
-        # ملاحظة: تم تنظيف الاستيرادات لضمان استقرار التشغيل.
-        # سنقوم بإعادة إضافة النماذج المالية هنا تباعاً عند الانتهاء من كتابة أكوادها.
+        # ملاحظة: سيتم إضافة استيرادات النماذج المالية هنا تباعاً فور الانتهاء من كتابتها.
 
         # 🛡️ إدارة المستخدم
         @login_manager.user_loader
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # 🛡️ تسجيل دفاعي صارم للمسارات
+        # 🛡️ تسجيل دفاعي صارم للمسارات (تم التعليق على المسارات غير المكتملة)
         blueprints_map = [
             ('apps.auth_portal.routes', 'auth_portal', ''),
             ('apps.add_supplier.routes', 'add_supplier_bp', '/suppliers'),
             ('apps.financial_ops.routes', 'financial_blueprint', '/financial_ops'),
-            ('apps.statement.routes', 'statement_blueprint', '/statement'),
+            # ('apps.statement.routes', 'statement_blueprint', '/statement'), 
             ('apps.admin_dashboard.routes', 'admin_dashboard', '/admin'),
             ('api.webhook', 'webhook_bp', '/api')
         ]
