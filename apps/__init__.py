@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع الاحترافي والمحصن (نسخة نهائية متوافقة)
+# 📂 apps/__init__.py - المصنع الاحترافي والمحصن (نسخة نهائية)
 
 import os
 from datetime import timedelta
@@ -25,6 +25,16 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = 'auth_portal.login' 
 
+    # 🛡️ تعريف دالة التسجيل بحيث تستقبل app_instance كمعامل صريح
+    def safe_register(app_instance, module_path, attr_name, prefix):
+        try:
+            module = __import__(module_path, fromlist=[attr_name])
+            blueprint = getattr(module, attr_name)
+            app_instance.register_blueprint(blueprint, url_prefix=prefix)
+            print(f"✅ Registered: {module_path}")
+        except Exception as e:
+            print(f"⚠️ Security Alert: Failed to register {attr_name} - Error: {e}")
+
     with app.app_context():
         # 🚀 المزامنة التلقائية للجداول
         try:
@@ -44,17 +54,7 @@ def create_app():
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # 🛡️ تسجيل دفاعي للمسارات (Blueprints) مع تمرير app صراحةً
-        def safe_register(app_instance, module_path, attr_name, prefix):
-            try:
-                module = __import__(module_path, fromlist=[attr_name])
-                blueprint = getattr(module, attr_name)
-                app_instance.register_blueprint(blueprint, url_prefix=prefix)
-                print(f"✅ Registered: {module_path}")
-            except Exception as e:
-                print(f"⚠️ Security Alert: Failed to register {attr_name} - Error: {e}")
-
-        # تسجيل المسارات (تم تمرير app لكل عملية تسجيل لضمان الاستقرار)
+        # تسجيل المسارات (يتم تمرير 'app' صراحةً هنا)
         safe_register(app, 'apps.auth_portal.routes', 'auth_portal', '')
         safe_register(app, 'apps.add_supplier.routes', 'add_supplier_bp', '/suppliers')
         safe_register(app, 'apps.financial_ops.routes', 'financial_blueprint', '/financial_ops')
@@ -86,5 +86,5 @@ def create_app():
 
     return app
 
-# تعيين النقطة النهائية للتشغيل
+# النقطة النهائية للتشغيل
 app = create_app()
