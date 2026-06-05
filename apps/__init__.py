@@ -1,12 +1,12 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع المحصن والمحمي (نسخة الإنتاج المستقرة)
+# 📂 apps/__init__.py - المصنع الاحترافي والمحصن (نسخة الإنتاج المستقرة)
 
 import os
 from datetime import timedelta
 from flask import Flask, redirect
 from config import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
-from apps.extensions import db, login_manager
+from apps.extensions import db, login_manager, migrate
 
 def create_app():
     app = Flask(__name__)
@@ -18,27 +18,24 @@ def create_app():
     app.config['SESSION_COOKIE_SECURE'] = True    
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
-    # 🛡️ الحماية من التزييف
+    # 🛡️ الحماية من التزييف (ProxyFix)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
+    # 🛡️ تهيئة الإضافات
     db.init_app(app)
+    migrate.init_app(app, db) # 🚀 تفعيل نظام المهاجرات الاحترافي
     login_manager.init_app(app)
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # 🛡️ استيراد النماذج لضمان التسجيل في SQLAlchemy
+        # 🛡️ استيراد النماذج (ضروري جداً ليتعرف عليها نظام المهاجرات)
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
         from apps.models.statement_db import SupplierStatement
         from apps.models.settlements_db import AdminSettlement
         
-        # 🛡️ مزامنة الجداول (تأكد من استقرار الهيكل)
-        try:
-            db.create_all()
-            print("✅ [Database]: Schema synchronized.")
-        except Exception as e:
-            print(f"❌ [Database Sync Error]: {e}")
+        # ملاحظة: تم إيقاف db.create_all() والاعتماد على flask db upgrade
 
         # 🛡️ إدارة المستخدم
         @login_manager.user_loader
