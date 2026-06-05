@@ -28,14 +28,12 @@ def create_app():
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # 🛡️ استيراد النماذج (ضروري جداً ليتعرف عليها نظام المهاجرات)
+        # 🛡️ استيراد النماذج الموجودة فعلياً فقط
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
-        from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        from apps.models.statement_db import SupplierStatement
-        from apps.models.settlements_db import AdminSettlement
         
-        # ملاحظة: تم إيقاف db.create_all() والاعتماد على flask db upgrade
+        # ملاحظة: تم تنظيف الاستيرادات لضمان استقرار التشغيل.
+        # سنقوم بإعادة إضافة النماذج المالية هنا تباعاً عند الانتهاء من كتابة أكوادها.
 
         # 🛡️ إدارة المستخدم
         @login_manager.user_loader
