@@ -2,23 +2,22 @@
 import os
 import sys
 from datetime import timedelta
-from flask import Flask, redirect
+from flask import Flask, redirect, render_template # أضفنا render_template
 
-# إضافة المجلد الجذر إلى مسار النظام لضمان العثور على config
+# إضافة المجلد الجذر إلى مسار النظام
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from config import Config  # الآن سيجد الملف في الجذر بالتأكيد
+from config import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
 from apps.extensions import db, login_manager, migrate
 
 def safe_register(app_instance, module_path, attr_name, prefix):
-    """تسجيل المسارات (Blueprints) مع معالجة الأخطاء."""
     try:
         module = __import__(module_path, fromlist=[attr_name])
         blueprint = getattr(module, attr_name)
         app_instance.register_blueprint(blueprint, url_prefix=prefix)
     except Exception as e:
-        print(f"⚠️ Security Alert: Failed to register {attr_name} - Error: {e}")
+        print(f"⚠️ Critical: Failed to register {attr_name} - {e}")
 
 def create_app():
     app = Flask(__name__)
@@ -30,7 +29,7 @@ def create_app():
     app.config['SESSION_COOKIE_SECURE'] = True    
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
-    # إعدادات الاتصال (مهم جداً للاستقرار)
+    # استقرار الاتصال
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_size': 10,
         'pool_recycle': 3600,
@@ -63,9 +62,15 @@ def create_app():
         safe_register(app, 'apps.api.search', 'api_search', '/api')
         safe_register(app, 'apps.wallet.routes', 'wallet_app', '/wallet')
 
-        @app.route('/robots.txt')
-        def robots_txt():
-            return "User-agent: *\nDisallow: /", 200, {'Content-Type': 'text/plain'}
+        # --- "حاوية الحماية" لمنع توقف السيرفر بالكامل عند حدوث أي خطأ ---
+        @app.errorhandler(Exception)
+        def handle_exception(e):
+            print(f"🚨 Global Error Caught: {e}")
+            return "عذراً، حدث خطأ مؤقت. النظام لا يزال يعمل.", 500
+
+        @app.route('/health')
+        def health_check():
+            return "System is Online", 200
 
         @app.route('/')
         def root_redirect():
@@ -74,10 +79,8 @@ def create_app():
         @app.after_request
         def add_security_headers(response):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-            response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://cdn.qumra.cloud; frame-ancestors 'none';"
             response.headers["X-Content-Type-Options"] = "nosniff"
             response.headers["X-Frame-Options"] = "DENY"
-            response.headers.pop("Server", None)
             return response
 
     return app
