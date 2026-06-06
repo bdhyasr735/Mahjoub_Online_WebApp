@@ -46,12 +46,11 @@ def create_app():
             if Supplier.query.count() == 0:
                 print("⚠️ النظام: قاعدة البيانات فارغة، جاري زراعة 21 مورد تجريبي...")
                 for i in range(1, 22):
-                    # الحل: تمرير القيمة لكل من الحقل الأساسي والحقل المشفر لتجاوز قيد NotNull
+                    # تم إزالة sovereign_id لأنه غير معرف في الموديل
                     s = Supplier(
                         username=f"supplier_{i:02d}",
                         password_hash=generate_password_hash("password123"),
-                        sovereign_id=f"SID-{i:03d}",         # الحقل الأساسي
-                        sovereign_id_enc=f"SID-{i:03d}",     # الحقل المشفر
+                        sovereign_id_enc=f"SID-{i:03d}",     # الحقل الوحيد المعرف للمعرف السيادي
                         search_name=f"مورد تجريبي {i:02d}",
                         search_phone=f"05000000{i:02d}",
                         trade_name_enc=f"مورد تجريبي {i:02d}",
