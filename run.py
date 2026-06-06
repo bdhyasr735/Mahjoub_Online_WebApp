@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 run.py - نسخة الإنتاج ذاتية الإصلاح (Self-Healing & Auto-Seeding)
+# 📂 run.py - المحرك التلقائي لبيئة الإنتاج (Self-Healing & Auto-Seeding)
 
 import os
 from apps import create_app
@@ -12,15 +12,15 @@ app = create_app()
 
 def auto_repair_db():
     """
-    نظام الإصلاح التلقائي: يتم استدعاؤه بعد تهيئة التطبيق بالكامل.
-    يضمن وجود الجداول والأعمدة اللازمة، ويقوم بزرع البيانات التمهيدية.
+    نظام الإصلاح التلقائي: يقوم بتجهيز الجداول، التأكد من الأعمدة، 
+    إنشاء حساب المدير، وزرع البيانات التجريبية لمرة واحدة فقط.
     """
     with app.app_context():
         try:
             # إنشاء الجداول الأساسية
             db.create_all()
             
-            # إصلاحات هيكلية آمنة
+            # إصلاحات هيكلية آمنة (إضافة أعمدة مفقودة إن وجدت)
             queries = [
                 "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS search_name VARCHAR(150);",
                 "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS search_phone VARCHAR(20);",
@@ -50,21 +50,29 @@ def auto_repair_db():
                 print("✅ تم التأكد من وجود الهوية السيادية (Admin).")
             
             # نظام الزرع التلقائي (Seed) لمرة واحدة فقط
-            # نستخدم ملفاً صغيراً كعلامة (Flag) لمنع إعادة الزرع في كل مرة
             if not os.path.exists("seed_done.txt"):
                 print("🌱 بدء عملية زراعة البيانات التلقائية...")
-                from db_reset import seed_data
-                seed_data()
-                with open("seed_done.txt", "w") as f:
-                    f.write("seeded")
-                print("🏁 اكتملت عملية الزرع التلقائي.")
+                try:
+                    from db_reset import seed_data
+                    seed_data()
+                    with open("seed_done.txt", "w") as f:
+                        f.write("seeded")
+                    print("🏁 اكتملت عملية الزرع التلقائي بنجاح.")
+                except ImportError:
+                    print("⚠️ تحذير: لم يتم العثور على ملف db_reset.py.")
+                except Exception as e:
+                    print(f"🚨 خطأ أثناء الزرع: {e}")
+            else:
+                print("ℹ️ نظام الزرع: البيانات موجودة مسبقاً.")
             
         except Exception as e:
             print(f"🚨 خطأ في نظام الإصلاح التلقائي: {e}")
             db.session.rollback()
 
 if __name__ == "__main__":
+    # تشغيل نظام الإصلاح قبل بدء السيرفر
     auto_repair_db()
-    # تشغيل التطبيق
+    
+    # استخدام المنفذ المعرف في بيئة Render أو الافتراضي 10000
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
