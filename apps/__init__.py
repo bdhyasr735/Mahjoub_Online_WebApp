@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/__init__.py - المصنع الاحترافي والمحصن (نسخة التلقيم التلقائي)
+# 📂 apps/__init__.py - المصنع الاحترافي والمحصن (النسخة المصححة)
 
 import os
 from datetime import timedelta
@@ -7,8 +7,8 @@ from flask import Flask, redirect
 from config import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
 from apps.extensions import db, login_manager, migrate
+from werkzeug.security import generate_password_hash
 
-# 🛡️ دالة تسجيل آمنة للـ Blueprints الديناميكية
 def safe_register(app_instance, module_path, attr_name, prefix):
     try:
         module = __import__(module_path, fromlist=[attr_name])
@@ -19,43 +19,46 @@ def safe_register(app_instance, module_path, attr_name, prefix):
         print(f"⚠️ Security Alert: Failed to register {attr_name} - Error: {e}")
 
 def create_app():
-    # 1. إنشاء التطبيق
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # 2. إعدادات الأمان
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
     app.config['SESSION_COOKIE_HTTPONLY'] = True  
     app.config['SESSION_COOKIE_SECURE'] = True    
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
-    # 3. إعدادات الوكيل لضمان عمل HTTPS على Render
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
-    # 4. تهيئة الامتدادات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # 5. استيراد النماذج (Models)
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
         from apps.models.vault_db import AdminVault, VaultTransaction
         
-        # 6. المزامنة والزراعة التلقائية للبيانات
         try:
             db.create_all()  
             
-            # --- بداية التلقيم التلقائي للبيانات الوهمية ---
+            # --- زراعة البيانات المصححة ---
             if Supplier.query.count() == 0:
                 print("⚠️ النظام: قاعدة البيانات فارغة، جاري زراعة 21 مورد تجريبي...")
                 for i in range(1, 22):
-                    s = Supplier(name=f"مورد تجريبي {i:02d}", phone=f"05000000{i:02d}")
+                    # استخدام الخصائص (Properties) التي تتولى التشفير وتحديث الفهارس تلقائياً
+                    s = Supplier(
+                        sovereign_id_enc=f"SID-{i:03d}",
+                        username=f"supplier_{i:02d}",
+                        password_hash=generate_password_hash("password123"),
+                        trade_name=f"مورد تجريبي {i:02d}",
+                        owner_name=f"صاحب المورد {i:02d}",
+                        owner_phone=f"05000000{i:02d}",
+                        shop_phone=f"01000000{i:02d}"
+                    )
                     db.session.add(s)
-                    db.session.flush() # للحصول على الـ ID قبل الـ commit
+                    db.session.flush() 
                     
                     w = SupplierWallet(
                         supplier_id=s.id, 
@@ -66,24 +69,20 @@ def create_app():
                     db.session.add(w)
                 db.session.commit()
                 print("✅ تم بنجاح زراعة 21 مورداً تجريبياً.")
-            # --- نهاية التلقيم التلقائي ---
             
         except Exception as e:
             print(f"⚠️ Synchronization issue: {e}")
 
-        # 7. تحميل المستخدم
         @login_manager.user_loader
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # 8. تسجيل المسارات (Blueprints)
         safe_register(app, 'apps.auth_portal.routes', 'auth_portal', '')
         safe_register(app, 'apps.add_supplier.routes', 'add_supplier_bp', '/suppliers')
         safe_register(app, 'apps.financial_ops.routes', 'financial_blueprint', '/financial_ops')
         safe_register(app, 'apps.admin_dashboard.routes', 'admin_dashboard', '/admin')
         safe_register(app, 'apps.api.search', 'api_search', '/api')
         
-        # تسجيل المحفظة بشكل صريح
         try:
             from apps.wallet.routes import wallet_app
             app.register_blueprint(wallet_app, url_prefix='/wallet')
@@ -91,7 +90,6 @@ def create_app():
         except Exception as e:
             print(f"⚠️ Error registering wallet_app: {e}")
 
-        # 9. المسارات العامة
         @app.route('/robots.txt')
         def robots_txt():
             return "User-agent: *\nDisallow: /", 200, {'Content-Type': 'text/plain'}
@@ -100,7 +98,6 @@ def create_app():
         def root_redirect():
             return redirect('/login')
 
-        # 10. ترويسات الأمان (Security Headers)
         @app.after_request
         def add_security_headers(response):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
@@ -117,5 +114,4 @@ def create_app():
 
     return app
 
-# تعيين نقطة الدخول (Entry Point)
 app = create_app()
