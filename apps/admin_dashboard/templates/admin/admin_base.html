@@ -79,13 +79,13 @@
         </div>
 
         <nav class="nav-menu">
-            <div class="nav-item-wrapper"><a href="#" class="nav-link"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a></div>
+            <div class="nav-item-wrapper"><a href="javascript:void(0);" class="nav-link"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a></div>
             
             <div class="nav-item-wrapper">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-box-open me-3"></i> <span>المنتجات</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
-                    <li><a href="#">إضافة منتج</a></li>
-                    <li><a href="#">مراجعة المنتجات</a></li>
+                    <li><a href="javascript:void(0);">إضافة منتج</a></li>
+                    <li><a href="javascript:void(0);">مراجعة المنتجات</a></li>
                 </ul>
             </div>
 
@@ -97,22 +97,22 @@
                 </div>
                 <ul class="dropdown-content">
                     <li><a href="{{ url_for('add_supplier.add_supplier') }}">إضافة مورد</a></li>
-                    <li><a href="#">قائمة الموردين</a></li>
+                    <li><a href="javascript:void(0);">قائمة الموردين</a></li>
                 </ul>
             </div>
 
             <div class="nav-item-wrapper">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-wallet me-3"></i> <span>الرقابة المالية</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
-                    <li><a href="#">خزينة المنصة المركزية</a></li>
-                    <li><a href="#">تسويات الموردين</a></li>
+                    <li><a href="javascript:void(0);">خزينة المنصة المركزية</a></li>
+                    <li><a href="javascript:void(0);">تسويات الموردين</a></li>
                     <li><a href="{{ url_for('wallet_app.wallet_dashboard') }}">محفظة الموردين</a></li>
-                    <li><a href="#">الأرباح المركزية</a></li>
-                    <li><a href="#">طلبات التسوية</a></li>
+                    <li><a href="javascript:void(0);">الأرباح المركزية</a></li>
+                    <li><a href="javascript:void(0);">طلبات التسوية</a></li>
                 </ul>
             </div>
 
-            <div class="nav-item-wrapper"><a href="#" class="nav-link"><i class="fas fa-cog me-3"></i> <span>الإعدادات</span></a></div>
+            <div class="nav-item-wrapper"><a href="javascript:void(0);" class="nav-link"><i class="fas fa-cog me-3"></i> <span>الإعدادات</span></a></div>
             <hr class="text-white my-3">
             <a href="{{ url_for('auth_portal.logout') }}" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-3"></i> <span>خروج آمن</span></a>
         </nav>
