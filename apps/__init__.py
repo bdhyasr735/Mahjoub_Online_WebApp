@@ -1,10 +1,13 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع الاحترافي المحصن
-
 import os
+import sys
 from datetime import timedelta
 from flask import Flask, redirect
-from config import Config
+
+# إضافة المجلد الجذر إلى مسار النظام لضمان العثور على config
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from config import Config  # الآن سيجد الملف في الجذر بالتأكيد
 from werkzeug.middleware.proxy_fix import ProxyFix
 from apps.extensions import db, login_manager, migrate
 
@@ -14,7 +17,6 @@ def safe_register(app_instance, module_path, attr_name, prefix):
         module = __import__(module_path, fromlist=[attr_name])
         blueprint = getattr(module, attr_name)
         app_instance.register_blueprint(blueprint, url_prefix=prefix)
-        print(f"✅ Registered: {module_path}")
     except Exception as e:
         print(f"⚠️ Security Alert: Failed to register {attr_name} - Error: {e}")
 
@@ -22,30 +24,28 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # إعدادات الأمان للجلسات
+    # إعدادات الأمان
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
     app.config['SESSION_COOKIE_HTTPONLY'] = True  
     app.config['SESSION_COOKIE_SECURE'] = True    
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
-    # إعدادات الاتصال بقاعدة البيانات لضمان الثبات على السيرفر
+    # إعدادات الاتصال (مهم جداً للاستقرار)
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_size': 10,
         'pool_recycle': 3600,
         'pool_pre_ping': True
     }
     
-    # إعدادات الـ Proxy للتوافق مع Render
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
-    # تهيئة الإضافات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # استيراد النماذج (Models) لضمان تسجيلها في SQLAlchemy
+        # استيراد النماذج
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -55,7 +55,7 @@ def create_app():
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # تسجيل المسارات (Blueprints)
+        # تسجيل المسارات
         safe_register(app, 'apps.auth_portal.routes', 'auth_portal', '')
         safe_register(app, 'apps.add_supplier.routes', 'add_supplier_bp', '/suppliers')
         safe_register(app, 'apps.financial_ops.routes', 'financial_blueprint', '/financial_ops')
