@@ -41,8 +41,8 @@ def create_app():
         from apps.models.vault_db import AdminVault, VaultTransaction
         
         try:
-            db.create_all()  
-            
+            # ملاحظة: سنعتمد على أنك قمت بتنفيذ أمر SQL (ALTER TABLE) لرفع قيد الـ NOT NULL
+            # لضمان عدم حدوث خطأ أثناء الإدخال.
             if Supplier.query.count() == 0:
                 print("⚠️ النظام: قاعدة البيانات فارغة، جاري زراعة 21 مورد تجريبي...")
                 for i in range(1, 22):
@@ -60,7 +60,6 @@ def create_app():
                             status="قيد المراجعة",
                             rank_grade="ريادي"
                         )
-                        # تعيين القيمة الإجبارية بعد الإنشاء لتجاوز قيد NotNull في قاعدة البيانات
                         s.sovereign_id = f"SID-{i:03d}"
                         
                         db.session.add(s)
