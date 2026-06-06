@@ -41,31 +41,33 @@ def create_app():
         from apps.models.vault_db import AdminVault, VaultTransaction
         
         try:
-            # تم ضبط قاعدة البيانات مسبقاً لتكون مرنة عبر أمر SQL
+            # التحقق من خلو قاعدة البيانات للبدء في الزرع
             if Supplier.query.count() == 0:
                 print("⚠️ النظام: قاعدة البيانات فارغة، جاري زراعة 21 مورد تجريبي...")
                 for i in range(1, 22):
                     try:
+                        # إنشاء المورد مع الحقول الإجبارية فقط في البداية
                         s = Supplier(
                             username=f"supplier_{i:02d}",
                             password_hash=generate_password_hash("password123"),
                             sovereign_id_enc=f"SID-{i:03d}",
                             search_name=f"مورد تجريبي {i:02d}",
                             search_phone=f"05000000{i:02d}",
-                            trade_name_enc=f"مورد تجريبي {i:02d}",
-                            owner_name_enc=f"صاحب المورد {i:02d}",
-                            owner_phone_enc=f"05000000{i:02d}",
-                            shop_phone_enc=f"01000000{i:02d}",
                             status="قيد المراجعة",
                             rank_grade="ريادي"
                         )
-                        # إضافة الحقول الاختيارية بعد الإنشاء
+                        # إضافة الحقول الاختيارية أو المشفرة
                         s.sovereign_id = f"SID-{i:03d}"
-                        s.wallet_code = f"WC-{i:03d}" 
+                        s.wallet_code = f"WC-{i:03d}"
+                        s.trade_name = f"مورد تجريبي {i:02d}"
+                        s.owner_name = f"صاحب المورد {i:02d}"
+                        s.owner_phone = f"05000000{i:02d}"
+                        s.shop_phone = f"01000000{i:02d}"
                         
                         db.session.add(s)
-                        db.session.flush() 
+                        db.session.flush() # تثبيت المورد للحصول على s.id
                         
+                        # إنشاء المحفظة المرتبطة
                         w = SupplierWallet(
                             supplier_id=s.id, 
                             balance_sar=100.0 * i, 
@@ -87,6 +89,7 @@ def create_app():
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
+        # تسجيل المسارات
         safe_register(app, 'apps.auth_portal.routes', 'auth_portal', '')
         safe_register(app, 'apps.add_supplier.routes', 'add_supplier_bp', '/suppliers')
         safe_register(app, 'apps.financial_ops.routes', 'financial_blueprint', '/financial_ops')
