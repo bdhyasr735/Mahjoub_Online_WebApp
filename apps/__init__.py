@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع الاحترافي والمحصن (النسخة النهائية لـ 11 مورد)
+# 📂 apps/__init__.py - المصنع الاحترافي (نظيف وبدون بيانات تجريبية)
 
 import os
 from datetime import timedelta
@@ -7,7 +7,6 @@ from flask import Flask, redirect
 from config import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
 from apps.extensions import db, login_manager, migrate
-from werkzeug.security import generate_password_hash
 
 def safe_register(app_instance, module_path, attr_name, prefix):
     try:
@@ -35,55 +34,14 @@ def create_app():
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
+        # استيراد الموديلات لضمان تسجيل الجداول
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
         from apps.models.vault_db import AdminVault, VaultTransaction
         
-        try:
-            # التحقق من خلو قاعدة البيانات للبدء في الزرع
-            if Supplier.query.count() == 0:
-                print("⚠️ النظام: قاعدة البيانات فارغة، جاري زراعة 11 مورد تجريبي...")
-                for i in range(1, 12): # تم التعديل إلى 11 مورد
-                    try:
-                        # إنشاء المورد
-                        s = Supplier(
-                            username=f"supplier_{i:02d}",
-                            password_hash=generate_password_hash("password123"),
-                            sovereign_id_enc=f"SID-{i:03d}",
-                            search_name=f"مورد تجريبي {i:02d}",
-                            search_phone=f"05000000{i:02d}",
-                            status="قيد المراجعة",
-                            rank_grade="ريادي"
-                        )
-                        # إضافة الحقول الاختيارية والمشفرة
-                        s.sovereign_id = f"SID-{i:03d}"
-                        s.wallet_code = f"WC-{i:03d}"
-                        s.trade_name = f"مورد تجريبي {i:02d}"
-                        s.owner_name = f"صاحب المورد {i:02d}"
-                        s.owner_phone = f"05000000{i:02d}"
-                        s.shop_phone = f"01000000{i:02d}"
-                        
-                        db.session.add(s)
-                        db.session.flush() # تثبيت المورد للحصول على s.id
-                        
-                        # إنشاء المحفظة المرتبطة
-                        w = SupplierWallet(
-                            supplier_id=s.id, 
-                            balance_sar=100.0 * i, 
-                            balance_yer=5000.0 * i, 
-                            balance_usd=10.0 * i
-                        )
-                        db.session.add(w)
-                        db.session.commit()
-                    except Exception as inner_e:
-                        print(f"⚠️ خطأ أثناء زراعة المورد {i}: {inner_e}")
-                        db.session.rollback()
-                print("✅ تم الانتهاء من محاولة زراعة البيانات.")
-            
-        except Exception as e:
-            print(f"⚠️ Synchronization issue: {e}")
-            db.session.rollback()
+        # إنشاء الجداول إذا لم تكن موجودة
+        db.create_all()
 
         @login_manager.user_loader
         def load_user(user_id):
