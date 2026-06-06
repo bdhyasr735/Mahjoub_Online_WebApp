@@ -1,14 +1,13 @@
 # coding: utf-8
 import os
 import sys
-import traceback
 from datetime import timedelta
 from flask import Flask, redirect
 
 # إضافة المجلد الجذر إلى مسار النظام لضمان العثور على config
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from config import Config  
+from config import Config  # الآن سيجد الملف في الجذر بالتأكيد
 from werkzeug.middleware.proxy_fix import ProxyFix
 from apps.extensions import db, login_manager, migrate
 
@@ -63,18 +62,6 @@ def create_app():
         safe_register(app, 'apps.admin_dashboard.routes', 'admin_dashboard', '/admin')
         safe_register(app, 'apps.api.search', 'api_search', '/api')
         safe_register(app, 'apps.wallet.routes', 'wallet_app', '/wallet')
-
-        # --- درع الحماية لمنع توقف السيرفر عند الأخطاء البرمجية ---
-        @app.errorhandler(Exception)
-        def handle_global_error(e):
-            print("🚨 تم التقاط خطأ عالمي يمنع السيرفر من الانهيار:")
-            print(traceback.format_exc()) # يطبع تفاصيل الخطأ في الـ Logs لتتمكن من إصلاحه
-            return "عذراً، حدث خطأ داخلي. تم تسجيل المشكلة وسيتم معالجتها. (النظام ما زال يعمل)", 500
-
-        # --- مسار النبض لمنع Render من إيقاف السيرفر (Spin-down) ---
-        @app.route('/health')
-        def health_check():
-            return "OK", 200
 
         @app.route('/robots.txt')
         def robots_txt():
