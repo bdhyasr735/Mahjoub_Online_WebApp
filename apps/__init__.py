@@ -7,7 +7,7 @@ from flask import Flask, redirect
 from config import Config
 from werkzeug.middleware.proxy_fix import ProxyFix
 from apps.extensions import db, login_manager, migrate
-from apps.run_seed import auto_repair_db  # استيراد نظام الإصلاح التلقائي الجديد
+from apps.run_seed import auto_repair_db  # استيراد نظام الإصلاح التلقائي
 
 def safe_register(app_instance, module_path, attr_name, prefix):
     """تسجيل المسارات (Blueprints) مع معالجة الأخطاء لضمان استمرار عمل المصنع."""
