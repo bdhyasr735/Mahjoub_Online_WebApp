@@ -43,15 +43,15 @@ def create_app():
         try:
             db.create_all()  
             
-            # --- زراعة البيانات المصححة لمنع خطأ NotNullViolation ---
             if Supplier.query.count() == 0:
                 print("⚠️ النظام: قاعدة البيانات فارغة، جاري زراعة 21 مورد تجريبي...")
                 for i in range(1, 22):
-                    # استخدام أسماء الأعمدة المباشرة كما هي معرفة في الموديل
+                    # الحل: تمرير القيمة لكل من الحقل الأساسي والحقل المشفر لتجاوز قيد NotNull
                     s = Supplier(
                         username=f"supplier_{i:02d}",
                         password_hash=generate_password_hash("password123"),
-                        sovereign_id_enc=f"SID-{i:03d}",
+                        sovereign_id=f"SID-{i:03d}",         # الحقل الأساسي
+                        sovereign_id_enc=f"SID-{i:03d}",     # الحقل المشفر
                         search_name=f"مورد تجريبي {i:02d}",
                         search_phone=f"05000000{i:02d}",
                         trade_name_enc=f"مورد تجريبي {i:02d}",
@@ -62,7 +62,7 @@ def create_app():
                         rank_grade="ريادي"
                     )
                     db.session.add(s)
-                    db.session.flush() # تثبيت المورد للحصول على s.id
+                    db.session.flush() 
                     
                     w = SupplierWallet(
                         supplier_id=s.id, 
@@ -91,11 +91,9 @@ def create_app():
         try:
             from apps.wallet.routes import wallet_app
             app.register_blueprint(wallet_app, url_prefix='/wallet')
-            print("✅ Registered: apps.wallet.routes")
         except Exception as e:
-            print(f"⚠️ Error registering wallet_app: {e}")
+            print(f"⚠️ Error: {e}")
 
-        # ... بقية الإعدادات (Security Headers و Redirects) كما هي
         @app.route('/robots.txt')
         def robots_txt():
             return "User-agent: *\nDisallow: /", 200, {'Content-Type': 'text/plain'}
@@ -107,12 +105,7 @@ def create_app():
         @app.after_request
         def add_security_headers(response):
             response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-            response.headers["Content-Security-Policy"] = (
-                "default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net; "
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
-                "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
-                "img-src 'self' https://cdn.qumra.cloud; frame-ancestors 'none';"
-            )
+            response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' https://cdn.qumra.cloud; frame-ancestors 'none';"
             response.headers["X-Content-Type-Options"] = "nosniff"
             response.headers["X-Frame-Options"] = "DENY"
             response.headers.pop("Server", None)
