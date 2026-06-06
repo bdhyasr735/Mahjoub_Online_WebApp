@@ -12,30 +12,32 @@ class Supplier(db.Model):
     # المعرف الرئيسي
     id = db.Column(db.Integer, primary_key=True)
     
-    # --- حقول البحث السريع (فهارس قاعدة البيانات) ---
+    # --- حقول البحث السريع ---
     search_name = db.Column(db.String(150), index=True, nullable=False)
     search_phone = db.Column(db.String(20), index=True, nullable=False)
 
-    # --- حقول التشفير السيادي والبيانات المطلوبة ---
+    # --- حقول التشفير والبيانات (تم ضبط nullable=True للسماح بعملية الزراعة) ---
     sovereign_id = db.Column(db.String(100), nullable=True) 
-    wallet_code = db.Column(db.String(50), nullable=True)  # تمت إضافة هذا الحقل لمنع خطأ NotNullViolation
+    wallet_code = db.Column(db.String(50), nullable=True)
     
     sovereign_id_enc = db.Column(db.String(255), unique=True, nullable=False)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     
-    trade_name_enc = db.Column(db.String(255), nullable=False)
-    owner_name_enc = db.Column(db.String(255), nullable=False)
-    id_type_enc = db.Column(db.String(255))
-    supply_category_enc = db.Column(db.String(255))
-    owner_phone_enc = db.Column(db.String(255), nullable=False)
-    shop_phone_enc = db.Column(db.String(255), nullable=False)
-    province_enc = db.Column(db.String(255))
-    district_enc = db.Column(db.String(255))
-    address_detail_enc = db.Column(db.Text)
-    financial_company_enc = db.Column(db.String(255))
-    bank_name_enc = db.Column(db.String(255))
-    bank_acc_enc = db.Column(db.String(255))
+    # هذه الحقول تم ضبطها لـ True لأن سجل الخطأ أظهر أنها تسبب NotNullViolation
+    trade_name_enc = db.Column(db.String(255), nullable=True) 
+    owner_name_enc = db.Column(db.String(255), nullable=True)
+    owner_phone_enc = db.Column(db.String(255), nullable=True)
+    shop_phone_enc = db.Column(db.String(255), nullable=True)
+
+    id_type_enc = db.Column(db.String(255), nullable=True)
+    supply_category_enc = db.Column(db.String(255), nullable=True)
+    province_enc = db.Column(db.String(255), nullable=True)
+    district_enc = db.Column(db.String(255), nullable=True)
+    address_detail_enc = db.Column(db.Text, nullable=True)
+    financial_company_enc = db.Column(db.String(255), nullable=True)
+    bank_name_enc = db.Column(db.String(255), nullable=True)
+    bank_acc_enc = db.Column(db.String(255), nullable=True)
     
     status = db.Column(db.String(20), default=STATUSES[0])
     rank_grade = db.Column(db.String(20), default=RANKS[1])
@@ -49,32 +51,38 @@ class Supplier(db.Model):
     def trade_name(self): return self._decrypt(self.trade_name_enc)
     @trade_name.setter
     def trade_name(self, value): 
-        self.trade_name_enc = AESCipher.encrypt(str(value))
-        self.search_name = str(value)[:150]
+        if value:
+            self.trade_name_enc = AESCipher.encrypt(str(value))
+            self.search_name = str(value)[:150]
 
     @property
     def owner_phone(self): return self._decrypt(self.owner_phone_enc)
     @owner_phone.setter
     def owner_phone(self, value): 
-        self.owner_phone_enc = AESCipher.encrypt(str(value))
-        self.search_phone = str(value)[:20]
+        if value:
+            self.owner_phone_enc = AESCipher.encrypt(str(value))
+            self.search_phone = str(value)[:20]
 
     @property
     def shop_phone(self): return self._decrypt(self.shop_phone_enc)
     @shop_phone.setter
-    def shop_phone(self, value): self.shop_phone_enc = AESCipher.encrypt(str(value))
+    def shop_phone(self, value): 
+        if value: self.shop_phone_enc = AESCipher.encrypt(str(value))
 
     @property
     def owner_name(self): return self._decrypt(self.owner_name_enc)
     @owner_name.setter
-    def owner_name(self, value): self.owner_name_enc = AESCipher.encrypt(str(value))
+    def owner_name(self, value): 
+        if value: self.owner_name_enc = AESCipher.encrypt(str(value))
 
     @property
     def bank_acc(self): return self._decrypt(self.bank_acc_enc)
     @bank_acc.setter
-    def bank_acc(self, value): self.bank_acc_enc = AESCipher.encrypt(str(value))
+    def bank_acc(self, value): 
+        if value: self.bank_acc_enc = AESCipher.encrypt(str(value))
 
     @property
     def financial_company(self): return self._decrypt(self.financial_company_enc)
     @financial_company.setter
-    def financial_company(self, value): self.financial_company_enc = AESCipher.encrypt(str(value))
+    def financial_company(self, value): 
+        if value: self.financial_company_enc = AESCipher.encrypt(str(value))
