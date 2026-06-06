@@ -3,7 +3,7 @@
 
 from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required
-from apps import db 
+from apps.extensions import db  # تصحيح: الاستيراد الصحيح من extensions
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 
 # تعريف الـ Blueprint
