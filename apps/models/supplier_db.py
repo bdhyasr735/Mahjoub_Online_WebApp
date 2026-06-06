@@ -16,8 +16,10 @@ class Supplier(db.Model):
     search_name = db.Column(db.String(150), index=True, nullable=False)
     search_phone = db.Column(db.String(20), index=True, nullable=False)
 
-    # --- حقول التشفير السيادي ---
-    sovereign_id = db.Column(db.String(100), nullable=True) # تم إضافته ليتوافق مع كود الزراعة
+    # --- حقول التشفير السيادي والبيانات المطلوبة ---
+    sovereign_id = db.Column(db.String(100), nullable=True) 
+    wallet_code = db.Column(db.String(50), nullable=True)  # تمت إضافة هذا الحقل لمنع خطأ NotNullViolation
+    
     sovereign_id_enc = db.Column(db.String(255), unique=True, nullable=False)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -43,7 +45,6 @@ class Supplier(db.Model):
     # --- بوابات التشفير والبحث ---
     def _decrypt(self, value): return AESCipher.decrypt(value) if value else None
 
-    # [باقي الدوال تبقى كما هي بدون تغيير...]
     @property
     def trade_name(self): return self._decrypt(self.trade_name_enc)
     @trade_name.setter
