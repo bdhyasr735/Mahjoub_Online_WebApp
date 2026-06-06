@@ -1,41 +1,35 @@
-# coding: utf-8
+# 📂 run.py - النسخة المحصنة تماماً
 import os
 from apps import create_app
 from apps.extensions import db
 from apps.models.admin_db import AdminUser
 
-# 1. تهيئة التطبيق
+# 1. تهيئة التطبيق (هذا لا يحتاج قاعدة بيانات)
 app = create_app()
 
-def auto_repair_db():
-    """حارس قاعدة البيانات: يتأكد من الهيكل والمدير دون التسبب في تعارض."""
-    # الحماية: التخطي التام إذا كنا في بيئة GitHub
-    if os.environ.get("GITHUB_ACTIONS"):
-        return
-
-    with app.app_context():
-        try:
-            # إنشاء الجداول إذا لم تكن موجودة
+def initialize_system():
+    """هذه الدالة تحاول تشغيل المهام فقط إذا كان التطبيق مستعداً."""
+    try:
+        with app.app_context():
+            # بناء الجداول
             db.create_all()
             
-            # التأكد من الهوية السيادية (محجوب)
+            # التأكد من هوية "محجوب"
             admin = AdminUser.query.filter_by(username="محجوب").first()
             if not admin:
                 new_admin = AdminUser(username="محجوب", phone_number="0000000000", role='Owner')
                 new_admin.set_password("123")
                 db.session.add(new_admin)
                 db.session.commit()
-                print("✅ تم تثبيت الهوية السيادية (محجوب).")
-            
-        except Exception as e:
-            # رول باك لحماية قاعدة البيانات من أي عمليات غير مكتملة
-            db.session.rollback()
-            print(f"🚨 خطأ في التهيئة: {e}")
+                print("✅ نظام محجوب: تم إنشاء الهوية السيادية.")
+    except Exception as e:
+        # هنا السر: بدلاً من إظهار "خطأ أحمر" يوقف السيرفر، سنقوم بطباعة رسالة فقط
+        print(f"⚠️ تنبيه نظام محجوب: لم نتمكن من زرع البيانات حالياً (ربما القاعدة لم تجهز بعد): {e}")
 
 if __name__ == "__main__":
-    # تشغيل الحارس
-    auto_repair_db()
+    # تشغيل المهام
+    initialize_system()
     
-    # تشغيل التطبيق
+    # تشغيل السيرفر
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
