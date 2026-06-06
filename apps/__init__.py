@@ -1,5 +1,5 @@
-# coding: utf-8
-# 📂 apps/__init__.py - المصنع الاحترافي والمحصن (النسخة النهائية المستقرة)
+# -*- coding: utf-8 -*-
+# 📂 apps/__init__.py - المصنع الاحترافي والمحصن (النسخة النهائية المصححة)
 
 import os
 from datetime import timedelta
@@ -39,7 +39,7 @@ def create_app():
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
-        # 5. استيراد النماذج لضمان تهيئتها
+        # 5. استيراد النماذج لضمان تهيئتها (تجنب الحلقات)
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -56,14 +56,14 @@ def create_app():
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # 8. تسجيل المسارات (Blueprints)
+        # 8. تسجيل المسارات (Blueprints) باستخدام المسارات المباشرة لضمان الاستقرار
         safe_register(app, 'apps.auth_portal.routes', 'auth_portal', '')
         safe_register(app, 'apps.add_supplier.routes', 'add_supplier_bp', '/suppliers')
         safe_register(app, 'apps.financial_ops.routes', 'financial_blueprint', '/financial_ops')
         safe_register(app, 'apps.admin_dashboard.routes', 'admin_dashboard', '/admin')
         safe_register(app, 'apps.api.search', 'api_search', '/api')
         
-        # تسجيل المحفظة باستيراد مباشر لضمان ثباتها
+        # تسجيل المحفظة بشكل صريح لضمان تطابق الـ Endpoint
         try:
             from apps.wallet.routes import wallet_app
             app.register_blueprint(wallet_app, url_prefix='/wallet')
