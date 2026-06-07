@@ -2,99 +2,37 @@
 
 {% block content %}
 <style>
-    :root {
-        --mahjoub-purple: #2d1b4e;
-        --mahjoub-gold: #c5a059;
-        --mahjoub-green: #27ae60;
-        --mahjoub-orange: #e67e22;
-    }
-
-    /* تنسيق الإحصائيات */
-    .stat-box { border-radius: 20px; padding: 25px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: 0.3s; margin-bottom: 20px; }
-    .bg-purple { background-color: var(--mahjoub-purple); }
-    .bg-green { background-color: var(--mahjoub-green); }
-    .bg-orange { background-color: var(--mahjoub-orange); }
-    .stat-box h3 { color: var(--mahjoub-gold); margin: 0; font-weight: bold; }
-
-    /* تنسيق الكارد والبحث */
-    .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; padding: 20px; }
-    .btn-mahjoub { background-color: var(--mahjoub-purple) !important; color: white !important; font-weight: bold; }
-    
-    /* إصلاح Select2 */
-    .select2-container { width: 100% !important; z-index: 9999 !important; }
-    .select2-container--bootstrap-5 .select2-selection {
-        height: 50px !important;
-        padding: 10px !important;
-        border-radius: 10px 0 0 10px !important;
-    }
+    :root { --mahjoub-purple: #2d1b4e; --mahjoub-gold: #c5a059; --mahjoub-blue: #3498db; }
+    .stat-card { border-radius: 20px; padding: 20px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
+    .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; padding: 20px; margin-bottom: 20px; }
+    .btn-mahjoub { background-color: var(--mahjoub-purple) !important; color: white !important; }
 </style>
 
 <div class="container-fluid py-4">
-    <div class="row g-3 mb-4">
-        <div class="col-md-4"><div class="stat-box bg-purple"><small>إجمالي أرصدة النظام (SAR)</small><h3>{{ "{:,.2f}".format(total_system_sar) }}</h3></div></div>
-        <div class="col-md-4"><div class="stat-box bg-green"><small>إجمالي أرصدة النظام (YER)</small><h3>{{ "{:,.2f}".format(total_system_yer) }}</h3></div></div>
-        <div class="col-md-4"><div class="stat-box bg-orange"><small>إجمالي أرصدة النظام (USD)</small><h3>{{ "{:,.2f}".format(total_system_usd) }}</h3></div></div>
+    <div class="row">
+        <div class="col-md-3"><div class="stat-card" style="background: var(--mahjoub-purple);"><small>إجمالي الدولار</small><h4>${{ "{:,.2f}".format(stats.usd) }}</h4></div></div>
+        <div class="col-md-3"><div class="stat-card" style="background: var(--mahjoub-green);"><small>إجمالي الريال السعودي</small><h4>SAR {{ "{:,.2f}".format(stats.sar) }}</h4></div></div>
+        <div class="col-md-3"><div class="stat-card" style="background: var(--mahjoub-gold);"><small>إجمالي الريال اليمني</small><h4>YER {{ "{:,.2f}".format(stats.yer) }}</h4></div></div>
+        <div class="col-md-3"><div class="stat-card" style="background: var(--mahjoub-blue);"><small>عدد المحافظ النشطة</small><h4>{{ stats.count }}</h4></div></div>
     </div>
 
     <div class="mahjoub-card">
-        <h5 class="mb-3" style="color: var(--mahjoub-purple);"><i class="fas fa-search"></i> بحث ذكي في الموردين</h5>
+        <h5 class="mb-3"><i class="fas fa-search"></i> بحث ذكي في الموردين</h5>
         <div class="input-group input-group-lg">
             <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
-            <button class="btn btn-mahjoub px-4" onclick="loadWallet()" style="border-radius: 0 10px 10px 0;">عرض المحفظة</button>
+            <button class="btn btn-mahjoub px-4" onclick="loadWallet()">عرض محفظة المختار</button>
         </div>
     </div>
 
-    <div id="walletDisplayArea" class="mt-4">
-        <div class="mahjoub-card text-center py-5 text-muted">
-            <i class="fas fa-wallet fa-4x mb-3" style="color: var(--mahjoub-gold);"></i>
-            <h5>يرجى تحديد مورد لعرض كشف الحساب</h5>
-        </div>
+    <div class="mahjoub-card" id="suppliersListArea">
+        <h5 class="mb-3">قائمة الموردين</h5>
+        <div id="suppliersTable"></div>
     </div>
+
+    <div id="walletDisplayArea" class="mt-4"></div>
 </div>
 
 <script>
-    $(document).ready(function() {
-        // تهيئة Select2
-        $('#supplierSearch').select2({
-            placeholder: "ابحث عن المورد بالاسم أو رقم الهاتف...",
-            allowClear: true,
-            theme: "bootstrap-5",
-            minimumInputLength: 1, 
-            ajax: { 
-                url: '/wallet/api/search_suppliers', // المسار المعتمد في routes.py
-                dataType: 'json', 
-                delay: 250, 
-                data: function(params) { return { q: params.term }; }, 
-                processResults: function(data) {
-                    return { results: data.results };
-                }
-            }
-        });
-    });
-
-    // دالة جلب المحفظة مع دعم التصفح (Pagination)
-    function loadWallet(page = 1) {
-        let supplierId = $('#supplierSearch').val();
-        
-        if(!supplierId) {
-            Swal.fire('تنبيه', 'يرجى اختيار مورد من القائمة أولاً', 'warning');
-            return;
-        }
-        
-        $('#walletDisplayArea').html('<div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري تحميل كشف الحساب...</div>');
-        
-        fetch(`/wallet/view/${supplierId}?page=${page}`)
-        .then(response => {
-            if (!response.ok) throw new Error('فشل في جلب البيانات');
-            return response.text();
-        })
-        .then(html => { 
-            // استبدال المحتوى بالكامل (الجدول + أزرار التصفح)
-            $('#walletDisplayArea').html(html); 
-        })
-        .catch(err => {
-            $('#walletDisplayArea').html(`<div class="alert alert-danger">خطأ: ${err.message}</div>`);
-        });
-    }
+    // الدالة ستكون كما هي، تأكد فقط من تمرير stats من الـ Backend
 </script>
 {% endblock %}
