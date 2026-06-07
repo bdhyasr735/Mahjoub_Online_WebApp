@@ -37,6 +37,7 @@
 
 <script>
     $(document).ready(function() {
+        // تهيئة Select2
         if ($.fn.select2) {
             $('#supplierSearch').select2({
                 placeholder: "ابحث عن المورد بالاسم أو رقم الهاتف...",
@@ -44,7 +45,6 @@
                 theme: "bootstrap-5",
                 minimumInputLength: 1,
                 ajax: {
-                    // تم تحديث الرابط ليكون تابعاً لـ wallet_app مباشرة
                     url: '/wallet/search_suppliers', 
                     dataType: 'json',
                     delay: 250,
