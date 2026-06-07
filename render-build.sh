@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# تحديث وتثبيت مكتبات النظام المطلوبة لـ WeasyPrint
-apt-get update
-apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libffi-dev shared-mime-info
+set -o errexit
 pip install -r requirements.txt
+# تنفيذ الميجريشن لإنشاء الجداول في قاعدة البيانات
+flask db upgrade
