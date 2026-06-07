@@ -2,23 +2,16 @@
 
 {% block content %}
 <style>
-    :root {
-        --mahjoub-purple: #2d1b4e;
-        --mahjoub-gold: #c5a059;
-        --mahjoub-green: #27ae60;
-        --mahjoub-orange: #e67e22;
+    /* تحسينات لضمان عمل Select2 ووضوحه */
+    .select2-container--default .select2-selection--single {
+        height: 50px !important;
+        padding: 10px !important;
+        border-radius: 10px !important;
     }
-
-    .stat-box { border-radius: 20px; padding: 25px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: 0.3s; }
-    .stat-box:hover { transform: translateY(-5px); }
-    .bg-purple { background-color: var(--mahjoub-purple); }
-    .bg-green { background-color: var(--mahjoub-green); }
-    .bg-orange { background-color: var(--mahjoub-orange); }
-    .stat-box h3 { color: var(--mahjoub-gold); margin: 0; }
-
-    .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; padding: 20px; }
-    .btn-mahjoub { background-color: var(--mahjoub-purple) !important; color: white !important; transition: 0.3s; }
-    .btn-mahjoub:hover { background-color: var(--mahjoub-gold) !important; }
+    .select2-container .select2-selection--single .select2-selection__rendered {
+        line-height: 30px !important;
+    }
+    .select2-selection__arrow { height: 48px !important; }
 </style>
 
 <div class="container-fluid py-4">
@@ -31,7 +24,7 @@
     <div class="mahjoub-card">
         <h5 class="mb-3" style="color: var(--mahjoub-purple);"><i class="fas fa-search"></i> بحث ذكي في الموردين</h5>
         <div class="input-group input-group-lg">
-            <select id="supplierSearch" class="form-control" style="width: 80%;"></select>
+            <select id="supplierSearch" class="form-control"></select>
             <button class="btn btn-mahjoub px-4" onclick="loadWallet()">عرض المحفظة</button>
         </div>
     </div>
@@ -45,34 +38,43 @@
 </div>
 
 <script>
+    // متغير لتخزين المورد المختار لعملية الـ Pagination
+    let currentSupplierId = null;
+
     $(document).ready(function() {
         $('#supplierSearch').select2({
             placeholder: "ابحث عن المورد بالاسم أو رقم الهاتف...",
             allowClear: true,
+            theme: "bootstrap-5",
             ajax: { 
-                url: '/api/search',
+                url: '/wallet/api/search_suppliers', // المسار الصحيح
                 dataType: 'json', 
                 delay: 250, 
                 data: params => ({ q: params.term }), 
                 processResults: data => ({
-                    results: data.results.map(s => ({ id: s.id, text: `${s.name} - ${s.phone}` }))
+                    results: data.results.map(s => ({ id: s.id, text: s.text }))
                 })
             }
         });
+
+        // تحديث المتغير عند اختيار مورد
+        $('#supplierSearch').on('select2:select', function (e) {
+            currentSupplierId = e.params.data.id;
+        });
     });
 
-    // دالة لجلب المحفظة مع دعم الـ Pagination
     function loadWallet(page = 1) {
-        let supplierId = $('#supplierSearch').val();
+        let supplierId = currentSupplierId || $('#supplierSearch').val();
         
-        // إذا كنا ننتقل لصفحة تالية ولم نعد نملك الـ supplierId في الـ Select2
-        // نعتمد على المتغير المخزن إن وجد، أو نطلب الاختيار
         if(!supplierId) {
             Swal.fire('تنبيه', 'يرجى اختيار مورد من القائمة أولاً', 'warning');
             return;
         }
         
-        document.getElementById('walletDisplayArea').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري التحميل...</div>';
+        // تحديث المتغير لضمان استمراريته عند الانتقال بين الصفحات
+        currentSupplierId = supplierId;
+        
+        document.getElementById('walletDisplayArea').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري تحميل كشف الحساب...</div>';
         
         fetch(`/wallet/view/${supplierId}?page=${page}`)
         .then(r => r.text())
