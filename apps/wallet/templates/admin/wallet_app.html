@@ -2,7 +2,6 @@
 
 {% block content %}
 <style>
-    /* تعريف الألوان (التي افتقدتها) */
     :root {
         --mahjoub-purple: #2d1b4e;
         --mahjoub-gold: #c5a059;
@@ -10,24 +9,21 @@
         --mahjoub-orange: #e67e22;
     }
 
-    /* تنسيق صناديق الإحصائيات */
     .stat-box { border-radius: 20px; padding: 25px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: 0.3s; margin-bottom: 20px; }
     .bg-purple { background-color: var(--mahjoub-purple); }
     .bg-green { background-color: var(--mahjoub-green); }
     .bg-orange { background-color: var(--mahjoub-orange); }
     .stat-box h3 { color: var(--mahjoub-gold); margin: 0; }
 
-    /* تنسيق الكارد والبحث */
     .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; padding: 20px; }
     .btn-mahjoub { background-color: var(--mahjoub-purple) !important; color: white !important; }
     
-    /* إصلاح حقل البحث - هذا الجزء هو الأهم للسماح بالكتابة */
-    .select2-container { width: 100% !important; z-index: 1050; }
+    /* إصلاح حقل Select2 ليظهر بوضوح فوق العناصر الأخرى */
+    .select2-container { width: 100% !important; z-index: 9999 !important; }
     .select2-container--bootstrap-5 .select2-selection {
         height: 50px !important;
         padding: 10px !important;
         border-radius: 10px 0 0 10px !important;
-        border: 1px solid #ced4da;
     }
 </style>
 
@@ -41,7 +37,7 @@
     <div class="mahjoub-card">
         <h5 class="mb-3" style="color: var(--mahjoub-purple);"><i class="fas fa-search"></i> بحث ذكي في الموردين</h5>
         <div class="input-group input-group-lg">
-            <select id="supplierSearch" class="form-control"></select>
+            <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
             <button class="btn btn-mahjoub px-4" onclick="loadWallet()" style="border-radius: 0 10px 10px 0;">عرض المحفظة</button>
         </div>
     </div>
@@ -55,50 +51,45 @@
 </div>
 
 <script>
-    let currentSupplierId = null;
-
     $(document).ready(function() {
-        // تفعيل Select2 بشكل صحيح
+        // تأكد من تحميل select2 بعد jQuery مباشرة في admin_base.html
         $('#supplierSearch').select2({
             placeholder: "ابحث عن المورد بالاسم أو رقم الهاتف...",
             allowClear: true,
             theme: "bootstrap-5",
-            minimumInputLength: 1, // تفعيل البحث بعد كتابة حرف
+            minimumInputLength: 1, 
             ajax: { 
                 url: '/wallet/api/search_suppliers',
                 dataType: 'json', 
                 delay: 250, 
-                data: params => ({ q: params.term }), 
-                processResults: data => ({
-                    results: data.results.map(s => ({ id: s.id, text: s.text }))
-                })
+                data: function(params) { return { q: params.term }; }, 
+                processResults: function(data) {
+                    return { results: data.results };
+                }
             }
-        });
-
-        $('#supplierSearch').on('select2:select', function (e) {
-            currentSupplierId = e.params.data.id;
         });
     });
 
     function loadWallet(page = 1) {
-        let supplierId = currentSupplierId || $('#supplierSearch').val();
+        let supplierId = $('#supplierSearch').val();
         
         if(!supplierId) {
             Swal.fire('تنبيه', 'يرجى اختيار مورد من القائمة أولاً', 'warning');
             return;
         }
         
-        currentSupplierId = supplierId;
-        
-        document.getElementById('walletDisplayArea').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري التحميل...</div>';
+        document.getElementById('walletDisplayArea').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري تحميل المحفظة...</div>';
         
         fetch(`/wallet/view/${supplierId}?page=${page}`)
-        .then(r => r.text())
+        .then(response => {
+            if (!response.ok) throw new Error('فشل في جلب البيانات');
+            return response.text();
+        })
         .then(html => { 
             document.getElementById('walletDisplayArea').innerHTML = html; 
         })
         .catch(err => {
-            document.getElementById('walletDisplayArea').innerHTML = '<div class="alert alert-danger">خطأ في جلب البيانات</div>';
+            document.getElementById('walletDisplayArea').innerHTML = `<div class="alert alert-danger">خطأ: ${err.message}</div>`;
         });
     }
 </script>
