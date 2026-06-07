@@ -1,13 +1,15 @@
-from flask import Blueprint, render_template, request, jsonify
+# 📂 apps/wallet/routes.py
+from flask import render_template, request, jsonify
 from flask_login import login_required
 from sqlalchemy import func
-from apps.models.wallet_db import Wallet, Transaction, Supplier # تأكد من صحة مسارات الموديلات عندك
-from apps import db # تأكد من استيراد كائن الـ db الخاص بك
+from apps import db 
+# استيراد الموديلات (تأكد من مطابقة هذه الأسماء لما هو موجود في ملفات الـ models)
+from apps.models.wallet_db import SupplierWallet as Wallet, WalletTransaction as Transaction
+from apps.models.supplier_db import Supplier
+# استيراد الـ Blueprint الذي عرفناه في apps/wallet/__init__.py
+from apps.wallet import wallet_app
 
-# تعريف الـ Blueprint
-wallet_app = Blueprint('wallet_app', __name__, template_folder='templates')
-
-# 1. لوحة تحكم المحفظة (الداشبورد + الإحصائيات)
+# 1. لوحة تحكم المحفظة (الداشبورد)
 @wallet_app.route('/wallet_dashboard')
 @login_required
 def wallet_dashboard():
@@ -20,8 +22,8 @@ def wallet_dashboard():
     }
     return render_template('admin/wallet_app.html', stats=stats)
 
-# 2. جلب قائمة الموردين مع التصفح (يُستدعى بـ AJAX)
-@wallet_app.route('/wallet/get_suppliers_list')
+# 2. جلب قائمة الموردين مع التصفح (Pagination)
+@wallet_app.route('/get_suppliers_list')
 @login_required
 def get_suppliers_list():
     page = request.args.get('page', 1, type=int)
@@ -42,8 +44,8 @@ def search_api():
     results = [{"id": s.id, "text": f"{s.trade_name} - {s.owner_phone}"} for s in suppliers]
     return jsonify({"results": results})
 
-# 4. عرض محفظة مورد معين (يُستدعى بـ AJAX)
-@wallet_app.route('/wallet/view/<int:supplier_id>')
+# 4. عرض محفظة مورد معين
+@wallet_app.route('/view/<int:supplier_id>')
 @login_required
 def view_wallet(supplier_id):
     page = request.args.get('page', 1, type=int)
@@ -54,4 +56,4 @@ def view_wallet(supplier_id):
         .order_by(Transaction.created_at.desc())\
         .paginate(page=page, per_page=10)
         
-    return render_template('admin/view_wallet.html', wallet=wallet, transactions=transactions, pagination=transactions)
+    return render_template('admin/view_wallet.html', wallet=wallet, transactions=transactions)
