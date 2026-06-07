@@ -3,7 +3,7 @@ import os
 import sys
 from flask import Flask
 
-# إعداد المسارات
+# إعداد المسارات لضمان رؤية المجلدات
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if base_dir not in sys.path: sys.path.insert(0, base_dir)
 
@@ -15,10 +15,13 @@ from werkzeug.security import generate_password_hash
 
 def create_app():
     app = Flask(__name__, template_folder='templates')
+    
+    # الإعدادات
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-sovereign-key-2026')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mahjoub_online.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
+    # تهيئة الإضافات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -28,7 +31,7 @@ def create_app():
     def load_user(user_id):
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل الـ Blueprints هنا داخل الدالة لمنع أي استيراد مبكر (Circular Import)
+    # تسجيل الـ Blueprints (التسجيل الصحيح والآمن)
     from apps.auth_portal.routes import auth_portal
     from apps.add_supplier.routes import add_supplier_bp
     from apps.financial_ops.routes import financial_blueprint
@@ -43,10 +46,10 @@ def create_app():
     app.register_blueprint(api_search, url_prefix='/api')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
 
+    # تهيئة قاعدة البيانات والبيانات التأسيسية
     with app.app_context():
         db.create_all()
         
-        # منطق زرع البيانات التأسيسية
         try:
             if AdminUser.query.first() is None:
                 admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
@@ -54,6 +57,7 @@ def create_app():
                 db.session.add(admin)
                 db.session.commit()
 
+                # زرع موردين تجريبيين للتأكد من عمل النظام
                 for i in range(1, 22):
                     new_sup = Supplier(
                         username=f'sup_{i}', 
@@ -63,7 +67,7 @@ def create_app():
                         wallet_code=f'W-{i}-2026', owner_phone=f'7700000{i:02d}'
                     )
                     db.session.add(new_sup)
-                    db.session.flush()
+                    db.session.flush() # لحجز الـ ID قبل الـ commit
                     new_wallet = SupplierWallet(supplier_id=new_sup.id, balance_sar=0, balance_yer=0, balance_usd=0)
                     db.session.add(new_wallet)
                 db.session.commit()
