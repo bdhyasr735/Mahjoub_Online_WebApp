@@ -25,29 +25,40 @@ def wallet_dashboard():
     return render_template('admin/wallet_app.html', stats=stats)
 
 # 2. جلب قائمة الموردين مع التصفح (Pagination)
-# هذا المسار يتم استدعاؤه عبر AJAX من صفحة wallet_app.html
 @wallet_app.route('/get_suppliers_list')
 @login_required
 def get_suppliers_list():
     page = request.args.get('page', 1, type=int)
-    # جلب 10 موردين في كل صفحة
     suppliers = Supplier.query.paginate(page=page, per_page=10, error_out=False)
     return render_template('admin/suppliers_list.html', suppliers=suppliers)
-
-# ملاحظة: تم حذف دالة search_api من هنا لأنها موجودة في ملف apps/api/search.py
-# لضمان عدم وجود تضارب في الـ Routing.
 
 # 3. عرض محفظة مورد معين (يُستدعى عبر AJAX)
 @wallet_app.route('/view/<int:supplier_id>')
 @login_required
 def view_wallet(supplier_id):
     page = request.args.get('page', 1, type=int)
-    # جلب المحفظة المرتبطة بالمورد
     wallet = Wallet.query.filter_by(supplier_id=supplier_id).first_or_404()
     
-    # جلب العمليات المالية لهذا المورد بترتيب تنازلي (الأحدث أولاً)
     transactions = Transaction.query.filter_by(wallet_id=wallet.id)\
         .order_by(Transaction.created_at.desc())\
         .paginate(page=page, per_page=10, error_out=False)
         
     return render_template('admin/view_wallet.html', wallet=wallet, transactions=transactions)
+
+# 4. دالة البحث المدمجة (تمت إضافتها هنا لتكون بديلة عن API)
+@wallet_app.route('/search_suppliers')
+@login_required
+def search_suppliers():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({"results": []})
+    
+    # البحث في الموردين بالاسم أو الهاتف
+    suppliers = Supplier.query.filter(
+        (Supplier.trade_name.ilike(f'%{query}%')) | 
+        (Supplier.owner_phone.ilike(f'%{query}%'))
+    ).limit(10).all()
+    
+    # تحويل النتائج لتنسيق Select2
+    results = [{"id": s.id, "text": f"{s.trade_name} - {s.owner_phone}"} for s in suppliers]
+    return jsonify({"results": results})
