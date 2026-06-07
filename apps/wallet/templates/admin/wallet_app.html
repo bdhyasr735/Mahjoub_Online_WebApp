@@ -2,10 +2,13 @@
 
 {% block content %}
 <style>
-    :root { --mahjoub-purple: #2d1b4e; --mahjoub-gold: #c5a059; --mahjoub-blue: #3498db; }
+    :root { --mahjoub-purple: #2d1b4e; --mahjoub-gold: #c5a059; --mahjoub-blue: #3498db; --mahjoub-green: #27ae60; }
     .stat-card { border-radius: 20px; padding: 20px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
     .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; padding: 20px; margin-bottom: 20px; }
-    .btn-mahjoub { background-color: var(--mahjoub-purple) !important; color: white !important; }
+    .btn-mahjoub { background-color: var(--mahjoub-purple) !important; color: white !important; font-weight: bold; }
+    
+    /* تنسيق إضافي لـ Select2 */
+    .select2-container--bootstrap-5 .select2-selection { height: 50px !important; padding: 10px !important; }
 </style>
 
 <div class="container-fluid py-4">
@@ -20,19 +23,59 @@
         <h5 class="mb-3"><i class="fas fa-search"></i> بحث ذكي في الموردين</h5>
         <div class="input-group input-group-lg">
             <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
-            <button class="btn btn-mahjoub px-4" onclick="loadWallet()">عرض محفظة المختار</button>
+            <button class="btn btn-mahjoub px-4" onclick="loadWallet()" style="border-radius: 0 10px 10px 0;">عرض المحفظة</button>
         </div>
     </div>
 
     <div class="mahjoub-card" id="suppliersListArea">
         <h5 class="mb-3">قائمة الموردين</h5>
-        <div id="suppliersTable"></div>
+        <div id="suppliersTable">
+            <div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري التحميل...</div>
+        </div>
     </div>
 
-    <div id="walletDisplayArea" class="mt-4"></div>
+    <div id="walletDisplayArea"></div>
 </div>
 
 <script>
-    // الدالة ستكون كما هي، تأكد فقط من تمرير stats من الـ Backend
+    $(document).ready(function() {
+        // 1. تهيئة البحث الذكي
+        $('#supplierSearch').select2({
+            placeholder: "ابحث عن المورد بالاسم أو رقم الهاتف...",
+            allowClear: true,
+            theme: "bootstrap-5",
+            minimumInputLength: 1,
+            ajax: {
+                url: '/api/search',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) { return { q: params.term }; },
+                processResults: function(data) { return { results: data.results }; }
+            }
+        });
+
+        // 2. تحميل الموردين عند البدء
+        loadSuppliers(1);
+    });
+
+    // دالة جلب قائمة الموردين
+    function loadSuppliers(page) {
+        $('#suppliersTable').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div> جاري تحميل القائمة...</div>');
+        fetch('/wallet/get_suppliers_list?page=' + page)
+        .then(r => r.text())
+        .then(html => { $('#suppliersTable').html(html); });
+    }
+
+    // دالة عرض محفظة مورد معين
+    function loadWallet(page = 1) {
+        let supplierId = $('#supplierSearch').val();
+        if(!supplierId) { Swal.fire('تنبيه', 'يرجى اختيار مورد أولاً', 'warning'); return; }
+        
+        $('#walletDisplayArea').html('<div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري تحميل كشف الحساب...</div>');
+        
+        fetch(`/wallet/view/${supplierId}?page=${page}`)
+        .then(r => r.text())
+        .then(html => { $('#walletDisplayArea').html(html); });
+    }
 </script>
 {% endblock %}
