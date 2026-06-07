@@ -1,6 +1,4 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع النهائي المحصن (Render-Ready & Gunicorn-Compatible)
-
 import os
 import sys
 from flask import Flask, redirect
@@ -13,32 +11,18 @@ if base_dir not in sys.path:
 from apps.extensions import db, login_manager, migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-def safe_register(app_instance, module_path, attr_name, prefix):
-    """تسجيل المسارات مع حماية من الأخطاء."""
-    try:
-        module = __import__(module_path, fromlist=[attr_name])
-        blueprint = getattr(module, attr_name)
-        app_instance.register_blueprint(blueprint, url_prefix=prefix)
-    except Exception as e:
-        print(f"⚠️ Failed to register {attr_name}: {e}")
-
-def create_app(*args, **kwargs):
-    # إنشاء التطبيق وتحديد المسار الأساسي للقوالب
+def create_app():
     app = Flask(__name__, template_folder='templates')
     
-    # 💡 التعديل الجوهري: توسيع نطاق بحث Jinja2 ليشمل مسار القوالب الخاص بـ auth_portal
+    # توسيع مسار القوالب لـ Jinja2
     app.jinja_loader.searchpath.append(os.path.join(base_dir, 'apps', 'auth_portal', 'templates'))
     
     # تحميل الإعدادات
-    try:
-        from config import Config
-        app.config.from_object(Config)
-    except:
-        app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-sovereign-key-2026')
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mahjoub_online.db')
-        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-sovereign-key-2026')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mahjoub_online.db')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # إعدادات الوكيل
+    # إعدادات البروكسي (ضروري لـ Render)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
     db.init_app(app)
@@ -47,6 +31,7 @@ def create_app(*args, **kwargs):
     login_manager.login_view = 'auth_portal.login' 
 
     with app.app_context():
+        # تسجيل النماذج
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -56,27 +41,23 @@ def create_app(*args, **kwargs):
         def load_user(user_id):
             return AdminUser.query.get(int(user_id))
 
-        # تسجيل الـ Blueprints
-        safe_register(app, 'apps.auth_portal.routes', 'auth_portal', '')
-        safe_register(app, 'apps.add_supplier.routes', 'add_supplier_bp', '/suppliers')
-        safe_register(app, 'apps.financial_ops.routes', 'financial_blueprint', '/financial_ops')
-        safe_register(app, 'apps.admin_dashboard.routes', 'admin_dashboard', '/admin')
-        safe_register(app, 'apps.api.search', 'api_search', '/api')
-        safe_register(app, 'apps.wallet.routes', 'wallet_app', '/wallet')
+        # تسجيل الـ Blueprints مباشرة
+        from apps.auth_portal.routes import auth_portal
+        from apps.add_supplier.routes import add_supplier_bp
+        from apps.financial_ops.routes import financial_blueprint
+        from apps.admin_dashboard.routes import admin_dashboard
+        from apps.api.search import api_search
+        from apps.wallet.routes import wallet_app
 
-        @app.route('/health')
-        def health_check():
-            return "OK", 200
+        app.register_blueprint(auth_portal, url_prefix='')
+        app.register_blueprint(add_supplier_bp, url_prefix='/suppliers')
+        app.register_blueprint(financial_blueprint, url_prefix='/financial_ops')
+        app.register_blueprint(admin_dashboard, url_prefix='/admin')
+        app.register_blueprint(api_search, url_prefix='/api')
+        app.register_blueprint(wallet_app, url_prefix='/wallet')
 
         @app.route('/')
         def root_redirect():
             return redirect('/m7jb_sovereign_hq_v2_99x')
-
-        @app.after_request
-        def add_security_headers(response):
-            if response:
-                response.headers["X-Content-Type-Options"] = "nosniff"
-                response.headers["X-Frame-Options"] = "DENY"
-            return response
 
     return app
