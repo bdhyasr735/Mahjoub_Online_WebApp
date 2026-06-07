@@ -32,24 +32,34 @@
 <div class="d-flex justify-content-between align-items-center mt-3">
     <button class="btn btn-outline-secondary btn-sm" 
             {% if not suppliers.has_prev %}disabled{% endif %} 
-            onclick="loadSuppliers({{ suppliers.prev_num }})">
+            onclick="loadSuppliers({{ suppliers.prev_num if suppliers.has_prev else 1 }})">
         السابق
     </button>
     
-    <span class="text-muted small">صفحة {{ suppliers.page }} من {{ suppliers.pages }}</span>
+    <span class="text-muted small">صفحة {{ suppliers.page }} من {{ suppliers.pages if suppliers.pages > 0 else 1 }}</span>
     
     <button class="btn btn-outline-secondary btn-sm" 
             {% if not suppliers.has_next %}disabled{% endif %} 
-            onclick="loadSuppliers({{ suppliers.next_num }})">
+            onclick="loadSuppliers({{ suppliers.next_num if suppliers.has_next else suppliers.pages }})">
         التالي
     </button>
 </div>
 
 <script>
-    // دالة إضافية لجعل الجدول يستدعي عرض المحفظة بسهولة
+    /**
+     * دالة الربط: عند الضغط على "عرض" في الجدول، 
+     * نقوم بتحديث مربع البحث تلقائياً واستدعاء دالة عرض المحفظة.
+     */
     function loadWalletFromTable(id) {
-        // نضع القيمة في الـ Select2 ليتمكن كود عرض المحفظة من قراءتها
+        // 1. تحديث قيمة البحث المختار
         $('#supplierSearch').val(id).trigger('change');
-        loadWallet(); // استدعاء دالة عرض المحفظة الموجودة في الصفحة الرئيسية
+        
+        // 2. استدعاء دالة عرض المحفظة الموجودة في wallet_app.html
+        loadWallet(); 
+        
+        // 3. تمرير الصفحة ببطء للمنطقة التي تظهر فيها المحفظة
+        $('html, body').animate({
+            scrollTop: $("#walletDisplayArea").offset().top - 100
+        }, 500);
     }
 </script>
