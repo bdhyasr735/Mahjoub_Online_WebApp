@@ -7,7 +7,6 @@
     .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; padding: 20px; margin-bottom: 20px; }
     .btn-mahjoub { background-color: var(--mahjoub-purple) !important; color: white !important; font-weight: bold; }
     
-    /* تنسيق إضافي لـ Select2 */
     .select2-container--bootstrap-5 .select2-selection { height: 50px !important; padding: 10px !important; }
 </style>
 
@@ -39,14 +38,14 @@
 
 <script>
     $(document).ready(function() {
-        // 1. تهيئة البحث الذكي
+        // 1. تهيئة البحث الذكي - المسار مطابق لـ /api/search
         $('#supplierSearch').select2({
             placeholder: "ابحث عن المورد بالاسم أو رقم الهاتف...",
             allowClear: true,
             theme: "bootstrap-5",
             minimumInputLength: 1,
             ajax: {
-                url: '/api/search',
+                url: '/api/search', 
                 dataType: 'json',
                 delay: 250,
                 data: function(params) { return { q: params.term }; },
@@ -54,19 +53,17 @@
             }
         });
 
-        // 2. تحميل الموردين عند البدء
         loadSuppliers(1);
     });
 
-    // دالة جلب قائمة الموردين
+    // 2. دالة جلب قائمة الموردين - المسار مطابق لـ /wallet/get_suppliers_list
     function loadSuppliers(page) {
-        $('#suppliersTable').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div> جاري تحميل القائمة...</div>');
         fetch('/wallet/get_suppliers_list?page=' + page)
         .then(r => r.text())
         .then(html => { $('#suppliersTable').html(html); });
     }
 
-    // دالة عرض محفظة مورد معين
+    // 3. دالة عرض محفظة مورد معين - المسار مطابق لـ /wallet/view/...
     function loadWallet(page = 1) {
         let supplierId = $('#supplierSearch').val();
         if(!supplierId) { Swal.fire('تنبيه', 'يرجى اختيار مورد أولاً', 'warning'); return; }
