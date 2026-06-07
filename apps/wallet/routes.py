@@ -1,10 +1,11 @@
 # coding: utf-8
-# 📂 apps/wallet/routes.py - النسخة النهائية المتكاملة
+# 📂 apps/wallet/routes.py - النسخة النهائية المتكاملة والمحدثة
 
 from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
+from apps.models.supplier_db import Supplier # تم الاستيراد لتفعيل البحث
 
 # تعريف الـ Blueprint
 wallet_app = Blueprint(
@@ -18,12 +19,10 @@ wallet_app = Blueprint(
 @login_required
 def wallet_dashboard():
     try:
-        # حساب الإجماليات للنظام
         total_sar = db.session.query(db.func.sum(SupplierWallet.balance_sar)).scalar()
         total_yer = db.session.query(db.func.sum(SupplierWallet.balance_yer)).scalar()
         total_usd = db.session.query(db.func.sum(SupplierWallet.balance_usd)).scalar()
         
-        # تحويل النتائج لـ float وتجنب القيم الفارغة (None)
         total_system_sar = float(total_sar) if total_sar else 0.0
         total_system_yer = float(total_yer) if total_yer else 0.0
         total_system_usd = float(total_usd) if total_usd else 0.0
@@ -43,7 +42,6 @@ def wallet_dashboard():
 @wallet_app.route('/view/<int:supplier_id>')
 @login_required
 def view_wallet(supplier_id):
-    # جلب المحفظة
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     
     if wallet:
@@ -51,21 +49,16 @@ def view_wallet(supplier_id):
         wallet.balance_yer = float(wallet.balance_yer)
         wallet.balance_usd = float(wallet.balance_usd)
     
-    # الحصول على رقم الصفحة
     page = request.args.get('page', 1, type=int)
-    
     transactions_pagination = None
     transactions = []
     
     if wallet:
-        # جلب العمليات مع ترقيم الصفحات
         transactions_pagination = WalletTransaction.query.filter_by(wallet_id=wallet.id)\
             .order_by(WalletTransaction.created_at.desc())\
             .paginate(page=page, per_page=10, error_out=False)
         
         transactions = transactions_pagination.items
-        
-        # تحويل مبالغ العمليات إلى float
         for tx in transactions:
             tx.amount = float(tx.amount)
     
@@ -76,7 +69,30 @@ def view_wallet(supplier_id):
         pagination=transactions_pagination
     )
 
-# 3. معالجة العمليات المالية (إيداع / سحب)
+# 3. مسار البحث الذكي عن الموردين (API للـ Select2)
+@wallet_app.route('/api/search_suppliers')
+@login_required
+def search_suppliers():
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify({"results": []})
+    
+    # البحث باستخدام حقول البحث السريع في نموذج المورد
+    suppliers = Supplier.query.filter(
+        (Supplier.search_name.ilike(f'%{query}%')) | 
+        (Supplier.search_phone.ilike(f'%{query}%'))
+    ).limit(10).all()
+    
+    results = [
+        {
+            "id": s.id, 
+            "text": f"{s.trade_name or 'بدون اسم'} - {s.owner_phone or 'لا يوجد هاتف'}"
+        } 
+        for s in suppliers
+    ]
+    return jsonify({"results": results})
+
+# 4. معالجة العمليات المالية (إيداع / سحب)
 @wallet_app.route('/add_transaction', methods=['POST'])
 @login_required
 def add_transaction():
@@ -84,26 +100,21 @@ def add_transaction():
         data = request.json
         wallet_id = data.get('wallet_id')
         amount = float(data.get('amount', 0))
-        tx_type = data.get('type')  # إيداع أو سحب
+        tx_type = data.get('type')
         description = data.get('description', '')
 
-        # تحديث الرصيد (منطق مبدئي)
         wallet = SupplierWallet.query.get(wallet_id)
         if not wallet:
             return jsonify({"status": "error", "message": "المحفظة غير موجودة"}), 404
 
-        # إضافة العملية
         new_tx = WalletTransaction(
             wallet_id=wallet.id,
             amount=amount,
-            type=tx_type,
-            description=description
+            transaction_type=tx_type, # تم التعديل ليتوافق مع اسم الحقل في القالب
+            description=description,
+            currency='SAR' # يمكن توسيع هذا مستقبلاً
         )
         db.session.add(new_tx)
-        
-        # منطق تحديث الرصيد هنا ...
-        # (سيتم ربطه بـ DB لاحقاً)
-        
         db.session.commit()
         return jsonify({"status": "success", "message": "تمت العملية بنجاح"})
         
