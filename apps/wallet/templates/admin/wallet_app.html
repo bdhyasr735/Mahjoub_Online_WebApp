@@ -37,7 +37,7 @@
 
 <script>
     $(document).ready(function() {
-        // تهيئة Select2
+        // تهيئة البحث الذكي Select2
         if ($.fn.select2) {
             $('#supplierSearch').select2({
                 placeholder: "ابحث عن المورد بالاسم أو رقم الهاتف...",
@@ -54,9 +54,11 @@
             });
         }
 
+        // تحميل قائمة الموردين عند فتح الصفحة
         loadSuppliers(1);
     });
 
+    // دالة جلب قائمة الموردين (AJAX)
     function loadSuppliers(page) {
         const tableDiv = $('#suppliersTable');
         fetch(`/wallet/get_suppliers_list?page=${page}`)
@@ -67,10 +69,11 @@
             });
     }
 
+    // دالة جلب كشف حساب المورد (AJAX)
     function loadWallet(page = 1) {
         let supplierId = $('#supplierSearch').val();
         if (!supplierId) {
-            Swal.fire('تنبيه', 'يرجى اختيار مورد أولاً', 'warning');
+            Swal.fire('تنبيه', 'يرجى اختيار مورد أولاً من البحث', 'warning');
             return;
         }
         const displayArea = $('#walletDisplayArea');
