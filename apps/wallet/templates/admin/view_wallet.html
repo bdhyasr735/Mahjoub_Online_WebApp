@@ -1,41 +1,20 @@
 {% if not is_mourning_period %}
-<div class="mahjoub-card mt-4">
+<div class="mahjoub-card mt-4 p-4" style="background: #fff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 style="color: var(--mahjoub-purple);"><i class="fas fa-file-invoice-dollar"></i> كشف حساب المورد: {{ wallet.supplier.trade_name }}</h5>
+        <h5 style="color: #2d1b4e;"><i class="fas fa-file-invoice-dollar"></i> كشف حساب: {{ wallet.supplier.trade_name }}</h5>
         <button class="btn btn-sm btn-outline-danger" onclick="$('#walletDisplayArea').empty()">إغلاق</button>
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="p-3 bg-light rounded text-center border">
-                <small class="text-muted">الرصيد بالدولار</small>
-                <h6 class="text-primary">${{ "{:,.2f}".format(wallet.balance_usd) }}</h6>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-3 bg-light rounded text-center border">
-                <small class="text-muted">الرصيد بالريال السعودي</small>
-                <h6 class="text-success">SAR {{ "{:,.2f}".format(wallet.balance_sar) }}</h6>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-3 bg-light rounded text-center border">
-                <small class="text-muted">الرصيد بالريال اليمني</small>
-                <h6 class="text-warning">YER {{ "{:,.2f}".format(wallet.balance_yer) }}</h6>
-            </div>
-        </div>
+        <div class="col-md-4"><div class="p-3 bg-light rounded text-center border"><small class="text-muted">الرصيد بالدولار</small><h6 class="text-primary">${{ "{:,.2f}".format(wallet.balance_usd) }}</h6></div></div>
+        <div class="col-md-4"><div class="p-3 bg-light rounded text-center border"><small class="text-muted">الرصيد بالريال السعودي</small><h6 class="text-success">SAR {{ "{:,.2f}".format(wallet.balance_sar) }}</h6></div></div>
+        <div class="col-md-4"><div class="p-3 bg-light rounded text-center border"><small class="text-muted">الرصيد بالريال اليمني</small><h6 class="text-warning">YER {{ "{:,.2f}".format(wallet.balance_yer) }}</h6></div></div>
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>التاريخ</th>
-                    <th>النوع</th>
-                    <th>المبلغ</th>
-                    <th>العملة</th>
-                    <th>البيان</th>
-                </tr>
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>العملة</th><th>البيان</th></tr>
             </thead>
             <tbody>
                 {% for tx in transactions.items %}
@@ -51,38 +30,28 @@
                     <td>{{ tx.description }}</td>
                 </tr>
                 {% else %}
-                <tr>
-                    <td colspan="5" class="text-center py-3 text-muted">لا توجد عمليات مالية مسجلة</td>
-                </tr>
+                <tr><td colspan="5" class="text-center py-3 text-muted">لا توجد حركات مالية مسجلة</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
     <div class="d-flex justify-content-center mt-3">
-        <nav>
-            <ul class="pagination pagination-sm">
-                <li class="page-item {% if not transactions.has_prev %}disabled{% endif %}">
-                    <a class="page-link" href="#" onclick="loadWallet({{ transactions.prev_num }}); return false;">السابق</a>
-                </li>
-                <li class="page-item active"><span class="page-link">{{ transactions.page }}</span></li>
-                <li class="page-item {% if not transactions.has_next %}disabled{% endif %}">
-                    <a class="page-link" href="#" onclick="loadWallet({{ transactions.next_num }}); return false;">التالي</a>
-                </li>
-            </ul>
-        </nav>
+        <nav><ul class="pagination pagination-sm">
+            <li class="page-item {% if not transactions.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="#" onclick="loadWallet({{ transactions.prev_num }}); return false;">السابق</a>
+            </li>
+            <li class="page-item active"><span class="page-link">{{ transactions.page }}</span></li>
+            <li class="page-item {% if not transactions.has_next %}disabled{% endif %}">
+                <a class="page-link" href="#" onclick="loadWallet({{ transactions.next_num }}); return false;">التالي</a>
+            </li>
+        </ul></nav>
     </div>
 </div>
 {% else %}
 <div class="mahjoub-card mt-4 text-center py-5 shadow-sm">
-    <i class="fas fa-hand-holding-heart fa-4x mb-3" style="color: var(--mahjoub-gold);"></i>
-    <h4 class="mb-3" style="color: var(--mahjoub-purple);">المنصة في حالة حداد</h4>
-    <p class="text-muted">
-        تم إيقاف كافة الخدمات البرمجية والتشغيلية مؤقتاً لمدة ثلاثة أيام <br>
-        ترحماً على روح القائد البطل <strong>يحيى وحيش</strong>.
-    </p>
-    <div class="mt-4">
-        <span class="badge bg-secondary p-2">نعود لخدمتكم بعد فترة الحداد</span>
-    </div>
+    <i class="fas fa-hand-holding-heart fa-4x mb-3" style="color: #c5a059;"></i>
+    <h4 class="mb-3" style="color: #2d1b4e;">المنصة في حالة حداد</h4>
+    <p>تم إيقاف الخدمات مؤقتاً ترحماً على روح القائد البطل <strong>يحيى وحيش</strong>.</p>
 </div>
 {% endif %}
