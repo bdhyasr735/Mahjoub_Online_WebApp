@@ -2,8 +2,6 @@
 import os
 import sys
 from flask import Flask
-from flask_wtf.csrf import CSRFProtect
-from flask_talisman import Talisman
 
 # إعداد المسارات لضمان رؤية المجلدات
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,19 +17,10 @@ from werkzeug.security import generate_password_hash
 def create_app():
     app = Flask(__name__, template_folder='templates')
     
-    # 🛡️ إعدادات الأمان
+    # الإعدادات
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-sovereign-key-2026')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mahjoub_online.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # تأمين الكوكيز
-    app.config['SESSION_COOKIE_SECURE'] = True
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-
-    # تهيئة الحماية من الثغرات
-    CSRFProtect(app)
-    Talisman(app, content_security_policy=None)
     
     # تهيئة الإضافات
     db.init_app(app)
@@ -58,6 +47,7 @@ def create_app():
 
     # تهيئة قاعدة البيانات والبيانات التأسيسية
     with app.app_context():
+        # ملاحظة: إذا كنت تستخدم الترحيلات (Migrate)، لا حاجة لاستدعاء db.create_all() دائماً
         db.create_all()
         
         try:
@@ -67,7 +57,7 @@ def create_app():
                 db.session.add(admin)
                 db.session.commit()
 
-                # زرع موردين تجريبيين
+                # زرع موردين تجريبيين للتأكد من عمل النظام
                 for i in range(1, 22):
                     new_sup = Supplier(
                         username=f'sup_{i}', 
@@ -77,13 +67,13 @@ def create_app():
                         wallet_code=f'W-{i}-2026', owner_phone=f'7700000{i:02d}'
                     )
                     db.session.add(new_sup)
-                    db.session.flush() 
+                    db.session.flush() # لحجز الـ ID قبل الـ commit
                     
                     new_wallet = SupplierWallet(supplier_id=new_sup.id, balance_sar=0, balance_yer=0, balance_usd=0)
                     db.session.add(new_wallet)
                 
                 db.session.commit()
-                print("✅ تم بناء المصنع بنجاح وتم زرع البيانات التأسيسية.")
+                print("✅ تم إنشاء البيانات التأسيسية بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ خطأ أثناء تهيئة قاعدة البيانات: {e}")
