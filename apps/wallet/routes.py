@@ -1,21 +1,22 @@
 # 📂 apps/wallet/routes.py
-from flask import Blueprint, render_template, request, jsonify
-from apps.extensions import db
-from apps.models.wallet_db import SupplierWallet, WalletTransaction
-from apps.models.supplier_db import Supplier
+from flask import Blueprint, render_template, request
 from flask_login import login_required
+from apps.models.wallet_db import SupplierWallet
+from apps.models.supplier_db import Supplier
 
-# تعريف الـ Blueprint باسم wallet_app ليطابق ما في __init__.py
+# تعريف الـ Blueprint (تأكد أن الاسم يطابق المسجل في __init__.py)
 wallet_app = Blueprint('wallet_app', __name__)
 
-@wallet_app.route('/dashboard')
+@wallet_app.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
+    # 1. استقبال نص البحث من القالب
     search_query = request.args.get('search', '')
     
-    # بناء الاستعلام لجلب المحافظ مع بيانات المورد المرتبطة بها
-    query = SupplierWallet.query.join(Supplier)
+    # 2. جلب البيانات من قاعدة البيانات (استخدام outerjoin لضمان عدم ضياع المحافظ)
+    query = SupplierWallet.query.outerjoin(Supplier)
     
+    # 3. تطبيق فلتر البحث إذا وُجد
     if search_query:
         query = query.filter(
             (Supplier.trade_name.contains(search_query)) | 
@@ -23,33 +24,15 @@ def dashboard():
             (Supplier.owner_phone.contains(search_query))
         )
     
+    # 4. تنفيذ الاستعلام
     wallets = query.all()
     
+    # 5. إرسال البيانات للمحرك (القالب)
     return render_template('admin/wallet_app.html', wallets=wallets)
 
 @wallet_app.route('/view/<int:supplier_id>')
 @login_required
 def view_wallet(supplier_id):
-    # جلب المحفظة الخاصة بالمورد
+    # جلب المحفظة المحددة
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
-    
-    # جلب العمليات الخاصة بهذه المحفظة
-    transactions = WalletTransaction.query.filter_by(wallet_id=wallet.id)\
-        .order_by(WalletTransaction.created_at.desc()).all()
-    
-    return render_template('admin/view_wallet.html', 
-                           wallet=wallet, 
-                           transactions=transactions)
-
-@wallet_app.route('/api/search')
-@login_required
-def search_suppliers():
-    query = request.args.get('q', '')
-    suppliers = Supplier.query.filter(
-        (Supplier.trade_name.contains(query)) | 
-        (Supplier.owner_phone.contains(query))
-    ).limit(10).all()
-    
-    return jsonify({
-        'results': [{'id': s.id, 'name': s.trade_name, 'phone': s.owner_phone} for s in suppliers]
-    })
+    return render_template('admin/view_wallet.html', wallet=wallet)
