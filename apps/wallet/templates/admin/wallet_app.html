@@ -1,38 +1,73 @@
-# 📂 apps/wallet/routes.py
-from flask import render_template, request, jsonify
-from flask_login import login_required
-from sqlalchemy import func
-from apps import db 
-from apps.models.wallet_db import SupplierWallet as Wallet, WalletTransaction as Transaction
-from apps.models.supplier_db import Supplier
-from apps.wallet import wallet_app
+{% extends "admin/admin_base.html" %}
 
-@wallet_app.route('/wallet_dashboard')
-@login_required
-def wallet_dashboard():
-    # حساب الإحصائيات (العمليات الحسابية للمحرك)
-    stats = {
-        "usd": db.session.query(func.sum(Wallet.balance_usd)).scalar() or 0,
-        "sar": db.session.query(func.sum(Wallet.balance_sar)).scalar() or 0,
-        "yer": db.session.query(func.sum(Wallet.balance_yer)).scalar() or 0,
-        "count": Wallet.query.count()
+{% block content %}
+<style>
+    :root { --mahjoub-purple: #2d1b4e; --mahjoub-gold: #c5a059; --mahjoub-blue: #3498db; --mahjoub-green: #27ae60; }
+    .stat-card { border-radius: 20px; padding: 20px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
+    .mahjoub-card { border-radius: 20px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: #fff; padding: 20px; margin-bottom: 20px; }
+    .btn-mahjoub { background-color: var(--mahjoub-purple) !important; color: white !important; font-weight: bold; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3"><div class="stat-card" style="background: var(--mahjoub-purple);"><small>إجمالي الدولار</small><h4>${{ "{:,.2f}".format(stats.usd) }}</h4></div></div>
+        <div class="col-md-3"><div class="stat-card" style="background: var(--mahjoub-green);"><small>إجمالي الريال السعودي</small><h4>SAR {{ "{:,.2f}".format(stats.sar) }}</h4></div></div>
+        <div class="col-md-3"><div class="stat-card" style="background: var(--mahjoub-gold);"><small>إجمالي الريال اليمني</small><h4>YER {{ "{:,.2f}".format(stats.yer) }}</h4></div></div>
+        <div class="col-md-3"><div class="stat-card" style="background: var(--mahjoub-blue);"><small>المحافظ النشطة</small><h4>{{ stats.count }}</h4></div></div>
+    </div>
+
+    <div class="mahjoub-card">
+        <h5><i class="fas fa-search"></i> بحث ذكي في الموردين</h5>
+        <div class="input-group input-group-lg">
+            <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
+            <button class="btn btn-mahjoub" onclick="loadWallet()">عرض كشف المحفظة</button>
+        </div>
+    </div>
+
+    <div class="mahjoub-card" id="suppliersListArea">
+        <h5 class="mb-3">قائمة الموردين</h5>
+        <div id="suppliersTable">
+            <div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري تحميل الموردين...</div>
+        </div>
+    </div>
+
+    <div id="walletDisplayArea"></div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#supplierSearch').select2({
+            placeholder: "ابحث عن المورد بالاسم أو الهاتف...",
+            allowClear: true,
+            theme: "bootstrap-5",
+            minimumInputLength: 1,
+            ajax: {
+                url: '/wallet/search_suppliers',
+                dataType: 'json',
+                delay: 250,
+                data: function(p) { return { q: p.term }; },
+                processResults: function(data) { return { results: data.results }; }
+            }
+        });
+        loadSuppliers(1);
+    });
+
+    // جلب قائمة الموردين مع التصفح
+    function loadSuppliers(page) {
+        fetch(`/wallet/get_suppliers_list?page=${page}`)
+            .then(r => r.text())
+            .then(html => $('#suppliersTable').html(html));
     }
-    return render_template('admin/wallet_app.html', stats=stats)
 
-@wallet_app.route('/get_suppliers_list')
-@login_required
-def get_suppliers_list():
-    # المحرك هنا: جلب 10 موردين فقط في كل مرة (Pagination)
-    page = request.args.get('page', 1, type=int)
-    suppliers = Supplier.query.paginate(page=page, per_page=10, error_out=False)
-    return render_template('admin/suppliers_list.html', suppliers=suppliers)
-
-@wallet_app.route('/view/<int:supplier_id>')
-@login_required
-def view_wallet(supplier_id):
-    # الحماية: التحقق من وجود المحفظة قبل العرض
-    wallet = Wallet.query.filter_by(supplier_id=supplier_id).first_or_404()
-    transactions = Transaction.query.filter_by(wallet_id=wallet.id)\
-        .order_by(Transaction.created_at.desc())\
-        .paginate(page=1, per_page=10, error_out=False)
-    return render_template('admin/view_wallet.html', wallet=wallet, transactions=transactions)
+    // جلب محفظة مورد (مع حماية القيمة)
+    function loadWallet(page = 1) {
+        let id = $('#supplierSearch').val();
+        if (!id) { Swal.fire('تنبيه', 'يرجى اختيار مورد أولاً', 'warning'); return; }
+        
+        $('#walletDisplayArea').html('<div class="text-center py-5">جاري التحقق من المحفظة...</div>');
+        fetch(`/wallet/view/${id}?page=${page}`)
+            .then(r => r.text())
+            .then(html => $('#walletDisplayArea').html(html));
+    }
+</script>
+{% endblock %}
