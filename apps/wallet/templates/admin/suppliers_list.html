@@ -1,31 +1,39 @@
-<table class="table table-hover align-middle">
-    <thead class="table-light">
-        <tr><th>المعرف</th><th>اسم المتجر</th><th>الرصيد ($)</th><th>الإجراء</th></tr>
-    </thead>
-    <tbody>
-        {% for s in suppliers.items %}
-        <tr>
-            <td>#{{ s.id }}</td>
-            <td class="fw-bold">{{ s.trade_name }}</td>
-            <td class="text-primary fw-bold">${{ "{:,.2f}".format(s.wallet.balance_usd if s.wallet else 0) }}</td>
-            <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="loadWalletFromTable({{ s.id }})">
-                    <i class="fas fa-eye"></i> استعراض
-                </button>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% extends "admin/admin_base.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="mahjoub-card mt-4 p-3">
+        <h5>بحث سريع في الموردين</h5>
+        <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
+        <button class="btn btn-primary mt-2" onclick="loadWallet()">عرض كشف المحفظة</button>
+    </div>
+    <div id="tableContent" class="mt-4"></div>
+    <div id="walletDisplayArea" class="mt-4"></div>
+</div>
 
-<nav class="d-flex justify-content-center mt-3">
-    <ul class="pagination pagination-sm">
-        <li class="page-item {% if not suppliers.has_prev %}disabled{% endif %}">
-            <a class="page-link" href="#" onclick="loadSuppliersTable({{ suppliers.prev_num if suppliers.has_prev else 1 }}); return false;">السابق</a>
-        </li>
-        <li class="page-item active"><span class="page-link">{{ suppliers.page }}</span></li>
-        <li class="page-item {% if not suppliers.has_next %}disabled{% endif %}">
-            <a class="page-link" href="#" onclick="loadSuppliersTable({{ suppliers.next_num if suppliers.has_next else suppliers.page }}); return false;">التالي</a>
-        </li>
-    </ul>
-</nav>
+<script>
+$(document).ready(function() {
+    $('#supplierSearch').select2({
+        theme: 'bootstrap-5',
+        ajax: { 
+            url: '/wallet/search_suppliers', dataType: 'json', delay: 250,
+            data: p => ({q: p.term}), processResults: data => ({results: data.results})
+        }
+    });
+    loadSuppliersTable(1);
+});
+
+function loadSuppliersTable(page) {
+    fetch(`/wallet/get_suppliers_list?page=${page}`).then(r => r.text()).then(h => $('#tableContent').html(h));
+}
+
+function loadWallet() {
+    let id = $('#supplierSearch').val();
+    if(id) fetch(`/wallet/view/${id}`).then(r => r.text()).then(h => $('#walletDisplayArea').html(h));
+}
+
+function loadWalletFromTable(id) {
+    $('#supplierSearch').val(id).trigger('change');
+    loadWallet();
+}
+</script>
+{% endblock %}
