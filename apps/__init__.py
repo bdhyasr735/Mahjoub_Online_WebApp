@@ -1,4 +1,4 @@
-# 📂 apps/__init__.py - النسخة النهائية المستقرة والمُنظفة
+# 📂 apps/__init__.py
 import os
 import sys
 from flask import Flask
@@ -32,7 +32,7 @@ def create_app():
     def load_user(user_id):
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل الـ Blueprints (تم تنظيف الاستيرادات)
+    # تسجيل الـ Blueprints
     from apps.auth_portal.routes import auth_portal
     from apps.add_supplier.routes import add_supplier_bp
     from apps.financial_ops.routes import financial_blueprint
