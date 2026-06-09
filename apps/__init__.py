@@ -1,11 +1,12 @@
-# 📂 apps/__init__.py - النسخة النهائية المستقرة (بعد التنظيف)
+# 📂 apps/__init__.py - النسخة النهائية المستقرة والمُنظفة
 import os
 import sys
 from flask import Flask
 
 # إعداد المسارات لضمان رؤية المجلدات
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if base_dir not in sys.path: sys.path.insert(0, base_dir)
+if base_dir not in sys.path: 
+    sys.path.insert(0, base_dir)
 
 from apps.extensions import db, login_manager, migrate
 from apps.models.admin_db import AdminUser
@@ -31,7 +32,7 @@ def create_app():
     def load_user(user_id):
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل الـ Blueprints (تم إزالة api.search)
+    # تسجيل الـ Blueprints (تم تنظيف الاستيرادات)
     from apps.auth_portal.routes import auth_portal
     from apps.add_supplier.routes import add_supplier_bp
     from apps.financial_ops.routes import financial_blueprint
@@ -44,7 +45,7 @@ def create_app():
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
 
-    # تهيئة قاعدة البيانات
+    # تهيئة قاعدة البيانات والبيانات التأسيسية
     with app.app_context():
         db.create_all()
         
@@ -55,6 +56,7 @@ def create_app():
                 db.session.add(admin)
                 db.session.commit()
 
+                # زرع موردين تجريبيين للتأكد من عمل النظام
                 for i in range(1, 22):
                     new_sup = Supplier(
                         username=f'sup_{i}', 
@@ -64,7 +66,7 @@ def create_app():
                         wallet_code=f'W-{i}-2026', owner_phone=f'7700000{i:02d}'
                     )
                     db.session.add(new_sup)
-                    db.session.flush() 
+                    db.session.flush() # لحجز الـ ID قبل الـ commit
                     new_wallet = SupplierWallet(supplier_id=new_sup.id, balance_sar=0, balance_yer=0, balance_usd=0)
                     db.session.add(new_wallet)
                 db.session.commit()
