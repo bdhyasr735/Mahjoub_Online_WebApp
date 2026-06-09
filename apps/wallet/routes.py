@@ -4,8 +4,9 @@ from flask_login import login_required
 from apps.models.wallet_db import SupplierWallet
 from apps.models.supplier_db import Supplier
 
-# تعريف الـ Blueprint (تأكد أن الاسم يطابق المسجل في __init__.py)
-wallet_app = Blueprint('wallet_app', __name__)
+# 🛡️ التعديل الجوهري هنا: إضافة template_folder ليشير إلى مجلد القوالب المحلي
+# هذا سيجعل Flask يبحث عن القوالب داخل apps/wallet/templates/
+wallet_app = Blueprint('wallet_app', __name__, template_folder='templates')
 
 @wallet_app.route('/dashboard', methods=['GET'])
 @login_required
@@ -28,6 +29,8 @@ def dashboard():
     wallets = query.all()
     
     # 5. إرسال البيانات للمحرك (القالب)
+    # بفضل التعديل في تعريف Blueprint أعلاه، سيبحث Flask هنا في:
+    # apps/wallet/templates/admin/wallet_app.html
     return render_template('admin/wallet_app.html', wallets=wallets)
 
 @wallet_app.route('/view/<int:supplier_id>')
@@ -35,4 +38,6 @@ def dashboard():
 def view_wallet(supplier_id):
     # جلب المحفظة المحددة
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
+    
+    # تأكد أيضاً أن view_wallet.html موجود في apps/wallet/templates/admin/
     return render_template('admin/view_wallet.html', wallet=wallet)
