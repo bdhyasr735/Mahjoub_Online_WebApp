@@ -1,6 +1,7 @@
 # 📂 apps/__init__.py
 import os
 import sys
+import random  # استيراد مكتبة التوليد العشوائي
 from flask import Flask
 
 # إعداد المسارات لضمان رؤية المجلدات
@@ -47,7 +48,6 @@ def create_app():
 
     # تهيئة قاعدة البيانات والبيانات التأسيسية
     with app.app_context():
-        # إنشاء الجداول (تأكد من استخدام Migrations للإنتاج لاحقاً)
         db.create_all()
         
         try:
@@ -58,24 +58,34 @@ def create_app():
                 db.session.add(admin)
                 db.session.commit()
 
-                # زرع موردين تجريبيين للتأكد من عمل النظام
+            # زرع 21 مورد بأرصدة عشوائية إذا كان جدول الموردين فارغاً
+            if Supplier.query.first() is None:
                 for i in range(1, 22):
                     new_sup = Supplier(
                         username=f'sup_{i}', 
                         password_hash=generate_password_hash('sup_pass_123'),
-                        status='قيد المراجعة', rank_grade='ريادي', 
-                        trade_name=f'مؤسسة المورد {i}', owner_name=f'المالك {i}', 
-                        wallet_code=f'W-{i}-2026', owner_phone=f'7700000{i:02d}'
+                        status='نشط', 
+                        rank_grade='ريادي', 
+                        trade_name=f'مؤسسة المورد {i}', 
+                        owner_name=f'المالك {i}', 
+                        wallet_code=f'W-{i}-2026', 
+                        owner_phone=f'7700000{i:02d}'
                     )
                     db.session.add(new_sup)
-                    db.session.flush() # لحجز الـ ID للمورد قبل ربط المحفظة
+                    db.session.flush() # حجز الـ ID للمورد
                     
-                    # إنشاء محفظة لكل مورد تم زرعه
-                    new_wallet = SupplierWallet(supplier_id=new_sup.id, balance_sar=0, balance_yer=0, balance_usd=0)
+                    # إنشاء أرصدة عشوائية (دولار من 100-5000، ريال سعودي من 500-10000)
+                    new_wallet = SupplierWallet(
+                        supplier_id=new_sup.id, 
+                        balance_usd=round(random.uniform(100, 5000), 2),
+                        balance_sar=round(random.uniform(500, 10000), 2),
+                        balance_yer=round(random.uniform(10000, 500000), 2)
+                    )
                     db.session.add(new_wallet)
                 
                 db.session.commit()
-                print("✅ تم بناء المصنع بنجاح وتم زرع البيانات التأسيسية.")
+                print("✅ تم بناء المصنع بنجاح وتم زرع 21 مورداً بأرصدة عشوائية.")
+                
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ خطأ أثناء تهيئة قاعدة البيانات: {e}")
