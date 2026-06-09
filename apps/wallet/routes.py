@@ -22,17 +22,21 @@ def wallet_dashboard():
         "yer": db.session.query(func.sum(Wallet.balance_yer)).scalar() or 0,
         "count": Wallet.query.count()
     }
+    # هذا الملف يحتوي على الهيكل الأساسي (Base Template)
     return render_template('admin/wallet_app.html', stats=stats)
 
 # 2. جلب قائمة الموردين مع التصفح (Pagination)
+# يُستدعى عبر AJAX ليتم حقنه في #suppliersTable
 @wallet_app.route('/get_suppliers_list')
 @login_required
 def get_suppliers_list():
     page = request.args.get('page', 1, type=int)
     suppliers = Supplier.query.paginate(page=page, per_page=10, error_out=False)
+    # ملاحظة: هذا الملف لا يجب أن يحتوي على {% extends %}
     return render_template('admin/suppliers_list.html', suppliers=suppliers)
 
 # 3. عرض محفظة مورد معين (يُستدعى عبر AJAX)
+# يُستدعى عبر AJAX ليتم حقنه في #walletDisplayArea
 @wallet_app.route('/view/<int:supplier_id>')
 @login_required
 def view_wallet(supplier_id):
@@ -43,9 +47,10 @@ def view_wallet(supplier_id):
         .order_by(Transaction.created_at.desc())\
         .paginate(page=page, per_page=10, error_out=False)
         
+    # ملاحظة: هذا الملف لا يجب أن يحتوي على {% extends %}
     return render_template('admin/view_wallet.html', wallet=wallet, transactions=transactions)
 
-# 4. دالة البحث المدمجة (تمت إضافتها هنا لتكون بديلة عن API)
+# 4. دالة البحث المدمجة (Select2 AJAX)
 @wallet_app.route('/search_suppliers')
 @login_required
 def search_suppliers():
