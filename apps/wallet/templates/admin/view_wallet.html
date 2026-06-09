@@ -1,57 +1,58 @@
-{% if not is_mourning_period %}
-<div class="mahjoub-card mt-4 p-4" style="background: #fff; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 style="color: #2d1b4e;"><i class="fas fa-file-invoice-dollar"></i> كشف حساب: {{ wallet.supplier.trade_name }}</h5>
-        <button class="btn btn-sm btn-outline-danger" onclick="$('#walletDisplayArea').empty()">إغلاق</button>
+{% extends "admin/admin_base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-md-3"><div class="stat-card" style="background: #2d1b4e; color: white; border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 20px;"><small>إجمالي الدولار</small><h4>${{ "{:,.2f}".format(stats.usd) }}</h4></div></div>
+        <div class="col-md-3"><div class="stat-card" style="background: #27ae60; color: white; border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 20px;"><small>إجمالي الريال السعودي</small><h4>SAR {{ "{:,.2f}".format(stats.sar) }}</h4></div></div>
+        <div class="col-md-3"><div class="stat-card" style="background: #c5a059; color: white; border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 20px;"><small>إجمالي الريال اليمني</small><h4>YER {{ "{:,.2f}".format(stats.yer) }}</h4></div></div>
+        <div class="col-md-3"><div class="stat-card" style="background: #3498db; color: white; border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 20px;"><small>المحافظ النشطة</small><h4>{{ stats.count }}</h4></div></div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-4"><div class="p-3 bg-light rounded text-center border"><small class="text-muted">الرصيد بالدولار</small><h6 class="text-primary">${{ "{:,.2f}".format(wallet.balance_usd) }}</h6></div></div>
-        <div class="col-md-4"><div class="p-3 bg-light rounded text-center border"><small class="text-muted">الرصيد بالريال السعودي</small><h6 class="text-success">SAR {{ "{:,.2f}".format(wallet.balance_sar) }}</h6></div></div>
-        <div class="col-md-4"><div class="p-3 bg-light rounded text-center border"><small class="text-muted">الرصيد بالريال اليمني</small><h6 class="text-warning">YER {{ "{:,.2f}".format(wallet.balance_yer) }}</h6></div></div>
+    <div class="mahjoub-card" style="background: #fff; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        <h5><i class="fas fa-search"></i> بحث ذكي في الموردين</h5>
+        <div class="input-group input-group-lg">
+            <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
+            <button class="btn" style="background-color: #2d1b4e; color: white;" onclick="loadWallet()">عرض كشف المحفظة</button>
+        </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>العملة</th><th>البيان</th></tr>
-            </thead>
-            <tbody>
-                {% for tx in transactions.items %}
-                <tr>
-                    <td>{{ tx.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td>
-                        <span class="badge {{ 'bg-success' if tx.transaction_type == 'credit' else 'bg-danger' }}">
-                            {{ 'إيداع' if tx.transaction_type == 'credit' else 'سحب' }}
-                        </span>
-                    </td>
-                    <td>{{ "{:,.2f}".format(tx.amount) }}</td>
-                    <td>{{ tx.currency }}</td>
-                    <td>{{ tx.description }}</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5" class="text-center py-3 text-muted">لا توجد حركات مالية مسجلة</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div id="suppliersTable" class="mahjoub-card" style="background: #fff; padding: 20px; border-radius: 20px;">
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري تحميل البيانات...</div>
     </div>
-
-    <div class="d-flex justify-content-center mt-3">
-        <nav><ul class="pagination pagination-sm">
-            <li class="page-item {% if not transactions.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="loadWallet({{ transactions.prev_num }}); return false;">السابق</a>
-            </li>
-            <li class="page-item active"><span class="page-link">{{ transactions.page }}</span></li>
-            <li class="page-item {% if not transactions.has_next %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="loadWallet({{ transactions.next_num }}); return false;">التالي</a>
-            </li>
-        </ul></nav>
-    </div>
+    
+    <div id="walletDisplayArea" class="mt-4"></div>
 </div>
-{% else %}
-<div class="mahjoub-card mt-4 text-center py-5 shadow-sm">
-    <i class="fas fa-hand-holding-heart fa-4x mb-3" style="color: #c5a059;"></i>
-    <h4 class="mb-3" style="color: #2d1b4e;">المنصة في حالة حداد</h4>
-    <p>تم إيقاف الخدمات مؤقتاً ترحماً على روح القائد البطل <strong>يحيى وحيش</strong>.</p>
-</div>
-{% endif %}
+
+<script>
+    $(document).ready(function() {
+        $('#supplierSearch').select2({
+            placeholder: "ابحث بالاسم أو الهاتف...",
+            ajax: {
+                url: '/wallet/search_suppliers',
+                dataType: 'json',
+                delay: 250,
+                processResults: data => ({ results: data.results })
+            }
+        });
+        loadSuppliers(1);
+    });
+
+    function loadSuppliers(page) {
+        fetch(`/wallet/get_suppliers_list?page=${page}`)
+            .then(r => r.text())
+            .then(html => $('#suppliersTable').html(html));
+    }
+
+    function loadWallet(page = 1) {
+        let id = $('#supplierSearch').val();
+        if(!id) { Swal.fire('تنبيه', 'يرجى اختيار مورد أولاً', 'warning'); return; }
+        
+        $('#walletDisplayArea').html('<div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري جلب كشف الحساب...</div>');
+        
+        fetch(`/wallet/view/${id}?page=${page}`)
+            .then(r => r.text())
+            .then(html => $('#walletDisplayArea').html(html));
+    }
+</script>
+{% endblock %}
