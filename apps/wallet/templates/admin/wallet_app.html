@@ -2,86 +2,91 @@
 
 {% block content %}
 <div class="container-fluid py-4">
+    <!-- شريط الإحصائيات (يُحدث عند تحميل الصفحة) -->
     <div class="row">
+        {% for label, val, color, unit in [('إجمالي الدولار', stats.usd, '#2d1b4e', '$'), ('إجمالي الريال السعودي', stats.sar, '#27ae60', 'SAR'), ('إجمالي الريال اليمني', stats.yer, '#c5a059', 'YER'), ('المحافظ النشطة', stats.count, '#3498db', '')] %}
         <div class="col-md-3">
-            <div class="stat-card" style="background: #2d1b4e; color: white; border-radius: 20px; padding: 20px; text-align: center;">
-                <small>إجمالي الدولار</small>
-                <h4>${{ "{:,.2f}".format(stats.usd) }}</h4>
+            <div class="stat-card" style="background: {{ color }}; color: white; border-radius: 20px; padding: 20px; text-align: center;">
+                <small>{{ label }}</small>
+                <h4>{{ unit }} {{ "{:,.2f}".format(val) if unit != '' else val }}</h4>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="stat-card" style="background: #27ae60; color: white; border-radius: 20px; padding: 20px; text-align: center;">
-                <small>إجمالي الريال السعودي</small>
-                <h4>SAR {{ "{:,.2f}".format(stats.sar) }}</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card" style="background: #c5a059; color: white; border-radius: 20px; padding: 20px; text-align: center;">
-                <small>إجمالي الريال اليمني</small>
-                <h4>YER {{ "{:,.2f}".format(stats.yer) }}</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card" style="background: #3498db; color: white; border-radius: 20px; padding: 20px; text-align: center;">
-                <small>المحافظ النشطة</small>
-                <h4>{{ stats.count }}</h4>
-            </div>
-        </div>
+        {% endfor %}
     </div>
 
+    <!-- البحث الذكي -->
     <div class="mahjoub-card mt-4 p-3" style="background: #fff; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <h5><i class="fas fa-search"></i> بحث سريع في الموردين</h5>
         <div class="input-group input-group-lg">
-            <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
+            <select id="supplierSearch" class="form-control" style="width: 80%;"></select>
             <button class="btn btn-primary px-4" onclick="loadWallet()">عرض كشف المحفظة</button>
         </div>
     </div>
 
-    <div class="mahjoub-card mt-4 p-4" style="background: #fff; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" id="suppliersTableContainer">
+    <!-- الجدول الديناميكي -->
+    <div class="mahjoub-card mt-4 p-4" style="background: #fff; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <div id="tableContent">
-            </div>
+            <!-- سيتم تحميل الجدول هنا -->
+        </div>
     </div>
     
+    <!-- عرض تفاصيل المحفظة -->
     <div id="walletDisplayArea" class="mt-4"></div>
 </div>
 
 <script>
     $(document).ready(function() {
-        // تهيئة Select2 للبحث
+        // 1. تفعيل Select2 مع البحث في السيرفر
         $('#supplierSearch').select2({
-            placeholder: "ابحث بالاسم أو الهاتف...",
+            placeholder: "بحث باسم المورد أو الهاتف...",
+            allowClear: true,
             ajax: { 
                 url: '/wallet/search_suppliers', 
                 dataType: 'json', 
                 delay: 250, 
-                processResults: data => ({ results: data.results }) 
+                data: function(params) { return { q: params.term }; },
+                processResults: function(data) {
+                    return { results: data.results.map(item => ({ id: item.id, text: item.text })) };
+                }
             }
         });
         
-        // تحميل الصفحة الأولى من الجدول عند فتح الداشبورد
+        // 2. تحميل الجدول الأول عند التشغيل
         loadSuppliersTable(1);
     });
 
-    // دالة لجلب جدول الموردين (10 موردين في كل صفحة)
+    // جلب الجدول ديناميكياً
     function loadSuppliersTable(page) {
-        $('#tableContent').html('<div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري تحميل الموردين...</div>');
+        $('#tableContent').html('<div class="text-center py-3"><div class="spinner-border text-primary"></div> جاري تحديث القائمة...</div>');
         fetch(`/wallet/get_suppliers_list?page=${page}`)
             .then(r => r.text())
-            .then(html => $('#tableContent').html(html));
+            .then(html => $('#tableContent').html(html))
+            .catch(() => $('#tableContent').html('<div class="alert alert-danger">حدث خطأ في تحميل البيانات</div>'));
     }
 
-    // دالة لعرض المحفظة المختارة عبر البحث
+    // عرض المحفظة عند اختيار مورد
     function loadWallet() {
         let id = $('#supplierSearch').val();
-        if(!id) return;
-        $('#walletDisplayArea').html('<div class="text-center py-5"><div class="spinner-border text-primary"></div> جاري تحميل بيانات المحفظة...</div>');
+        if(!id) {
+            alert('يرجى اختيار مورد أولاً');
+            return;
+        }
+        
+        $('#walletDisplayArea').html('<div class="text-center py-5"><div class="spinner-grow text-success"></div> جاري جلب تفاصيل المحفظة...</div>');
+        
         fetch(`/wallet/view/${id}`)
             .then(r => r.text())
-            .then(html => $('#walletDisplayArea').html(html));
+            .then(html => {
+                $('#walletDisplayArea').html(html);
+                // تمرير الشاشة للأسفل تلقائياً
+                document.getElementById('walletDisplayArea').scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(() => $('#walletDisplayArea').html('<div class="alert alert-danger">تعذر تحميل المحفظة</div>'));
     }
 
-    // دالة مساعدة لتفعيل العرض من الجدول مباشرة
+    // هذه الدالة تستدعى من داخل جدول الموردين (صفحة suppliers_list.html)
     function loadWalletFromTable(id) {
+        // تحديث البحث برمجياً
         $('#supplierSearch').val(id).trigger('change');
         loadWallet();
     }
