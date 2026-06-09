@@ -17,11 +17,19 @@ def wallet_dashboard():
         "yer": db.session.query(func.sum(Wallet.balance_yer)).scalar() or 0,
         "count": Wallet.query.count()
     }
-    # جلب جميع الموردين لعرضهم في جدول مخطط الأعمدة
-    all_suppliers = Supplier.query.all()
-    return render_template('admin/wallet_app.html', stats=stats, suppliers=all_suppliers)
+    # الموردون يُجلبون الآن ديناميكياً في مسار get_suppliers_list
+    return render_template('admin/wallet_app.html', stats=stats)
 
-# 2. مسار البحث الذكي (يغذي Select2)
+# 2. مسار جلب قائمة الموردين مع الترقيم (السابق والتالي)
+@wallet_app.route('/get_suppliers_list')
+@login_required
+def get_suppliers_list():
+    page = request.args.get('page', 1, type=int)
+    # جلب 10 موردين لكل صفحة لضمان السرعة والسلاسة
+    suppliers = Supplier.query.paginate(page=page, per_page=10, error_out=False)
+    return render_template('admin/suppliers_list.html', suppliers=suppliers)
+
+# 3. مسار البحث الذكي (يغذي Select2)
 @wallet_app.route('/search_suppliers')
 @login_required
 def search_suppliers():
@@ -35,7 +43,7 @@ def search_suppliers():
     results = [{"id": s.id, "text": f"{s.trade_name} - {s.owner_phone}"} for s in suppliers]
     return jsonify({"results": results})
 
-# 3. مسار عرض كشف المحفظة (يغذي منطقة العرض الديناميكي)
+# 4. مسار عرض كشف المحفظة (يغذي منطقة العرض الديناميكي)
 @wallet_app.route('/view/<int:supplier_id>')
 @login_required
 def view_wallet(supplier_id):
