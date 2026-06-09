@@ -1,3 +1,4 @@
+{% if not is_mourning_period %}
 <div class="mahjoub-card mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h5 style="color: var(--mahjoub-purple);"><i class="fas fa-file-invoice-dollar"></i> كشف حساب المورد: {{ wallet.supplier.trade_name }}</h5>
@@ -72,3 +73,16 @@
         </nav>
     </div>
 </div>
+{% else %}
+<div class="mahjoub-card mt-4 text-center py-5 shadow-sm">
+    <i class="fas fa-hand-holding-heart fa-4x mb-3" style="color: var(--mahjoub-gold);"></i>
+    <h4 class="mb-3" style="color: var(--mahjoub-purple);">المنصة في حالة حداد</h4>
+    <p class="text-muted">
+        تم إيقاف كافة الخدمات البرمجية والتشغيلية مؤقتاً لمدة ثلاثة أيام <br>
+        ترحماً على روح القائد البطل <strong>يحيى وحيش</strong>.
+    </p>
+    <div class="mt-4">
+        <span class="badge bg-secondary p-2">نعود لخدمتكم بعد فترة الحداد</span>
+    </div>
+</div>
+{% endif %}
