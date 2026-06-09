@@ -18,24 +18,24 @@ from apps.models.admin_db import AdminUser
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 
-# 🛑 مفتاح إيقاف النظام (Kill Switch) للحداد أو الطوارئ
+# مفتاح إيقاف النظام - للتحكم الكامل
 SYSTEM_ONLINE = True 
 
 def create_app():
     app = Flask(__name__, template_folder='templates')
     
-    # حماية: التحقق من حالة النظام قبل استقبال أي طلب
+    # حماية: التحقق من حالة النظام
     @app.before_request
     def check_maintenance():
         if not SYSTEM_ONLINE:
             return "المنصة في فترة حداد مؤقتة، نعود قريباً.", 503
 
-    # الإعدادات
+    # الإعدادات الأساسية
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-key-2026')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
-    # 🛡️ إضافات الأمان
+    # 🛡️ إضافات الأمان (يجب أن يكون flask-talisman و flask-limiter في requirements.txt)
     Talisman(app, content_security_policy=None)
     limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
 
@@ -66,14 +66,12 @@ def create_app():
     with app.app_context():
         db.create_all()
         try:
-            # زرع المستخدم الإداري
             if not AdminUser.query.first():
                 admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
 
-            # زرع الموردين والمحافظ
             if not Supplier.query.first():
                 for i in range(1, 22):
                     new_sup = Supplier(
@@ -84,7 +82,7 @@ def create_app():
                         wallet_code=f'W-{i}-2026', owner_phone=f'7700000{i:02d}'
                     )
                     db.session.add(new_sup)
-                    db.session.flush() # حجز الـ ID
+                    db.session.flush()
                     
                     new_wallet = SupplierWallet(
                         supplier_id=new_sup.id, 
@@ -94,9 +92,9 @@ def create_app():
                     )
                     db.session.add(new_wallet)
                 db.session.commit()
-                print("✅ [المصنع] تم بناء وتعبئة البيانات بنجاح.")
+                print("✅ [المصنع] تم بناء البيانات بنجاح.")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ [المصنع] خطأ أثناء التهيئة: {e}")
+            print(f"⚠️ [المصنع] خطأ: {e}")
 
     return app
