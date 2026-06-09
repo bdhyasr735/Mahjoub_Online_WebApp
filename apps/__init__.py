@@ -47,6 +47,7 @@ def create_app():
 
     # تهيئة قاعدة البيانات والبيانات التأسيسية
     with app.app_context():
+        # ملاحظة: إذا كنت تستخدم الترحيلات (Migrate)، لا حاجة لاستدعاء db.create_all() دائماً
         db.create_all()
         
         try:
@@ -67,9 +68,12 @@ def create_app():
                     )
                     db.session.add(new_sup)
                     db.session.flush() # لحجز الـ ID قبل الـ commit
+                    
                     new_wallet = SupplierWallet(supplier_id=new_sup.id, balance_sar=0, balance_yer=0, balance_usd=0)
                     db.session.add(new_wallet)
+                
                 db.session.commit()
+                print("✅ تم إنشاء البيانات التأسيسية بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ خطأ أثناء تهيئة قاعدة البيانات: {e}")
