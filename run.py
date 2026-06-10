@@ -1,9 +1,9 @@
-# coding: utf-8
-# 📂 run.py (موجود في المجلد الرئيسي بجانب config.py)
-
+import os
 from apps import create_app
 
 app = create_app()
 
 if __name__ == "__main__":
-    app.run()
+    # Render يضع رقم المنفذ في متغير بيئي
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
