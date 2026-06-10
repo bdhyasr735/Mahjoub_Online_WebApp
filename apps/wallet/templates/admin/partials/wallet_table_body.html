@@ -11,8 +11,14 @@
         </a>
     </td>
 </tr>
+{% else %}
+<tr>
+    <td colspan="6" class="text-center py-4 text-muted">
+        لا توجد نتائج مطابقة لبحثك.
+    </td>
+</tr>
 {% endfor %}
 
-<div class="d-flex justify-content-center mt-4">
+<div class="d-flex justify-content-center mt-4" id="paginationLinks">
     {{ pagination.links }}
 </div>
