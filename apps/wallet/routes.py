@@ -15,13 +15,14 @@ def dashboard():
     per_page = 15
     search = request.args.get('search', '')
     
-    # 2. بناء الاستعلام
+    # 2. بناء الاستعلام مع ربط جدول الموردين للوصول للحقول المشفرة
+    # نستخدم join لضمان إمكانية الفلترة باسم المورد (المشفر)
     query = SupplierWallet.query.join(Supplier)
     
     if search:
         query = query.filter(or_(
-            Supplier.trade_name.contains(search),
-            Supplier.owner_phone.contains(search),
+            Supplier.search_name.contains(search),      # البحث في حقل البحث السريع (المفكوك)
+            Supplier.search_phone.contains(search),     # البحث في رقم الهاتف السريع
             SupplierWallet.id.contains(search)
         ))
     
@@ -32,8 +33,7 @@ def dashboard():
     # 4. تهيئة الترقيم
     pagination = Pagination(page=page, total=total, per_page=per_page, css_framework='bootstrap5')
     
-    # 5. التحديث الذكي: 
-    # إذا كان الطلب قادماً عبر AJAX (من JavaScript)، نعيد فقط الجزء المحدث من الجدول
+    # 5. التحديث الذكي: إذا كان الطلب قادماً عبر AJAX، نعيد فقط الجزء المحدث
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/wallet_table_body.html', 
                                wallets=wallets, 
@@ -49,7 +49,7 @@ def dashboard():
 def search_suppliers():
     term = request.args.get('term', '')
     suppliers = Supplier.query.filter(
-        or_(Supplier.trade_name.contains(term), Supplier.owner_phone.contains(term))
+        or_(Supplier.search_name.contains(term), Supplier.search_phone.contains(term))
     ).limit(10).all()
     results = [{'id': s.id, 'text': f"{s.trade_name} - {s.owner_phone}"} for s in suppliers]
     return jsonify({'results': results})
