@@ -11,7 +11,7 @@ class SupplierWallet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
     
-    # 🔗 الربط الصريح: نستخدم back_populates بدلاً من backref لتجنب أي تضارب في الأسماء
+    # 🔗 الربط الصريح
     supplier = db.relationship('Supplier', back_populates='wallet')
     
     # استخدام Numeric للدقة المالية
@@ -30,6 +30,31 @@ class SupplierWallet(db.Model):
 
     # 🔗 الربط بالمعاملات
     transactions = db.relationship('WalletTransaction', back_populates='wallet', lazy='dynamic')
+
+    def add_transaction(self, amount, currency, transaction_type, description=None):
+        """دالة مركزية لإضافة معاملة وتحديث الرصيد تلقائياً"""
+        # 1. إنشاء سجل المعاملة
+        transaction = WalletTransaction(
+            wallet_id=self.id,
+            amount=amount,
+            currency=currency.upper(),
+            transaction_type=transaction_type,
+            description=description
+        )
+        
+        # 2. تحديث الرصيد بناءً على العملة ونوع العملية
+        multiplier = 1 if transaction_type == 'credit' else -1
+        
+        if currency.upper() == 'SAR':
+            self.balance_sar += (amount * multiplier)
+        elif currency.upper() == 'YER':
+            self.balance_yer += (amount * multiplier)
+        elif currency.upper() == 'USD':
+            self.balance_usd += (amount * multiplier)
+            
+        db.session.add(transaction)
+        db.session.commit()
+        return transaction
 
 class WalletTransaction(db.Model):
     __tablename__ = 'wallet_transactions'
