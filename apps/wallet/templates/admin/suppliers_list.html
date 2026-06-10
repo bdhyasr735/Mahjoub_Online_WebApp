@@ -1,39 +1,32 @@
-{% extends "admin/admin_base.html" %}
-{% block content %}
-<div class="container-fluid py-4">
-    <div class="mahjoub-card mt-4 p-3">
-        <h5>بحث سريع في الموردين</h5>
-        <select id="supplierSearch" class="form-control" style="width: 100%;"></select>
-        <button class="btn btn-primary mt-2" onclick="loadWallet()">عرض كشف المحفظة</button>
-    </div>
-    <div id="tableContent" class="mt-4"></div>
-    <div id="walletDisplayArea" class="mt-4"></div>
-</div>
+<table class="table table-hover align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>المورد</th>
+            <th>الهاتف</th>
+            <th>الإجراءات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in suppliers.items %}
+        <tr>
+            <td>{{ s.trade_name }}</td>
+            <td>{{ s.phone }}</td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="loadWalletFromTable({{ s.id }})">
+                    <i class="fas fa-eye"></i> كشف الحساب
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-<script>
-$(document).ready(function() {
-    $('#supplierSearch').select2({
-        theme: 'bootstrap-5',
-        ajax: { 
-            url: '/wallet/search_suppliers', dataType: 'json', delay: 250,
-            data: p => ({q: p.term}), processResults: data => ({results: data.results})
-        }
-    });
-    loadSuppliersTable(1);
-});
-
-function loadSuppliersTable(page) {
-    fetch(`/wallet/get_suppliers_list?page=${page}`).then(r => r.text()).then(h => $('#tableContent').html(h));
-}
-
-function loadWallet() {
-    let id = $('#supplierSearch').val();
-    if(id) fetch(`/wallet/view/${id}`).then(r => r.text()).then(h => $('#walletDisplayArea').html(h));
-}
-
-function loadWalletFromTable(id) {
-    $('#supplierSearch').val(id).trigger('change');
-    loadWallet();
-}
-</script>
-{% endblock %}
+<nav>
+    <ul class="pagination">
+        {% for page_num in suppliers.iter_pages() %}
+            <li class="page-item {{ 'active' if page_num == suppliers.page }}">
+                <a class="page-link" href="#" onclick="loadSuppliersTable({{ page_num }})">{{ page_num }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</nav>
