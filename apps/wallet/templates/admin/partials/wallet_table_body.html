@@ -1,0 +1,18 @@
+{% for wallet in wallets %}
+<tr>
+    <td>{{ wallet.id }}</td>
+    <td class="fw-bold">{{ wallet.supplier.trade_name if wallet.supplier else 'غير معرف' }}</td>
+    <td class="font-monospace">{{ "{:,.2f}".format(wallet.balance_sar|float) }}</td>
+    <td class="font-monospace">{{ "{:,.2f}".format(wallet.balance_yer|float) }}</td>
+    <td class="font-monospace">{{ "{:,.2f}".format(wallet.balance_usd|float) }}</td>
+    <td class="text-center">
+        <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=wallet.supplier_id) }}" class="btn btn-sm btn-outline-warning">
+            <i class="fas fa-eye"></i> إدارة
+        </a>
+    </td>
+</tr>
+{% endfor %}
+
+<div class="d-flex justify-content-center mt-4">
+    {{ pagination.links }}
+</div>
