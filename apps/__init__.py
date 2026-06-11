@@ -13,13 +13,15 @@ from flask_talisman import Talisman
 # استيراد الإعدادات من المجلد الرئيسي
 from config import Config
 
-# استيراد الإضافات والنماذج
+# استيراد الإضافات
 from apps.extensions import db, login_manager, migrate
+
+# استيراد النماذج (تمت إضافتها جميعاً لضمان اكتشافها بواسطة db.create_all)
 from apps.models.admin_db import AdminUser
 from apps.models.supplier_db import Supplier
-from apps.models.wallet_db import SupplierWallet
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.financial_db import ExchangeRate
-from apps.models.vault_db import AdminVault
+from apps.models.vault_db import AdminVault, VaultTransaction
 
 def create_app():
     app = Flask(__name__)
@@ -38,14 +40,14 @@ def create_app():
     def load_user(user_id):
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل الـ Blueprints (باستخدام المسارات النسبية داخل المجلد)
+    # تسجيل الـ Blueprints
     from apps.auth_portal.routes import auth_portal
     from apps.add_supplier.routes import add_supplier_bp
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
     from apps.vault.routes import vault_bp
 
-    app.register_blueprint(auth_portal, url_prefix='')
+    app.register_blueprint(auth_portal, url_prefix='/')
     app.register_blueprint(add_supplier_bp, url_prefix='/suppliers')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
@@ -54,6 +56,7 @@ def create_app():
     # تهيئة قاعدة البيانات الذكية
     with app.app_context():
         try:
+            # بناء الجداول
             db.create_all() 
             
             # 1. إنشاء المدير التأسيسي
@@ -64,7 +67,7 @@ def create_app():
             
             # 2. إنشاء الخزينة
             if not AdminVault.query.first():
-                db.session.add(AdminVault(balance_sar=0, balance_yer=0, balance_usd=0))
+                db.session.add(AdminVault(name="الخزنة المركزية", balance_sar=0, balance_yer=0, balance_usd=0))
             
             # 3. زرع أسعار الصرف
             if not ExchangeRate.query.first():
@@ -72,6 +75,7 @@ def create_app():
                 db.session.add(ExchangeRate(currency_code='YER', rate_to_sar=0.004))
             
             db.session.commit()
+            print("✅ قاعدة البيانات تم بناؤها وتأسيسها بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ خطأ أثناء التأسيس الآمن: {e}")
