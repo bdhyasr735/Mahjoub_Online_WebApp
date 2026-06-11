@@ -7,9 +7,7 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
@@ -71,7 +69,7 @@
         </div>
 
         <nav class="nav-menu">
-            <div class="nav-item-wrapper"><a href="/admin/dashboard" class="nav-link"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a></div>
+            <div class="nav-item-wrapper"><a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a></div>
             
             <div class="nav-item-wrapper">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-box-open me-3"></i> <span>المنتجات</span> <i class="fas fa-chevron-down ms-auto"></i></div>
@@ -96,11 +94,10 @@
             <div class="nav-item-wrapper">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-wallet me-3"></i> <span>الرقابة المالية</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
-                    <li><a href="#">خزينة المنصة المركزية</a></li>
+                    <li><a href="{{ url_for('vault_bp.vault_dashboard') }}">خزينة المنصة المركزية</a></li>
                     <li><a href="#">تسويات الموردين</a></li>
                     <li><a href="{{ url_for('wallet_app.dashboard') }}">محفظة الموردين</a></li>
                     <li><a href="#">الأرباح المركزية</a></li>
-                    <li><a href="#">طلبات التسوية</a></li>
                 </ul>
             </div>
 
