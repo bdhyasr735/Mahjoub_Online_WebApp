@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/__init__.py - مجمع النماذج (النسخة المنظفة)
+# 📂 apps/models/__init__.py - مجمع النماذج (النسخة المنظفة والكاملة)
 
 from .admin_db import AdminUser
 from .supplier_db import Supplier
