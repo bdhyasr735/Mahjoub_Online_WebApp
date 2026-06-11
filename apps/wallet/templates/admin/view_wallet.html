@@ -1,28 +1,106 @@
 {% extends "admin/admin_base.html" %}
 
+{% block title %}كشف حساب: {{ wallet.supplier.trade_name }}{% endblock %}
+
 {% block content %}
 <meta name="robots" content="noindex, nofollow, noarchive">
 
 <div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">كشف حساب: {{ wallet.supplier.trade_name }}</h2>
+            <p class="text-muted mb-0">رقم المحفظة: {{ wallet.id }} | المورد: {{ wallet.supplier.owner_phone }}</p>
+        </div>
+        <div class="d-print-none">
+            <button onclick="window.print()" class="btn btn-outline-secondary">
+                <i class="fas fa-print"></i> طباعة الكشف
+            </button>
+            <a href="{{ url_for('wallet_app.dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+        </div>
     </div>
 
-<script>
-    $(document).ready(function() {
-        $('#supplierSearch').select2({
-            placeholder: "ابحث بالاسم أو الهاتف...",
-            ajax: {
-                url: '/wallet/search_suppliers',
-                dataType: 'json',
-                delay: 250,
-                // تأكد من إضافة headers للـ AJAX هنا أيضاً لزيادة الأمان
-                beforeSend: function(xhr) {
-                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                },
-                processResults: data => ({ results: data.results })
-            }
-        });
-        loadSuppliers(1);
-    });
-    // ... (باقي السكربت)
-</script>
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card p-3 text-center border-0 shadow-sm bg-success text-white">
+                <small>رصيد SAR</small>
+                <h4 class="mb-0">{{ "{:,.2f}".format(wallet.balance_sar|float) }}</h4>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 text-center border-0 shadow-sm bg-warning text-dark">
+                <small>رصيد YER</small>
+                <h4 class="mb-0">{{ "{:,.2f}".format(wallet.balance_yer|float) }}</h4>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 text-center border-0 shadow-sm bg-primary text-white">
+                <small>رصيد USD</small>
+                <h4 class="mb-0">{{ "{:,.2f}".format(wallet.balance_usd|float) }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-4 border-0 shadow-sm d-print-none">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label fw-bold">من تاريخ</label>
+                <input type="date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label fw-bold">إلى تاريخ</label>
+                <input type="date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="fas fa-search"></i> عرض
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card p-3 border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>العملة</th>
+                        <th>النوع</th>
+                        <th>المبلغ</th>
+                        <th>البيان</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td>{{ tx.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td><span class="badge bg-secondary">{{ tx.currency }}</span></td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if tx.transaction_type == 'credit' else 'bg-danger' }}">
+                                {{ 'إيداع' if tx.transaction_type == 'credit' else 'سحب' }}
+                            </span>
+                        </td>
+                        <td class="font-monospace fw-bold">{{ "{:,.2f}".format(tx.amount|float) }}</td>
+                        <td>{{ tx.description or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">لا توجد سجلات حركات في هذه الفترة.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        .d-print-none { display: none !important; }
+        .container-fluid { padding: 0 !important; }
+        .card { border: none !important; box-shadow: none !important; }
+    }
+</style>
 {% endblock %}
