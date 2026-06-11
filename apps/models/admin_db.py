@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/admin_db.py - نظام الهوية المحصن (معدل للعمل التلقائي)
+# 📂 apps/models/admin_db.py - نظام الهوية المحصن (نسخة نهائية)
 
 from apps.extensions import db
 from flask_login import UserMixin
@@ -14,7 +14,7 @@ class AdminUser(db.Model, UserMixin):
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     
-    # 🔐 حقل رقم الهاتف مشفر - تم ضبطه ليكون nullable=True لتجنب أخطاء قاعدة البيانات عند الإنشاء
+    # حقل الهاتف مشفر - nullable=True ضروري لتجنب NotNullViolation
     _phone_number_enc = db.Column(db.String(255), nullable=True)
     
     role = db.Column(db.String(50), default='admin')
@@ -23,7 +23,6 @@ class AdminUser(db.Model, UserMixin):
     failed_attempts = db.Column(db.Integer, default=0)
     lock_until = db.Column(db.DateTime, nullable=True)
 
-    # 🛡️ بوابة التشفير التلقائية (تشفير وفك تشفير تلقائي عند التعامل مع phone_number)
     @property
     def phone_number(self): 
         if self._phone_number_enc:
