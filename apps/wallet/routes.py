@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, request, jsonify, abort
 from apps.models.wallet_db import SupplierWallet
 from apps.models.supplier_db import Supplier
-from sqlalchemy import or_, cast, String
+from sqlalchemy import or_, cast, String, func
 from flask_paginate import Pagination, get_page_parameter
 
 # تعريف الـ Blueprint
@@ -24,30 +24,48 @@ def dashboard():
     query = SupplierWallet.query.join(Supplier)
     
     if search:
-        # تم استخدام cast لتحويل الـ id (الرقمي) إلى String ليتوافق مع PostgreSQL
         query = query.filter(or_(
             Supplier.search_name.contains(search),
             Supplier.search_phone.contains(search),
             cast(SupplierWallet.id, String).contains(search)
         ))
     
-    # 3. حساب الإجمالي وجلب البيانات
+    # 3. حساب الإجمالي للترقيم
     total = query.count()
+    
+    # جلب البيانات الخاصة بالصفحة الحالية فقط
     wallets = query.offset((page - 1) * per_page).limit(per_page).all()
     
-    # 4. تهيئة الترقيم
+    # 4. حساب الإحصائيات (Stats) للنتائج المفلترة
+    # نقوم بعمل استعلام خاص للإحصائيات بناءً على نفس فلتر البحث
+    stats_query = query.with_entities(
+        func.sum(SupplierWallet.balance_sar).label('total_sar'),
+        func.sum(SupplierWallet.balance_yer).label('total_yer'),
+        func.sum(SupplierWallet.balance_usd).label('total_usd')
+    ).first()
+    
+    stats = {
+        'count': total,
+        'sar': stats_query[0] or 0,
+        'yer': stats_query[1] or 0,
+        'usd': stats_query[2] or 0
+    }
+    
+    # 5. تهيئة الترقيم
     pagination = Pagination(page=page, total=total, per_page=per_page, css_framework='bootstrap5')
     
-    # 5. التحديث الذكي: إذا كان الطلب AJAX نعيد فقط الجدول
+    # 6. التحديث الذكي: إذا كان الطلب AJAX نعيد فقط الـ Partial المدمج
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/wallet_table_body.html', 
                                wallets=wallets, 
-                               pagination=pagination)
+                               pagination=pagination,
+                               stats=stats)
     
     # إذا كان الطلب عادياً، نعيد الصفحة كاملة
     return render_template('admin/wallet_app.html', 
                            wallets=wallets, 
-                           pagination=pagination)
+                           pagination=pagination,
+                           stats=stats)
 
 # باقي المسارات
 @wallet_app.route('/wallet/search_suppliers')
