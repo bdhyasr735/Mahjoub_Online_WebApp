@@ -1,4 +1,4 @@
-# 📂 apps/__init__.py - المصنع المحصن (النسخة المستقرة النهائية)
+# 📂 apps/__init__.py - المصنع المحصن (النسخة النهائية النظيفة)
 import os
 import sys
 from flask import Flask
@@ -14,8 +14,7 @@ from apps.extensions import db, login_manager, migrate
 from apps.models.admin_db import AdminUser
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
-from apps.models.financial_db import ExchangeRate, FinancialLog # تم إضافة FinancialLog
-from apps.models.vault_db import AdminVault, VaultTransaction
+from apps.models.financial_db import ExchangeRate, FinancialLog
 from werkzeug.security import generate_password_hash
 
 def create_app():
@@ -48,35 +47,36 @@ def create_app():
     def load_user(user_id):
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل الـ Blueprints
+    # تسجيل الـ Blueprints (تمت إزالة vault)
     from apps.auth_portal.routes import auth_portal
     from apps.add_supplier.routes import add_supplier_bp
     from apps.financial_ops.routes import financial_blueprint
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
-    from apps.vault.routes import vault_bp
 
     app.register_blueprint(auth_portal, url_prefix='')
     app.register_blueprint(add_supplier_bp, url_prefix='/suppliers')
     app.register_blueprint(financial_blueprint, url_prefix='/financial_ops')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
-    app.register_blueprint(vault_bp, url_prefix='/vault')
 
     # تهيئة قاعدة البيانات والبيانات التأسيسية
     with app.app_context():
         db.create_all()
         
         try:
+            # 1. إنشاء المدير
             if not AdminUser.query.filter_by(username='علي_محجوب').first():
                 admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
                 admin.set_password('123')
                 db.session.add(admin)
             
+            # 2. زرع أسعار الصرف
             if not ExchangeRate.query.first():
                 db.session.add(ExchangeRate(currency_code='USD', rate_to_sar=3.75))
                 db.session.add(ExchangeRate(currency_code='YER', rate_to_sar=0.004))
                 
+            # 3. زرع الموردين
             if not Supplier.query.first():
                 for i in range(1, 22):
                     new_sup = Supplier(
@@ -91,7 +91,7 @@ def create_app():
                     db.session.add(SupplierWallet(supplier_id=new_sup.id, balance_sar=0, balance_yer=0, balance_usd=0))
                 
                 db.session.commit()
-                print("✅ تم تحصين المصنع والبدء بنجاح.")
+                print("✅ تم تحصين المصنع، والبدء بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ خطأ أثناء التأسيس: {e}")
