@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع المحصن (النسخة النهائية المستقرة)
+# 📂 apps/__init__.py - المصنع المحصن (تم تفعيل إعادة بناء القاعدة)
 
 import os
 import sys
@@ -27,7 +27,7 @@ def create_app():
     # تحميل الإعدادات من كلاس Config المركزي
     app.config.from_object(Config)
     
-    # 🛡️ تحصين التطبيق (CSP & Talisman)
+    # 🛡️ تحصين التطبيق
     csp = {
         'default-src': ["'self'"],
         'script-src': ["'self'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
@@ -39,7 +39,6 @@ def create_app():
     
     Talisman(app, content_security_policy=csp, force_https=True, frame_options='SAMEORIGIN', referrer_policy='strict-origin-when-cross-origin')
     
-    # تهيئة الإضافات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -62,46 +61,41 @@ def create_app():
     app.register_blueprint(wallet_app, url_prefix='/wallet')
     app.register_blueprint(vault_bp, url_prefix='/vault')
 
-    # تهيئة قاعدة البيانات والبيانات التأسيسية
+    # تهيئة قاعدة البيانات وإعادة زرع البيانات التأسيسية
     with app.app_context():
+        # ⚠️ تنبيه: هذا السطر سيحذف كل البيانات القديمة ويعيد بناء الجداول من الصفر
+        db.drop_all() 
         db.create_all()
         
         try:
             # 1. إنشاء المدير
-            if not AdminUser.query.filter_by(username='علي_محجوب').first():
-                admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
-                admin.set_password('123')
-                db.session.add(admin)
-                db.session.commit()
+            admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
+            admin.set_password('123')
+            db.session.add(admin)
             
             # 2. إنشاء الخزينة المركزية
-            if not AdminVault.query.first():
-                vault = AdminVault(balance_sar=0, balance_yer=0, balance_usd=0)
-                db.session.add(vault)
-                db.session.commit()
+            vault = AdminVault(balance_sar=0, balance_yer=0, balance_usd=0)
+            db.session.add(vault)
             
             # 3. زرع أسعار الصرف
-            if not ExchangeRate.query.first():
-                db.session.add(ExchangeRate(currency_code='USD', rate_to_sar=3.75))
-                db.session.add(ExchangeRate(currency_code='YER', rate_to_sar=0.004))
-                db.session.commit()
-                
+            db.session.add(ExchangeRate(currency_code='USD', rate_to_sar=3.75))
+            db.session.add(ExchangeRate(currency_code='YER', rate_to_sar=0.004))
+            
             # 4. زرع الموردين
-            if not Supplier.query.first():
-                for i in range(1, 22):
-                    new_sup = Supplier(
-                        username=f'sup_{i}', 
-                        password_hash=generate_password_hash('sup_pass_123'),
-                        status='قيد المراجعة', rank_grade='ريادي', 
-                        trade_name=f'مؤسسة المورد {i}', owner_name=f'المالك {i}', 
-                        wallet_code=f'W-{i}-2026', owner_phone=f'7700000{i:02d}'
-                    )
-                    db.session.add(new_sup)
-                    db.session.flush() 
-                    db.session.add(SupplierWallet(supplier_id=new_sup.id, balance_sar=0, balance_yer=0, balance_usd=0))
-                db.session.commit()
-                
-            print("✅ تم تجهيز المصنع والبيانات التأسيسية بنجاح.")
+            for i in range(1, 22):
+                new_sup = Supplier(
+                    username=f'sup_{i}', 
+                    password_hash=generate_password_hash('sup_pass_123'),
+                    status='قيد المراجعة', rank_grade='ريادي', 
+                    trade_name=f'مؤسسة المورد {i}', owner_name=f'المالك {i}', 
+                    wallet_code=f'W-{i}-2026', owner_phone=f'7700000{i:02d}'
+                )
+                db.session.add(new_sup)
+                db.session.flush() # للحصول على الـ ID للمورد
+                db.session.add(SupplierWallet(supplier_id=new_sup.id, balance_sar=0, balance_yer=0, balance_usd=0))
+            
+            db.session.commit()
+            print("✅ تم مسح قاعدة البيانات القديمة وزرع البيانات التأسيسية المشفرة بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ خطأ أثناء التأسيس: {e}")
