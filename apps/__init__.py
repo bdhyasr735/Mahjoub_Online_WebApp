@@ -1,4 +1,4 @@
-# 📂 apps/__init__.py - المصنع المحصن (النسخة النهائية المستقرة)
+# 📂 apps/__init__.py - المصنع المحصن (النسخة النهائية مع تهيئة الخزينة)
 import os
 import sys
 from flask import Flask
@@ -16,6 +16,7 @@ from apps.models.admin_db import AdminUser
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.financial_db import ExchangeRate, FinancialLog
+from apps.models.vault_db import AdminVault, VaultTransaction
 
 def create_app():
     app = Flask(__name__)
@@ -25,7 +26,7 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mahjoub_online.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
-    # 🛡️ تحصين التطبيق (معدل لضمان عمل القوائم الجانبية)
+    # 🛡️ تحصين التطبيق
     csp = {
         'default-src': ["'self'"],
         'script-src': ["'self'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
@@ -35,7 +36,6 @@ def create_app():
         'connect-src': ["'self'"]
     }
     
-    # تم تغيير frame_options إلى SAMEORIGIN للسماح بتفاعل المكونات
     Talisman(app, content_security_policy=csp, force_https=True, frame_options='SAMEORIGIN', referrer_policy='strict-origin-when-cross-origin')
     
     # تهيئة الإضافات
@@ -54,30 +54,42 @@ def create_app():
     from apps.financial_ops.routes import financial_blueprint
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
+    from apps.vault.routes import vault_bp
 
     app.register_blueprint(auth_portal, url_prefix='')
     app.register_blueprint(add_supplier_bp, url_prefix='/suppliers')
     app.register_blueprint(financial_blueprint, url_prefix='/financial_ops')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
+    app.register_blueprint(vault_bp, url_prefix='/vault')
 
     # تهيئة قاعدة البيانات والبيانات التأسيسية
     with app.app_context():
+        # إنشاء الجداول الأساسية
         db.create_all()
         
         try:
+            # إعادة تهيئة جداول الخزينة فقط عند الحاجة لتنظيفها
+            # ملاحظة: هذا الإجراء يضمن أن جداول الخزينة نظيفة تماماً
+            AdminVault.__table__.drop(db.engine, checkfirst=True)
+            VaultTransaction.__table__.drop(db.engine, checkfirst=True)
+            db.create_all()
+            
             # 1. إنشاء المدير
             if not AdminUser.query.filter_by(username='علي_محجوب').first():
                 admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
                 admin.set_password('123')
                 db.session.add(admin)
             
-            # 2. زرع أسعار الصرف
+            # 2. إنشاء الخزينة المركزية
+            db.session.add(AdminVault(balance_sar=0, balance_yer=0, balance_usd=0))
+            
+            # 3. زرع أسعار الصرف
             if not ExchangeRate.query.first():
                 db.session.add(ExchangeRate(currency_code='USD', rate_to_sar=3.75))
                 db.session.add(ExchangeRate(currency_code='YER', rate_to_sar=0.004))
                 
-            # 3. زرع الموردين
+            # 4. زرع الموردين
             if not Supplier.query.first():
                 for i in range(1, 22):
                     new_sup = Supplier(
@@ -91,8 +103,8 @@ def create_app():
                     db.session.flush() 
                     db.session.add(SupplierWallet(supplier_id=new_sup.id, balance_sar=0, balance_yer=0, balance_usd=0))
                 
-                db.session.commit()
-                print("✅ تم تحصين المصنع والبدء بنجاح.")
+            db.session.commit()
+            print("✅ تم تحصين المصنع وإعادة تهيئة الخزينة بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ خطأ أثناء التأسيس: {e}")
