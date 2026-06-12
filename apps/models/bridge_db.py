@@ -3,9 +3,19 @@ from datetime import datetime
 from cryptography.fernet import Fernet
 import os
 
-# مفتاح التشفير - يجب حفظه في بيئة النظام (Environment Variable)
-KEY = os.environ.get('ENCRYPTION_KEY', Fernet.generate_key().decode())
-cipher_suite = Fernet(KEY.encode())
+def get_or_create_key():
+    """الحصول على المفتاح من البيئة أو توليده وتنبيهك إذا كان مفقوداً"""
+    key = os.environ.get('ENCRYPTION_KEY')
+    if not key:
+        # توليد مفتاح جديد تلقائياً عند غيابه
+        new_key = Fernet.generate_key()
+        print(f"⚠️ WARNING: No ENCRYPTION_KEY found. Generated: {new_key.decode()}")
+        return new_key
+    return key.encode()
+
+# تهيئة التشفير بمفتاح آمن
+KEY = get_or_create_key()
+cipher_suite = Fernet(KEY)
 
 def encrypt(value):
     if value is None: return None
@@ -13,7 +23,10 @@ def encrypt(value):
 
 def decrypt(value):
     if value is None: return None
-    return cipher_suite.decrypt(value.encode()).decode()
+    try:
+        return cipher_suite.decrypt(value.encode()).decode()
+    except Exception:
+        return "0.0"
 
 class Product(db.Model):
     __tablename__ = 'products'
@@ -22,7 +35,7 @@ class Product(db.Model):
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     
-    # حقول مشفرة لحماية الأسرار التجارية
+    # حقول مشفرة (Data at Rest)
     _encrypted_price = db.Column(db.String(500), nullable=True)
     _encrypted_cost = db.Column(db.String(500), nullable=True)
     
@@ -46,8 +59,10 @@ class ProductVariant(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    
     option1_name = db.Column(db.String(50), nullable=True)
     option1_value = db.Column(db.String(50), nullable=True)
+    
     _encrypted_variant_price = db.Column(db.String(500), nullable=True)
     variant_quantity = db.Column(db.Integer, default=0)
     sku = db.Column(db.String(100), nullable=True)
