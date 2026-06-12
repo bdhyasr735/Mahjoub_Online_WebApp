@@ -1,45 +1,83 @@
 {% extends "admin/base.html" %}
 
 {% block content %}
-<div class="card shadow mb-4">
-    <div class="card-header py-3 d-flex justify-content-between">
-        <h6 class="m-0 font-weight-bold text-primary">آخر المنتجات المزامنة (10)</h6>
-        <button class="btn btn-sm btn-success" onclick="syncNow()">مزامنة الآن</button>
-    </div>
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>المنتج</th>
-                    <th>المورد (البصمة)</th>
-                    <th>السعر</th>
-                    <th>الحالة</th>
-                </tr>
-            </thead>
-            <tbody id="bridge-table-body">
-                {% for p in products %}
-                <tr>
-                    <td>{{ p.title }}</td>
-                    <td>{{ p.custom_fields.supplier_id }}</td>
-                    <td>{{ p.price }}</td>
-                    <td><span class="badge bg-info">مُزامَن</span></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="font-weight-bold text-primary">إدارة المنتجات (البطاقات الاحترافية)</h4>
+    <div>
+        <input type="text" id="liveSearch" class="form-control d-inline-block" style="width: 250px;" placeholder="بحث لحظي...">
         
-        <div class="d-flex justify-content-between mt-3">
-            <a href="?page={{ page - 1 }}" class="btn btn-outline-primary {% if page == 1 %}disabled{% endif %}">السابق</a>
-            <span>صفحة {{ page }}</span>
-            <a href="?page={{ page + 1 }}" class="btn btn-outline-primary">التالي</a>
+        <a href="{{ url_for('mahjoub_bridge.add_product_page') }}" class="btn btn-warning text-white">
+            <i class="fas fa-plus"></i> إضافة منتج
+        </a>
+        
+        <a href="{{ url_for('mahjoub_bridge.upload_page') }}" class="btn btn-primary">
+            <i class="fas fa-upload"></i> استيراد
+        </a>
+        
+        <button class="btn btn-success" onclick="syncNow()">
+            <i class="fas fa-sync"></i> مزامنة
+        </button>
+    </div>
+</div>
+
+<div class="row" id="product-cards-container">
+    {% for p in products %}
+    <div class="col-md-3 mb-4 product-card">
+        <div class="card h-100 shadow-sm border-0">
+            <img src="{{ p.image_url or 'https://via.placeholder.com/150' }}" class="card-img-top p-2" style="height: 150px; object-fit: contain;">
+            <div class="card-body">
+                <h6 class="card-title font-weight-bold">{{ p.title }}</h6>
+                <p class="card-text text-muted small">المورد: {{ p.custom_fields.supplier_id }}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-success font-weight-bold">{{ p.price }} ر.س</span>
+                    <span class="badge badge-info">مُزامَن</span>
+                </div>
+            </div>
         </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row mt-4">
+    <div class="col-12 d-flex justify-content-center">
+        <nav>
+            <ul class="pagination shadow-sm">
+                <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('mahjoub_bridge.dashboard', page=page-1) }}">السابق</a>
+                </li>
+                <li class="page-item active">
+                    <span class="page-link">صفحة {{ page }}</span>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('mahjoub_bridge.dashboard', page=page+1) }}">التالي</a>
+                </li>
+            </ul>
+        </nav>
     </div>
 </div>
 
 <script>
+// وظيفة البحث اللحظي
+document.getElementById('liveSearch').addEventListener('keyup', function() {
+    let filter = this.value.toUpperCase();
+    let cards = document.getElementsByClassName('product-card');
+    
+    for (let i = 0; i < cards.length; i++) {
+        let title = cards[i].getElementsByClassName('card-title')[0].textContent;
+        cards[i].style.display = title.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+    }
+});
+
 function syncNow() {
-    // كود AJAX لبدء المزامنة اللحظية
-    alert("بدء مزامنة المنتجات...");
+    if (confirm("هل أنت متأكد من بدء المزامنة؟")) {
+        fetch('/bridge/sync-now', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            alert("تم بدء المزامنة!");
+            location.reload();
+        })
+        .catch(error => console.error('Error:', error));
+    }
 }
 </script>
 {% endblock %}
