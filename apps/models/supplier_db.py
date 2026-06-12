@@ -1,4 +1,5 @@
-# 📂 apps/models/supplier_db.py - (النسخة المحدثة لربط المحفظة بشكل صريح)
+# coding: utf-8
+# 📂 apps/models/supplier_db.py - (النسخة النهائية مع نظام الأكواد الآلي)
 
 from apps.extensions import db
 from apps.utils.security import AESCipher
@@ -43,8 +44,17 @@ class Supplier(db.Model):
     status_reason = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=True)
 
-    # 🔗 الربط المحدث: نستخدم back_populates لربط صريح مع SupplierWallet
+    # 🔗 الربط: نستخدم back_populates لربط صريح مع SupplierWallet
     wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False)
+
+    # --- نظام توليد الأكواد الآلي (Mahjoub Bridge Standard) ---
+    def generate_codes(self):
+        """توليد الأكواد الثابتة بناءً على الـ ID بعد حفظه في قاعدة البيانات"""
+        if self.id:
+            self.sovereign_id = f"SUP-MAH963{self.id}"
+            self.wallet_code = f"WEL-MAH963{self.id}"
+            self.sovereign_id_enc = AESCipher.encrypt(self.sovereign_id)
+            db.session.add(self)
 
     # --- بوابات التشفير ---
     def _decrypt(self, value): return AESCipher.decrypt(value) if value else None
