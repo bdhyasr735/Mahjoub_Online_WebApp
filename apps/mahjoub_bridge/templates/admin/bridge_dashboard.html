@@ -1,67 +1,82 @@
-{% extends "admin/base.html" %}
+{% extends "admin/admin_base.html" %}
+
+{% block title %}إدارة الجسر | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="font-weight-bold text-primary">إدارة المنتجات (البطاقات الاحترافية)</h4>
-    <div>
-        <input type="text" id="liveSearch" class="form-control d-inline-block" style="width: 250px;" placeholder="بحث لحظي...">
-        
-        <a href="{{ url_for('mahjoub_bridge.add_product_page') }}" class="btn btn-warning text-white">
-            <i class="fas fa-plus"></i> إضافة منتج
-        </a>
-        
-        <a href="{{ url_for('mahjoub_bridge.upload_page') }}" class="btn btn-primary">
-            <i class="fas fa-upload"></i> استيراد
-        </a>
-        
-        <button class="btn btn-success" onclick="syncNow()">
-            <i class="fas fa-sync"></i> مزامنة
-        </button>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <h4 class="font-weight-bold text-dark">
+            <i class="fas fa-network-wired text-warning me-2"></i>إدارة المنتجات (الجسر السيادي)
+        </h4>
+        <div class="d-flex gap-2">
+            <div class="position-relative">
+                <input type="text" id="liveSearch" class="form-control" placeholder="بحث لحظي..." style="width: 250px; border-radius: 20px;">
+            </div>
+            <a href="{{ url_for('mahjoub_bridge.add_product_page') }}" class="btn btn-dark text-warning">
+                <i class="fas fa-plus"></i> إضافة منتج
+            </a>
+            <a href="{{ url_for('mahjoub_bridge.upload_page') }}" class="btn btn-outline-primary">
+                <i class="fas fa-upload"></i> استيراد
+            </a>
+            <button class="btn btn-success" onclick="syncNow()">
+                <i class="fas fa-sync"></i> مزامنة
+            </button>
+        </div>
     </div>
-</div>
 
-<div class="row" id="product-cards-container">
-    {% for p in products %}
-    <div class="col-md-3 mb-4 product-card">
-        <div class="card h-100 shadow-sm border-0">
-            <img src="{{ p.image_url or 'https://via.placeholder.com/150' }}" class="card-img-top p-2" style="height: 150px; object-fit: contain;">
-            <div class="card-body">
-                <h6 class="card-title font-weight-bold">{{ p.title }}</h6>
-                <p class="card-text text-muted small">المورد: {{ p.custom_fields.supplier_id }}</p>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-success font-weight-bold">{{ p.price }} ر.س</span>
-                    <span class="badge badge-info">مُزامَن</span>
+    <div class="row" id="product-cards-container">
+        {% for p in products %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4 product-card">
+            <div class="card h-100 shadow-sm border-0 transition-all hover-shadow">
+                <div class="position-relative">
+                    <img src="{{ p.image_url or 'https://via.placeholder.com/200' }}" class="card-img-top p-3" style="height: 180px; object-fit: contain;">
+                </div>
+                <div class="card-body">
+                    <h6 class="card-title font-weight-bold text-truncate" title="{{ p.title }}">{{ p.title }}</h6>
+                    <p class="text-muted small mb-2"><i class="fas fa-store me-1"></i> {{ p.supplier_id or 'غير محدد' }}</p>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span class="text-dark font-weight-bold">{{ p.price }} ر.س</span>
+                        <span class="badge bg-light text-success border">مُزامَن</span>
+                    </div>
                 </div>
             </div>
         </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <h5 class="text-muted">لا توجد منتجات حالياً في الجسر</h5>
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+
+    <div class="row mt-4">
+        <div class="col-12 d-flex justify-content-center">
+            <nav>
+                <ul class="pagination">
+                    <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('mahjoub_bridge.dashboard', page=page-1) }}">السابق</a>
+                    </li>
+                    <li class="page-item active">
+                        <span class="page-link bg-warning border-0">صفحة {{ page }}</span>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('mahjoub_bridge.dashboard', page=page+1) }}">التالي</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-12 d-flex justify-content-center">
-        <nav>
-            <ul class="pagination shadow-sm">
-                <li class="page-item {% if page <= 1 %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('mahjoub_bridge.dashboard', page=page-1) }}">السابق</a>
-                </li>
-                <li class="page-item active">
-                    <span class="page-link">صفحة {{ page }}</span>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('mahjoub_bridge.dashboard', page=page+1) }}">التالي</a>
-                </li>
-            </ul>
-        </nav>
-    </div>
-</div>
+<style>
+    .transition-all { transition: all 0.3s ease; }
+    .hover-shadow:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+</style>
 
 <script>
 // وظيفة البحث اللحظي
 document.getElementById('liveSearch').addEventListener('keyup', function() {
     let filter = this.value.toUpperCase();
     let cards = document.getElementsByClassName('product-card');
-    
     for (let i = 0; i < cards.length; i++) {
         let title = cards[i].getElementsByClassName('card-title')[0].textContent;
         cards[i].style.display = title.toUpperCase().indexOf(filter) > -1 ? "" : "none";
@@ -69,15 +84,23 @@ document.getElementById('liveSearch').addEventListener('keyup', function() {
 });
 
 function syncNow() {
-    if (confirm("هل أنت متأكد من بدء المزامنة؟")) {
-        fetch('/bridge/sync-now', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            alert("تم بدء المزامنة!");
-            location.reload();
-        })
-        .catch(error => console.error('Error:', error));
-    }
+    Swal.fire({
+        title: 'جاري المزامنة...',
+        text: 'يتم الآن الاتصال بالموردين، يرجى الانتظار.',
+        icon: 'info',
+        showConfirmButton: false,
+        allowOutsideClick: false
+    });
+
+    fetch('/bridge/sync-now', { method: 'POST' })
+    .then(response => response.json())
+    .then(data => {
+        Swal.fire('تم بنجاح!', 'تم تحديث البيانات من الجسر.', 'success');
+        setTimeout(() => location.reload(), 2000);
+    })
+    .catch(error => {
+        Swal.fire('خطأ!', 'حدثت مشكلة أثناء الاتصال.', 'error');
+    });
 }
 </script>
 {% endblock %}
