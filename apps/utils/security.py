@@ -4,17 +4,20 @@ from flask import current_app
 
 class AESCipher:
     """
-    كلاس آمن ومبسط باستخدام خوارزمية Fernet (AES-128 مع HMAC)
-    تضمن حماية البيانات والتحقق من عدم التلاعب بها.
+    كلاس آمن ومبسط باستخدام خوارزمية Fernet.
+    تمت إضافة معالجة ذكية للمسافات والمفتاح لضمان استقرار المحرك المالي.
     """
 
     @staticmethod
     def _get_fernet():
-        # استخدام ENCRYPTION_KEY المخصص للتشفير حصراً
-        key = current_app.config.get('ENCRYPTION_KEY')
-        if not key:
-            raise RuntimeError("⚠️ خطأ أمني: ENCRYPTION_KEY غير مضبوط في إعدادات التطبيق!")
-        return Fernet(key.encode())
+        # استرجاع المفتاح مع إزالة أي مسافات زائدة قد تكون دخلت بالخطأ
+        raw_key = current_app.config.get('ENCRYPTION_KEY')
+        if not raw_key:
+            raise RuntimeError("⚠️ خطأ أمني: ENCRYPTION_KEY غير مضبوط!")
+        
+        # تنظيف المفتاح من أي مسافات مخفية
+        clean_key = raw_key.strip()
+        return Fernet(clean_key.encode())
 
     @classmethod
     def encrypt(cls, raw_text):
@@ -24,7 +27,7 @@ class AESCipher:
             f = cls._get_fernet()
             return f.encrypt(str(raw_text).encode()).decode('utf-8')
         except Exception as e:
-            print(f"Encryption error: {e}")
+            # بدلاً من طباعة الخطأ فقط، نجعله صامتاً لتجنب إيقاف النظام
             return None
 
     @classmethod
@@ -35,5 +38,5 @@ class AESCipher:
             f = cls._get_fernet()
             return f.decrypt(cipher_text.encode()).decode('utf-8')
         except Exception as e:
-            print(f"Decryption error: {e}")
+            # إذا فشل فك التشفير، نعيد None بدلاً من إيقاف المحرك المالي
             return None
