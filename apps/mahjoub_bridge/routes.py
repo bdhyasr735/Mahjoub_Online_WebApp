@@ -1,7 +1,7 @@
 # coding: utf-8
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from apps import db
-from apps.models.bridge_db import Product, ProductVariant, encrypt
+from apps.models.bridge_db import Product, ProductVariant, encrypt, decrypt # تم إضافة decrypt هنا
 from apps.utils.bridge_engine import QumraBridgeEngine
 
 bridge_bp = Blueprint('mahjoub_bridge', __name__, template_folder='templates')
@@ -14,7 +14,13 @@ def dashboard():
         per_page = 16
         pagination = Product.query.order_by(Product.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
         products = pagination.items
-        return render_template('admin/bridge_dashboard.html', products=products, pagination=pagination, page=page)
+        
+        # تمرير دالة decrypt للقالب لتتمكن من فك التشفير أثناء العرض
+        return render_template('admin/bridge_dashboard.html', 
+                               products=products, 
+                               pagination=pagination, 
+                               page=page, 
+                               decrypt=decrypt) 
     except Exception as e:
         flash(f"حدث خطأ أثناء تحميل البيانات: {str(e)}", "danger")
         return redirect(url_for('admin_dashboard.dashboard'))
@@ -25,7 +31,6 @@ def add_product_page():
     if request.method == 'POST':
         try:
             title = request.form.get('title')
-            # تشفير السعر يدوياً عند الإضافة اليدوية
             raw_price = request.form.get('price', 0)
             encrypted_price = encrypt(raw_price)
             
@@ -38,7 +43,7 @@ def add_product_page():
             new_product = Product(
                 title=title,
                 description=request.form.get('description', ''),
-                price=encrypted_price, # تخزين مشفر
+                price=encrypted_price,
                 quantity=int(qty_raw),
                 supplier_id=request.form.get('supplier_id')
             )
@@ -65,16 +70,14 @@ def sync_now():
 
         count = 0
         for item in raw_products:
-            # التحقق من وجود المنتج
             existing = Product.query.filter_by(title=item.get('title')).first()
             if not existing:
-                # استخراج وتشفير السعر
                 raw_price = item.get('pricing', {}).get('price', 0)
                 
                 new_product = Product(
                     title=item.get('title'),
                     description="تمت المزامنة تلقائياً",
-                    price=encrypt(raw_price), # تشفير آلي أثناء المزامنة
+                    price=encrypt(raw_price),
                     quantity=int(item.get('quantity', 0)),
                     supplier_id="QUMRA_SYNC"
                 )
