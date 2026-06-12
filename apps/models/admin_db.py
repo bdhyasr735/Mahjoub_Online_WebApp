@@ -1,11 +1,11 @@
 # coding: utf-8
-# 📂 apps/models/admin_db.py - نظام الهوية المحصن (نسخة نهائية)
+# 📂 apps/models/admin_db.py - نظام الهوية المحصن
 
 from apps.extensions import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-from apps.utils.security import AESCipher 
+from apps.utils.security import AESCipher
 
 class AdminUser(db.Model, UserMixin):
     __tablename__ = 'admin_users'
@@ -14,7 +14,6 @@ class AdminUser(db.Model, UserMixin):
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     
-    # حقل الهاتف مشفر - nullable=True ضروري لتجنب NotNullViolation
     _phone_number_enc = db.Column(db.String(255), nullable=True)
     
     role = db.Column(db.String(50), default='admin')
@@ -24,13 +23,13 @@ class AdminUser(db.Model, UserMixin):
     lock_until = db.Column(db.DateTime, nullable=True)
 
     @property
-    def phone_number(self): 
+    def phone_number(self):
         if self._phone_number_enc:
             return AESCipher.decrypt(self._phone_number_enc)
         return None
     
     @phone_number.setter
-    def phone_number(self, value): 
+    def phone_number(self, value):
         if value:
             self._phone_number_enc = AESCipher.encrypt(str(value))
         else:
@@ -51,7 +50,7 @@ class AdminUser(db.Model, UserMixin):
 
     def increment_failed_attempts(self):
         self.failed_attempts = (self.failed_attempts or 0) + 1
-        delay = (self.failed_attempts // 5) + 1 
+        delay = (self.failed_attempts // 5) + 1
         self.lock_until = datetime.utcnow() + timedelta(minutes=delay)
 
     def reset_failed_attempts(self):
