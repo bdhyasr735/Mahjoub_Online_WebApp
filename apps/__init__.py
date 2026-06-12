@@ -1,9 +1,7 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع المحصن (النسخة النهائية - مع دعم التشفير والسياسات الأمنية)
+# 📂 apps/__init__.py - المصنع المحصن (النسخة النهائية والمصححة)
 
 import os
-import sys
-import random
 from werkzeug.security import generate_password_hash
 from flask import Flask
 from flask_talisman import Talisman
@@ -14,13 +12,13 @@ from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.financial_db import ExchangeRate
 from apps.models.vault_db import AdminVault
-from apps.utils.security import AESCipher # استيراد أداة التشفير
+from apps.utils.security import AESCipher
 
 def create_app():
     app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config.from_object(Config)
 
-    # 🛡️ تحديث سياسة أمان المحتوى (CSP) للسماح بملفات التنسيق (CSS) والخطوط من المصادر الموثوقة
+    # 🛡️ سياسة أمان المحتوى (CSP)
     csp_policy = {
         'default-src': ["'self'"],
         'style-src': ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
@@ -41,7 +39,7 @@ def create_app():
     def load_user(user_id):
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل المسارات (Blueprints)
+    # تسجيل المسارات
     from apps.auth_portal.routes import auth_portal
     from apps.add_supplier.routes import add_supplier_bp
     from apps.admin_dashboard.routes import admin_dashboard
@@ -59,22 +57,22 @@ def create_app():
         try:
             db.create_all() 
             
-            # 1. إنشاء المدير التأسيسي
+            # 1. إنشاء المدير
             if not AdminUser.query.filter_by(username='علي_محجوب').first():
                 admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
             
-            # 2. زرع 21 متجر وهمي مع محافظ مشفرة
+            # 2. زرع 21 متجر ومحفظة مشفرة
             if not Supplier.query.first():
                 for i in range(1, 22):
                     s = Supplier(username=f'supplier_{i}', trade_name=f'متجر رقم {i}', owner_name=f'المالك {i}')
                     s.password_hash = generate_password_hash('123')
                     db.session.add(s)
-                    db.session.commit()
+                    db.session.flush() # استخدام flush للحصول على ID المتجر قبل الالتزام
                     
-                    # إنشاء محفظة مشفرة لضمان التوافق مع نموذج التشفير
+                    # استخدام قيم مشفرة أولية
                     w = SupplierWallet(
                         supplier_id=s.id,
                         _balance_sar=AESCipher.encrypt("500.0"),
@@ -84,9 +82,9 @@ def create_app():
                     db.session.add(w)
                 db.session.commit()
             
-            # 3. تهيئة الخزينة وأسعار الصرف
+            # 3. الخزينة وأسعار الصرف
             if not AdminVault.query.first():
-                # ملاحظة: تأكد أن AdminVault يدعم الحقول المشفرة إذا لزم الأمر
+                # تأكد أن AdminVault لديه حقول مشفرة إذا كان مصمماً كذلك
                 db.session.add(AdminVault(name="الخزنة المركزية", balance_sar=10000, balance_yer=0, balance_usd=0))
             
             if not ExchangeRate.query.first():
