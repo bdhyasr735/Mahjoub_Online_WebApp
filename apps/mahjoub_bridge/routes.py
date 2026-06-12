@@ -69,13 +69,17 @@ def sync_now():
         engine = QumraBridgeEngine()
         raw_products = engine.fetch_latest_products(limit=20)
         
-        # التأكد من أن النتيجة قائمة صالحة
-        if raw_products is None or not isinstance(raw_products, list):
-            return jsonify({"status": "warning", "message": "لم يتم العثور على بيانات صالحة من المصدر"})
+        # حماية: إذا عاد الـ Engine بـ None، نخرج فوراً ونطبع رسالة للتشخيص
+        if raw_products is None:
+            print("SYNC ERROR: fetch_latest_products returned None")
+            return jsonify({"status": "error", "message": "فشل الاتصال بمحرك المزامنة"})
+
+        if not isinstance(raw_products, list):
+            return jsonify({"status": "warning", "message": "بيانات المصدر غير صالحة"})
 
         count = 0
         for item in raw_products:
-            # صمام أمان: تخطي أي عنصر ليس قاموساً أو فارغاً
+            # حماية: تخطي أي عنصر ليس قاموساً أو فارغاً
             if item is None or not isinstance(item, dict):
                 continue
             
@@ -87,7 +91,7 @@ def sync_now():
             
             # التحقق من عدم التكرار
             if not Product.query.filter_by(title=title).first():
-                # تنظيف السعر (التعامل مع التسلسل الهرمي للبيانات)
+                # تنظيف السعر
                 pricing = item.get('pricing')
                 raw_price = pricing.get('price') if isinstance(pricing, dict) else "0"
                 
