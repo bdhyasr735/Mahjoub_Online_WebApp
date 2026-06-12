@@ -1,10 +1,9 @@
 # coding: utf-8
-# 📂 apps/admin_dashboard/routes.py - لوحة التحكم السيادية (مُفعلة بالكامل)
+# 📂 apps/admin_dashboard/routes.py - لوحة التحكم السيادية (مُحدثة للتعامل مع التشفير)
 
 from flask import Blueprint, render_template, abort, session
 from flask_login import login_required, current_user
 from apps.extensions import db
-from sqlalchemy import func
 from datetime import datetime
 
 # استيراد النماذج المالية والسيادية
@@ -34,13 +33,18 @@ def dashboard():
         # 1. إحصائيات الموردين
         total_suppliers = Supplier.query.count()
         
-        # 2. حساب إجمالي الأرصدة المركزية من كافة محافظ الموردين
-        # نستخدم func.sum لجلب القيم من قاعدة البيانات مباشرة
-        balances = db.session.query(
-            func.sum(SupplierWallet.balance_sar),
-            func.sum(SupplierWallet.balance_yer),
-            func.sum(SupplierWallet.balance_usd)
-        ).first()
+        # 2. الحل السيادي: جلب المحافظ وتجميع الأرصدة برمجياً لتجاوز قيود التشفير
+        all_wallets = SupplierWallet.query.all()
+        
+        total_sar = 0
+        total_yer = 0
+        total_usd = 0
+        
+        for w in all_wallets:
+            # استخدام الـ property التي تفك التشفير تلقائياً
+            total_sar += float(w.balance_sar or 0)
+            total_yer += float(w.balance_yer or 0)
+            total_usd += float(w.balance_usd or 0)
 
         # 3. جلب آخر 10 عمليات مالية حدثت في النظام للرقابة الفورية
         recent_transactions = WalletTransaction.query\
@@ -49,9 +53,9 @@ def dashboard():
         
         context = {
             'total_suppliers': total_suppliers,
-            'total_balance_sar': float(balances[0] or 0),
-            'total_balance_yer': float(balances[1] or 0),
-            'total_balance_usd': float(balances[2] or 0),
+            'total_balance_sar': total_sar,
+            'total_balance_yer': total_yer,
+            'total_balance_usd': total_usd,
             'recent_transactions': recent_transactions,
             'now': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'user_name': current_user.username,
