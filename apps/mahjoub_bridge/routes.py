@@ -32,16 +32,12 @@ def dashboard():
                            pagination=pagination,
                            search=search)
 
-@bridge_bp.route('/add', methods=['GET', 'POST'])
-def add_product():
-    return render_template('admin/add_product.html')
-
 @bridge_bp.route('/sync-now', methods=['POST'])
 def sync_now():
     """المزامنة اللحظية مع المحرك وحفظ البيانات."""
     try:
         engine = QumraBridgeEngine()
-        # جلب البيانات المعالجة جاهزة من المحرك
+        # جلب البيانات المعالجة من المحرك (الذي يستخدم الآن fileUrl)
         products = engine.fetch_latest_products()
         
         if not products:
@@ -56,11 +52,12 @@ def sync_now():
                 continue
             
             # إنشاء المنتج باستخدام البيانات الجاهزة من المحرك
+            # تم التأكد من استخدام image_url الذي جهزه المحرك
             new_product = Product(
                 title=title,
                 price=str(item.get('price') or "0"),
                 quantity=int(item.get('quantity') or 0),
-                image_url=item.get('image_url'),
+                image_url=item.get('image_url'), 
                 supplier_id="QUMRA_SYNC"
             )
             
@@ -75,5 +72,5 @@ def sync_now():
         
     except Exception:
         db.session.rollback()
-        print(traceback.format_exc())
+        print(f"❌ Error in sync: {traceback.format_exc()}")
         return jsonify({"status": "error", "message": "حدث خطأ أثناء معالجة البيانات"}), 500
