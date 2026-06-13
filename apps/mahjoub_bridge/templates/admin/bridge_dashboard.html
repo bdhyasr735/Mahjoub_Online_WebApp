@@ -34,8 +34,10 @@
         <div class="col-lg-3 col-md-4 col-sm-6 mb-4 product-card">
             <div class="card h-100 shadow-sm border-0 transition-all hover-shadow">
                 <div class="position-relative">
-                    <img src="{{ p.image_url or 'https://via.placeholder.com/200' }}" class="card-img-top p-3" style="height: 180px; object-fit: contain;">
-                </div>
+                    <img src="{{ p.image_url or 'https://via.placeholder.com/200' }}" 
+                         class="card-img-top p-3" 
+                         style="height: 180px; object-fit: contain;"
+                         loading="lazy"> </div>
                 <div class="card-body">
                     <h6 class="card-title font-weight-bold text-truncate" title="{{ p.title }}">{{ p.title }}</h6>
                     <p class="text-muted small mb-2"><i class="fas fa-store me-1"></i> {{ p.supplier_id or 'غير محدد' }}</p>
@@ -80,6 +82,7 @@
 </style>
 
 <script>
+// بحث محلي في العناصر الموجودة في الصفحة لتجنب استدعاء السيرفر
 document.getElementById('liveSearch').addEventListener('keyup', function() {
     let filter = this.value.toUpperCase();
     let cards = document.getElementsByClassName('product-card');
@@ -89,6 +92,7 @@ document.getElementById('liveSearch').addEventListener('keyup', function() {
     }
 });
 
+// عملية المزامنة
 function syncNow() {
     Swal.fire({ title: 'جاري المزامنة...', text: 'يرجى الانتظار.', icon: 'info', showConfirmButton: false, allowOutsideClick: false });
     fetch('{{ url_for("mahjoub_bridge.sync_now") }}', { method: 'POST' })
