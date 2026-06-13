@@ -38,19 +38,22 @@ class QumraBridgeEngine:
             return {}
 
     def fetch_latest_products(self, limit=10):
-        # 🔍 استعلام الفحص (Introspection Query) لكشف أسماء الحقول الصحيحة
+        # استخدام الحقل الصحيح المكتشف findAllProducts
         query = """
-        query {
-            __schema {
-                queryType {
-                    fields {
-                        name
-                    }
+        query GetProducts($limit: Int) {
+            findAllProducts(limit: $limit) {
+                data {
+                    title
+                    price
+                    quantity
+                    status
+                    image_url
                 }
             }
         }
         """
-        data = self.execute_query(query)
-        print(f"DEBUG: Schema Fields Discovery: {data}")
+        variables = {"limit": limit}
+        data = self.execute_query(query, variables)
         
-        return []
+        # استخراج البيانات من المسار المكتشف
+        return data.get('findAllProducts', {}).get('data', [])
