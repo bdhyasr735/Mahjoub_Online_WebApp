@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/utils/bridge_engine.py - محرك المزامنة السيادي (مطور)
+# 📂 apps/utils/bridge_engine.py - محرك المزامنة السيادي
 
 import requests
 from config import Config
@@ -7,6 +7,7 @@ from config import Config
 class QumraBridgeEngine:
     def __init__(self):
         self.endpoint = "https://mahjoub.online/admin/graphql"
+        # استرجاع الـ API Key من إعدادات البيئة
         api_token = getattr(Config, 'QUMRA_API_KEY', '') or ""
         self.headers = {
             "Authorization": f"Bearer {api_token.strip()}",
@@ -15,18 +16,22 @@ class QumraBridgeEngine:
         }
 
     def execute_query(self, query, variables=None):
+        """تنفيذ استعلام GraphQL وإرجاع البيانات بشكل آمن."""
         payload = {"query": query, "variables": variables or {}}
         try:
             response = requests.post(self.endpoint, json=payload, headers=self.headers, timeout=15)
             response.raise_for_status()
-            data = response.json()
-            return data if isinstance(data, dict) else {}
+            result = response.json()
+            # التأكد من عدم وجود أخطاء في استجابة GraphQL نفسها
+            if 'errors' in result:
+                print(f"⚠️ GraphQL Errors: {result['errors']}")
+            return result.get('data', {})
         except Exception as e:
-            print(f"⚠️ Bridge Engine Error: {e}")
+            print(f"⚠️ Bridge Engine Connection Error: {e}")
             return {}
 
     def fetch_latest_products(self, limit=10, page=1):
-        # تم إضافة image_url و description لجلب البيانات كاملة
+        """جلب المنتجات وتجهيز القوالب التلقائية دون تخزين إضافي في القاعدة."""
         query = """
         query GetProducts($limit: Int, $page: Int) {
             findAllProducts(input: { limit: $limit, page: $page }) {
@@ -43,28 +48,37 @@ class QumraBridgeEngine:
         }
         """
         variables = {"limit": limit, "page": page}
-        result = self.execute_query(query, variables)
+        data = self.execute_query(query, variables)
         
-        if not result or 'data' not in result: return []
-            
-        data_wrapper = result.get('data', {})
-        find_all = data_wrapper.get('findAllProducts', {})
+        # استخراج البيانات من الهيكل المتداخل
+        find_all = data.get('findAllProducts', {})
         products = find_all.get('data', [])
         
-        # إضافة "القالب التلقائي" لكل منتج هنا
+        if not products:
+            return []
+        
+        # إضافة "القالب التلقائي" لكل منتج للاستخدام المباشر في القوالب
         for p in products:
             p['auto_template'] = self.generate_product_html(p)
             
         return products if isinstance(products, list) else []
 
     def generate_product_html(self, product):
-        """توليد قالب HTML مصغر للمنتج تلقائياً عند المزامنة"""
-        price = product.get('pricing', {}).get('price', 0)
-        img = product.get('image_url') or 'https://via.placeholder.com/200'
-        return f"""
-        <div class="product-snippet">
-            <img src="{img}" style="width:50px; height:50px;">
-            <h6>{product.get('title')}</h6>
-            <span>السعر: {price} ر.س</span>
-        </div>
-        """
+        """توليد قالب HTML مصغر للعرض اللحظي."""
+        try:
+            pricing = product.get('pricing') or {}
+            price = pricing.get('price', '0')
+            img = product.get('image_url') or 'https://via.placeholder.com/200'
+            title = product.get('title', 'منتج بدون اسم')
+            
+            return f"""
+            <div class="product-snippet" style="display:flex; align-items:center; gap:10px;">
+                <img src="{img}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">
+                <div style="font-size: 0.8rem;">
+                    <strong>{title}</strong><br>
+                    <span>{price} ر.س</span>
+                </div>
+            </div>
+            """
+        except Exception:
+            return '<div class="product-snippet">بيانات المنتج غير مكتملة</div>'
