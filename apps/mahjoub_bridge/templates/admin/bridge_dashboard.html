@@ -41,7 +41,7 @@
                     <p class="text-muted small mb-2"><i class="fas fa-store me-1"></i> {{ p.supplier_id or 'غير محدد' }}</p>
                     <div class="d-flex justify-content-between align-items-center mt-3">
                         <span class="text-dark font-weight-bold">
-                            {{ decrypt(p.price) if (decrypt and p.price) else "0.00" }} ر.س
+                            {{ p.price }} ر.س
                         </span>
                         <span class="badge bg-light text-success border">مُزامَن</span>
                     </div>
