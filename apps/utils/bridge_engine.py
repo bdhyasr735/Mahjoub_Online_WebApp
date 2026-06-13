@@ -35,20 +35,14 @@ class QumraBridgeEngine:
             return {}
 
     def fetch_latest_products(self, limit=10, page=1, search_term=None):
-        # ملاحظة: في كود الـ routes الحالي، حاولت استخراج 'url' من الصور
-        # بينما في هذا الاستعلام الحقل هو 'src'
+        # الاستعلام الأعمى: طلب الحقول الأساسية فقط للتأكد من نجاح الاتصال
+        # تمت إزالة 'input' وإزالة الحقول المعقدة لتشخيص المشكلة
         query = """
         query GetProducts($limit: Int, $page: Int) {
-            findAllProducts(input: { limit: $limit, page: $page }) {
+            findAllProducts(limit: $limit, page: $page) {
                 data {
                     title
                     quantity
-                    images { 
-                        src
-                    }
-                    pricing {
-                        price
-                    }
                 }
             }
         }
