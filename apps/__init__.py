@@ -16,7 +16,8 @@ from apps.models.bridge_db import Product, ProductVariant
 from apps.utils.security import AESCipher
 
 def create_app():
-    app = Flask(__name__, template_folder='templates', static_folder='static')
+    # استخدام instance_relative_config لمزيد من الاستقرار في بيئات الإنتاج
+    app = Flask(__name__, template_folder='templates', static_folder='static', instance_relative_config=True)
     app.config.from_object(Config)
 
     # 🛡️ سياسة أمان المحتوى (CSP)
@@ -106,7 +107,6 @@ def create_app():
             print(f"⚠️ خطأ أثناء التأسيس: {e}")
 
     return app
-# ... (بقية الكود الخاص بـ create_app كما هو) ...
 
-# 💡 أضف هذا السطر في نهاية ملف apps/__init__.py
-app = create_app()
+# ملاحظة هامة: في إعدادات Render، اجعل أمر التشغيل هو: gunicorn "apps:create_app()"
+# لذلك لا تقم بتعريف متغير app هنا (احذف السطر app = create_app() الذي وضعته سابقاً)
