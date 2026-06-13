@@ -23,7 +23,8 @@ def dashboard():
     if search:
         query = query.filter(Product.title.contains(search))
     
-    if status_filter:
+    # التحقق من وجود حقل status في الموديل قبل الفلترة
+    if status_filter and hasattr(Product, 'status'):
         query = query.filter(Product.status == status_filter)
         
     pagination = query.order_by(Product.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
@@ -42,7 +43,7 @@ def sync_now():
     """المزامنة اللحظية مع المحرك وحفظ البيانات مع تصحيح هيكل الصور والأسعار."""
     try:
         engine = QumraBridgeEngine()
-        # جلب البيانات من المحرك (الاستعلام المحدث في bridge_engine.py)
+        # جلب البيانات من المحرك
         raw_products = engine.fetch_latest_products(limit=50)
         
         if not raw_products:
@@ -52,26 +53,31 @@ def sync_now():
         for item in raw_products:
             # 1. العنوان
             title = str(item.get('title') or "منتج بدون اسم").strip()
+            
+            # منع التكرار (يمكنك تطويره لاحقاً بالتحديث بدلاً من الإهمال)
             if Product.query.filter_by(title=title).first():
                 continue
             
-            # 2. تصحيح استخراج السعر (من داخل كائن pricing)
+            # 2. استخراج السعر (من داخل كائن pricing)
             pricing = item.get('pricing') or {}
             price = str(pricing.get('price') or "0")
             
-            # 3. تصحيح استخراج الصورة (من داخل قائمة images)
+            # 3. استخراج الصورة (من داخل قائمة images)
             images = item.get('images') or []
             img_url = images[0].get('url') if images and isinstance(images, list) else ""
             
-            # إنشاء المنتج
+            # 4. إنشاء المنتج
             new_product = Product(
                 title=title,
                 price=price,
                 quantity=int(item.get('quantity') or 0),
                 image_url=img_url,
-                status='draft',  # الحالة الافتراضية
                 supplier_id="QUMRA_SYNC"
             )
+            
+            # التحقق من وجود حقل status في الموديل
+            if hasattr(new_product, 'status'):
+                new_product.status = 'draft'
             
             db.session.add(new_product)
             count += 1
@@ -81,6 +87,5 @@ def sync_now():
         
     except Exception:
         db.session.rollback()
-        # طباعة الخطأ للسجل لتسهيل التصحيح
         print(traceback.format_exc())
         return jsonify({"status": "error", "message": "خطأ تقني أثناء معالجة بيانات المزامنة"}), 500
