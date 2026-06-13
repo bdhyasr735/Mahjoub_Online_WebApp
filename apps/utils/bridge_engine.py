@@ -34,15 +34,18 @@ class QumraBridgeEngine:
             print(f"⚠️ Connection Error: {e}")
             return {}
 
-    def fetch_latest_products(self, limit=10, page=1):
-        # تم إضافة الحقول: pricing { price } و image_url
+    def fetch_latest_products(self, limit=10, page=1, search_term=None):
+        # تم تصحيح الاستعلام ليستخدم 'images' بدلاً من 'image_url' كما طلب السيرفر
+        # تم إضافة search_term لدعم البحث اللحظي
         query = """
-        query GetProducts($limit: Int, $page: Int) {
-            findAllProducts(input: { limit: $limit, page: $page }) {
+        query GetProducts($limit: Int, $page: Int, $search: String) {
+            findAllProducts(input: { limit: $limit, page: $page, search: $search }) {
                 data {
                     title
                     quantity
-                    image_url
+                    images { 
+                        url 
+                    }
                     pricing {
                         price
                     }
@@ -50,14 +53,9 @@ class QumraBridgeEngine:
             }
         }
         """
-        variables = {"limit": limit, "page": page}
+        variables = {"limit": limit, "page": page, "search": search_term}
         data = self.execute_query(query, variables)
         
         products = data.get('findAllProducts', {}).get('data', [])
         
-        # لا نحتاج إلى generate_product_html إذا كنا سنعتمد على الحقول المباشرة في القالب
         return products if isinstance(products, list) else []
-
-    def generate_product_html(self, product):
-        # هذا القالب يستخدم فقط في حال عدم توفر بيانات، يمكنك تركه كإجراء احتياطي
-        return f"""<div class="product-snippet"><strong>{product.get('title', 'منتج')}</strong></div>"""
