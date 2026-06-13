@@ -17,13 +17,11 @@ def dashboard():
     status_filter = request.args.get('status', '', type=str)
     per_page = 16
     
-    # بناء الاستعلام ديناميكياً
     query = Product.query
     
     if search:
         query = query.filter(Product.title.contains(search))
     
-    # التحقق من وجود حقل status في الموديل قبل الفلترة
     if status_filter and hasattr(Product, 'status'):
         query = query.filter(Product.status == status_filter)
         
@@ -43,7 +41,6 @@ def sync_now():
     """المزامنة اللحظية مع المحرك وحفظ البيانات مع تصحيح هيكل الصور والأسعار."""
     try:
         engine = QumraBridgeEngine()
-        # جلب البيانات من المحرك
         raw_products = engine.fetch_latest_products(limit=50)
         
         if not raw_products:
@@ -58,13 +55,13 @@ def sync_now():
             if Product.query.filter_by(title=title).first():
                 continue
             
-            # 2. استخراج السعر (من داخل كائن pricing)
+            # 2. استخراج السعر
             pricing = item.get('pricing') or {}
             price = str(pricing.get('price') or "0")
             
-            # 3. استخراج الصورة (من داخل قائمة images)
+            # 3. استخراج الصورة (تم التعديل ليطابق الحقل src في المحرك)
             images = item.get('images') or []
-            img_url = images[0].get('url') if images and isinstance(images, list) else ""
+            img_url = images[0].get('src') if images and isinstance(images, list) else ""
             
             # 4. إنشاء المنتج
             new_product = Product(
@@ -75,7 +72,6 @@ def sync_now():
                 supplier_id="QUMRA_SYNC"
             )
             
-            # التحقق من وجود حقل status في الموديل وتعيين حالة مسودة افتراضياً
             if hasattr(new_product, 'status'):
                 new_product.status = 'draft'
             
