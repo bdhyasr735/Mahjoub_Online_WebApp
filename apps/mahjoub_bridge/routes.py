@@ -38,7 +38,7 @@ def add_product():
 
 @bridge_bp.route('/sync-now', methods=['POST'])
 def sync_now():
-    """المزامنة اللحظية مع المحرك وحفظ البيانات مع تصحيح هيكل الصور والأسعار."""
+    """المزامنة اللحظية مع المحرك وحفظ البيانات بطريقة آمنة."""
     try:
         engine = QumraBridgeEngine()
         raw_products = engine.fetch_latest_products(limit=50)
@@ -48,20 +48,20 @@ def sync_now():
 
         count = 0
         for item in raw_products:
-            # 1. العنوان
+            # 1. العنوان (أساسي)
             title = str(item.get('title') or "منتج بدون اسم").strip()
             
             # منع التكرار
             if Product.query.filter_by(title=title).first():
                 continue
             
-            # 2. استخراج السعر
-            pricing = item.get('pricing') or {}
-            price = str(pricing.get('price') or "0")
+            # 2. استخراج السعر (معالجة آمنة للحقل)
+            pricing = item.get('pricing')
+            price = str(pricing.get('price') or "0") if isinstance(pricing, dict) else "0"
             
-            # 3. استخراج الصورة (تم التعديل ليطابق الحقل src في المحرك)
-            images = item.get('images') or []
-            img_url = images[0].get('src') if images and isinstance(images, list) else ""
+            # 3. استخراج الصورة (معالجة آمنة للحقل)
+            images = item.get('images')
+            img_url = images[0].get('src') if isinstance(images, list) and len(images) > 0 else ""
             
             # 4. إنشاء المنتج
             new_product = Product(
