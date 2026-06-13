@@ -15,8 +15,13 @@ class QumraBridgeEngine:
         payload = {"query": query, "variables": variables or {}}
         try:
             response = requests.post(self.endpoint, json=payload, headers=self.headers, timeout=15)
+            
+            # --- أداة تشخيص: لطباعة الاستجابة الحقيقية من السيرفر ---
+            print(f"DEBUG: Status Code: {response.status_code}")
+            print(f"DEBUG: Response Body: {response.text[:1000]}") # طباعة أول 1000 حرف
+            # ----------------------------------------------------
+            
             response.raise_for_status()
-            # التأكد من أن النتيجة قاموس دائماً
             data = response.json()
             return data if isinstance(data, dict) else {}
         except Exception as e:
@@ -41,18 +46,14 @@ class QumraBridgeEngine:
         result = self.execute_query(query, variables)
         
         # استخدام .get() بأمان تام في كل خطوة
-        # 1. نصل لـ 'data' من النتيجة الرئيسية
         data_wrapper = result.get('data')
         if not isinstance(data_wrapper, dict):
             return []
             
-        # 2. نصل لـ 'findAllProducts' من داخل data
         find_all = data_wrapper.get('findAllProducts')
         if not isinstance(find_all, dict):
             return []
             
-        # 3. نصل لـ 'data' (القائمة) من داخل findAllProducts
         products = find_all.get('data')
         
-        # إرجاع القائمة إذا كانت موجودة وصحيحة، وإلا قائمة فارغة
         return products if isinstance(products, list) else []
