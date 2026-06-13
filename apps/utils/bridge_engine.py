@@ -35,21 +35,23 @@ class QumraBridgeEngine:
             return {}
 
     def fetch_latest_products(self, limit=10, page=1, search_term=None):
-        # الاستعلام الأعمى: طلب الحقول الأساسية فقط للتأكد من نجاح الاتصال
-        # تمت إزالة 'input' وإزالة الحقول المعقدة لتشخيص المشكلة
+        # تم تعديل الاستعلام ليتطابق مع هيكلية السيرفر المكتشفة:
+        # استخدام 'products' بدلاً من 'findAllProducts'
+        # استخدام 'first' بدلاً من 'limit'
         query = """
-        query GetProducts($limit: Int, $page: Int) {
-            findAllProducts(limit: $limit, page: $page) {
+        query GetProducts($first: Int) {
+            products(first: $first) {
                 data {
                     title
-                    quantity
                 }
             }
         }
         """
-        variables = {"limit": limit, "page": page}
+        # نستخدم 'first' كما يتطلب السيرفر
+        variables = {"first": limit}
         data = self.execute_query(query, variables)
         
-        products = data.get('findAllProducts', {}).get('data', [])
+        # استخراج البيانات بناءً على الهيكل الجديد
+        products = data.get('products', {}).get('data', [])
         
         return products if isinstance(products, list) else []
