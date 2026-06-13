@@ -42,8 +42,8 @@ class Config:
     }
     
     # 6. إعدادات البنية التحتية السحابية (Qomra Cloud API)
-    # تم تحديث المفتاح هنا لضمان المزامنة (المفتاح الجديد ذو الصلاحيات الكاملة)
-    QUMRA_API_KEY = os.environ.get('QUMRA_API_KEY', 'qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9')
+    # ملاحظة: تم جلب المفتاح من المتغيرات البيئية حصراً
+    QUMRA_API_KEY = os.environ.get('QUMRA_API_KEY')
     QUMRA_API_URL = os.environ.get('QUMRA_API_URL', 'https://mahjoub.online/admin/graphql')
 
     # 7. إعدادات WhatsApp Cloud API
