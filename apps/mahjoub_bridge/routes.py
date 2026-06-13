@@ -38,50 +38,42 @@ def add_product():
 
 @bridge_bp.route('/sync-now', methods=['POST'])
 def sync_now():
-    """المزامنة اللحظية مع المحرك وحفظ البيانات بطريقة آمنة."""
+    """المزامنة اللحظية مع المحرك وحفظ البيانات."""
     try:
         engine = QumraBridgeEngine()
-        raw_products = engine.fetch_latest_products(limit=50)
+        # جلب البيانات المعالجة جاهزة من المحرك
+        products = engine.fetch_latest_products()
         
-        if not raw_products:
-            return jsonify({"status": "error", "message": "لم يتم العثور على منتجات في السيرفر"})
+        if not products:
+            return jsonify({"status": "error", "message": "لم يتم العثور على منتجات لجلبها"})
 
         count = 0
-        for item in raw_products:
-            # 1. العنوان (أساسي)
+        for item in products:
             title = str(item.get('title') or "منتج بدون اسم").strip()
             
             # منع التكرار
             if Product.query.filter_by(title=title).first():
                 continue
             
-            # 2. استخراج السعر (معالجة آمنة للحقل)
-            pricing = item.get('pricing')
-            price = str(pricing.get('price') or "0") if isinstance(pricing, dict) else "0"
-            
-            # 3. استخراج الصورة (معالجة آمنة للحقل)
-            images = item.get('images')
-            img_url = images[0].get('src') if isinstance(images, list) and len(images) > 0 else ""
-            
-            # 4. إنشاء المنتج
+            # إنشاء المنتج باستخدام البيانات الجاهزة من المحرك
             new_product = Product(
                 title=title,
-                price=price,
+                price=str(item.get('price') or "0"),
                 quantity=int(item.get('quantity') or 0),
-                image_url=img_url,
+                image_url=item.get('image_url'),
                 supplier_id="QUMRA_SYNC"
             )
             
             if hasattr(new_product, 'status'):
-                new_product.status = 'draft'
+                new_product.status = item.get('status', 'draft')
             
             db.session.add(new_product)
             count += 1
         
         db.session.commit()
-        return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح وجلب {count} منتج"})
+        return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح وجلب {count} منتج جديد"})
         
     except Exception:
         db.session.rollback()
         print(traceback.format_exc())
-        return jsonify({"status": "error", "message": "خطأ تقني أثناء معالجة بيانات المزامنة"}), 500
+        return jsonify({"status": "error", "message": "حدث خطأ أثناء معالجة البيانات"}), 500
