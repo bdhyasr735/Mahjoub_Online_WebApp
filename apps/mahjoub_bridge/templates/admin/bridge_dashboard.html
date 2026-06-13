@@ -33,11 +33,12 @@
         {% for p in products %}
         <div class="col-lg-3 col-md-4 col-sm-6 mb-4 product-card">
             <div class="card h-100 shadow-sm border-0 transition-all hover-shadow">
-                <div class="position-relative">
-                    <img src="{{ p.image_url or 'https://via.placeholder.com/200' }}" 
-                         class="card-img-top p-3" 
-                         style="height: 180px; object-fit: contain;"
-                         loading="lazy">
+                <div class="position-relative overflow-hidden" style="height: 180px;">
+                    <img src="{{ p.image_url if p.image_url and p.image_url.startswith('http') else 'https://via.placeholder.com/200' }}" 
+                         class="card-img-top p-2" 
+                         style="height: 100%; width: 100%; object-fit: contain;"
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/200'">
                 </div>
                 <div class="card-body">
                     <h6 class="card-title font-weight-bold text-truncate" title="{{ p.title }}">{{ p.title }}</h6>
@@ -81,22 +82,26 @@
 </style>
 
 <script>
-// جلب قائمة العناوين لتفعيل البحث الشامل الذكي
 const allProductTitles = {{ all_titles | tojson | default([]) }};
 
 document.getElementById('liveSearch').addEventListener('keyup', function() {
     let filter = this.value.toUpperCase();
     let cards = document.getElementsByClassName('product-card');
-    
-    // البحث داخل الصفحة الحالية
+    let found = false;
+
     for (let i = 0; i < cards.length; i++) {
         let title = cards[i].getElementsByClassName('card-title')[0].textContent.toUpperCase();
-        cards[i].style.display = title.indexOf(filter) > -1 ? "" : "none";
+        if (title.indexOf(filter) > -1) {
+            cards[i].style.display = "";
+            found = true;
+        } else {
+            cards[i].style.display = "none";
+        }
     }
 });
 
 function syncNow() {
-    Swal.fire({ title: 'جاري المزامنة...', text: 'يرجى الانتظار.', icon: 'info', showConfirmButton: false, allowOutsideClick: false });
+    Swal.fire({ title: 'جاري المزامنة...', text: 'قد تستغرق العملية بضع ثوانٍ.', icon: 'info', showConfirmButton: false, allowOutsideClick: false });
     fetch('{{ url_for("mahjoub_bridge.sync_now") }}', { method: 'POST' })
     .then(response => response.json())
     .then(data => {
