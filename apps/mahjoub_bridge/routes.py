@@ -11,104 +11,63 @@ bridge_bp = Blueprint('mahjoub_bridge', __name__, template_folder='templates')
 
 @bridge_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    """عرض لوحة التحكم مع نظام الترقيم (Pagination) وتمرير العناوين للبحث الشامل."""
-    try:
-        page = request.args.get('page', 1, type=int)
-        per_page = 16
-        
-        # 1. جلب المنتجات المحددة للصفحة الحالية
-        pagination = Product.query.order_by(Product.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
-        products = pagination.items
-        
-        # 2. جلب قائمة العناوين للبحث في المتصفح
-        all_titles = [p.title for p in Product.query.with_entities(Product.title).all()]
-        
-        return render_template('admin/bridge_dashboard.html', 
-                               products=products, 
-                               pagination=pagination, 
-                               page=page,
-                               all_titles=all_titles)
-                               
-    except Exception as e:
-        print(f"Error in bridge dashboard: {str(e)}")
-        flash("حدث خطأ أثناء تحميل لوحة التحكم", "danger")
-        return redirect(url_for('admin_dashboard.dashboard'))
-
-@bridge_bp.route('/add-product', methods=['GET', 'POST'])
-def add_product_page():
-    """إضافة منتج يدوي."""
-    if request.method == 'POST':
-        try:
-            title = request.form.get('title')
-            if not title:
-                flash('عنوان المنتج مطلوب!', 'warning')
-                return redirect(url_for('mahjoub_bridge.add_product_page'))
-            
-            # ملاحظة: إذا قمت بحذف image_url من الموديل، احذفه من هنا أيضاً
-            new_product = Product(
-                title=title,
-                description=request.form.get('description', ''),
-                quantity=int(request.form.get('quantity', 0)),
-                supplier_id=request.form.get('supplier_id'),
-                image_url=request.form.get('image_url') 
-            )
-            new_product.price = str(request.form.get('price', '0'))
-            db.session.add(new_product)
-            db.session.commit()
-            flash('تم إضافة المنتج بنجاح', 'success')
-            return redirect(url_for('mahjoub_bridge.dashboard'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'خطأ أثناء الحفظ: {str(e)}', 'danger')
-    return render_template('admin/add_product.html')
+    """عرض لوحة التحكم مع المنتجات الموجودة في القاعدة."""
+    page = request.args.get('page', 1, type=int)
+    per_page = 16
+    
+    # جلب المنتجات من قاعدة البيانات المحلية مباشرة
+    pagination = Product.query.order_by(Product.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    products = pagination.items
+    
+    return render_template('admin/bridge_dashboard.html', 
+                           products=products, 
+                           pagination=pagination)
 
 @bridge_bp.route('/sync-now', methods=['POST'])
 def sync_now():
-    """المزامنة اللحظية مع المحرك."""
+    """المزامنة اللحظية مع المحرك وحفظ البيانات."""
     try:
         engine = QumraBridgeEngine()
-        raw_products = engine.fetch_latest_products(limit=100)
+        # جلب البيانات من المحرك
+        raw_products = engine.fetch_latest_products(limit=50)
         
-        if not raw_products or not isinstance(raw_products, list):
-            return jsonify({"status": "error", "message": "فشل الاتصال بمحرك المزامنة - تأكد من API Key"})
+        if not raw_products:
+            return jsonify({"status": "error", "message": "لم يتم العثور على منتجات في السيرفر"})
 
         count = 0
         for item in raw_products:
-            if not isinstance(item, dict): continue
+            # التحقق من وجود العنوان
+            title = str(item.get('title') or "منتج بدون اسم").strip()
             
-            title = str(item.get('title') or "").strip()
-            # منع التكرار (فحص ذكي)
-            if not title or Product.query.filter_by(title=title).first():
+            # منع التكرار
+            if Product.query.filter_by(title=title).first():
                 continue
             
-            pricing = item.get('pricing')
-            raw_price = str(pricing.get('price') if isinstance(pricing, dict) else "0")
-            raw_qty = item.get('quantity')
-            safe_qty = int(raw_qty) if str(raw_qty or "").isdigit() else 0
+            # التعامل مع السعر والكمية
+            pricing = item.get('pricing') or {}
+            price = str(pricing.get('price') or "0")
+            qty = item.get('quantity') or 0
+            img = item.get('image_url') or ""
             
-            # استخراج الصورة من المحرك
-            img_url = item.get('image_url') or item.get('image') or ""
-            
+            # إنشاء المنتج
             new_product = Product(
                 title=title,
-                description="تمت المزامنة تلقائياً",
-                quantity=safe_qty,
-                supplier_id="QUMRA_SYNC",
-                image_url=img_url
+                price=price,
+                quantity=int(qty),
+                image_url=img,
+                supplier_id="QUMRA_SYNC"
             )
-            new_product.price = raw_price
             
-            # توليد قالب HTML مصغر ليتم عرضه في الواجهة
-            # (هذا سيجعل صفحة الـ Dashboard سريعة جداً ولا تحتاج لطلب الصور من السيرفرات الخارجية عند البحث)
-            new_product.auto_template = f'<img src="{img_url}" style="max-width:50px; border-radius:5px;">'
+            # إضافة قالب العرض
+            new_product.auto_template = f'<img src="{img}" style="width:50px;height:50px;object-fit:cover;">'
             
             db.session.add(new_product)
             count += 1
         
         db.session.commit()
-        return jsonify({"status": "success", "message": f"تمت المزامنة وجلب {count} منتج جديد"})
+        return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح وجلب {count} منتج"})
         
     except Exception:
         db.session.rollback()
-        print(traceback.format_exc()) # للطباعة في Logs الـ Render
-        return jsonify({"status": "error", "message": "حدث خطأ تقني أثناء المزامنة"}), 500
+        print(traceback.format_exc())
+        return jsonify({"status": "error", "message": "خطأ أثناء المزامنة"}), 500
