@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from apps import db
 from apps.models.bridge_db import Product, ProductVariant, encrypt, decrypt
 from apps.utils.bridge_engine import QumraBridgeEngine
+import traceback
 
 bridge_bp = Blueprint('mahjoub_bridge', __name__, template_folder='templates')
 
@@ -69,53 +70,54 @@ def sync_now():
         engine = QumraBridgeEngine()
         raw_products = engine.fetch_latest_products(limit=20)
         
-        # حماية: إذا عاد الـ Engine بـ None، نخرج فوراً لتفادي أي خطأ
-        if raw_products is None:
-            print("SYNC ERROR: fetch_latest_products returned None")
-            return jsonify({"status": "error", "message": "فشل الاتصال بمحرك المزامنة - البيانات فارغة"})
-
-        if not isinstance(raw_products, list):
-            return jsonify({"status": "warning", "message": "بيانات المصدر غير صالحة"})
+        # DEBUG: للتحقق من وصول البيانات
+        print(f"DEBUG: raw_products content is: {raw_products}")
+        
+        # حماية صارمة ضد الـ None والأنواع غير المتوقعة
+        if not raw_products or not isinstance(raw_products, list):
+            return jsonify({"status": "error", "message": "فشل الاتصال بمحرك المزامنة أو لا توجد بيانات"})
 
         count = 0
         for item in raw_products:
-            # حماية: تخطي أي عنصر ليس قاموساً أو فارغاً
+            # تخطي أي عنصر ليس قاموساً
             if not isinstance(item, dict):
                 continue
             
-            # التأكد من وجود العنوان
+            # استخراج العنوان بأمان
             title_raw = item.get('title')
-            if title_raw is None: continue
+            if not title_raw:
+                continue
             title = str(title_raw).strip()
-            if not title: continue 
             
-            # التحقق من عدم التكرار
-            if not Product.query.filter_by(title=title).first():
-                # تنظيف السعر: التأكد من وجود pricing كقاموس أولاً
-                pricing = item.get('pricing')
-                raw_price = "0"
-                if isinstance(pricing, dict):
-                    raw_price = pricing.get('price') or "0"
-                
-                # تنظيف الكمية
-                raw_qty = item.get('quantity')
-                safe_qty = int(raw_qty) if str(raw_qty or "").isdigit() else 0
-                
-                new_product = Product(
-                    title=title,
-                    description="تمت المزامنة تلقائياً",
-                    price=encrypt(str(raw_price)),
-                    quantity=safe_qty,
-                    supplier_id="QUMRA_SYNC"
-                )
-                db.session.add(new_product)
-                count += 1
+            # التحقق من عدم التكرار (لتوفير موارد السيرفر)
+            if Product.query.filter_by(title=title).first():
+                continue
+            
+            # تنظيف السعر: التأكد أن pricing قاموس قبل المعالجة
+            pricing = item.get('pricing')
+            raw_price = "0"
+            if isinstance(pricing, dict):
+                raw_price = str(pricing.get('price') or "0")
+            
+            # تنظيف الكمية
+            raw_qty = item.get('quantity')
+            safe_qty = int(raw_qty) if str(raw_qty or "").isdigit() else 0
+            
+            new_product = Product(
+                title=title,
+                description="تمت المزامنة تلقائياً",
+                price=encrypt(raw_price),
+                quantity=safe_qty,
+                supplier_id="QUMRA_SYNC"
+            )
+            db.session.add(new_product)
+            count += 1
         
         db.session.commit()
         return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح وجلب {count} منتج"})
         
     except Exception as e:
         db.session.rollback()
-        # طباعة الخطأ مع تفاصيل نوع الخطأ لتسهيل التشخيص
-        print(f"CRITICAL SYNC ERROR: {type(e).__name__}: {str(e)}")
+        # طباعة تفاصيل الخطأ في الـ Logs لتسهيل التشخيص
+        print(f"CRITICAL SYNC ERROR: {traceback.format_exc()}")
         return jsonify({"status": "error", "message": "حدث خطأ تقني في معالجة بيانات المزامنة"}), 500
