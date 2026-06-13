@@ -106,3 +106,7 @@ def create_app():
             print(f"⚠️ خطأ أثناء التأسيس: {e}")
 
     return app
+# ... (بقية الكود الخاص بـ create_app كما هو) ...
+
+# 💡 أضف هذا السطر في نهاية ملف apps/__init__.py
+app = create_app()
