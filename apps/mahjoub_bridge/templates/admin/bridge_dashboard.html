@@ -9,10 +9,7 @@
             <i class="fas fa-network-wired text-warning me-2"></i>إدارة المنتجات (الجسر السيادي)
         </h4>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#filterModal">
-                <i class="fas fa-filter"></i> فلتر
-            </button>
-            <input type="text" id="liveSearch" class="form-control" placeholder="بحث عن منتج...">
+            <input type="text" id="liveSearch" class="form-control" placeholder="ابحث في قمرة..." value="{{ search }}">
             <button class="btn btn-success" onclick="syncNow()">
                 <i class="fas fa-sync"></i> مزامنة الآن
             </button>
@@ -22,25 +19,19 @@
     <div class="row" id="product-cards-container">
         {% for p in products %}
         <div class="col-lg-3 col-md-4 col-sm-6 mb-4 product-card">
-            <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden transition-all hover-shadow">
-                <div class="position-relative">
-                    <div class="p-2 text-center bg-light" style="height: 160px; display: flex; align-items: center; justify-content: center;">
-                        {% if p.image_url %}
-                            <img src="{{ p.image_url }}" class="img-fluid" style="max-height: 140px; border-radius: 5px; object-fit: contain;">
-                        {% else %}
-                            <i class="fas fa-box-open fa-3x text-muted"></i>
-                        {% endif %}
-                    </div>
-                    <span class="position-absolute top-0 start-0 m-2 badge 
-                        {% if p.status == 'published' %}bg-success{% elif p.status == 'draft' %}bg-warning{% else %}bg-secondary{% endif %}">
-                        {{ p.status | title if p.status else 'Draft' }}
-                    </span>
+            <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
+                <div class="p-2 text-center bg-light" style="height: 160px; display: flex; align-items: center; justify-content: center;">
+                    {% if p.image_url %}
+                        <img src="{{ p.image_url }}" class="img-fluid" style="max-height: 140px; object-fit: contain;">
+                    {% else %}
+                        <i class="fas fa-box-open fa-3x text-muted"></i>
+                    {% endif %}
                 </div>
                 <div class="card-body p-3">
                     <h6 class="card-title text-truncate" title="{{ p.title }}">{{ p.title }}</h6>
                     <div class="d-flex justify-content-between align-items-center mt-2">
-                        <span class="text-primary fw-bold">{{ p.price or '0' }} ر.س</span>
-                        <small class="text-muted"><i class="fas fa-boxes me-1"></i>{{ p.quantity or '0' }}</small>
+                        <span class="text-primary fw-bold">{{ p.price }} ر.س</span>
+                        <small class="text-muted">{{ p.quantity }}</small>
                     </div>
                 </div>
             </div>
@@ -48,65 +39,26 @@
         {% else %}
         <div class="col-12 text-center py-5">
             <div class="alert alert-light border shadow-sm">
-                <i class="fas fa-info-circle text-primary fa-2x mb-3"></i>
-                <h5>لا توجد منتجات حالياً</h5>
-                <p class="text-muted">يرجى الضغط على "مزامنة الآن" لجلب أحدث المنتجات من النظام السيادي.</p>
+                <h5>لا توجد منتجات مطابقة</h5>
             </div>
         </div>
         {% endfor %}
     </div>
-
-    {% if pagination %}
-    <nav class="mt-4">
-        <ul class="pagination justify-content-center">
-            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="?page={{ pagination.prev_num }}">السابق</a>
-            </li>
-            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                {% if page_num %}
-                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                        <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
-                    </li>
-                {% endif %}
-            {% endfor %}
-            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="?page={{ pagination.next_num }}">التالي</a>
-            </li>
-        </ul>
-    </nav>
-    {% endif %}
-</div>
-
-<div class="modal fade" id="filterModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">تصفية المنتجات</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-                <select class="form-select" onchange="window.location.href='?status='+this.value">
-                    <option value="">كل الحالات</option>
-                    <option value="published">منشور</option>
-                    <option value="draft">مسودة</option>
-                </select>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
-// تفعيل البحث اللحظي
-document.getElementById('liveSearch').addEventListener('keyup', function() {
-    let filter = this.value.toLowerCase();
-    document.querySelectorAll('.product-card').forEach(card => {
-        let title = card.querySelector('.card-title').innerText.toLowerCase();
-        card.style.display = title.includes(filter) ? "" : "none";
-    });
+// بحث لحظي عند الضغط على Enter
+document.getElementById('liveSearch').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        window.location.href = `?q=${this.value}`;
+    }
 });
 
-// دالة المزامنة مع تحسين تجربة المستخدم
+// دالة المزامنة
 function syncNow() {
     Swal.fire({ 
-        title: 'جاري الاتصال بالجسر...', 
-        text: 'يرجى الانتظار، قد تستغرق العملية بضع ثوانٍ',
+        title: 'جاري الاتصال...', 
+        text: 'يتم جلب البيانات من قمرة',
         allowOutsideClick: false, 
         didOpen: () => Swal.showLoading() 
     });
@@ -115,14 +67,12 @@ function syncNow() {
     .then(r => r.json())
     .then(d => {
         if(d.status === 'success') {
-            Swal.fire('تمت العملية!', d.message, 'success').then(() => location.reload());
+            Swal.fire('تمت المزامنة!', d.message, 'success').then(() => location.reload());
         } else {
             Swal.fire('خطأ في المزامنة', d.message, 'error');
         }
     })
-    .catch(() => {
-        Swal.fire('خطأ تقني', 'فشل الاتصال بمحرك الجسر، يرجى مراجعة Logs السيرفر', 'error');
-    });
+    .catch(() => Swal.fire('خطأ تقني', 'يرجى مراجعة الـ Logs', 'error'));
 }
 </script>
 {% endblock %}
