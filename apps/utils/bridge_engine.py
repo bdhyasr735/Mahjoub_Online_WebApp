@@ -3,7 +3,6 @@ import requests
 from config import Config
 import logging
 
-# تفعيل تسجيل الأخطاء لرؤية ما يحدث في السيرفر
 logger = logging.getLogger(__name__)
 
 class QumraBridgeEngine:
@@ -16,12 +15,12 @@ class QumraBridgeEngine:
 
     def fetch_products_from_qumra(self, search_term="", page=1):
         """
-        جلب المنتجات مع سجلات تصحيح الأخطاء (Debug Logs).
+        جلب المنتجات مع دعم المتغير 'page' لجلب أي صفحة مطلوبة.
         """
-        # الاستعلام العام
+        # ملاحظة: أضفنا المتغير (page) للاستعلام إذا كان الـ API يدعمه
         query = """
-        query {
-            findAllProducts {
+        query($page: Int) {
+            findAllProducts(page: $page) {
                 data {
                     title
                     pricing { price }
@@ -34,24 +33,17 @@ class QumraBridgeEngine:
         """
         
         try:
+            # إرسال المتغيرات للـ API
             response = requests.post(
                 self.endpoint, 
-                json={"query": query}, 
+                json={"query": query, "variables": {"page": page}}, 
                 headers=self.headers, 
                 timeout=15
             )
             
-            # --- منطقة التصحيح ---
             if response.status_code == 200:
                 full_json = response.json()
-                # هذا السطر سيظهر في سجلات Render (Logs) عند البحث
-                # ابحث في الـ Logs عن كلمة "DEBUG_QUMRA"
-                logger.info(f"DEBUG_QUMRA: {full_json}") 
-                
                 raw_data = full_json.get('data', {}).get('findAllProducts', {}).get('data', [])
-                
-                if not raw_data:
-                    logger.warning("DEBUG_QUMRA: المنتجات فارغة أو الهيكل غير مطابق!")
                 
                 processed_products = []
                 for p in raw_data:
@@ -66,6 +58,7 @@ class QumraBridgeEngine:
                         "status": p.get('status', 'غير محدد')
                     })
                 
+                # الفلترة لا تزال تعمل على مستوى الصفحة المجلوبة
                 if search_term:
                     term = search_term.lower()
                     processed_products = [p for p in processed_products if term in p.get('title', '').lower()]
@@ -78,6 +71,3 @@ class QumraBridgeEngine:
         except Exception as e:
             logger.error(f"Exception: {str(e)}")
             return []
-
-    def sync_all_data(self):
-        return True
