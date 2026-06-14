@@ -1,53 +1,42 @@
 {% extends "admin/admin_base.html" %}
+
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between mb-4">
-        <h4>إدارة المنتجات</h4>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold"><i class="fas fa-box-open text-primary me-2"></i> إدارة منتجات الجسر</h4>
         <div class="d-flex gap-2">
-            <input type="text" id="liveSearch" class="form-control" placeholder="بحث...">
-            <button class="btn btn-success" onclick="syncNow()">مزامنة</button>
+            <input type="text" id="liveSearch" class="form-control" placeholder="بحث عن منتج..." style="width: 300px;">
+            <button class="btn btn-outline-primary" onclick="syncNow()"><i class="fas fa-sync"></i> مزامنة</button>
         </div>
     </div>
 
-    <div class="row" id="productContainer">
-        {% for p in data.products %}
-        <div class="col-lg-3 card p-2">{{ p.title }} - {{ p.price }} ر.س</div>
-        {% endfor %}
-    </div>
-
-    <select id="perPageSelect" class="form-select mt-3" style="width: 150px;" onchange="fetchData(1)">
-        <option value="25">25</option>
-        <option value="100">100</option>
-        <option value="9999">عرض الكل</option>
-    </select>
+    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4" id="productContainer">
+        </div>
 </div>
+
+<style>
+    .product-card { transition: transform 0.2s; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .product-card:hover { transform: translateY(-5px); }
+    .product-img { height: 180px; object-fit: cover; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+</style>
 
 <script>
 function renderDashboard(data) {
     const container = document.getElementById('productContainer');
     container.innerHTML = data.products.map(p => `
-        <div class="col-lg-3 col-md-4 mb-3">
-            <div class="card p-3 shadow-sm">
-                <h6>${p.title}</h6>
-                <p>السعر: ${p.price} | الكمية: ${p.quantity}</p>
+        <div class="col">
+            <div class="card product-card h-100">
+                <img src="${p.image_url || '/static/default-box.png'}" class="product-img" alt="${p.title}">
+                <div class="card-body">
+                    <h6 class="card-title fw-bold text-truncate" title="${p.title}">${p.title}</h6>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span class="text-primary fw-bold">${p.price} ر.س</span>
+                        <span class="badge ${p.quantity > 0 ? 'bg-success' : 'bg-danger'}">الكمية: ${p.quantity}</span>
+                    </div>
+                </div>
             </div>
-        </div>`).join('');
-}
-
-function fetchData(page = 1) {
-    const query = document.getElementById('liveSearch').value;
-    const perPage = document.getElementById('perPageSelect').value;
-    // استخدام المسار الصحيح المكتشف من السيرفر
-    fetch(`/bridge/api/search?q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}`)
-    .then(r => r.json())
-    .then(data => renderDashboard(data));
-}
-
-document.getElementById('liveSearch').addEventListener('input', () => fetchData(1));
-
-function syncNow() {
-    fetch("/bridge/sync-now", { method: 'POST' })
-    .then(() => fetchData(1));
+        </div>
+    `).join('');
 }
 </script>
 {% endblock %}
