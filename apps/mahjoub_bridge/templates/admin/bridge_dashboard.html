@@ -1,76 +1,60 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold"><i class="fas fa-box-open text-primary me-2"></i> إدارة منتجات الجسر</h4>
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold"><i class="fas fa-box-open text-primary me-2"></i> إدارة الجسر</h5>
         <div class="d-flex gap-2">
-            <input type="text" id="liveSearch" class="form-control" placeholder="بحث عن منتج..." style="width: 300px;">
-            <button class="btn btn-outline-primary" onclick="syncNow()"><i class="fas fa-sync"></i> مزامنة</button>
+            <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="بحث..." oninput="loadData(this.value)">
+            <button class="btn btn-sm btn-primary" onclick="syncNow(this)">مزامنة</button>
         </div>
     </div>
 
-    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4" id="productContainer">
-        <div class="text-center w-100 mt-5"><div class="spinner-border text-primary"></div></div>
+    <div id="productContainer" class="row row-cols-1 row-cols-md-4 g-2">
+        <div class="text-muted p-4">جاري تحميل البيانات...</div>
     </div>
 </div>
 
-<style>
-    .product-card { transition: transform 0.2s; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .product-card:hover { transform: translateY(-5px); }
-    .product-img { height: 180px; object-fit: cover; border-top-left-radius: 8px; border-top-right-radius: 8px; }
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-// دالة عرض البيانات
-function renderDashboard(data) {
+// جلب وعرض البيانات (خفيف جداً ويعتمد على الذاكرة)
+async function loadData(query = '') {
     const container = document.getElementById('productContainer');
-    if (data.products.length === 0) {
-        container.innerHTML = '<p class="text-center w-100 mt-5">لا توجد منتجات مطابقة.</p>';
-        return;
-    }
-    container.innerHTML = data.products.map(p => `
-        <div class="col">
-            <div class="card product-card h-100">
-                <img src="${p.image_url || '/static/default-box.png'}" class="product-img" alt="${p.title}">
-                <div class="card-body">
-                    <h6 class="card-title fw-bold text-truncate" title="${p.title}">${p.title}</h6>
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <span class="text-primary fw-bold">${p.price} ر.س</span>
-                        <span class="badge ${p.quantity > 0 ? 'bg-success' : 'bg-danger'}">الكمية: ${p.quantity}</span>
+    try {
+        const res = await fetch(`/bridge/api/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        if (data.products.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center">لا توجد منتجات.</div>';
+            return;
+        }
+
+        container.innerHTML = data.products.map(p => `
+            <div class="col">
+                <div class="card h-100 p-2 border-0 shadow-sm">
+                    <small class="fw-bold text-truncate" title="${p.title}">${p.title}</small>
+                    <div class="d-flex justify-content-between mt-1">
+                        <span class="text-primary small">${p.pricing.price} ر.س</span>
+                        <span class="badge bg-light text-dark small">${p.quantity} قطع</span>
                     </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `).join('');
+    } catch (e) {
+        container.innerHTML = '<div class="col-12 text-danger">خطأ في الاتصال.</div>';
+    }
 }
 
-// جلب البيانات من السيرفر
-function fetchData() {
-    const query = document.getElementById('liveSearch').value;
-    // نطلب كمية كبيرة (9999) لجلب الكل كما طلبت
-    fetch(`/bridge/api/search?q=${encodeURIComponent(query)}&per_page=9999`)
-    .then(r => r.json())
-    .then(data => renderDashboard(data))
-    .catch(err => console.error(err));
+// مزامنة البيانات (استدعاء عند الطلب فقط)
+async function syncNow(btn) {
+    btn.disabled = true;
+    btn.innerText = "جاري...";
+    await fetch('/bridge/sync', { method: 'POST' });
+    btn.disabled = false;
+    btn.innerText = "مزامنة";
+    loadData();
 }
 
-// المزامنة
-function syncNow() {
-    Swal.fire({ title: 'جاري المزامنة...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    fetch("/bridge/sync-now", { method: 'POST' })
-    .then(r => r.json())
-    .then(d => {
-        Swal.fire('تمت المزامنة!', 'تم تحديث البيانات بنجاح', 'success');
-        fetchData();
-    });
-}
-
-// ربط البحث
-document.getElementById('liveSearch').addEventListener('input', fetchData);
-
-// التحميل الأولي
-fetchData();
+// تشغيل تلقائي عند فتح الصفحة
+loadData();
 </script>
 {% endblock %}
