@@ -2,8 +2,8 @@
 # 📂 apps/utils/bridge_engine.py
 
 import requests
-import os
 import time
+from config import Config  # تم الربط بملف الإعدادات المركزي
 
 # ذاكرة مؤقتة للمنتجات
 _CACHE = {"products": [], "last_updated": 0}
@@ -11,9 +11,13 @@ CACHE_TIMEOUT = 3600  # تحديث تلقائي كل ساعة
 
 class QumraBridgeEngine:
     def __init__(self):
-        self.endpoint = "https://mahjoub.online/admin/graphql"
-        # التأكد من وجود مفتاح API
-        api_key = os.environ.get('QUMRA_API_KEY', '').strip()
+        # الاعتماد على الإعدادات المركزية
+        self.endpoint = Config.QUMRA_API_URL
+        api_key = Config.QUMRA_API_KEY
+        
+        if not api_key:
+            print("❌ Critical Error: QUMRA_API_KEY is not configured!")
+            
         self.headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -28,7 +32,7 @@ class QumraBridgeEngine:
         
         all_data = _CACHE["products"]
         
-        # البحث (Search) - يتم الفلترة على مستوى الذاكرة لسرعة الاستجابة
+        # البحث (Search)
         if search_term:
             s = search_term.lower()
             all_data = [p for p in all_data if s in (p.get('title') or "").lower()]
@@ -89,7 +93,6 @@ class QumraBridgeEngine:
             
             for p in items:
                 img = p.get('images', [])
-                # ضمان وجود جميع القيم الافتراضية
                 all_products.append({
                     'title': p.get('title', 'بدون عنوان'),
                     'price': p.get('pricing', {}).get('price', 0),
