@@ -17,15 +17,16 @@ def dashboard():
 def api_search():
     """
     نقطة اتصال للبحث المباشر:
-    1. تستقبل طلب البحث ورقم الصفحة.
-    2. تستدعي المحرك لجلب النتائج المفلترة.
-    3. تعيد النتائج بتنسيق JSON متوافق مع الواجهة.
+    1. تستقبل طلب البحث (q) ورقم الصفحة (page).
+    2. تستدعي المحرك لجلب البيانات بناءً على المتغيرات.
+    3. تعيد النتائج بتنسيق JSON.
     """
     search_query = request.args.get('q', '')
+    # التأكد من استقبال رقم الصفحة وتحويله لعدد صحيح، والافتراضي هو 1
     page = int(request.args.get('page', 1))
     
     try:
-        # استدعاء المحرك المطور
+        # استدعاء المحرك المطور الذي يدعم الآن المتغيرات (query & page)
         engine = QumraBridgeEngine()
         data = engine.fetch_products_from_qumra(search_query, page)
         
@@ -39,7 +40,7 @@ def api_search():
         logger.error(f"Error in api_search: {str(e)}")
         return jsonify({
             "status": "error",
-            "message": "فشل الاتصال بخادم المتجر",
+            "message": "فشل الاتصال بخادم المتجر المصدر",
             "products": []
         }), 500
 
@@ -56,4 +57,7 @@ def sync():
         })
     except Exception as e:
         logger.error(f"Error in sync: {str(e)}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({
+            "status": "error", 
+            "message": "حدث خطأ أثناء المزامنة"
+        }), 500
