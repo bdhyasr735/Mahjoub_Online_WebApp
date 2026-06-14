@@ -1,110 +1,35 @@
-# coding: utf-8
 # 📂 apps/utils/bridge_engine.py
-
 import requests
 import time
-from config import Config  # تم الربط بملف الإعدادات المركزي
+from config import Config
 
-# ذاكرة مؤقتة للمنتجات
 _CACHE = {"products": [], "last_updated": 0}
-CACHE_TIMEOUT = 3600  # تحديث تلقائي كل ساعة
+CACHE_TIMEOUT = 3600 
 
 class QumraBridgeEngine:
     def __init__(self):
-        # الاعتماد على الإعدادات المركزية
         self.endpoint = Config.QUMRA_API_URL
-        api_key = Config.QUMRA_API_KEY
-        
-        if not api_key:
-            print("❌ Critical Error: QUMRA_API_KEY is not configured!")
-            
         self.headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "apollo-require-preflight": "true" 
-        }
-
-    def fetch_products(self, search_term="", page=1, per_page=10):
-        """جلب المنتجات من الذاكرة المؤقتة مع دعم الترقيم والبحث اللحظي"""
-        # تحديث تلقائي إذا انتهت المدة أو كانت الذاكرة فارغة
-        if not _CACHE["products"] or (time.time() - _CACHE["last_updated"] > CACHE_TIMEOUT):
-            self.sync_all_data()
-        
-        all_data = _CACHE["products"]
-        
-        # البحث (Search)
-        if search_term:
-            s = search_term.lower()
-            all_data = [p for p in all_data if s in (p.get('title') or "").lower()]
-            
-        # منطق الترقيم (Pagination)
-        total_items = len(all_data)
-        total_pages = (total_items + per_page - 1) // per_page
-        
-        # التأكد من نطاق الصفحة
-        if page < 1: page = 1
-        if page > total_pages and total_pages > 0: page = total_pages
-        
-        start = (page - 1) * per_page
-        products_subset = all_data[start : start + per_page]
-        
-        return {
-            "products": products_subset,
-            "total": total_items,
-            "page": page,
-            "total_pages": total_pages if total_pages > 0 else 1,
-            "per_page": per_page
+            "Authorization": f"Bearer {Config.QUMRA_API_KEY}",
+            "Content-Type": "application/json"
         }
 
     def sync_all_data(self):
-        """جلب كافة المنتجات من النظام السيادي وتحديث الذاكرة المؤقتة"""
-        all_products = []
-        
-        query = """query { 
-            findAllProducts { 
-                data { 
-                    title 
-                    pricing { price } 
-                    quantity 
-                    status 
-                    images { fileUrl } 
-                }
-            } 
-        }"""
-        
+        # يتم استدعاء هذا فقط عند الضغط على زر المزامنة
         try:
-            response = requests.post(
-                self.endpoint, 
-                json={"query": query}, 
-                headers=self.headers, 
-                timeout=30
-            )
-            
-            if response.status_code != 200:
-                print(f"❌ API Error Status {response.status_code}: {response.text}")
-                return False
-            
-            # استخراج البيانات بهيكل آمن
-            data_response = response.json().get('data', {})
-            if not data_response or 'findAllProducts' not in data_response:
-                return False
-                
-            items = data_response.get('findAllProducts', {}).get('data', [])
-            
-            for p in items:
-                img = p.get('images', [])
-                all_products.append({
-                    'title': p.get('title', 'بدون عنوان'),
-                    'price': p.get('pricing', {}).get('price', 0),
-                    'quantity': p.get('quantity', 0),
-                    'status': p.get('status', 'N/A'),
-                    'image_url': img[0].get('fileUrl') if img and isinstance(img, list) else None
-                })
-        
-        except Exception as e:
-            print(f"❌ Sync Exception: {str(e)}")
-            return False
-        
-        _CACHE["products"] = all_products
-        _CACHE["last_updated"] = time.time()
-        return True
+            query = "{ findAllProducts { data { title pricing { price } quantity images { fileUrl } } } }"
+            response = requests.post(self.endpoint, json={"query": query}, headers=self.headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json().get('data', {}).get('findAllProducts', {}).get('data', [])
+                _CACHE["products"] = data
+                _CACHE["last_updated"] = time.time()
+                return True
+        except: return False
+        return False
+
+    def get_data(self, search=""):
+        # خفيف جداً: فلترة محلية من الذاكرة
+        products = _CACHE["products"]
+        if search:
+            products = [p for p in products if search.lower() in p['title'].lower()]
+        return products
