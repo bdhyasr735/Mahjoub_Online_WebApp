@@ -11,8 +11,7 @@ class QumraBridgeEngine:
         }
 
     def fetch_products_from_qumra(self, search_term="", page=1):
-        # سنحاول جلب البيانات بدون فلتر معقد في البداية للتأكد من نجاح الاتصال
-        # إذا نجح هذا، سنعرف أن المشكلة كانت في صيغة الفلتر
+        # تم تحديث الاستعلام ليشمل حقولاً إضافية نحتاجها للعرض الاحترافي
         query = """
         query {
             findAllProducts {
@@ -36,13 +35,29 @@ class QumraBridgeEngine:
             )
             
             if response.status_code == 200:
-                data = response.json().get('data', {}).get('findAllProducts', {}).get('data', [])
+                raw_data = response.json().get('data', {}).get('findAllProducts', {}).get('data', [])
                 
-                # الفلترة الآن تتم برمجياً هنا للتأكد من عمل البحث حتى لو رفض السيرفر الفلتر
+                # معالجة وتجهيز البيانات للعرض
+                processed_products = []
+                for p in raw_data:
+                    # استخراج رابط الصورة الأولى فقط (إذا وجد)
+                    images = p.get('images', [])
+                    image_url = images[0].get('fileUrl') if images and len(images) > 0 else 'static/img/default-product.png'
+                    
+                    product = {
+                        "title": p.get('title', 'بدون اسم'),
+                        "price": p.get('pricing', {}).get('price', 0),
+                        "quantity": p.get('quantity', 0),
+                        "image_url": image_url,
+                        "status": p.get('status', 'غير محدد')
+                    }
+                    processed_products.append(product)
+                
+                # الفلترة البرمجية
                 if search_term:
-                    data = [p for p in data if search_term.lower() in p.get('title', '').lower()]
+                    processed_products = [p for p in processed_products if search_term.lower() in p.get('title', '').lower()]
                 
-                return data
+                return processed_products
             else:
                 print(f"❌ API Error: {response.status_code} - {response.text}")
                 return []
