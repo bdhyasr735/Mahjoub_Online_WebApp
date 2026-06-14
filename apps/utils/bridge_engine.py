@@ -15,7 +15,7 @@ class QumraBridgeEngine:
         self.headers = {
             "Authorization": f"Bearer {os.environ.get('QUMRA_API_KEY', '').strip()}",
             "Content-Type": "application/json",
-            "apollo-require-preflight": "true"  # الترويسة المطلوبة لتجاوز رفض الخادم
+            "apollo-require-preflight": "true" 
         }
 
     def fetch_products(self, search_term="", page=1, per_page=10):
@@ -46,13 +46,19 @@ class QumraBridgeEngine:
         }
 
     def sync_all_data(self):
-        """جلب كافة المنتجات من النظام السيادي عبر الاستعلام المباشر المتوافق"""
+        """جلب كافة المنتجات من النظام السيادي وتحديث الذاكرة المؤقتة"""
         all_products = []
         
-        # استعلام مبسط بدون arguments حسب متطلبات الخادم التي ظهرت في سجلات الخطأ
+        # استعلام GraphQL لجلب البيانات الأساسية بما فيها الكمية
         query = """query { 
             findAllProducts { 
-                data { title pricing { price } quantity status images { fileUrl } }
+                data { 
+                    title 
+                    pricing { price } 
+                    quantity 
+                    status 
+                    images { fileUrl } 
+                }
             } 
         }"""
         
@@ -64,12 +70,10 @@ class QumraBridgeEngine:
                 timeout=30
             )
             
-            # فحص حالة الاستجابة
             if response.status_code != 200:
                 print(f"❌ API Error Status {response.status_code}: {response.text}")
                 return False
             
-            # استخراج البيانات من الهيكل الصحيح
             result = response.json().get('data', {}).get('findAllProducts', {})
             items = result.get('data', [])
             
@@ -79,6 +83,7 @@ class QumraBridgeEngine:
             
             for p in items:
                 img = p.get('images', [])
+                # استخراج الكمية مباشرة من الحقل quantity
                 all_products.append({
                     'title': p.get('title'),
                     'price': p.get('pricing', {}).get('price', 0),
