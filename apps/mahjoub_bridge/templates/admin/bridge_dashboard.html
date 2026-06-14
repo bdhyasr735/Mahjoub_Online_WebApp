@@ -6,6 +6,8 @@
     .product-card:hover { transform: translateY(-5px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important; }
     .badge-qty { font-size: 0.7rem; padding: 0.25rem 0.5rem; }
     .card-img-top { background-color: #f8f9fa; }
+    .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 
 <div class="container-fluid py-3">
@@ -21,7 +23,7 @@
     </div>
 
     <div id="productContainer" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
-        <div class="col-12 text-center py-5 text-muted">جاري تحميل البيانات...</div>
+        <div class="col-12 text-center py-5 text-muted">جاري تحميل المنتجات...</div>
     </div>
 
     <nav class="mt-4">
@@ -33,7 +35,6 @@
 let currentPage = 1;
 let searchTimer;
 
-// خاصية debounce لمنع كثرة الطلبات عند الكتابة السريعة
 function debounceSearch() {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => { currentPage = 1; loadData(); }, 500);
@@ -44,21 +45,25 @@ async function loadData(page = 1) {
     const query = document.getElementById('searchInput').value;
     const container = document.getElementById('productContainer');
     
+    // إظهار حالة التحميل
+    container.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div></div>';
+    
     try {
         const res = await fetch(`/bridge/api/search?q=${encodeURIComponent(query)}&page=${page}`);
         const data = await res.json();
         
-        if (!data.products || data.products.length === 0) {
-            container.innerHTML = '<div class="col-12 text-center py-5 text-muted">لم يتم العثور على نتائج.</div>';
+        if (data.status !== "success" || !data.products || data.products.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center py-5 text-muted">لم يتم العثور على نتائج مطابقة.</div>';
             return;
         }
 
-        container.innerHTML = data.products.map(p => `
+        // عرض المنتجات مع الفهرسة
+        container.innerHTML = data.products.map((p, index) => `
             <div class="col">
                 <div class="card product-card h-100 border-0 shadow-sm">
                     <img src="${p.image_url}" class="card-img-top" style="height:140px; object-fit:contain;" onerror="this.src='https://via.placeholder.com/150'">
                     <div class="p-2">
-                        <small class="d-block fw-bold text-truncate" title="${p.title}">${p.title}</small>
+                        <small class="d-block fw-bold text-truncate" title="${p.title}">${index + 1}. ${p.title}</small>
                         <div class="d-flex justify-content-between align-items-center mt-2">
                             <span class="text-primary fw-bold small">${p.price} ر.س</span>
                             <span class="badge ${p.quantity > 0 ? 'bg-success text-white' : 'bg-danger text-white'} badge-qty">
@@ -69,20 +74,23 @@ async function loadData(page = 1) {
                 </div>
             </div>
         `).join('');
+        
     } catch (e) {
-        container.innerHTML = '<div class="col-12 text-danger text-center">حدث خطأ في الاتصال بالخادم.</div>';
+        container.innerHTML = '<div class="col-12 text-danger text-center">خطأ في الاتصال بالسيرفر.</div>';
     }
 }
 
 async function syncNow(btn) {
     btn.disabled = true;
+    const originalHTML = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     await fetch('/bridge/sync', { method: 'POST' });
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+    btn.innerHTML = originalHTML;
     loadData(1);
 }
 
+// تحميل البيانات عند أول فتح للصفحة
 loadData();
 </script>
 {% endblock %}
