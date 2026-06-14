@@ -10,16 +10,16 @@
         </h4>
         <div class="d-flex gap-2">
             <a href="#" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة منتج</a>
-            <input type="text" id="liveSearch" class="form-control" placeholder="ابحث في قمرة..." value="{{ search }}">
+            <input type="text" id="liveSearch" class="form-control" placeholder="بحث لحظي..." value="{{ search }}">
             <button class="btn btn-success" onclick="syncNow()"><i class="fas fa-sync"></i> مزامنة</button>
         </div>
     </div>
 
-    <div class="row">
+    <div class="row" id="productContainer">
         {% for p in data.products %}
         <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
             <div class="card h-100 shadow-sm border-0">
-                <img src="{{ p.image_url }}" class="card-img-top" style="height: 160px; object-fit: contain;">
+                <img src="{{ p.image_url or '/static/default-box.png' }}" class="card-img-top" style="height: 160px; object-fit: contain;">
                 <div class="card-body">
                     <h6 class="card-title text-truncate">{{ p.title }}</h6>
                     <p class="text-primary fw-bold">{{ p.price }} ر.س</p>
@@ -29,23 +29,51 @@
         {% endfor %}
     </div>
 
-    <nav class="mt-4">
+    <nav class="mt-4" id="paginationContainer">
         <ul class="pagination justify-content-center">
-            <li class="page-item {% if data.page == 1 %}disabled{% endif %}">
-                <a class="page-link" href="?page={{ data.page - 1 }}&q={{ search }}">السابق</a>
-            </li>
+            <li class="page-item {% if data.page == 1 %}disabled{% endif %}"><a class="page-link" href="?page={{ data.page - 1 }}&q={{ search }}">السابق</a></li>
             {% for i in range(1, data.total_pages + 1) %}
-                {% if i <= 5 or i > data.total_pages - 2 %}
-                <li class="page-item {% if i == data.page %}active{% endif %}">
-                    <a class="page-link" href="?page={{ i }}&q={{ search }}">{{ i }}</a>
-                </li>
-                {% elif i == 6 %} <li class="page-item disabled"><a class="page-link">...</a></li> {% endif %}
+                <li class="page-item {% if i == data.page %}active{% endif %}"><a class="page-link" href="?page={{ i }}&q={{ search }}">{{ i }}</a></li>
             {% endfor %}
-            <li class="page-item {% if data.page == data.total_pages %}disabled{% endif %}">
-                <a class="page-link" href="?page={{ data.page + 1 }}&q={{ search }}">التالي</a>
-            </li>
+            <li class="page-item {% if data.page == data.total_pages %}disabled{% endif %}"><a class="page-link" href="?page={{ data.page + 1 }}&q={{ search }}">التالي</a></li>
         </ul>
-        <p class="text-center text-muted mt-2">عرض صفحة {{ data.page }} من إجمالي {{ data.total_pages }} | إجمالي {{ data.total }} عنصر</p>
     </nav>
 </div>
+
+<script>
+// البحث اللحظي
+document.getElementById('liveSearch').addEventListener('input', function(e) {
+    const query = e.target.value;
+    fetch(`/mahjoub_bridge/api/search?q=${query}`)
+    .then(r => r.json())
+    .then(data => {
+        const container = document.getElementById('productContainer');
+        container.innerHTML = data.products.map(p => `
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <img src="${p.image_url || '/static/default-box.png'}" class="card-img-top" style="height: 160px; object-fit: contain;">
+                    <div class="card-body">
+                        <h6 class="card-title text-truncate">${p.title}</h6>
+                        <p class="text-primary fw-bold">${p.price} ر.س</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    });
+});
+
+// دالة المزامنة
+function syncNow() {
+    Swal.fire({ title: 'جاري التحديث...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    fetch("{{ url_for('mahjoub_bridge.sync_now') }}", { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+        if(d.status === 'success') {
+            Swal.fire('تمت المزامنة!', '', 'success').then(() => location.reload());
+        } else {
+            Swal.fire('خطأ', d.message, 'error');
+        }
+    });
+}
+</script>
 {% endblock %}
