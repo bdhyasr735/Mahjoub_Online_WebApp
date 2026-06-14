@@ -1,35 +1,71 @@
 # 📂 apps/utils/bridge_engine.py
 import requests
-import time
 from config import Config
-
-_CACHE = {"products": [], "last_updated": 0}
-CACHE_TIMEOUT = 3600 
 
 class QumraBridgeEngine:
     def __init__(self):
+        # الاعتماد على الإعدادات المركزية لضمان الأمان والمرونة
         self.endpoint = Config.QUMRA_API_URL
         self.headers = {
             "Authorization": f"Bearer {Config.QUMRA_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "apollo-require-preflight": "true"
         }
 
-    def sync_all_data(self):
-        # يتم استدعاء هذا فقط عند الضغط على زر المزامنة
+    def fetch_products_from_qumra(self, search_term=""):
+        """
+        جلب البيانات مباشرة من قمرة حسب البحث (On-Demand).
+        لا يتم تخزين 10 آلاف منتج في الذاكرة لتجنب استهلاك الموارد.
+        """
+        # استعلام GraphQL مرن يقبل متغير البحث
+        query = """
+        query($q: String) {
+            findAllProducts(filter: { title: $q }) {
+                data {
+                    title
+                    pricing { price }
+                    quantity
+                    status
+                    images { fileUrl }
+                }
+            }
+        }
+        """
+        
         try:
-            query = "{ findAllProducts { data { title pricing { price } quantity images { fileUrl } } } }"
-            response = requests.post(self.endpoint, json={"query": query}, headers=self.headers, timeout=10)
+            # إرسال طلب البحث مباشرة إلى السيرفر السيادي
+            response = requests.post(
+                self.endpoint, 
+                json={"query": query, "variables": {"q": search_term}}, 
+                headers=self.headers, 
+                timeout=15 # توقيت استجابة سريع لمنع تعليق النظام
+            )
+            
             if response.status_code == 200:
-                data = response.json().get('data', {}).get('findAllProducts', {}).get('data', [])
-                _CACHE["products"] = data
-                _CACHE["last_updated"] = time.time()
-                return True
-        except: return False
-        return False
+                result = response.json().get('data', {}).get('findAllProducts', {}).get('data', [])
+                
+                # معالجة وتنسيق البيانات فور وصولها لتكون جاهزة للعرض
+                formatted_products = []
+                for p in result:
+                    img = p.get('images', [])
+                    formatted_products.append({
+                        'title': p.get('title', 'بدون عنوان'),
+                        'price': p.get('pricing', {}).get('price', 0),
+                        'quantity': p.get('quantity', 0),
+                        'status': p.get('status', 'N/A'),
+                        'image_url': img[0].get('fileUrl') if img and isinstance(img, list) else None
+                    })
+                return formatted_products
+            
+            else:
+                print(f"❌ API Error: {response.status_code}")
+                return []
+                
+        except Exception as e:
+            print(f"❌ Bridge Exception: {str(e)}")
+            return []
 
-    def get_data(self, search=""):
-        # خفيف جداً: فلترة محلية من الذاكرة
-        products = _CACHE["products"]
-        if search:
-            products = [p for p in products if search.lower() in p['title'].lower()]
-        return products
+    def sync_all_data(self):
+        """دالة المزامنة الكاملة (إذا احتاج النظام تحديث الذاكرة)"""
+        # يمكن تنفيذ منطق المزامنة هنا إذا كانت هناك حاجة لتحديث قاعدة بيانات محلية
+        return True
