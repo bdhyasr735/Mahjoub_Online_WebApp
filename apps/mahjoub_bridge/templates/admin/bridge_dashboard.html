@@ -22,7 +22,8 @@
                 <img src="{{ p.image_url or '/static/default-box.png' }}" class="card-img-top" style="height: 160px; object-fit: contain;">
                 <div class="card-body">
                     <h6 class="card-title text-truncate" title="{{ p.title }}">{{ p.title }}</h6>
-                    <p class="text-primary fw-bold">{{ p.price }} ر.س</p>
+                    <p class="text-primary fw-bold mb-1">{{ p.price }} ر.س</p>
+                    <p class="text-muted small">الكمية: <span class="badge bg-secondary">{{ p.quantity }}</span></p>
                 </div>
             </div>
         </div>
@@ -32,7 +33,7 @@
     <div class="mt-4 d-flex justify-content-between align-items-center border-top pt-3">
         <div class="d-flex align-items-center">
             <span class="me-2 text-muted">إظهار:</span>
-            <select id="perPageSelect" class="form-select form-select-sm" style="width: 80px;" onchange="updatePerPage(this.value)">
+            <select id="perPageSelect" class="form-select form-select-sm" style="width: 80px;" onchange="fetchData(1)">
                 <option value="10" {% if data.per_page == 10 %}selected{% endif %}>10</option>
                 <option value="25" {% if data.per_page == 25 %}selected{% endif %}>25</option>
                 <option value="50" {% if data.per_page == 50 %}selected{% endif %}>50</option>
@@ -43,15 +44,15 @@
         <nav id="paginationWrapper">
             <ul class="pagination mb-0" id="paginationContainer">
                 <li class="page-item {% if data.page == 1 %}disabled{% endif %}">
-                    <a class="page-link" href="?page={{ data.page - 1 }}&per_page={{ data.per_page }}&q={{ search }}">السابق</a>
+                    <a class="page-link" href="#" onclick="fetchData({{ data.page - 1 }}); return false;">السابق</a>
                 </li>
                 {% for i in range(1, data.total_pages + 1) %}
                 <li class="page-item {% if i == data.page %}active{% endif %}">
-                    <a class="page-link" href="?page={{ i }}&per_page={{ data.per_page }}&q={{ search }}">{{ i }}</a>
+                    <a class="page-link" href="#" onclick="fetchData({{ i }}); return false;">{{ i }}</a>
                 </li>
                 {% endfor %}
                 <li class="page-item {% if data.page == data.total_pages %}disabled{% endif %}">
-                    <a class="page-link" href="?page={{ data.page + 1 }}&per_page={{ data.per_page }}&q={{ search }}">التالي</a>
+                    <a class="page-link" href="#" onclick="fetchData({{ data.page + 1 }}); return false;">التالي</a>
                 </li>
             </ul>
         </nav>
@@ -64,70 +65,62 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-function updatePerPage(val) {
-    const query = document.getElementById('liveSearch').value;
-    window.location.href = `?per_page=${val}&q=${query}`;
-}
-
-document.getElementById('liveSearch').addEventListener('input', function(e) {
-    const query = e.target.value;
-    const perPage = document.getElementById('perPageSelect').value;
-    
-    // تصحيح المسار ليتطابق مع الـ Blueprint
-    fetch(`/mahjoub_bridge/api/search?q=${query}&per_page=${perPage}&page=1`)
-    .then(r => r.json())
-    .then(data => {
-        // 1. تحديث المنتجات
-        const container = document.getElementById('productContainer');
-        container.innerHTML = data.products.map(p => `
-            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                <div class="card h-100 shadow-sm border-0">
-                    <img src="${p.image_url || '/static/default-box.png'}" class="card-img-top" style="height: 160px; object-fit: contain;">
-                    <div class="card-body">
-                        <h6 class="card-title text-truncate" title="${p.title}">${p.title}</h6>
-                        <p class="text-primary fw-bold">${p.price} ر.س</p>
-                    </div>
+// دالة عرض البيانات المركزية
+function renderDashboard(data) {
+    const container = document.getElementById('productContainer');
+    container.innerHTML = data.products.map(p => `
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <img src="${p.image_url || '/static/default-box.png'}" class="card-img-top" style="height: 160px; object-fit: contain;">
+                <div class="card-body">
+                    <h6 class="card-title text-truncate" title="${p.title}">${p.title}</h6>
+                    <p class="text-primary fw-bold mb-1">${p.price} ر.س</p>
+                    <p class="text-muted small">الكمية: <span class="badge bg-secondary">${p.quantity}</span></p>
                 </div>
             </div>
-        `).join('');
+        </div>
+    `).join('');
 
-        // 2. تحديث الترقيم ديناميكياً
-        const pagContainer = document.getElementById('paginationContainer');
-        let paginationHTML = `
-            <li class="page-item ${data.page <= 1 ? 'disabled' : ''}">
-                <a class="page-link" href="?page=${data.page - 1}&per_page=${data.per_page}&q=${query}">السابق</a>
-            </li>`;
-        for (let i = 1; i <= data.total_pages; i++) {
-            paginationHTML += `<li class="page-item ${i === data.page ? 'active' : ''}">
-                <a class="page-link" href="?page=${i}&per_page=${data.per_page}&q=${query}">${i}</a>
-            </li>`;
-        }
-        paginationHTML += `
-            <li class="page-item ${data.page >= data.total_pages ? 'disabled' : ''}">
-                <a class="page-link" href="?page=${data.page + 1}&per_page=${data.per_page}&q=${query}">التالي</a>
-            </li>`;
-        pagContainer.innerHTML = paginationHTML;
+    const pagContainer = document.getElementById('paginationContainer');
+    let paginationHTML = `
+        <li class="page-item ${data.page <= 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="fetchData(${data.page - 1}); return false;">السابق</a>
+        </li>`;
+    for (let i = 1; i <= data.total_pages; i++) {
+        paginationHTML += `<li class="page-item ${i === data.page ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="fetchData(${i}); return false;">${i}</a>
+        </li>`;
+    }
+    paginationHTML += `
+        <li class="page-item ${data.page >= data.total_pages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="fetchData(${data.page + 1}); return false;">التالي</a>
+        </li>`;
+    pagContainer.innerHTML = paginationHTML;
+    document.getElementById('resultsInfo').innerText = `عرض صفحة ${data.page} من ${data.total_pages} | إجمالي ${data.total} عنصر`;
+}
 
-        // 3. تحديث نص المعلومات
-        document.getElementById('resultsInfo').innerText = `عرض صفحة ${data.page} من ${data.total_pages} | إجمالي ${data.total} عنصر`;
-    });
-});
+// دالة جلب البيانات
+function fetchData(page = 1) {
+    const query = document.getElementById('liveSearch').value;
+    const perPage = document.getElementById('perPageSelect').value;
+    fetch(`/mahjoub_bridge/api/search?q=${query}&per_page=${perPage}&page=${page}`)
+    .then(r => r.json())
+    .then(data => renderDashboard(data));
+}
+
+// إضافة حدث البحث اللحظي
+document.getElementById('liveSearch').addEventListener('input', () => fetchData(1));
 
 function syncNow() {
-    Swal.fire({ 
-        title: 'جاري المزامنة...', 
-        text: 'قد يستغرق هذا بضع ثوانٍ لسحب كافة المنتجات',
-        allowOutsideClick: false, 
-        didOpen: () => Swal.showLoading() 
-    });
-
+    Swal.fire({ title: 'جاري المزامنة...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     fetch("{{ url_for('mahjoub_bridge.sync_now') }}", { method: 'POST' })
     .then(r => r.json())
     .then(d => {
         if(d.status === 'success') {
-            Swal.fire({ icon: 'success', title: 'تمت المزامنة بنجاح!', text: d.message }).then(() => location.reload());
+            Swal.fire('تمت المزامنة!', d.message, 'success');
+            fetchData(1);
         } else {
-            Swal.fire({ icon: 'error', title: 'فشل المزامنة', text: d.message });
+            Swal.fire('خطأ', d.message, 'error');
         }
     });
 }
