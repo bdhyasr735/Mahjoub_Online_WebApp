@@ -45,22 +45,35 @@ class QumraBridgeEngine:
         }
 
     def sync_all_data(self):
-        """جلب كافة المنتجات من النظام السيادي عبر التكرار في الصفحات"""
+        """جلب كافة المنتجات من النظام السيادي عبر التكرار مع تتبع الأخطاء"""
         all_products = []
         page = 1
         has_more = True
         
+        # استعلام GraphQL باستخدام المتغيرات لضمان الاستقرار
+        query = """query findAllProducts($page: Int!, $limit: Int!) { 
+            findAllProducts(page: $page, limit: $limit) { 
+                data { title pricing { price } quantity status images { fileUrl } }
+                meta { totalPages }
+            } 
+        }"""
+        
         while has_more:
-            # استعلام لجلب المنتجات بحد أقصى 100 في كل طلب لضمان السرعة
-            query = f"""query {{ 
-                findAllProducts(page: {page}, limit: 100) {{ 
-                    data {{ title pricing {{ price }} quantity status images {{ fileUrl }} }}
-                    meta {{ totalPages }}
-                }} 
-            }}"""
+            variables = {"page": page, "limit": 100}
             
             try:
-                response = requests.post(self.endpoint, json={"query": query}, headers=self.headers, timeout=20)
+                response = requests.post(
+                    self.endpoint, 
+                    json={"query": query, "variables": variables}, 
+                    headers=self.headers, 
+                    timeout=30
+                )
+                
+                # فحص حالة الاستجابة
+                if response.status_code != 200:
+                    print(f"❌ API Error Status {response.status_code}: {response.text}")
+                    return False
+                
                 result = response.json().get('data', {}).get('findAllProducts', {})
                 items = result.get('data', [])
                 
@@ -76,16 +89,16 @@ class QumraBridgeEngine:
                         'image_url': img[0].get('fileUrl') if img else None
                     })
                 
-                # التحقق من وجود صفحات تالية
                 total_pages = result.get('meta', {}).get('totalPages', 1)
                 if page >= total_pages:
                     has_more = False
                 else:
                     page += 1
+                    
             except Exception as e:
-                print(f"Sync Error at page {page}: {e}")
-                break
+                print(f"❌ Sync Exception at page {page}: {str(e)}")
+                return False
         
         _CACHE["products"] = all_products
         _CACHE["last_updated"] = time.time()
-        return len(all_products) > 0
+        return True
