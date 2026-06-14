@@ -1,107 +1,44 @@
 {% extends "admin/admin_base.html" %}
-
-{% block title %}إدارة الجسر | محجوب أونلاين{% endblock %}
-
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="font-weight-bold text-dark">
-            <i class="fas fa-network-wired text-warning me-2"></i>إدارة المنتجات (الجسر السيادي)
-        </h4>
-        <div class="d-flex gap-2 align-items-center">
-            <a href="#" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة منتج</a>
-            <input type="text" id="liveSearch" class="form-control" x-ignore placeholder="بحث لحظي..." value="{{ search }}">
-            <button class="btn btn-success" onclick="syncNow()"><i class="fas fa-sync"></i> مزامنة</button>
+    <div class="d-flex justify-content-between mb-4">
+        <h4>إدارة المنتجات</h4>
+        <div class="d-flex gap-2">
+            <input type="text" id="liveSearch" class="form-control" placeholder="بحث...">
+            <button class="btn btn-success" onclick="syncNow()">مزامنة</button>
         </div>
     </div>
 
     <div class="row" id="productContainer">
         {% for p in data.products %}
-        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-            <div class="card h-100 shadow-sm border-0">
-                <img src="{{ p.image_url or '/static/default-box.png' }}" class="card-img-top" style="height: 160px; object-fit: contain;">
-                <div class="card-body">
-                    <h6 class="card-title text-truncate" title="{{ p.title }}">{{ p.title }}</h6>
-                    <p class="text-primary fw-bold mb-1">{{ p.price }} ر.س</p>
-                    <p class="text-muted small">الكمية: <span class="badge bg-secondary">{{ p.quantity }}</span></p>
-                </div>
-            </div>
-        </div>
+        <div class="col-lg-3 card p-2">{{ p.title }} - {{ p.price }} ر.س</div>
         {% endfor %}
     </div>
 
-    <div class="mt-4 d-flex justify-content-between align-items-center border-top pt-3">
-        <div class="d-flex align-items-center">
-            <span class="me-2 text-muted">إظهار:</span>
-            <select id="perPageSelect" class="form-select form-select-sm" style="width: 80px;" onchange="fetchData(1)">
-                <option value="10" {% if data.per_page == 10 %}selected{% endif %}>10</option>
-                <option value="25" {% if data.per_page == 25 %}selected{% endif %}>25</option>
-                <option value="50" {% if data.per_page == 50 %}selected{% endif %}>50</option>
-                <option value="100" {% if data.per_page == 100 %}selected{% endif %}>100</option>
-            </select>
-        </div>
-
-        <nav id="paginationWrapper">
-            <ul class="pagination mb-0" id="paginationContainer">
-                <li class="page-item {% if data.page == 1 %}disabled{% endif %}">
-                    <a class="page-link" href="#" onclick="fetchData({{ data.page - 1 }}); return false;">السابق</a>
-                </li>
-                {% for i in range(1, data.total_pages + 1) %}
-                <li class="page-item {% if i == data.page %}active{% endif %}">
-                    <a class="page-link" href="#" onclick="fetchData({{ i }}); return false;">{{ i }}</a>
-                </li>
-                {% endfor %}
-                <li class="page-item {% if data.page == data.total_pages %}disabled{% endif %}">
-                    <a class="page-link" href="#" onclick="fetchData({{ data.page + 1 }}); return false;">التالي</a>
-                </li>
-            </ul>
-        </nav>
-
-        <p class="text-muted mb-0" id="resultsInfo">
-            عرض صفحة {{ data.page }} من {{ data.total_pages }} | إجمالي {{ data.total }} عنصر
-        </p>
-    </div>
+    <select id="perPageSelect" class="form-select mt-3" style="width: 150px;" onchange="fetchData(1)">
+        <option value="25">25</option>
+        <option value="100">100</option>
+        <option value="9999">عرض الكل</option>
+    </select>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 function renderDashboard(data) {
     const container = document.getElementById('productContainer');
-    container.innerHTML = data.products.length > 0 ? data.products.map(p => `
-        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-            <div class="card h-100 shadow-sm border-0">
-                <img src="${p.image_url || '/static/default-box.png'}" class="card-img-top" style="height: 160px; object-fit: contain;">
-                <div class="card-body">
-                    <h6 class="card-title text-truncate" title="${p.title}">${p.title}</h6>
-                    <p class="text-primary fw-bold mb-1">${p.price} ر.س</p>
-                    <p class="text-muted small">الكمية: <span class="badge bg-secondary">${p.quantity}</span></p>
-                </div>
+    container.innerHTML = data.products.map(p => `
+        <div class="col-lg-3 col-md-4 mb-3">
+            <div class="card p-3 shadow-sm">
+                <h6>${p.title}</h6>
+                <p>السعر: ${p.price} | الكمية: ${p.quantity}</p>
             </div>
-        </div>
-    `).join('') : '<p class="text-center w-100">لا توجد نتائج مطابقة</p>';
-
-    const pagContainer = document.getElementById('paginationContainer');
-    let paginationHTML = `
-        <li class="page-item ${data.page <= 1 ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="fetchData(${data.page - 1}); return false;">السابق</a>
-        </li>`;
-    for (let i = 1; i <= data.total_pages; i++) {
-        paginationHTML += `<li class="page-item ${i === data.page ? 'active' : ''}">
-            <a class="page-link" href="#" onclick="fetchData(${i}); return false;">${i}</a>
-        </li>`;
-    }
-    paginationHTML += `
-        <li class="page-item ${data.page >= data.total_pages ? 'disabled' : ''}">
-            <a class="page-link" href="#" onclick="fetchData(${data.page + 1}); return false;">التالي</a>
-        </li>`;
-    pagContainer.innerHTML = paginationHTML;
-    document.getElementById('resultsInfo').innerText = `عرض صفحة ${data.page} من ${data.total_pages} | إجمالي ${data.total} عنصر`;
+        </div>`).join('');
 }
 
 function fetchData(page = 1) {
     const query = document.getElementById('liveSearch').value;
     const perPage = document.getElementById('perPageSelect').value;
-    fetch(`/mahjoub_bridge/api/search?q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}`)
+    // استخدام المسار الصحيح المكتشف من السيرفر
+    fetch(`/bridge/api/search?q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}`)
     .then(r => r.json())
     .then(data => renderDashboard(data));
 }
@@ -109,17 +46,8 @@ function fetchData(page = 1) {
 document.getElementById('liveSearch').addEventListener('input', () => fetchData(1));
 
 function syncNow() {
-    Swal.fire({ title: 'جاري المزامنة...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    fetch("{{ url_for('mahjoub_bridge.sync_now') }}", { method: 'POST' })
-    .then(r => r.json())
-    .then(d => {
-        if(d.status === 'success') {
-            Swal.fire('تمت المزامنة!', d.message, 'success');
-            fetchData(1);
-        } else {
-            Swal.fire('خطأ', d.message, 'error');
-        }
-    });
+    fetch("/bridge/sync-now", { method: 'POST' })
+    .then(() => fetchData(1));
 }
 </script>
 {% endblock %}
