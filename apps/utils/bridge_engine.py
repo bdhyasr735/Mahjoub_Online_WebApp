@@ -15,12 +15,11 @@ class QumraBridgeEngine:
 
     def fetch_products_from_qumra(self, search_term="", page=1):
         """
-        جلب المنتجات مع دعم المتغير 'page' لجلب أي صفحة مطلوبة.
+        الاستعلام بدون تمرير page، لأن الـ API لا يدعم هذا الوسيط.
         """
-        # ملاحظة: أضفنا المتغير (page) للاستعلام إذا كان الـ API يدعمه
         query = """
-        query($page: Int) {
-            findAllProducts(page: $page) {
+        query {
+            findAllProducts {
                 data {
                     title
                     pricing { price }
@@ -33,24 +32,22 @@ class QumraBridgeEngine:
         """
         
         try:
-            # إرسال المتغيرات للـ API
             response = requests.post(
                 self.endpoint, 
-                json={"query": query, "variables": {"page": page}}, 
+                json={"query": query}, 
                 headers=self.headers, 
                 timeout=15
             )
             
             if response.status_code == 200:
-                full_json = response.json()
-                raw_data = full_json.get('data', {}).get('findAllProducts', {}).get('data', [])
+                raw_data = response.json().get('data', {}).get('findAllProducts', {}).get('data', [])
                 
-                processed_products = []
+                # تحويل البيانات
+                all_products = []
                 for p in raw_data:
                     images = p.get('images', [])
-                    image_url = images[0].get('fileUrl') if images and len(images) > 0 else 'https://via.placeholder.com/150'
-                    
-                    processed_products.append({
+                    image_url = images[0].get('fileUrl') if images else 'https://via.placeholder.com/150'
+                    all_products.append({
                         "title": p.get('title', 'بدون اسم'),
                         "price": p.get('pricing', {}).get('price', 0),
                         "quantity": p.get('quantity', 0),
@@ -58,12 +55,18 @@ class QumraBridgeEngine:
                         "status": p.get('status', 'غير محدد')
                     })
                 
-                # الفلترة لا تزال تعمل على مستوى الصفحة المجلوبة
+                # البحث (الفلترة) في كل النتائج المجلوبة من المتجر
                 if search_term:
                     term = search_term.lower()
-                    processed_products = [p for p in processed_products if term in p.get('title', '').lower()]
+                    all_products = [p for p in all_products if term in p.get('title', '').lower()]
                 
-                return processed_products
+                # الترقيم اليدوي هنا: بدلاً من الاعتماد على الـ API، سنقسم النتائج برمجياً
+                per_page = 20
+                start = (page - 1) * per_page
+                end = start + per_page
+                
+                return all_products[start:end]
+                
             else:
                 logger.error(f"API Error: {response.status_code} - {response.text}")
                 return []
@@ -71,3 +74,6 @@ class QumraBridgeEngine:
         except Exception as e:
             logger.error(f"Exception: {str(e)}")
             return []
+
+    def sync_all_data(self):
+        return True
