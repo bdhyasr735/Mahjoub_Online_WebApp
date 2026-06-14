@@ -64,20 +64,20 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-// تحديث الصفحة عند تغيير عدد العناصر
 function updatePerPage(val) {
     const query = document.getElementById('liveSearch').value;
     window.location.href = `?per_page=${val}&q=${query}`;
 }
 
-// دالة البحث اللحظي عبر API
 document.getElementById('liveSearch').addEventListener('input', function(e) {
     const query = e.target.value;
     const perPage = document.getElementById('perPageSelect').value;
     
-    fetch(`/bridge/api/search?q=${query}&per_page=${perPage}&page=1`)
+    // تصحيح المسار ليتطابق مع الـ Blueprint
+    fetch(`/mahjoub_bridge/api/search?q=${query}&per_page=${perPage}&page=1`)
     .then(r => r.json())
     .then(data => {
+        // 1. تحديث المنتجات
         const container = document.getElementById('productContainer');
         container.innerHTML = data.products.map(p => `
             <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
@@ -90,10 +90,29 @@ document.getElementById('liveSearch').addEventListener('input', function(e) {
                 </div>
             </div>
         `).join('');
+
+        // 2. تحديث الترقيم ديناميكياً
+        const pagContainer = document.getElementById('paginationContainer');
+        let paginationHTML = `
+            <li class="page-item ${data.page <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="?page=${data.page - 1}&per_page=${data.per_page}&q=${query}">السابق</a>
+            </li>`;
+        for (let i = 1; i <= data.total_pages; i++) {
+            paginationHTML += `<li class="page-item ${i === data.page ? 'active' : ''}">
+                <a class="page-link" href="?page=${i}&per_page=${data.per_page}&q=${query}">${i}</a>
+            </li>`;
+        }
+        paginationHTML += `
+            <li class="page-item ${data.page >= data.total_pages ? 'disabled' : ''}">
+                <a class="page-link" href="?page=${data.page + 1}&per_page=${data.per_page}&q=${query}">التالي</a>
+            </li>`;
+        pagContainer.innerHTML = paginationHTML;
+
+        // 3. تحديث نص المعلومات
+        document.getElementById('resultsInfo').innerText = `عرض صفحة ${data.page} من ${data.total_pages} | إجمالي ${data.total} عنصر`;
     });
 });
 
-// دالة المزامنة
 function syncNow() {
     Swal.fire({ 
         title: 'جاري المزامنة...', 
