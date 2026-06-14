@@ -18,18 +18,18 @@ class QumraBridgeEngine:
         payload = {"query": query, "variables": variables or {}}
         try:
             response = requests.post(self.endpoint, json=payload, headers=self.headers, timeout=20)
-            json_data = response.json()
-            # 🔍 هذا السطر هو الأهم لكشف البنية
-            print(f"DEBUG: RAW RESPONSE: {json_data}")
-            return json_data
+            return response.json()
         except Exception as e:
             print(f"⚠️ Connection Error: {e}")
             return {}
 
     def fetch_products(self, search_term="", page=1):
+        """
+        جلب المنتجات باستخدام استعلام بسيط وتصفية النتائج برمجياً محلياً.
+        """
         query = """
-        query($q: String, $page: Int) {
-            findAllProducts(search: $q, page: $page) {
+        query {
+            findAllProducts {
                 data {
                     title
                     pricing { price }
@@ -40,13 +40,25 @@ class QumraBridgeEngine:
             }
         }
         """
-        variables = {"q": str(search_term), "page": int(page)}
-        result = self.execute_query(query, variables=variables)
+        # نرسل الاستعلام بدون متغيرات لتجنب خطأ الـ GraphQL
+        result = self.execute_query(query)
         
-        # محاولة استخراج البيانات بمرونة
-        root = result.get('data', {}).get('findAllProducts', {})
-        products = root.get('data', []) if isinstance(root, dict) else []
+        # استخراج القائمة الكاملة من السيرفر
+        all_products = result.get('data', {}).get('findAllProducts', {}).get('data', [])
         
+        # 1. التصفية المحلية بناءً على نص البحث
+        if search_term:
+            search_term = search_term.lower()
+            all_products = [p for p in all_products if search_term in (p.get('title') or "").lower()]
+            
+        # 2. الترقيم المحلي (Local Pagination)
+        per_page = 16
+        total_products = len(all_products)
+        start = (page - 1) * per_page
+        end = start + per_page
+        products = all_products[start:end]
+        
+        # 3. معالجة البيانات وتجهيزها للعرض
         processed_products = []
         for p in products:
             pricing = p.get('pricing') or {}
@@ -60,4 +72,5 @@ class QumraBridgeEngine:
                 'status': p.get('status'),
                 'image_url': img_url
             })
+            
         return processed_products
