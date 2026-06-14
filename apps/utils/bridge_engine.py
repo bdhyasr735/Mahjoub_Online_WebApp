@@ -17,7 +17,7 @@ class QumraBridgeEngine:
             "Content-Type": "application/json"
         }
 
-    def fetch_products(self, search_term="", page=1):
+    def fetch_products(self, search_term="", page=1, per_page=16):
         """
         جلب المنتجات وتجهيز بيانات الترقيم للواجهة
         """
@@ -33,7 +33,6 @@ class QumraBridgeEngine:
             
         # 3. حسابات الترقيم (Pagination Logic)
         total_items = len(all_data)
-        per_page = 16
         total_pages = (total_items + per_page - 1) // per_page
         
         # التأكد من عدم تجاوز رقم الصفحة للمتاح
@@ -43,12 +42,13 @@ class QumraBridgeEngine:
         start = (page - 1) * per_page
         products_subset = all_data[start : start + per_page]
         
-        # إرجاع بيانات متكاملة للقالب
+        # إرجاع بيانات متكاملة للقالب (متوافقة مع البحث اللحظي)
         return {
             "products": products_subset,
             "total": total_items,
             "page": page,
-            "total_pages": total_pages
+            "total_pages": total_pages,
+            "per_page": per_page
         }
 
     def sync_all_data(self):
@@ -56,7 +56,10 @@ class QumraBridgeEngine:
         query = "query { findAllProducts { data { title pricing { price } quantity status images { fileUrl } } } }"
         try:
             response = requests.post(self.endpoint, json={"query": query}, headers=self.headers, timeout=20)
-            data = response.json().get('data', {}).get('findAllProducts', {}).get('data', [])
+            result = response.json()
+            
+            # التأكد من وجود البيانات في الاستجابة
+            data = result.get('data', {}).get('findAllProducts', {}).get('data', [])
             
             # معالجة البيانات وتخزينها
             processed = []
