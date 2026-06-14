@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, jsonify
 from apps.utils.bridge_engine import QumraBridgeEngine
 import traceback
 
+# تعريف الـ Blueprint
 bridge_bp = Blueprint('mahjoub_bridge', __name__, template_folder='templates')
 
 @bridge_bp.route('/dashboard', methods=['GET'])
@@ -47,6 +48,7 @@ def sync_now():
     """
     try:
         engine = QumraBridgeEngine()
+        # المحرك الآن يدعم تتبع الأخطاء ويُرجع True عند النجاح
         success = engine.sync_all_data()
         
         if success:
@@ -55,13 +57,15 @@ def sync_now():
                 "message": "تم تحديث كافة المنتجات بنجاح من النظام السيادي"
             })
         else:
+            # إذا فشل الاتصال (كود 500)، سيتم عرض هذه الرسالة في الواجهة
             return jsonify({
                 "status": "error", 
-                "message": "فشل الاتصال بالنظام السيادي"
+                "message": "فشل الاتصال بالنظام السيادي: تأكد من مفتاح الربط والاتصال"
             }), 500
         
     except Exception:
-        print(f"❌ Sync Error: {traceback.format_exc()}")
+        # تسجيل الخطأ في سجلات الخادم للمتابعة
+        print(f"❌ Sync Route Error: {traceback.format_exc()}")
         return jsonify({
             "status": "error", 
             "message": "حدث خطأ تقني غير متوقع أثناء المزامنة"
