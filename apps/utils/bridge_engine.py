@@ -14,7 +14,8 @@ class QumraBridgeEngine:
         self.endpoint = "https://mahjoub.online/admin/graphql"
         self.headers = {
             "Authorization": f"Bearer {os.environ.get('QUMRA_API_KEY', '').strip()}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "apollo-require-preflight": "true"  # الترويسة المطلوبة لتجاوز رفض الخادم
         }
 
     def fetch_products(self, search_term="", page=1, per_page=10):
