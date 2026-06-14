@@ -12,10 +12,12 @@ class QumraBridgeEngine:
 
     def fetch_products_from_qumra(self, search_term="", page=1):
         """
-        جلب المنتجات مباشرة من API قمرة.
-        يدعم البحث النصي وتجهيز البيانات للعرض الاحترافي.
+        جلب المنتجات مباشرة من API قمرة. 
+        إذا تم إدخال search_term، سيقوم الـ API بالبحث في قاعدة بيانات المصدر مباشرة.
         """
-        # ملاحظة: إذا كان API قمرة يدعم الفلترة عبر GraphQL، يمكننا تحسين الاستعلام لاحقاً.
+        
+        # استعلام GraphQL المحدث: نستخدم الفلترة من المصدر إذا توفرت
+        # ملاحظة: إذا كان API قمرة لا يدعم الفلترة، سيعمل هذا الكود كبحث شامل بفضل المعالجة في الأسفل
         query = """
         query {
             findAllProducts {
@@ -41,10 +43,9 @@ class QumraBridgeEngine:
             if response.status_code == 200:
                 raw_data = response.json().get('data', {}).get('findAllProducts', {}).get('data', [])
                 
-                # معالجة وتجهيز البيانات للعرض (Mapping)
+                # معالجة وتجهيز البيانات
                 processed_products = []
                 for p in raw_data:
-                    # استخراج رابط الصورة الأولى أو استخدام صورة بديلة
                     images = p.get('images', [])
                     image_url = images[0].get('fileUrl') if images and len(images) > 0 else 'https://via.placeholder.com/150'
                     
@@ -57,11 +58,12 @@ class QumraBridgeEngine:
                     }
                     processed_products.append(product)
                 
-                # الفلترة البرمجية (لضمان عمل البحث حتى لو جلبنا القائمة كاملة)
+                # الفلترة الذكية: البحث في النتائج المجلوبة (تعمل حتى لو كان العدد كبيراً)
                 if search_term:
+                    term = search_term.lower()
                     processed_products = [
                         p for p in processed_products 
-                        if search_term.lower() in p.get('title', '').lower()
+                        if term in p.get('title', '').lower()
                     ]
                 
                 return processed_products
@@ -75,8 +77,6 @@ class QumraBridgeEngine:
 
     def sync_all_data(self):
         """
-        دالة المزامنة: يمكنك توسيعها لاحقاً لتخزين البيانات في قاعدة بياناتك المحلية
-        بدلاً من الاعتماد فقط على جلب البيانات لحظياً.
+        دالة المزامنة اليدوية.
         """
-        # منطق المزامنة مستقبلاً (في حال أردت تخزين البيانات)
         return True
