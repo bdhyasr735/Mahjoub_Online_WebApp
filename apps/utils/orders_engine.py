@@ -2,6 +2,9 @@
 from .bridge_engine import QumraBridgeEngine
 from apps.extensions import db
 from apps.models.order_db import Order
+import logging
+
+logger = logging.getLogger(__name__)
 
 class OrdersEngine(QumraBridgeEngine):
 
@@ -21,19 +24,31 @@ class OrdersEngine(QumraBridgeEngine):
         return False
 
     def sync_orders_from_source(self, page=1):
-        """مزامنة الطلبات من قمرة (مع دعم الصفحات)"""
-        # ملاحظة: قم بتعديل الـ query لتشمل وسيط الترقيم في قمرة إذا كان متاحاً
+        """مزامنة الطلبات من قمرة مع تسجيل الأخطاء للتشخيص"""
         query = """
         query {
             orders(first: 20, page: %d) {
                 data {
-                    _id totalPrice status { name } account { name } createdAt
+                    _id
+                    totalPrice
+                    createdAt
+                    status { name }
+                    account { name }
                 }
             }
         }
         """ % page
         
         result = self.execute_query(query)
+        
+        # تصحيح: تسجيل النتيجة في سجلات Render لمعرفة لماذا يفشل الاتصال
+        logger.info(f"Qumra API Response: {result}")
+        
+        # التأكد من وجود البيانات قبل المحاولة
+        if not result or 'data' not in result or 'orders' not in result.get('data', {}):
+            logger.error("فشل في جلب البيانات من قمرة: الاستجابة فارغة أو تحتوي على أخطاء")
+            return 0
+            
         data = result.get("data", {}).get("orders", {}).get("data", [])
         
         count = 0
@@ -42,9 +57,8 @@ class OrdersEngine(QumraBridgeEngine):
             order = Order.query.filter_by(order_id_qumra=order_id).first() or Order(order_id_qumra=order_id)
             
             order.total = float(item.get('totalPrice', 0))
-            order.status = item.get('status', {}).get('name', 'pending')
-            order.customer_name = item.get('account', {}).get('name', 'غير معروف')
-            # تأكد أن الموديل يحتوي على حقل created_at
+            order.status = item.get('status', {}).get('name', 'pending') if item.get('status') else 'pending'
+            order.customer_name = item.get('account', {}).get('name', 'غير معروف') if item.get('account') else 'غير معروف'
             
             db.session.add(order)
             count += 1
