@@ -1,60 +1,76 @@
+# coding: utf-8
 # 📂 apps/mahjoub_bridge/routes.py
-from flask import Blueprint, render_template, request, jsonify
-from apps.utils.products_engine import ProductsEngine
-import logging
 
-# إعداد سجل الأخطاء للمتابعة
-logger = logging.getLogger(__name__)
+from flask import Blueprint, render_template, request, jsonify
+from apps import db
+from apps.models.bridge_db import Product
+from apps.utils.bridge_engine import QumraBridgeEngine
+import traceback
 
 bridge_bp = Blueprint('mahjoub_bridge', __name__, template_folder='templates')
 
 @bridge_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    """عرض لوحة التحكم الخاصة بالجسر"""
-    return render_template('admin/bridge_dashboard.html')
-
-@bridge_bp.route('/api/search', methods=['GET'])
-def api_search():
-    """
-    نقطة اتصال للبحث المباشر:
-    تستخدم الآن محرك المنتجات المتخصص ProductsEngine.
-    """
-    search_query = request.args.get('q', '')
-    page = int(request.args.get('page', 1))
+    """لوحة التحكم مع دعم البحث والفلترة حسب الحالة."""
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('q', '', type=str)
+    status_filter = request.args.get('status', '', type=str)
+    per_page = 16
     
-    try:
-        # استدعاء المحرك المتخصص للمنتجات
-        engine = ProductsEngine()
-        data = engine.fetch_all(search_query, page)
+    query = Product.query
+    
+    if search:
+        query = query.filter(Product.title.contains(search))
+    
+    if status_filter and hasattr(Product, 'status'):
+        query = query.filter(Product.status == status_filter)
         
-        return jsonify({
-            "status": "success",
-            "products": data,
-            "count": len(data),
-            "page": page
-        })
-    except Exception as e:
-        logger.error(f"Error in api_search: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": "فشل الاتصال بخادم المنتجات",
-            "products": []
-        }), 500
+    pagination = query.order_by(Product.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    
+    return render_template('admin/bridge_dashboard.html', 
+                           products=pagination.items, 
+                           pagination=pagination,
+                           search=search)
 
-@bridge_bp.route('/sync', methods=['POST'])
-def sync():
-    """تشغيل عملية المزامنة يدوياً"""
+@bridge_bp.route('/sync-now', methods=['POST'])
+def sync_now():
+    """المزامنة اللحظية مع المحرك وحفظ البيانات."""
     try:
-        # هنا يمكنك لاحقاً استدعاء المزامنة للمنتجات أو الطلبات
-        engine = ProductsEngine()
-        success = True # سيتم استبدالها لاحقاً بمنطق المزامنة الفعلي
-        return jsonify({
-            "status": "success" if success else "error",
-            "message": "تمت عملية المزامنة بنجاح"
-        })
-    except Exception as e:
-        logger.error(f"Error in sync: {str(e)}")
-        return jsonify({
-            "status": "error", 
-            "message": "حدث خطأ أثناء المزامنة"
-        }), 500
+        engine = QumraBridgeEngine()
+        # جلب البيانات المعالجة من المحرك (الذي يستخدم الآن fileUrl)
+        products = engine.fetch_latest_products()
+        
+        if not products:
+            return jsonify({"status": "error", "message": "لم يتم العثور على منتجات لجلبها"})
+
+        count = 0
+        for item in products:
+            title = str(item.get('title') or "منتج بدون اسم").strip()
+            
+            # منع التكرار
+            if Product.query.filter_by(title=title).first():
+                continue
+            
+            # إنشاء المنتج باستخدام البيانات الجاهزة من المحرك
+            # تم التأكد من استخدام image_url الذي جهزه المحرك
+            new_product = Product(
+                title=title,
+                price=str(item.get('price') or "0"),
+                quantity=int(item.get('quantity') or 0),
+                image_url=item.get('image_url'), 
+                supplier_id="QUMRA_SYNC"
+            )
+            
+            if hasattr(new_product, 'status'):
+                new_product.status = item.get('status', 'draft')
+            
+            db.session.add(new_product)
+            count += 1
+        
+        db.session.commit()
+        return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح وجلب {count} منتج جديد"})
+        
+    except Exception:
+        db.session.rollback()
+        print(f"❌ Error in sync: {traceback.format_exc()}")
+        return jsonify({"status": "error", "message": "حدث خطأ أثناء معالجة البيانات"}), 500
