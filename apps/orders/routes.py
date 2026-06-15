@@ -1,5 +1,5 @@
 # 📂 apps/orders/routes.py
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, current_app
 from apps.models.order_db import Order
 from apps.extensions import db
 from apps.utils.orders_engine import OrdersEngine
@@ -44,7 +44,7 @@ def orders_dashboard():
 def sync_orders():
     """مسار لمزامنة الطلبات من قمرة إلى قاعدة البيانات المحلية"""
     try:
-        # إنشاء المحرك والبدء بالمزامنة
+        # OrdersEngine سيقوم الآن بجلب المفتاح تلقائياً من current_app.config
         engine = OrdersEngine()
         engine.sync_orders_to_db()
         
@@ -53,8 +53,8 @@ def sync_orders():
             'message': 'تمت مزامنة الطلبات بنجاح من منصة قمرة.'
         })
     except Exception as e:
-        # تسجيل الخطأ في سجلات Render للتشخيص
         logger.error(f"Sync error: {str(e)}")
+        # نرجع نص الخطأ بوضوح للمساعدة في التشخيص
         return jsonify({
             'success': False, 
             'message': 'فشل الاتصال بمنصة قمرة: ' + str(e)
