@@ -80,7 +80,8 @@
     // تحديث الحالة برمجياً
     async function updateStatus(selectEl, orderId, type) {
         try {
-            const response = await fetch("{{ url_for('orders.update_status') }}", {
+            // تم تصحيح مسمى المسار ليتطابق مع ما توقعه السيرفر (update_order_status)
+            const response = await fetch("{{ url_for('orders.update_order_status') }}", {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({orderId: orderId, type: type, value: selectEl.value})
