@@ -14,15 +14,31 @@ class OrdersEngine:
         self.headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
 
     def fetch_orders_from_qumra(self):
-        # استعلام استكشافي: طلب بيانات بسيطة لمعرفة هيكل الرد
-        payload = {"query": "{ findAllOrders { data { _id total status customer { name } } } }"}
+        # الاستعلام المحدث بناءً على التوثيق (استخدام input)
+        payload = {
+            "query": """
+            query {
+                findAllOrders(input: { limit: 50, page: 1 }) {
+                    data {
+                        _id
+                        total
+                        status
+                        customer {
+                            name
+                        }
+                    }
+                }
+            }
+            """
+        }
         try:
             response = requests.post(self.api_url, json=payload, headers=self.headers, timeout=15)
             result = response.json()
             
-            # كشف المستور: طباعة الرد الخام في الـ Logs
-            logger.info(f"🔍 رد السيرفر الخام: {result}")
+            # تسجيل الرد للتأكد
+            logger.info(f"🔍 رد السيرفر بعد تعديل الاستعلام: {result}")
             
+            # استخراج البيانات من المسار الصحيح
             return result.get('data', {}).get('findAllOrders', {}).get('data', [])
         except Exception as e:
             logger.error(f"❌ خطأ في الاتصال: {str(e)}")
@@ -35,19 +51,19 @@ class OrdersEngine:
         count = 0
         for item in orders:
             order_id = str(item.get('_id'))
-            if not order_id or order_id == "None": continue # تأمين إضافي
+            if not order_id or order_id == "None": continue
             
             order = Order.query.filter_by(order_id_qumra=order_id).first() or Order(order_id_qumra=order_id)
             
-            # تعبئة الأعمدة الأساسية بمرونة
+            # تعبئة الأعمدة الأساسية
             order.total = float(item.get('total', 0))
             order.status = str(item.get('status', 'pending'))
             
-            # تعبئة العميل إذا وجد
+            # تعبئة العميل
             if 'customer' in item and item['customer']:
                 order.customer_name = item['customer'].get('name', 'غير معروف')
             
-            # حفظ البيانات الخام (الجوهر في حالة عدم وضوح الهيكل)
+            # حفظ كامل الـ Object في raw_data
             order.raw_data = item 
             
             db.session.add(order)
