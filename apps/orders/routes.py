@@ -9,16 +9,18 @@ import logging
 # إعداد الـ Logger لتتبع الأخطاء في سجلات Render
 logger = logging.getLogger(__name__)
 
-# تعريف الـ Blueprint مع تحديد مجلد القوالب
+# تعريف الـ Blueprint
 orders_bp = Blueprint('orders', __name__, template_folder='templates')
 
 @orders_bp.route('/admin/orders', methods=['GET'])
+@login_required
 def orders_dashboard():
     """عرض لوحة التحكم الخاصة بالطلبات مع الترقيم"""
     try:
         page = request.args.get('page', 1, type=int)
         per_page = 10
         
+        # استعلام لجلب الطلبات مرتبة من الأحدث للأقدم
         pagination = Order.query.order_by(Order.created_at.desc()).paginate(
             page=page, 
             per_page=per_page, 
@@ -42,23 +44,33 @@ def orders_dashboard():
 def sync_orders():
     """مسار لمزامنة الطلبات من قمرة إلى قاعدة البيانات المحلية"""
     try:
+        # إنشاء المحرك والبدء بالمزامنة
         engine = OrdersEngine()
         engine.sync_orders_to_db()
-        return jsonify({'success': True, 'message': 'تمت مزامنة الطلبات بنجاح'})
+        
+        return jsonify({
+            'success': True, 
+            'message': 'تمت مزامنة الطلبات بنجاح من منصة قمرة.'
+        })
     except Exception as e:
+        # تسجيل الخطأ في سجلات Render للتشخيص
         logger.error(f"Sync error: {str(e)}")
-        return jsonify({'success': False, 'message': 'فشل الاتصال بمنصة قمرة: ' + str(e)}), 500
+        return jsonify({
+            'success': False, 
+            'message': 'فشل الاتصال بمنصة قمرة: ' + str(e)
+        }), 500
 
 @orders_bp.route('/admin/orders/update-status', methods=['POST'])
+@login_required
 def update_order_status():
-    """دالة لتحديث حالة الطلب (الدفع أو الشحن) عبر طلب AJAX"""
+    """دالة لتحديث حالة الطلب عبر طلب AJAX"""
     try:
         data = request.json
         if not data:
             return jsonify({'success': False, 'message': 'بيانات غير صالحة'}), 400
             
         order_id = data.get('orderId')
-        status_type = data.get('type') # المتوقع: 'payment' أو 'shipping'
+        status_type = data.get('type') # 'payment' أو 'shipping'
         new_value = data.get('value')
         
         order = Order.query.get(order_id)
