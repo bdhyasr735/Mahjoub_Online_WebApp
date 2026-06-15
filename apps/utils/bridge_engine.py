@@ -13,25 +13,8 @@ class QumraBridgeEngine:
             "Content-Type": "application/json"
         }
 
-    def fetch_products_from_qumra(self, search_term="", page=1):
-        """
-        استعلام استكشافي (Introspection Query) لمعرفة الهيكل الصحيح للـ API.
-        """
-        # هذا الاستعلام سيجلب لنا أسماء الحقول المتاحة في ProductsResponse
-        query = """
-        query {
-            __type(name: "ProductsResponse") {
-                fields {
-                    name
-                    type {
-                        name
-                        kind
-                    }
-                }
-            }
-        }
-        """
-        
+    def execute_query(self, query):
+        """دالة مركزية لتنفيذ أي استعلام GraphQL"""
         try:
             response = requests.post(
                 self.endpoint, 
@@ -39,17 +22,8 @@ class QumraBridgeEngine:
                 headers=self.headers, 
                 timeout=15
             )
-            
-            # --- تسجيل الهيكل الحقيقي في الـ Logs ---
-            # هذا السجل هو مفتاح الحل، ستعرف منه الاسم الصحيح للحقل المطلوب
-            logger.info(f"DEBUG_SCHEMA_RESPONSE: {response.text}")
-            
-            # نرجع قائمة فارغة حالياً لأننا في مرحلة الاستكشاف
-            return []
-                
+            logger.info(f"API_RESPONSE: {response.text}")
+            return response.json() if response.status_code == 200 else None
         except Exception as e:
-            logger.error(f"Exception during exploration: {str(e)}")
-            return []
-
-    def sync_all_data(self):
-        return True
+            logger.error(f"Connection Error: {str(e)}")
+            return None
