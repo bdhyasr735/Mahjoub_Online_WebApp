@@ -18,36 +18,33 @@ class OrdersEngine:
         }
 
     def fetch_orders_from_qumra(self):
-        """جلب الطلبات باستخدام الاستعلام الصحيح (GraphQL)"""
-        
-        # وفقاً للصورة التي أرسلتها، يجب أن يكون الهيكل مطابقاً لما هو مكتوب في Sandbox
-        query_payload = {
+        """كشف الهيكل الصحيح لـ API قمرة"""
+        # هذا الاستعلام يطلب من السيرفر إعطاءنا أسماء الدوال المتاحة
+        introspection_query = {
             "query": """
             query {
-              orders {
-                _id
-                customer {
-                  name
+              __schema {
+                queryType {
+                  fields {
+                    name
+                  }
                 }
-                total
-                status
               }
             }
             """
         }
         
         try:
-            response = requests.post(self.api_url, json=query_payload, headers=self.headers)
-            
+            response = requests.post(self.api_url, json=introspection_query, headers=self.headers)
             if response.status_code == 200:
-                result = response.json()
-                # نرجع البيانات من دالة orders كما هو متوقع
-                return result.get('data', {}).get('orders', [])
+                # سنقوم بطباعة أسماء الدوال المتاحة في السجلات
+                logger.info(f"إكتشاف الدوال المتاحة: {response.text}")
+                return [] 
             else:
-                logger.error(f"خطأ: {response.status_code} - {response.text}")
+                logger.error(f"خطأ استكشاف: {response.status_code} - {response.text}")
                 return []
         except Exception as e:
-            logger.error(f"خطأ أثناء الاتصال: {str(e)}")
+            logger.error(f"خطأ أثناء الاستكشاف: {str(e)}")
             return []
 
     def sync_orders_to_db(self):
@@ -55,22 +52,5 @@ class OrdersEngine:
         raw_orders = self.fetch_orders_from_qumra()
         
         if not raw_orders:
-            logger.warning("لم يتم جلب أي طلبات (تحقق من اسم الدالة في الـ GraphQL).")
+            logger.warning("تمت عملية الاستكشاف. يرجى مراجعة السجلات أعلاه لمعرفة اسم الدالة الصحيح.")
             return
-
-        for o in raw_orders:
-            # استخدام _id كما ظهر في الصورة
-            q_id = str(o.get('_id'))
-            
-            existing = Order.query.filter_by(order_id_qumra=q_id).first()
-            if not existing:
-                new_order = Order(
-                    order_id_qumra=q_id,
-                    customer_name=o.get('customer', {}).get('name', 'غير معروف'),
-                    total=float(o.get('total', 0)),
-                    status=o.get('status', 'pending')
-                )
-                db.session.add(new_order)
-        
-        db.session.commit()
-        logger.info("تمت المزامنة بنجاح.")
