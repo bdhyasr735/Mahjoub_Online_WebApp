@@ -1,69 +1,86 @@
-# 📂 apps/utils/orders_engine.py
-from apps.extensions import db
-from apps.models.order_db import Order
+# coding: utf-8
+# 📂 apps/utils/bridge_engine.py
+
 import requests
+import os
 import logging
 
 logger = logging.getLogger(__name__)
 
-class OrdersEngine:
+class QumraBridgeEngine:
     def __init__(self):
-        self.api_url = "https://mahjoub.online/admin/graphql"
-        self.api_key = "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9"
+        self.endpoint = "https://mahjoub.online/admin/graphql"
+        # التأكد من جلب المفتاح من متغيرات البيئة
+        api_token = os.environ.get('QUMRA_API_KEY', '').strip()
         self.headers = {
-            "Authorization": f"Bearer {self.api_key}", 
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
         }
 
-    def fetch_orders_from_qumra(self):
-        print("DEBUG: تنفيذ الاستعلام المحدث...")
-        # هذا الاستعلام يستخدم الحقول الصحيحة التي اكتشفناها من الـ Schema
-        payload = {
-            "query": """
-            query {
-                findAllOrders(input: { limit: 50, page: 1 }) {
-                    data {
-                        _id
-                        totalPrice
-                        status { name }
-                        account { name }
-                        createdAt
-                    }
+    def execute_query(self, query, variables=None):
+        """دالة موحدة لتنفيذ أي استعلام GraphQL"""
+        payload = {"query": query, "variables": variables or {}}
+        try:
+            response = requests.post(self.endpoint, json=payload, headers=self.headers, timeout=15)
+            return response.json()
+        except Exception as e:
+            logger.error(f"⚠️ Connection Error: {e}")
+            return {}
+
+    def fetch_latest_products(self):
+        """جلب المنتجات (تعمل حالياً لديك)"""
+        query = """
+        query {
+            findAllProducts {
+                data {
+                    title
+                    pricing { price }
+                    quantity
+                    status
+                    images { fileUrl }
                 }
             }
-            """
         }
-        try:
-            response = requests.post(self.api_url, json=payload, headers=self.headers, timeout=15)
-            result = response.json()
-            
-            # استخراج البيانات
-            orders = result.get('data', {}).get('findAllOrders', {}).get('data', [])
-            print(f"DEBUG: نجحنا في جلب {len(orders)} طلب.")
-            return orders
-        except Exception as e:
-            print(f"DEBUG: خطأ في الجلب: {str(e)}")
-            return []
-
-    def sync_orders_to_db(self):
-        print("DEBUG: بدء عملية المزامنة وحفظ البيانات...")
-        orders = self.fetch_orders_from_qumra()
-        count = 0
-        for item in orders:
-            order_id = str(item.get('_id'))
-            if not order_id: continue
-            
-            # البحث عن الطلب في قاعدة بياناتك
-            order = Order.query.filter_by(order_id_qumra=order_id).first() or Order(order_id_qumra=order_id)
-            
-            # تحديث البيانات بالحقول الصحيحة
-            order.total = float(item.get('totalPrice', 0))
-            order.status = item.get('status', {}).get('name', 'N/A')
-            order.customer_name = item.get('account', {}).get('name', 'N/A')
-            order.raw_data = item
-            
-            db.session.add(order)
-            count += 1
+        """
+        result = self.execute_query(query)
+        products = result.get('data', {}).get('findAllProducts', {}).get('data', [])
         
-        db.session.commit()
-        print(f"DEBUG: تمت المزامنة بنجاح، تم إضافة/تحديث {count} طلب.")
+        processed_products = []
+        for p in products:
+            pricing = p.get('pricing') or {}
+            images = p.get('images') or []
+            
+            img_url = images[0].get('fileUrl') if images else None
+            
+            processed_products.append({
+                'title': p.get('title'),
+                'price': pricing.get('price', 0),
+                'quantity': p.get('quantity', 0),
+                'status': p.get('status'),
+                'image_url': img_url
+            })
+        return processed_products
+
+    def fetch_latest_orders(self):
+        """جلب الطلبات - تحتاج تأكد من تفعيل صلاحية orders:read في قمرة"""
+        query = """
+        query {
+            findAllOrders(input: { limit: 20, page: 1 }) {
+                data {
+                    _id
+                    totalPrice
+                    status { name }
+                    account { name }
+                }
+            }
+        }
+        """
+        result = self.execute_query(query)
+        
+        # تسجيل الأخطاء إذا وجدت (مفيد للـ Debugging في Render)
+        if 'errors' in result:
+            logger.error(f"⚠️ GraphQL Errors: {result['errors']}")
+            return []
+            
+        return result.get('data', {}).get('findAllOrders', {}).get('data', [])
