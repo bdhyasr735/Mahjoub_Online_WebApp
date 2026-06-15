@@ -11,35 +11,30 @@ class OrdersEngine:
         self.bridge = QumraBridgeEngine()
 
     def sync_orders_to_db(self):
-        try:
-            logger.info("بدء جلب الطلبات من قمرة...")
-            orders = self.bridge.fetch_latest_orders()
-            
-            if not orders:
-                logger.warning("لم يتم جلب أي طلبات.")
-                return 0
+        # نقوم بجلب البيانات
+        orders = self.bridge.fetch_latest_orders()
+        if not orders: return 0
 
-            count = 0
-            for item in orders:
-                order_id = str(item.get('_id') or '')
-                if not order_id: continue
-                
-                order = Order.query.filter_by(order_id_qumra=order_id).first() or Order(order_id_qumra=order_id)
-                
-                order.total = float(item.get('totalPrice', 0))
-                status_obj = item.get('status')
-                order.status = status_obj.get('name', 'pending') if isinstance(status_obj, dict) else 'pending'
-                
-                account_obj = item.get('account')
-                order.customer_name = account_obj.get('name', 'غير معروف') if isinstance(account_obj, dict) else 'غير معروف'
-                
-                db.session.add(order)
-                count += 1
+        count = 0
+        for item in orders:
+            # 1. المعرف الفريد ضروري
+            order_id = str(item.get('_id') or item.get('id') or '')
+            if not order_id: continue
             
-            db.session.commit()
-            return count
+            # 2. البحث عن الطلب أو إنشاؤه
+            order = Order.query.filter_by(order_id_qumra=order_id).first() or Order(order_id_qumra=order_id)
             
-        except Exception as e:
-            logger.error(f"خطأ في معالجة بيانات الطلبات: {str(e)}")
-            db.session.rollback()
-            raise e
+            # 3. التسجيل التلقائي (Dynamic Assignment)
+            # أي حقل موجود في رد قمرة سنحاول حفظه في قاعدة البيانات
+            for key, value in item.items():
+                if hasattr(order, key):  # إذا كان هذا العمود موجوداً في قاعدة بياناتك
+                    setattr(order, key, value)
+            
+            # 4. معالجة الحالات الخاصة التي نبهتنا عليها (حالات التداخل)
+            order.total = float(item.get('totalPrice') or item.get('total', 0))
+            
+            db.session.add(order)
+            count += 1
+            
+        db.session.commit()
+        return count
