@@ -17,10 +17,8 @@
                         <tr>
                             <th class="ps-3"><input type="checkbox"></th>
                             <th>رقم الطلب</th>
-                            <th>العميل</th>
                             <th>الإجمالي</th>
-                            <th>حالة الدفع</th>
-                            <th>حالة الشحن</th>
+                            <th>حالة الطلب</th>
                             <th>التاريخ</th>
                             <th>الاجراءات</th>
                         </tr>
@@ -29,19 +27,12 @@
                         {% for order in orders %}
                         <tr>
                             <td class="ps-3"><input type="checkbox"></td>
-                            <td class="fw-bold text-primary">{{ order.order_id_qumra }}</td>
-                            <td>{{ order.customer_name }}</td>
+                            <td class="fw-bold text-primary">{{ order.order_id }}</td>
                             <td>{{ order.total }} ريال</td>
                             <td>
-                                <select class="form-select form-select-sm" onchange="updateStatus(this, '{{ order.id }}', 'payment')">
-                                    <option value="unpaid" {% if order.payment_status == 'unpaid' %}selected{% endif %}>غير مدفوع</option>
-                                    <option value="paid" {% if order.payment_status == 'paid' %}selected{% endif %}>مدفوع</option>
-                                </select>
-                            </td>
-                            <td>
                                 <select class="form-select form-select-sm" onchange="updateStatus(this, '{{ order.id }}', 'shipping')">
-                                    <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>غير مجهز</option>
-                                    <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>تم التجهيز</option>
+                                    <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>قيد الانتظار</option>
+                                    <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>مدفوع</option>
                                     <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>تم التوصيل</option>
                                 </select>
                             </td>
@@ -51,7 +42,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="8" class="text-center py-4 text-muted">لا توجد طلبات لعرضها حالياً. اضغط على زر المزامنة أعلاه.</td></tr>
+                        <tr><td colspan="6" class="text-center py-4 text-muted">لا توجد طلبات لعرضها حالياً. اضغط على زر المزامنة أعلاه.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -77,10 +68,8 @@
 </div>
 
 <script>
-    // تحديث الحالة برمجياً
     async function updateStatus(selectEl, orderId, type) {
         try {
-            // تم تصحيح مسمى المسار ليتطابق مع ما توقعه السيرفر (update_order_status)
             const response = await fetch("{{ url_for('orders.update_order_status') }}", {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -93,7 +82,6 @@
         }
     }
 
-    // مزامنة البيانات
     async function syncOrders() {
         const btn = document.getElementById('syncBtn');
         btn.disabled = true;
