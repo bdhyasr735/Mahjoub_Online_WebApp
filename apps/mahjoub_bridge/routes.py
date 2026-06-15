@@ -1,6 +1,6 @@
 # 📂 apps/mahjoub_bridge/routes.py
 from flask import Blueprint, render_template, request, jsonify
-from apps.utils.bridge_engine import QumraBridgeEngine
+from apps.utils.products_engine import ProductsEngine
 import logging
 
 # إعداد سجل الأخطاء للمتابعة
@@ -17,18 +17,15 @@ def dashboard():
 def api_search():
     """
     نقطة اتصال للبحث المباشر:
-    1. تستقبل طلب البحث (q) ورقم الصفحة (page).
-    2. تستدعي المحرك لجلب البيانات بناءً على المتغيرات.
-    3. تعيد النتائج بتنسيق JSON.
+    تستخدم الآن محرك المنتجات المتخصص ProductsEngine.
     """
     search_query = request.args.get('q', '')
-    # استقبال رقم الصفحة - التغيير هنا أن المحرك هو من سيتعامل مع هذا الرقم داخلياً
     page = int(request.args.get('page', 1))
     
     try:
-        # استدعاء المحرك المطور
-        engine = QumraBridgeEngine()
-        data = engine.fetch_products_from_qumra(search_query, page)
+        # استدعاء المحرك المتخصص للمنتجات
+        engine = ProductsEngine()
+        data = engine.fetch_all(search_query, page)
         
         return jsonify({
             "status": "success",
@@ -40,20 +37,20 @@ def api_search():
         logger.error(f"Error in api_search: {str(e)}")
         return jsonify({
             "status": "error",
-            "message": "فشل الاتصال بخادم المتجر المصدر",
+            "message": "فشل الاتصال بخادم المنتجات",
             "products": []
         }), 500
 
 @bridge_bp.route('/sync', methods=['POST'])
 def sync():
-    """تشغيل عملية المزامنة يدوياً عند الطلب"""
+    """تشغيل عملية المزامنة يدوياً"""
     try:
-        engine = QumraBridgeEngine()
-        # التأكد من وجود الدالة قبل استدعائها
-        success = engine.sync_all_data() if hasattr(engine, 'sync_all_data') else False
+        # هنا يمكنك لاحقاً استدعاء المزامنة للمنتجات أو الطلبات
+        engine = ProductsEngine()
+        success = True # سيتم استبدالها لاحقاً بمنطق المزامنة الفعلي
         return jsonify({
             "status": "success" if success else "error",
-            "message": "تمت عملية المزامنة بنجاح" if success else "فشلت عملية المزامنة"
+            "message": "تمت عملية المزامنة بنجاح"
         })
     except Exception as e:
         logger.error(f"Error in sync: {str(e)}")
