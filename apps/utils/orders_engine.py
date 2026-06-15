@@ -25,6 +25,8 @@ class OrdersEngine:
 
     def sync_orders_to_db(self):
         orders = self.fetch_orders_from_qumra()
+        logger.info(f"🔍 تم جلب {len(orders)} طلب من قمرة.") # السطر الذي طلبته
+        
         count = 0
         for item in orders:
             order_id = str(item.get('_id'))
