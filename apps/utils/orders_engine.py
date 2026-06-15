@@ -8,9 +8,10 @@ logger = logging.getLogger(__name__)
 
 class OrdersEngine:
     def __init__(self):
+        # رابط الـ API الخاص بـ قمرة
         self.api_url = "https://mahjoub.online/admin/graphql"
+        # مفتاح الـ API مع صيغة Bearer المطلوبة للـ Authorization
         self.api_key = "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9"
-        # تم التأكد من صيغة Bearer كما طلبت
         self.headers = {
             "Authorization": f"Bearer {self.api_key}", 
             "Content-Type": "application/json"
@@ -18,7 +19,9 @@ class OrdersEngine:
 
     def fetch_orders_from_qumra(self):
         print("DEBUG: بدء عملية استكشاف الـ Schema الحقيقية للحقول...")
-        # هذا الاستعلام هو المفتاح، سيجلب لنا قائمة بكل الحقول المتاحة في كائن الطلب
+        
+        # استعلام Introspection لجلب تفاصيل حقول كائن Order
+        # هذا سيخبرنا بالأسماء الدقيقة التي يتوقعها سيرفر قمرة
         payload = {
             "query": """
             query {
@@ -38,7 +41,8 @@ class OrdersEngine:
             response = requests.post(self.api_url, json=payload, headers=self.headers, timeout=15)
             result = response.json()
             
-            # طباعة خريطة الحقول في الـ Logs - هذا هو المرجع الذي سنبني عليه
+            # طباعة النتيجة في الـ Logs
+            # بعد الضغط على المزامنة، ابحث عن هذا السطر في سجلات Render
             print(f"DEBUG: خريطة الحقول المتاحة (الرد الخام): {result}")
             
             return [] 
@@ -48,7 +52,7 @@ class OrdersEngine:
 
     def sync_orders_to_db(self):
         print("DEBUG: بدء عملية المزامنة...")
-        # تنفيذ عملية الاستكشاف
+        # تنفيذ عملية الاستكشاف فقط في هذه المرحلة
         self.fetch_orders_from_qumra()
         
         print("DEBUG: انتهت مرحلة الاستكشاف. يرجى مراجعة الـ Logs.")
