@@ -16,16 +16,14 @@ class OrdersEngine:
         }
 
     def fetch_orders_from_qumra(self):
-        print("DEBUG: محاولة الاتصال بـ API قمرة...")
+        print("DEBUG: محاولة الاتصال بـ API قمرة - جلب معرفات الطلبات...")
+        # طلب _id فقط لتجنب أخطاء حقول التوثيق الصارمة
         payload = {
             "query": """
             query {
                 findAllOrders(input: { limit: 50, page: 1 }) {
                     data {
                         _id
-                        total
-                        status
-                        customer { name }
                     }
                 }
             }
@@ -35,15 +33,14 @@ class OrdersEngine:
             response = requests.post(self.api_url, json=payload, headers=self.headers, timeout=15)
             result = response.json()
             
-            # طباعة الرد الخام لكشف ما يحدث في الخلفية
-            print(f"DEBUG: رد السيرفر الخام: {result}")
+            # طباعة الرد الخام لمعرفة الحقول المتوفرة فعلياً في الـ Response
+            print(f"DEBUG: رد السيرفر الخام (استكشاف): {result}")
             
-            # محاولة الاستخراج
             orders = result.get('data', {}).get('findAllOrders', {}).get('data', [])
-            print(f"DEBUG: تم استخراج {len(orders)} طلب من البيانات.")
+            print(f"DEBUG: تم جلب {len(orders)} طلب.")
             return orders
         except Exception as e:
-            print(f"DEBUG: حدث خطأ أثناء الاتصال: {str(e)}")
+            print(f"DEBUG: خطأ أثناء الاتصال: {str(e)}")
             return []
 
     def sync_orders_to_db(self):
@@ -52,20 +49,18 @@ class OrdersEngine:
         
         count = 0
         for item in orders:
+            # استخدام _id كمعرف فريد للربط
             order_id = str(item.get('_id'))
-            if not order_id: continue
+            if not order_id or order_id == "None": continue
             
+            # البحث في قاعدة بيانات محجوب أونلاين
             order = Order.query.filter_by(order_id_qumra=order_id).first() or Order(order_id_qumra=order_id)
             
-            order.total = float(item.get('total', 0))
-            order.status = str(item.get('status', 'pending'))
-            
-            if 'customer' in item and item['customer']:
-                order.customer_name = item['customer'].get('name', 'غير معروف')
-            
+            # بما أننا جلبنا _id فقط، نحفظ كامل الكائن في raw_data للرجوع إليه لاحقاً
             order.raw_data = item 
+            
             db.session.add(order)
             count += 1
         
         db.session.commit()
-        print(f"DEBUG: تمت المزامنة بنجاح، عدد الطلبات المضافة: {count}")
+        print(f"DEBUG: تمت المزامنة بنجاح، عدد الطلبات المعالجة: {count}")
