@@ -16,8 +16,8 @@ class OrdersEngine:
         }
 
     def fetch_orders_from_qumra(self):
-        print("DEBUG: تنفيذ الاستعلام الفعلي لجلب الطلبات...")
-        # استخدام الأسماء الحقيقية التي اكتشفناها من الـ Schema
+        print("DEBUG: تنفيذ الاستعلام المحدث...")
+        # هذا الاستعلام يستخدم الحقول الصحيحة التي اكتشفناها من الـ Schema
         payload = {
             "query": """
             query {
@@ -27,10 +27,7 @@ class OrdersEngine:
                         totalPrice
                         status { name }
                         account { name }
-                        items {
-                            # سنحتاج لاحقاً لجلب تفاصيل المنتجات للربط بالموردين
-                            # مؤقتاً نكتفي بجلب البيانات الأساسية
-                        }
+                        createdAt
                     }
                 }
             }
@@ -40,38 +37,33 @@ class OrdersEngine:
             response = requests.post(self.api_url, json=payload, headers=self.headers, timeout=15)
             result = response.json()
             
+            # استخراج البيانات
             orders = result.get('data', {}).get('findAllOrders', {}).get('data', [])
-            print(f"DEBUG: تم جلب {len(orders)} طلب بنجاح.")
+            print(f"DEBUG: نجحنا في جلب {len(orders)} طلب.")
             return orders
         except Exception as e:
-            print(f"DEBUG: خطأ أثناء جلب الطلبات: {str(e)}")
+            print(f"DEBUG: خطأ في الجلب: {str(e)}")
             return []
 
     def sync_orders_to_db(self):
         print("DEBUG: بدء عملية المزامنة وحفظ البيانات...")
         orders = self.fetch_orders_from_qumra()
-        
         count = 0
         for item in orders:
             order_id = str(item.get('_id'))
             if not order_id: continue
             
-            # البحث عن الطلب أو إنشاؤه
+            # البحث عن الطلب في قاعدة بياناتك
             order = Order.query.filter_by(order_id_qumra=order_id).first() or Order(order_id_qumra=order_id)
             
-            # تحديث الحقول الأساسية
+            # تحديث البيانات بالحقول الصحيحة
             order.total = float(item.get('totalPrice', 0))
-            # الحالة تأتي ككائن {name: "..."}
-            status_obj = item.get('status')
-            order.status = status_obj.get('name') if isinstance(status_obj, dict) else "unknown"
-            
-            # اسم العميل
-            account_obj = item.get('account')
-            order.customer_name = account_obj.get('name') if isinstance(account_obj, dict) else "غير معروف"
-            
+            order.status = item.get('status', {}).get('name', 'N/A')
+            order.customer_name = item.get('account', {}).get('name', 'N/A')
             order.raw_data = item
+            
             db.session.add(order)
             count += 1
         
         db.session.commit()
-        print(f"DEBUG: تمت المزامنة بنجاح، تم تحديث {count} طلب.")
+        print(f"DEBUG: تمت المزامنة بنجاح، تم إضافة/تحديث {count} طلب.")
