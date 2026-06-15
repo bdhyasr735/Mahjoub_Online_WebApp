@@ -1,27 +1,51 @@
-# 📂 apps/utils/orders_engine.py
-from apps.utils.bridge_engine import QumraBridgeEngine
-from apps.extensions import db
-from apps.models.order_db import Order
+# coding: utf-8
+# 📂 apps/utils/bridge_engine.py
 
-class OrdersEngine(QumraBridgeEngine):
-    def sync_orders_to_db(self):
-        # استخدام المحرك الموحد الذي يعمل بنجاح
-        orders = self.fetch_latest_orders()
-        
-        count = 0
-        for item in orders:
-            order_id = str(item.get('id'))
-            if not order_id: continue
-            
-            order = Order.query.filter_by(order_id_qumra=order_id).first() or Order(order_id_qumra=order_id)
-            
-            # تحديث البيانات
-            order.total = float(item.get('total', 0))
-            order.status = item.get('status', 'pending')
-            order.customer_name = item.get('customer', 'غير معروف')
-            
-            db.session.add(order)
-            count += 1
-        
-        db.session.commit()
-        return count
+import requests
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+class QumraBridgeEngine:
+    def __init__(self):
+        self.endpoint = "https://mahjoub.online/admin/graphql"
+        api_token = os.environ.get('QUMRA_API_KEY', '').strip()
+        self.headers = {
+            "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+    def execute_query(self, query, variables=None):
+        payload = {"query": query, "variables": variables or {}}
+        try:
+            response = requests.post(self.endpoint, json=payload, headers=self.headers, timeout=15)
+            return response.json()
+        except Exception as e:
+            logger.error(f"⚠️ Connection Error: {e}")
+            return {}
+
+    # تأكد من وجود هذه الدالة هنا بالضبط:
+    def fetch_latest_orders(self):
+        query = """
+        query {
+            findAllOrders(input: { limit: 20, page: 1 }) {
+                data {
+                    _id
+                    totalPrice
+                    status { name }
+                    account { name }
+                }
+            }
+        }
+        """
+        result = self.execute_query(query)
+        if 'errors' in result:
+            logger.error(f"⚠️ GraphQL Errors: {result['errors']}")
+            return []
+        return result.get('data', {}).get('findAllOrders', {}).get('data', [])
+
+    def fetch_latest_products(self):
+        # ... (بقية كود المنتجات الخاص بك كما هو) ...
+        pass
