@@ -13,58 +13,67 @@ orders_bp = Blueprint('orders', __name__, template_folder='templates')
 @login_required
 def orders_dashboard():
     page = request.args.get('page', 1, type=int)
-    pagination = Order.query.order_by(Order.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
-    return render_template('admin/orders_dashboard.html', orders=pagination.items, pagination=pagination)
+    pagination = Order.query.order_by(Order.created_at.desc()).paginate(
+        page=page, per_page=10, error_out=False
+    )
+    return render_template(
+        'admin/orders_dashboard.html', 
+        orders=pagination.items, 
+        pagination=pagination
+    )
 
 @orders_bp.route('/admin/orders/sync', methods=['POST'])
 @login_required
 def sync_orders():
-    print("DEBUG: بدء عملية المزامنة التشخيصية...")
+    """المسار المسؤول عن مزامنة الطلبات من قمرة"""
     try:
         engine = QumraBridgeEngine()
         orders = engine.fetch_latest_orders()
         
-        # 🚨 DEBUG: كشف هيكلية البيانات الحقيقية
-        print(f"DEBUG: عدد الطلبات المستلمة: {len(orders)}")
-        if orders:
-            print(f"DEBUG: هيكل البيانات للطلب الأول: {orders[0]}")
-        else:
-            print("DEBUG: المصفوفة فارغة! لا توجد طلبات.")
+        if not orders:
+            return jsonify({'success': False, 'message': 'لم يتم العثور على طلبات جديدة.'})
 
         count = 0
         for item in orders:
-            # نحاول التقاط المعرف بأكثر من طريقة
-            order_id = str(item.get('_id') or item.get('id') or '')
+            # استخدام المعرف الفريد _id القادم من قمرة
+            order_id = str(item.get('_id', ''))
             if not order_id: continue
             
             order = Order.query.filter_by(order_id_qumra=order_id).first() or Order(order_id_qumra=order_id)
             
-            # التقاط السعر والحالة والعميل بمرونة
-            order.total = float(item.get('totalPrice') or item.get('total') or 0)
+            # تحديث البيانات بناءً على هيكلية قمرة (totalPrice, status, account)
+            order.total = float(item.get('totalPrice', 0))
             
-            status_data = item.get('status')
-            order.status = status_data.get('name') if isinstance(status_data, dict) else str(status_data or 'pending')
+            # معالجة الحالة (status)
+            status_obj = item.get('status')
+            order.status = status_obj.get('name', 'pending') if isinstance(status_obj, dict) else 'pending'
             
-            account_data = item.get('account')
-            order.customer_name = account_data.get('name') if isinstance(account_data, dict) else str(account_data or 'غير معروف')
+            # معالجة العميل (account)
+            account_obj = item.get('account')
+            order.customer_name = account_obj.get('name', 'غير معروف') if isinstance(account_obj, dict) else 'غير معروف'
             
             db.session.add(order)
             count += 1
         
         db.session.commit()
-        return jsonify({'success': True, 'message': f'تمت المزامنة: تمت معالجة {count} طلب.'})
+        return jsonify({'success': True, 'message': f'تمت المزامنة بنجاح، تم تحديث {count} طلب.'})
         
     except Exception as e:
-        print(f"DEBUG: خطأ كارثي في المزامنة: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logger.error(f"Sync error: {str(e)}")
+        return jsonify({'success': False, 'message': f'خطأ أثناء المزامنة: {str(e)}'}), 500
 
 @orders_bp.route('/admin/orders/update-status', methods=['POST'])
 @login_required
 def update_order_status():
-    data = request.json
-    order = Order.query.get(data.get('orderId'))
-    if order:
+    try:
+        data = request.json
+        order = Order.query.get(data.get('orderId'))
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+            
         order.status = data.get('value')
         db.session.commit()
         return jsonify({'success': True})
-    return jsonify({'success': False}), 404
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'خطأ في التحديث'}), 500
