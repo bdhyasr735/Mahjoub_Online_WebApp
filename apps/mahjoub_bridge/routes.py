@@ -8,7 +8,7 @@ from apps.utils.products_engine import get_products_by_supplier, sync_products_t
 
 logger = logging.getLogger(__name__)
 
-# تعريف الـ Blueprint
+# تعريف الـ Blueprint بالاسم المعتمد في المصنع
 products_bp = Blueprint('mahjoub_bridge', __name__, template_folder='templates')
 
 @products_bp.route('/dashboard', methods=['GET'])
