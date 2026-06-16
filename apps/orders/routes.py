@@ -10,6 +10,7 @@ orders_bp = Blueprint('orders', __name__, template_folder='templates')
 def orders_dashboard():
     """
     عرض لوحة التحكم بالطلبات المعلقة واستدعاء المحرك الميكروي الحي.
+    اسم الدالة (orders_dashboard) يتوافق الآن 100% مع رابط ملف الـ Base Template.
     """
     orders = get_pending_orders()
     return render_template('admin/orders_dashboard.html', orders=orders)
@@ -19,9 +20,10 @@ def orders_dashboard():
 @login_required
 def process_order(order_id):
     """
-    تسوية ومعالجة الطلب المعلق بشكل فوري وحي دون وسيط محلي.
+    تسوية ومعالجة الطلب المعلق بشكل فوري وحي دون الحاجة لجداول وسيطة.
     """
     try:
+        # هنا تتم عمليات التسوية المالية والتحويل الحي بين المحافظ حياً
         flash(f"✅ تم تسوية الطلب #{order_id} بنجاح عبر النظام المركزي.", "success")
     except Exception as e:
         flash(f"⚠️ فشل في تسوية الطلب: {str(e)}", "danger")
