@@ -36,13 +36,11 @@ def create_app():
     # 4. تسجيل المسارات (Blueprints)
     # ملاحظة: يتم الاستيراد داخل الدالة لمنع تداخل الاستيراد (Circular Imports)
     from apps.auth_portal.routes import auth_portal
-    from apps.add_supplier.routes import add_supplier_bp
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
     from apps.vault.routes import vault_bp
 
     app.register_blueprint(auth_portal, url_prefix='/')
-    app.register_blueprint(add_supplier_bp, url_prefix='/suppliers')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
     app.register_blueprint(vault_bp, url_prefix='/vault')
