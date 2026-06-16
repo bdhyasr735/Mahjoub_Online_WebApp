@@ -8,9 +8,10 @@ def get_pending_orders():
     """
     جلب الطلبات مباشرة من قمرة لفرز الحالات المعلقة حياً ومباشراً في الذاكرة.
     """
+    # تعديل الـ Query لتتوافق مع مخطط قمرة لطلب الحقول الأساسية
     query = """
-    query GetOrders {
-      orders {
+    query GetPendingOrders {
+      allOrders {
         id
         totalPrice
         status
@@ -23,7 +24,9 @@ def get_pending_orders():
     if not result or 'data' not in result:
         return []
         
-    orders = result.get('data', {}).get('orders', [])
+    # التحقق من مفتاح الاستعلام الصحيح المرتجع من المخطط
+    data = result.get('data', {})
+    orders = data.get('allOrders') or data.get('orders') or []
     
     # تصفية الطلبات المعلقة حياً في الذاكرة لسرعة العرض الفورية
     return [o for o in orders if o.get('status') == 'pending']
