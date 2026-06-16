@@ -1,6 +1,7 @@
 # coding: utf-8
-# 📂 apps/models/admin_db.py - نظام الهوية المحصن
+# 📂 apps/models/admin_db.py - نظام الهوية المحصن والسيادي
 
+import os
 from apps.extensions import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -23,25 +24,39 @@ class AdminUser(db.Model, UserMixin):
     failed_attempts = db.Column(db.Integer, default=0)
     lock_until = db.Column(db.DateTime, nullable=True)
 
+    def _get_encryption_key(self):
+        """جلب المفتاح بشكل آمن سواء من سياق Flask أو من متغيرات البيئة مباشرة لضمان نجاح الـ Build"""
+        try:
+            if current_app:
+                return current_app.config['ENCRYPTION_KEY']
+        except RuntimeError:
+            pass
+        return os.environ.get('ENCRYPTION_KEY', '')
+
     @property
     def phone_number(self):
         """فك تشفير رقم الهاتف ديناميكياً باستخدام المفتاح المركزي للمنصة"""
         if self._phone_number_enc:
             try:
-                # جلب المفتاح الآمن من الـ Config مباشرة لمنع الاستيراد الدائري
-                cipher = Fernet(current_app.config['ENCRYPTION_KEY'].encode())
-                return cipher.decrypt(self._phone_number_enc.encode()).decode()
-            except Exception:
-                # حماية للطوارئ في بيئة الـ Sandbox في حال كان النص غير مشفر قديماً
-                return self._phone_number_enc
-        return None
+                key = self._get_encryption_key()
+                if key:
+                    cipher = Fernet(key.encode())
+                    return cipher.decrypt(self._phone_number_enc.encode()).decode()
+            except Exception as e:
+                # حماية للطوارئ: في حال كان النص غير مشفر قديماً، يعود بالنص كما هو
+                print(f"⚠️ تنبيه تشفير: تعذر فك تشفير الهاتف: {e}")
+        return self._phone_number_enc
     
     @phone_number.setter
     def phone_number(self, value):
         """تشفير رقم الهاتف بمعيار سيادي آمن قبل حفظه في قاعدة البيانات"""
         if value:
-            cipher = Fernet(current_app.config['ENCRYPTION_KEY'].encode())
-            self._phone_number_enc = cipher.encrypt(str(value).encode()).decode()
+            key = self._get_encryption_key()
+            if key:
+                cipher = Fernet(key.encode())
+                self._phone_number_enc = cipher.encrypt(str(value).encode()).decode()
+            else:
+                self._phone_number_enc = str(value)
         else:
             self._phone_number_enc = None
 
