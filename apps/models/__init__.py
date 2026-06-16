@@ -1,60 +1,14 @@
 # coding: utf-8
-# 📂 apps/models/admin_db.py
+from .admin_db import AdminUser
+from .supplier_db import Supplier
+from .wallet_db import SupplierWallet, WalletTransaction
+from .vault_db import AdminVault, VaultTransaction
+from .financial_db import ExchangeRate, FinancialLog
+from .product_db import Product
+from .orders_db import ProcessedOrder
 
-import os
-from apps.extensions import db
-from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
-from cryptography.fernet import Fernet
-from flask import current_app
-
-class AdminUser(db.Model, UserMixin):
-    __tablename__ = 'admin_users'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    _phone_number_enc = db.Column(db.String(255), nullable=True)
-    role = db.Column(db.String(50), default='admin')
-    is_active = db.Column(db.Boolean, default=True)
-    failed_attempts = db.Column(db.Integer, default=0)
-    lock_until = db.Column(db.DateTime, nullable=True)
-
-    def _get_encryption_key(self):
-        try:
-            if current_app:
-                return current_app.config.get('ENCRYPTION_KEY', '')
-        except RuntimeError:
-            pass
-        return os.environ.get('ENCRYPTION_KEY', '')
-
-    @property
-    def phone_number(self):
-        if self._phone_number_enc:
-            try:
-                key = self._get_encryption_key()
-                if key:
-                    cipher = Fernet(key.encode())
-                    return cipher.decrypt(self._phone_number_enc.encode()).decode()
-            except Exception:
-                return self._phone_number_enc
-        return None
-    
-    @phone_number.setter
-    def phone_number(self, value):
-        if value:
-            key = self._get_encryption_key()
-            if key:
-                cipher = Fernet(key.encode())
-                self._phone_number_enc = cipher.encrypt(str(value).encode()).decode()
-            else:
-                self._phone_number_enc = str(value)
-        else:
-            self._phone_number_enc = None
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+__all__ = [
+    'AdminUser', 'Supplier', 'SupplierWallet', 'WalletTransaction', 
+    'AdminVault', 'VaultTransaction', 'ExchangeRate', 'FinancialLog', 
+    'Product', 'ProcessedOrder'
+]
