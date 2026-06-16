@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي للنظام (نسخة نظيفة)
+# 📂 apps/__init__.py - المصنع السيادي للنظام
 
 from flask import Flask
 from flask_talisman import Talisman
@@ -34,7 +34,7 @@ def create_app():
         return AdminUser.query.get(int(user_id))
 
     # 4. تسجيل المسارات (Blueprints)
-    # ملاحظة: تم حذف إشارات add_supplier لضمان نظافة النظام
+    # ملاحظة: يتم الاستيراد داخل الدالة لمنع تداخل الاستيراد (Circular Imports)
     from apps.auth_portal.routes import auth_portal
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
