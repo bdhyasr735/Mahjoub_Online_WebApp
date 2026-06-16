@@ -1,18 +1,8 @@
-# coding: utf-8
-# 📂 apps/__init__.py - المصنع المحصن (النسخة النهائية المنقحة)
-
+# 📂 apps/__init__.py - النسخة المصححة لكسر دائرة الاستيراد
 from flask import Flask
 from flask_talisman import Talisman
 from config import Config
 from apps.extensions import db, login_manager, migrate
-
-# استيراد النماذج الأساسية فقط (المالية والإدارية)
-from apps.models.admin_db import AdminUser
-from apps.models.supplier_db import Supplier
-from apps.models.wallet_db import SupplierWallet, WalletTransaction
-from apps.models.financial_db import ExchangeRate
-from apps.models.vault_db import AdminVault
-
 from apps.utils.security import AESCipher
 from werkzeug.security import generate_password_hash
 
@@ -39,6 +29,8 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
+        # استيراد محلي لكسر الدائرة
+        from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
     # تسجيل المسارات (Blueprints)
@@ -60,6 +52,13 @@ def create_app():
 
     # إعداد البيانات التأسيسية
     with app.app_context():
+        # استيراد محلي للموديلات داخل سياق التطبيق
+        from apps.models.admin_db import AdminUser
+        from apps.models.supplier_db import Supplier
+        from apps.models.wallet_db import SupplierWallet
+        from apps.models.financial_db import ExchangeRate
+        from apps.models.vault_db import AdminVault
+
         try:
             db.create_all() 
             # إنشاء الأدمن
@@ -68,22 +67,18 @@ def create_app():
                 admin.set_password('123')
                 db.session.add(admin)
             
-            # إنشاء الموردين والمحافظ (بما أنهم المرجع الأساسي)
+            # إنشاء الموردين والمحافظ
             if not Supplier.query.first():
                 for i in range(1, 22):
                     s = Supplier(username=f'supplier_{i}', trade_name=f'متجر رقم {i}', owner_name=f'المالك {i}')
                     s.password_hash = generate_password_hash('123')
                     db.session.add(s)
-                    db.session.flush() # للحصول على الـ ID لتوليد الأكواد
-                    s.generate_codes() # استخدام دالة التوليد التي جهزناها
+                    db.session.flush()
+                    s.generate_codes()
                     
-                    w = SupplierWallet(
-                        supplier_id=s.id,
-                        balance_sar="500.0" # Setter سيقوم بالتشفير تلقائياً
-                    )
+                    w = SupplierWallet(supplier_id=s.id, balance_sar="500.0")
                     db.session.add(w)
             
-            # إعداد الخزنة وأسعار الصرف
             if not AdminVault.query.first():
                 db.session.add(AdminVault(name="الخزنة المركزية", balance_sar=10000))
             
@@ -92,7 +87,7 @@ def create_app():
                 db.session.add(ExchangeRate(currency_code='YER', rate_to_sar=0.004))
             
             db.session.commit()
-            print("✅ تم تأسيس النظام بنجاح (نظام مالي بحت).")
+            print("✅ تم تأسيس النظام بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ خطأ أثناء التأسيس: {e}")
