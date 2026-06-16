@@ -1,35 +1,29 @@
 # 📂 apps/utils/sync_all.py
 import logging
 from apps.utils.orders_engine import get_pending_orders
+from apps.utils.products_engine import get_products_by_supplier
 
 logger = logging.getLogger(__name__)
 
-def sync_orders_to_local_db():
+def check_live_sync_status():
     """
-    مزامنة الطلبات محلياً مع حقن الموديلات داخلياً لمنع الـ Circular Import.
+    مزامنة والتحقق من تدفق البيانات الحية (الطلبات والمنتجات) 
+    مباشرة من متجر قمرة المركزي دون الحاجة لأي جداول محلية.
     """
-    from apps.models.wallet_db import WalletTransaction
-    from apps.extensions import db
-    
     try:
-        pending_orders = get_pending_orders()
-        count = 0
+        # جلب البيانات حية من المحركات الميكروية
+        live_products = get_products_by_supplier("all")
+        live_orders = get_pending_orders()
         
-        for order in pending_orders:
-            existing = WalletTransaction.query.filter_by(order_id=str(order['id'])).first()
-            if not existing:
-                new_txn = WalletTransaction(
-                    order_id=str(order['id']),
-                    amount=float(order.get('totalPrice', 0)),
-                    currency='SAR',
-                    status='pending'
-                )
-                db.session.add(new_txn)
-                count += 1
-                
-        db.session.commit()
-        return count
+        # إرجاع تقرير التدفق الحي في الذاكرة فوراً للمتصفح
+        return {
+            "status": "success",
+            "products_count": len(live_products),
+            "orders_count": len(live_orders)
+        }
     except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error syncing orders in sync_all: {str(e)}")
-        return 0
+        logger.error(f"Error checking live data stream in sync_all: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
