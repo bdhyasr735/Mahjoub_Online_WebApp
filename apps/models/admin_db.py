@@ -5,7 +5,8 @@ from apps.extensions import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-from apps.utils.security import AESCipher
+from cryptography.fernet import Fernet
+from flask import current_app
 
 class AdminUser(db.Model, UserMixin):
     __tablename__ = 'admin_users'
@@ -24,14 +25,23 @@ class AdminUser(db.Model, UserMixin):
 
     @property
     def phone_number(self):
+        """فك تشفير رقم الهاتف ديناميكياً باستخدام المفتاح المركزي للمنصة"""
         if self._phone_number_enc:
-            return AESCipher.decrypt(self._phone_number_enc)
+            try:
+                # جلب المفتاح الآمن من الـ Config مباشرة لمنع الاستيراد الدائري
+                cipher = Fernet(current_app.config['ENCRYPTION_KEY'].encode())
+                return cipher.decrypt(self._phone_number_enc.encode()).decode()
+            except Exception:
+                # حماية للطوارئ في بيئة الـ Sandbox في حال كان النص غير مشفر قديماً
+                return self._phone_number_enc
         return None
     
     @phone_number.setter
     def phone_number(self, value):
+        """تشفير رقم الهاتف بمعيار سيادي آمن قبل حفظه في قاعدة البيانات"""
         if value:
-            self._phone_number_enc = AESCipher.encrypt(str(value))
+            cipher = Fernet(current_app.config['ENCRYPTION_KEY'].encode())
+            self._phone_number_enc = cipher.encrypt(str(value).encode()).decode()
         else:
             self._phone_number_enc = None
 
