@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/admin_db.py - نظام الهوية المحصن والسيادي
+# 📂 apps/models/admin_db.py
 
 import os
 from apps.extensions import db
@@ -15,41 +15,34 @@ class AdminUser(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    
     _phone_number_enc = db.Column(db.String(255), nullable=True)
-    
     role = db.Column(db.String(50), default='admin')
     is_active = db.Column(db.Boolean, default=True)
-    
     failed_attempts = db.Column(db.Integer, default=0)
     lock_until = db.Column(db.DateTime, nullable=True)
 
     def _get_encryption_key(self):
-        """جلب المفتاح بشكل آمن سواء من سياق Flask أو من متغيرات البيئة مباشرة لضمان نجاح الـ Build"""
         try:
             if current_app:
-                return current_app.config['ENCRYPTION_KEY']
+                return current_app.config.get('ENCRYPTION_KEY', '')
         except RuntimeError:
             pass
         return os.environ.get('ENCRYPTION_KEY', '')
 
     @property
     def phone_number(self):
-        """فك تشفير رقم الهاتف ديناميكياً باستخدام المفتاح المركزي للمنصة"""
         if self._phone_number_enc:
             try:
                 key = self._get_encryption_key()
                 if key:
                     cipher = Fernet(key.encode())
                     return cipher.decrypt(self._phone_number_enc.encode()).decode()
-            except Exception as e:
-                # حماية للطوارئ: في حال كان النص غير مشفر قديماً، يعود بالنص كما هو
-                print(f"⚠️ تنبيه تشفير: تعذر فك تشفير الهاتف: {e}")
-        return self._phone_number_enc
+            except Exception:
+                return self._phone_number_enc
+        return None
     
     @phone_number.setter
     def phone_number(self, value):
-        """تشفير رقم الهاتف بمعيار سيادي آمن قبل حفظه في قاعدة البيانات"""
         if value:
             key = self._get_encryption_key()
             if key:
@@ -64,23 +57,4 @@ class AdminUser(db.Model, UserMixin):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        if not self.password_hash:
-            return False
         return check_password_hash(self.password_hash, password)
-
-    def is_locked(self):
-        if self.lock_until and datetime.utcnow() < self.lock_until:
-            return True
-        return False
-
-    def increment_failed_attempts(self):
-        self.failed_attempts = (self.failed_attempts or 0) + 1
-        delay = (self.failed_attempts // 5) + 1
-        self.lock_until = datetime.utcnow() + timedelta(minutes=delay)
-
-    def reset_failed_attempts(self):
-        self.failed_attempts = 0
-        self.lock_until = None
-
-    def __repr__(self):
-        return f'<AdminUser {self.username}>'
