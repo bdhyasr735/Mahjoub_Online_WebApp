@@ -1,8 +1,10 @@
 # coding: utf-8
-# 📂 apps/mahjoub_bridge/routes.py - النسخة المحصنة والمطهرة للجسر
+# 📂 apps/mahjoub_bridge/routes.py - النسخة النهائية الموحدة
 
 from flask import Blueprint, render_template, request
 from flask_login import login_required
+# استيراد محرك الجسر المعتمد والمستقر
+from apps.utils.bridge_engine import get_products_by_supplier
 
 products_bp = Blueprint('mahjoub_bridge', __name__, template_folder='templates')
 
@@ -14,15 +16,14 @@ def dashboard():
 @products_bp.route('/list', methods=['GET'])
 @login_required
 def list_products():
+    # استلام الوسم المطلوب من شريك النجاح
     search_tag = request.args.get('tag', 'all') 
     
-    # 🛡️ استيراد محلي ديناميكي لحماية السيرفر من الـ ImportError أثناء الإقلاع
+    # جلب البيانات مباشرة من المحرك الموحد
     try:
-        from apps.utils.products_engine import get_products_by_supplier
         products = get_products_by_supplier(search_tag)
-    except ImportError:
-        # حماية للطوارئ: في حال لم يجد الدالة بالاسم القديم، يعود بقائمة فارغة ولا يفصل السيرفر
+    except Exception as e:
+        print(f"⚠️ خطأ أثناء جلب المنتجات: {e}")
         products = []
-        print("⚠️ تنبيه سيادي: لم يتم العثور على الدالة get_products_by_supplier في محرك المنتجات.")
 
     return render_template('products/list.html', products=products)
