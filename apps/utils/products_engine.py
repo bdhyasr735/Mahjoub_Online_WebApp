@@ -1,10 +1,13 @@
 # 📂 apps/utils/products_engine.py
 
-# تم تصحيح المسار إلى المسار الكامل لتجنب خطأ ModuleNotFoundError
 from apps.utils.bridge_engine import execute_query
+from apps.utils.translator import translate_to_arabic
 
 def get_products_by_supplier(supplier_tag):
-    """جلب المنتجات الخاصة بمورد محدد عبر الـ Tag"""
+    """
+    جلب المنتجات الخاصة بمورد محدد عبر الـ Tag،
+    مع معالجة البيانات وترجمة العناوين للعربية تلقائياً.
+    """
     query = """
     query GetProducts($query: String) {
       products(query: $query) {
@@ -16,13 +19,26 @@ def get_products_by_supplier(supplier_tag):
     }
     """
     variables = {"query": f"tags:{supplier_tag}"}
+    
+    # جلب البيانات من محرك قمرة (Bridge Engine)
     result = execute_query(query, variables)
-    return result.get('data', {}).get('products', []) if result else []
+    
+    if not result:
+        return []
+        
+    products = result.get('data', {}).get('products', [])
+    
+    # معالجة وتجهيز البيانات (ترجمة العناوين)
+    for p in products:
+        if 'title' in p and p['title']:
+            # نستخدم المترجم السيادي مع Caching مدمج
+            p['title'] = translate_to_arabic(p['title'])
+            
+    return products
 
-def translate_product_status(status):
+def get_product_status_translation(status):
     """
-    دالة المترجم السيادي: تحويل حالات المنتجات من الإنجليزية إلى العربية
-    مثال: active -> مفعل، archived -> مؤرشف
+    مترجم سريع للحالات البرمجية للمنتجات.
     """
     translations = {
         'active': 'مُفعل',
@@ -30,5 +46,4 @@ def translate_product_status(status):
         'draft': 'مسودة',
         'retired': 'متوقف'
     }
-    # يعيد القيمة المترجمة أو الحالة الأصلية إذا لم توجد ترجمة
     return translations.get(status.lower(), status)
