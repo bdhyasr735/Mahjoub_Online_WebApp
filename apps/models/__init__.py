@@ -1,22 +1,8 @@
-# coding: utf-8
-# 📂 apps/models/__init__.py
-
+# apps/models/__init__.py
 from .admin_db import AdminUser
-from .bridge_db import Product, ProductVariant
-from .financial_db import FinancialLog, ExchangeRate
 from .supplier_db import Supplier
-from .vault_db import AdminVault, VaultTransaction
-from .wallet_db import SupplierWallet, WalletTransaction
-
-__all__ = [
-    'AdminUser',
-    'Product',
-    'ProductVariant',
-    'FinancialLog',
-    'ExchangeRate',
-    'Supplier',
-    'AdminVault',
-    'VaultTransaction',
-    'SupplierWallet',
-    'WalletTransaction'
-]
+from .wallet_db import SupplierWallet
+from .financial_db import ExchangeRate
+from .vault_db import AdminVault
+from .orders_db import ProcessedOrder
+# تأكد من حذف سطر Settlement من هنا تماماً
