@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - النسخة النهائية المستقرة
+# 📂 apps/__init__.py - النسخة النهائية المطهرة والمستقرة
 
 from flask import Flask
 from flask_talisman import Talisman
@@ -60,24 +60,23 @@ def create_app():
         from apps.models.orders_db import ProcessedOrder
 
         try:
-            # بناء الجداول الأساسية المعتمدة في الداتابيز حياً
+            # بناء الجداول الأساسية المعتمدة في الداتابيز
             db.create_all() 
             
-            # إنشاء حساب الإدارة الأعلى (علي محجوب)
+            # إنشاء حساب الإدارة الأعلى
             if not AdminUser.query.filter_by(username='علي_محجوب').first():
                 admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
                 admin.set_password('123')
                 db.session.add(admin)
             
-            # إنشاء شركاء النجاح والمحافظ الرقمية السيادية
+            # إنشاء شركاء النجاح
             if not Supplier.query.first():
                 for i in range(1, 22):
                     s = Supplier(username=f'supplier_{i}', trade_name=f'متجر رقم {i}', owner_name=f'المالك {i}')
                     s.password_hash = generate_password_hash('123')
                     db.session.add(s)
-                    db.session.flush()  # للحصول على المعرف تلقائياً
+                    db.session.flush()
                     s.generate_codes()
-                    
                     w = SupplierWallet(supplier_id=s.id, balance_sar="500.0")
                     db.session.add(w)
             
@@ -85,7 +84,7 @@ def create_app():
             if not AdminVault.query.first():
                 db.session.add(AdminVault(name="الخزنة المركزية", balance_sar=10000))
             
-            # تهيئة أسعار الصرف للعملات الثلاث المعتمدة
+            # تهيئة أسعار الصرف
             if not ExchangeRate.query.first():
                 db.session.add(ExchangeRate(currency_code='USD', rate_to_sar=3.75))
                 db.session.add(ExchangeRate(currency_code='YER', rate_to_sar=0.004))
