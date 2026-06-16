@@ -1,71 +1,58 @@
-# 📂 apps/utils/products_engine.py
-
-# الاستيرادات الآمنة (التي لا تسبب دائرة استيراد) تبقى في الأعلى
+# 📂 apps/utils/orders_engine.py
+import logging
 from apps.utils.bridge_engine import execute_query
-from apps.utils.translator import translate_to_arabic
 
-def get_products_by_supplier(supplier_tag):
+logger = logging.getLogger(__name__)
+
+def get_pending_orders():
     """
-    جلب منتجات المورد من المحرك، مع معالجة العناوين للغة العربية.
+    جلب الطلبات مباشرة من قمرة لفرز الحالات المعلقة حياً ومباشراً في الذاكرة العشوائية.
+    متوافق مع بنية PaginatedOrdersResponse لمتجر قمرة.
     """
+    # الاستعلام يلتف الآن داخل كائن data لتفادي خطأ PaginatedOrdersResponse
     query = """
-    query GetProducts($query: String) {
-      products(query: $query) {
-        id
-        title
-        status
-        tags
+    query GetPendingOrders {
+      findAllOrders {
+        data {
+          id
+          totalPrice
+          status
+          createdAt
+          lineItems {
+            id
+            product {
+              id
+              name
+            }
+          }
+        }
       }
     }
     """
-    variables = {"query": f"tags:{supplier_tag}"}
-    
-    result = execute_query(query, variables)
+    result = execute_query(query)
     
     if not result or 'data' not in result:
         return []
         
-    products = result.get('data', {}).get('products', [])
+    response_data = result.get('data', {})
+    paginated_response = response_data.get('findAllOrders') or {}
     
-    # معالجة الترجمة للعناوين
-    for p in products:
-        if 'title' in p and p['title']:
-            p['title'] = translate_to_arabic(p['title'])
+    # استخراج مصفوفة الطلبات الحية من كائن التصفيف
+    orders = []
+    if isinstance(paginated_response, dict):
+        orders = paginated_response.get('data') or paginated_response.get('nodes') or []
+    elif isinstance(paginated_response, list):
+        orders = paginated_response
+
+    if not isinstance(orders, list):
+        return []
+
+    pending_orders_list = []
+    for o in orders:
+        if isinstance(o, dict) and o.get('status') == 'pending':
+            if 'lineItems' not in o or o['lineItems'] is None:
+                o['lineItems'] = []
+            pending_orders_list.append(o)
             
-    return products
-
-def sync_products_to_db():
-    """
-    دالة المزامنة: يتم استيراد الموديلات وقاعدة البيانات هنا داخل الدالة 
-    لتجنب خطأ Circular Import (خطأ Status 1).
-    """
-    from apps.models.product_db import Product
-    from apps.extensions import db
+    return pending_orders_list
     
-    raw_products = get_products_by_supplier("all") 
-    count = 0
-    
-    for item in raw_products:
-        # البحث عن المنتج في قاعدة البيانات أو إنشاؤه
-        product = Product.query.filter_by(external_id=item['id']).first()
-        if not product:
-            product = Product(external_id=item['id'])
-            db.session.add(product)
-        
-        # تحديث البيانات
-        product.title = item['title']
-        product.status = item['status']
-        count += 1
-        
-    db.session.commit()
-    return count
-
-def get_product_status_translation(status):
-    """مترجم سريع للحالات البرمجية للمنتجات."""
-    translations = {
-        'active': 'مُفعل',
-        'archived': 'مؤرشف',
-        'draft': 'مسودة',
-        'retired': 'متوقف'
-    }
-    return translations.get(status.lower(), status)
