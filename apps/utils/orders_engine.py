@@ -2,14 +2,13 @@
 import logging
 from apps.utils.bridge_engine import execute_query
 
+# إعداد الـ logger ليتمكن من طباعة رسائل الـ DEBUG
 logger = logging.getLogger(__name__)
 
 def get_pending_orders():
     """
-    جلب الطلبات المعلقة باستخدام اسم الاستعلام الصحيح (findAllOrders) 
-    الذي يدعمه API قمرة.
+    جلب الطلبات المعلقة مع إضافة سجلات تشخيص لفحص استجابة API قمرة.
     """
-    # استخدام findAllOrders بناءً على اقتراح الـ API في الـ Logs
     query = """
     query {
       findAllOrders(status: "pending") {
@@ -27,19 +26,16 @@ def get_pending_orders():
     try:
         result = execute_query(query)
         
-        # التأكد من وجود البيانات
+        # [التشخيص] طباعة الـ result كاملة في الـ logs
+        # ستظهر هذه الرسالة في لوحة تحكم Render ضمن قسم Logs
+        logger.info(f"DEBUG: Qumra API Raw Response: {result}")
+        
         if not result or 'data' not in result:
-            logger.warning(f"Qumra API returned empty or error: {result}")
             return []
             
-        # استخراج البيانات باستخدام findAllOrders كأولوية
         data = result.get('data', {})
-        
-        # نتحقق من الحقل الصحيح في الاستجابة
-        orders = data.get('findAllOrders') or data.get('orders', [])
-        return orders
+        return data.get('findAllOrders', [])
 
     except Exception as e:
         logger.error(f"Critical error in get_pending_orders: {str(e)}")
-        # إرجاع قائمة فارغة لمنع حدوث خطأ 500 للمستخدم
         return []
