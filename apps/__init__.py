@@ -1,4 +1,4 @@
-# 📂 apps/__init__.py - النسخة المصححة لكسر دائرة الاستيراد
+# 📂 apps/__init__.py - النسخة المصححة والمُنظفة
 from flask import Flask
 from flask_talisman import Talisman
 from config import Config
@@ -29,17 +29,15 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
-        # استيراد محلي لكسر الدائرة
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل المسارات (Blueprints)
+    # تسجيل المسارات (Blueprints) - تم إزالة mahjoub_bridge
     from apps.auth_portal.routes import auth_portal
     from apps.add_supplier.routes import add_supplier_bp
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
     from apps.vault.routes import vault_bp
-    from apps.mahjoub_bridge.routes import products_bp
     from apps.orders.routes import orders_bp
 
     app.register_blueprint(auth_portal, url_prefix='/')
@@ -47,12 +45,10 @@ def create_app():
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
     app.register_blueprint(vault_bp, url_prefix='/vault')
-    app.register_blueprint(products_bp, url_prefix='/bridge')
     app.register_blueprint(orders_bp, url_prefix='/orders')
 
     # إعداد البيانات التأسيسية
     with app.app_context():
-        # استيراد محلي للموديلات داخل سياق التطبيق
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet
