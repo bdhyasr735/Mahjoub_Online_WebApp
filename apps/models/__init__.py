@@ -1,9 +1,22 @@
+# coding: utf-8
 # 📂 apps/models/__init__.py
+
 from .admin_db import AdminUser
 from .supplier_db import Supplier
-from .wallet_db import SupplierWallet
-from .financial_db import ExchangeRate
-from .vault_db import AdminVault
-from .orders_db import ProcessedOrder
+from .wallet_db import SupplierWallet, WalletTransaction
+from .financial_db import FinancialLog, ExchangeRate
+from .vault_db import AdminVault, VaultTransaction
+from .bridge_db import Product, ProductVariant
 
-# تأكد من عدم وجود أي سطر يحتوي على 'settlement' أو أي موديل حذفته.
+__all__ = [
+    'AdminUser',
+    'Supplier',
+    'SupplierWallet',
+    'WalletTransaction',
+    'FinancialLog',
+    'ExchangeRate',
+    'AdminVault',
+    'VaultTransaction',
+    'Product',
+    'ProductVariant'
+]
