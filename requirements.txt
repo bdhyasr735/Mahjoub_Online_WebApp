@@ -19,3 +19,4 @@ flask-talisman==1.1.0
 flask-limiter==3.7.0
 limits==3.10.0
 flask-paginate
+deep-translator
