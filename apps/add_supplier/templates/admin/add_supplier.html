@@ -170,12 +170,12 @@
     </div>
 
     <div class="back-nav">
-        <a href="{{ url_for('admin.manage_suppliers') }}" class="btn-back-gov">
+        <a href="{{ url_for('admin_dashboard.manage_suppliers') }}" class="btn-back-gov">
             <i class="fas fa-arrow-right"></i> العودة لقائمة الموردين
         </a>
     </div>
 
-    <form id="sovereignForm" action="{{ url_for('admin.add_supplier') }}" method="POST" enctype="multipart/form-data">
+    <form id="sovereignForm" action="{{ url_for('add_supplier_bp.add_supplier') }}" method="POST" enctype="multipart/form-data">
         
         <div class="section-banner"><i class="fas fa-user-shield"></i> بيانات الهوية الرقمية والنشاط</div>
         <div class="grid-layout">
@@ -377,7 +377,7 @@
             
             if (response.ok && result.status === 'success') {
                 Swal.fire({ title: '✅ تم التعميد بنجاح', text: result.message, icon: 'success', confirmButtonColor: '#632C8F' })
-                .then(() => window.location.href = "{{ url_for('admin.manage_suppliers') }}");
+                .then(() => window.location.href = "{{ url_for('admin_dashboard.manage_suppliers') }}");
             } else { throw new Error(result.message); }
         } catch (err) {
             Swal.fire({ title: 'خطأ في النظام', text: err.message, icon: 'error', confirmButtonColor: '#C5A021' });
