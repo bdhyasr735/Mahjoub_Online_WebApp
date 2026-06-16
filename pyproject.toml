@@ -17,9 +17,6 @@ dependencies = [
     "cryptography"
 ]
 
-[tool.vercel]
-# 🔑 نقطة دخول التطبيق: Vercel يحتاج إلى موديول وليس ملف نصي، لذا نستخدم "run:app"
-# هذا السطر يخبر Vercel أن يستورد 'app' من الموديول 'run'
 entrypoint = "run:app"
 
 [tool.setuptools]
