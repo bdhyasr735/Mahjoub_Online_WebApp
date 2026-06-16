@@ -1,59 +1,30 @@
-# coding: utf-8
+# 📂 apps/orders/routes.py
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
-from apps.utils.orders_engine import OrdersEngine
 import logging
 
+# الاستيراد المطلق لضمان عدم حدوث ModuleNotFoundError
+from apps.utils.orders_engine import get_pending_orders
+
+logger = logging.getLogger(__name__)
+
 # تعريف الـ Blueprint
-orders_bp = Blueprint('orders', __name__, template_folder='templates')
+orders_bp = Blueprint('orders_bp', __name__, template_folder='templates')
 
-@orders_bp.route('/dashboard', methods=['GET'])
+@orders_bp.route('/pending', methods=['GET'])
 @login_required
-def orders_dashboard():
-    """عرض لوحة التحكم الخاصة بالطلبات المجلوبة من قمرة"""
+def list_pending_orders():
+    """عرض الطلبات المعلقة التي تحتاج تسوية"""
     try:
-        columns = [
-            {'label': 'رقم الطلب', 'key': 'order_id_qumra'},
-            {'label': 'العميل', 'key': 'customer_name'},
-            {'label': 'الإجمالي', 'key': 'total'},
-            {'label': 'الحالة', 'key': 'status'},
-            {'label': 'التاريخ', 'key': 'created_at'}
-        ]
-        
-        engine = OrdersEngine()
-        # جلب الطلبات المحفوظة محلياً بعد مزامنتها من قمرة
-        orders = engine.get_all_orders()
-        
-        return render_template(
-            'admin/orders_dashboard.html', 
-            orders=orders, 
-            columns=columns
-        )
+        orders = get_pending_orders()
+        return render_template('orders/pending_list.html', orders=orders)
     except Exception as e:
-        logging.error(f"خطأ في عرض لوحة الطلبات: {str(e)}")
-        return "حدث خطأ داخلي في النظام", 500
+        logger.error(f"Error fetching pending orders: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء جلب الطلبات'}), 500
 
-@orders_bp.route('/sync-orders', methods=['POST'])
+@orders_bp.route('/process/<order_id>', methods=['POST'])
 @login_required
-def sync_orders():
-    """طلب مزامنة البيانات من قمرة إلى النظام المحلي"""
-    try:
-        engine = OrdersEngine()
-        # هنا يتم الاتصال بـ API قمرة وجلب البيانات وتخزينها
-        success = engine.sync_orders_from_source()
-        return jsonify({'success': success, 'message': 'تمت المزامنة بنجاح'})
-    except Exception as e:
-        logging.error(f"خطأ أثناء مزامنة البيانات من قمرة: {str(e)}")
-        return jsonify({'success': False, 'message': 'فشل الاتصال بمنصة قمرة'}), 500
-
-@orders_bp.route('/update-order-status', methods=['POST'])
-@login_required
-def update_order_status():
-    """تحديث الحالة محلياً"""
-    try:
-        data = request.get_json()
-        engine = OrdersEngine()
-        success = engine.update_status(data.get('orderId'), data.get('value'))
-        return jsonify({'success': success})
-    except Exception as e:
-        return jsonify({'success': False}), 500
+def process_order(order_id):
+    """معالجة طلب معين"""
+    # هنا يمكنك إضافة منطق معالجة الطلب لاحقاً
+    return jsonify({'success': True, 'message': f'تمت معالجة الطلب {order_id}'})
