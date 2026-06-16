@@ -10,7 +10,7 @@ def create_app():
     app = Flask(__name__, template_folder='templates', static_folder='static', instance_relative_config=True)
     app.config.from_object(Config)
 
-    # 🛡️ سياسة أمان المحتوى
+    # 🛡️ سياسة أمان المحتوى (CSP)
     csp_policy = {
         'default-src': ["'self'"],
         'style-src': ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
@@ -32,7 +32,7 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل المسارات (Blueprints) - استيراد داخلي داخل الدالة لمنع الخطأ
+    # تسجيل المسارات (Blueprints)
     from apps.auth_portal.routes import auth_portal
     from apps.add_supplier.routes import add_supplier_bp
     from apps.admin_dashboard.routes import admin_dashboard
@@ -48,10 +48,11 @@ def create_app():
     # إعداد البيانات التأسيسية
     with app.app_context():
         try:
-            # استيراد النماذج هنا فقط
+            # استيراد النماذج هنا فقط داخل سياق التطبيق
             from apps.models.admin_db import AdminUser
             db.create_all() 
             
+            # تأسيس المسؤول الأول (المدير السيادي)
             if not AdminUser.query.filter_by(username='علي_محجوب').first():
                 admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
                 admin.set_password('123')
