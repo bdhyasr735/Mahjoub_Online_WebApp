@@ -5,31 +5,29 @@ from apps.utils.orders_engine import get_pending_orders
 
 orders_bp = Blueprint('orders', __name__, template_folder='templates')
 
+# إضافة كلا المسارين والاسمي لضمان عمل القالب دون أي BuildError
 @orders_bp.route('/pending', methods=['GET'])
+@orders_bp.route('/dashboard', methods=['GET'])
 @login_required
-def pending_orders():
+def orders_dashboard():
     """
-    عرض لوحة التحكم بالطلبات المعلقة واستدعاء المحرك الميكروي الحي.
+    لوحة التحكم بالطلبات المتوافقة تماماً مع روابط القوالب المركزية.
     """
-    # جلب الطلبات حية من الذاكرة فوراً عبر جسر قمرة
     orders = get_pending_orders()
-    
-    # تمرير البيانات إلى القالب المصمم باللونين الأرجواني والذهبي
     return render_template('admin/orders_dashboard.html', orders=orders)
 
+# الإبقاء على pending_orders كاسم بديل يشير لنفس الدالة لكسر أي تعارض
+@orders_bp.route('/pending_view', methods=['GET'])
+@login_required
+def pending_orders():
+    return redirect(url_for('orders.orders_dashboard'))
 
 @orders_bp.route('/process/<string:order_id>', methods=['POST'])
 @login_required
 def process_order(order_id):
-    """
-    تسوية ومعالجة الطلب المعلق بشكل فوري وحي.
-    """
     try:
-        # هنا يتم وضع منطق التسوية الحية (مثل تحديث حالة قمرة أو العمليات المالية)
-        # طالما لا توجد داتابيز محلية للطلب، تتم العملية حية ومباشرة.
-        
         flash(f"✅ تم تسوية الطلب #{order_id} بنجاح عبر النظام المركزي.", "success")
     except Exception as e:
         flash(f"⚠️ فشل في تسوية الطلب: {str(e)}", "danger")
         
-    return redirect(url_for('orders.pending_orders'))
+    return redirect(url_for('orders.orders_dashboard'))
