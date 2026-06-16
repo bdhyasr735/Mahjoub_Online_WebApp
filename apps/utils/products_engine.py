@@ -1,13 +1,10 @@
 # 📂 apps/utils/products_engine.py
 
+# استخدام المسارات المطلقة (Absolute Imports) دائماً
 from apps.utils.bridge_engine import execute_query
 from apps.utils.translator import translate_to_arabic
 
 def get_products_by_supplier(supplier_tag):
-    """
-    جلب المنتجات الخاصة بمورد محدد عبر الـ Tag،
-    مع معالجة البيانات وترجمة العناوين للعربية تلقائياً.
-    """
     query = """
     query GetProducts($query: String) {
       products(query: $query) {
@@ -20,30 +17,16 @@ def get_products_by_supplier(supplier_tag):
     """
     variables = {"query": f"tags:{supplier_tag}"}
     
-    # جلب البيانات من محرك قمرة (Bridge Engine)
     result = execute_query(query, variables)
     
-    if not result:
+    if not result or 'data' not in result:
         return []
         
     products = result.get('data', {}).get('products', [])
     
-    # معالجة وتجهيز البيانات (ترجمة العناوين)
+    # معالجة الترجمة
     for p in products:
         if 'title' in p and p['title']:
-            # نستخدم المترجم السيادي مع Caching مدمج
             p['title'] = translate_to_arabic(p['title'])
             
     return products
-
-def get_product_status_translation(status):
-    """
-    مترجم سريع للحالات البرمجية للمنتجات.
-    """
-    translations = {
-        'active': 'مُفعل',
-        'archived': 'مؤرشف',
-        'draft': 'مسودة',
-        'retired': 'متوقف'
-    }
-    return translations.get(status.lower(), status)
