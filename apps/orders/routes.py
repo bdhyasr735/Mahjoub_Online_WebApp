@@ -9,5 +9,6 @@ orders_bp = Blueprint('orders', __name__, template_folder='templates')
 @login_required
 def orders_dashboard():
     """عرض الطلبات المعلقة مباشرة من قمرة"""
+    # جلب الطلبات مباشرة في كل مرة يتم فيها فتح الصفحة
     orders = get_pending_orders()
     return render_template('admin/orders_dashboard.html', orders=orders)
