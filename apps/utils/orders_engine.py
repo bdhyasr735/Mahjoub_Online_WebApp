@@ -1,7 +1,12 @@
-from bridge_engine import execute_query
+# 📂 apps/utils/orders_engine.py
+
+# تم التصحيح: استخدام المسار المطلق (Absolute Import)
+from apps.utils.bridge_engine import execute_query
 
 def get_pending_orders():
-    # جلب الطلبات التي تحتاج تسوية
+    """
+    جلب الطلبات التي تحتاج تسوية من محرك قمرة.
+    """
     query = """
     query {
       orders(status: "pending") {
@@ -16,4 +21,9 @@ def get_pending_orders():
     }
     """
     result = execute_query(query)
-    return result.get('data', {}).get('orders', []) if result else []
+    
+    # التأكد من سلامة البيانات قبل إرجاعها
+    if not result or 'data' not in result:
+        return []
+        
+    return result.get('data', {}).get('orders', [])
