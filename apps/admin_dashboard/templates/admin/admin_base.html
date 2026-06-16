@@ -61,20 +61,6 @@
             <div class="nav-item-wrapper"><a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a></div>
             
             <div class="nav-item-wrapper">
-                <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-box-open me-3"></i> <span>المنتجات</span> <i class="fas fa-chevron-down ms-auto"></i></div>
-                <ul class="dropdown-content">
-                    <li><a href="#">إدارة الجسر والمنتجات</a></li>
-                </ul>
-            </div>
-
-            <div class="nav-item-wrapper">
-                <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-shopping-cart me-3"></i> <span>الطلبات</span> <i class="fas fa-chevron-down ms-auto"></i></div>
-                <ul class="dropdown-content">
-                    <li><a href="#">قائمة الطلبات</a></li>
-                </ul>
-            </div>
-
-            <div class="nav-item-wrapper">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-handshake me-3"></i> <span>إدارة الموردين</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
                     <li><a href="{{ url_for('add_supplier.add_supplier') }}">إضافة مورد</a></li>
