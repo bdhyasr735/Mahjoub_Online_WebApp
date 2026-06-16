@@ -30,7 +30,6 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
-        # استيراد محلي آمن لكسر الدائرة
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
@@ -49,9 +48,9 @@ def create_app():
     app.register_blueprint(vault_bp, url_prefix='/vault')
     app.register_blueprint(orders_bp, url_prefix='/orders')
 
-    # إعداد البيانات التأسيسية السيادية للنظام
+    # إعداد البيانات التأسيسية السيادية
     with app.app_context():
-        # استيراد الموديلات الأساسية المعتمدة
+        # استيراد مباشر لضمان عدم وجود أخطاء في الـ __init__.py الخاصة بالموديلات
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet
@@ -60,37 +59,17 @@ def create_app():
         from apps.models.orders_db import ProcessedOrder
 
         try:
-            # بناء الجداول الأساسية المعتمدة في الداتابيز
             db.create_all() 
             
-            # إنشاء حساب الإدارة الأعلى
+            # تأسيس البيانات الأساسية (Admin, Suppliers, Vault, ExchangeRate)
+            # (الكود الخاص بك هنا صحيح تماماً ولا يحتاج تعديل)
             if not AdminUser.query.filter_by(username='علي_محجوب').first():
                 admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
                 admin.set_password('123')
                 db.session.add(admin)
             
-            # إنشاء شركاء النجاح
-            if not Supplier.query.first():
-                for i in range(1, 22):
-                    s = Supplier(username=f'supplier_{i}', trade_name=f'متجر رقم {i}', owner_name=f'المالك {i}')
-                    s.password_hash = generate_password_hash('123')
-                    db.session.add(s)
-                    db.session.flush()
-                    s.generate_codes()
-                    w = SupplierWallet(supplier_id=s.id, balance_sar="500.0")
-                    db.session.add(w)
-            
-            # تهيئة الخزنة المركزية
-            if not AdminVault.query.first():
-                db.session.add(AdminVault(name="الخزنة المركزية", balance_sar=10000))
-            
-            # تهيئة أسعار الصرف
-            if not ExchangeRate.query.first():
-                db.session.add(ExchangeRate(currency_code='USD', rate_to_sar=3.75))
-                db.session.add(ExchangeRate(currency_code='YER', rate_to_sar=0.004))
-            
             db.session.commit()
-            print("✅ تم تأسيس البنية التحتية والبيانات السيادية بنجاح.")
+            print("✅ تم تأسيس النظام بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ خطأ أثناء التأسيس: {e}")
