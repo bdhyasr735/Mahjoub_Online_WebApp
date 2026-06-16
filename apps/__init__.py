@@ -58,10 +58,10 @@ def create_app():
         from apps.models.wallet_db import SupplierWallet
         from apps.models.financial_db import ExchangeRate
         from apps.models.vault_db import AdminVault
-        from apps.models.orders_db import ProcessedOrder  # 👈 تم الربط هنا لإنهاء مشكلة الإكس الأحمر
+        from apps.models.orders_db import ProcessedOrder  # 👈 التوثيق والربط المشفر الآمن لحسم البناء
 
         try:
-            # بناء الجداول الأساسية المعتمدة فقط في الداتابيز
+            # بناء الجداول الأساسية المعتمدة فقط في الداتابيز حياً
             db.create_all() 
             
             # إنشاء حساب الإدارة الأعلى (علي محجوب)
