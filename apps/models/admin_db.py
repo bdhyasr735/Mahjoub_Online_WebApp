@@ -19,12 +19,8 @@ class AdminUser(db.Model, UserMixin):
     is_active = db.Column(db.Boolean, default=True)
 
     def _get_encryption_key(self):
-        """جلب المفتاح من ملف Config (عبر current_app) أو من البيئة مباشرة"""
-        try:
-            # الأولوية للـ Config الموحد
-            return current_app.config.get('ENCRYPTION_KEY')
-        except:
-            return os.environ.get('ENCRYPTION_KEY')
+        # الاعتماد على الإعدادات المركزية
+        return current_app.config.get('ENCRYPTION_KEY') or os.environ.get('ENCRYPTION_KEY')
 
     @property
     def phone_number(self):
@@ -35,7 +31,7 @@ class AdminUser(db.Model, UserMixin):
                     cipher = Fernet(key.encode())
                     return cipher.decrypt(self._phone_number_enc.encode()).decode()
             except:
-                return "خطأ في التشفير"
+                return "Error"
         return ""
     
     @phone_number.setter
@@ -53,6 +49,3 @@ class AdminUser(db.Model, UserMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
-    def __repr__(self):
-        return f'<AdminUser {self.username}>'
