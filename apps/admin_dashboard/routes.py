@@ -33,7 +33,7 @@ def dashboard():
         # 1. إحصائيات الموردين
         total_suppliers = Supplier.query.count()
         
-        # 2. الحل السيادي: جلب المحافظ وتجميع الأرصدة برمجياً لتجاوز قيود التشفير
+        # 2. الحل السيادي: جلب المحافظ وتجميع الأرصدة برمجياً
         all_wallets = SupplierWallet.query.all()
         
         total_sar = 0.0
@@ -41,19 +41,20 @@ def dashboard():
         total_usd = 0.0
         
         for w in all_wallets:
-            # استخدام try-except داخل الحلقة لضمان عدم توقف النظام عند حدوث أي خطأ في فك تشفير محفظة معينة
             try:
                 # الـ properties هنا تستدعي AESCipher.decrypt تلقائياً
+                # تأكد أن هذه القيم تعود بنوع يمكن تحويله لـ float
                 val_sar = w.balance_sar
                 val_yer = w.balance_yer
                 val_usd = w.balance_usd
                 
-                # التحويل الآمن لـ float مع معالجة القيم الفارغة
                 total_sar += float(val_sar) if val_sar is not None else 0.0
                 total_yer += float(val_yer) if val_yer is not None else 0.0
                 total_usd += float(val_usd) if val_usd is not None else 0.0
-            except:
-                # في حال تعذر فك تشفير محفظة معينة، نعتبر رصيدها 0 ونستمر
+            except (ValueError, TypeError):
+                continue
+            except Exception:
+                # في حال فشل فك التشفير، نتجاوز هذه المحفظة
                 continue
 
         # 3. جلب آخر 10 عمليات مالية
@@ -75,7 +76,7 @@ def dashboard():
         return render_template('admin/dashboard_content.html', **context)
         
     except Exception as e:
-        # تسجيل الخطأ تقنياً وإظهاره بشكل مبسط في الصفحة
+        # تسجيل الخطأ
         print(f"🚨 Dashboard Error: {str(e)}")
         return f"🚨 عطل في المحرك المالي: {str(e)}", 500
 
