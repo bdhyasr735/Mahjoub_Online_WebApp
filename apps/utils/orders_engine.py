@@ -1,28 +1,35 @@
-# 📂 apps/utils/orders_engine.py
+# 📂 apps/utils/bridge_engine.py
+import requests
 import logging
-from apps.utils.bridge_engine import execute_query
 
 logger = logging.getLogger(__name__)
 
-def get_pending_orders():
-    # استعلام شامل للتحقق من هيكلية البيانات
-    query = """
-    query {
-      findAllOrders {
-        __typename
-        items {
-          id
-          totalPrice
-        }
-      }
-    }
+# ضع رابط الـ API الخاص بـ قمرة هنا (أو اتركه يقرأ من متغيرات البيئة)
+QUMRA_API_URL = "https://api.qumra.sa/graphql" 
+
+def execute_query(query, variables=None):
     """
+    المحرك الأساسي لإرسال استعلامات GraphQL إلى منصة قمرة.
+    """
+    headers = {
+        "Content-Type": "application/json",
+        # "Authorization": "Bearer YOUR_TOKEN_HERE" # أضف التوكن الخاص بك هنا إذا كان مطلوباً
+    }
+    
+    payload = {
+        "query": query,
+        "variables": variables or {}
+    }
+    
     try:
-        result = execute_query(query)
-        # هذا السطر سيطبع في سجلات Render كل ما يأتي من قمرة
-        logger.info(f"DEBUG_DATA: {result}")
+        response = requests.post(QUMRA_API_URL, json=payload, headers=headers)
         
-        return result.get('data', {}).get('findAllOrders', {}).get('items', [])
-    except Exception as e:
-        logger.error(f"Error: {e}")
-        return []
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.error(f"Qumra API Error: Status {response.status_code} - {response.text}")
+            return None
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Connection failed to Qumra API: {str(e)}")
+        return None
