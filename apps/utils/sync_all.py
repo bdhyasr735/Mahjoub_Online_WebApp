@@ -2,46 +2,42 @@
 import logging
 from apps.extensions import db
 from apps.utils.orders_engine import get_pending_orders
-# افترضنا وجود كلاس الطلبات في ملف الموديلات
-from apps.models.wallet_db import WalletTransaction 
+from apps.models.wallet_db import WalletTransaction # تأكد من مطابقة اسم الموديل في مشروعك
 
 logger = logging.getLogger(__name__)
 
 def sync_orders_to_local():
     """
-    جلب الطلبات المعلقة من منصة قمرة وحفظها في قاعدة البيانات المحلية.
+    مزامنة البيانات من قمرة وحفظ الحوالات والطلبات الجديدة في قاعدة البيانات المحلية.
     """
-    logger.info("Starting synchronization process...")
+    logger.info("Starting synchronization process with Mahjoub Online...")
     
     try:
-        # 1. جلب الطلبات من المحرك
         remote_orders = get_pending_orders()
         
         if not remote_orders:
-            logger.info("No pending orders found to sync.")
+            logger.info("No orders found on the remote server to sync.")
             return {"status": "success", "count": 0}
             
         count = 0
         for order in remote_orders:
-            # 2. التحقق مما إذا كان الطلب موجوداً مسبقاً (لتجنب التكرار)
+            # التحقق من عدم إدراج المعاملة مسبقاً لمنع تكرار الحسابات المعتمدة
             existing = WalletTransaction.query.filter_by(order_id=str(order['id'])).first()
             
             if not existing:
-                # 3. إنشاء سجل جديد في قاعدة البيانات المحلية
                 new_txn = WalletTransaction(
                     order_id=str(order['id']),
-                    amount=str(order.get('totalPrice', 0)),
-                    currency='SAR', # أو حسب عملة قمرة
+                    amount=float(order.get('totalPrice', 0)),
+                    currency='SAR',
                     transaction_type='pending',
-                    description=f"Sync from Qumra: Order #{order['id']}",
+                    description=f"Automated Sync: Order #{order['id']}",
                     status='pending'
                 )
                 db.session.add(new_txn)
                 count += 1
         
-        # 4. حفظ التغييرات
         db.session.commit()
-        logger.info(f"Successfully synced {count} new orders.")
+        logger.info(f"Successfully synced {count} new transactions to local database.")
         return {"status": "success", "count": count}
 
     except Exception as e:
@@ -50,5 +46,4 @@ def sync_orders_to_local():
         return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
-    # هذا الجزء يسمح لك بتشغيل المزامنة يدوياً من السيرفر
     sync_orders_to_local()
