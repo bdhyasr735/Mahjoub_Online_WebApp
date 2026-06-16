@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# الرابط الصحيح والمطابق لإعدادات الـ Sandbox الخاصة بك
+# الرابط الفعلي والمباشر لنظامك بناءً على إعدادات الـ Sandbox الخاصة بك
 QUMRA_API_URL = "https://mahjoub.online/admin/graphql" 
 
 def execute_query(query, variables=None):
@@ -13,8 +13,8 @@ def execute_query(query, variables=None):
     """
     headers = {
         "Content-Type": "application/json",
-        # إذا كنت تحتاج إلى مفتاح API أو Token للوصول، يتم تضمينه هنا:
-        # "Authorization": "Bearer YOUR_TOKEN_HERE" 
+        # يمكنك إضافة الـ Authorization Token هنا إذا كان نظام قمرة يتطلبه خارج الـ Sandbox
+        # "Authorization": "Bearer YOUR_ACCESS_TOKEN"
     }
     
     payload = {
