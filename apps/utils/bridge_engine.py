@@ -1,29 +1,25 @@
 import requests
-import json
 
-# الرابط الأساسي للـ GraphQL
+# التوكن الخاص بك
+ACCESS_TOKEN = "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9"
 ENDPOINT = "https://mahjoub.online/admin/graphql"
 
-# ضع الـ Token الخاص بك هنا (يفضل لاحقاً سحبه من متغيرات البيئة)
-ACCESS_TOKEN = "ضع_الـ_TOKEN_الخاص_بك_هنا"
-
 def execute_query(query, variables=None):
-    """
-    الدالة الأساسية لإرسال أي طلب (Query/Mutation) إلى قمرة
-    """
     headers = {
         "Authorization": f"Bearer {ACCESS_TOKEN}",
         "Content-Type": "application/json"
     }
-    
     payload = {"query": query}
     if variables:
         payload["variables"] = variables
         
     try:
         response = requests.post(ENDPOINT, json=payload, headers=headers)
-        response.raise_for_status() # للتأكد من عدم وجود أخطاء في الاتصال
-        return response.json()
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"خطأ في الاتصال: {response.status_code} - {response.text}")
+            return None
     except Exception as e:
-        print(f"حدث خطأ في الاتصال بقمرة: {e}")
+        print(f"حدث استثناء: {e}")
         return None
