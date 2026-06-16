@@ -52,12 +52,13 @@ def create_app():
 
     # إعداد البيانات التأسيسية السيادية للنظام
     with app.app_context():
-        # استيراد الموديلات الأساسية المستقرة فقط (تطهير كامل من جداول المنتجات القديمة)
+        # استيراد الموديلات الأساسية المستقرة بالإضافة للموديل المشفر الجديد للطلبات
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.wallet_db import SupplierWallet
         from apps.models.financial_db import ExchangeRate
         from apps.models.vault_db import AdminVault
+        from apps.models.orders_db import ProcessedOrder  # 👈 تم الربط هنا لإنهاء مشكلة الإكس الأحمر
 
         try:
             # بناء الجداول الأساسية المعتمدة فقط في الداتابيز
