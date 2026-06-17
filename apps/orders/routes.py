@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/orders/routes.py - إدارة الطلبات (يدعم الترقيم والعمليات)
+# 📂 apps/orders/routes.py - إدارة الطلبات (النسخة المتوافقة مع التحديثات)
 
 from flask import Blueprint, render_template, flash, redirect, url_for, request
 from flask_login import login_required
@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 @orders_blueprint.route('/dashboard', methods=['GET'])
 @login_required
 def orders_dashboard():
-    """عرض قائمة الطلبات مع الترقيم (Pagination)"""
+    """عرض قائمة الطلبات مع الترقيم"""
     page = request.args.get('page', 1, type=int)
-    # جلب الطلبات مقسمة إلى صفحات (10 طلبات في كل صفحة)
+    # جلب الطلبات مرتبة من الأحدث
     pagination = ProcessedOrder.query.order_by(ProcessedOrder.created_at_api.desc()).paginate(page=page, per_page=10)
     
     return render_template('admin/orders_dashboard.html', pagination=pagination)
@@ -39,7 +39,8 @@ def sync_all():
 @login_required
 def cancel_order_route(order_id):
     result = SyncEngine.cancel_order(order_id)
-    if result and 'errors' not in result:
+    # فحص النتيجة بناءً على هيكلية GraphQL
+    if result and 'errors' not in result.get('data', {}):
         flash(f"تم إلغاء الطلب {order_id}.", "info")
     else:
         flash("فشل إلغاء الطلب في قمرة.", "danger")
@@ -49,7 +50,7 @@ def cancel_order_route(order_id):
 @login_required
 def fulfill_order_route(order_id):
     result = SyncEngine.mark_as_fulfilled(order_id)
-    if result and 'errors' not in result:
+    if result and 'errors' not in result.get('data', {}):
         flash(f"تم تحديث الطلب {order_id} إلى 'مشحون'.", "success")
     else:
         flash("فشل تحديث الشحن.", "danger")
@@ -82,7 +83,7 @@ def update_status_route(order_id):
         return redirect(url_for('orders.orders_dashboard'))
         
     result = SyncEngine.update_order_status(order_id, new_status)
-    if result and 'errors' not in result:
+    if result and 'errors' not in result.get('data', {}):
         flash(f"تم تحديث حالة الطلب {order_id}.", "success")
     else:
         flash("فشل التحديث في قمرة.", "danger")
