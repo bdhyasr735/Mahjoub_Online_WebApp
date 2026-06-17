@@ -3,7 +3,26 @@
 {% block title %}إدارة الطلبات | القيادة المركزية{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
+<div class="container-fluid mt-4" style="direction: rtl; text-align: right;">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('admin_dashboard.index') }}" class="btn btn-outline-secondary px-3 py-2 fw-bold me-2" style="border-radius: 6px;">
+                <i class="bi bi-arrow-right me-1"></i> رجوع
+            </a>
+            <button class="btn btn-primary px-4 py-2 fw-bold me-2" style="background-color: #008489; border: none; border-radius: 6px;">
+                <i class="bi bi-plus-lg me-1"></i> إنشاء طلب
+            </button>
+            <button class="btn btn-light border px-3 py-2 fw-bold text-muted" style="border-radius: 6px;">إخفاء الإحصائيات</button>
+        </div>
+        
+        <form action="{{ url_for('orders.sync_all') }}" method="POST" id="syncForm">
+            <button type="submit" class="btn btn-info text-white px-4 py-2 fw-bold" id="syncBtn" style="border-radius: 6px;">
+                <i class="bi bi-cloud-download me-2"></i> مزامنة الكل من قمرة
+            </button>
+        </form>
+    </div>
+
     <div class="row mb-4">
         {% for title, count, color in [
             ('الطلبات الملغاة', 0, 'danger'), 
@@ -12,10 +31,10 @@
             ('عدد الطلبات', pagination.total if pagination else 0, 'primary')
         ] %}
         <div class="col-md-3">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0" style="border-radius: 8px;">
                 <div class="card-body">
-                    <h6 class="text-muted">{{ title }}</h6>
-                    <h3 class="fw-bold">{{ count }}</h3>
+                    <h6 class="text-muted fw-bold" style="font-size: 0.85rem;">{{ title }}</h6>
+                    <h3 class="fw-bold my-2">{{ count }}</h3>
                     <div class="progress" style="height: 4px;">
                         <div class="progress-bar bg-{{ color }}" style="width: 100%"></div>
                     </div>
@@ -25,19 +44,41 @@
         {% endfor %}
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold">قائمة الطلبات</h4>
-        <form action="{{ url_for('orders.sync_all') }}" method="POST" id="syncForm">
-            <button type="submit" class="btn btn-primary px-4" id="syncBtn">
-                <i class="bi bi-cloud-download me-2"></i> مزامنة الكل من قمرة
-            </button>
-        </form>
+    <div class="card border-0 shadow-sm p-3 mb-4 bg-white" style="border-radius: 8px;">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 border-start" style="border-radius: 0 6px 6px 0;"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="بحث برقم الطلب، اسم العميل..." style="border-radius: 6px 0 0 6px;">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select bg-light border-0 fw-bold text-muted" id="filterStatus" style="border-radius: 6px;">
+                    <option value="">حالة الطلب (الجميع)</option>
+                    <option value="انتظار">قيد الانتظار</option>
+                    <option value="التجهيز">جاري التجهيز</option>
+                    <option value="مكتمل">مكتمل</option>
+                    <option value="ملغ">ملغى</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select bg-light border-0 fw-bold text-muted" id="filterShipping" style="border-radius: 6px;">
+                    <option value="">حالة الشحن (الجميع)</option>
+                    <option value="غير مجهز">غير مجهز</option>
+                    <option value="تم الشحن">تم الشحن</option>
+                    <option value="تم التوصيل">تم التوصيل</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-light border w-100 fw-bold" style="border-radius: 6px; color: #555;"><i class="bi bi-funnel me-1"></i> فلاتر إضافية</button>
+            </div>
+        </div>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card border-0 shadow-sm" style="border-radius: 8px; overflow: hidden;">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+            <table class="table table-hover align-middle mb-0" id="ordersTable">
+                <thead style="background-color: #f8f9fa; color: #555; font-size: 0.9rem;">
                     <tr>
                         <th class="ps-4">رقم الطلب</th>
                         <th>العميل</th>
@@ -46,22 +87,28 @@
                         <th>الدفع</th>
                         <th>حالة الطلب</th>
                         <th>حالة الشحن</th>
+                        <th style="color: #008489; font-weight: bold;">المورد المحلي</th>
                         <th>العدد</th>
                         <th>المصدر</th>
                         <th>التاريخ</th>
                         <th class="text-center">الإجراءات</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody style="font-size: 0.92rem;">
                     {% for order in pagination.items %}
-                    <tr>
-                        <td class="ps-4 fw-bold">{{ order.id }}</td>
-                        <td>{{ order.customer_name or '---' }}</td>
-                        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ order.shipping_address or '---' }}</td>
-                        <td>{{ "%.2f"|format(order.total_price or 0) }} ر.س</td>
+                    <tr class="order-row" data-status="{{ order.status or 'قيد الانتظار' }}" data-shipping="{{ order.shipping_status or '---' }}">
+                        <td class="ps-4">
+                            <a href="{{ url_for('orders.process_order', order_id=order.id) }}" class="fw-bold text-decoration-none" style="color: #008489;">
+                                #{{ order.id[:12] }}...
+                            </a>
+                        </td>
+                        <td class="fw-bold">{{ order.customer_name or '---' }}</td>
+                        <td class="text-muted" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ order.shipping_address }}">
+                            {{ order.shipping_address or '---' }}
+                        </td>
+                        <td class="fw-bold text-dark">{{ "%.2f"|format(order.total_price or 0) }} ر.س</td>
                         <td>{{ order.payment_method or '---' }}</td>
                         <td>
-                            {# معالجة وتلوين الحالة تلقائياً بناءً على القيمة النصية المستلمة #}
                             {% if 'ملغ' in order.status or 'cancel' in order.status|lower %}
                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">{{ order.status }}</span>
                             {% elif 'توصيل' in order.status or 'شحن' in order.status or 'deliv' in order.status|lower or 'fulfill' in order.status|lower %}
@@ -72,27 +119,42 @@
                                 <span class="badge bg-light text-dark border px-2 py-1">{{ order.status or 'قيد الانتظار' }}</span>
                             {% endif %}
                         </td>
-                        <td><span class="badge bg-light text-dark border">{{ order.shipping_status or '---' }}</span></td>
+                        <td><span class="badge bg-light text-dark border px-2 py-1">{{ order.shipping_status or '---' }}</span></td>
+                        
+                        <td>
+                            <select class="form-select form-select-sm border-0 bg-light fw-bold supplier-selector" data-order-id="{{ order.id }}" style="max-width: 140px; border-radius: 4px; color: #008489;">
+                                <option value="">-- اختار المورد --</option>
+                                {% for supplier in suppliers %}
+                                    <option value="{{ supplier.id }}" {% if order.supplier_id == supplier.id %}selected{% endif %}>{{ supplier.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        
                         <td>{{ order.items_count or 1 }}</td>
-                        <td><span class="badge bg-info text-white">{{ order.source or 'المتجر' }}</span></td>
-                        <td>{{ order.created_at_api.strftime('%Y-%m-%d') if order.created_at_api else '---' }}</td>
+                        <td><span class="badge bg-info text-white" style="font-weight: 500;">{{ order.source or 'المتجر' }}</span></td>
+                        <td class="text-muted" style="font-size: 0.85rem;">{{ order.created_at_api.strftime('%Y-%m-%d') if order.created_at_api else '---' }}</td>
+                        
                         <td class="text-center">
-                            <div class="btn-group">
-                                <form action="{{ url_for('orders.cancel_order_route', order_id=order.id) }}" method="POST" class="me-1">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="إلغاء"><i class="bi bi-x-circle"></i></button>
-                                </form>
-                                <form action="{{ url_for('orders.fulfill_order_route', order_id=order.id) }}" method="POST" class="me-1">
-                                    <button type="submit" class="btn btn-sm btn-outline-info" title="شحن"><i class="bi bi-box-seam"></i></button>
-                                </form>
-                                <form action="{{ url_for('orders.process_order', order_id=order.id) }}" method="POST">
-                                    <button type="submit" class="btn btn-sm btn-outline-success" title="تسوية"><i class="bi bi-check-circle"></i></button>
-                                </form>
+                            <div class="dropdown">
+                                <button class="btn btn-link text-dark p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="box-shadow: none;">
+                                    <i class="bi bi-three-dots fs-5"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end text-right shadow-sm" style="text-align: right; border-radius: 6px;">
+                                    <li><a class="dropdown-item py-2" href="{{ url_for('orders.process_order', order_id=order.id) }}"><i class="bi bi-eye me-2 text-muted"></i> عرض الطلب</a></li>
+                                    <li><a class="dropdown-item py-2 text-primary" href="{{ url_for('orders.download_invoice', order_id=order.id) }}"><i class="bi bi-file-earmark-pdf me-2"></i> تحميل الفاتورة</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form action="{{ url_for('orders.cancel_order_route', order_id=order.id) }}" method="POST" onsubmit="return confirm('هل أنت متأكد من إلغاء هذا الطلب؟');">
+                                            <button type="submit" class="dropdown-item py-2 text-danger"><i class="bi bi-x-circle me-2"></i> إلغاء الطلب</button>
+                                        </form>
+                                    </li>
+                                </ul>
                             </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="11" class="text-center py-4 text-muted">لا توجد طلبات لعرضها حالياً. اضغط "مزامنة الكل" لجلب البيانات.</td>
+                        <td colspan="12" class="text-center py-5 text-muted">لا توجد طلبات متوفرة حالياً. اضغط على زر "مزامنة الكل" لجلب البيانات.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -100,13 +162,13 @@
         </div>
         
         {% if pagination and pagination.pages > 1 %}
-        <div class="card-footer bg-white py-3">
+        <div class="card-footer bg-white py-3 border-top-0">
             <nav>
                 <ul class="pagination justify-content-center mb-0">
                     {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                         {% if page_num %}
                             <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('orders.orders_dashboard', page=page_num) }}">{{ page_num }}</a>
+                                <a class="page-link" href="{{ url_for('orders.orders_dashboard', page=page_num) }}" style="color: #008489;">{{ page_num }}</a>
                             </li>
                         {% else %}
                             <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -120,6 +182,66 @@
 </div>
 
 <script>
+// أ) محرك البحث والفلاتر الفورية (دقة وعملية وسرعة)
+const searchInput = document.getElementById('searchInput');
+const filterStatus = document.getElementById('filterStatus');
+const filterShipping = document.getElementById('filterShipping');
+
+function filterTable() {
+    let searchText = searchInput.value.toLowerCase();
+    let statusVal = filterStatus.value;
+    let shippingVal = filterShipping.value;
+    
+    document.querySelectorAll('#ordersTable tbody .order-row').forEach(row => {
+        let textMatch = row.textContent.toLowerCase().includes(searchText);
+        let statusMatch = !statusVal || row.getAttribute('data-status').includes(statusVal);
+        let shippingMatch = !shippingVal || row.getAttribute('data-shipping').includes(shippingVal);
+        
+        if (textMatch && statusMatch && shippingMatch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+searchInput.addEventListener('keyup', filterTable);
+filterStatus.addEventListener('change', filterTable);
+filterShipping.addEventListener('change', filterTable);
+
+// ب) تحديث وحفظ رقم المورد تلقائياً فور الاختيار بدون عمل Refresh للصفحة (AJAX)
+document.querySelectorAll('.supplier-selector').forEach(select => {
+    select.addEventListener('change', function() {
+        const orderId = this.getAttribute('data-order-id');
+        const supplierId = this.value;
+        
+        this.style.opacity = '0.5'; 
+        
+        fetch(`/orders/update-supplier/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ supplier_id: supplierId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            this.style.opacity = '1';
+            if (data.status === 'success') {
+                this.classList.add('is-valid');
+                setTimeout(() => this.classList.remove('is-valid'), 1200);
+            } else {
+                alert('❌ فشل حفظ المورد في قاعدة البيانات، يرجى المحاولة مرة أخرى.');
+            }
+        })
+        .catch(error => {
+            this.style.opacity = '1';
+            console.error('Error:', error);
+        });
+    });
+});
+
+// ج) تأثير زر المزامنة
 document.getElementById('syncForm').addEventListener('submit', function() {
     var btn = document.getElementById('syncBtn');
     btn.disabled = true;
@@ -127,5 +249,11 @@ document.getElementById('syncForm').addEventListener('submit', function() {
 });
 </script>
 
+<style>
+    .dropdown-item:hover { background-color: #f1f8f8; color: #008489 !important; }
+    .form-select:focus, .form-control:focus { border-color: #008489 !important; box-shadow: 0 0 0 0.2rem rgba(0, 132, 137, 0.15) !important; }
+    .is-valid { border: 1px solid #198754 !important; background-color: #e8f5e9 !important; }
+    .page-item.active .page-link { background-color: #008489 !important; border-color: #008489 !important; color: white !important; }
+</style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 {% endblock %}
