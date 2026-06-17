@@ -11,7 +11,7 @@ def create_app():
     app = Flask(__name__, template_folder='templates', static_folder='static', instance_relative_config=True)
     app.config.from_object(Config)
 
-    # 2. 🛡️ سياسة أمان المحتوى (CSP)
+    # 2. 🛡️ سياسة أمان المحتوى (CSP) - تعزيز أمان المتصفح
     csp_policy = {
         'default-src': ["'self'"],
         'style-src': ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
@@ -22,7 +22,7 @@ def create_app():
     Talisman(app, force_https=True, content_security_policy=csp_policy,
              frame_options='SAMEORIGIN', referrer_policy='strict-origin-when-cross-origin')
 
-    # 3. تهيئة الإضافات
+    # 3. تهيئة الإضافات (Extensions)
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -33,7 +33,7 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. تسجيل المسارات (Blueprints)
+    # 4. تسجيل المسارات (Blueprints) - هيكلة القسم الإداري والمالي
     from apps.auth_portal.routes import auth_portal
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
@@ -47,7 +47,7 @@ def create_app():
     app.register_blueprint(vault_bp, url_prefix='/vault')
     app.register_blueprint(orders_blueprint, url_prefix='/orders')
     
-    # تسجيل الويب هوك - الرابط النهائي سيكون: /api/webhooks
+    # تسجيل الويب هوك - نقطة الاستقبال المباشرة من قمرا
     app.register_blueprint(webhooks_bp, url_prefix='/api')
 
     # 5. إعداد البيانات التأسيسية وهيكلة الجداول ذاتياً
@@ -62,10 +62,10 @@ def create_app():
             from apps.models.vault_db import AdminVault, VaultTransaction
             from apps.models.wallet_db import SupplierWallet, WalletTransaction
             
-            # إنشاء الجداول تلقائياً
+            # إنشاء الجداول تلقائياً في قاعدة البيانات
             db.create_all() 
             
-            # تأسيس المسؤول الأول (المدير السيادي)
+            # تأسيس المسؤول الأول (المدير السيادي) إذا لم يكن موجوداً
             if not AdminUser.query.filter_by(username='علي_محجوب').first():
                 admin = AdminUser(username='علي_محجوب', role='Owner', phone_number='0000000000')
                 admin.set_password('123')
