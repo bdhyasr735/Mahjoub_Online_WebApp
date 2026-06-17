@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify
 import hmac
 import hashlib
 import logging
-# تم التصحيح: استيراد Config مباشرة من المجلد الجذر
+# استيراد من المجلد الجذر لتجنب خطأ الاستيراد في سيرفر الإنتاج
 from config import Config 
 from apps.extensions import db
 from apps.models.orders_db import ProcessedOrder
