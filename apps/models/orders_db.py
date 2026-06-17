@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/orders_db.py - نموذج الطلبات التفصيلي والمشفر (محدث)
+# 📂 apps/models/orders_db.py - نموذج الطلبات التفصيلي والمشفر (محدث ومتوافق)
 
 import base64
 import hashlib
@@ -29,7 +29,7 @@ class ProcessedOrder(db.Model):
     id = db.Column(db.String(100), primary_key=True) 
     status = db.Column(db.String(50), default='pending')
     
-    # حقول جديدة لتطابق بيانات API قمرة
+    # حقول لتطابق بيانات API قمرة
     customer_name = db.Column(db.String(255), nullable=True)
     items_count = db.Column(db.Integer, default=0)
     shipping_status = db.Column(db.String(50), nullable=True)
@@ -41,12 +41,14 @@ class ProcessedOrder(db.Model):
     created_at_api = db.Column(db.DateTime, nullable=True) 
     processed_at = db.Column(db.DateTime, default=datetime.utcnow) 
     
-    # الحقل المشفر للقيمة المالية
-    _encrypted_total_price = db.Column(db.Text, nullable=False)
+    # الحقل المشفر للقيمة المالية (تم جعله nullable=True لمرونة أكبر)
+    _encrypted_total_price = db.Column(db.Text, nullable=True)
 
     # 2. إدارة التشفير
     @property
     def total_price(self):
+        if not self._encrypted_total_price:
+            return Decimal('0.0')
         try:
             decrypted_val = cipher_suite.decrypt(self._encrypted_total_price.encode()).decode()
             return Decimal(decrypted_val)
@@ -57,7 +59,8 @@ class ProcessedOrder(db.Model):
     @total_price.setter
     def total_price(self, value):
         try:
-            self._encrypted_total_price = cipher_suite.encrypt(str(value).encode()).decode()
+            val_to_encrypt = str(value) if value is not None else '0.0'
+            self._encrypted_total_price = cipher_suite.encrypt(val_to_encrypt.encode()).decode()
         except Exception as e:
             logger.error(f"❌ خطأ أثناء تشفير السعر للطلب {self.id}: {e}")
             raise ValueError("فشل تشفير القيمة المالية")
