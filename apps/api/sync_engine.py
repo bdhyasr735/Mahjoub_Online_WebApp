@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المتطور (يدعم التصفح التلقائي)
+# 📂 apps/api/sync_engine.py - محرك المزامنة المحدث (متوافق مع GraphQL)
 
 import requests
 import logging
@@ -22,17 +22,17 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
-        """جلب ومزامنة الطلبات من كافة الصفحات (نظام 10 طلبات لكل صفحة)"""
+        """جلب ومزامنة الطلبات من كافة الصفحات"""
         page = 1
         has_next_page = True
         
         while has_next_page:
             logger.info(f"🔄 [SyncEngine] جاري جلب الصفحة رقم: {page}")
             
-            # استعلام يدعم التصفح (Pagination)
+            # الاستعلام المحدث بناءً على توثيق GraphQL
             query = """
             query($page: Int) {
-                findAllOrders(page: $page, limit: 10) {
+                orders(page: $page, limit: 10) {
                     data {
                         _id
                         status
@@ -54,22 +54,20 @@ class SyncEngine:
                 )
                 
                 if response.status_code != 200:
-                    logger.error(f"❌ [SyncEngine] فشل الاتصال في الصفحة {page}. الحالة: {response.status_code}")
+                    logger.error(f"❌ [SyncEngine] فشل الاتصال (كود {response.status_code}). الرد: {response.text}")
                     return False
 
                 result = response.json()
-                data_wrapper = result.get('data', {}).get('findAllOrders', {})
+                data_wrapper = result.get('data', {}).get('orders', {})
                 orders_data = data_wrapper.get('data', [])
                 pagination = data_wrapper.get('pagination', {})
                 
-                # تحديث حالة التصفح
                 has_next_page = pagination.get('hasNextPage', False)
 
                 if not orders_data:
-                    logger.warning(f"⚠️ [SyncEngine] الصفحة {page} فارغة.")
+                    logger.warning(f"⚠️ [SyncEngine] الصفحة {page} فارغة أو انتهت البيانات.")
                     break
 
-                # معالجة الطلبات وحفظها
                 for item in orders_data:
                     order_id = str(item.get('_id'))
                     if not order_id: continue
@@ -92,18 +90,15 @@ class SyncEngine:
                 
                 db.session.commit()
                 logger.info(f"✅ [SyncEngine] تم حفظ {len(orders_data)} طلب من الصفحة {page}.")
-                
-                page += 1 # الانتقال للصفحة التالية
+                page += 1
 
             except Exception as e:
                 logger.error(f"❌ [SyncEngine] خطأ أثناء معالجة الصفحة {page}: {str(e)}")
                 db.session.rollback()
                 return False
         
-        logger.info("🏁 [SyncEngine] اكتملت عملية المزامنة الشاملة بنجاح.")
         return True
 
-    # --- باقي دوال الـ Mutation تظل كما هي ---
     @staticmethod
     def _execute_mutation(mutation, variables):
         try:
