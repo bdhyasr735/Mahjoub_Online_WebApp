@@ -20,10 +20,11 @@ def handle_qumra_webhook():
     تعتمد على التوقيع المشفر (HMAC-SHA256) للأمان.
     """
     
-    # 1. تشخيص الترويسات (للتعرف على اسم الـ Header الصحيح في سجلات Render)
+    # 1. تشخيص الترويسات (يظهر في سجلات Render)
+    # ملاحظة: إذا كان التوقيع لا يتطابق، افحص هذه السجلات لمعرفة الاسم الصحيح للـ Header
     logger.info(f"Incoming Request Headers: {dict(request.headers)}")
     
-    # الحصول على التوقيع - تم دمج خيارات الأسماء المحتملة
+    # الحصول على التوقيع - دمج خيارات الأسماء المحتملة
     signature = request.headers.get('X-WebHook-Signature') or request.headers.get('X-Signature')
     
     if not signature:
@@ -32,7 +33,7 @@ def handle_qumra_webhook():
 
     # 2. التحقق من التوقيع الأمني (مع تنظيف المفتاح من أي مسافات زائدة)
     secret = Config.WEBHOOK_SECRET.strip().encode('utf-8')
-    payload = request.get_data() # استخدام get_data() لضمان الحصول على البيانات الخام كما وصلت
+    payload = request.get_data() # استخدام البيانات الخام كما وصلت من قمرا
     
     expected_signature = hmac.new(secret, payload, hashlib.sha256).hexdigest()
 
@@ -50,6 +51,9 @@ def handle_qumra_webhook():
     if not data:
         return jsonify({"error": "No data received"}), 400
         
+    # 🔍 سجل كاشف: طباعة كامل هيكل البيانات لمعرفة مكان وجود المنتجات والبيانات المطلوبة
+    logger.info(f"DEBUG: Full Order Data Received: {data}")
+    
     event = data.get('event')
     order_data = data.get('data', {})
 
@@ -69,6 +73,7 @@ def handle_qumra_webhook():
             order.status = order_data.get('status', 'pending')
             
             # تحديث القيمة المالية (الموديل سيقوم بالتشفير تلقائياً عبر total_price setter)
+            # نتحقق هنا من مكان وجود 'amount' في هيكل البيانات بناءً على الـ DEBUG
             total_amount = order_data.get('total', {}).get('amount', 0.0)
             order.total_price = float(total_amount)
             
