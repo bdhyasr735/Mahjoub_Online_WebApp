@@ -35,14 +35,21 @@ class ProcessedOrder(db.Model):
     shipping_status = db.Column(db.String(50), nullable=True)
     shipping_address = db.Column(db.Text, nullable=True)
     payment_method = db.Column(db.String(100), nullable=True)
+    payment_status = db.Column(db.String(50), default='غير مدفوع')  # مضاف لدعم فلاتر الدفع باللوحة
     source = db.Column(db.String(100), nullable=True)
     
-    # التواريخ (تم تصحيح تفعيل دالة الوقت الافتراضية هنا لتوليد التوقيت لحظة الحفظ)
+    # 🔗 مفتاح الربط مع المورد المحلي (مضاف لتخزين خيارات الـ AJAX باللوحة)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
+    
+    # التواريخ (توليد التوقيت لحظة الحفظ)
     created_at_api = db.Column(db.DateTime, nullable=True) 
     processed_at = db.Column(db.DateTime, default=datetime.utcnow) 
     
     # الحقل المشفر للقيمة المالية (لا يتم التعامل معه مباشرة)
     _encrypted_total_price = db.Column(db.Text, nullable=True)
+
+    # علاقة اختيارية لقراءة بيانات المورد مباشرة إذا احتجت لها لاحقاً
+    supplier = db.relationship('Supplier', backref=db.backref('processed_orders', lazy='dynamic'))
 
     # 2. إدارة التشفير (Property Getters/Setters)
     @property
