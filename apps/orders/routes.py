@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/orders/routes.py - لوحة تحكم الطلبات والعمليات (النسخة النهائية المصححة)
+# 📂 apps/orders/routes.py - لوحة تحكم الطلبات والعمليات (النسخة النهائية)
 
 from flask import Blueprint, render_template, flash, redirect, url_for
 from flask_login import login_required
@@ -60,8 +60,8 @@ def process_order(order_id):
             flash(f"الطلب {order_id} غير موجود.", "warning")
             
     except Exception as e:
-        db.session.rollback()
+        db.session.rollback() # ضمان عدم ترك الجلسة في حالة معلقة
         logger.error(f"❌ [Process Error] خطأ تسوية الطلب {order_id}: {e}")
-        flash("حدث خطأ تقني.", "danger")
+        flash("حدث خطأ تقني أثناء معالجة الطلب.", "danger")
     
     return redirect(url_for('orders.orders_dashboard'))
