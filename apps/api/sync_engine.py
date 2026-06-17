@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المحدث (التوافق مع Schema)
+# 📂 apps/api/sync_engine.py - محرك المزامنة المحصن (مُجهز لكشف أخطاء الاتصال)
 
 import requests
 import logging
@@ -14,16 +14,16 @@ class SyncEngine:
 
     @staticmethod
     def _get_headers():
+        # أزلنا apollo-require-preflight لتجنب مشاكل التوافق إذا كان السيرفر لا يدعمه
         return {
             "Authorization": f"Bearer {SyncEngine.API_TOKEN}",
             "Content-Type": "application/json",
-            "Accept": "application/json",
-            "apollo-require-preflight": "true"
+            "Accept": "application/json"
         }
 
     @staticmethod
     def fetch_and_sync_order():
-        """جلب ومزامنة الطلبات بناءً على الـ Schema الجديدة"""
+        """جلب ومزامنة الطلبات مع معالجة دقيقة للأخطاء"""
         query = """
         query {
             findAllOrders {
@@ -32,7 +32,6 @@ class SyncEngine:
                     status
                     totalPrice
                     createdAt
-                    isPaid
                 }
             }
         }
@@ -42,21 +41,21 @@ class SyncEngine:
                 SyncEngine.API_URL, 
                 json={'query': query}, 
                 headers=SyncEngine._get_headers(),
-                timeout=15
+                timeout=20
             )
             
+            # --- آلية كشف الخطأ 400 بدقة ---
             if response.status_code != 200:
                 logger.error(f"❌ [SyncEngine] فشل الاتصال. حالة الـ HTTP: {response.status_code}")
+                logger.error(f"🔗 الرد التفصيلي من السيرفر: {response.text}")
                 return False
 
             result = response.json()
             
             if 'errors' in result:
-                logger.error(f"❌ [SyncEngine] خطأ من API قمرة: {result['errors']}")
+                logger.error(f"❌ [SyncEngine] خطأ GraphQL: {result['errors']}")
                 return False
             
-            # تصحيح مسار الوصول للبيانات حسب الـ Schema
-            # findAllOrders -> data -> [list of orders]
             orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
             
             if not orders_data:
@@ -66,7 +65,6 @@ class SyncEngine:
             logger.info(f"🔍 [SyncEngine] تم استلام {len(orders_data)} طلب.")
 
             for item in orders_data:
-                # المعرف هو _id وليس orderId
                 order_id = str(item.get('_id'))
                 if not order_id: continue
                 
@@ -74,15 +72,12 @@ class SyncEngine:
                 if not order:
                     order = ProcessedOrder(id=order_id)
                 
-                # تحديث البيانات المتاحة
                 order.status = item.get('status')
                 order.total_price = float(item.get('totalPrice', 0))
                 
-                # معالجة التاريخ
                 created_at = item.get('createdAt')
                 if created_at:
                     try:
-                        # حذف حرف Z إذا وجد وتنسيق التاريخ
                         date_str = created_at.replace('Z', '+00:00')
                         order.created_at_api = datetime.fromisoformat(date_str)
                     except: pass
@@ -94,7 +89,7 @@ class SyncEngine:
             return True
 
         except Exception as e:
-            logger.error(f"❌ [SyncEngine] خطأ تقني: {str(e)}")
+            logger.error(f"❌ [SyncEngine] خطأ استثنائي أثناء المزامنة: {str(e)}")
             db.session.rollback()
             return False
 
@@ -106,7 +101,9 @@ class SyncEngine:
                 json={'query': mutation, 'variables': variables}, 
                 headers=SyncEngine._get_headers()
             )
-            return response.json()
+            if response.status_code != 200:
+                logger.error(f"❌ [SyncEngine] فشل تنفيذ Mutation. الحالة: {response.status_code}")
+            return response.json() if response.status_code == 200 else None
         except Exception as e:
             logger.error(f"❌ [SyncEngine] خطأ Mutation: {e}")
             return None
