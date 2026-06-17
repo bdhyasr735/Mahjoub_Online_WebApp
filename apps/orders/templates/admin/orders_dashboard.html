@@ -5,7 +5,12 @@
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="row mb-4">
-        {% for title, count, color in [('الطلبات الملغاة', 0, 'danger'), ('الطلبات المكتملة', 0, 'success'), ('إجمالي المبيعات', 0, 'warning'), ('عدد الطلبات', pagination.total, 'primary')] %}
+        {% for title, count, color in [
+            ('الطلبات الملغاة', 0, 'danger'), 
+            ('الطلبات المكتملة', 0, 'success'), 
+            ('إجمالي المبيعات', 0, 'warning'), 
+            ('عدد الطلبات', pagination.total if pagination else 0, 'primary')
+        ] %}
         <div class="col-md-3">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
@@ -39,7 +44,7 @@
                         <th>عنوان الشحن</th>
                         <th>الإجمالي</th>
                         <th>الدفع</th>
-                        <th>حالة الدفع</th>
+                        <th>حالة الطلب</th>
                         <th>حالة الشحن</th>
                         <th>العدد</th>
                         <th>المصدر</th>
@@ -48,17 +53,27 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {# نستخدم pagination.items لجلب الطلبات الخاصة بالصفحة الحالية فقط #}
                     {% for order in pagination.items %}
                     <tr>
                         <td class="ps-4 fw-bold">{{ order.id }}</td>
                         <td>{{ order.customer_name or '---' }}</td>
                         <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ order.shipping_address or '---' }}</td>
-                        <td>{{ "%.2f"|format(order.total_price) }} ر.س</td>
+                        <td>{{ "%.2f"|format(order.total_price or 0) }} ر.س</td>
                         <td>{{ order.payment_method or '---' }}</td>
-                        <td><span class="badge bg-light text-dark border">{{ order.status|upper }}</span></td>
+                        <td>
+                            {# معالجة وتلوين الحالة تلقائياً بناءً على القيمة النصية المستلمة #}
+                            {% if 'ملغ' in order.status or 'cancel' in order.status|lower %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">{{ order.status }}</span>
+                            {% elif 'توصيل' in order.status or 'شحن' in order.status or 'deliv' in order.status|lower or 'fulfill' in order.status|lower %}
+                                <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">{{ order.status }}</span>
+                            {% elif 'مكتمل' in order.status or 'نجاح' in order.status or 'settled' in order.status|lower or 'complet' in order.status|lower %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">{{ order.status }}</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark border px-2 py-1">{{ order.status or 'قيد الانتظار' }}</span>
+                            {% endif %}
+                        </td>
                         <td><span class="badge bg-light text-dark border">{{ order.shipping_status or '---' }}</span></td>
-                        <td>{{ order.items_count }}</td>
+                        <td>{{ order.items_count or 1 }}</td>
                         <td><span class="badge bg-info text-white">{{ order.source or 'المتجر' }}</span></td>
                         <td>{{ order.created_at_api.strftime('%Y-%m-%d') if order.created_at_api else '---' }}</td>
                         <td class="text-center">
@@ -84,6 +99,7 @@
             </table>
         </div>
         
+        {% if pagination and pagination.pages > 1 %}
         <div class="card-footer bg-white py-3">
             <nav>
                 <ul class="pagination justify-content-center mb-0">
@@ -99,6 +115,7 @@
                 </ul>
             </nav>
         </div>
+        {% endif %}
     </div>
 </div>
 
