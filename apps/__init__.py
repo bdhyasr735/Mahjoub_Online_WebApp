@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/__init__.py - المصنع السيادي للنظام (النسخة النهائية والمصححة)
 
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_talisman import Talisman
 from config import Config
 from apps.extensions import db, login_manager, migrate
@@ -41,7 +41,12 @@ def create_app():
     from apps.orders.routes import orders_blueprint
     from apps.api.webhooks import webhooks_bp
 
-    app.register_blueprint(auth_portal, url_prefix='/')
+    # مسار التوجيه الرئيسي لحل مشكلة الـ 404
+    @app.route('/')
+    def index():
+        return redirect(url_for('auth_portal.login'))
+
+    app.register_blueprint(auth_portal, url_prefix='/auth')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
     app.register_blueprint(vault_bp, url_prefix='/vault')
