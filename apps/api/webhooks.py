@@ -1,11 +1,12 @@
 # coding: utf-8
-# 📂 apps/api/webhooks.py - معالج الويب هوك السيادي (النسخة النهائية)
+# 📂 apps/api/webhooks.py - معالج الويب هوك السيادي (النسخة النهائية والمصححة)
 
 from flask import Blueprint, request, jsonify
 import hmac
 import hashlib
 import logging
-from apps.config import Config
+# تم التصحيح: استيراد Config مباشرة من المجلد الجذر
+from config import Config 
 from apps.extensions import db
 from apps.models.orders_db import ProcessedOrder
 
@@ -16,7 +17,6 @@ logger = logging.getLogger(__name__)
 @webhooks_bp.route('/webhooks', methods=['POST'])
 def handle_qumra_webhook():
     # 1. التحقق من التوقيع الأمني (Signature Verification)
-    # نستخدم hmac للمطابقة مع المفتاح السري المسجل في الـ Config
     signature = request.headers.get('X-WebHook-Signature')
     if not signature:
         logger.warning("⚠️ محاولة وصول بدون توقيع!")
@@ -41,7 +41,6 @@ def handle_qumra_webhook():
     logger.info(f"✅ تم استلام ويب هوك نوع: {event}")
 
     # 3. معالجة وحفظ الطلب
-    # نتأكد من نوع الحدث ونقوم بعملية الحفظ/التحديث
     if event in ['order/created', 'order/updated']:
         order_id = str(order_data.get('id', ''))
         
