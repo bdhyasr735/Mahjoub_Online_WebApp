@@ -11,7 +11,7 @@ def create_app():
     app = Flask(__name__, template_folder='templates', static_folder='static', instance_relative_config=True)
     app.config.from_object(Config)
 
-    # 2. 🛡️ سياسة أمان المحتوى (CSP) - محسنة للعمل مع الخدمات الخارجية
+    # 2. 🛡️ سياسة أمان المحتوى (CSP)
     csp_policy = {
         'default-src': ["'self'"],
         'style-src': ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
