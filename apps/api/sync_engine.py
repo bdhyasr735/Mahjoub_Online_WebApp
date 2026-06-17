@@ -1,9 +1,8 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المصحح (يدعم status object)
+# 📂 apps/api/sync_engine.py - محرك المزامنة (النسخة الاستقصائية)
 
 import requests
 import logging
-from datetime import datetime
 from apps.models.orders_db import ProcessedOrder, db
 
 logger = logging.getLogger(__name__)
@@ -28,7 +27,7 @@ class SyncEngine:
         while has_next_page:
             logger.info(f"🔄 جاري جلب الصفحة: {page}")
             
-            # تم تعديل الاستعلام لطلب حقل 'name' من الكائن 'status' لتجنب خطأ Validation
+            # نطلب الحقول الأكثر احتمالاً دفعة واحدة
             query = """
             query($page: Int) {
                 findAllOrders(input: {page: $page, limit: 10}) {
@@ -36,6 +35,9 @@ class SyncEngine:
                         _id
                         status {
                             name
+                            value
+                            label
+                            key
                         }
                         totalPrice
                         createdAt
@@ -54,34 +56,30 @@ class SyncEngine:
                     timeout=30
                 )
                 
-                if response.status_code != 200:
-                    logger.error(f"❌ خطأ اتصال {response.status_code}: {response.text}")
-                    return False
-
                 result = response.json()
-                data_wrapper = result.get('data', {}).get('findAllOrders', {})
-                orders_data = data_wrapper.get('data', [])
-                pagination = data_wrapper.get('pagination', {})
                 
-                has_next_page = pagination.get('hasNextPage', False)
-
-                for item in orders_data:
-                    order_id = str(item.get('_id'))
-                    order = ProcessedOrder.query.get(order_id) or ProcessedOrder(id=order_id)
+                # إذا نجحنا، نخرج البيانات
+                if 'data' in result and result['data'].get('findAllOrders'):
+                    data_wrapper = result['data']['findAllOrders']
+                    orders_data = data_wrapper.get('data', [])
                     
-                    # استخراج اسم الحالة من الكائن المرجعي
-                    status_obj = item.get('status')
-                    if isinstance(status_obj, dict):
-                        order.status = status_obj.get('name', 'pending')
-                    else:
-                        order.status = str(status_obj) if status_obj else 'pending'
+                    for item in orders_data:
+                        order_id = str(item.get('_id'))
+                        order = ProcessedOrder.query.get(order_id) or ProcessedOrder(id=order_id)
                         
-                    order.total_price = float(item.get('totalPrice', 0))
-                    db.session.add(order)
-                
-                db.session.commit()
-                logger.info(f"✅ تم حفظ الصفحة {page} بنجاح.")
-                page += 1
+                        # محاولة استخراج الحالة من أي حقل متاح
+                        status_obj = item.get('status', {})
+                        order.status = status_obj.get('name') or status_obj.get('value') or status_obj.get('label') or status_obj.get('key') or 'pending'
+                        
+                        order.total_price = float(item.get('totalPrice', 0))
+                        db.session.add(order)
+                    
+                    db.session.commit()
+                    has_next_page = data_wrapper.get('pagination', {}).get('hasNextPage', False)
+                    page += 1
+                else:
+                    logger.error(f"❌ خطأ في الاستجابة: {result}")
+                    return False
                 
             except Exception as e:
                 db.session.rollback()
@@ -89,7 +87,7 @@ class SyncEngine:
                 return False
         return True
 
-    # الدوال المساعدة للموتيشن (Mutation) تبقى كما هي
+    # الدوال الأخرى تبقى كما هي...
     @staticmethod
     def _execute_mutation(mutation, variables):
         try:
