@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المحصن (مُجهز لكشف أخطاء الاتصال)
+# 📂 apps/api/sync_engine.py - محرك المزامنة المرن (مُحدث للتصحيح)
 
 import requests
 import logging
@@ -14,7 +14,6 @@ class SyncEngine:
 
     @staticmethod
     def _get_headers():
-        # أزلنا apollo-require-preflight لتجنب مشاكل التوافق إذا كان السيرفر لا يدعمه
         return {
             "Authorization": f"Bearer {SyncEngine.API_TOKEN}",
             "Content-Type": "application/json",
@@ -23,7 +22,7 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
-        """جلب ومزامنة الطلبات مع معالجة دقيقة للأخطاء"""
+        """جلب ومزامنة الطلبات مع كشف هيكل البيانات"""
         query = """
         query {
             findAllOrders {
@@ -44,25 +43,27 @@ class SyncEngine:
                 timeout=20
             )
             
-            # --- آلية كشف الخطأ 400 بدقة ---
             if response.status_code != 200:
-                logger.error(f"❌ [SyncEngine] فشل الاتصال. حالة الـ HTTP: {response.status_code}")
-                logger.error(f"🔗 الرد التفصيلي من السيرفر: {response.text}")
+                logger.error(f"❌ [SyncEngine] فشل الاتصال. الحالة: {response.status_code}")
                 return False
 
             result = response.json()
             
-            if 'errors' in result:
-                logger.error(f"❌ [SyncEngine] خطأ GraphQL: {result['errors']}")
-                return False
+            # --- تسجيل الهيكل للتشخيص ---
+            logger.info(f"🔍 [SyncEngine] الرد الخام: {result}")
+
+            # محاولة مرنة للوصول للبيانات (نحاول أكثر من مسار إذا فشل الأول)
+            data_wrapper = result.get('data', {})
+            findAllOrders = data_wrapper.get('findAllOrders', {})
             
-            orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
+            # إذا كان الهيكل {'findAllOrders': [...]} وليس {'findAllOrders': {'data': [...]}}
+            orders_data = findAllOrders.get('data', []) if isinstance(findAllOrders, dict) else findAllOrders
             
             if not orders_data:
-                logger.warning("⚠️ [SyncEngine] لم يتم العثور على طلبات في استجابة الـ API.")
+                logger.warning("⚠️ [SyncEngine] لم يتم العثور على طلبات. تأكد من مسار البيانات في الـ JSON أعلاه.")
                 return False
 
-            logger.info(f"🔍 [SyncEngine] تم استلام {len(orders_data)} طلب.")
+            logger.info(f"✅ [SyncEngine] تم العثور على {len(orders_data)} طلب. بدء الحفظ...")
 
             for item in orders_data:
                 order_id = str(item.get('_id'))
@@ -85,40 +86,9 @@ class SyncEngine:
                 db.session.add(order)
             
             db.session.commit()
-            logger.info("✅ تم حفظ الطلبات بنجاح.")
             return True
 
         except Exception as e:
-            logger.error(f"❌ [SyncEngine] خطأ استثنائي أثناء المزامنة: {str(e)}")
+            logger.error(f"❌ [SyncEngine] خطأ استثنائي: {str(e)}")
             db.session.rollback()
             return False
-
-    @staticmethod
-    def _execute_mutation(mutation, variables):
-        try:
-            response = requests.post(
-                SyncEngine.API_URL, 
-                json={'query': mutation, 'variables': variables}, 
-                headers=SyncEngine._get_headers()
-            )
-            if response.status_code != 200:
-                logger.error(f"❌ [SyncEngine] فشل تنفيذ Mutation. الحالة: {response.status_code}")
-            return response.json() if response.status_code == 200 else None
-        except Exception as e:
-            logger.error(f"❌ [SyncEngine] خطأ Mutation: {e}")
-            return None
-
-    @staticmethod
-    def cancel_order(order_id):
-        mutation = "mutation($id: ID!) { cancelOrder(id: $id) { _id status } }"
-        return SyncEngine._execute_mutation(mutation, {"id": order_id})
-
-    @staticmethod
-    def mark_as_fulfilled(order_id):
-        mutation = "mutation($id: ID!) { markOrderFulfilled(id: $id) { _id status } }"
-        return SyncEngine._execute_mutation(mutation, {"id": order_id})
-
-    @staticmethod
-    def update_order_status(order_id, new_status):
-        mutation = "mutation($id: ID!, $status: String!) { updateOrderStatus(id: $id, status: $status) { _id status } }"
-        return SyncEngine._execute_mutation(mutation, {"id": order_id, "status": new_status})
