@@ -5,14 +5,19 @@
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>📋 إدارة الطلبات الواردة</h2>
-        <span class="text-muted">إجمالي الطلبات: {{ orders|length }}</span>
+        <div>
+            <h2>📋 إدارة الطلبات الواردة</h2>
+            <p class="text-muted">نظام إدارة ومزامنة الطلبات المشفر</p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-primary fs-6">إجمالي الطلبات: {{ orders|length }}</span>
+        </div>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show">
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
@@ -26,9 +31,9 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>رقم الطلب</th>
+                            <th class="ps-4">رقم الطلب</th>
                             <th>الحالة</th>
-                            <th>الإجمالي (ريال)</th>
+                            <th>الإجمالي</th>
                             <th>تاريخ الوصول</th>
                             <th class="text-center">الإجراءات</th>
                         </tr>
@@ -36,7 +41,7 @@
                     <tbody>
                         {% for order in orders %}
                         <tr>
-                            <td><strong>{{ order.id }}</strong></td>
+                            <td class="ps-4"><strong>{{ order.id }}</strong></td>
                             <td>
                                 <span class="badge {% if order.status == 'settled' %}bg-success{% else %}bg-warning text-dark{% endif %}">
                                     {{ order.status|upper }}
@@ -45,18 +50,31 @@
                             <td>{{ "%.2f"|format(order.total_price) }}</td>
                             <td>{{ order.processed_at.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td class="text-center">
-                                {% if order.status != 'settled' %}
-                                <form action="{{ url_for('orders.process_order', order_id=order.id) }}" method="POST" style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-outline-primary">تسوية الطلب</button>
-                                </form>
-                                {% else %}
-                                    <span class="badge bg-secondary">مكتمل</span>
-                                {% endif %}
+                                <div class="btn-group" role="group">
+                                    <form action="{{ url_for('orders.manual_sync', order_id=order.id) }}" method="POST" class="me-1">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="مزامنة مع قمرا">
+                                            <i class="bi bi-arrow-repeat"></i> تحديث
+                                        </button>
+                                    </form>
+
+                                    {% if order.status != 'settled' %}
+                                    <form action="{{ url_for('orders.process_order', order_id=order.id) }}" method="POST">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary" title="تسوية مالية">
+                                            <i class="bi bi-check-circle"></i> تسوية
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-light" disabled>مكتمل</button>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">لا توجد طلبات واردة حالياً.</td>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-2"></i>
+                                <p>لا توجد طلبات واردة حالياً في النظام.</p>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -65,4 +83,6 @@
         </div>
     </div>
 </div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 {% endblock %}
