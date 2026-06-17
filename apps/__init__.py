@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي للنظام (النسخة النهائية)
+# 📂 apps/__init__.py - المصنع السيادي للنظام (النسخة النهائية والمحدثة)
 
 from flask import Flask
 from flask_talisman import Talisman
@@ -39,12 +39,16 @@ def create_app():
     from apps.wallet.routes import wallet_app
     from apps.vault.routes import vault_bp
     from apps.orders.routes import orders_blueprint
+    # استيراد الويب هوك الجديد
+    from apps.api.webhooks import webhooks_bp
 
     app.register_blueprint(auth_portal, url_prefix='/')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
     app.register_blueprint(vault_bp, url_prefix='/vault')
     app.register_blueprint(orders_blueprint, url_prefix='/orders')
+    # تسجيل الويب هوك
+    app.register_blueprint(webhooks_bp)
 
     # 5. إعداد البيانات التأسيسية وهيكلة الجداول ذاتياً
     with app.app_context():
@@ -58,7 +62,7 @@ def create_app():
             from apps.models.vault_db import AdminVault, VaultTransaction
             from apps.models.wallet_db import SupplierWallet, WalletTransaction
             
-            # إنشاء الجداول تلقائياً (بناءً على طلبك لعدم الحاجة للطرفية)
+            # إنشاء الجداول تلقائياً
             db.create_all() 
             
             # تأسيس المسؤول الأول (المدير السيادي)
