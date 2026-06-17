@@ -10,8 +10,8 @@ class Config:
     # 🔐 مفتاح التشفير المركزي (لـ AES-256) 
     ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
     
-    # 🕵️‍♂️ مفتاح توقيع الويب هوك (للتحقق من سلامة الطلبات القادمة)
-    WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '1ef7466362876153c77229d8c88da75dba09bad654723cbea9298adccdd077d6')
+    # 🕵️‍♂️ مفتاح توقيع الويب هوك الجديد (محدث من لوحة تحكم قمرا)
+    WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '4ab64f18987464336fa7f70b72e6bbe37c0e340c66d4f6470ef075bb348369ce')
     
     # 🔒 إعدادات الحماية الأمنية للـ Cookies
     SESSION_COOKIE_SECURE = True
