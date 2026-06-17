@@ -1,54 +1,59 @@
-# 📂 apps/models/orders_db.py
-import os
-import base64
-import hashlib
+# 📂 apps/orders/routes.py
+from flask import Blueprint, request, jsonify
 from apps.extensions import db
-from datetime import datetime
-from cryptography.fernet import Fernet
+from apps.models.orders_db import ProcessedOrder
+import logging
 
-# 🔐 جلب المفتاح المعتمد والمطابق لملف الـ Config السيادي الخاص بك
-raw_key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
+# تعريف الـ Blueprint الخاص بالطلبات
+orders_blueprint = Blueprint('orders', __name__)
 
-# تهيئة المفتاح ليتوافق مع معيار Fernet (AES-256) بدقة
-try:
-    # نقوم بعمل hashing للمفتاح لضمان طول 32 بايت مشفر بـ base64 لتفادي أي خطأ صياغي في المصنع
-    hashed_key = hashlib.sha256(raw_key.encode()).digest()
-    fernet_key = base64.urlsafe_b64encode(hashed_key)
-    cipher_suite = Fernet(fernet_key)
-except Exception as e:
-    cipher_suite = None
-    print(f"⚠️ خطأ في تهيئة محرك التشفير: {e}")
+# إعداد الـ Logger لمراقبة عمليات المزامنة
+logger = logging.getLogger(__name__)
 
-class ProcessedOrder(db.Model):
+@orders_blueprint.route('/api/webhook/salla/orders', methods=['POST'])
+def sync_order_webhook():
     """
-    جدول سيادي محصّن بتشفير AES-256 لتتبع وتوثيق الطلبات التي تم تسويتها حياً.
+    مسار استقبال الطلبات من سلة (Webhook).
+    يستقبل البيانات، يستخرج المعرف والقيمة، ويقوم بحفظها مشفرة.
     """
-    __tablename__ = 'processed_orders'
+    try:
+        data = request.json
+        if not data or 'data' not in data:
+            return jsonify({"error": "Invalid payload"}), 400
 
-    id = db.Column(db.String(100), primary_key=True)  # معرف الطلب القادم من قمرة
-    status = db.Column(db.String(50), default='processed')  # حالة التسوية
-    _encrypted_total_price = db.Column(db.Text, nullable=False)
-    processed_at = db.Column(db.DateTime, default=datetime.utcnow)
+        order_info = data['data']
+        order_id = str(order_info.get('id'))
+        total_price = order_info.get('total', {}).get('amount', 0.0)
 
-    @property
-    def total_price(self):
-        """فك تشفير القيمة المالية تلقائياً عند القراءة"""
-        try:
-            if cipher_suite and self._encrypted_total_price:
-                decrypted_data = cipher_suite.decrypt(self._encrypted_total_price.encode()).decode()
-                return float(decrypted_data)
-        except Exception:
-            pass
-        return 0.0
+        # التحقق إذا كان الطلب موجوداً مسبقاً لتجنب التكرار (Idempotency)
+        existing_order = ProcessedOrder.query.filter_by(id=order_id).first()
+        
+        if existing_order:
+            return jsonify({"message": "Order already exists"}), 200
 
-    @total_price.setter
-    def total_price(self, value):
-        """تشفير القيمة المالية فوراً بمعيار AES-256 قبل الحفظ"""
-        if cipher_suite:
-            encrypted_data = cipher_suite.encrypt(str(value).encode()).decode()
-            self._encrypted_total_price = encrypted_data
-        else:
-            self._encrypted_total_price = str(value)
+        # إنشاء سجل جديد
+        # التشفير يحدث تلقائياً بفضل الـ setter في المودل الذي أرفقته
+        new_order = ProcessedOrder(
+            id=order_id,
+            status=order_info.get('status', 'paid')
+        )
+        new_order.total_price = total_price  # يتم تشفيره هنا تلقائياً
 
-    def __repr__(self):
-        return f"<ProcessedOrder {self.id}>"
+        db.session.add(new_order)
+        db.session.commit()
+
+        logger.info(f"✅ تم حفظ الطلب {order_id} بنجاح.")
+        return jsonify({"message": "Order synced successfully"}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ خطأ أثناء مزامنة الطلب: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@orders_blueprint.route('/api/orders/sync-status', methods=['GET'])
+def get_sync_status():
+    """
+    مسار اختياري للتأكد من عمل النظام والتحقق من عدد الطلبات المشفرة.
+    """
+    count = ProcessedOrder.query.count()
+    return jsonify({"total_processed_orders": count, "status": "active"}), 200
