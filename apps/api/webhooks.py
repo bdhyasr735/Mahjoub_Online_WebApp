@@ -1,11 +1,13 @@
 # coding: utf-8
+# 📂 apps/api/webhooks.py - معالج الويب هوك السيادي
+
 from flask import Blueprint, request, jsonify
 import hmac
 import hashlib
+import logging
 from apps.config import Config
 from apps.extensions import db
 from apps.models.orders_db import ProcessedOrder
-import logging
 
 # إعداد المسار
 webhooks_bp = Blueprint('webhooks', __name__)
@@ -14,8 +16,10 @@ logger = logging.getLogger(__name__)
 @webhooks_bp.route('/webhooks', methods=['POST'])
 def handle_qumra_webhook():
     # 1. التحقق من التوقيع الأمني (Signature Verification)
+    # يستخدم التوقيع القادم من قمرا للمطابقة مع المفتاح السري المشترك
     signature = request.headers.get('X-WebHook-Signature')
     if not signature:
+        logger.warning("⚠️ محاولة وصول بدون توقيع!")
         return jsonify({"error": "Missing signature"}), 401
 
     secret = Config.WEBHOOK_SECRET.encode()
@@ -23,25 +27,40 @@ def handle_qumra_webhook():
     expected_signature = hmac.new(secret, payload, hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(expected_signature, signature):
+        logger.error("🚫 محاولة وصول بتوقيع غير صالح!")
         return jsonify({"error": "Invalid signature"}), 403
 
-    # 2. معالجة البيانات
+    # 2. استخراج بيانات الويب هوك
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data received"}), 400
+        
     event = data.get('event')
     order_data = data.get('data', {})
 
     logger.info(f"✅ تم استلام ويب هوك نوع: {event}")
 
-    # 3. حفظ الطلب في قاعدة البيانات إذا كان حدث إنشاء طلب
-    if event in ['order/created', 'cart/created']:
+    # 3. معالجة وحفظ الطلب
+    # سنقوم بالتحقق من وجود الطلب وحفظه مشفراً
+    if event in ['order/created', 'order/updated']:
         order_id = str(order_data.get('id', ''))
-        if order_id and not ProcessedOrder.query.get(order_id):
-            new_order = ProcessedOrder(
-                id=order_id,
-                status=order_data.get('status', 'pending')
-            )
-            db.session.add(new_order)
+        
+        if order_id:
+            # البحث عن الطلب الحالي أو إنشاء واحد جديد
+            order = ProcessedOrder.query.get(order_id)
+            if not order:
+                order = ProcessedOrder(id=order_id)
+            
+            # تحديث البيانات (الحالة والقيمة المالية)
+            order.status = order_data.get('status', 'pending')
+            
+            # تحديث القيمة المالية المشفرة (تلقائياً عبر setter في الموديل)
+            # افترضنا أن القيمة تأتي في حقل total أو amount
+            total_amount = order_data.get('total', {}).get('amount', 0.0)
+            order.total_price = float(total_amount)
+            
+            db.session.add(order)
             db.session.commit()
-            logger.info(f"💾 تم حفظ الطلب {order_id} بنجاح.")
+            logger.info(f"💾 تم حفظ/تحديث الطلب {order_id} بنجاح.")
 
     return jsonify({"status": "success"}), 200
