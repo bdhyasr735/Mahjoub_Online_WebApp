@@ -17,9 +17,9 @@ def orders_dashboard():
     """عرض لوحة التحكم بالطلبات مع جلب البيانات من قاعدة البيانات"""
     try:
         # جلب جميع الطلبات مرتبة من الأحدث للأقدم
-        orders = ProcessedOrder.query.order_by(ProcessedOrder.id.desc()).all()
+        # يتم فك التشفير تلقائياً عند قراءة total_price
+        orders = ProcessedOrder.query.order_by(ProcessedOrder.processed_at.desc()).all()
         
-        # ملاحظة: تأكد من وجود ملف القالب في المسار المحدد
         return render_template('admin/orders_dashboard.html', orders=orders)
     
     except Exception as e:
