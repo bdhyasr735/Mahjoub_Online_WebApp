@@ -63,8 +63,7 @@
         <nav class="nav-menu">
             <a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a>
             
-            <!-- رابط إدارة الطلبات المباشر -->
-            <a href="{{ url_for('orders.dashboard') }}" class="nav-link"><i class="fas fa-shopping-bag me-3"></i> <span>إدارة الطلبات</span></a>
+            <a href="{{ url_for('orders.orders_dashboard') }}" class="nav-link"><i class="fas fa-shopping-bag me-3"></i> <span>إدارة الطلبات</span></a>
 
             <div class="nav-item">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-handshake me-3"></i> <span>إدارة الموردين</span> <i class="fas fa-chevron-down ms-auto arrow-icon"></i></div>
