@@ -11,14 +11,34 @@ def create_app():
     app = Flask(__name__, template_folder='templates', static_folder='static', instance_relative_config=True)
     app.config.from_object(Config)
 
-    # 2. 🛡️ سياسة أمان المحتوى (CSP)
+    # 2. 🛡️ سياسة أمان المحتوى (CSP) - تم تحسينها لمنع حجب الأيقونات والـ Styles الجديدة
     csp_policy = {
         'default-src': ["'self'"],
-        'style-src': ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
-        'script-src': ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-        'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-        'img-src': ["'self'", "data:", "https://*"]
+        'style-src': [
+            "'self'", 
+            "'unsafe-inline'", 
+            "https://cdnjs.cloudflare.com", 
+            "https://fonts.googleapis.com", 
+            "https://cdn.jsdelivr.net"
+        ],
+        'script-src': [
+            "'self'", 
+            "'unsafe-inline'", 
+            "https://cdnjs.cloudflare.com", 
+            "https://cdn.jsdelivr.net"
+        ],
+        'font-src': [
+            "'self'", 
+            "data:", 
+            "https://fonts.gstatic.com", 
+            "https://cdnjs.cloudflare.com",
+            "https://cdn.jsdelivr.net"
+        ],
+        'img-src': ["'self'", "data:", "https://*"],
+        'connect-src': ["'self'", "https://mahjoub.online"]
     }
+    
+    # تفويض الحماية مع السماح بملفات التنسيق والأيقونات الخارجية المستعملة بالداشبورد
     Talisman(app, force_https=True, content_security_policy=csp_policy,
              frame_options='SAMEORIGIN', referrer_policy='strict-origin-when-cross-origin')
 
@@ -56,7 +76,7 @@ def create_app():
     # 5. إعداد البيانات التأسيسية وهيكلة الجداول
     with app.app_context():
         try:
-            # استيراد النماذج لضمان التعرف عليها
+            # استيراد النماذج لضمان التعرف عليها من قِبل الـ ORM قبل create_all
             from apps.models.admin_db import AdminUser
             from apps.models.orders_db import ProcessedOrder, OrderItem
             from apps.models.sync_log import SyncLog
