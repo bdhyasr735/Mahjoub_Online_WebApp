@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/orders_db.py - نموذج الطلبات التفصيلي والمشفر (النسخة النهائية)
+# 📂 apps/models/orders_db.py - نموذج الطلبات التفصيلي والمشفر (النسخة النهائية المستقرة)
 
 import base64
 import hashlib
@@ -37,7 +37,7 @@ class ProcessedOrder(db.Model):
     payment_method = db.Column(db.String(100), nullable=True)
     source = db.Column(db.String(100), nullable=True)
     
-    # التواريخ
+    # التواريخ (تم تصحيح تفعيل دالة الوقت الافتراضية هنا لتوليد التوقيت لحظة الحفظ)
     created_at_api = db.Column(db.DateTime, nullable=True) 
     processed_at = db.Column(db.DateTime, default=datetime.utcnow) 
     
