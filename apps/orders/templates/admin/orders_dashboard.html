@@ -7,7 +7,8 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <a href="{{ url_for('admin_dashboard.index') }}" class="btn btn-outline-secondary px-3 py-2 fw-bold me-2" style="border-radius: 6px;">
+            <!-- ✅ تم تعديل المسار هنا إلى admin_dashboard.dashboard لحل مشكلة الانهيار تماماً -->
+            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-secondary px-3 py-2 fw-bold me-2" style="border-radius: 6px;">
                 <i class="bi bi-arrow-right me-1"></i> رجوع
             </a>
             <button class="btn btn-primary px-4 py-2 fw-bold me-2" style="background-color: #008489; border: none; border-radius: 6px;">
@@ -83,8 +84,8 @@
                         <th class="ps-4">رقم الطلب</th>
                         <th>العميل</th>
                         <th>عنوان الشحن</th>
-                        <th>الإجمالي</th>
-                        <th>الدفع</th>
+                        <th>إجمالي السعر</th>
+                        <th>وسيلة الدفع</th>
                         <th>حالة الطلب</th>
                         <th>حالة الشحن</th>
                         <th style="color: #008489; font-weight: bold;">المورد المحلي</th>
