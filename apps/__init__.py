@@ -47,7 +47,8 @@ def create_app():
     app.register_blueprint(wallet_app, url_prefix='/wallet')
     app.register_blueprint(vault_bp, url_prefix='/vault')
     app.register_blueprint(orders_blueprint, url_prefix='/orders')
-    # تسجيل الويب هوك
+    
+    # تسجيل الويب هوك ليصبح متاحاً على مسار /api/webhooks/qumra
     app.register_blueprint(webhooks_bp)
 
     # 5. إعداد البيانات التأسيسية وهيكلة الجداول ذاتياً
