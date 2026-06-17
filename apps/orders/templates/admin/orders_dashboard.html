@@ -4,95 +4,72 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2>📋 إدارة الطلبات الواردة</h2>
-            <p class="text-muted">نظام إدارة ومزامنة الطلبات المشفر</p>
+    <div class="row mb-4">
+        {% for title, count, color in [('الطلبات الملغاة', 0, 'danger'), ('الطلبات المكتملة', 0, 'success'), ('إجمالي المبيعات', 0, 'warning'), ('عدد الطلبات', orders|length, 'primary')] %}
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="text-muted">{{ title }}</h6>
+                    <h3 class="fw-bold">{{ count }}</h3>
+                    <div class="progress" style="height: 4px;">
+                        <div class="progress-bar bg-{{ color }}" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="d-flex gap-2">
-            <form action="{{ url_for('orders.sync_all') }}" method="POST">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-cloud-download"></i> مزامنة الكل
-                </button>
-            </form>
-            <span class="badge bg-secondary fs-6 d-flex align-items-center">إجمالي الطلبات: {{ orders|length }}</span>
-        </div>
+        {% endfor %}
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary">الجميع</button>
+            <button class="btn btn-outline-secondary">معلق</button>
+            <button class="btn btn-outline-secondary">مؤكد</button>
+            <button class="btn btn-outline-secondary">ملغي</button>
+        </div>
+        <form action="{{ url_for('orders.sync_all') }}" method="POST">
+            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-cloud-download"></i> مزامنة الكل</button>
+        </form>
+    </div>
 
     <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4">رقم الطلب</th>
-                            <th>العميل</th>
-                            <th>عدد المنتجات</th>
-                            <th>الحالة</th>
-                            <th>الإجمالي</th>
-                            <th>تاريخ الطلب</th>
-                            <th class="text-center">الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders %}
-                        <tr>
-                            <td class="ps-4"><strong>{{ order.id }}</strong></td>
-                            <td>{{ order.customer_name or 'غير معروف' }}</td>
-                            <td>{{ order.items_count }}</td>
-                            <td>
-                                <span class="badge {% if order.status == 'paid' %}bg-success{% elif order.status == 'pending' %}bg-warning{% else %}bg-info{% endif %}">
-                                    {{ order.status|upper }}
-                                </span>
-                            </td>
-                            <td>{{ "%.2f"|format(order.total_price) }}</td>
-                            <td>{{ order.created_at_api.strftime('%Y-%m-%d %H:%M') if order.created_at_api else '---' }}</td>
-                            <td class="text-center">
-                                <div class="btn-group" role="group">
-                                    <form action="{{ url_for('orders.cancel_order_route', order_id=order.id) }}" method="POST" class="me-1">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="إلغاء الطلب">
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
-                                    </form>
-                                    
-                                    <form action="{{ url_for('orders.fulfill_order_route', order_id=order.id) }}" method="POST" class="me-1">
-                                        <button type="submit" class="btn btn-sm btn-outline-info" title="تم الشحن">
-                                            <i class="bi bi-box-seam"></i>
-                                        </button>
-                                    </form>
-
-                                    {% if order.status != 'settled' %}
-                                    <form action="{{ url_for('orders.process_order', order_id=order.id) }}" method="POST">
-                                        <button type="submit" class="btn btn-sm btn-outline-primary" title="تسوية مالية">
-                                            <i class="bi bi-check-circle"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-2"></i>
-                                <p>لا توجد طلبات. اضغط على "مزامنة الكل" لجلب الطلبات من قمرا.</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">رقم الطلب</th>
+                        <th>اسم العميل</th>
+                        <th>عنوان الشحن</th>
+                        <th>الإجمالي</th>
+                        <th>وسيلة الدفع</th>
+                        <th>حالة الدفع</th>
+                        <th>حالة الشحن</th>
+                        <th>عدد العناصر</th>
+                        <th>المصدر</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th class="text-center">الاجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td class="ps-4">{{ order.id }}</td>
+                        <td>{{ order.customer_name or '---' }}</td>
+                        <td>{{ order.shipping_address or '---' }}</td>
+                        <td>{{ "%.2f"|format(order.total_price) }} ر.س</td>
+                        <td>{{ order.payment_method or '---' }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ order.status|upper }}</span></td>
+                        <td><span class="badge bg-light text-dark border">{{ order.shipping_status or 'غير مجهز' }}</span></td>
+                        <td>{{ order.items_count }} عنصر</td>
+                        <td><span class="badge bg-info text-white">{{ order.source or 'المتجر' }}</span></td>
+                        <td>{{ order.created_at_api.strftime('%Y-%m-%d') if order.created_at_api else '---' }}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-light border" data-bs-toggle="dropdown">•••</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
