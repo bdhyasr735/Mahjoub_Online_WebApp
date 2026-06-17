@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي للنظام
+# 📂 apps/__init__.py - المصنع السيادي للنظام (النسخة النهائية)
 
 from flask import Flask
 from flask_talisman import Talisman
@@ -34,7 +34,6 @@ def create_app():
         return AdminUser.query.get(int(user_id))
 
     # 4. تسجيل المسارات (Blueprints)
-    # ملاحظة: يتم الاستيراد داخل الدالة لمنع تداخل الاستيراد (Circular Imports)
     from apps.auth_portal.routes import auth_portal
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
@@ -47,14 +46,19 @@ def create_app():
     app.register_blueprint(vault_bp, url_prefix='/vault')
     app.register_blueprint(orders_blueprint, url_prefix='/orders')
 
-    # 5. إعداد البيانات التأسيسية
+    # 5. إعداد البيانات التأسيسية وهيكلة الجداول ذاتياً
     with app.app_context():
         try:
-            # استيراد النماذج داخل السياق لضمان تحميلها
+            # استيراد النماذج لضمان تسجيلها في SQLAlchemy
             from apps.models.admin_db import AdminUser
             from apps.models.orders_db import ProcessedOrder
             from apps.models.sync_log import SyncLog
+            from apps.models.financial_db import ExchangeRate, FinancialLog
+            from apps.models.supplier_db import Supplier
+            from apps.models.vault_db import AdminVault, VaultTransaction
+            from apps.models.wallet_db import SupplierWallet, WalletTransaction
             
+            # إنشاء الجداول تلقائياً (بناءً على طلبك لعدم الحاجة للطرفية)
             db.create_all() 
             
             # تأسيس المسؤول الأول (المدير السيادي)
@@ -63,9 +67,9 @@ def create_app():
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
-                print("✅ تم تأسيس النظام بنجاح.")
+                print("✅ [System] تم تأسيس الهيكل وقاعدة البيانات بنجاح.")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ خطأ أثناء التأسيس: {e}")
+            print(f"⚠️ [Error] خطأ أثناء التأسيس الذاتي: {e}")
 
     return app
