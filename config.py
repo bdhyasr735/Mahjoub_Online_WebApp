@@ -10,8 +10,11 @@ class Config:
     # 🔐 مفتاح التشفير المركزي (لـ AES-256) 
     ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
     
-    # 🕵️‍♂️ مفتاح توقيع الويب هوك الجديد (تم تحديثه بالمفتاح القادم من قمرا)
+    # 🕵️‍♂️ مفتاح توقيع الويب هوك الجديد
     WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', 'cdde0d415221df2c074cc80d226b6ef1ab9b5ef1f24f9c1a37aec40f2d9df2a7')
+    
+    # 🌐 رابط المتجر الأساسي (مصدر المنتجات والصور)
+    STORE_BASE_URL = os.environ.get('STORE_BASE_URL', 'https://mahjoub.online')
     
     # 🔒 إعدادات الحماية الأمنية للـ Cookies
     SESSION_COOKIE_SECURE = True
