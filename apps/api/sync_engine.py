@@ -1,29 +1,49 @@
-# 📂 apps/api/webhooks.py
-from flask import Blueprint, request, jsonify
-import hmac
-import hashlib
-from apps.config import Config
+# coding: utf-8
+# 📂 apps/api/sync_engine.py - محرك المزامنة المستقل
 
-# إنشاء Blueprint جديد
-webhooks_bp = Blueprint('webhooks', __name__)
+import logging
+# تصحيح الاستيراد: من المجلد الجذر وليس من داخل مجلد apps
+from config import Config
+from apps.extensions import db
+from apps.models.orders_db import ProcessedOrder
 
-@webhooks_bp.route('/api/webhooks/qumra', methods=['POST'])
-def handle_qumra_webhook():
-    # 1. التحقق الأمني باستخدام التوقيع
-    signature = request.headers.get('X-WebHook-Signature')
-    secret = Config.WEBHOOK_SECRET.encode()
-    
-    # حساب التوقيع للمقارنة
-    expected_signature = hmac.new(secret, request.data, hashlib.sha256).hexdigest()
-    
-    if not hmac.compare_digest(expected_signature, signature):
-        return jsonify({"error": "Invalid signature"}), 403
+logger = logging.getLogger(__name__)
 
-    # 2. استقبال بيانات الويب هوك الخام
-    data = request.get_json()
+class SyncEngine:
+    """
+    محرك مستقل لمعالجة ومزامنة البيانات.
+    يتم استخدامه داخل الويب هوك أو المهام الخلفية.
+    """
     
-    # 3. إرسال البيانات للمعالجة (بدون المرور عبر GraphQL)
-    print(f"✅ تم استقبال ويب هوك بنجاح: {data.get('event')}")
-    
-    # هنا سيتم لاحقاً استدعاء محرك المزامنة (SyncEngine) لحفظ الطلب
-    return jsonify({"status": "success"}), 200
+    @staticmethod
+    def sync_order_data(order_data):
+        """
+        يقوم بمعالجة بيانات الطلب وحفظها في قاعدة البيانات.
+        """
+        try:
+            order_id = str(order_data.get('id', ''))
+            if not order_id:
+                return False
+
+            # البحث عن الطلب أو إنشاء جديد
+            order = ProcessedOrder.query.get(order_id)
+            if not order:
+                order = ProcessedOrder(id=order_id)
+
+            # تحديث الحالة
+            order.status = order_data.get('status', 'pending')
+            
+            # تحديث القيمة المالية (سيقوم الـ setter في الموديل بالتشفير تلقائياً)
+            total_amount = order_data.get('total', {}).get('amount', 0.0)
+            order.total_price = float(total_amount)
+
+            db.session.add(order)
+            db.session.commit()
+            
+            logger.info(f"🔄 [SyncEngine] تمت مزامنة الطلب {order_id} بنجاح.")
+            return True
+        
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ [SyncEngine] خطأ أثناء المزامنة: {e}")
+            return False
