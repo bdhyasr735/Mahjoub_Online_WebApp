@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/api/webhooks.py - معالج الويب هوك السيادي
+# 📂 apps/api/webhooks.py - معالج الويب هوك السيادي (النسخة النهائية)
 
 from flask import Blueprint, request, jsonify
 import hmac
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 @webhooks_bp.route('/webhooks', methods=['POST'])
 def handle_qumra_webhook():
     # 1. التحقق من التوقيع الأمني (Signature Verification)
-    # يستخدم التوقيع القادم من قمرا للمطابقة مع المفتاح السري المشترك
+    # نستخدم hmac للمطابقة مع المفتاح السري المسجل في الـ Config
     signature = request.headers.get('X-WebHook-Signature')
     if not signature:
         logger.warning("⚠️ محاولة وصول بدون توقيع!")
@@ -41,7 +41,7 @@ def handle_qumra_webhook():
     logger.info(f"✅ تم استلام ويب هوك نوع: {event}")
 
     # 3. معالجة وحفظ الطلب
-    # سنقوم بالتحقق من وجود الطلب وحفظه مشفراً
+    # نتأكد من نوع الحدث ونقوم بعملية الحفظ/التحديث
     if event in ['order/created', 'order/updated']:
         order_id = str(order_data.get('id', ''))
         
@@ -51,16 +51,21 @@ def handle_qumra_webhook():
             if not order:
                 order = ProcessedOrder(id=order_id)
             
-            # تحديث البيانات (الحالة والقيمة المالية)
+            # تحديث الحالة
             order.status = order_data.get('status', 'pending')
             
-            # تحديث القيمة المالية المشفرة (تلقائياً عبر setter في الموديل)
-            # افترضنا أن القيمة تأتي في حقل total أو amount
+            # تحديث القيمة المالية المشفرة
+            # ملاحظة: الموديل سيقوم بتشفير القيمة تلقائياً عبر @total_price.setter
             total_amount = order_data.get('total', {}).get('amount', 0.0)
             order.total_price = float(total_amount)
             
-            db.session.add(order)
-            db.session.commit()
-            logger.info(f"💾 تم حفظ/تحديث الطلب {order_id} بنجاح.")
+            try:
+                db.session.add(order)
+                db.session.commit()
+                logger.info(f"💾 تم حفظ/تحديث الطلب {order_id} بنجاح.")
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"❌ خطأ أثناء حفظ الطلب {order_id}: {e}")
+                return jsonify({"error": "Database error"}), 500
 
     return jsonify({"status": "success"}), 200
