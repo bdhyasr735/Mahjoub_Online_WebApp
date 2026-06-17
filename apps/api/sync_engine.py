@@ -1,46 +1,29 @@
-# 📂 apps/api/sync_engine.py
-import requests
-import logging
-from apps.extensions import db
-from apps.models.orders_db import ProcessedOrder
+# 📂 apps/api/webhooks.py
+from flask import Blueprint, request, jsonify
+import hmac
+import hashlib
+from apps.config import Config
 
-logger = logging.getLogger(__name__)
+# إنشاء Blueprint جديد
+webhooks_bp = Blueprint('webhooks', __name__)
 
-class SyncEngine:
-    """
-    محرك المزامنة للاتصال المباشر بـ API سلة عند الحاجة (Manual/Scheduled Sync).
-    """
+@webhooks_bp.route('/api/webhooks/qumra', methods=['POST'])
+def handle_qumra_webhook():
+    # 1. التحقق الأمني باستخدام التوقيع
+    signature = request.headers.get('X-WebHook-Signature')
+    secret = Config.WEBHOOK_SECRET.encode()
     
-    def __init__(self, api_token):
-        self.api_token = api_token
-        self.base_url = "https://api.salla.dev/admin/v2/orders"
-        self.headers = {
-            "Authorization": f"Bearer {self.api_token}",
-            "Content-Type": "application/json"
-        }
+    # حساب التوقيع للمقارنة
+    expected_signature = hmac.new(secret, request.data, hashlib.sha256).hexdigest()
+    
+    if not hmac.compare_digest(expected_signature, signature):
+        return jsonify({"error": "Invalid signature"}), 403
 
-    def fetch_recent_orders(self):
-        """جلب آخر الطلبات من سلة مباشرة"""
-        try:
-            response = requests.get(self.base_url, headers=self.headers)
-            if response.status_code == 200:
-                orders = response.json().get('data', [])
-                self._process_and_save(orders)
-                return len(orders)
-            return 0
-        except Exception as e:
-            logger.error(f"❌ فشل الاتصال بسلة: {e}")
-            return None
-
-    def _process_and_save(self, orders):
-        """معالجة وحفظ الطلبات (تجاوز المكرر)"""
-        for order in orders:
-            order_id = str(order['id'])
-            # تحقق هل الطلب موجود في قاعدة البيانات المشفرة
-            if not ProcessedOrder.query.get(order_id):
-                new_order = ProcessedOrder(
-                    id=order_id,
-                    status=order.get('status', 'paid')
-                )
-                # استخدام الـ setter المشفر الخاص بك
-                new_order.total_price = order.get('total', {}).get('amount', 0.0)
+    # 2. استقبال بيانات الويب هوك الخام
+    data = request.get_json()
+    
+    # 3. إرسال البيانات للمعالجة (بدون المرور عبر GraphQL)
+    print(f"✅ تم استقبال ويب هوك بنجاح: {data.get('event')}")
+    
+    # هنا سيتم لاحقاً استدعاء محرك المزامنة (SyncEngine) لحفظ الطلب
+    return jsonify({"status": "success"}), 200
