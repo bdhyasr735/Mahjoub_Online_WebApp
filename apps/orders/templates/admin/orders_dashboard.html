@@ -5,78 +5,88 @@
 {% block content %}
 <div class="container-fluid mt-4" style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
 
-    {# البطاقات الإحصائية السيادية #}
-    <div class="row mb-4">
-        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm" style="border-radius: 10px; border-right: 4px solid #D32F2F;"><small class="text-muted">الطلبات الملغاة</small><h4 class="fw-bold">0</h4></div></div>
-        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm" style="border-radius: 10px; border-right: 4px solid #388E3C;"><small class="text-muted">الطلبات المكتملة</small><h4 class="fw-bold">0</h4></div></div>
-        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm" style="border-radius: 10px; border-right: 4px solid #F57C00;"><small class="text-muted">إجمالي المبيعات</small><h4 class="fw-bold">0 ر.ي</h4></div></div>
-        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm" style="border-radius: 10px; border-right: 4px solid #1976D2;"><small class="text-muted">عدد الطلبات</small><h4 class="fw-bold">{{ pagination.total }}</h4></div></div>
+    {# شريط الأدوات العلوي: زر الرجوع + زر المزامنة البرتقالي + إنشاء طلب #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-right"></i></a>
+            <h4 class="d-inline fw-bold text-dark">إدارة الطلبات</h4>
+        </div>
+        <div class="d-flex gap-2">
+            <form action="{{ url_for('orders.sync_all') }}" method="POST">
+                <button type="submit" class="btn text-white" style="background-color: #F57C00; border: none;">
+                    <i class="bi bi-arrow-clockwise"></i> مزامنة البيانات
+                </button>
+            </form>
+            <a href="#" class="btn text-white" style="background: linear-gradient(45deg, #6A1B9A, #8E24AA);">+ إنشاء طلب</a>
+        </div>
     </div>
 
-    {# شريط الأدوات: البحث، المزامنة، والإنشاء #}
-    <div class="row mb-4 align-items-center bg-white p-3 shadow-sm" style="border-radius: 8px;">
-        <div class="col-md-8 d-flex gap-2">
-            <input type="text" class="form-control" placeholder="بحث برقم الطلب أو اسم العميل..." style="width: 300px;">
-            <button class="btn btn-outline-secondary"><i class="bi bi-funnel"></i></button>
-        </div>
-        <div class="col-md-4 text-start">
-            <a href="#" class="btn text-white px-4" style="background: linear-gradient(45deg, #6A1B9A, #8E24AA);">إنشاء طلب</a>
-            <form action="{{ url_for('orders.sync_all') }}" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-clockwise"></i></button>
-            </form>
+    {# البطاقات الإحصائية #}
+    <div class="row mb-4">
+        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm"><small class="text-muted">الطلبات الملغاة</small><h4 class="fw-bold">0</h4></div></div>
+        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm"><small class="text-muted">الطلبات المكتملة</small><h4 class="fw-bold">0</h4></div></div>
+        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm"><small class="text-muted">إجمالي المبيعات</small><h4 class="fw-bold">0 ر.ي</h4></div></div>
+        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm"><small class="text-muted">عدد الطلبات</small><h4 class="fw-bold">{{ pagination.total }}</h4></div></div>
+    </div>
+
+    {# منطقة الفلاتر والبحث #}
+    <div class="card border-0 shadow-sm p-3 mb-4" style="border-radius: 8px;">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4"><input type="text" class="form-control" placeholder="بحث برقم الطلب أو اسم العميل..."></div>
+            <div class="col-md-2">
+                <select class="form-select"><option>حالة الدفع (الجميع)</option><option>مدفوع</option><option>غير مدفوع</option></select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select"><option>حالة الشحن (الجميع)</option><option>تم التوصيل</option><option>غير مجهز</option></select>
+            </div>
+            <div class="col-md-2 text-center"><button class="btn btn-light w-100"><i class="bi bi-funnel"></i> تصفية</button></div>
         </div>
     </div>
 
     {# الجدول #}
     <div class="card border-0 shadow-sm" style="border-radius: 8px;">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead style="background-color: #F8F9FA;">
-                    <tr>
-                        <th class="ps-4">رقم الطلب</th>
-                        <th>اسم العميل</th>
-                        <th>العنوان</th>
-                        <th>الإجمالي</th>
-                        <th>حالة الدفع</th>
-                        <th>حالة الشحن</th>
-                        <th>التاريخ</th>
-                        <th class="text-center">الاجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in pagination.items %}
-                    <tr>
-                        <td class="ps-4 fw-bold text-primary">#{{ order.order_id }}</td>
-                        <td>{{ order.customer_name }}</td>
-                        <td>{{ order.shipping_city }}</td>
-                        <td class="fw-bold">{{ order.total_price }} ر.ي</td>
-                        <td>
-                            <select class="form-select form-select-sm" onchange="updateOrderField('{{ order.id }}', 'financial_status', this.value)">
-                                <option value="unpaid" {% if order.financial_status == 'unpaid' %}selected{% endif %}>غير مدفوع</option>
-                                <option value="paid" {% if order.financial_status == 'paid' %}selected{% endif %}>مدفوع</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select class="form-select form-select-sm" onchange="updateOrderField('{{ order.id }}', 'fulfillment_status', this.value)">
-                                <option value="unfulfilled" {% if order.fulfillment_status == 'unfulfilled' %}selected{% endif %}>غير مجهز</option>
-                                <option value="fulfilled" {% if order.fulfillment_status == 'fulfilled' %}selected{% endif %}>تم التوصيل</option>
-                            </select>
-                        </td>
-                        <td>{{ order.created_at_local.strftime('%Y-%m-%d') if order.created_at_local else '---' }}</td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-light" onclick="window.location.href='{{ url_for('orders.process_order', order_id=order.id) }}'"><i class="bi bi-eye"></i></button>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1"></i><br>لا توجد طلبات لعرضها حالياً. اضغط على زر المزامنة لجلب البيانات.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">رقم الطلب</th>
+                    <th>اسم العميل</th>
+                    <th>العنوان</th>
+                    <th>الإجمالي</th>
+                    <th>المصدر</th>
+                    <th>العدد</th>
+                    <th>حالة الدفع</th>
+                    <th>حالة الشحن</th>
+                    <th class="text-center">الاجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in pagination.items %}
+                <tr>
+                    <td class="ps-4 fw-bold">#{{ order.order_id }}</td>
+                    <td>{{ order.customer_name }}</td>
+                    <td>{{ order.shipping_city }}</td>
+                    <td>{{ order.total_price }} ر.ي</td>
+                    <td><span class="badge bg-secondary">قمرة</span></td> {# عمود المصدر #}
+                    <td>{{ order.items|length if order.items else 1 }}</td> {# عمود العدد #}
+                    <td>
+                        <select class="form-select form-select-sm" onchange="updateOrderField('{{ order.id }}', 'financial_status', this.value)">
+                            <option value="unpaid" {% if order.financial_status == 'unpaid' %}selected{% endif %}>غير مدفوع</option>
+                            <option value="paid" {% if order.financial_status == 'paid' %}selected{% endif %}>مدفوع</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" onchange="updateOrderField('{{ order.id }}', 'fulfillment_status', this.value)">
+                            <option value="unfulfilled" {% if order.fulfillment_status == 'unfulfilled' %}selected{% endif %}>غير مجهز</option>
+                            <option value="fulfilled" {% if order.fulfillment_status == 'fulfilled' %}selected{% endif %}>تم التوصيل</option>
+                        </select>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='{{ url_for('orders.process_order', order_id=order.id) }}'"><i class="bi bi-eye"></i></button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
