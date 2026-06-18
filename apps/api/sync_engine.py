@@ -10,7 +10,7 @@ from apps.models.sync_log import SyncLog  # استيراد نموذج السجل
 logger = logging.getLogger(__name__)
 
 class SyncEngine:
-    # 🎯 تم تصحيح المسار ليتطابق تماماً مع السيرفر والـ Sandbox الفعلي لنظامك
+    # 🎯 المسار المباشر والصحيح الذي أثبت اتصاله بنجاح
     API_URL = "https://mahjoub.online/admin/graphql"  
     API_TOKEN = "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9"
 
@@ -20,7 +20,7 @@ class SyncEngine:
             "Authorization": f"Bearer {SyncEngine.API_TOKEN}",
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "apollo-require-preflight": "true"  # 🎯 إضافة الهيدر الحاسم المطلوب بناءً على إعدادات الحماية في الـ Sandbox
+            "apollo-require-preflight": "true"  # 🎯 الهيدر الحاسم المطلوب بناءً على إعدادات الحماية في الـ Sandbox
         }
 
     @staticmethod
@@ -32,10 +32,10 @@ class SyncEngine:
         while has_next_page:
             logger.info(f"🔄 جاري جلب ومزامنة الصفحة: {page} باستخدام الهيكل والمطابقة المحدثة")
             
-            # 🎯 الاستعلام المصحح والمطابق تماماً لقيود التحقق في الـ Sandbox
+            # 🎯 الاستعلام المصحح والمطابق تماماً لتسميات السيرفر (findAllOrders)
             query = """
-            query findAllOrders($page: Int) {
-                orders(page: $page) {
+            query GetOrders($page: Int) {
+                findAllOrders(page: $page) {
                     id
                     status
                     paymentMethod
@@ -92,7 +92,8 @@ class SyncEngine:
                     db.session.commit()
                     return False
                 
-                orders_data = result.get('data', {}).get('orders', [])
+                # 🎯 استخراج البيانات باستخدام المفتاح الصحيح المرتد من السيرفر (findAllOrders)
+                orders_data = result.get('data', {}).get('findAllOrders', [])
                 if not orders_data:
                     logger.info("ℹ️ لم يتم العثور على أي طلبات إضافية بانتظار المزامنة.")
                     break
