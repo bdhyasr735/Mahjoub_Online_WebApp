@@ -10,8 +10,8 @@ from apps.models.sync_log import SyncLog  # استيراد نموذج السجل
 logger = logging.getLogger(__name__)
 
 class SyncEngine:
-    # 🎯 تعديل المسار ليتطابق مع الـ Endpoint الفعلي لبيئة الحوكمة والإدارة الخاصة بنظامك
-    API_URL = "https://admin.mahjoub.online/graphql"  
+    # 🎯 تم تصحيح المسار ليتطابق تماماً مع السيرفر والـ Sandbox الفعلي لنظامك
+    API_URL = "https://mahjoub.online/admin/graphql"  
     API_TOKEN = "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9"
 
     @staticmethod
@@ -19,7 +19,8 @@ class SyncEngine:
         return {
             "Authorization": f"Bearer {SyncEngine.API_TOKEN}",
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            "apollo-require-preflight": "true"  # 🎯 إضافة الهيدر الحاسم المطلوب بناءً على إعدادات الحماية في الـ Sandbox
         }
 
     @staticmethod
