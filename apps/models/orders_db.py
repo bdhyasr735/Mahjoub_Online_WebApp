@@ -1,110 +1,153 @@
 # coding: utf-8
-# 📂 apps/models/orders_db.py - نموذج الطلبات التفصيلي والمشفر (النسخة النهائية المستقرة المتوافقة مع قمرة كلاود 2026)
+# 📂 apps/api/sync_engine.py - محرك المزامنة السيادي والربط التكاملي مع قمرة كلاود (النسخة التصحيحية النهائية)
 
-import base64
-import hashlib
+import requests
 import logging
 from datetime import datetime
-from decimal import Decimal
-from cryptography.fernet import Fernet
 from apps.extensions import db
+from apps.models.orders_db import ProcessedOrder, OrderItem
 from config import Config
 
 logger = logging.getLogger(__name__)
 
-# 1. إعداد محرك التشفير الآمن لبيانات الأسعار الحساسة
-try:
-    raw_key = Config.ENCRYPTION_KEY
-    hashed_key = hashlib.sha256(raw_key.encode()).digest()
-    fernet_key = base64.urlsafe_b64encode(hashed_key)
-    cipher_suite = Fernet(fernet_key)
-except Exception as e:
-    logger.critical(f"❌ [Critical] فشل إعداد محرك التشفير: {e}")
-    raise e
+class SyncEngine:
+    """المحرك المركزي لإدارة وضبط عمليات المزامنة والتحديث الفوري للطلبات والحالات مع سيرفر قمرة"""
 
-class ProcessedOrder(db.Model):
-    __tablename__ = 'processed_orders'
+    @staticmethod
+    def get_headers():
+        """توليد ترويسة الطلب الأمنية باستخدام رمز الوصول السيادي المحدث"""
+        token = getattr(Config, 'QOMRAH_ACCESS_TOKEN', '')
+        return {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
 
-    # البيانات الأساسية المعرفية للطلب (مثل المعرف الفريد الداخلي والمعرف الظاهري من قمرة)
-    id = db.Column(db.String(100), primary_key=True)  # يستوعب الـ GraphQL UUID أو الـ id
-    order_id = db.Column(db.String(100), nullable=True, index=True)  # الـ الرقم الظاهري مثل "1000000943"
-    
-    # 🧭 الحالات الثلاث الثلاثية المستقلة المعتمدة رسمياً في قمرة
-    order_status = db.Column(db.String(50), default='pending')        # [pending, confirmed, cancelled, delivered, returned, refunded]
-    financial_status = db.Column(db.String(50), default='unpaid')    # [unpaid, paid, pending, refunded]
-    fulfillment_status = db.Column(db.String(50), default='unfulfilled') # [unfulfilled, fulfilled, partial]
-    
-    # حقول تفصيلية لبيانات العميل والشحن الصريحة المستلمة
-    customer_name = db.Column(db.String(255), nullable=True)
-    customer_phone = db.Column(db.String(50), nullable=True)
-    customer_email = db.Column(db.String(255), nullable=True)
-    
-    # حقول العنوان الجغرافي المستخرجة من هيكل العنوان لقمرة
-    shipping_country = db.Column(db.String(100), nullable=True)
-    shipping_city = db.Column(db.String(100), nullable=True)
-    shipping_district = db.Column(db.String(100), nullable=True)
-    shipping_street = db.Column(db.Text, nullable=True)
-    
-    # بيانات وسيلة الدفع والحمل
-    payment_type = db.Column(db.String(50), default='manual')  # [manual, cod]
-    items_count = db.Column(db.Integer, default=0)
-    source = db.Column(db.String(100), default='QumraCloud')
-    
-    # 🔗 مفتاح الربط والتحكم الخاص بـ المورد المحلي (خيارات الـ AJAX باللوحة)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
-    
-    # التواريخ والمزامنة زمنياً (معالجة UTC)
-    created_at_api = db.Column(db.DateTime, nullable=True)  
-    processed_at = db.Column(db.DateTime, default=datetime.utcnow)  
-    
-    # الحقل المشفر للقيمة المالية الإجمالية (لحماية البيانات الحساسة للمنصة)
-    _encrypted_total_price = db.Column(db.Text, nullable=True)
-
-    # العلاقة المباشرة لقراءة بيانات المورد مع الكود المحلي
-    supplier = db.relationship('Supplier', backref=db.backref('processed_orders', lazy='dynamic'))
-
-    # 2. إدارة التشفير والتعمية المالية (Property Getters/Setters)
-    @property
-    def total_price(self):
-        """فك تشفير السعر آلياً عند الاستدعاء من اللوحة والقراءة برمجياً"""
-        if not self._encrypted_total_price:
-            return Decimal('0.0')
+    @staticmethod
+    def fetch_and_sync_order():
+        """جلب ومزامنة كافة الطلبات من قمرة ومعالجتها فورياً داخل قاعدة البيانات المحلية"""
+        url = "https://api.qomrah.cloud/graphql" # مسار بوابة الـ GraphQL الموحدة لقمرة
+        
+        # 🎯 الاستعلام المصحح والمطابق تماماً لقيود التحقق في السيرفر (GraphQL Validation Matches)
+        query = """
+        query findAllOrders($page: Int) {
+            orders(page: $page) {
+                id
+                status
+                paymentMethod
+                total
+                createdAt
+                customer {
+                    name
+                    phone
+                    email
+                }
+                shippingAddress {
+                    country
+                    city
+                    district
+                    street
+                }
+            }
+        }
+        """
+        
+        variables = {"page": 1}
+        payload = {"query": query, "variables": variables}
+        
         try:
-            decrypted_val = cipher_suite.decrypt(self._encrypted_total_price.encode()).decode()
-            return Decimal(decrypted_val)
-        except Exception as e:
-            logger.error(f"⚠️ خطأ أثناء فك تشفير السعر للطلب {self.id}: {e}")
-            return Decimal('0.0')
+            response = requests.post(url, json=payload, headers=SyncEngine.get_headers(), timeout=15)
+            response_json = response.json()
+            
+            # التحقق من وجود أخطاء صريحة صادرة من التحقق الداخلي للسيرفر
+            if 'errors' in response_json:
+                logger.error(f"❌ خطأ تدوين من سيرفر قمرة: {response_json['errors']}")
+                return False
+                
+            orders_data = response_json.get('data', {}).get('orders', [])
+            if not orders_data:
+                logger.info("ℹ️ لم يتم العثور على أي طلبات جديدة بانتظار المزامنة.")
+                return True
 
-    @total_price.setter
-    def total_price(self, value):
-        """تشفير السعر بطبقة AES-256 قبل الحفظ الفعلي في قاعدة البيانات اللامركزية"""
+            for order_node in orders_data:
+                order_id_raw = order_node.get('id')
+                if not order_id_raw:
+                    continue
+                    
+                # البحث عن الطلب محلياً لتحديثه أو إنشاء طلب جديد (Upsert)
+                order = ProcessedOrder.query.get(order_id_raw)
+                if not order:
+                    order = ProcessedOrder(id=order_id_raw)
+                    db.session.add(order)
+                
+                # 🧭 خريطة تحويل وتوزيع البيانات (Data Mapping) إلى النموذج المحلي
+                order.order_id = order_id_raw.split('-')[-1] if '-' in order_id_raw else order_id_raw  # رقم افتراضي مشتق أو رقم الهوية
+                order.order_status = order_node.get('status', 'pending')
+                order.payment_type = order_node.get('paymentMethod', 'manual')
+                
+                # إسناد السعر الإجمالي (يتم تشفيره بـ AES-256 تلقائياً عبر الـ Setter في الموديل)
+                order.total_price = order_node.get('total', 0.0)
+                
+                # معالجة تفكيك كائن بيانات العميل المتداخل (Nested Customer Object)
+                customer_data = order_node.get('customer') or {}
+                order.customer_name = customer_data.get('name', '---')
+                order.customer_phone = customer_data.get('phone', '---')
+                order.customer_email = customer_data.get('email', '---')
+                
+                # معالجة تفكيك كائن العنوان الجغرافي (Nested Shipping Object)
+                shipping_data = order_node.get('shippingAddress') or {}
+                order.shipping_country = shipping_data.get('country', 'Yemen')
+                order.shipping_city = shipping_data.get('city', '---')
+                order.shipping_district = shipping_data.get('district', '---')
+                order.shipping_street = shipping_data.get('street', '---')
+                
+                # معالجة تاريخ الإنشاء بأمان
+                created_at_str = order_node.get('createdAt')
+                if created_at_str:
+                    try:
+                        order.created_at_api = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                    except Exception:
+                        order.created_at_api = datetime.utcnow()
+                else:
+                    order.created_at_api = datetime.utcnow()
+                    
+            db.session.commit()
+            logger.info("✅ تمت المزامنة الشاملة وحفظ البيانات في قاعدة البيانات بنجاح.")
+            return True
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ انهيار محرك المزامنة أثناء الاتصال الخارجي: {e}")
+            return False
+
+    @staticmethod
+    def update_order_status(order_id, new_status):
+        """تحديث حالة الطلب وإرسال التعديل الفوري عبر الـ Mutation إلى سيرفر قمرة"""
+        url = "https://api.qomrah.cloud/graphql"
+        mutation = """
+        mutation updateOrderStatus($id: ID!, $status: String!) {
+            updateOrder(input: { id: $id, status: $status }) {
+                id
+                status
+            }
+        }
+        """
+        payload = {
+            "query": mutation,
+            "variables": {"id": order_id, "status": new_status}
+        }
         try:
-            val_to_encrypt = str(value) if value is not None else '0.0'
-            self._encrypted_total_price = cipher_suite.encrypt(val_to_encrypt.encode()).decode()
+            response = requests.post(url, json=payload, headers=SyncEngine.get_headers(), timeout=10)
+            return response.json()
         except Exception as e:
-            logger.error(f"❌ خطأ أثناء تشفير السعر للطلب {self.id}: {e}")
-            raise ValueError("فشل تشفير القيمة المالية")
+            logger.error(f"❌ خطأ تحديث الحالة في قمرة للطلب {order_id}: {e}")
+            raise e
 
-    def __repr__(self):
-        return f"<ProcessedOrder ID: {self.id} | OrderNo: {self.order_id} | Status: {self.order_status}>"
+    @staticmethod
+    def cancel_order(order_id):
+        """إرسال أمر إلغاء الطلب السيادي إلى قمرة عبر الـ Mutation"""
+        return SyncEngine.update_order_status(order_id, "cancelled")
 
-
-# 3. جدول تفاصيل محتويات الطلب المترابط (Order Items)
-class OrderItem(db.Model):
-    __tablename__ = 'order_items'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.String(100), db.ForeignKey('processed_orders.id'), nullable=False)
-    product_name = db.Column(db.String(255), nullable=False)
-    quantity = db.Column(db.Integer, default=1)
-    price = db.Column(db.Numeric(10, 2), default=0.0)
-    
-    # علاقة الربط الوثيقة مع الطلب الرئيسي والـ Cascade للحذف والتعديل المترابط
-    order = db.relationship(
-        'ProcessedOrder', 
-        backref=db.backref('items', lazy='dynamic', cascade="all, delete-orphan")
-    )
-
-    def __repr__(self):
-        return f"<OrderItem {self.product_name} - Qty: {self.quantity}>"
+    @staticmethod
+    def mark_as_fulfilled(order_id):
+        """تحديث حالة الطلب إلى مشحون ومجهز في خوادم قمرة"""
+        return SyncEngine.update_order_status(order_id, "delivered")
