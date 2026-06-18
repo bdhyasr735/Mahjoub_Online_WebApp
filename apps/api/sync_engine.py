@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المستقر والمطابق الفعلي لسيرفر قمرة مع توثيق السجلات (النسخة التصحيحية النهائية)
+# 📂 apps/api/sync_engine.py - محرك المزامنة المستقر والمطابق لـ GraphQL الـ Sandbox (النسخة التصحيحية النهائية)
 
 import requests
 import logging
@@ -10,7 +10,8 @@ from apps.models.sync_log import SyncLog  # استيراد نموذج السجل
 logger = logging.getLogger(__name__)
 
 class SyncEngine:
-    API_URL = "https://api.qomrah.cloud/graphql"  # المسار الرسمي لبوابة الـ GraphQL الموحدة لقمرة
+    # 🎯 تعديل المسار ليتطابق مع الـ Endpoint الفعلي لبيئة الحوكمة والإدارة الخاصة بنظامك
+    API_URL = "https://admin.mahjoub.online/graphql"  
     API_TOKEN = "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9"
 
     @staticmethod
@@ -28,9 +29,9 @@ class SyncEngine:
         total_synced = 0
         
         while has_next_page:
-            logger.info(f"🔄 جاري جلب ومزامنة الصفحة: {page} باستخدام الهيكل والمطابقة المحدثة لقمرة")
+            logger.info(f"🔄 جاري جلب ومزامنة الصفحة: {page} باستخدام الهيكل والمطابقة المحدثة")
             
-            # 🎯 الاستعلام المصحح والمطابق تماماً لقيود التحقق في سيرفر قمرة (GraphQL Validation Matches)
+            # 🎯 الاستعلام المصحح والمطابق تماماً لقيود التحقق في الـ Sandbox
             query = """
             query findAllOrders($page: Int) {
                 orders(page: $page) {
@@ -71,10 +72,10 @@ class SyncEngine:
                 
                 # التحقق الصارم من وجود أخطاء في الرد لمنع تعارض الحقول
                 if 'errors' in result:
-                    error_msg = f"❌ خطأ تدوين من سيرفر قمرة: {result['errors']}"
+                    error_msg = f"❌ خطأ تدوين من سيرفر البوابة: {result['errors']}"
                     logger.error(error_msg)
                     
-                    # توثيق خطأ قمرة الداخلي في قاعدة البيانات
+                    # توثيق الخطأ الداخلي في قاعدة البيانات
                     log_entry = SyncLog(status="failed", message=error_msg, page=page)
                     db.session.add(log_entry)
                     db.session.commit()
@@ -96,7 +97,7 @@ class SyncEngine:
                         order = ProcessedOrder(id=id_api)
                         db.session.add(order)
                     
-                    # 🧭 خريطة تحويل البيانات (Data Mapping) من حقول قمرة الموحدة إلى حقول قاعدتك المحلية المستقلة
+                    # 🧭 خريطة تحويل البيانات (Data Mapping) إلى حقول قاعدتك المحلية المستقلة
                     order.order_id = id_api.split('-')[-1] if '-' in id_api else id_api
                     
                     # قراءة الحالة الموحدة وتوزيعها محلياً لدعم الفلاتر الثلاثية بشكل مستقر
@@ -152,10 +153,10 @@ class SyncEngine:
                     
             except Exception as e:
                 db.session.rollback()
-                error_context = f"❌ خطأ في المزامنة أو الاتصال بالشبكة الخرجية: {str(e)}"
+                error_context = f"❌ خطأ في المزامنة أو الاتصال بالشبكة: {str(e)}"
                 logger.error(error_context)
                 
-                # توثيق انقطاع الاتصال أو خطأ الـ DNS الخارجي تلقائياً في جدول الـ SyncLog للمراقبة السيادية
+                # توثيق انقطاع الاتصال تلقائياً في جدول الـ SyncLog للمراقبة
                 log_entry = SyncLog(status="failed", message=error_context, page=page)
                 db.session.add(log_entry)
                 db.session.commit()
@@ -187,7 +188,7 @@ class SyncEngine:
 
     @staticmethod
     def update_order_status(order_id, new_status):
-        """تحديث حالة الطلب وإرسال التعديل الفوري عبر الـ Mutation إلى سيرفر قمرة"""
+        """تحديث حالة الطلب وإرسال التعديل الفوري عبر الـ Mutation إلى السيرفر"""
         mutation = """
         mutation updateOrderStatus($id: ID!, $status: String!) {
             updateOrder(input: { id: $id, status: $status }) {
@@ -200,10 +201,10 @@ class SyncEngine:
 
     @staticmethod
     def cancel_order(order_id):
-        """إرسال أمر إلغاء الطلب السيادي إلى قمرة عبر الـ Mutation"""
+        """إرسال أمر إلغاء الطلب السيادي عبر الـ Mutation"""
         return SyncEngine.update_order_status(order_id, "cancelled")
 
     @staticmethod
     def mark_as_fulfilled(order_id):
-        """تحديث حالة الطلب إلى مشحون ومجهز في خوادم قمرة"""
+        """تحديث حالة الطلب إلى مشحون ومجهز عبر الـ Mutation"""
         return SyncEngine.update_order_status(order_id, "delivered")
