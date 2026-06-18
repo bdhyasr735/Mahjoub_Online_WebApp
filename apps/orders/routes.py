@@ -44,7 +44,8 @@ def sync_all():
 @login_required
 def update_supplier(order_id):
     """استقبال طلبات AJAX لتحديث وحفظ المورد المحلي للطلب فورا بدون ريفريش"""
-    order = ProcessedOrder.query.get(order_id)
+    # البحث المرن باستخدام المعرف المحلي أو معرف طلب قمرة الخارجي لضمان عدم الفشل
+    order = ProcessedOrder.query.filter((ProcessedOrder.id == order_id) | (ProcessedOrder.order_id == order_id)).first()
     if not order:
         return jsonify({'status': 'error', 'message': 'الطلب غير موجود محلياً'}), 404
         
@@ -65,7 +66,7 @@ def update_supplier(order_id):
 @login_required
 def update_order_field(order_id):
     """استقبال تحديثات فورية وديناميكية لحالة الطلب، المالية، أو الشحن عبر AJAX ومزامنتها"""
-    order = ProcessedOrder.query.get(order_id)
+    order = ProcessedOrder.query.filter((ProcessedOrder.id == order_id) | (ProcessedOrder.order_id == order_id)).first()
     if not order:
         return jsonify({'status': 'error', 'message': 'الطلب غير موجود محلياً'}), 404
         
@@ -85,12 +86,12 @@ def update_order_field(order_id):
         try:
             # سيرفر قمرة الخارجي يقبل فقط حقل الحالات الموحد (status) عبر الميثود المحدثة
             if field == 'order_status':
-                SyncEngine.update_order_status(order_id, value)
+                SyncEngine.update_order_status(order.id, value)
             elif field == 'fulfillment_status' and value == 'fulfilled':
-                SyncEngine.mark_as_fulfilled(order_id)
+                SyncEngine.mark_as_fulfilled(order.id)
             elif field == 'financial_status' and value == 'paid':
                 # إذا تم تعليمها كمدفوعة محلياً، نرفع إشارة التسليم المالي والجسدي للسيرفر
-                SyncEngine.update_order_status(order_id, 'delivered')
+                SyncEngine.update_order_status(order.id, 'delivered')
         except Exception as api_err:
             logger.error(f"⚠️ تم الحفظ محلياً ولكن فشل التحديث الفوري في سيرفر قمرة: {api_err}")
             return jsonify({
@@ -108,7 +109,7 @@ def update_order_field(order_id):
 @login_required
 def process_order(order_id):
     """عرض تفاصيل المعالجة العميقة للطلب والتسوية المالية عند النقر على الرقم"""
-    order = ProcessedOrder.query.get(order_id)
+    order = ProcessedOrder.query.filter((ProcessedOrder.id == order_id) | (ProcessedOrder.order_id == order_id)).first()
     if not order:
         flash("الطلب المستهدف غير موجود بقاعدة البيانات المحلية.", "danger")
         return redirect(url_for('orders.orders_dashboard'))
@@ -122,7 +123,7 @@ def process_order(order_id):
             db.session.commit()
             
             # مزامنة الحالة المدفوعة والمؤكدة مع السيرفر الخارجي عبر المحرك الموحد
-            SyncEngine.update_order_status(order_id, 'delivered')
+            SyncEngine.update_order_status(order.id, 'delivered')
             
             flash(f"✅ تمت التسوية المالية الكاملة وتأكيد الطلب {order_id} محلياً ومزامنتها كـ delivered.", "success")
         except Exception as e:
@@ -138,7 +139,7 @@ def process_order(order_id):
 @login_required
 def download_invoice(order_id):
     """توليد أو تحميل الفاتورة الخاصة بالطلب المستهدف"""
-    order = ProcessedOrder.query.get(order_id)
+    order = ProcessedOrder.query.filter((ProcessedOrder.id == order_id) | (ProcessedOrder.order_id == order_id)).first()
     if not order:
         flash("الطلب غير موجود لإصدار الفاتورة.", "danger")
         return redirect(url_for('orders.orders_dashboard'))
@@ -150,7 +151,7 @@ def download_invoice(order_id):
 @login_required
 def cancel_order_route(order_id):
     """إرسال أمر إلغاء الطلب إلى سيرفرات قمرة تزامناً مع النظام"""
-    order = ProcessedOrder.query.get(order_id)
+    order = ProcessedOrder.query.filter((ProcessedOrder.id == order_id) | (ProcessedOrder.order_id == order_id)).first()
     result = SyncEngine.cancel_order(order_id)
     
     # فحص صارم للرد للتأكد من عدم وجود أخطاء من بوابة GraphQL لقمرة
@@ -169,7 +170,7 @@ def cancel_order_route(order_id):
 @login_required
 def fulfill_order_route(order_id):
     """تحديث حالة الشحن والتجهيز الفوري للطلب"""
-    order = ProcessedOrder.query.get(order_id)
+    order = ProcessedOrder.query.filter((ProcessedOrder.id == order_id) | (ProcessedOrder.order_id == order_id)).first()
     result = SyncEngine.mark_as_fulfilled(order_id)
     
     if result and isinstance(result, dict) and 'errors' not in result:
@@ -191,7 +192,7 @@ def update_status_route(order_id):
         flash("حالة غير صالحة أو حقل فارغ.", "warning")
         return redirect(url_for('orders.orders_dashboard'))
         
-    order = ProcessedOrder.query.get(order_id)
+    order = ProcessedOrder.query.filter((ProcessedOrder.id == order_id) | (ProcessedOrder.order_id == order_id)).first()
     result = SyncEngine.update_order_status(order_id, new_status)
     
     if result and isinstance(result, dict) and 'errors' not in result:
