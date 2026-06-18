@@ -5,29 +5,33 @@
 {% block content %}
 <div class="container-fluid mt-4" style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
 
-    {# شريط الأدوات العلوي #}
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-6 d-flex gap-2">
-            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-secondary px-3" style="border-radius: 6px;"><i class="bi bi-arrow-right"></i></a>
-            <input type="text" id="orderSearch" class="form-control" placeholder="بحث في الطلبات..." style="border-radius: 6px; width: 250px;">
-            <button class="btn btn-light border" style="border-radius: 6px;"><i class="bi bi-funnel"></i></button>
+    {# البطاقات الإحصائية السيادية #}
+    <div class="row mb-4">
+        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm" style="border-radius: 10px; border-right: 4px solid #D32F2F;"><small class="text-muted">الطلبات الملغاة</small><h4 class="fw-bold">0</h4></div></div>
+        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm" style="border-radius: 10px; border-right: 4px solid #388E3C;"><small class="text-muted">الطلبات المكتملة</small><h4 class="fw-bold">0</h4></div></div>
+        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm" style="border-radius: 10px; border-right: 4px solid #F57C00;"><small class="text-muted">إجمالي المبيعات</small><h4 class="fw-bold">0 ر.ي</h4></div></div>
+        <div class="col-md-3"><div class="card p-3 border-0 shadow-sm" style="border-radius: 10px; border-right: 4px solid #1976D2;"><small class="text-muted">عدد الطلبات</small><h4 class="fw-bold">{{ pagination.total }}</h4></div></div>
+    </div>
+
+    {# شريط الأدوات: البحث، المزامنة، والإنشاء #}
+    <div class="row mb-4 align-items-center bg-white p-3 shadow-sm" style="border-radius: 8px;">
+        <div class="col-md-8 d-flex gap-2">
+            <input type="text" class="form-control" placeholder="بحث برقم الطلب أو اسم العميل..." style="width: 300px;">
+            <button class="btn btn-outline-secondary"><i class="bi bi-funnel"></i></button>
         </div>
-        
-        <div class="col-md-6 text-start">
-            <a href="#" class="btn text-white px-4 fw-bold" style="border-radius: 6px; background: linear-gradient(45deg, #6A1B9A, #8E24AA); border: none;">
-                <i class="bi bi-plus-lg me-1"></i> إنشاء طلب
-            </a>
+        <div class="col-md-4 text-start">
+            <a href="#" class="btn text-white px-4" style="background: linear-gradient(45deg, #6A1B9A, #8E24AA);">إنشاء طلب</a>
             <form action="{{ url_for('orders.sync_all') }}" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-outline-primary px-3 fw-bold" style="border-radius: 6px;"><i class="bi bi-arrow-clockwise"></i></button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-clockwise"></i></button>
             </form>
         </div>
     </div>
 
-    {# جدول الطلبات #}
-    <div class="card border-0 shadow-sm" style="border-radius: 8px; overflow: hidden;">
+    {# الجدول #}
+    <div class="card border-0 shadow-sm" style="border-radius: 8px;">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead style="background-color: #FAF7FC; color: #4A148C; font-size: 0.9rem;">
+                <thead style="background-color: #F8F9FA;">
                     <tr>
                         <th class="ps-4">رقم الطلب</th>
                         <th>اسم العميل</th>
@@ -42,87 +46,37 @@
                 <tbody>
                     {% for order in pagination.items %}
                     <tr>
-                        <td class="ps-4 fw-bold text-primary" style="cursor: pointer;" onclick="window.location.href='{{ url_for('orders.process_order', order_id=order.id) }}'">
-                            #{{ order.order_id }}
-                        </td>
+                        <td class="ps-4 fw-bold text-primary">#{{ order.order_id }}</td>
                         <td>{{ order.customer_name }}</td>
-                        <td class="text-muted">{{ order.shipping_city or '---' }}</td>
+                        <td>{{ order.shipping_city }}</td>
                         <td class="fw-bold">{{ order.total_price }} ر.ي</td>
-                        
-                        {# القائمة المنسدلة لحالة الدفع - مرتبطة بـ financial_status #}
                         <td>
-                            <select class="form-select form-select-sm border-0 bg-light fw-bold" style="color: #6A1B9A; width: 140px;"
-                                    onchange="updateOrderField('{{ order.id }}', 'financial_status', this.value)">
-                                <option value="unpaid" {% if order.financial_status == 'unpaid' %}selected{% endif %}>Unpaid</option>
-                                <option value="paid" {% if order.financial_status == 'paid' %}selected{% endif %}>Paid</option>
+                            <select class="form-select form-select-sm" onchange="updateOrderField('{{ order.id }}', 'financial_status', this.value)">
+                                <option value="unpaid" {% if order.financial_status == 'unpaid' %}selected{% endif %}>غير مدفوع</option>
+                                <option value="paid" {% if order.financial_status == 'paid' %}selected{% endif %}>مدفوع</option>
                             </select>
                         </td>
-
-                        {# القائمة المنسدلة لحالة الشحن - مرتبطة بـ fulfillment_status #}
                         <td>
-                            <select class="form-select form-select-sm border-0 bg-light fw-bold" style="color: #00796B; width: 140px;"
-                                    onchange="updateOrderField('{{ order.id }}', 'fulfillment_status', this.value)">
-                                <option value="unfulfilled" {% if order.fulfillment_status == 'unfulfilled' %}selected{% endif %}>Unfulfilled</option>
-                                <option value="fulfilled" {% if order.fulfillment_status == 'fulfilled' %}selected{% endif %}>Fulfilled</option>
+                            <select class="form-select form-select-sm" onchange="updateOrderField('{{ order.id }}', 'fulfillment_status', this.value)">
+                                <option value="unfulfilled" {% if order.fulfillment_status == 'unfulfilled' %}selected{% endif %}>غير مجهز</option>
+                                <option value="fulfilled" {% if order.fulfillment_status == 'fulfilled' %}selected{% endif %}>تم التوصيل</option>
                             </select>
                         </td>
-
-                        <td class="text-muted small">{{ order.created_at_local.strftime('%Y-%m-%d') if order.created_at_local else '---' }}</td>
-                        
+                        <td>{{ order.created_at_local.strftime('%Y-%m-%d') if order.created_at_local else '---' }}</td>
                         <td class="text-center">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
-                                <ul class="dropdown-menu shadow-sm">
-                                    <li><a class="dropdown-item" href="{{ url_for('orders.process_order', order_id=order.id) }}"><i class="bi bi-eye me-2"></i> عرض التفاصيل</a></li>
-                                    <li><form action="{{ url_for('orders.delete_order', order_id=order.id) }}" method="POST"><button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i> حذف</button></form></li>
-                                </ul>
-                            </div>
+                            <button class="btn btn-sm btn-light" onclick="window.location.href='{{ url_for('orders.process_order', order_id=order.id) }}'"><i class="bi bi-eye"></i></button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1"></i><br>لا توجد طلبات لعرضها حالياً. اضغط على زر المزامنة لجلب البيانات.
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        
-        {# الترقيم الاحترافي #}
-        <div class="card-footer bg-white py-4 d-flex justify-content-between align-items-center">
-            <div class="text-muted fw-bold small">عرض {{ pagination.items|length }} من إجمالي {{ pagination.total }} طلب</div>
-            <nav><ul class="pagination mb-0 gap-1">
-                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                    <a class="page-link shadow-none" href="{{ url_for('orders.orders_dashboard', page=pagination.prev_num) }}"><i class="bi bi-chevron-right"></i></a>
-                </li>
-                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                    {% if page_num %}
-                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}"><a class="page-link shadow-none" href="{{ url_for('orders.orders_dashboard', page=page_num) }}">{{ page_num }}</a></li>
-                    {% endif %}
-                {% endfor %}
-                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                    <a class="page-link shadow-none" href="{{ url_for('orders.orders_dashboard', page=pagination.next_num) }}"><i class="bi bi-chevron-left"></i></a>
-                </li>
-            </ul></nav>
-        </div>
     </div>
 </div>
-
-<script>
-// وظيفة التحديث المباشر للبيانات
-async function updateOrderField(orderId, field, value) {
-    try {
-        const response = await fetch(`/orders/update-order-field/${orderId}`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ field: field, value: value })
-        });
-        if (!response.ok) alert("حدث خطأ أثناء التحديث");
-    } catch (error) {
-        console.error("خطأ:", error);
-    }
-}
-</script>
-
-<style>
-    .pagination .page-link { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px !important; border: 1px solid #EAEAEA !important; color: #6A1B9A !important; font-weight: 600; }
-    .pagination .page-item.active .page-link { background: linear-gradient(45deg, #6A1B9A, #8E24AA) !important; color: #FFF !important; border: none !important; }
-    .dropdown-item:hover { background-color: #F3E5F5; color: #6A1B9A; }
-</style>
 {% endblock %}
