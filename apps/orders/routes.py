@@ -61,6 +61,46 @@ def update_supplier(order_id):
         logger.error(f"❌ خطأ أثناء ربط المورد بالطلب {order_id}: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@orders_blueprint.route('/update-order-field/<order_id>', methods=['POST'])
+@login_required
+def update_order_field(order_id):
+    """استقبال تحديثات فورية وديناميكية لحالة الطلب، المالية، أو الشحن عبر AJAX ومزامنتها"""
+    order = ProcessedOrder.query.get(order_id)
+    if not order:
+        return jsonify({'status': 'error', 'message': 'الطلب غير موجود محلياً'}), 404
+        
+    data = request.get_json() or {}
+    field = data.get('field')       # 'order_status', 'financial_status', 'fulfillment_status'
+    value = data.get('value')       # القيمة الجديدة المحددة من القائمة المنسدلة
+    
+    if field not in ['order_status', 'financial_status', 'fulfillment_status']:
+        return jsonify({'status': 'error', 'message': 'اسم الحقل المستهدف غير صالح'}), 400
+
+    try:
+        # 1. تحديث قاعدة البيانات المحلية فوراً لإبقاء اللوحة سريعة الاستجابة
+        setattr(order, field, value)
+        db.session.commit()
+        
+        # 2. إرسال التحديث المتزامن إلى سيرفر قمرة بناءً على نوع الحقل المعدل
+        try:
+            if field == 'order_status':
+                SyncEngine.update_order_status(order_id, value)
+            elif field == 'fulfillment_status' and value == 'fulfilled':
+                SyncEngine.mark_as_fulfilled(order_id)
+            # ملاحظة: يمكنك هنا ربط تحديثات الحالات المالية الإضافية عند توفرها بـ SyncEngine
+        except Exception as api_err:
+            logger.error(f"⚠️ تم الحفظ محلياً ولكن فشل التحديث الفوري في سيرفر قمرة: {api_err}")
+            return jsonify({
+                'status': 'warning', 
+                'message': 'تم الحفظ محلياً، لكن فشل التحديث في قمرة. يرجى مراجعة صلاحيات التوكن (Access Token).'
+            })
+
+        return jsonify({'status': 'success', 'message': 'تم تحديث حالة الطلب بنجاح محلياً ومزامنته'})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ خطأ تقني أثناء معالجة تحديث حقل {field} للطلب {order_id}: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @orders_blueprint.route('/process/<order_id>', methods=['GET', 'POST'])
 @login_required
 def process_order(order_id):
@@ -125,7 +165,7 @@ def fulfill_order_route(order_id):
 @orders_blueprint.route('/update-status/<order_id>', methods=['POST'])
 @login_required
 def update_status_route(order_id):
-    """تحديث يدوي مخصص للحالة الصادرة من واجهة التحكم"""
+    """تحديث يدوي مخصص للحالة الصادرة من واجهة التحكم (تأمين إضافي للمسارات القديمة)"""
     new_status = request.form.get('status')
     if not new_status:
         flash("حالة غير صالحة أو حقل فارغ.", "warning")
