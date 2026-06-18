@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/orders_db.py - النسخة المعدلة لضمان استقرار الاستعلامات
+# 📂 apps/models/orders_db.py - النسخة النهائية الموحدة
 
 from apps.extensions import db
 from datetime import datetime
@@ -23,8 +23,7 @@ class ProcessedOrder(db.Model):
     id = db.Column(db.String(100), primary_key=True)
     order_id = db.Column(db.String(50), nullable=False, index=True)
     
-    # تحويل _total_price_encrypted إلى عمود صريح باسم total_price_raw 
-    # ليكون الحقل الفعلي المخزن في قاعدة البيانات
+    # حقل السعر المخزن في قاعدة البيانات
     total_price_raw = db.Column('total_price', db.String(255), nullable=True)
     
     order_status = db.Column(db.String(30), default='pending', index=True)
@@ -70,4 +69,12 @@ class ProcessedOrder(db.Model):
             logger.error(f"❌ خطأ أثناء تشفير السعر: {e}")
             self.total_price_raw = str(value)
 
-# ملاحظة: نموذج OrderItem لا يحتاج تغيير.
+class OrderItem(db.Model):
+    __tablename__ = 'order_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order_id = db.Column(db.String(100), db.ForeignKey('processed_orders.id', ondelete='CASCADE'), nullable=False)
+    product_id = db.Column(db.String(100), nullable=False)
+    product_name = db.Column(db.String(255), nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+    unit_price = db.Column(db.Float, default=0.0)
+    sku = db.Column(db.String(100), nullable=True)
