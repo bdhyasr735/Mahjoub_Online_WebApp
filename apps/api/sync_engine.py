@@ -65,7 +65,7 @@ class SyncEngine:
                     SyncEngine.API_URL, 
                     json=payload, 
                     headers=SyncEngine._get_headers(),
-                    timeout=30
+                    timeout=120  # 🎯 تم رفع المهلة من 30 إلى 120 ثانية لتجنب الـ Read Timeout ومنح الخادم وقت كافٍ
                 )
                 
                 result = response.json()
@@ -177,7 +177,7 @@ class SyncEngine:
                 SyncEngine.API_URL, 
                 json={'query': mutation, 'variables': variables}, 
                 headers=SyncEngine._get_headers(),
-                timeout=30
+                timeout=120  # 🎯 تم زيادة مهلة الـ Mutations أيضاً لتطابق إعدادات الأمان الجديدة
             )
             if response.status_code == 200:
                 return response.json()
