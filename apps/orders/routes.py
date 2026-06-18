@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/orders/routes.py - النسخة السيادية المتوافقة مع القيادة المركزية
+# 📂 apps/orders/routes.py - النسخة السيادية النهائية للقيادة المركزية
 
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from apps.extensions import db
@@ -15,13 +15,36 @@ orders_bp = Blueprint(
 )
 logger = logging.getLogger(__name__)
 
-# 1. لوحة تحكم الطلبات
+# 1. لوحة تحكم الطلبات (مع دعم البحث والفلاتر والترقيم)
 @orders_bp.route('/dashboard')
 def orders_dashboard():
+    # الحصول على البارامترات من الرابط
     page = request.args.get('page', 1, type=int)
-    pagination = ProcessedOrder.query.order_by(ProcessedOrder.created_at_local.desc()).paginate(
+    search = request.args.get('search', '', type=str)
+    payment_status = request.args.get('payment_status', '')
+    fulfillment_status = request.args.get('fulfillment_status', '')
+    
+    # بناء الاستعلام الأساسي
+    query = ProcessedOrder.query
+    
+    # تطبيق البحث (بحث في رقم الطلب أو اسم العميل)
+    if search:
+        query = query.filter(
+            (ProcessedOrder.order_id.contains(search)) | 
+            (ProcessedOrder.customer_name.contains(search))
+        )
+    
+    # تطبيق الفلاتر
+    if payment_status:
+        query = query.filter_by(financial_status=payment_status)
+    if fulfillment_status:
+        query = query.filter_by(fulfillment_status=fulfillment_status)
+        
+    # الترتيب والترقيم (10 طلبات في الصفحة)
+    pagination = query.order_by(ProcessedOrder.created_at_local.desc()).paginate(
         page=page, per_page=10, error_out=False
     )
+    
     return render_template('admin/orders_dashboard.html', pagination=pagination)
 
 # 2. المزامنة الشاملة
@@ -35,7 +58,7 @@ def sync_all():
         flash("حدث خطأ أثناء المزامنة", "danger")
     return redirect(url_for('orders.orders_dashboard'))
 
-# 3. تحديث الحالات (تعديل الحقول لتطابق الـ Models)
+# 3. تحديث الحالات (AJAX)
 @orders_bp.route('/update-order-field/<string:order_id>', methods=['POST'])
 def update_order_field(order_id):
     data = request.get_json()
@@ -44,7 +67,6 @@ def update_order_field(order_id):
     field = data.get('field')
     value = data.get('value')
     
-    # تحديث الحقول المحددة في الـ Model
     if field in ['financial_status', 'fulfillment_status']:
         setattr(order, field, value)
         db.session.commit()
