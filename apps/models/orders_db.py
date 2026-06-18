@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/orders_db.py - إدارة وهيكلة بيانات الطلبات السيادية والتسويات المالية المشفرة
+# 📂 apps/models/orders_db.py - إدارة وهيكلة بيانات الطلبات
 
 from apps.extensions import db
 from datetime import datetime
@@ -9,26 +9,24 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# تهيئة مفتاح التشفير الأمن المعتمد للمنصة لضمان سرية البيانات المالية والتجارية للطلب
+# تهيئة مفتاح التشفير
 try:
-    # يفضل إعداد ENCRYPTION_KEY في ملف الكومفيج بشكل مستقر وثابت
     encryption_key = getattr(Config, 'ENCRYPTION_KEY', Fernet.generate_key().decode())
     cipher_suite = Fernet(encryption_key.encode())
 except Exception as e:
     logger.error(f"⚠️ خطأ في تحميل مفتاح تشفير البيانات المالية: {e}")
     cipher_suite = None
 
-
 class ProcessedOrder(db.Model):
-    """النموذج المركزي الموحد لإدارة وتوثيق الطلبات المتزامنة والروابط المالية بالموردين"""
+    """النموذج المركزي الموحد لإدارة الطلبات المجلوبة من محجوب أونلاين"""
     __tablename__ = 'processed_orders'
 
     # المعرفات الأساسية
     id = db.Column(db.String(100), primary_key=True)  # المعرف الفريد القادم من API
     order_id = db.Column(db.String(50), nullable=False, index=True) # الرقم المرجعي للطلب
     
-    # ربط المورد
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id', ondelete='SET NULL'), nullable=True)
+    # حقل المورد (تم تحويله لنصي ليناسب طبيعة بيانات محجوب أونلاين)
+    supplier_name = db.Column(db.String(150), nullable=True) 
     
     # الحالات
     order_status = db.Column(db.String(30), default='pending', index=True)
@@ -98,6 +96,7 @@ class ProcessedOrder(db.Model):
             'id': self.id,
             'order_id': self.order_id,
             'total_price': self.total_price,
+            'supplier_name': self.supplier_name,
             'order_status': self.order_status,
             'customer': {'name': self.customer_name, 'phone': self.customer_phone},
             'shipping': {'city': self.shipping_city, 'street': self.shipping_street}
