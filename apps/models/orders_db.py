@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/orders_db.py - نموذج الطلبات التفصيلي والمشفر (النسخة النهائية المستقرة)
+# 📂 apps/models/orders_db.py - نموذج الطلبات التفصيلي والمشفر (النسخة النهائية المستقرة المتوافقة مع قمرة كلاود 2026)
 
 import base64
 import hashlib
@@ -12,7 +12,7 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
-# 1. إعداد محرك التشفير الآمن
+# 1. إعداد محرك التشفير الآمن لبيانات الأسعار الحساسة
 try:
     raw_key = Config.ENCRYPTION_KEY
     hashed_key = hashlib.sha256(raw_key.encode()).digest()
@@ -25,36 +25,48 @@ except Exception as e:
 class ProcessedOrder(db.Model):
     __tablename__ = 'processed_orders'
 
-    # البيانات الأساسية المستمدة من قمرة
-    id = db.Column(db.String(100), primary_key=True) 
-    status = db.Column(db.String(50), default='pending')
+    # البيانات الأساسية المعرفية للطلب (مثل المعرف الفريد الداخلي والمعرف الظاهري من قمرة)
+    id = db.Column(db.String(100), primary_key=True)  # يستوعب الـ GraphQL UUID أو الـ id
+    order_id = db.Column(db.String(100), nullable=True, index=True)  # الـ الرقم الظاهري مثل "1000000943"
     
-    # حقول تفصيلية لبيانات الطلب
+    # 🧭 الحالات الثلاث الثلاثية المستقلة المعتمدة رسمياً في قمرة
+    order_status = db.Column(db.String(50), default='pending')        # [pending, confirmed, cancelled, delivered, returned, refunded]
+    financial_status = db.Column(db.String(50), default='unpaid')    # [unpaid, paid, pending, refunded]
+    fulfillment_status = db.Column(db.String(50), default='unfulfilled') # [unfulfilled, fulfilled, partial]
+    
+    # حقول تفصيلية لبيانات العميل والشحن الصريحة المستلمة
     customer_name = db.Column(db.String(255), nullable=True)
-    items_count = db.Column(db.Integer, default=0)
-    shipping_status = db.Column(db.String(50), nullable=True)
-    shipping_address = db.Column(db.Text, nullable=True)
-    payment_method = db.Column(db.String(100), nullable=True)
-    payment_status = db.Column(db.String(50), default='غير مدفوع')  # مضاف لدعم فلاتر الدفع باللوحة
-    source = db.Column(db.String(100), nullable=True)
+    customer_phone = db.Column(db.String(50), nullable=True)
+    customer_email = db.Column(db.String(255), nullable=True)
     
-    # 🔗 مفتاح الربط مع المورد المحلي (مضاف لتخزين خيارات الـ AJAX باللوحة)
+    # حقول العنوان الجغرافي المستخرجة من هيكل العنوان لقمرة
+    shipping_country = db.Column(db.String(100), nullable=True)
+    shipping_city = db.Column(db.String(100), nullable=True)
+    shipping_district = db.Column(db.String(100), nullable=True)
+    shipping_street = db.Column(db.Text, nullable=True)
+    
+    # بيانات وسيلة الدفع والحمل
+    payment_type = db.Column(db.String(50), default='manual')  # [manual, cod]
+    items_count = db.Column(db.Integer, default=0)
+    source = db.Column(db.String(100), default='QumraCloud')
+    
+    # 🔗 مفتاح الربط والتحكم الخاص بـ المورد المحلي (خيارات الـ AJAX باللوحة)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     
-    # التواريخ (توليد التوقيت لحظة الحفظ)
-    created_at_api = db.Column(db.DateTime, nullable=True) 
-    processed_at = db.Column(db.DateTime, default=datetime.utcnow) 
+    # التواريخ والمزامنة زمنياً (معالجة UTC)
+    created_at_api = db.Column(db.DateTime, nullable=True)  
+    processed_at = db.Column(db.DateTime, default=datetime.utcnow)  
     
-    # الحقل المشفر للقيمة المالية (لا يتم التعامل معه مباشرة)
+    # الحقل المشفر للقيمة المالية الإجمالية (لحماية البيانات الحساسة للمنصة)
     _encrypted_total_price = db.Column(db.Text, nullable=True)
 
-    # علاقة اختيارية لقراءة بيانات المورد مباشرة إذا احتجت لها لاحقاً
+    # العلاقة المباشرة لقراءة بيانات المورد مع الكود المحلي
     supplier = db.relationship('Supplier', backref=db.backref('processed_orders', lazy='dynamic'))
 
-    # 2. إدارة التشفير (Property Getters/Setters)
+    # 2. إدارة التشفير والتعمية المالية (Property Getters/Setters)
     @property
     def total_price(self):
-        """فك تشفير السعر عند القراءة"""
+        """فك تشفير السعر آلياً عند الاستدعاء من اللوحة والقراءة برمجياً"""
         if not self._encrypted_total_price:
             return Decimal('0.0')
         try:
@@ -66,7 +78,7 @@ class ProcessedOrder(db.Model):
 
     @total_price.setter
     def total_price(self, value):
-        """تشفير السعر عند الحفظ"""
+        """تشفير السعر بطبقة AES-256 قبل الحفظ الفعلي في قاعدة البيانات اللامركزية"""
         try:
             val_to_encrypt = str(value) if value is not None else '0.0'
             self._encrypted_total_price = cipher_suite.encrypt(val_to_encrypt.encode()).decode()
@@ -75,9 +87,10 @@ class ProcessedOrder(db.Model):
             raise ValueError("فشل تشفير القيمة المالية")
 
     def __repr__(self):
-        return f"<ProcessedOrder {self.id} - Status: {self.status}>"
+        return f"<ProcessedOrder ID: {self.id} | OrderNo: {self.order_id} | Status: {self.order_status}>"
 
-# 3. جدول المنتجات المترابط
+
+# 3. جدول تفاصيل محتويات الطلب المترابط (Order Items)
 class OrderItem(db.Model):
     __tablename__ = 'order_items'
     
@@ -87,7 +100,7 @@ class OrderItem(db.Model):
     quantity = db.Column(db.Integer, default=1)
     price = db.Column(db.Numeric(10, 2), default=0.0)
     
-    # علاقة الربط مع الطلب الرئيسي
+    # علاقة الربط الوثيقة مع الطلب الرئيسي والـ Cascade للحذف والتعديل المترابط
     order = db.relationship(
         'ProcessedOrder', 
         backref=db.backref('items', lazy='dynamic', cascade="all, delete-orphan")
