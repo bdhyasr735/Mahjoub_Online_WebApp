@@ -3,6 +3,7 @@ import requests
 import logging
 from apps.models.orders_db import ProcessedOrder, db
 from apps.models.sync_log import SyncLog
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,9 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
-        logger.info("🔄 بدء المزامنة بالهيكل الآمن...")
+        logger.info("🔄 بدء المزامنة...")
         
-        # 🎯 الاستعلام المبسط: استبعدنا الحقول المعقدة (customer, status, paymentMethod) 
-        # حتى نضمن نجاح الاتصال أولاً، ثم نضيفها تدريجياً.
+        # استعلام أساسي وآمن لتجنب أخطاء GraphQL
         query = """
         query GetOrders {
             findAllOrders {
@@ -48,27 +48,28 @@ class SyncEngine:
             orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
             
             for item in orders_data:
+                # استخدام _id كمعرف وحيد للطلب لتجنب مشاكل Null
                 id_api = item.get('_id')
                 if not id_api: continue
                     
                 order = ProcessedOrder.query.get(id_api) or ProcessedOrder(id=id_api)
                 
-                # تحديث الحقول المضمونة
+                # إسناد القيم الإجبارية لتجنب NotNullViolation
+                order.order_id = str(id_api) # نستخدم ID السيرفر كـ order_id في حال غياب الرقم التسلسلي
                 order.total_price = float(item.get('totalPrice', 0.0))
-                # سنترك الحقول المعقدة مؤقتاً لنضمن عمل المزامنة
+                order.order_status = 'pending'
+                order.source = 'QumraCloud'
                 
                 db.session.add(order)
             
             db.session.commit()
-            logger.info(f"✅ تمت المزامنة بنجاح لـ {len(orders_data)} طلب (هيكل أساسي).")
             return True
             
         except Exception as e:
             db.session.rollback()
+            # تسجيل الفشل في سجلات النظام
+            log = SyncLog(status="failed", error_message=str(e))
+            db.session.add(log)
+            db.session.commit()
             logger.error(f"❌ فشل المزامنة: {e}")
             return False
-
-    @staticmethod
-    def _execute_mutation(mutation, variables):
-        # (باقي الميثودز تظل كما هي)
-        pass
