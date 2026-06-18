@@ -4,95 +4,108 @@
 
 {% block content %}
 <div class="container-fluid mt-4" style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
-    
+
+    {# رأس الصفحة والمزامنة #}
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-secondary px-3 py-2 fw-bold me-2" style="border-radius: 6px; border-color: #6A1B9A; color: #6A1B9A;">
-                <i class="bi bi-arrow-right me-1"></i> رجوع
-            </a>
-        </div>
-        
+        <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-secondary px-3 py-2 fw-bold" style="border-radius: 6px; border-color: #6A1B9A; color: #6A1B9A;">
+            <i class="bi bi-arrow-right me-1"></i> رجوع
+        </a>
         <form action="{{ url_for('orders.sync_all') }}" method="POST">
-            <button type="submit" class="btn text-white px-4 py-2 fw-bold" style="border-radius: 6px; background: linear-gradient(45deg, #6A1B9A, #8E24AA); border: none; box-shadow: 0 4px 12px rgba(106, 27, 154, 0.2);">
+            <button type="submit" class="btn text-white px-4 py-2 fw-bold" style="border-radius: 6px; background: linear-gradient(45deg, #6A1B9A, #8E24AA); border: none;">
                 <i class="bi bi-cloud-download me-2"></i> مزامنة البيانات من قمرة
             </button>
         </form>
     </div>
 
-    {# جدول الطلبات - مع حماية ضد الانهيار #}
-    <div class="card border-0 shadow-sm" style="border-radius: 8px; overflow: hidden; border: 1px solid rgba(106, 27, 154, 0.08);">
+    {# جدول الطلبات السيادي #}
+    <div class="card border-0 shadow-sm" style="border-radius: 8px; overflow: hidden;">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead style="background-color: #FAF7FC; color: #4A148C; font-size: 0.9rem;">
                     <tr>
                         <th class="ps-4">رقم الطلب</th>
-                        <th>العميل</th>
-                        <th>التليفون</th>
+                        <th>اسم العميل</th>
+                        <th>عنوان الشحن</th>
                         <th>الإجمالي</th>
-                        <th>الحالة</th>
-                        <th>اسم المورد</th>
-                        <th>التاريخ</th>
-                        <th class="text-center">الإجراءات</th>
+                        <th>وسيلة الدفع</th>
+                        <th>حالة الدفع</th>
+                        <th>حالة الشحن</th>
+                        <th>عدد العناصر</th>
+                        <th>المصدر</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th class="text-center">الاجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {# نتحقق هنا إذا كان pagination موجوداً وله items #}
-                    {% if pagination and pagination.items %}
-                        {% for order in pagination.items %}
-                        <tr>
-                            <td class="ps-4 fw-bold" style="color: #6A1B9A;">#{{ order.order_id or order.id }}</td>
-                            <td class="fw-bold">{{ order.customer_name or '---' }}</td>
-                            <td>{{ order.customer_phone or '---' }}</td>
-                            <td>{{ "%.2f"|format(order.total_price or 0) }} ر.س</td>
-                            <td><span class="badge bg-light text-dark border">{{ order.order_status or 'جديد' }}</span></td>
-                            <td><span class="text-primary fw-bold">{{ order.supplier_name or 'غير محدد' }}</span></td>
-                            <td class="text-muted">{{ order.created_at_local.strftime('%Y-%m-%d') if order.created_at_local else '---' }}</td>
-                            <td class="text-center">
-                                <a href="{{ url_for('orders.process_order', order_id=order.id) }}" class="btn btn-sm" style="color: #6A1B9A;"><i class="bi bi-eye"></i></a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">لا توجد طلبات لعرضها حالياً. يرجى الضغط على "مزامنة البيانات".</td>
-                        </tr>
-                    {% endif %}
+                    {% for order in pagination.items %}
+                    <tr>
+                        <td class="ps-4 fw-bold" style="color: #6A1B9A;">{{ order.order_id }}</td>
+                        <td>{{ order.customer_name }}</td>
+                        <td class="text-muted">{{ order.shipping_address or '---' }}</td>
+                        <td class="fw-bold">{{ order.total_price }} ريال</td>
+                        <td><span class="badge bg-light text-dark border">{{ order.payment_method }}</span></td>
+                        
+                        {# قائمة حالة الدفع #}
+                        <td>
+                            <select class="form-select form-select-sm border-0 bg-light fw-bold" style="color: #6A1B9A; width: 120px;">
+                                <option>{{ order.payment_status }}</option>
+                            </select>
+                        </td>
+
+                        {# قائمة حالة الشحن #}
+                        <td>
+                            <select class="form-select form-select-sm border-0 bg-light fw-bold" style="color: #00796B; width: 120px;">
+                                <option>{{ order.shipping_status }}</option>
+                            </select>
+                        </td>
+
+                        <td class="text-center">{{ order.items_count }} عنصر</td>
+                        <td><span class="badge bg-warning text-dark">{{ order.source }}</span></td>
+                        <td class="text-muted">{{ order.created_at_local.strftime('%Y-%m-%d') }}</td>
+                        
+                        {# قائمة الإجراءات #}
+                        <td class="text-center">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ url_for('orders.process_order', order_id=order.id) }}"><i class="bi bi-eye me-2"></i> عرض الطلب</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-pdf me-2"></i> تحميل الفاتورة</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i> حذف</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        {# الترقيم - يعمل فقط إذا كانت البيانات موجودة #}
-        {% if pagination and pagination.pages > 1 %}
-        <div class="card-footer bg-white py-4 border-top-0 d-flex justify-content-between align-items-center">
-            <div class="text-muted fw-bold" style="font-size: 0.85rem;">
-                صفحة <span style="color: #6A1B9A;">{{ pagination.page }}</span> من <span style="color: #6A1B9A;">{{ pagination.pages }}</span>
-            </div>
-            <nav>
-                <ul class="pagination mb-0 shadow-sm">
-                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('orders.orders_dashboard', page=pagination.prev_num) if pagination.has_prev else '#' }}">السابق</a>
-                    </li>
-                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                        {% if page_num %}
-                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('orders.orders_dashboard', page=page_num) }}">{{ page_num }}</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                        {% endif %}
-                    {% endfor %}
-                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('orders.orders_dashboard', page=pagination.next_num) if pagination.has_next else '#' }}">التالي</a>
-                    </li>
-                </ul>
-            </nav>
+        {# الترقيم (10 طلبات لكل صفحة) #}
+        <div class="card-footer bg-white py-4 d-flex justify-content-between align-items-center">
+            <span class="text-muted fw-bold">صفحة {{ pagination.page }} من {{ pagination.pages }}</span>
+            <ul class="pagination mb-0">
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('orders.orders_dashboard', page=pagination.prev_num) }}">السابق</a>
+                </li>
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('orders.orders_dashboard', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('orders.orders_dashboard', page=pagination.next_num) }}">التالي</a>
+                </li>
+            </ul>
         </div>
-        {% endif %}
     </div>
 </div>
 
 <style>
-    .page-link { color: #6A1B9A !important; border: none !important; padding: 0.5rem 1rem; }
+    .page-link { color: #6A1B9A !important; border: none !important; }
     .page-item.active .page-link { background-color: #6A1B9A !important; color: #FFF !important; border-radius: 6px; }
+    .dropdown-item:hover { background-color: #FAF7FC; color: #6A1B9A; }
 </style>
 {% endblock %}
