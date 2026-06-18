@@ -48,23 +48,23 @@
                         <td class="text-muted">{{ order.shipping_city }}</td>
                         <td class="fw-bold">{{ order.total_price }} ر.ي</td>
                         
-                        {# قائمة حالة الدفع الديناميكية #}
+                        {# قائمة حالة الدفع الديناميكية - مطابقة للنموذج financial_status #}
                         <td>
                             <select class="form-select form-select-sm border-0 bg-light fw-bold" style="color: #6A1B9A; width: 140px;"
-                                    onchange="updateOrderField('{{ order.id }}', 'payment_status', this.value)">
-                                <option value="{{ order.payment_status }}" selected>{{ order.payment_status|capitalize }}</option>
-                                <option value="pending">قيد الانتظار</option>
-                                <option value="paid">مدفوع</option>
+                                    onchange="updateOrderField('{{ order.id }}', 'financial_status', this.value)">
+                                <option value="{{ order.financial_status }}" selected>{{ order.financial_status|capitalize }}</option>
+                                <option value="unpaid">Unpaid</option>
+                                <option value="paid">Paid</option>
                             </select>
                         </td>
 
-                        {# قائمة حالة الشحن الديناميكية #}
+                        {# قائمة حالة الشحن الديناميكية - مطابقة للنموذج fulfillment_status #}
                         <td>
                             <select class="form-select form-select-sm border-0 bg-light fw-bold" style="color: #00796B; width: 140px;"
-                                    onchange="updateOrderField('{{ order.id }}', 'shipping_status', this.value)">
-                                <option value="{{ order.shipping_status }}" selected>{{ order.shipping_status|capitalize }}</option>
-                                <option value="preparing">غير مجهز</option>
-                                <option value="shipped">تم التوصيل</option>
+                                    onchange="updateOrderField('{{ order.id }}', 'fulfillment_status', this.value)">
+                                <option value="{{ order.fulfillment_status }}" selected>{{ order.fulfillment_status|capitalize }}</option>
+                                <option value="unfulfilled">Unfulfilled</option>
+                                <option value="fulfilled">Fulfilled</option>
                             </select>
                         </td>
 
@@ -106,16 +106,19 @@
 </div>
 
 <script>
-// وظيفة التحديث المباشر للبيانات
+// وظيفة التحديث المباشر للبيانات للنموذج الموحد
 async function updateOrderField(orderId, field, value) {
-    const response = await fetch(`/orders/update-order-field/${orderId}`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ field: field, value: value })
-    });
-    if (response.ok) {
-        // تحديث مرئي بسيط للمستخدم
-        console.log("تم التحديث");
+    try {
+        const response = await fetch(`/orders/update-order-field/${orderId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ field: field, value: value })
+        });
+        if (!response.ok) {
+            console.error("خطأ في تحديث البيانات");
+        }
+    } catch (error) {
+        console.error("خطأ:", error);
     }
 }
 </script>
