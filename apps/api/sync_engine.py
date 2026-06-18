@@ -22,16 +22,26 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
-        logger.info("🔄 بدء المزامنة...")
+        logger.info("🔄 بدء المزامنة الشاملة...")
         
-        # استعلام أساسي وآمن لتجنب أخطاء GraphQL
+        # استعلام موسع لجلب كافة تفاصيل الطلب والعميل
         query = """
         query GetOrders {
             findAllOrders {
                 data {
                     _id
+                    orderNumber
                     totalPrice
-                    createdAt
+                    status
+                    customer {
+                        name
+                        phone
+                        email
+                    }
+                    shippingAddress {
+                        city
+                        street
+                    }
                 }
             }
         }
@@ -48,26 +58,37 @@ class SyncEngine:
             orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
             
             for item in orders_data:
-                # استخدام _id كمعرف وحيد للطلب لتجنب مشاكل Null
                 id_api = item.get('_id')
                 if not id_api: continue
                     
                 order = ProcessedOrder.query.get(id_api) or ProcessedOrder(id=id_api)
                 
-                # إسناد القيم الإجبارية لتجنب NotNullViolation
-                order.order_id = str(id_api) # نستخدم ID السيرفر كـ order_id في حال غياب الرقم التسلسلي
+                # إسناد المعرفات الأساسية (ضمان عدم وجود Null)
+                order.order_id = str(item.get('orderNumber') or id_api)
                 order.total_price = float(item.get('totalPrice', 0.0))
-                order.order_status = 'pending'
+                order.order_status = item.get('status', 'pending')
                 order.source = 'QumraCloud'
+                
+                # إسناد تفاصيل العميل
+                customer = item.get('customer') or {}
+                order.customer_name = customer.get('name')
+                order.customer_phone = customer.get('phone')
+                order.customer_email = customer.get('email')
+                
+                # إسناد تفاصيل الشحن
+                shipping = item.get('shippingAddress') or {}
+                order.shipping_city = shipping.get('city')
+                order.shipping_street = shipping.get('street')
                 
                 db.session.add(order)
             
             db.session.commit()
+            logger.info(f"✅ تم بنجاح مزامنة {len(orders_data)} طلب.")
             return True
             
         except Exception as e:
             db.session.rollback()
-            # تسجيل الفشل في سجلات النظام
+            # تسجيل الفشل في السجل
             log = SyncLog(status="failed", error_message=str(e))
             db.session.add(log)
             db.session.commit()
