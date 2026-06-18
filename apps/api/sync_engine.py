@@ -16,33 +16,22 @@ class SyncEngine:
         return {
             "Authorization": f"Bearer {SyncEngine.API_TOKEN}",
             "Content-Type": "application/json",
-            "Accept": "application/json",
-            "apollo-require-preflight": "true"
+            "Accept": "application/json"
         }
 
     @staticmethod
     def fetch_and_sync_order():
         logger.info("🔄 بدء المزامنة الشاملة مع قمرة...")
         
-        # استعلام GraphQL لجلب بيانات الطلبات والعملاء
+        # استعلام مبسط وأكثر توافقاً
         query = """
-        query GetOrders {
+        query {
             findAllOrders {
                 data {
                     _id
-                    orderNumber
                     totalPrice
                     status
                     createdAt
-                    customer {
-                        name
-                        phone
-                        email
-                    }
-                    shippingAddress {
-                        city
-                        street
-                    }
                 }
             }
         }
@@ -59,30 +48,18 @@ class SyncEngine:
             orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
             
             for item in orders_data:
-                id_api = item.get('_id')
+                id_api = str(item.get('_id'))
                 if not id_api: continue
                     
-                # البحث عن الطلب الموجود أو إنشاء طلب جديد
-                order = ProcessedOrder.query.get(id_api) or ProcessedOrder(id=id_api)
+                order = ProcessedOrder.query.filter_by(id=id_api).first() or ProcessedOrder(id=id_api)
                 
-                # إسناد القيم الأساسية
-                order.order_id = str(item.get('orderNumber') or id_api)
+                # إسناد القيم الأساسية المتاحة بالتأكيد
+                order.order_id = id_api[:8] # استخدام جزء من الـ ID كبديل لـ orderNumber
                 order.total_price = float(item.get('totalPrice', 0.0))
                 order.order_status = item.get('status', 'pending')
                 order.source = 'QumraCloud'
                 
-                # إسناد تفاصيل العميل (مع معالجة الأخطاء في حال غياب البيانات)
-                customer = item.get('customer') or {}
-                order.customer_name = customer.get('name') or 'غير معروف'
-                order.customer_phone = customer.get('phone') or '---'
-                order.customer_email = customer.get('email')
-                
-                # إسناد تفاصيل الشحن
-                shipping = item.get('shippingAddress') or {}
-                order.shipping_city = shipping.get('city') or 'غير محدد'
-                order.shipping_street = shipping.get('street')
-                
-                # إسناد التاريخ إذا كان متاحاً
+                # التاريخ
                 try:
                     if item.get('createdAt'):
                         order.created_at_local = datetime.fromisoformat(item.get('createdAt').replace('Z', '+00:00'))
@@ -97,9 +74,5 @@ class SyncEngine:
             
         except Exception as e:
             db.session.rollback()
-            # تسجيل الفشل في سجلات النظام (SyncLog)
-            log = SyncLog(status="failed", error_message=str(e))
-            db.session.add(log)
-            db.session.commit()
             logger.error(f"❌ فشل المزامنة: {e}")
             return False
