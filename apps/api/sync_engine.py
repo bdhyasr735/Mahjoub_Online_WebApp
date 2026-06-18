@@ -1,16 +1,15 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المستقر والمطابق لـ GraphQL الـ Sandbox (النسخة التصحيحية الفعالة)
+# 📂 apps/api/sync_engine.py - محرك المزامنة المحدث وفقاً لـ Schema النظام
 
 import requests
 import logging
 from datetime import datetime
 from apps.models.orders_db import ProcessedOrder, db
-from apps.models.sync_log import SyncLog  # استيراد نموذج السجلات لتوثيق العمليات والأخطاء
+from apps.models.sync_log import SyncLog
 
 logger = logging.getLogger(__name__)
 
 class SyncEngine:
-    # 🎯 المسار المباشر والصحيح الذي أثبت اتصاله بنجاح
     API_URL = "https://mahjoub.online/admin/graphql"  
     API_TOKEN = "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9"
 
@@ -20,26 +19,22 @@ class SyncEngine:
             "Authorization": f"Bearer {SyncEngine.API_TOKEN}",
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "apollo-require-preflight": "true"  # 🎯 الهيدر الحاسم المطلوب بناءً على إعدادات الحماية في الـ Sandbox
+            "apollo-require-preflight": "true"
         }
 
     @staticmethod
     def fetch_and_sync_order():
-        page = 1
-        has_next_page = True
-        total_synced = 0
+        logger.info("🔄 بدء عملية مزامنة الطلبات...")
         
-        while has_next_page:
-            logger.info(f"🔄 جاري جلب ومزامنة الصفحة: {page} باستخدام الهيكل والمطابقة المحدثة")
-            
-            # 🎯 الاستعلام المصحح والمطابق تماماً لتسميات السيرفر (findAllOrders)
-            query = """
-            query GetOrders($page: Int) {
-                findAllOrders(page: $page) {
+        # 🎯 الاستعلام المحدث بناءً على Schema: findAllOrders -> data -> [Order!]
+        query = """
+        query GetOrders {
+            findAllOrders {
+                data {
                     id
                     status
                     paymentMethod
-                    total
+                    totalPrice
                     createdAt
                     customer {
                         name
@@ -54,133 +49,67 @@ class SyncEngine:
                     }
                 }
             }
-            """
-            
-            payload = {
-                'query': query, 
-                'variables': {'page': page}
-            }
-            
-            try:
-                response = requests.post(
-                    SyncEngine.API_URL, 
-                    json=payload, 
-                    headers=SyncEngine._get_headers(),
-                    timeout=120  # 🎯 مهلة الانتظار الآمنة لحسم الـ Timeout
-                )
-                
-                # 🎯 فحص مأمونية الاستجابة والتقاط نوع الخطأ إذا أرجع الخادم HTML بدلاً من JSON
-                try:
-                    result = response.json()
-                except Exception:
-                    error_html = f"⚠️ الخادم المستهدف لم يرسل استجابة JSON! الرد الفعلي هو: {response.text[:500]}"
-                    logger.error(error_html)
-                    
-                    log_entry = SyncLog(status="failed", message="❌ استجابة غير صالحة (ليست JSON) من سيرفر الإدارة.", page=page)
-                    db.session.add(log_entry)
-                    db.session.commit()
-                    return False
-                
-                # التحقق الصارم من وجود أخطاء في الرد لمنع تعارض الحقول
-                if 'errors' in result:
-                    error_msg = f"❌ خطأ تدوين من سيرفر البوابة: {result['errors']}"
-                    logger.error(error_msg)
-                    
-                    # توثيق الخطأ الداخلي في قاعدة البيانات
-                    log_entry = SyncLog(status="failed", message=error_msg, page=page)
-                    db.session.add(log_entry)
-                    db.session.commit()
-                    return False
-                
-                # 🎯 استخراج البيانات باستخدام المفتاح الصحيح المرتد من السيرفر (findAllOrders)
-                orders_data = result.get('data', {}).get('findAllOrders', [])
-                if not orders_data:
-                    logger.info("ℹ️ لم يتم العثور على أي طلبات إضافية بانتظار المزامنة.")
-                    break
-                    
-                for item in orders_data:
-                    id_api = item.get('id')
-                    if not id_api:
-                        continue
-                        
-                    # البحث عن الطلب محلياً أو إنشاء كائن جديد (Upsert)
-                    order = ProcessedOrder.query.get(id_api)
-                    if not order:
-                        order = ProcessedOrder(id=id_api)
-                        db.session.add(order)
-                    
-                    # 🧭 خريطة تحويل البيانات (Data Mapping) إلى حقول قاعدتك المحلية المستقلة
-                    order.order_id = id_api.split('-')[-1] if '-' in id_api else id_api
-                    
-                    # قراءة الحالة الموحدة وتوزيعها محلياً لدعم الفلاتر الثلاثية بشكل مستقر
-                    api_status = item.get('status', 'pending')
-                    order.order_status = api_status
-                    
-                    if api_status == 'delivered':
-                        order.financial_status = 'paid'
-                        order.fulfillment_status = 'fulfilled'
-                    elif api_status == 'cancelled':
-                        order.financial_status = 'unpaid'
-                        order.fulfillment_status = 'unfulfilled'
-                    else:
-                        order.financial_status = 'unpaid'
-                        order.fulfillment_status = 'unfulfilled'
-                        
-                    # تفكيك كائن بيانات العميل المتداخل (Nested Customer Object)
-                    customer_data = item.get('customer') or {}
-                    order.customer_name = customer_data.get('name') or "عميل متجر محجوب"
-                    order.customer_phone = customer_data.get('phone', '---')
-                    order.customer_email = customer_data.get('email', '---')
-                    
-                    # تفكيك كائن العنوان الجغرافي (Nested Shipping Object)
-                    shipping_data = item.get('shippingAddress') or {}
-                    order.shipping_country = shipping_data.get('country', 'Yemen')
-                    order.shipping_city = shipping_data.get('city', '---')
-                    order.shipping_district = shipping_data.get('district', '---')
-                    order.shipping_street = shipping_data.get('street', '---')
-                    
-                    # وسيلة الدفع والقيمة المالية (تُشفر تلقائياً بـ AES-256 عبر الـ Setter في الموديل)
-                    order.payment_type = item.get('paymentMethod', 'manual')
-                    order.total_price = float(item.get('total', 0.0))
-                    
-                    # معالجة تاريخ الإنشاء بأمان
-                    created_at_str = item.get('createdAt')
-                    if created_at_str:
-                        try:
-                            order.created_at_api = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
-                        except Exception:
-                            order.created_at_api = datetime.utcnow()
-                    else:
-                        order.created_at_api = datetime.utcnow()
-                    
-                    total_synced += 1
-                
-                db.session.commit()
-                
-                # تسيير الصفحات التزامنية (Pagination)
-                if len(orders_data) < 10:  # إذا كانت البيانات المرتدة أقل من الليميت فهذا يعني الوصول لنهاية الصفحات
-                    has_next_page = False
-                else:
-                    page += 1
-                    
-            except Exception as e:
-                db.session.rollback()
-                error_context = f"❌ خطأ في المزامنة أو الاتصال بالشبكة: {str(e)}"
-                logger.error(error_context)
-                
-                # توثيق انقطاع الاتصال تلقائياً في جدول الـ SyncLog للمراقبة
-                log_entry = SyncLog(status="failed", message=error_context, page=page)
-                db.session.add(log_entry)
-                db.session.commit()
-                return False
+        }
+        """
         
-        # عند النجاح الكامل، وثق السجل الإيجابي بعدد الطلبات المتزامنة
-        if total_synced > 0:
-            log_entry = SyncLog(status="success", message=f"✅ تمت المزامنة بنجاح. إجمالي الطلبات المحدثة: {total_synced}", page=page)
-            db.session.add(log_entry)
+        try:
+            response = requests.post(
+                SyncEngine.API_URL, 
+                json={'query': query}, 
+                headers=SyncEngine._get_headers(),
+                timeout=120
+            )
+            
+            result = response.json()
+            
+            if 'errors' in result:
+                logger.error(f"❌ خطأ GraphQL: {result['errors']}")
+                return False
+            
+            # 🎯 استخراج الطلبات من المسار الصحيح: findAllOrders -> data
+            orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
+            
+            total_synced = 0
+            for item in orders_data:
+                id_api = item.get('id')
+                if not id_api: continue
+                    
+                order = ProcessedOrder.query.get(id_api) or ProcessedOrder(id=id_api)
+                
+                # تحديث الحقول الأساسية
+                order.order_status = item.get('status')
+                order.payment_type = str(item.get('paymentMethod'))
+                order.total_price = float(item.get('totalPrice', 0.0))
+                
+                # بيانات العميل
+                cust = item.get('customer') or {}
+                order.customer_name = cust.get('name') or "عميل متجر محجوب"
+                order.customer_phone = cust.get('phone', '---')
+                order.customer_email = cust.get('email', '---')
+                
+                # بيانات الشحن
+                ship = item.get('shippingAddress') or {}
+                order.shipping_country = ship.get('country', 'Yemen')
+                order.shipping_city = ship.get('city', '---')
+                order.shipping_district = ship.get('district', '---')
+                order.shipping_street = ship.get('street', '---')
+                
+                db.session.add(order)
+                total_synced += 1
+            
             db.session.commit()
             
-        return True
+            if total_synced > 0:
+                log_entry = SyncLog(status="success", message=f"✅ تمت المزامنة بنجاح: {total_synced} طلب.")
+                db.session.add(log_entry)
+                db.session.commit()
+                
+            return True
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ خطأ أثناء المزامنة: {e}")
+            return False
 
     @staticmethod
     def _execute_mutation(mutation, variables):
@@ -191,20 +120,13 @@ class SyncEngine:
                 headers=SyncEngine._get_headers(),
                 timeout=120
             )
-            
-            try:
-                return response.json()
-            except Exception:
-                logger.error(f"⚠️ الـ Mutation أرجعت استجابة غير صالحة: {response.text[:200]}")
-                return None
-                
+            return response.json()
         except Exception as e:
-            logger.error(f"❌ خطأ أثناء تنفيذ الـ Mutation: {e}")
+            logger.error(f"❌ خطأ في Mutation: {e}")
             return None
 
     @staticmethod
     def update_order_status(order_id, new_status):
-        """تحديث حالة الطلب وإرسال التعديل الفوري عبر الـ Mutation إلى السيرفر"""
         mutation = """
         mutation updateOrderStatus($id: ID!, $status: String!) {
             updateOrder(input: { id: $id, status: $status }) {
@@ -217,10 +139,8 @@ class SyncEngine:
 
     @staticmethod
     def cancel_order(order_id):
-        """إرسال أمر إلغاء الطلب عبر الـ Mutation"""
         return SyncEngine.update_order_status(order_id, "cancelled")
 
     @staticmethod
     def mark_as_fulfilled(order_id):
-        """تحديث حالة الطلب إلى مشحون ومجهز عبر الـ Mutation"""
         return SyncEngine.update_order_status(order_id, "delivered")
