@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 @orders_blueprint.route('/dashboard', methods=['GET'])
 @login_required
 def orders_dashboard():
-    """عرض قائمة الطلبات المطابقة لقمرة مع الفلاتر والموردين المحليين"""
+    """عرض قائمة الطلبات المطابقة للبوابة مع الفلاتر والموردين المحليين"""
     page = request.args.get('page', 1, type=int)
     
-    # جلب الطلبات مرتبة من الأحدث تنازلياً حسب التاريخ المجلوب من قمرة بأمان
+    # جلب الطلبات مرتبة من الأحدث تنازلياً حسب التاريخ المجلوب بأمان
     pagination = ProcessedOrder.query.order_by(ProcessedOrder.created_at_api.desc()).paginate(page=page, per_page=10)
     
     # جلب قائمة الموردين المحليين من قاعدتك لعرضهم في القائمة المنسدلة بالجدول
@@ -28,11 +28,11 @@ def orders_dashboard():
 @orders_blueprint.route('/sync-all', methods=['POST'])
 @login_required
 def sync_all():
-    """مزامنة شاملة وموسعة للبيانات والتفاصيل من قمرة"""
+    """مزامنة شاملة وموسعة للبيانات والتفاصيل عبر محرك المزامنة المستقر"""
     try:
         success = SyncEngine.fetch_and_sync_order()
         if success:
-            flash("✅ تمت مزامنة الطلبات وتحديث البيانات التفصيلية بنجاح من قمرة.", "success")
+            flash("✅ تمت مزامنة الطلبات وتحديث البيانات التفصيلية بنجاح.", "success")
         else:
             flash("⚠️ فشلت المزامنة. يرجى التحقق من سجلات النظام (Logs).", "danger")
     except Exception as e:
@@ -44,7 +44,7 @@ def sync_all():
 @login_required
 def update_supplier(order_id):
     """استقبال طلبات AJAX لتحديث وحفظ المورد المحلي للطلب فورا بدون ريفريش"""
-    # البحث المرن باستخدام المعرف المحلي أو معرف طلب قمرة الخارجي لضمان عدم الفشل
+    # البحث المرن باستخدام المعرف المحلي أو معرف طلب الخارجي لضمان عدم الفشل
     order = ProcessedOrder.query.filter((ProcessedOrder.id == order_id) | (ProcessedOrder.order_id == order_id)).first()
     if not order:
         return jsonify({'status': 'error', 'message': 'الطلب غير موجود محلياً'}), 404
@@ -82,9 +82,9 @@ def update_order_field(order_id):
         setattr(order, field, value)
         db.session.commit()
         
-        # 2. إرسال التحديث المتزامن إلى سيرفر قمرة بناءً على خريطة الحالات المقبولة بالسيرفر الخارجي
+        # 2. إرسال التحديث المتزامن إلى خادم الـ API بناءً على خريطة الحالات المقبولة
         try:
-            # سيرفر قمرة الخارجي يقبل فقط حقل الحالات الموحد (status) عبر الميثود المحدثة
+            # السيرفر الخارجي يقبل حقل الحالات الموحد (status) عبر الميثود المحدثة
             if field == 'order_status':
                 SyncEngine.update_order_status(order.id, value)
             elif field == 'fulfillment_status' and value == 'fulfilled':
@@ -93,10 +93,10 @@ def update_order_field(order_id):
                 # إذا تم تعليمها كمدفوعة محلياً، نرفع إشارة التسليم المالي والجسدي للسيرفر
                 SyncEngine.update_order_status(order.id, 'delivered')
         except Exception as api_err:
-            logger.error(f"⚠️ تم الحفظ محلياً ولكن فشل التحديث الفوري في سيرفر قمرة: {api_err}")
+            logger.error(f"⚠️ تم الحفظ محلياً ولكن فشل التحديث الفوري في السيرفر: {api_err}")
             return jsonify({
                 'status': 'warning', 
-                'message': 'تم الحفظ محلياً، لكن فشل التحديث في قمرة. يرجى مراجعة صلاحيات التوكن (Access Token).'
+                'message': 'تم الحفظ محلياً، لكن فشل التحديث في السيرفر الخارجي. يرجى مراجعة الصلاحيات والربط.'
             })
 
         return jsonify({'status': 'success', 'message': 'تم تحديث حالة الطلب بنجاح محلياً ومزامنته'})
@@ -117,7 +117,7 @@ def process_order(order_id):
     # في حالة طلب التسوية المالية الفورية محلياً (POST)
     if request.method == 'POST':
         try:
-            # تحديث الحالة المالية المستقلة الجديدة بدلاً من الحقل القديم المحذوف
+            # تحديث الحالة المالية المستقلة الجديدة
             order.financial_status = 'paid'
             order.order_status = 'confirmed'
             db.session.commit()
@@ -150,20 +150,20 @@ def download_invoice(order_id):
 @orders_blueprint.route('/cancel/<order_id>', methods=['POST'])
 @login_required
 def cancel_order_route(order_id):
-    """إرسال أمر إلغاء الطلب إلى سيرفرات قمرة تزامناً مع النظام"""
+    """إرسال أمر إلغاء الطلب إلى السيرفر تزامناً مع النظام المحلي"""
     order = ProcessedOrder.query.filter((ProcessedOrder.id == order_id) | (ProcessedOrder.order_id == order_id)).first()
     result = SyncEngine.cancel_order(order_id)
     
-    # فحص صارم للرد للتأكد من عدم وجود أخطاء من بوابة GraphQL لقمرة
+    # فحص صارم للرد للتأكد من عدم وجود أخطاء من بوابة GraphQL
     if result and isinstance(result, dict) and 'errors' not in result:
         if order:
             order.order_status = 'cancelled'  # تحديث حقل الحالة الثلاثية محلياً
             order.financial_status = 'unpaid'
             order.fulfillment_status = 'unfulfilled'
             db.session.commit()
-        flash(f"تم إلغاء الطلب {order_id} في قمرة وتحديثه محلياً بنجاح.", "info")
+        flash(f"تم إلغاء الطلب {order_id} وتحديثه محلياً بنجاح.", "info")
     else:
-        flash("فشل إلغاء الطلب، يرجى مراجعة الصلاحيات في قمرة وطبيعة الـ Schema.", "danger")
+        flash("فشل إلغاء الطلب، يرجى مراجعة صلاحيات التوكن والـ Schema وطبيعة الاتصال.", "danger")
     return redirect(url_for('orders.orders_dashboard'))
 
 @orders_blueprint.route('/fulfill/<order_id>', methods=['POST'])
@@ -176,11 +176,11 @@ def fulfill_order_route(order_id):
     if result and isinstance(result, dict) and 'errors' not in result:
         if order:
             order.fulfillment_status = 'fulfilled'  # تحديث حالة التجهيز محلياً فور نجاح طلب السيرفر
-            order.order_status = 'delivered'       # قمرة تحول الحالة تلقائياً عند التوصيل لـ delivered
+            order.order_status = 'delivered'       # السيرفر يحول الحالة تلقائياً عند التوصيل لـ delivered
             db.session.commit()
-        flash(f"تم تحديث الطلب {order_id} إلى 'مشحون' ومجهز في قمرة ومحلياً.", "success")
+        flash(f"تم تحديث الطلب {order_id} إلى 'مشحون' ومجهز بنجاح.", "success")
     else:
-        flash("فشل تحديث الشحن في السيرفر الخارجي لقمرة.", "danger")
+        flash("فشل تحديث الشحن في السيرفر الخارجي.", "danger")
     return redirect(url_for('orders.orders_dashboard'))
 
 @orders_blueprint.route('/update-status/<order_id>', methods=['POST'])
@@ -202,7 +202,7 @@ def update_status_route(order_id):
                 order.financial_status = 'paid'
                 order.fulfillment_status = 'fulfilled'
             db.session.commit()
-        flash(f"تم تحديث حالة الطلب {order_id} بنجاح في سيرفر قمرة والمستودع المحلي.", "success")
+        flash(f"تم تحديث حالة الطلب {order_id} بنجاح في السيرفر والمستودع المحلي.", "success")
     else:
-        flash("فشل التحديث المتزامن في قمرة بسبب عدم مطابقة الحالات.", "danger")
+        flash("فشل التحديث المتزامن بسبب عدم مطابقة الحالات المسموحة.", "danger")
     return redirect(url_for('orders.orders_dashboard'))
