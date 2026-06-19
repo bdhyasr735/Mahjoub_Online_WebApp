@@ -21,31 +21,22 @@ class SyncEngine:
     def fetch_and_sync_order():
         from apps.models import ProcessedOrder
         
-        logger.info("🔄 بدء المزامنة الكاملة من محجوب أونلاين (Schema v2)...")
+        logger.info("🔄 بدء المزامنة المطابقة لهيكل QumraQL...")
         
-        # استعلام محدث بناءً على معايير السيرفر الجديدة
+        # استعلام محدث يطابق الهيكل الجديد (Metrics & Dimensions & Details)
         query = """
         query {
             findAllOrders {
                 data {
-                    _id
+                    qid
+                    orderId
                     totalPrice
-                    createdAt
-                    status { code }
-                    items { 
-                        productData { title } 
-                        quantity 
-                        price 
-                    }
-                    account { 
-                        firstName 
-                        lastName 
-                        mobile 
-                    }
-                    shippingAddress { 
-                        city { name } 
-                        address 
-                    }
+                    orderStatus
+                    financialStatus
+                    fulfillmentStatus
+                    customerPhone
+                    items { title qty subtotal }
+                    shipping { city district street }
                 }
             }
         }
@@ -60,51 +51,38 @@ class SyncEngine:
             )
             
             if response.status_code != 200:
-                logger.error(f"❌ فشل الاتصال بالسيرفر! الكود: {response.status_code}")
-                logger.error(f"📝 استجابة السيرفر: {response.text}")
+                logger.error(f"❌ خطأ اتصال ({response.status_code}): {response.text}")
                 return False
 
             result = response.json()
-            
-            if 'errors' in result:
-                logger.error(f"❌ خطأ GraphQL: {result['errors']}")
-                return False
-            
             orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
-            
-            if not orders_data:
-                logger.warning("⚠️ لا توجد طلبات جديدة للمزامنة.")
-                return True
             
             sync_count = 0
             for item in orders_data:
-                order_id = str(item.get('_id'))
-                if not order_id: continue
+                # نستخدم qid كمعرف فريد أساسي (Primary Key)
+                unique_id = str(item.get('qid'))
+                if not unique_id: continue
                 
-                # جلب الطلب أو إنشاؤه
-                order = ProcessedOrder.query.filter_by(id=order_id).first() or ProcessedOrder(id=order_id)
+                order = ProcessedOrder.query.filter_by(id=unique_id).first() or ProcessedOrder(id=unique_id)
                 
-                # تحديث البيانات (الموديل سيقوم بالتشفير التلقائي)
-                order.order_id = order_id[-8:]
-                order.total_price = float(item.get('totalPrice') or 0.0) 
-                order.order_status = item.get('status', {}).get('code', 'pending')
+                # تحديث الحقول الأساسية
+                order.order_id = item.get('orderId')
+                order.total_price = float(item.get('totalPrice') or 0.0)
+                order.order_status = item.get('orderStatus')
+                order.financial_status = item.get('financialStatus')
+                order.fulfillment_status = item.get('fulfillmentStatus')
+                order.customer_phone = item.get('customerPhone')
                 
-                # تحديث بيانات الحساب بناءً على الهيكلية الجديدة
-                acc = item.get('account') or {}
-                order.customer_name = f"{acc.get('firstName', '')} {acc.get('lastName', '')}".strip()
-                order.customer_phone = acc.get('mobile') or "---"
-                
-                # تحديث بيانات الشحن بناءً على الهيكلية الجديدة
-                ship = item.get('shippingAddress') or {}
-                city_obj = ship.get('city') or {}
-                order.shipping_city = city_obj.get('name') or "---"
-                order.shipping_street = ship.get('address') or "---"
+                # تفاصيل الشحن
+                ship = item.get('shipping') or {}
+                order.shipping_city = ship.get('city')
+                order.shipping_street = ship.get('street')
                 
                 db.session.add(order)
                 sync_count += 1
             
             db.session.commit()
-            logger.info(f"✅ تمت مزامنة {sync_count} طلب بنجاح وفق البنية الجديدة.")
+            logger.info(f"✅ تمت مزامنة {sync_count} طلب بنجاح حسب مواصفات QumraQL.")
             return True
             
         except Exception as e:
