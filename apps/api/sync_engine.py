@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - النسخة السيادية النهائية للمزامنة (مصححة)
+# 📂 apps/api/sync_engine.py - محرك المزامنة الشامل (مُحدّث بالكامل)
 
 import requests
 import logging
@@ -22,22 +22,23 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
-        logger.info("🔄 بدء المزامنة الشاملة مع قمرة...")
+        logger.info("🔄 بدء المزامنة الكاملة مع قمرة...")
         
-        # استعلام GraphQL مخفف لضمان نجاح الاتصال أولاً
+        # استعلام GraphQL شامل لجلب كافة الحقول الـ 27
         query = """
         query {
             findAllOrders(input: {}) {
                 data {
                     _id
                     totalPrice
-                    status {
-                        code
-                    }
+                    subTotal
+                    taxAmount
                     createdAt
-                    items {
-                        _id
-                    }
+                    customer { name phone email }
+                    shipping { city district street }
+                    status { code }
+                    financialStatus
+                    items { productTitle sku quantity price }
                 }
             }
         }
@@ -48,7 +49,7 @@ class SyncEngine:
             result = response.json()
             
             if 'errors' in result:
-                logger.error(f"❌ خطأ GraphQL تفصيلي: {result['errors']}")
+                logger.error(f"❌ خطأ GraphQL: {result['errors']}")
                 return False
             
             orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
@@ -59,27 +60,29 @@ class SyncEngine:
                     
                 order = ProcessedOrder.query.filter_by(id=id_api).first() or ProcessedOrder(id=id_api)
                 
-                # إسناد القيم الأساسية
-                order.order_id = id_api[:8]
+                # 1. إسناد البيانات الأساسية
+                order.order_id = id_api[-8:] # آخر 8 أرقام
                 order.total_price = float(item.get('totalPrice') or 0.0)
+                order.sub_total = float(item.get('subTotal') or 0.0)
+                order.tax_amount = float(item.get('taxAmount') or 0.0)
                 
-                # معالجة الحالة
+                # 2. بيانات العميل
+                cust = item.get('customer') or {}
+                order.customer_name = cust.get('name', 'عميل')
+                order.customer_phone = cust.get('phone')
+                order.customer_email = cust.get('email')
+                
+                # 3. بيانات الشحن
+                ship = item.get('shipping') or {}
+                order.shipping_city = ship.get('city')
+                order.shipping_district = ship.get('district')
+                order.shipping_street = ship.get('street')
+                
+                # 4. الحالات
                 status_obj = item.get('status') or {}
                 order.order_status = status_obj.get('code', 'pending')
-                
-                # قيم افتراضية للحقول التي كانت تسبب خطأ
-                order.customer_name = "عميل"
-                order.financial_status = "unpaid"
-                order.fulfillment_status = "unfulfilled"
+                order.financial_status = item.get('financialStatus', 'unpaid')
                 order.items_count = len(item.get('items') or [])
-                order.source = 'QumraCloud'
-                
-                # معالجة التاريخ
-                if item.get('createdAt'):
-                    try:
-                        order.created_at_local = datetime.fromisoformat(item.get('createdAt').replace('Z', '+00:00'))
-                    except:
-                        pass
                 
                 db.session.add(order)
             
@@ -89,5 +92,5 @@ class SyncEngine:
             
         except Exception as e:
             db.session.rollback()
-            logger.error(f"❌ فشل المزامنة بسبب استثناء: {e}")
+            logger.error(f"❌ فشل المزامنة: {e}")
             return False
