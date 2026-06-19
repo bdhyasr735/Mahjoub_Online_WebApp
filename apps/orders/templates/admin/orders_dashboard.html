@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    {# البطاقات الإحصائية - ملونة واحترافية #}
+    {# البطاقات الإحصائية #}
     <div class="row mb-4 g-3">
         <div class="col-md-3">
             <div class="card p-3 border-0 shadow-sm text-white" style="background: linear-gradient(45deg, #d32f2f, #f44336);">
@@ -51,28 +51,6 @@
         </div>
     </div>
 
-    {# منطقة الفلاتر والبحث #}
-    <div class="card border-0 shadow-sm p-3 mb-4" style="border-radius: 8px;">
-        <form method="GET" action="{{ url_for('orders.orders_dashboard') }}" class="row g-2 align-items-center">
-            <div class="col-md-4"><input type="text" name="search" class="form-control" placeholder="بحث برقم الطلب أو العميل..." value="{{ search }}"></div>
-            <div class="col-md-2">
-                <select name="payment_status" class="form-select">
-                    <option value="all">حالة الدفع</option>
-                    <option value="paid" {% if payment_status == 'paid' %}selected{% endif %}>مدفوع</option>
-                    <option value="unpaid" {% if payment_status == 'unpaid' %}selected{% endif %}>غير مدفوع</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select name="fulfillment_status" class="form-select">
-                    <option value="all">حالة الشحن</option>
-                    <option value="fulfilled" {% if fulfillment_status == 'fulfilled' %}selected{% endif %}>تم التوصيل</option>
-                    <option value="unfulfilled" {% if fulfillment_status == 'unfulfilled' %}selected{% endif %}>غير مجهز</option>
-                </select>
-            </div>
-            <div class="col-md-2"><button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> تصفية</button></div>
-        </form>
-    </div>
-
     {# الجدول #}
     <div class="card border-0 shadow-sm" style="border-radius: 8px;">
         <table class="table table-hover align-middle mb-0">
@@ -82,7 +60,6 @@
                     <th>اسم العميل</th>
                     <th>العنوان</th>
                     <th>الإجمالي</th>
-                    <th>المصدر</th>
                     <th>حالة الدفع</th>
                     <th>حالة الشحن</th>
                     <th class="text-center">إجراء</th>
@@ -95,7 +72,6 @@
                     <td>{{ order.customer_name }}</td>
                     <td>{{ order.shipping_city }}</td>
                     <td>{{ "{:,.2f}".format(order.total_price) }} ر.س</td>
-                    <td><span class="badge bg-secondary">{{ order.source }}</span></td>
                     <td>
                         <select class="form-select form-select-sm" onchange="updateOrderField('{{ order.id }}', 'financial_status', this.value)">
                             <option value="unpaid" {% if order.financial_status == 'unpaid' %}selected{% endif %}>غير مدفوع</option>
@@ -109,7 +85,17 @@
                         </select>
                     </td>
                     <td class="text-center">
-                        <a href="#" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <li><a class="dropdown-item text-primary" href="{{ url_for('orders.view_order', order_id=order.id) }}"><i class="bi bi-eye me-2"></i> عرض الطلب</a></li>
+                                <li><a class="dropdown-item text-success" href="{{ url_for('orders.download_invoice', order_id=order.id) }}"><i class="bi bi-file-earmark-pdf me-2"></i> تحميل الفاتورة</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button class="dropdown-item text-danger" onclick="deleteOrder('{{ order.id }}')"><i class="bi bi-trash me-2"></i> حذف الطلب</button></li>
+                            </ul>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -127,6 +113,18 @@ function updateOrderField(orderId, field, value) {
     }).then(res => res.json()).then(data => {
         if(data.status === 'success') location.reload();
     });
+}
+
+function deleteOrder(orderId) {
+    if (confirm('هل أنت متأكد؟ هذا الإجراء لا يمكن التراجع عنه.')) {
+        fetch(`/orders/delete-order/${orderId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        }).then(res => res.json()).then(data => {
+            if(data.status === 'success') location.reload();
+            else alert('فشل الحذف!');
+        });
+    }
 }
 </script>
 {% endblock %}
