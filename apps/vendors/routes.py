@@ -1,7 +1,5 @@
-from flask import render_template
-from . import vendors_bp
+from . import vendors_manager # استيراد المدير الخاص بنا
 
-@vendors_bp.route('/vendor/dashboard')
+@vendors_manager.route('/vendor/dashboard')
 def dashboard():
-    # هنا ستعرض بيانات المورد الخاصة به
-    return render_template('vendor/dashboard.html')
+    return "لوحة المورد الخاصة"
