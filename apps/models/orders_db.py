@@ -6,13 +6,15 @@ class ProcessedOrder(db.Model):
     __tablename__ = 'processed_orders'
 
     # --- الأعمدة الأساسية ---
-    id = db.Column(db.String(100), primary_key=True)
+    id = db.Column(db.String(100), primary_key=True) # هذا سيكون الـ qid
     order_id = db.Column(db.String(50))
     order_status = db.Column(db.String(50))
+    financial_status = db.Column(db.String(50))      # حقل جديد
+    fulfillment_status = db.Column(db.String(50))    # حقل جديد
     shipping_city = db.Column(db.String(100))
     shipping_street = db.Column(db.String(200))
 
-    # --- الحقول المشفرة (تخزن كـ String في قاعدة البيانات) ---
+    # --- الحقول المشفرة ---
     _total_price = db.Column('total_price', db.String(255))
     _customer_name = db.Column('customer_name', db.String(255))
     _customer_phone = db.Column('customer_phone', db.String(255))
@@ -41,7 +43,7 @@ class ProcessedOrder(db.Model):
     def customer_phone(self):
         return AESCipher.decrypt(self._customer_phone)
 
-    @customer_name.setter
+    @customer_phone.setter # تم تصحيح الخطأ هنا
     def customer_phone(self, value):
         self._customer_phone = AESCipher.encrypt(str(value))
 
@@ -62,7 +64,6 @@ class OrderItem(db.Model):
     product_title = db.Column(db.String(200))
     quantity = db.Column(db.Integer)
 
-    # --- السعر مشفر لزيادة الأمان ---
     _price = db.Column('price', db.String(255))
 
     @property
