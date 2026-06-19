@@ -42,16 +42,17 @@ def dashboard():
         
         for w in all_wallets:
             try:
-                # الـ properties هنا تستدعي AESCipher.decrypt تلقائياً
-                # تأكد أن هذه القيم تعود بنوع يمكن تحويله لـ float
-                val_sar = w.balance_sar
-                val_yer = w.balance_yer
-                val_usd = w.balance_usd
+                # الـ properties هنا تستدعي AESCipher.decrypt تلقائياً داخل النموذج
+                # نقوم بتحويل القيم لـ float بأمان
+                val_sar = float(w.balance_sar) if w.balance_sar is not None else 0.0
+                val_yer = float(w.balance_yer) if w.balance_yer is not None else 0.0
+                val_usd = float(w.balance_usd) if w.balance_usd is not None else 0.0
                 
-                total_sar += float(val_sar) if val_sar is not None else 0.0
-                total_yer += float(val_yer) if val_yer is not None else 0.0
-                total_usd += float(val_usd) if val_usd is not None else 0.0
+                total_sar += val_sar
+                total_yer += val_yer
+                total_usd += val_usd
             except (ValueError, TypeError):
+                # في حال فشل تحويل القيمة، نتجاوز هذه المحفظة
                 continue
             except Exception:
                 # في حال فشل فك التشفير، نتجاوز هذه المحفظة
@@ -76,7 +77,7 @@ def dashboard():
         return render_template('admin/dashboard_content.html', **context)
         
     except Exception as e:
-        # تسجيل الخطأ
+        # تسجيل الخطأ بوضوح
         print(f"🚨 Dashboard Error: {str(e)}")
         return f"🚨 عطل في المحرك المالي: {str(e)}", 500
 
