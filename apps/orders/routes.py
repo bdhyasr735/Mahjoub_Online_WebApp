@@ -20,12 +20,14 @@ def orders_dashboard():
     
     query = ProcessedOrder.query
     
-    # حساب الإحصائيات
+    # حساب الإحصائيات (باستخدام الخاصية التي تفك التشفير تلقائياً)
     all_orders = ProcessedOrder.query.all()
     total_sales = sum([float(order.total_price or 0) for order in all_orders])
+    
     completed_count = ProcessedOrder.query.filter_by(fulfillment_status='fulfilled').count()
     cancelled_count = ProcessedOrder.query.filter_by(order_status='cancelled').count()
     
+    # الفلترة والبحث
     if search:
         query = query.filter((ProcessedOrder.order_id.contains(search)) | (ProcessedOrder.customer_name.contains(search)))
     
@@ -36,9 +38,16 @@ def orders_dashboard():
         
     pagination = query.order_by(ProcessedOrder.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
     
-    return render_template('admin/orders_dashboard.html', pagination=pagination, stats={
-        'total_sales': total_sales, 'completed': completed_count, 'cancelled': cancelled_count
-    }, search=search, payment_status=payment_status, fulfillment_status=fulfillment_status)
+    return render_template('admin/orders_dashboard.html', 
+                           pagination=pagination, 
+                           stats={
+                               'total_sales': total_sales, 
+                               'completed': completed_count, 
+                               'cancelled': cancelled_count
+                           }, 
+                           search=search, 
+                           payment_status=payment_status, 
+                           fulfillment_status=fulfillment_status)
 
 # 2. المزامنة
 @orders_bp.route('/sync-all', methods=['POST'])
@@ -46,7 +55,7 @@ def sync_all():
     if SyncEngine.fetch_and_sync_order():
         flash("✅ تمت المزامنة بنجاح!", "success")
     else:
-        flash("⚠️ فشلت المزامنة.", "danger")
+        flash("⚠️ فشلت المزامنة، تحقق من السجلات.", "danger")
     return redirect(url_for('orders.orders_dashboard'))
 
 # 3. تحديث الحقول لحظياً (AJAX)
@@ -55,12 +64,13 @@ def update_order_field(order_id):
     data = request.json
     order = ProcessedOrder.query.get(order_id)
     if order:
+        # استخدام setattr للتعامل الديناميكي مع الحقول
         setattr(order, data['field'], data['value'])
         db.session.commit()
         return jsonify({'status': 'success'})
-    return jsonify({'status': 'error'}), 404
+    return jsonify({'status': 'error', 'message': 'الطلب غير موجود'}), 404
 
-# 4. الإجراءات الجديدة (عرض، فاتورة، حذف)
+# 4. الإجراءات الإضافية (عرض، فاتورة، حذف)
 @orders_bp.route('/view/<order_id>')
 def view_order(order_id):
     order = ProcessedOrder.query.get_or_404(order_id)
@@ -68,7 +78,7 @@ def view_order(order_id):
 
 @orders_bp.route('/download-invoice/<order_id>')
 def download_invoice(order_id):
-    # هنا يتم استدعاء منطق توليد الـ PDF
+    # منطق توليد الفاتورة سيُضاف هنا لاحقاً
     flash(f"جاري تحضير فاتورة الطلب #{order_id}...", "info")
     return redirect(url_for('orders.orders_dashboard'))
 
