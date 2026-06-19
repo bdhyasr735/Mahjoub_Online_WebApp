@@ -18,9 +18,9 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
-        logger.info("🔄 بدء المزامنة الموسعة (وضع التشخيص)...")
+        logger.info("🔄 بدء المزامنة المطابقة للتوثيق الجديد...")
         
-        # استعلام موسع يشمل الحقول التي نريدها
+        # استعلام يستخدم المسارات الصحيحة: account و shippingAddress
         query = """
         query {
             findAllOrders(input: {}) {
@@ -30,8 +30,8 @@ class SyncEngine:
                     createdAt
                     status { code }
                     items { productId }
-                    customer { name phone }
-                    shipping { city address }
+                    account { name phone email }
+                    shippingAddress { city address1 }
                 }
             }
         }
@@ -47,10 +47,6 @@ class SyncEngine:
             
             orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
             
-            # 🔍 التشخيص: طباعة أول طلب في السجلات لنرى المسارات الحقيقية
-            if orders_data:
-                logger.info(f"DEBUG_DATA: {orders_data[0]}")
-            
             for item in orders_data:
                 order_id = str(item.get('_id'))
                 if not order_id: continue
@@ -63,22 +59,22 @@ class SyncEngine:
                 order.order_status = item.get('status', {}).get('code', 'pending')
                 order.items_count = len(item.get('items') or [])
                 
-                # تعبئة العميل والشحن (مبدئياً كما في استعلامنا)
-                cust = item.get('customer') or {}
-                order.customer_name = cust.get('name')
-                order.customer_phone = cust.get('phone')
+                # تعبئة بيانات العميل والشحن من المسارات الجديدة المكتشفة
+                acc = item.get('account') or {}
+                order.customer_name = acc.get('name')
+                order.customer_phone = acc.get('phone')
                 
-                ship = item.get('shipping') or {}
+                ship = item.get('shippingAddress') or {}
                 order.shipping_city = ship.get('city')
-                order.shipping_street = ship.get('address')
+                order.shipping_street = ship.get('address1')
                 
                 db.session.add(order)
             
             db.session.commit()
-            logger.info(f"✅ تمت مزامنة {len(orders_data)} طلب.")
+            logger.info(f"✅ تمت مزامنة {len(orders_data)} طلب بنجاح وببيانات كاملة.")
             return True
             
         except Exception as e:
             db.session.rollback()
-            logger.error(f"❌ خطأ فني: {str(e)}")
+            logger.error(f"❌ خطأ فني أثناء المزامنة: {str(e)}")
             return False
