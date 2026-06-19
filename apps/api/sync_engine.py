@@ -18,9 +18,9 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
-        logger.info("🔄 بدء المزامنة الآمنة...")
+        logger.info("🔄 بدء المزامنة الموسعة (وضع التشخيص)...")
         
-        # استعلام مقتصر على الحقول المضمونة حالياً
+        # استعلام موسع يشمل الحقول التي نريدها
         query = """
         query {
             findAllOrders(input: {}) {
@@ -30,6 +30,8 @@ class SyncEngine:
                     createdAt
                     status { code }
                     items { productId }
+                    customer { name phone }
+                    shipping { city address }
                 }
             }
         }
@@ -45,22 +47,35 @@ class SyncEngine:
             
             orders_data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
             
+            # 🔍 التشخيص: طباعة أول طلب في السجلات لنرى المسارات الحقيقية
+            if orders_data:
+                logger.info(f"DEBUG_DATA: {orders_data[0]}")
+            
             for item in orders_data:
                 order_id = str(item.get('_id'))
                 if not order_id: continue
                 
                 order = ProcessedOrder.query.filter_by(id=order_id).first() or ProcessedOrder(id=order_id)
                 
-                # تعبئة الحقول التي نعرف أنها تعمل 100%
+                # تعبئة البيانات الأساسية
                 order.order_id = order_id[-8:]
                 order.total_price = float(item.get('totalPrice') or 0.0)
                 order.order_status = item.get('status', {}).get('code', 'pending')
                 order.items_count = len(item.get('items') or [])
                 
+                # تعبئة العميل والشحن (مبدئياً كما في استعلامنا)
+                cust = item.get('customer') or {}
+                order.customer_name = cust.get('name')
+                order.customer_phone = cust.get('phone')
+                
+                ship = item.get('shipping') or {}
+                order.shipping_city = ship.get('city')
+                order.shipping_street = ship.get('address')
+                
                 db.session.add(order)
             
             db.session.commit()
-            logger.info(f"✅ تمت مزامنة {len(orders_data)} طلب بنجاح (بدون أخطاء حقول).")
+            logger.info(f"✅ تمت مزامنة {len(orders_data)} طلب.")
             return True
             
         except Exception as e:
