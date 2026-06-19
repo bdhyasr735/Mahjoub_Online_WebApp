@@ -38,23 +38,26 @@ def create_app():
         return AdminUser.query.get(int(user_id))
 
     # 4. 🚀 المحرك التلقائي لاكتشاف وتسجيل التطبيقات (Blueprints)
-    # لن تحتاج لتعديل هذا الجزء أبداً بعد الآن
+    # هذا الجزء سيقوم بمسح مجلد apps والبحث عن أي تطبيق يحتوي على ملف registry.py
     apps_dir = os.path.dirname(__file__)
     for folder in os.listdir(apps_dir):
         folder_path = os.path.join(apps_dir, folder)
         
-        # نتجاهل الملفات والمجلدات الخاصة
-        if os.path.isdir(folder_path) and not folder.startswith('__') and folder != 'models' and folder != 'static' and folder != 'templates':
-            try:
-                # نبحث عن ملف registry.py في كل مجلد
-                registry_path = os.path.join(folder_path, 'registry.py')
-                if os.path.exists(registry_path):
+        # استثناء المجلدات الأساسية التي لا تحتوي على تطبيقات إضافية
+        if os.path.isdir(folder_path) and not folder.startswith('__') and folder not in ['models', 'static', 'templates', 'api']:
+            registry_path = os.path.join(folder_path, 'registry.py')
+            if os.path.exists(registry_path):
+                try:
                     module = importlib.import_module(f'apps.{folder}.registry')
                     if hasattr(module, 'register_app'):
                         module.register_app(app)
-                        print(f"✅ [System] تم تسجيل التطبيق تلقائياً: {folder}")
-            except Exception as e:
-                print(f"⚠️ [System] فشل في تسجيل التطبيق {folder}: {e}")
+                        print(f"✅ [System] تم تحميل التطبيق تلقائياً: {folder}")
+                except Exception as e:
+                    print(f"⚠️ [System] فشل تحميل التطبيق {folder}: {e}")
+
+    # تسجيل خاص للـ API (لأنه قد لا يتبع نمط الـ registry)
+    from apps.api.webhooks import webhooks_bp
+    app.register_blueprint(webhooks_bp, url_prefix='/api')
 
     @app.route('/')
     def index():
@@ -62,10 +65,11 @@ def create_app():
 
     # 5. إعداد البيانات التأسيسية
     with app.app_context():
-        from apps.models import AdminUser # ... (بقية الموديلات)
+        from apps.models import AdminUser, ProcessedOrder, OrderItem, SyncLog, ExchangeRate, FinancialLog, Supplier, AdminVault, VaultTransaction, SupplierWallet, WalletTransaction
+        
         try:
             db.create_all() 
-            print("✅ [System] تم الاتصال بقاعدة البيانات.")
+            print("✅ [System] تم الاتصال بقاعدة البيانات وإنشاء الجداول بنجاح.")
             
             # زراعة حساب المالك
             owner_username = 'علي محجوب'
@@ -74,6 +78,8 @@ def create_app():
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
+                print(f"✅ [System] تم تأسيس حساب المالك '{owner_username}' بنجاح.")
+            
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Error] فشل في تهيئة قاعدة البيانات: {e}")
