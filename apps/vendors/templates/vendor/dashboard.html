@@ -1,9 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>لوحة تحكم المورد</title>
-</head>
-<body>
-    <h1>مرحباً بك في لوحة تحكم المورد</h1>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}لوحة تحكم المورد{% endblock %}
+
+{% block content %}
+<div class="vendor-dashboard">
+    <h1>أهلاً بك في لوحة تحكم المورد</h1>
+    <p>هذه هي الصفحة الخاصة بك، يمكنك إدارة منتجاتك وطلباتك من هنا.</p>
+    
+    <div class="stats-grid">
+        <div class="stat-card">الطلبات الجديدة: 5</div>
+        <div class="stat-card">الرصيد الحالي: 500$</div>
+    </div>
+</div>
+{% endblock %}
