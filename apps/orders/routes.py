@@ -1,6 +1,4 @@
 # coding: utf-8
-# 📂 apps/orders/routes.py - النسخة النهائية المتكاملة والجاهزة للمزامنة
-
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from apps.extensions import db
 from apps.models.orders_db import ProcessedOrder
@@ -10,7 +8,7 @@ import logging
 orders_bp = Blueprint('orders', __name__, url_prefix='/orders', template_folder='templates')
 logger = logging.getLogger(__name__)
 
-# 1. لوحة تحكم الطلبات
+# 1. لوحة تحكم الطلبات مع التنظيف الذكي للبيانات
 @orders_bp.route('/dashboard')
 def orders_dashboard():
     page = request.args.get('page', 1, type=int)
@@ -20,7 +18,7 @@ def orders_dashboard():
     
     query = ProcessedOrder.query
     
-    # حساب الإحصائيات (نستخدم خاصية total_price التي تفك التشفير تلقائياً)
+    # حساب الإحصائيات
     all_orders = ProcessedOrder.query.all()
     total_sales = sum([float(order.total_price or 0) for order in all_orders])
     
@@ -37,6 +35,13 @@ def orders_dashboard():
         query = query.filter_by(fulfillment_status=fulfillment_status)
         
     pagination = query.order_by(ProcessedOrder.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
+    
+    # 💡 منطق التنظيف الذكي: تعويض None بـ "---"
+    for order in pagination.items:
+        if not order.customer_name: order.customer_name = "---"
+        if not order.customer_phone: order.customer_phone = "---"
+        if not order.shipping_city: order.shipping_city = "---"
+        if not order.shipping_street: order.shipping_street = "---"
     
     return render_template('admin/orders_dashboard.html', 
                            pagination=pagination, 
@@ -69,7 +74,7 @@ def update_order_field(order_id):
         return jsonify({'status': 'success'})
     return jsonify({'status': 'error', 'message': 'الطلب غير موجود'}), 404
 
-# 4. الإجراءات الإضافية (عرض، فاتورة، حذف)
+# 4. الإجراءات الإضافية
 @orders_bp.route('/view/<order_id>')
 def view_order(order_id):
     order = ProcessedOrder.query.get_or_404(order_id)
@@ -77,7 +82,6 @@ def view_order(order_id):
 
 @orders_bp.route('/download-invoice/<order_id>')
 def download_invoice(order_id):
-    # سيتم ربط منطق الـ PDF هنا لاحقاً
     flash(f"جاري تحضير فاتورة الطلب #{order_id}...", "info")
     return redirect(url_for('orders.orders_dashboard'))
 
