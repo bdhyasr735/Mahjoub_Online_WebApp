@@ -1,16 +1,16 @@
 # coding: utf-8
-# 📂 apps/orders/routes.py - النسخة السيادية النهائية المحدثة
+# 📂 apps/orders/routes.py - النسخة السيادية النهائية (مصححة)
 
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from apps.extensions import db
 from apps.models.orders_db import ProcessedOrder
-from apps.api.sync_engine import SyncEngine
+from apps.api.sync_engine import SyncEngine # تأكد أن هذا الاستيراد صحيح
 import logging
 
 orders_bp = Blueprint('orders', __name__, url_prefix='/orders', template_folder='templates')
 logger = logging.getLogger(__name__)
 
-# 1. لوحة تحكم الطلبات (مع دعم البحث والفلاتر والترقيم والإحصائيات)
+# 1. لوحة تحكم الطلبات
 @orders_bp.route('/dashboard')
 def orders_dashboard():
     page = request.args.get('page', 1, type=int)
@@ -20,24 +20,19 @@ def orders_dashboard():
     
     query = ProcessedOrder.query
     
-    # --- التعديل الأساسي لحل خطأ "can't adapt type property" ---
-    # جلب جميع الطلبات لحساب الإجمالي برمجياً لأن قاعدة البيانات لا تستطيع التعامل مع البيانات المشفرة
+    # حساب الإجمالي برمجياً
     all_orders = ProcessedOrder.query.all()
     total_sales = sum(order.total_price for order in all_orders)
     
-    # إحصائيات الحالة
     completed_count = ProcessedOrder.query.filter_by(fulfillment_status='fulfilled').count()
     cancelled_count = 0 
-    # -----------------------------------------------------------
     
-    # تطبيق البحث
     if search:
         query = query.filter(
             (ProcessedOrder.order_id.contains(search)) | 
             (ProcessedOrder.customer_name.contains(search))
         )
     
-    # تطبيق الفلاتر
     if payment_status and payment_status != 'all':
         query = query.filter_by(financial_status=payment_status)
     if fulfillment_status and fulfillment_status != 'all':
@@ -58,5 +53,19 @@ def orders_dashboard():
                                'cancelled': cancelled_count
                            })
 
-# (بقية المسارات: sync_all, update_order_field, delete_order, process_order, download_invoice)
-# تبقى كما هي في كودك فهي ممتازة ولا تحتاج تعديل.
+# --- إضافة الدالة المفقودة ---
+@orders_bp.route('/sync-all', methods=['POST'])
+def sync_all():
+    """دالة المزامنة المطلوبة في ملفات القالب"""
+    try:
+        # هنا يتم استدعاء محرك المزامنة الخاص بك
+        engine = SyncEngine()
+        engine.sync_all_orders()
+        flash("✅ تمت مزامنة الطلبات بنجاح!", "success")
+    except Exception as e:
+        logger.error(f"❌ خطأ في المزامنة: {e}")
+        flash(f"⚠️ حدث خطأ أثناء المزامنة: {e}", "danger")
+    
+    return redirect(url_for('orders.orders_dashboard'))
+
+# (بقية المسارات الأخرى يمكنك إضافتها هنا بنفس الطريقة)
