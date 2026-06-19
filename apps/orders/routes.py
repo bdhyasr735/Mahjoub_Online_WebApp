@@ -17,12 +17,14 @@ def orders_dashboard():
     # استرجاع جميع الطلبات للعمليات الحسابية
     all_orders = ProcessedOrder.query.all()
     
-    # حساب الإحصائيات بناءً على القيم المفكوكة (Decrypted)
+    # حساب الإحصائيات (بناءً على الـ Properties المفكوكة في الموديل)
     total_sales = sum([float(order.total_price or 0) for order in all_orders])
+    
+    # ملاحظة: تم تحديث الحالة لتطابق ما يتم جلبه من API
     completed_count = sum(1 for o in all_orders if o.order_status == 'delivered')
     cancelled_count = sum(1 for o in all_orders if o.order_status == 'cancelled')
     
-    # البحث (يتم برمجياً لأن الحقول مشفرة ولا يمكن الفلترة بـ SQL مباشرة)
+    # البحث
     query = ProcessedOrder.query.order_by(ProcessedOrder.id.desc())
     items = query.all()
     
@@ -30,18 +32,19 @@ def orders_dashboard():
         items = [o for o in items if search.lower() in str(o.order_id).lower() or 
                                      search.lower() in o.customer_name.lower()]
     
-    # التقسيم (Pagination) يدوي بسيط بعد البحث
+    # التقسيم (Pagination) يدوي
     start = (page - 1) * 10
     end = start + 10
     pagination_items = items[start:end]
     
-    # التنظيف الذكي للعرض
+    # التنظيف الذكي للعرض (تعويض القيم الفارغة)
     for order in pagination_items:
         if not order.customer_name: order.customer_name = "---"
         if not order.customer_phone: order.customer_phone = "---"
+        if not order.shipping_city: order.shipping_city = "---"
     
     return render_template('admin/orders_dashboard.html', 
-                           items=pagination_items, # نستخدم items بدلاً من pagination.items
+                           items=pagination_items,
                            total_pages=(len(items)//10) + 1,
                            current_page=page,
                            stats={
@@ -60,13 +63,13 @@ def sync_all():
         flash("⚠️ فشلت المزامنة، يرجى مراجعة سجلات الأخطاء.", "danger")
     return redirect(url_for('orders.orders_dashboard'))
 
-# 3. تحديث الحقول لحظياً
+# 3. تحديث الحقول لحظياً (AJAX)
 @orders_bp.route('/update-order-field/<order_id>', methods=['POST'])
 def update_order_field(order_id):
     data = request.json
     order = ProcessedOrder.query.get(order_id)
     if order:
-        # الموديل يتكفل بالتشفير تلقائياً عبر ה-setter
+        # الموديل يتكفل بالتشفير تلقائياً عبر الـ setter
         setattr(order, data['field'], data['value'])
         db.session.commit()
         return jsonify({'status': 'success'})
