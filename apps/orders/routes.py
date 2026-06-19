@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/orders/routes.py - النسخة النهائية المتكاملة
+# 📂 apps/orders/routes.py - النسخة النهائية المتكاملة والجاهزة للمزامنة
 
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from apps.extensions import db
@@ -20,7 +20,7 @@ def orders_dashboard():
     
     query = ProcessedOrder.query
     
-    # حساب الإحصائيات (باستخدام الخاصية التي تفك التشفير تلقائياً)
+    # حساب الإحصائيات (نستخدم خاصية total_price التي تفك التشفير تلقائياً)
     all_orders = ProcessedOrder.query.all()
     total_sales = sum([float(order.total_price or 0) for order in all_orders])
     
@@ -55,7 +55,7 @@ def sync_all():
     if SyncEngine.fetch_and_sync_order():
         flash("✅ تمت المزامنة بنجاح!", "success")
     else:
-        flash("⚠️ فشلت المزامنة، تحقق من السجلات.", "danger")
+        flash("⚠️ فشلت المزامنة، يرجى مراجعة سجلات الأخطاء.", "danger")
     return redirect(url_for('orders.orders_dashboard'))
 
 # 3. تحديث الحقول لحظياً (AJAX)
@@ -64,7 +64,6 @@ def update_order_field(order_id):
     data = request.json
     order = ProcessedOrder.query.get(order_id)
     if order:
-        # استخدام setattr للتعامل الديناميكي مع الحقول
         setattr(order, data['field'], data['value'])
         db.session.commit()
         return jsonify({'status': 'success'})
@@ -78,7 +77,7 @@ def view_order(order_id):
 
 @orders_bp.route('/download-invoice/<order_id>')
 def download_invoice(order_id):
-    # منطق توليد الفاتورة سيُضاف هنا لاحقاً
+    # سيتم ربط منطق الـ PDF هنا لاحقاً
     flash(f"جاري تحضير فاتورة الطلب #{order_id}...", "info")
     return redirect(url_for('orders.orders_dashboard'))
 
