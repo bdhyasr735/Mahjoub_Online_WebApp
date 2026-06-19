@@ -1,7 +1,7 @@
 # coding: utf-8
 import requests
 import logging
-from apps.models.orders_db import ProcessedOrder, db
+from apps.extensions import db
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,11 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
-        logger.info("🔄 بدء المزامنة المطابقة للتوثيق الجديد...")
+        # تأخير الاستيراد لمنع الاستيراد الدائري
+        from apps.models.orders_db import ProcessedOrder
         
-        # استعلام يستخدم المسارات الصحيحة: account و shippingAddress
+        logger.info("🔄 بدء المزامنة الكاملة...")
+        
         query = """
         query {
             findAllOrders(input: {}) {
@@ -29,7 +31,7 @@ class SyncEngine:
                     totalPrice
                     createdAt
                     status { code }
-                    items { productId }
+                    items { productTitle quantity price }
                     account { name phone email }
                     shippingAddress { city address1 }
                 }
@@ -51,19 +53,21 @@ class SyncEngine:
                 order_id = str(item.get('_id'))
                 if not order_id: continue
                 
+                # جلب الطلب أو إنشاؤه
                 order = ProcessedOrder.query.filter_by(id=order_id).first() or ProcessedOrder(id=order_id)
                 
-                # تعبئة البيانات الأساسية
+                # 1. تحديث البيانات الأساسية
                 order.order_id = order_id[-8:]
-                order.total_price = float(item.get('totalPrice') or 0.0)
+                order.total_price = float(item.get('totalPrice') or 0.0) 
                 order.order_status = item.get('status', {}).get('code', 'pending')
-                order.items_count = len(item.get('items') or [])
                 
-                # تعبئة بيانات العميل والشحن من المسارات الجديدة المكتشفة
+                # 2. تحديث بيانات العميل
                 acc = item.get('account') or {}
                 order.customer_name = acc.get('name')
                 order.customer_phone = acc.get('phone')
+                order.customer_email = acc.get('email')
                 
+                # 3. تحديث بيانات الشحن
                 ship = item.get('shippingAddress') or {}
                 order.shipping_city = ship.get('city')
                 order.shipping_street = ship.get('address1')
@@ -71,7 +75,7 @@ class SyncEngine:
                 db.session.add(order)
             
             db.session.commit()
-            logger.info(f"✅ تمت مزامنة {len(orders_data)} طلب بنجاح وببيانات كاملة.")
+            logger.info(f"✅ تمت مزامنة {len(orders_data)} طلب بنجاح.")
             return True
             
         except Exception as e:
