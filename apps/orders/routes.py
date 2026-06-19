@@ -13,28 +13,23 @@ logger = logging.getLogger(__name__)
 def orders_dashboard():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
-    payment_status = request.args.get('payment_status', '')
-    fulfillment_status = request.args.get('fulfillment_status', '')
     
     query = ProcessedOrder.query
     
-    # حساب الإحصائيات (بناءً على القاعدة كاملة)
+    # حساب الإحصائيات (بناءً على الأعمدة الموجودة في موديل ProcessedOrder)
     all_orders = ProcessedOrder.query.all()
     total_sales = sum([float(order.total_price or 0) for order in all_orders])
     
-    completed_count = ProcessedOrder.query.filter_by(fulfillment_status='fulfilled').count()
+    # استخدام status الموجود في الموديل
+    completed_count = ProcessedOrder.query.filter_by(order_status='completed').count()
     cancelled_count = ProcessedOrder.query.filter_by(order_status='cancelled').count()
     
     # الفلترة والبحث
     if search:
-        query = query.filter((ProcessedOrder.order_id.contains(search)) | (ProcessedOrder.customer_name.contains(search)))
+        query = query.filter((ProcessedOrder.order_id.contains(search)) | 
+                           (ProcessedOrder.customer_name.contains(search)))
     
-    if payment_status and payment_status != 'all':
-        query = query.filter_by(financial_status=payment_status)
-    if fulfillment_status and fulfillment_status != 'all':
-        query = query.filter_by(fulfillment_status=fulfillment_status)
-        
-    pagination = query.order_by(ProcessedOrder.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
+    pagination = query.order_by(ProcessedOrder.id.desc()).paginate(page=page, per_page=10, error_out=False)
     
     # منطق التنظيف الذكي: تعويض None بـ "---" للعرض فقط
     for order in pagination.items:
@@ -50,9 +45,7 @@ def orders_dashboard():
                                'completed': completed_count, 
                                'cancelled': cancelled_count
                            }, 
-                           search=search, 
-                           payment_status=payment_status, 
-                           fulfillment_status=fulfillment_status)
+                           search=search)
 
 # 2. المزامنة
 @orders_bp.route('/sync-all', methods=['POST'])
@@ -69,6 +62,7 @@ def update_order_field(order_id):
     data = request.json
     order = ProcessedOrder.query.get(order_id)
     if order:
+        # ملاحظة: عند استخدام setattr، سيقوم الموديل بتشفير القيمة تلقائياً بفضل الـ setter
         setattr(order, data['field'], data['value'])
         db.session.commit()
         return jsonify({'status': 'success'})
@@ -79,11 +73,6 @@ def update_order_field(order_id):
 def view_order(order_id):
     order = ProcessedOrder.query.get_or_404(order_id)
     return render_template('admin/view_order.html', order=order)
-
-@orders_bp.route('/download-invoice/<order_id>')
-def download_invoice(order_id):
-    flash(f"جاري تحضير فاتورة الطلب #{order_id}...", "info")
-    return redirect(url_for('orders.orders_dashboard'))
 
 @orders_bp.route('/delete-order/<order_id>', methods=['POST'])
 def delete_order(order_id):
