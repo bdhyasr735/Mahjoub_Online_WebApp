@@ -33,7 +33,7 @@
                         <th class="ps-4">رقم الطلب</th>
                         <th>العميل</th>
                         <th>الحالة المالية</th>
-                        <th>حالة التنفيذ</th>
+                        <th>حالة الطلب</th>
                         <th>الإجمالي</th>
                         <th class="text-center">إجراء</th>
                     </tr>
@@ -46,8 +46,16 @@
                             <div>{{ order.customer_name }}</div>
                             <small class="text-muted">{{ order.customer_phone }}</small>
                         </td>
-                        <td><span class="badge bg-secondary">{{ order.financial_status }}</span></td>
-                        <td><span class="badge bg-info">{{ order.fulfillment_status }}</span></td>
+                        <td>
+                            <span class="badge bg-secondary">
+                                {{ order.financial_status if order.financial_status else 'غير محدد' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {% if order.order_status == 'delivered' %}bg-success{% else %}bg-info{% endif %}">
+                                {{ order.order_status }}
+                            </span>
+                        </td>
                         <td>{{ "{:,.2f}".format(order.total_price) }} ر.س</td>
                         <td class="text-center">
                             <a href="{{ url_for('orders.view_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
