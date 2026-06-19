@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي للنظام (ذكي ومستقل)
+# 📂 apps/__init__.py - المصنع السيادي للنظام (هجين: مستقر وتلقائي)
 
 import os
 import importlib
@@ -37,27 +37,41 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. 🚀 المحرك التلقائي لاكتشاف وتسجيل التطبيقات (Blueprints)
-    # هذا الجزء سيقوم بمسح مجلد apps والبحث عن أي تطبيق يحتوي على ملف registry.py
+    # 4. تسجيل المسارات (Blueprints)
+    
+    # أ) التسجيل اليدوي (للأجزاء الأساسية لضمان الاستقرار التام)
+    from apps.auth_portal.routes import auth_portal
+    from apps.admin_dashboard.routes import admin_dashboard
+    from apps.wallet.routes import wallet_app
+    from apps.vault.routes import vault_bp
+    from apps.orders.routes import orders_bp
+    from apps.api.webhooks import webhooks_bp
+
+    app.register_blueprint(auth_portal, url_prefix='/auth')
+    app.register_blueprint(admin_dashboard, url_prefix='/admin')
+    app.register_blueprint(wallet_app, url_prefix='/wallet')
+    app.register_blueprint(vault_bp, url_prefix='/vault')
+    app.register_blueprint(orders_bp, url_prefix='/orders')
+    app.register_blueprint(webhooks_bp, url_prefix='/api')
+
+    # ب) المحرك التلقائي (لاكتشاف التطبيقات الإضافية الجديدة مثل 'vendors')
+    # سيقوم بمسح أي مجلد جديد يحتوي على ملف registry.py
     apps_dir = os.path.dirname(__file__)
+    # المجلدات التي قمنا بتسجيلها يدوياً لا نحتاج فحصها
+    existing_apps = ['auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders', 'api', 'models', 'static', 'templates']
+    
     for folder in os.listdir(apps_dir):
         folder_path = os.path.join(apps_dir, folder)
-        
-        # استثناء المجلدات الأساسية التي لا تحتوي على تطبيقات إضافية
-        if os.path.isdir(folder_path) and not folder.startswith('__') and folder not in ['models', 'static', 'templates', 'api']:
+        if os.path.isdir(folder_path) and not folder.startswith('__') and folder not in existing_apps:
             registry_path = os.path.join(folder_path, 'registry.py')
             if os.path.exists(registry_path):
                 try:
                     module = importlib.import_module(f'apps.{folder}.registry')
                     if hasattr(module, 'register_app'):
                         module.register_app(app)
-                        print(f"✅ [System] تم تحميل التطبيق تلقائياً: {folder}")
+                        print(f"✅ [System] تم تحميل التطبيق الإضافي تلقائياً: {folder}")
                 except Exception as e:
-                    print(f"⚠️ [System] فشل تحميل التطبيق {folder}: {e}")
-
-    # تسجيل خاص للـ API (لأنه قد لا يتبع نمط الـ registry)
-    from apps.api.webhooks import webhooks_bp
-    app.register_blueprint(webhooks_bp, url_prefix='/api')
+                    print(f"⚠️ [System] فشل تحميل التطبيق التلقائي {folder}: {e}")
 
     @app.route('/')
     def index():
@@ -71,7 +85,6 @@ def create_app():
             db.create_all() 
             print("✅ [System] تم الاتصال بقاعدة البيانات وإنشاء الجداول بنجاح.")
             
-            # زراعة حساب المالك
             owner_username = 'علي محجوب'
             if not AdminUser.query.filter_by(username=owner_username).first():
                 admin = AdminUser(username=owner_username, role='Owner', phone_number='0000000000')
