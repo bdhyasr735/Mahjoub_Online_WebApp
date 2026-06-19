@@ -21,9 +21,9 @@ class SyncEngine:
     def fetch_and_sync_order():
         from apps.models import ProcessedOrder
         
-        logger.info("🔄 بدء المزامنة مع هيكل GraphQL المعتمد...")
+        logger.info("🔄 بدء المزامنة مع استبعاد الحقول المرفوضة...")
         
-        # استعلام متوافق مع رد السيرفر المباشر
+        # استعلام معدل: إزالة mobile المرفوضة وإضافة حقول الاسم المتاحة
         query = """
         query {
             findAllOrders {
@@ -31,7 +31,10 @@ class SyncEngine:
                     _id
                     totalPrice
                     status { code }
-                    account { mobile }
+                    account { 
+                        firstName
+                        lastName
+                    }
                     shippingAddress { 
                         city { name } 
                         street 
@@ -63,13 +66,15 @@ class SyncEngine:
                 
                 order = ProcessedOrder.query.filter_by(id=unique_id).first() or ProcessedOrder(id=unique_id)
                 
-                # تحديث البيانات بناءً على الهيكل المكتشف
+                # تحديث البيانات الأساسية
                 order.total_price = float(item.get('totalPrice') or 0.0)
                 order.order_status = item.get('status', {}).get('code', 'pending')
                 
-                # بيانات العميل
+                # تحديث بيانات العميل (دمج الاسم بدلاً من الهاتف المرفوض)
                 acc = item.get('account') or {}
-                order.customer_phone = acc.get('mobile') or "---"
+                first_name = acc.get('firstName', '')
+                last_name = acc.get('lastName', '')
+                order.customer_name = f"{first_name} {last_name}".strip() or "غير معروف"
                 
                 # بيانات الشحن
                 ship = item.get('shippingAddress') or {}
