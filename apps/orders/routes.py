@@ -20,7 +20,7 @@ def orders_dashboard():
     # حساب الإحصائيات (بناءً على الـ Properties المفكوكة في الموديل)
     total_sales = sum([float(order.total_price or 0) for order in all_orders])
     
-    # ملاحظة: تم تحديث الحالة لتطابق ما يتم جلبه من API
+    # تحديث الحالة لتطابق ما يتم جلبه من API
     completed_count = sum(1 for o in all_orders if o.order_status == 'delivered')
     cancelled_count = sum(1 for o in all_orders if o.order_status == 'cancelled')
     
