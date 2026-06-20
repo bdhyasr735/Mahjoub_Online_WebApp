@@ -1,13 +1,14 @@
 # coding: utf-8
 # 📂 apps/vendors/registry.py - البوابة السيادية للتسجيل الذاتي لمحرك الموردين
 
-from .routes import vendors_bp 
-
 def register_app(app):
     """
     دالة التسجيل الذاتي لتطبيق الموردين في المصنع الأم.
     تُستدعى تلقائياً من قبل المصنع المركزي (apps/__init__.py) لضمان العزل الحوكمي التام.
     """
+    # 🛡️ تأخير الاستيراد إلى داخل الدالة لكسر الاستدعاءات الدائرية كلياً وسحق خطأ الـ 404
+    from .routes import vendors_bp 
+
     # 1️⃣ تسجيل مسارات الموردين تحت البادئة المعتمدة /vendors
     app.register_blueprint(vendors_bp, url_prefix='/vendors')
     
