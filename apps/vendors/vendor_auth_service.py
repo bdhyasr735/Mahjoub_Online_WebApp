@@ -1,48 +1,34 @@
-import os
+# 📂 apps/vendors/vendor_auth_service.py
 import requests
-from config import Config
 
 def send_whatsapp_otp(phone, otp_code):
-    """الربط الفعلي مع WhatsApp Business API مع معالجة أخطاء أفضل"""
+    """إرسال الرمز عبر خدمة TextMeBot (معدل للعمل مع مفتاحك)"""
     
-    # محاولة جلب التوكن من الـ Config أو من متغيرات البيئة مباشرة كحل احتياطي
-    token = getattr(Config, 'WHATSAPP_ACCESS_TOKEN', None) or os.environ.get('WHATSAPP_ACCESS_TOKEN')
-    phone_id = getattr(Config, 'WHATSAPP_PHONE_NUMBER_ID', None) or os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
-
-    # طباعة للتصحيح (ستظهر في Logs في Render)
-    print(f"DEBUG: Attempting to send OTP to {phone}")
-    print(f"DEBUG: Token exists: {token is not None}, PhoneID exists: {phone_id is not None}")
-
-    if not token or not phone_id:
-        print("ERROR: Missing WhatsApp Configuration in environment variables!")
-        return False
-
-    url = f"https://graph.facebook.com/v18.0/{phone_id}/messages"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": phone,
-        "type": "template",
-        "template": {
-            "name": "otp_verification_template", 
-            "language": {"code": "ar"},
-            "components": [
-                {
-                    "type": "body",
-                    "parameters": [{"type": "text", "text": str(otp_code)}]
-                }
-            ]
-        }
+    # مفتاحك الشخصي من TextMeBot
+    api_key = "rb3tZFnHRcsN" 
+    
+    # نص الرسالة
+    message = f"رمز التحقق الخاص بك في محجوب أونلاين هو: {otp_code}"
+    
+    # الرابط الخاص بـ TextMeBot
+    url = "http://api.textmebot.com/send.php"
+    
+    # المعاملات كما يتطلبها الـ API الخاص بهم
+    params = {
+        "recipient": phone, 
+        "apikey": api_key,
+        "text": message
     }
     
     try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code != 200:
-            print(f"ERROR: Facebook API responded with {response.status_code}: {response.text}")
+        # إرسال الطلب
+        response = requests.get(url, params=params)
+        
+        # طباعة النتيجة في Logs للتأكد
+        print(f"DEBUG: TextMeBot Response: {response.status_code}, {response.text}")
+        
+        # TextMeBot يعيد عادة 200 إذا تم قبول الطلب
         return response.status_code == 200
     except Exception as e:
-        print(f"ERROR: Connection to Facebook failed: {str(e)}")
+        print(f"ERROR: Failed to send via TextMeBot: {e}")
         return False
