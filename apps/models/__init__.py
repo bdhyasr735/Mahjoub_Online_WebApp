@@ -1,7 +1,6 @@
 # coding: utf-8
-# 📂 apps/models/__init__.py - الموزع المركزي للنماذج بنظام التعجيل وحماية السياق
+# 📂 apps/models/__init__.py
 
-# مصفوفة النماذج المتاحة للوصول الخارجي (تمت إضافة SupplierProfile لتوحيد حوكمة الكيانات)
 __all__ = [
     'AdminUser', 'ExchangeRate', 'FinancialLog', 'Supplier', 'SupplierProfile',
     'AdminVault', 'VaultTransaction', 'SupplierWallet', 
@@ -9,10 +8,6 @@ __all__ = [
 ]
 
 def __getattr__(name):
-    """
-    آلية التعجيل وحوكمة التوزيع:
-    لا يتم استيراد أي نموذج إلا عند طلبه برمجياً في الأكواد لخنق الاستدعاء الدائري كلياً.
-    """
     if name == 'AdminUser':
         from .admin_db import AdminUser
         return AdminUser
@@ -26,7 +21,6 @@ def __getattr__(name):
         from .supplier_db import Supplier
         return Supplier
     elif name == 'SupplierProfile':
-        # 🔗 حقن الكيان التجاري المتقدم لتكتمل الحوكمة مع جدول الحساب الموحد
         from .supplier_profile_db import SupplierProfile
         return SupplierProfile
     elif name == 'AdminVault':
