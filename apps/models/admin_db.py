@@ -15,7 +15,7 @@ class AdminUser(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     
     # --- حقول الهوية والمطابقة لجميع الحسابات ---
-    username = db.Column(db.String(100), unique=True, nullable=False)        # اسم المستخدم المعتمد (علي سعيد اعتماد)
+    username = db.Column(db.String(100), unique=True, nullable=False)        # اسم المستخدم المعتمد
     admin_email = db.Column(db.String(150), unique=True, nullable=False)     # البريد الإلكتروني المدخل بالخطوة الأولى
     password_hash = db.Column(db.String(255), nullable=False)
     _phone_number_enc = db.Column(db.String(255), nullable=True)             # الهاتف الإداري المشفر بـ Fernet
@@ -32,14 +32,15 @@ class AdminUser(db.Model, UserMixin):
     last_login = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # 🔗 الربط المباشر: إذا كان المستخدم "مورداً"، يرتبط ببيانات توريده ومحفظته فوراً
-    supplier_profile = db.relationship('SupplierProfile', back_populates='user', uselist=False)
+    # 🔗 الربط الموحد: تصحيح التوجيه إلى الكلاس الفعلي 'Supplier' لمنع الـ Mapper Error
+    # تم إرجاع العلاقة بشكل مرن (backref) متوافق مع نظام الفصل للحفاظ على استقلالية الإدارة عن الموردين
+    supplier_profile = db.relationship('Supplier', backref='admin_user', uselist=False, lazy='joined')
 
     # --- نظام توليد الأكواد الآلي الموحد ---
     def generate_sovereign_code(self):
-        """توليد الكواد بناءً على الرتبة المحددة للحساب"""
+        """توليد الأكواد بناءً على الرتبة المحددة للحساب"""
         if self.id and not self.admin_code:
-            if self.role == 'super_admin' or self.role == 'admin':
+            if self.role in ['super_admin', 'admin']:
                 self.admin_code = f"ADMIN-MAH963{self.id}"
             elif self.role == 'supplier':
                 self.admin_code = f"SUP-MAH963{self.id}"
@@ -75,5 +76,8 @@ class AdminUser(db.Model, UserMixin):
         else:
             self._phone_number_enc = None
 
-    def set_password(self, password): self.password_hash = generate_password_hash(password)
-    def check_password(self, password): return check_password_hash(self.password_hash, password)
+    def set_password(self, password): 
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password): 
+        return check_password_hash(self.password_hash, password)
