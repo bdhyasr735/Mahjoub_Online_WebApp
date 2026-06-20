@@ -26,3 +26,6 @@ class SupplierProfile(db.Model):
 
     # العلاقات البرمجية: تم استخدام الاستدعاء الكسول (lazy='joined') لمنع أي تعليق أو تضارب في المعالج
     user = db.relationship('AdminUser', back_populates='supplier_profile', lazy='joined')
+
+# 🔗 كسر جمود الـ Mapper وحقن الموديل الإداري الموحد في ذاكرة SQLAlchemy فوراً عند استدعاء هذا الملف
+from apps.models.admin_db import AdminUser
