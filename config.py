@@ -46,9 +46,12 @@ class Config:
     QUMRA_API_KEY = os.environ.get('QUMRA_API_KEY')
     QUMRA_API_URL = os.environ.get('QUMRA_API_URL', 'https://mahjoub.online/admin/graphql')
 
-    # 4. إعدادات WhatsApp Cloud API (يتم سحبها من متغيرات البيئة - لا تضعها هنا مباشرة)
+    # 4. إعدادات WhatsApp Cloud API
     WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '1190456080809834')
-    WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN') # سيتم سحبه من Render
+    
+    # دمج المفتاح الخاص بك كقيمة افتراضية للربط
+    WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', 'rb3tZFnHRcsN')
+    
     WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'Mahjoub_WhatsApp_Secure_2026')
 
     # 5. ترميز النصوص
