@@ -6,25 +6,24 @@ from flask import Blueprint, request, jsonify, session, render_template
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_profile_db import SupplierProfile
-from apps.vendors.vendor_auth_service import trigger_otp_process, verify_vendor_otp, vendor_login_required
 from werkzeug.security import generate_password_hash
 
-# تعديل جوهري: نحدد المسار بالرجوع إلى المجلد الذي يحتوي على مجلد الـ templates
-# هذا يضمن أن يجد Flask مجلد الـ templates أينما كان التطبيق مستضافاً
+# إعداد مسار القوالب (يبقى كما هو لأنه لا يسبب حلقة استيراد)
 base_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(base_dir, 'templates')
 
 vendors_bp = Blueprint('vendors', __name__, template_folder=template_dir)
 
-# --- المسار الجذري لحل مشكلة 404/500 ---
+# --- المسار الجذري ---
 @vendors_bp.route('/', methods=['GET'])
 def index():
-    # طالما حددنا template_dir أعلاه، فإن المسار هنا يبحث داخل هذا المجلد
-    # والنتيجة النهائية للمسار ستكون: apps/vendors/templates/vendor/login.html
     return render_template('vendor/login.html')
 
 @vendors_bp.route('/auth-gateway', methods=['POST'])
 def auth_gateway():
+    # تحميل المتطلبات هنا فقط (Lazy Import) لكسر حلقة الاستيراد
+    from apps.vendors.vendor_auth_service import trigger_otp_process
+    
     data = request.get_json()
     email = data.get('email')
     phone = f"{data.get('country_code', '')}{data.get('phone', '')}"
@@ -39,6 +38,9 @@ def auth_gateway():
 
 @vendors_bp.route('/register-complete', methods=['POST'])
 def register_complete():
+    # تحميل المتطلبات هنا فقط
+    from apps.vendors.vendor_auth_service import trigger_otp_process
+    
     data = request.get_json()
     email = data.get('email')
     full_phone = f"{data.get('country_code', '')}{data.get('phone', '')}"
@@ -76,6 +78,9 @@ def register_complete():
 
 @vendors_bp.route('/verify-otp', methods=['POST'])
 def verify():
+    # تحميل المتطلبات هنا فقط
+    from apps.vendors.vendor_auth_service import verify_vendor_otp
+    
     data = request.get_json()
     email = data.get('email')
     otp = data.get('otp')
@@ -91,6 +96,13 @@ def verify():
     return jsonify({"status": "error", "message": "الرمز غير صحيح أو انتهت صلاحيته"}), 400
 
 @vendors_bp.route('/dashboard')
-@vendor_login_required
 def dashboard():
-    return "مرحباً بك في لوحة تحكم الموردين - محجوب أونلاين"
+    # تحميل المتطلبات هنا فقط
+    from apps.vendors.vendor_auth_service import vendor_login_required
+    
+    # نقوم بتطبيق الديكوريتور يدوياً هنا لتجنب حلقة الاستيراد في أعلى الملف
+    @vendor_login_required
+    def protected_dashboard():
+        return "مرحباً بك في لوحة تحكم الموردين - محجوب أونلاين"
+    
+    return protected_dashboard()
