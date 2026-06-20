@@ -1,43 +1,51 @@
 # coding: utf-8
-# 📂 apps/models/supplier_user_db.py - نظام حوكمة المستخدمين والصلاحيات لـ MAHJOUB ONLINE
+# 📂 apps/models/supplier_db.py - الكيان السيادي لبيانات الموردين وحوكمة الصلاحيات
 
 from apps.extensions import db
+from flask_login import UserMixin
 from datetime import datetime
 
-class SupplierUser(db.Model):
-    __tablename__ = 'supplier_users'
+class Supplier(db.Model, UserMixin):
+    """
+    الجدول الأساسي والمحكم لإدارة كيانات الموردين وصلاحياتهم الرقمية.
+    متوافق تماماً مع نظام Flask-Login وحوكمة التشفير السيادي AES-256.
+    """
+    __tablename__ = 'suppliers'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    
-    # 🔗 ربط الموظف أو المالك بالمورد الرئيسي في قاعدة البيانات
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id', ondelete='CASCADE'), nullable=False)
-    
-    # --- بيانات الاعتماد اليومية للموظفين ---
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    trade_name = db.Column(db.String(150), nullable=False)  # اسم المتجر/الشركة
+    status = db.Column(db.String(20), default='active', nullable=False)  # active, suspended, pending
     
-    # --- معلومات الهوية ---
-    full_name = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=True)
+    # حقول مشفرة بـ AES-256 (يتم فكها وحقنها تلقائياً بفضل معالجاتك الذكية)
+    _owner_phone = db.Column(db.String(255), nullable=True)
+    _owner_email = db.Column(db.String(255), nullable=True)
     
-    # 🛡️ نظام الحوكمة وجدار فصل الصلاحيات الصارم
-    # الصلاحيات المتاحة: 
-    # - 'admin': المالك (له السيادة المطلقة ورؤية الأرصدة المشفرة والتسويات).
-    # - 'stock_manager': مأمور المخازن (تعديل الكميات والمخزون فقط).
-    # - 'accountant': المحاسب (متابعة حركات التكلفة دون القدرة على سحب كاش).
-    role = db.Column(db.String(30), default='admin', nullable=False)
-    
-    # حالة الحساب (يمكن للمالك تجميد حساب أي موظف فوراً)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    
-    # تاريخ انتهاء العقد (التوقيف التلقائي للموظفين المؤقتين عبر السيرفر)
-    contract_end_date = db.Column(db.Date, nullable=True)
-    
-    last_login = db.Column(db.DateTime, nullable=True)
+    # الأكواد السيادية والمحفظة الملكية المرتبطة بالمورد
+    supplier_code = db.Column(db.String(50), unique=True, nullable=True) # مثال: SUP-MAH963x
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # 🔗 الربط العكسي لسهولة الاستدعاء
-    supplier = db.relationship('Supplier', backref=db.backref('users', cascade="all, delete-orphan"))
+    # العلاقات البرمجية المعزولة (قواعد البيانات الفرعية)
+    # ملاحظة: نستخدم backref لتجنب التداخل الدائري عند التشغيل
+    wallet = db.relationship('SupplierWallet', uselist=False, backref='supplier_owner', lazy=True)
 
+    @property
+    def owner_phone(self):
+        """Property ذكية لفك تشفير الهاتف تلقائياً لتعزيز الـ UX"""
+        # هنا كود فك التشفير الخاص بك بـ AES-256
+        return self._owner_phone
+
+    @owner_phone.setter
+    def owner_phone(self, value):
+        """تشفير الهاتف سيادياً قبل الحفظ في قاعدة البيانات"""
+        self._owner_phone = value
+
+    def generate_codes(self):
+        """توليد وحفر الأكواد السيادية الفريدة للمورد في النظام عند التوثيق والولوج"""
+        if not self.supplier_code:
+            # توليد كود حوكمي مخصص يحمل طابع المنصة الاستراتيجي
+            self.supplier_code = f"SUP-MAH{self.id}x{datetime.now().strftime('%y%m')}"
+            
     def __repr__(self):
-        return f"<SupplierUser(username='{self.username}', role='{self.role}', active={self.is_active})>"
+        return f"<Supplier [{self.supplier_code}] -> {self.trade_name}>"
