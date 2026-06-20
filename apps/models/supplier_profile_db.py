@@ -1,7 +1,9 @@
 # coding: utf-8
-# 📂 apps/models/supplier_profile_db.py - (البيانات التجارية المتقدمة للموردين)
+# 📂 apps/models/supplier_profile_db.py - (البيانات التجارية المتقدمة للموردين - نسخة مشفرة سيادياً)
 
 from apps.extensions import db
+from apps.utils.security import AESCipher
+from apps.models.admin_db import AdminUser # تم استيرادها في الأعلى لترتيب الكود
 
 class SupplierProfile(db.Model):
     __tablename__ = 'supplier_profiles'
@@ -12,7 +14,7 @@ class SupplierProfile(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), unique=True, nullable=False)
     wallet_code = db.Column(db.String(50), nullable=True)
 
-    # --- الحقول التجارية المشفرة الخاصة بالموردين فقط ---
+    # --- الحقول التجارية المشفرة ---
     trade_name_enc = db.Column(db.String(255), nullable=True) 
     owner_name_enc = db.Column(db.String(255), nullable=True)
     id_type_enc = db.Column(db.String(255), nullable=True)
@@ -24,8 +26,33 @@ class SupplierProfile(db.Model):
     bank_name_enc = db.Column(db.String(255), nullable=True)
     bank_acc_enc = db.Column(db.String(255), nullable=True)
 
-    # العلاقات البرمجية: تم استخدام الاستدعاء الكسول (lazy='joined') لمنع أي تعليق أو تضارب في المعالج
+    # العلاقات البرمجية
     user = db.relationship('AdminUser', back_populates='supplier_profile', lazy='joined')
 
-# 🔗 كسر جمود الـ Mapper وحقن الموديل الإداري الموحد في ذاكرة SQLAlchemy فوراً عند استدعاء هذا الملف
-from apps.models.admin_db import AdminUser
+    # --- Properties لفك التشفير التلقائي (مثال للحقول الأساسية) ---
+    @property
+    def trade_name(self):
+        return AESCipher.decrypt(self.trade_name_enc) if self.trade_name_enc else None
+
+    @trade_name.setter
+    def trade_name(self, value):
+        self.trade_name_enc = AESCipher.encrypt(value) if value else None
+
+    @property
+    def owner_name(self):
+        return AESCipher.decrypt(self.owner_name_enc) if self.owner_name_enc else None
+
+    @owner_name.setter
+    def owner_name(self, value):
+        self.owner_name_enc = AESCipher.encrypt(value) if value else None
+
+    @property
+    def bank_acc(self):
+        return AESCipher.decrypt(self.bank_acc_enc) if self.bank_acc_enc else None
+
+    @bank_acc.setter
+    def bank_acc(self, value):
+        self.bank_acc_enc = AESCipher.encrypt(value) if value else None
+
+    def __repr__(self):
+        return f"<SupplierProfile for User ID: {self.user_id}>"
