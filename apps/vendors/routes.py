@@ -7,8 +7,12 @@ from apps.models.supplier_db import Supplier
 from apps.models.otp_db import OTPVerification
 from .vendor_auth_service import vendor_login_required
 
+# تعريف الـ Blueprint الخاص بالموردين
 vendors_bp = Blueprint('vendors', __name__, template_folder='templates')
 
+# --------------------------------------------------------------------------
+# المسار: بوابة تسجيل الدخول
+# --------------------------------------------------------------------------
 @vendors_bp.route('/login', methods=['GET', 'POST'])
 def login_page():
     """معالجة عملية تسجيل الدخول وتوليد/التحقق من رمز OTP"""
@@ -18,17 +22,17 @@ def login_page():
         phone = data.get('phone')
         otp = data.get('otp')
 
-        # 1. طلب إرسال رمز التحقق
+        # الحالة 1: طلب إرسال رمز التحقق
         if email and phone and not otp:
             raw_otp = OTPVerification.generate_otp(email)
-            # هنا يجب إضافة دالة إرسال الرمز (SMS/Email)
+            # ملاحظة: قم بربط دالة إرسال الـ SMS/Email الفعلية هنا
             print(f"DEBUG: OTP Code for {email} is {raw_otp}") 
             return jsonify({"status": "pending", "message": "تم إرسال رمز التأكيد إلى بريدك"})
 
-        # 2. التحقق من رمز OTP المدخل
+        # الحالة 2: التحقق من رمز OTP المدخل
         if email and otp:
             if OTPVerification.verify_otp(email, otp):
-                # ربط الجلسة بالمورد
+                # ربط الجلسة بالمورد بعد التحقق الناجح
                 supplier = Supplier.query.filter_by(_owner_email=email).first()
                 if supplier:
                     session['vendor_authenticated'] = True
@@ -44,10 +48,12 @@ def login_page():
     
     return render_template('vendor/login.html')
 
+# --------------------------------------------------------------------------
+# المسار: دخول سريع (لأغراض الاختبار والتطوير)
+# --------------------------------------------------------------------------
 @vendors_bp.route('/quick-login', methods=['POST'])
 def quick_login():
-    """دخول سريع (لأغراض التطوير والاختبار)"""
-    # تفعيل الدخول لأول مورد في قاعدة البيانات كمحاكاة
+    """دخول سريع لمحاكاة الوصول المباشر للموردين"""
     first_supplier = Supplier.query.first()
     if first_supplier:
         session['vendor_authenticated'] = True
@@ -55,17 +61,25 @@ def quick_login():
         return jsonify({"status": "success", "redirect": url_for('vendors.dashboard')})
     return jsonify({"status": "error", "message": "لا يوجد موردون مسجلون"}), 400
 
+# --------------------------------------------------------------------------
+# المسار: لوحة التحكم (محمية)
+# --------------------------------------------------------------------------
 @vendors_bp.route('/dashboard')
 @vendor_login_required
 def dashboard():
-    """لوحة التحكم - عرض البيانات الحقيقية من الجداول"""
+    """عرض بيانات المورد الحقيقية من قاعدة البيانات"""
     supplier = Supplier.query.get(session.get('supplier_id'))
-    return render_template('vendor/dashboard.html', 
-                           vendor=supplier, 
-                           wallet=supplier.wallet if supplier else None)
+    return render_template(
+        'vendor/dashboard.html', 
+        vendor=supplier, 
+        wallet=supplier.wallet if supplier else None
+    )
 
+# --------------------------------------------------------------------------
+# المسار: تسجيل الخروج
+# --------------------------------------------------------------------------
 @vendors_bp.route('/logout')
 def logout():
-    """تسجيل الخروج وإنهاء الجلسة بشكل آمن"""
+    """إنهاء الجلسة وتوجيه المورد لصفحة الدخول"""
     session.clear()
     return redirect(url_for('vendors.login_page'))
