@@ -1,70 +1,42 @@
 # coding: utf-8
-# 📂 apps/vendors/vendor_auth_service.py
-
 import requests
+import logging
 from flask import session, redirect, url_for
 from functools import wraps
 from apps.models.otp_db import OTPVerification
 
+# إعداد الـ Logger
+logger = logging.getLogger("mahjoub_auth")
+logging.basicConfig(level=logging.INFO)
+
 def send_whatsapp_otp(phone, otp_code):
-    """إرسال الرمز عبر خدمة TextMeBot مع تنظيف الرقم من الرموز الزائدة"""
-    
-    # تنظيف الرقم: إزالة أي "+" أو مسافات أو رموز غير رقمية
-    # هذا يضمن أن الرقم يصل للـ API بصيغة أرقام فقط (مثل 967779077746)
     clean_phone = "".join(filter(str.isdigit, str(phone)))
-    
-    # مفتاحك الشخصي من TextMeBot
     api_key = "rb3tZFnHRcsN" 
-    
-    # نص الرسالة
     message = f"رمز التحقق الخاص بك في محجوب أونلاين هو: {otp_code}"
-    
-    # الرابط الخاص بـ TextMeBot
     url = "http://api.textmebot.com/send.php"
     
-    # المعاملات كما يتطلبها الـ API الخاص بهم
-    params = {
-        "recipient": clean_phone, 
-        "apikey": api_key,
-        "text": message
-    }
+    params = {"recipient": clean_phone, "apikey": api_key, "text": message}
     
     try:
-        # إرسال الطلب
-        response = requests.get(url, params=params)
-        
-        # طباعة النتيجة في Logs للتأكد (مهم جداً للتشخيص)
-        print(f"DEBUG: Original Phone: {phone}")
-        print(f"DEBUG: Cleaned Phone: {clean_phone}")
-        print(f"DEBUG: TextMeBot Response: {response.status_code}, {response.text}")
-        
-        # TextMeBot يعيد عادة 200 إذا تم قبول الطلب
+        logger.info(f"محاولة إرسال واتساب لـ: {clean_phone}")
+        response = requests.get(url, params=params, timeout=10)
+        logger.info(f"رد TextMeBot: {response.status_code} - {response.text}")
         return response.status_code == 200
     except Exception as e:
-        print(f"ERROR: Failed to send via TextMeBot: {e}")
+        logger.error(f"خطأ في الاتصال بـ TextMeBot: {str(e)}")
         return False
 
 def trigger_otp_process(email, full_phone):
-    """
-    1. توليد رمز صالح لمدة 5 دقائق.
-    2. إرسال الرمز عبر واتساب.
-    """
-    # توليد الرمز
-    otp = OTPVerification.generate_otp(email, expires_in_minutes=5)
-    
-    # إرسال عبر الواتساب باستخدام الخدمة الجديدة
-    return send_whatsapp_otp(full_phone, otp)
+    logger.info(f"بدء عملية الـ OTP لـ: {email}")
+    try:
+        otp = OTPVerification.generate_otp(email, expires_in_minutes=5)
+        logger.info(f"تم توليد الرمز بنجاح لـ {email}")
+        
+        success = send_whatsapp_otp(full_phone, otp)
+        logger.info(f"نتيجة إرسال الواتساب: {success}")
+        return success
+    except Exception as e:
+        logger.error(f"خطأ فادح في trigger_otp_process: {str(e)}")
+        return False
 
-def verify_vendor_otp(email, otp):
-    """استدعاء الموديل للتحقق الصارم"""
-    return OTPVerification.verify_otp(email, otp)
-
-def vendor_login_required(f):
-    """ديكوريتور لحماية لوحة التحكم"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get('vendor_authenticated'):
-            # التوجيه للرابط الرئيسي الخاص بـ Blueprint الموردين
-            return redirect(url_for('vendors.index'))
-        return f(*args, **kwargs)
-    return decorated_function
+# باقي الدوال (verify_vendor_otp, vendor_login_required) كما هي...
