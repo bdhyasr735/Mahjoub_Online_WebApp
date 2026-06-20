@@ -8,10 +8,11 @@ from apps.models.supplier_db import Supplier
 from apps.models.supplier_profile_db import SupplierProfile
 from werkzeug.security import generate_password_hash
 
-# إعداد مسار القوالب (يبقى كما هو لأنه لا يسبب حلقة استيراد)
+# إعداد مسار القوالب لضمان وصول Flask للملفات في بيئة لينكس
 base_dir = os.path.dirname(os.path.abspath(__file__))
 template_dir = os.path.join(base_dir, 'templates')
 
+# تعريف الـ Blueprint الخاص بالموردين
 vendors_bp = Blueprint('vendors', __name__, template_folder=template_dir)
 
 # --- المسار الجذري ---
@@ -19,9 +20,10 @@ vendors_bp = Blueprint('vendors', __name__, template_folder=template_dir)
 def index():
     return render_template('vendor/login.html')
 
+# --- بوابة التحقق ---
 @vendors_bp.route('/auth-gateway', methods=['POST'])
 def auth_gateway():
-    # تحميل المتطلبات هنا فقط (Lazy Import) لكسر حلقة الاستيراد
+    # Lazy Import لكسر حلقة الاستيراد
     from apps.vendors.vendor_auth_service import trigger_otp_process
     
     data = request.get_json()
@@ -36,9 +38,9 @@ def auth_gateway():
     else:
         return jsonify({"status": "new_partner", "message": "مرحباً بك كشريك جديد"})
 
+# --- إكمال التسجيل ---
 @vendors_bp.route('/register-complete', methods=['POST'])
 def register_complete():
-    # تحميل المتطلبات هنا فقط
     from apps.vendors.vendor_auth_service import trigger_otp_process
     
     data = request.get_json()
@@ -76,9 +78,9 @@ def register_complete():
         db.session.rollback()
         return jsonify({"status": "error", "message": "حدث خطأ أثناء التسجيل: " + str(e)}), 500
 
+# --- التحقق من الرمز ---
 @vendors_bp.route('/verify-otp', methods=['POST'])
 def verify():
-    # تحميل المتطلبات هنا فقط
     from apps.vendors.vendor_auth_service import verify_vendor_otp
     
     data = request.get_json()
@@ -95,12 +97,12 @@ def verify():
     
     return jsonify({"status": "error", "message": "الرمز غير صحيح أو انتهت صلاحيته"}), 400
 
+# --- لوحة التحكم ---
 @vendors_bp.route('/dashboard')
 def dashboard():
-    # تحميل المتطلبات هنا فقط
     from apps.vendors.vendor_auth_service import vendor_login_required
     
-    # نقوم بتطبيق الديكوريتور يدوياً هنا لتجنب حلقة الاستيراد في أعلى الملف
+    # استخدام الديكوريتور داخلياً لتجنب مشاكل الاستيراد المبكر
     @vendor_login_required
     def protected_dashboard():
         return "مرحباً بك في لوحة تحكم الموردين - محجوب أونلاين"
