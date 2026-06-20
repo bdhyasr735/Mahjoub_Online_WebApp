@@ -13,7 +13,7 @@ class Config:
     # 🕵️‍♂️ مفتاح توقيع الويب هوك الجديد
     WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', 'cdde0d415221df2c074cc80d226b6ef1ab9b5ef1f24f9c1a37aec40f2d9df2a7')
     
-    # 🌐 رابط المتجر الأساسي (مصدر المنتجات والصور)
+    # 🌐 رابط المتجر الأساسي
     STORE_BASE_URL = os.environ.get('STORE_BASE_URL', 'https://mahjoub.online')
     
     # 🔒 إعدادات الحماية الأمنية للـ Cookies
@@ -22,23 +22,18 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
-    # 1. جلب رابط قاعدة البيانات السحابية
+    # 1. إعدادات قاعدة البيانات
     _db_url = os.environ.get('DATABASE_URL')
-    
-    # 2. ⚡ إصلاح بادئة الرابط تلقائياً ليتوافق مع SQLAlchemy
     if _db_url:
         if _db_url.startswith("postgres://"):
             _db_url = _db_url.replace("postgres://", "postgresql+psycopg2://", 1)
         elif _db_url.startswith("postgresql://"):
             _db_url = _db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
-        
-    # 3. إسناد الرابط المصحح
-    SQLALCHEMY_DATABASE_URI = _db_url or 'sqlite:///mahjoub_online.db'
     
-    # 4. ❌ تعطيل تتبع التعديلات
+    SQLALCHEMY_DATABASE_URI = _db_url or 'sqlite:///mahjoub_online.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # 5. 💎 حوكمة وإدارة الاتصالات لبيئة Render
+    # 2. إعدادات Pool الاتصالات
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_size": 15,
         "max_overflow": 10,
@@ -47,14 +42,14 @@ class Config:
         "pool_pre_ping": True
     }
     
-    # 6. إعدادات البنية التحتية السحابية (Qomra Cloud API)
+    # 3. إعدادات Qumra Cloud API
     QUMRA_API_KEY = os.environ.get('QUMRA_API_KEY')
     QUMRA_API_URL = os.environ.get('QUMRA_API_URL', 'https://mahjoub.online/admin/graphql')
 
-    # 7. إعدادات WhatsApp Cloud API
+    # 4. إعدادات WhatsApp Cloud API (يتم سحبها من متغيرات البيئة - لا تضعها هنا مباشرة)
     WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '1190456080809834')
-    WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', None)
+    WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN') # سيتم سحبه من Render
     WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'Mahjoub_WhatsApp_Secure_2026')
 
-    # 8. الحفاظ على ترميز ونقاء النصوص والبيانات باللغة العربية
+    # 5. ترميز النصوص
     JSON_AS_ASCII = False
