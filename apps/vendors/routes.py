@@ -61,6 +61,16 @@ def login():
         
     return render_template('vendors/login.html')
 
+# --- مسار لوحة تحكم المورد المعزولة ---
+@vendors_bp.route('/dashboard')
+@login_required
+def dashboard():
+    # تأمين الواجهة التأكيدي: منع أي رتبة أخرى من استعراض بيانات المورد
+    if current_user.role != 'supplier':
+        flash('غير مصرح لك بدخول هذه اللوحة.', 'danger')
+        return redirect(url_for('auth_portal.login'))
+    return render_template('vendors/dashboard.html')
+
 # --- مسار تسجيل الخروج ---
 @vendors_bp.route('/logout')
 @login_required
