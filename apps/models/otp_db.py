@@ -23,7 +23,10 @@ class OTPVerification(db.Model):
     @property
     def otp_code(self):
         """فك تشفير الرمز للمطابقة الخلفية أثناء عملية الدخول"""
-        return AESCipher.decrypt(self._otp_code_enc) if self._otp_code_enc else None
+        try:
+            return AESCipher.decrypt(self._otp_code_enc) if self._otp_code_enc else None
+        except Exception:
+            return None
 
     @otp_code.setter
     def otp_code(self, value):
