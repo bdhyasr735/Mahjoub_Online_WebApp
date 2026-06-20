@@ -1,14 +1,12 @@
 # coding: utf-8
-# 📂 apps/vendors/registry.py - محرك التسجيل التلقائي المعزول لبوابة الموردين
+# 📂 apps/vendors/registry.py - التسجيل التلقائي لنظام الموردين
 
-import os
+from apps.vendors.routes import vendors_bp
 
 def register_app(app):
-    """تسجيل تطبيق الموردين بشكل مستقل وتلقائي داخل مصنع النظام"""
-    from apps.vendors.routes import vendors_bp
-    
-    # تسجيل الـ Blueprint في التطبيق الرئيسي
+    """
+    دالة التسجيل التلقائي التي يستدعيها المصنع الرئيسي (apps/__init__.py)
+    لربط مسارات الموردين بالتطبيق دون تعديل الملف الرئيسي.
+    """
     app.register_blueprint(vendors_bp)
-    
-    # تأكيد نجاح الربط في السجلات الداخلية
-    print("🚀 [Dynamic Engine] تم دمج وتأمين مسارات بوابة الموردين بنجاح.")
+    print("✅ [System] تم تسجيل Blueprint الموردين بنجاح عبر النظام التلقائي.")
