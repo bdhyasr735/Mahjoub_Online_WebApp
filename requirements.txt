@@ -18,5 +18,5 @@ CairoSVG==2.7.1
 flask-talisman==1.1.0
 flask-limiter==3.7.0
 limits==3.10.0
-flask-paginate
-deep-translator
+flask-paginate==0.9.0
+deep-translator==1.11.4
