@@ -10,9 +10,8 @@
         body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
         .wrapper { width: 100%; max-width: 500px; background: var(--card-bg); border-radius: 24px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 1px solid #222; text-align: center; }
         h3 { color: var(--gold); font-size: 1.8rem; margin-bottom: 20px; }
-        input, select { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #333; border-radius: 12px; color: #fff; box-sizing: border-box; }
-        .btn-gold { width: 100%; padding: 15px; background: var(--gold); border: none; border-radius: 12px; color: #000; font-weight: 900; cursor: pointer; margin-top: 15px; transition: 0.3s; }
-        .btn-gold:hover { background: #e5b35a; }
+        input, select { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #333; border-radius: 12px; color: #fff; box-sizing: border-box; transition: 0.3s; }
+        .btn-gold { width: 100%; padding: 15px; background: var(--gold); border: none; border-radius: 12px; color: #000; font-weight: 900; cursor: pointer; margin-top: 15px; }
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -37,13 +36,13 @@
 </div>
 
 <script>
+    // تهيئة البيانات من الجلسة إذا كانت موجودة
     let userData = {
         email: "{{ pending_email if pending_email else '' }}",
         phone: "",
         country_code: "+966"
     };
 
-    // استعادة الحالة عند تحديث الصفحة
     window.onload = function() {
         if (userData.email !== "") {
             showOtpScreen();
@@ -64,17 +63,18 @@
         userData.phone = document.getElementById('phone')?.value || "";
         userData.country_code = document.getElementById('country-code')?.value || "+966";
 
+        if (!userData.email || !userData.phone) return alert("يرجى تعبئة كافة الحقول");
+
         const res = await fetch('/vendors/auth-gateway', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
             body: JSON.stringify(userData)
         });
-        const data = await res.json();
         
         if (res.ok) {
             showOtpScreen();
         } else {
-            alert(data.message);
+            alert("حدث خطأ أثناء الإرسال");
         }
     }
 
@@ -95,6 +95,7 @@
             body: JSON.stringify({ email: userData.email, otp: otp })
         });
         const data = await res.json();
+        
         if (data.status === 'success') {
             window.location.href = data.redirect;
         } else {
@@ -103,8 +104,8 @@
     }
 
     async function resendOtp() {
-        alert("جاري إعادة إرسال الرمز...");
-        await authGateway();
+        await authGateway(); // إعادة استخدام دالة الإرسال الأساسية
+        alert("تمت إعادة إرسال الرمز.");
     }
 </script>
 </body>
