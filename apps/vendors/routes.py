@@ -123,3 +123,14 @@ def dashboard():
 
 # 5️⃣ مسار تسجيل الخروج وإغلاق الجلسة السيادية
 @vendors_bp.route('/logout')
+@login_required
+def logout():
+    """تسجيل خروج آمن للمورد وتدمير الجلسة الحالية حمايةً للبيانات السيادية"""
+    try:
+        trade_name = current_user.trade_name
+        logout_user()
+        flash(f"تم تسجيل الخروج بنجاح من لوحة تحكم {trade_name}. في أمان الله.", "success")
+    except Exception as e:
+        flash("حدث خطأ أثناء محاولة تسجيل الخروج الآمن.", "danger")
+        
+    return redirect(url_for('vendors.login'))
