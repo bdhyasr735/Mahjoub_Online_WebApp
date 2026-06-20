@@ -9,17 +9,18 @@ from apps.models.supplier_profile_db import SupplierProfile
 from apps.vendors.vendor_auth_service import trigger_otp_process, verify_vendor_otp, vendor_login_required
 from werkzeug.security import generate_password_hash
 
-# بما أن المسار هو apps/vendors/templates/vendor/login.html
-# يجب أن يشير الـ template_folder إلى المجلد الذي يحتوي على مجلد 'vendor'
-# نخرج من المجلد الحالي ثم ندخل إلى templates
-template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
+# تعديل جوهري: نحدد المسار بالرجوع إلى المجلد الذي يحتوي على مجلد الـ templates
+# هذا يضمن أن يجد Flask مجلد الـ templates أينما كان التطبيق مستضافاً
+base_dir = os.path.dirname(os.path.abspath(__file__))
+template_dir = os.path.join(base_dir, 'templates')
 
 vendors_bp = Blueprint('vendors', __name__, template_folder=template_dir)
 
-# --- المسار الجذري ---
+# --- المسار الجذري لحل مشكلة 404/500 ---
 @vendors_bp.route('/', methods=['GET'])
 def index():
-    # سيبحث الآن داخل 'apps/vendors/templates/vendor/login.html'
+    # طالما حددنا template_dir أعلاه، فإن المسار هنا يبحث داخل هذا المجلد
+    # والنتيجة النهائية للمسار ستكون: apps/vendors/templates/vendor/login.html
     return render_template('vendor/login.html')
 
 @vendors_bp.route('/auth-gateway', methods=['POST'])
