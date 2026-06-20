@@ -141,6 +141,7 @@
         .loading-overlay {
             position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(11, 7, 34, 0.96);
             border-radius: 20px; display: none; flex-direction: column; justify-content: center; align-items: center; gap: 15px;
+            z-index: 5;
         }
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(206,158,73,0.1); border-top-color: var(--cyan-accent); border-radius: 50%; animation: spin 1s linear infinite; }
         .success-message { color: #4ade80; font-weight: 700; text-align: center; font-size: 0.95rem; line-height: 1.6; display: none; }
@@ -163,7 +164,6 @@
         .login-section h3 { font-size: 1.5rem; margin: 0 0 5px 0; font-weight: 900; text-align: center; }
         .login-section .sub { font-size: 0.85rem; color: #7b728c; margin-bottom: 25px; text-align: center; display: block; }
 
-        /* تعديلات حقول الاستمارات المتعددة */
         .login-step { display: none; width: 100%; animation: fadeInStep 0.4s ease forwards; }
         .login-step.active { display: block; }
 
@@ -236,7 +236,8 @@
         .graph-bar { flex: 1; background: linear-gradient(to top, rgba(0,242,254,0.1), var(--cyan-accent)); border-radius: 4px; animation: barGrow 1.5s ease-out forwards; }
 
         .webhook-mockup { background: rgba(0,0,0,0.4); border-radius: 16px; padding: 20px; border: 1px solid rgba(0,242,254,0.15); font-family: monospace; }
-        .webhook-line { display: flex; gap: 10px; font-size: 0.8rem; margin-bottom: 8px; }
+        .webhook-mockup { text-align: left; direction: ltr; }
+        .webhook-line { display: flex; gap: 10px; font-size: 0.8rem; margin-bottom: 8px; justify-content: flex-start; }
         .webhook-status { color: var(--emerald-green); font-weight: bold; }
         .webhook-event { color: var(--bright-gold); }
 
@@ -341,7 +342,7 @@
                 <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="لوجو محجوب أونلاين">
             </div>
             <div class="header-logo-text">
-                <span class="brand-title">محجوب أونلاين _ سوقك الذكي</span>
+                <span class="brand-title">MAHJOUB ONLINE</span>
                 <span class="brand-sub">منصة اللآمركزية لحوكمة التجارة الرقمية</span>
             </div>
         </div>
@@ -383,7 +384,6 @@
                 </div>
             </div>
 
-            <!-- قسم استمارة الدخول الذكية المتعددة الخطوات -->
             <div class="login-section">
                 <div class="logo-box">
                     <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="لوجو محجوب أونلاين">
@@ -406,7 +406,6 @@
 
                 <form id="multi-step-login" style="width: 100%;" onsubmit="event.preventDefault();">
                     
-                    <!-- الخطوة الأولى: الإيميل ورقم الإدارة -->
                     <div class="login-step active" id="step-1">
                         <div class="input-box">
                             <input type="email" id="admin-email" placeholder="البريد الإلكتروني للمستخدم" required autocomplete="email">
@@ -419,7 +418,6 @@
                         <button type="button" class="btn-access" onclick="goToStep2()">إرسال رمز التأكيد <i class="fas fa-paper-plane"></i></button>
                     </div>
 
-                    <!-- الخطوة الثانية: رمز التأكيد OTP -->
                     <div class="login-step" id="step-2">
                         <p style="font-size: 0.85rem; color: #b3acc2; text-align: center; margin-bottom: 15px;">تم إرسال رمز تأكيد مؤقت إلى بيانات الإدارة المدخلة.</p>
                         <div class="input-box">
@@ -429,7 +427,6 @@
                         <button type="button" class="btn-access" onclick="goToStep3()">تأكيد الرمز <i class="fas fa-shield-check"></i></button>
                     </div>
 
-                    <!-- الخطوة الثالثة: اسم المستخدم المعتمد -->
                     <div class="login-step" id="step-3">
                         <div class="input-box">
                             <input type="text" id="approved-username" placeholder="مثال: علي سعيد اعتماد" required>
@@ -459,8 +456,8 @@
         <div class="feature-row">
             <div class="feature-text">
                 <div class="feature-badge"><i class="fas fa-chart-line"></i> التحليلات المتقدمة للموردين والمتاجر</div>
-                <h3>إحصائيات شفافافة ودقيقة لأداء تجارتك ومبيعاتك</h3>
-                <p>تابع تقارير أرباحك الصافية، ومعدلات الطلبات، وسلوك المسوقين والمشترين لحظة بتحظة عبر واجهات بيانية ذكية صممت لتضمن لك اتخاذ أفضل القرارات لتوسيع حجم توريدك وتجارتك دون قيود.</p>
+                <h3>إحصائيات شفافة ودقيقة لأداء تجارتك ومبيعاتك</h3>
+                <p>تابع تقارير أرباحك الصافية، ومعدلات الطلبات، وسلوك المسوقين والمشترين لحظة بلحظة عبر واجهات بيانية ذكية صممت لتضمن لك اتخاذ أفضل القرارات لتوسيع حجم توريدك وتجارتك دون قيود.</p>
             </div>
             <div class="feature-visual">
                 <div class="stat-card-mockup">
@@ -526,11 +523,15 @@
         <div class="faq-container">
             <div class="faq-item">
                 <div class="faq-question" onclick="toggleFaq(this)">كم تكلفة الانضمام للمنصة كمورد؟ <i class="fas fa-chevron-down"></i></div>
-                <div class="faq-answer">الانضمام مجاني بالكامل وبدون أي اشتراكات سريّة أو عمولات خفية. هدفنا حوكمة وتوحيد بيئة التجارة الرقمية.</div>
+                <div class="faq-answer">الانضمام مجاني بالكامل وبدون أي اشتراكات سريّة أو عمولات خفية. هدفنا حوكمة وتوحيد عمليات التوريد لرفع المبيعات وإلغاء قيود الاحتكار والوساطة المعقدة.</div>
             </div>
             <div class="faq-item">
-                <div class="faq-question" onclick="toggleFaq(this)">ما هو نظام السوق الموحد؟ <i class="fas fa-chevron-down"></i></div>
-                <div class="faq-answer">هو نظام مركزي سحابي يتيح للمورد رفع المنتجات مرة واحدة، لتظهر فوراً في قنوات البيع الموحدة لجميع المتاجر والمسوقين لتجنب تشتيت الأسعار.</div>
+                <div class="faq-question" onclick="toggleFaq(this)">ما هو نظام التشفير والحماية المستخدم لحماية بياناتنا؟ <i class="fas fa-chevron-down"></i></div>
+                <div class="faq-answer">يتم تأمين كافة بيانات الحسابات، سلاسل التوريد، والعمليات المالية والربط عبر بروتوكولات حماية متطورة وتشفير عالي التقييم بمستوى AES-256 لتأمين سيادة البيانات وسريتها المطلقة.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">كيف يعمل الربط عبر الـ GraphQL والـ Webhooks؟ <i class="fas fa-chevron-down"></i></div>
+                <div class="faq-answer">توفر المنصة بوابات ومنافذ ربط ذكية مبنية على بيئة Apollo GraphQL لتمرير تحديثات المخزون الفورية، بالإضافة إلى إرسال إشعارات Webhooks آنية ومؤتمتة للمسوقين والمتاجر فور حدوث أي عملية بيع أو تحديث حالة الطلب.</div>
             </div>
         </div>
     </section>
@@ -538,99 +539,107 @@
     <footer class="royal-footer">
         <div class="footer-grid">
             <div class="footer-col footer-brand">
-                <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="لوجو">
+                <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="لوجو محجوب أونلاين">
                 <span class="title">MAHJOUB ONLINE</span>
-                <span class="subtitle">منصة اللآمركزية لحوكمة التجارة الرقمية</span>
-                <p>سوق موحد ومؤتمت يجمع الموردين والمسوقين والشركاء تحت سقف بنية تحتية برمجية خارقة لزيادة الكفاءة والسيادة المالية.</p>
+                <span class="subtitle">حوكمة التجارة الرقمية اللامركزية برؤية عالمية ذكية.</span>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                </div>
             </div>
             <div class="footer-col">
-                <h3>روابط سريعة</h3>
+                <h3>المنصة</h3>
                 <ul>
                     <li><a href="#features"><i class="fas fa-chevron-left"></i> المميزات</a></li>
-                    <li><a href="#marketers"><i class="fas fa-chevron-left"></i> نظام الأفلييت</a></li>
-                    <li><a href="#graphql"><i class="fas fa-chevron-left"></i> تكامل برمي</a></li>
+                    <li><a href="#marketers"><i class="fas fa-chevron-left"></i> نظام المسوقين</a></li>
+                    <li><a href="#graphql"><i class="fas fa-chevron-left"></i> تكامل GraphQL</a></li>
                 </ul>
             </div>
             <div class="footer-col">
-                <h3>الدعم والتواصل الرسمى</h3>
+                <h3>الدعم والحماية</h3>
                 <ul>
-                    <li><a href="mailto:mahjoubonline@outlook.sa"><i class="fas fa-envelope"></i> mahjoubonline@outlook.sa</a></li>
-                    <li><a href="tel:+967779077746" dir="ltr"><i class="fas fa-phone"></i> +967 779 077 746</a></li>
-                    <li><a><i class="fas fa-location-dot"></i> اليمن - الخوخة</a></li>
+                    <li><a href="#"><i class="fas fa-chevron-left"></i> تشفير AES-256</a></li>
+                    <li><a href="#faq"><i class="fas fa-chevron-left"></i> الأسئلة الشائعة</a></li>
+                    <li><a href="#"><i class="fas fa-chevron-left"></i> الشروط والأحكام</a></li>
                 </ul>
             </div>
             <div class="footer-col">
-                <h3>تابعنا</h3>
-                <div class="social-icons">
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-facebook"></i></a>
-                    <a href="#"><i class="fab fa-linkedin"></i></a>
-                </div>
+                <h3>اتصل بنا</h3>
+                <p style="font-size: 0.85rem;"><i class="fas fa-envelope" style="color:var(--luxury-gold);"></i> mahjoubonline@outlook.sa</p>
+                <p style="font-size: 0.85rem; direction: ltr; text-align: right;"><i class="fas fa-phone" style="color:var(--luxury-gold);"></i> +967 779 077 746</p>
             </div>
         </div>
         <div class="footer-rights">
-            &copy; 2026 جميع الحقوق محفوظة لمنصة MAHJOUB ONLINE.
+            &copy; 2026 منصة MAHJOUB ONLINE. جميع الحقوق محفوظة لسيادة الحوكمة الرقمية الموحدة.
         </div>
     </footer>
 
     <script>
-        // دوال نظام تسجيل الدخول متعدد الخطوات
-        function goToStep2() {
-            var email = document.getElementById('admin-email').value;
-            var phone = document.getElementById('admin-phone').value;
-            
-            if(!email || !phone) {
-                alert('يرجى إدخال البريد الإلكتروني ورقم هاتف الإدارة أولاً!');
+        // دالة محاكاة رفع المنتجات عبر GraphQL
+        function simulateUpload() {
+            const pName = document.getElementById('p_name').value.trim();
+            const pPrice = document.getElementById('p_price').value.trim();
+
+            if (!pName || !pPrice) {
+                alert('فضلاً قم بملء الحقول للمحاكاة الذكية');
                 return;
             }
+
+            const loader = document.getElementById('loader');
+            const successMsg = document.getElementById('successMsg');
             
-            document.getElementById('step-1').classList.remove('active');
-            document.getElementById('step-2').classList.add('active');
-            document.getElementById('step-desc').innerText = 'الخطوة 2: أدخل رمز التأكيد المرسل';
+            successMsg.style.display = 'none';
+            loader.style.display = 'flex';
+
+            setTimeout(() => {
+                loader.style.display = 'none';
+                successMsg.style.display = 'block';
+            }, 2500);
+        }
+
+        // التحكم باستمارة الدخول متعددة الخطوات
+        const stepDesc = document.getElementById('step-desc');
+
+        function goToStep2() {
+            const email = document.getElementById('admin-email').value;
+            const phone = document.getElementById('admin-phone').value;
+            if(email && phone) {
+                document.getElementById('step-1').classList.remove('active');
+                document.getElementById('step-2').classList.add('active');
+                stepDesc.textContent = "الخطوة 2: إدخال رمز التأكيد (OTP)";
+            } else {
+                alert('يرجى ملء البيانات المطلوبة للتحقق');
+            }
         }
 
         function goToStep3() {
-            var code = document.getElementById('auth-code').value;
-            if(!code) {
-                alert('يرجى كتابة رمز التأكيد للمتابعة!');
-                return;
+            const code = document.getElementById('auth-code').value;
+            if(code.length === 6) {
+                document.getElementById('step-2').classList.remove('active');
+                document.getElementById('step-3').classList.add('active');
+                stepDesc.textContent = "الخطوة 3: تأكيد الهوية السيادية";
+            } else {
+                alert('يرجى إدخال رمز التحقق المكون من 6 أرقام');
             }
-            
-            document.getElementById('step-2').classList.remove('active');
-            document.getElementById('step-3').classList.add('active');
-            document.getElementById('step-desc').innerText = 'الخطوة 3: أدخل اسم المستخدم المعتمد';
         }
 
         function finalizeLogin() {
-            var username = document.getElementById('approved-username').value;
-            if(!username) {
-                alert('يرجى إدخال اسم المستخدم المعتمد لإتمام الدخول السيادي!');
-                return;
+            const username = document.getElementById('approved-username').value;
+            if(username) {
+                alert(`أهلاً بك يا ${username}. تم محاكاة الولوج بنجاح وتوجيه النبضات إلى المصنع الأم.`);
+            } else {
+                alert('يرجى إدخال الاسم المعتمد');
             }
-            alert('أهلاً بك يا ' + username + '، تم التحقق والمزامنة البرمجية الكاملة عبر حوكمة محجوب أونلاين الرقمية بنجاح!');
-        }
-
-        // دالة محاكاة رفع المنتجات
-        function simulateUpload() {
-            var name = document.getElementById('p_name').value;
-            var price = document.getElementById('p_price').value;
-            if(!name || !price) {
-                alert('يرجى ملء الحقول لتجربة المحاكاة الذكية!');
-                return;
-            }
-            document.getElementById('loader').style.display = 'flex';
-            setTimeout(function() {
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('successMsg').style.display = 'block';
-            }, 2000);
         }
 
         function triggerOneClickLogin() {
-            alert('جاري توليد التوكن الآمن عبر تشفير AES-256 للعبور الفوري الموحد...');
+            alert('جاري استدعاء بروتوكول الدخول السريع العابر للأنظمة...');
         }
 
+        // نظام الأسئلة الشائعة الأكورديون
         function toggleFaq(element) {
-            var item = element.parentElement;
+            const item = element.parentElement;
             item.classList.toggle('open');
         }
     </script>
