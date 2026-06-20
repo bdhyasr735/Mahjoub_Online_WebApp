@@ -68,7 +68,6 @@
         const countryCode = document.getElementById('country-code').value;
         const phoneNum = document.getElementById('phone').value;
         
-        // دمج رمز الدولة مع الرقم لإرساله كقيمة واحدة
         const fullPhone = countryCode + phoneNum;
         currentEmail = email;
         
@@ -86,7 +85,8 @@
                 <button class="btn-gold" onclick="verify()">دخول آمن</button>
             `;
         } else {
-            alert("خطأ في الاتصال بالسيرفر، تأكد من البيانات.");
+            const error = await res.json();
+            alert(error.message || "خطأ في الاتصال بالسيرفر");
         }
     }
 
