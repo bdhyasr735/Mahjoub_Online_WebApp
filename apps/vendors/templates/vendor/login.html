@@ -146,8 +146,19 @@
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(206,158,73,0.1); border-top-color: var(--cyan-accent); border-radius: 50%; animation: spin 1s linear infinite; }
         .success-message { color: #4ade80; font-weight: 700; text-align: center; font-size: 0.95rem; line-height: 1.6; display: none; }
 
+        /* تعديلات بوابات الدخول والتبديل الذكي للأنظمة */
         .login-section { flex: 1; padding: 40px 35px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(6, 2, 12, 0.5); position: relative; }
         
+        .portal-switcher {
+            display: flex; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 4px; border-radius: 12px; margin-bottom: 20px; width: 100%;
+        }
+        .portal-btn {
+            flex: 1; background: transparent; border: none; color: #8d859e; padding: 8px; font-family: 'Cairo'; font-size: 0.85rem; font-weight: 700; cursor: pointer; border-radius: 8px;
+        }
+        .portal-btn.active {
+            background: rgba(206, 158, 73, 0.15); border: 1px solid rgba(206, 158, 73, 0.3); color: var(--bright-gold);
+        }
+
         .sovereign-credentials {
             width: 100%; display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;
         }
@@ -162,7 +173,7 @@
 
         .logo-box img { width: 70px; margin-bottom: 10px; filter: brightness(0) invert(1); }
         .login-section h3 { font-size: 1.5rem; margin: 0 0 5px 0; font-weight: 900; text-align: center; }
-        .login-section .sub { font-size: 0.85rem; color: #7b728c; margin-bottom: 25px; text-align: center; display: block; }
+        .login-section .sub { font-size: 0.85rem; color: #7b728c; margin-bottom: 20px; text-align: center; display: block; }
 
         .login-step { display: none; width: 100%; animation: fadeInStep 0.4s ease forwards; }
         .login-step.active { display: block; }
@@ -188,8 +199,20 @@
         }
         .btn-access:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(206, 158, 73, 0.4); }
 
+        /* أزرار الحسم: تسجيل الدخول وإنشاء الحساب */
+        .action-toggle-container {
+            display: flex; justify-content: space-between; width: 100%; margin-top: 10px; gap: 10px;
+        }
+        .btn-toggle-action {
+            flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 10px; border-radius: 10px; color: #b3acc2; font-family: 'Cairo'; font-size: 0.8rem; font-weight: 700; cursor: pointer; text-align: center;
+        }
+        .btn-toggle-action.active {
+            border-color: var(--cyan-accent); color: var(--cyan-accent); background: rgba(0, 242, 254, 0.03);
+        }
+        .btn-toggle-action:hover { border-color: var(--bright-gold); color: #fff; }
+
         .divider-container {
-            width: 100%; display: flex; align-items: center; text-align: center; margin: 10px 0 20px 0; color: #524961; font-size: 0.8rem; font-weight: 600;
+            width: 100%; display: flex; align-items: center; text-align: center; margin: 15px 0; color: #524961; font-size: 0.8rem; font-weight: 600;
         }
         .divider-container::before, .divider-container::after {
             content: ''; flex: 1; border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -237,6 +260,7 @@
 
         .webhook-mockup { background: rgba(0,0,0,0.4); border-radius: 16px; padding: 20px; border: 1px solid rgba(0,242,254,0.15); font-family: monospace; }
         .webhook-mockup { text-align: left; direction: ltr; }
+        .webhook-mockup { width: 100%; display: block; }
         .webhook-line { display: flex; gap: 10px; font-size: 0.8rem; margin-bottom: 8px; justify-content: flex-start; }
         .webhook-status { color: var(--emerald-green); font-weight: bold; }
         .webhook-event { color: var(--bright-gold); }
@@ -388,10 +412,16 @@
                 <div class="logo-box">
                     <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="لوجو محجوب أونلاين">
                 </div>
-                <h3>بوابة الشركاء الكرام</h3>
+                
+                <div class="portal-switcher">
+                    <button type="button" class="portal-btn active" id="btn-partner-portal" onclick="switchPortal('partner')">بوابة الشركاء</button>
+                    <button type="button" class="portal-btn" id="btn-staff-portal" onclick="switchPortal('staff')">بوابة الموظفين الموثقين</button>
+                </div>
+
+                <h3 id="portal-title">بوابة الشركاء الكرام</h3>
                 <span class="sub" id="step-desc">الخطوة 1: التحقق من بيانات الإدارة</span>
 
-                <div class="sovereign-credentials">
+                <div class="sovereign-credentials" id="sovereign-area">
                     <div class="credential-badge">
                         <i class="fas fa-vault"></i>
                         <span class="cred-title">المحفظة السيادية</span>
@@ -408,11 +438,11 @@
                     
                     <div class="login-step active" id="step-1">
                         <div class="input-box">
-                            <input type="email" id="admin-email" placeholder="البريد الإلكتروني للمستخدم" required autocomplete="email">
+                            <input type="email" id="admin-email" placeholder="البريد الإلكتروني للمستخدم" autocomplete="email">
                             <i class="fas fa-envelope main-icon"></i>
                         </div>
                         <div class="input-box">
-                            <input type="tel" id="admin-phone" placeholder="رقم الهاتف الإداري" required autocomplete="tel">
+                            <input type="tel" id="admin-phone" placeholder="رقم الهاتف الإداري" autocomplete="tel">
                             <i class="fas fa-phone main-icon"></i>
                         </div>
                         <button type="button" class="btn-access" onclick="goToStep2()">إرسال رمز التأكيد <i class="fas fa-paper-plane"></i></button>
@@ -421,7 +451,7 @@
                     <div class="login-step" id="step-2">
                         <p style="font-size: 0.85rem; color: #b3acc2; text-align: center; margin-bottom: 15px;">تم إرسال رمز تأكيد مؤقت إلى بيانات الإدارة المدخلة.</p>
                         <div class="input-box">
-                            <input type="text" id="auth-code" placeholder="أدخل رمز التأكيد (OTP)" required maxlength="6" style="text-align: center; letter-spacing: 5px;">
+                            <input type="text" id="auth-code" placeholder="أدخل رمز التأكيد (OTP)" maxlength="6" style="text-align: center; letter-spacing: 5px;">
                             <i class="fas fa-key main-icon"></i>
                         </div>
                         <button type="button" class="btn-access" onclick="goToStep3()">تأكيد الرمز <i class="fas fa-shield-check"></i></button>
@@ -429,13 +459,50 @@
 
                     <div class="login-step" id="step-3">
                         <div class="input-box">
-                            <input type="text" id="approved-username" placeholder="مثال: علي سعيد اعتماد" required>
+                            <input type="text" id="approved-username" placeholder="مثال: علي سعيد اعتماد">
                             <i class="fas fa-user-check main-icon"></i>
                         </div>
-                        <button type="button" class="btn-access" onclick="finalizeLogin()">دخول مجاني للوحة التحكم <i class="fas fa-door-open"></i></button>
+                        <button type="button" class="btn-access" onclick="finalizeLogin('شریک')">دخول مجاني للوحة التحكم <i class="fas fa-door-open"></i></button>
+                    </div>
+
+                    <div class="login-step" id="step-staff">
+                        <div class="input-box">
+                            <input type="text" id="staff-username" placeholder="اسم الموظف أو المعرّف الوظيفي">
+                            <i class="fas fa-user-shield main-icon"></i>
+                        </div>
+                        <div class="input-box">
+                            <input type="password" id="staff-password" placeholder="كلمة المرور الآمنة AES-256">
+                            <i class="fas fa-lock main-icon"></i>
+                        </div>
+                        <button type="button" class="btn-access" onclick="finalizeLogin('موظف')">تسجيل دخول الموظف <i class="fas fa-right-to-bracket"></i></button>
+                    </div>
+
+                    <div class="login-step" id="step-register">
+                        <div class="input-box">
+                            <input type="text" id="reg-name" placeholder="الاسم الكامل">
+                            <i class="fas fa-user main-icon"></i>
+                        </div>
+                        <div class="input-box">
+                            <input type="email" id="reg-email" placeholder="البريد الإلكتروني المعتمد">
+                            <i class="fas fa-envelope main-icon"></i>
+                        </div>
+                        <div class="input-box">
+                            <input type="password" id="reg-pass" placeholder="تعيين كلمة المرور">
+                            <i class="fas fa-key main-icon"></i>
+                        </div>
+                        <button type="button" class="btn-access" style="background: linear-gradient(135deg, var(--cyan-accent) 0%, #00a2ae 100%); color: #000;" onclick="alert('تم رفع طلب الإنشاء/التوثيق بنجاح لمراجعة الإدارة السيادية.')">إنشاء حساب وتقديم طلب التوثيق <i class="fas fa-user-plus"></i></button>
                     </div>
 
                 </form>
+
+                <div class="action-toggle-container">
+                    <button type="button" class="btn-toggle-action active" id="action-login-mode" onclick="setFormMode('login')">
+                        <i class="fas fa-sign-in-alt"></i> تسجيل دخول
+                    </button>
+                    <button type="button" class="btn-toggle-action" id="action-register-mode" onclick="setFormMode('register')">
+                        <i class="fas fa-user-plus"></i> إنشاء حساب جديد
+                    </button>
+                </div>
 
                 <div class="divider-container">أو خيارات الدخول السريع</div>
 
@@ -456,7 +523,7 @@
         <div class="feature-row">
             <div class="feature-text">
                 <div class="feature-badge"><i class="fas fa-chart-line"></i> التحليلات المتقدمة للموردين والمتاجر</div>
-                <h3>إحصائيات شفافافة ودقيقة لأداء تجارتك ومبيعاتك</h3>
+                <h3>إحصائيات شفافة ودقيقة لأداء تجارتك ومبيعاتك</h3>
                 <p>تابع تقارير أرباحك الصافية، ومعدلات الطلبات، وسلوك المسوقين والمشترين لحظة بلحظة عبر واجهات بيانية ذكية صممت لتضمن لك اتخاذ أفضل القرارات لتوسيع حجم توريدك وتجارتك دون قيود.</p>
             </div>
             <div class="feature-visual">
@@ -492,153 +559,103 @@
                 </div>
             </div>
         </div>
-
-        <div class="feature-row" id="graphql">
-            <div class="feature-text">
-                <div class="feature-badge" style="color:#e10098; border-color:rgba(225,0,152,0.3); background:rgba(225,0,152,0.05);">
-                    <i class="fa-solid fa-circle-nodes"></i> تكامل مرن عبر Apollo GraphQL
-                </div>
-                <h3>استعلامات برمجية خارقة لربط وتكامل التطبيقات الفوري</h3>
-                <p>نوفر بنية تحتية برمجية متكاملة تعتمد على شبكة Apollo GraphQL لتمكين الموردين والمطورين من استعلام وتحديث مخزون المنتجات، ومزامنة الطلبات في الوقت الفعلي بكفاءة عالية وبأقل استهلاك للموارد.</p>
-            </div>
-            <div class="feature-visual">
-                <div class="graphql-mockup">
-                    <div><span class="graphql-keyword">query</span> <span class="graphql-field">GetProductStock</span> {</div>
-                    <div>&nbsp;&nbsp;product(id: <span class="graphql-field">"MAH-899"</span>) {</div>
-                    <div>&nbsp;&nbsp;&nbsp;&nbsp;title</div>
-                    <div>&nbsp;&nbsp;&nbsp;&nbsp;stockStatus</div>
-                    <div>&nbsp;&nbsp;&nbsp;&nbsp;unifiedPrice</div>
-                    <div>&nbsp;&nbsp;}</div>
-                    <div>}</div>
-                </div>
-            </div>
-        </div>
     </section>
-
-    <section class="faq-section" id="faq">
-        <div class="section-title">
-            <h2>الأسئلة الشائعة</h2>
-            <p>كل ما تحتاج معرفته عن آليات العمل والربط داخل المنصة</p>
-        </div>
-        <div class="faq-container">
-            <div class="faq-item">
-                <div class="faq-question" onclick="toggleFaq(this)">كم تكلفة الانضمام للمنصة كمورد؟ <i class="fas fa-chevron-down"></i></div>
-                <div class="faq-answer">Rank مجاني بالكامل وبدون أي اشتراكات سريّة أو عمولات خفية. هدفنا حوكمة وتوحيد عمليات التوريد لرفع المبيعات وإلغاء قيود الاحتكار والوساطة المعقدة.</div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question" onclick="toggleFaq(this)">كيف تعمل حوكمة نظام الـ Webhooks وعمولات الأفلييت؟ <i class="fas fa-chevron-down"></i></div>
-                <div class="faq-answer">عند إجراء أي عملية بيع ناجحة من خلال الرابط الذكي التابع للمسوق، يقوم خادمنا بإطلاق استجابة فورية عبر السيرفر لتسجيل العمولة، مما يضمن الشفافية المطلقة والسرعة بدون أي تدخل يدوي.</div>
-            </div>
-        </div>
-    </section>
-
-    <footer class="royal-footer">
-        <div class="footer-grid">
-            <div class="footer-col footer-brand">
-                <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="لوجو محجوب أونلاين">
-                <span class="title">محجوب أونلاين</span>
-                <span class="subtitle">Peak of Intelligence & Simplicity</span>
-                <p>سوق ذكي متكامل يعيد صياغة آليات التجارة الإلكترونية الرقمية بربط وتكافؤ مطلق ومجاني.</p>
-            </div>
-            <div class="footer-col">
-                <h3>روابط سريعة</h3>
-                <ul>
-                    <li><a href="#features"><i class="fas fa-chevron-left"></i> المميزات الأدائية</a></li>
-                    <li><a href="#marketers"><i class="fas fa-chevron-left"></i> بوابة المسوقين</a></li>
-                    <li><a href="#graphql"><i class="fas fa-chevron-left"></i> توثيق GraphQL</a></li>
-                </ul>
-            </div>
-            <div class="footer-col">
-                <h3>الدعم الفني والربط</h3>
-                <ul>
-                    <li><a href="#"><i class="fas fa-shield-halved"></i> معايير AES-256</a></li>
-                    <li><a href="#"><i class="fas fa-code"></i> المطورين و Webhooks</a></li>
-                </ul>
-            </div>
-            <div class="footer-col">
-                <h3>تواصل معنا</h3>
-                <p>للاستفسارات والربط المتقدم للشركات الكبرى:</p>
-                <p style="color:var(--bright-gold); font-weight:700; font-size:0.85rem;">mahjoubpnline@outlook.sa</p>
-                <div class="social-icons">
-                    <a href="#"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                </div>
-            </div>
-        </div>
-        <div class="footer-rights">
-            &copy; 2026 منصة محجوب أونلاين. جميع الحقوق محفوظة لسيادة الإدارة العليا للمنصة.
-        </div>
-    </footer>
 
     <script>
+        // محاكاة رفع المنتجات
         function simulateUpload() {
-            const pName = document.getElementById('p_name').value;
-            const pPrice = document.getElementById('p_price').value;
-
-            if(!pName || !pPrice) {
-                alert('فضلاً قم بتعبئة حقول المحاكاة أولاً لرؤية طفرة الربط البرمجي.');
-                return;
-            }
-
-            const loader = document.getElementById('loader');
-            const successMsg = document.getElementById('successMsg');
-            
-            loader.style.display = 'flex';
-            successMsg.style.display = 'none';
-
-            setTimeout(() => {
-                loader.style.display = 'none';
-                successMsg.style.display = 'block';
-            }, 2500);
+            var name = document.getElementById('p_name').value;
+            var price = document.getElementById('p_price').value;
+            if(!name || !price) { alert('الرجاء تعبئة حقول المحاكاة أولاً'); return; }
+            document.getElementById('loader').style.display = 'flex';
+            setTimeout(function(){
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('successMsg').style.display = 'block';
+            }, 1800);
         }
 
-        // دوال التنقل بين خطوات الدخول المتفق عليها
-        function goToStep2() {
-            const email = document.getElementById('admin-email').value;
-            const phone = document.getElementById('admin-phone').value;
+        // متغيرات تتبع الواجهة الحالية والوضع الحالي
+        let currentPortal = 'partner'; // partner or staff
+        let currentMode = 'login'; // login or register
 
-            if(!email || !phone) {
-                alert('يرجى إدخال البريد الإلكتروني ورقم الهاتف أولاً.');
-                return;
+        function switchPortal(type) {
+            currentPortal = type;
+            // إلغاء الوضع النشط للأزرار العلوبة
+            document.getElementById('btn-partner-portal').classList.remove('active');
+            document.getElementById('btn-staff-portal').classList.remove('active');
+            
+            // إخفاء كافة الخطوات والأنماط أولاً
+            hideAllSteps();
+
+            if (currentMode === 'register') {
+                // إذا كان في وضع إنشاء الحساب، يظل في شاشة التسجيل
+                document.getElementById('step-register').classList.add('active');
+                document.getElementById('step-desc').innerText = "إنشاء حساب جديد في النظام";
+            } else {
+                if(type === 'partner') {
+                    document.getElementById('btn-partner-portal').classList.add('active');
+                    document.getElementById('portal-title').innerText = "بوابة الشركاء الكرام";
+                    document.getElementById('step-desc').innerText = "الخطوة 1: التحقق من بيانات الإدارة";
+                    document.getElementById('step-1').classList.add('active');
+                    document.getElementById('sovereign-area').style.display = 'flex';
+                } else {
+                    document.getElementById('btn-staff-portal').classList.add('active');
+                    document.getElementById('portal-title').innerText = "بوابة حوكمة الموظفين الموثقين";
+                    document.getElementById('step-desc').innerText = "تسجيل دخول آمن بالصلاحيات الوظيفية";
+                    document.getElementById('step-staff').classList.add('active');
+                    document.getElementById('sovereign-area').style.display = 'none';
+                }
             }
+        }
 
-            document.getElementById('step-1').classList.remove('active');
+        function setFormMode(mode) {
+            currentMode = mode;
+            document.getElementById('action-login-mode').classList.remove('active');
+            document.getElementById('action-register-mode').classList.remove('active');
+            
+            hideAllSteps();
+
+            if(mode === 'register') {
+                document.getElementById('action-register-mode').classList.add('active');
+                document.getElementById('portal-title').innerText = "منصة الانضمام والتوثيق الذكي";
+                document.getElementById('step-desc').innerText = "قم بإنشاء حسابك لتقديم طلب التوظيف أو الشراكة";
+                document.getElementById('step-register').classList.add('active');
+                document.getElementById('sovereign-area').style.display = 'none';
+            } else {
+                document.getElementById('action-login-mode').classList.add('active');
+                // إعادة تشغيل البوابة الحالية المحددة
+                switchPortal(currentPortal);
+            }
+        }
+
+        function hideAllSteps() {
+            var steps = document.querySelectorAll('.login-step');
+            steps.forEach(function(s) { s.classList.remove('active'); });
+        }
+
+        // خطوات الانتقال لبوابة الشركاء
+        function goToStep2() {
+            var email = document.getElementById('admin-email').value;
+            if(!email) { alert('يرجى إدخال البريد الإلكتروني'); return; }
+            hideAllSteps();
             document.getElementById('step-2').classList.add('active');
-            document.getElementById('step-desc').innerText = "الخطوة 2: تأكيد الرمز المشفّر الرقمي (OTP)";
+            document.getElementById('step-desc').innerText = "الخطوة 2: التحقق من الهوية السيادية (OTP)";
         }
 
         function goToStep3() {
-            const code = document.getElementById('auth-code').value;
-            if(!code || code.length < 4) {
-                alert('يرجى إدخال رمز التحقق الصحيح.');
-                return;
-            }
-
-            document.getElementById('step-2').classList.remove('active');
+            var code = document.getElementById('auth-code').value;
+            if(!code) { alert('يرجى إدخال رمز التحقق'); return; }
+            hideAllSteps();
             document.getElementById('step-3').classList.add('active');
-            document.getElementById('step-desc').innerText = "الخطوة 3: تخصيص الاسم في لوحة التحكم الإدارية";
+            document.getElementById('step-desc').innerText = "الخطوة 3: تهيئة الاسم والمزامنة";
         }
 
-        function finalizeLogin() {
-            const username = document.getElementById('approved-username').value;
-            if(!username) {
-                alert('يرجى كتابة الاسم المعتمد لإتمام المعاملة بنجاح.');
-                return;
-            }
-            alert('أهلاً بك يا ' + username + '! جاري توجيهك إلى admin.mahjoub.online الآمن عبر Vercel...');
-            window.location.href = "https://admin.mahjoub.online";
+        function finalizeLogin(role) {
+            alert('تم التحقق والدخول بنجاح بصفتك: ' + role + ' في منصة محجوب أونلاين الموحدة.');
         }
 
         function triggerOneClickLogin() {
-            alert('جاري فحص التخويل الرقمي للمحفظة السيادية العابرة للأنظمة...');
-            window.location.href = "https://admin.mahjoub.online";
-        }
-
-        // تفعيل الأكورديون للأسئلة الشائعة
-        function toggleFaq(element) {
-            const item = element.parentElement;
-            item.classList.toggle('open');
+            alert('جاري تمرير طفرة تزامنية سريعة وعابرة للأنظمة...');
         }
     </script>
 </body>
