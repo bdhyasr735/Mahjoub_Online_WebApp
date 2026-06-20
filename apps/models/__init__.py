@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/models/__init__.py - الموزع المركزي للنماذج بنظام التعجيل وحماية السياق
 
-# مصفوفة النماذج المتاحة للوصول الخارجي
+# مصفوفة النماذج المتاحة للوصول الخارجي (تمت إضافة SupplierProfile لتوحيد حوكمة الكيانات)
 __all__ = [
     'AdminUser', 'ExchangeRate', 'FinancialLog', 'Supplier', 'SupplierProfile',
     'AdminVault', 'VaultTransaction', 'SupplierWallet', 
@@ -26,7 +26,8 @@ def __getattr__(name):
         from .supplier_db import Supplier
         return Supplier
     elif name == 'SupplierProfile':
-        from .supplier_db import SupplierProfile
+        # 🔗 حقن الكيان التجاري المتقدم لتكتمل الحوكمة مع جدول الحساب الموحد
+        from .supplier_profile_db import SupplierProfile
         return SupplierProfile
     elif name == 'AdminVault':
         from .vault_db import AdminVault
