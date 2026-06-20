@@ -1,14 +1,20 @@
 # coding: utf-8
 # 📂 apps/vendors/routes.py
 
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, render_template
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_profile_db import SupplierProfile
-from apps.vendors.vendor_auth_service import trigger_otp_process, verify_vendor_otp
+from apps.vendors.vendor_auth_service import trigger_otp_process, verify_vendor_otp, vendor_login_required
 from werkzeug.security import generate_password_hash
 
 vendors_bp = Blueprint('vendors', __name__)
+
+# --- المسار الجذري لحل مشكلة 404 ---
+@vendors_bp.route('/', methods=['GET'])
+def index():
+    # هذا هو المسار الذي سيعرض صفحة الـ HTML الخاصة بك
+    return render_template('vendors/login.html')
 
 @vendors_bp.route('/auth-gateway', methods=['POST'])
 def auth_gateway():
@@ -41,11 +47,11 @@ def register_complete():
             owner_email=email,
             owner_phone=full_phone,
             password_hash=generate_password_hash(data['password']),
-            trade_name="جديد" # قيمة افتراضية
+            trade_name="جديد" 
         )
         new_supplier.generate_codes()
         db.session.add(new_supplier)
-        db.session.flush() # للحصول على الـ ID فوراً
+        db.session.flush() 
         
         # 2. إنشاء الملف التجاري المتقدم بقيم افتراضية
         new_profile = SupplierProfile(
@@ -80,3 +86,9 @@ def verify():
         return jsonify({"status": "success", "redirect": "/vendors/dashboard"})
     
     return jsonify({"status": "error", "message": "الرمز غير صحيح أو انتهت صلاحيته"}), 400
+
+# مسار تجريبي للوحة التحكم
+@vendors_bp.route('/dashboard')
+@vendor_login_required
+def dashboard():
+    return "مرحباً بك في لوحة تحكم الموردين - محجوب أونلاين"
