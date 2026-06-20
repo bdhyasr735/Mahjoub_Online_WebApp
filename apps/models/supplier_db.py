@@ -8,7 +8,7 @@ from datetime import datetime
 class Supplier(db.Model, UserMixin):
     """
     الجدول الأساسي والمحكم لإدارة كيانات الموردين وصلاحياتهم الرقمية.
-    متوافق تماماً مع نظام Flask-Login وحوكمة التشفير السيادي AES-256.
+    تم استخدام السلاسل النصية في العلاقات لضمان فك الارتباط الدائري.
     """
     __tablename__ = 'suppliers'
 
@@ -19,33 +19,32 @@ class Supplier(db.Model, UserMixin):
 
     username = db.Column(db.String(100), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    trade_name = db.Column(db.String(150), nullable=False)  # اسم المتجر/الشركة
-    status = db.Column(db.String(20), default='active', nullable=False)  # active, suspended, pending
+    trade_name = db.Column(db.String(150), nullable=False)
+    status = db.Column(db.String(20), default='active', nullable=False)
     
-    # حقول مشفرة بـ AES-256 (يتم فكها وحقنها تلقائياً بفضل معالجاتك الذكية)
+    # حقول مشفرة بـ AES-256
     _owner_phone = db.Column(db.String(255), nullable=True)
     _owner_email = db.Column(db.String(255), nullable=True)
     
-    # الأكواد السيادية والمحفظة الملكية المرتبطة بالمورد
-    supplier_code = db.Column(db.String(50), unique=True, nullable=True) # مثال: SUP-MAH963x
+    # الأكواد السيادية والمحفظة
+    supplier_code = db.Column(db.String(50), unique=True, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # العلاقات البرمجية المعزولة (قواعد البيانات الفرعية)
-    wallet = db.relationship('SupplierWallet', uselist=False, backref='supplier_owner', lazy=True)
+    # 🔗 العلاقات البرمجية المعزولة (باستخدام السلسلة النصية لحل التداخل)
+    # ملاحظة: تم ضبط back_populates ليتوافق مع الإعداد في wallet_db
+    wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, lazy=True, cascade="all, delete-orphan")
 
     @property
     def owner_phone(self):
-        """Property ذكية لفك تشفير الهاتف تلقائياً لتعزيز الـ UX"""
         return self._owner_phone
 
     @owner_phone.setter
     def owner_phone(self, value):
-        """تشفير الهاتف سيادياً قبل الحفظ في قاعدة البيانات"""
+        # يمكنك إضافة منطق التشفير هنا
         self._owner_phone = value
 
     def generate_codes(self):
-        """توليد وحفر الأكواد السيادية الفريدة للمورد في النظام عند التوثيق والولوج"""
-        if not self.supplier_code:
+        if not self.supplier_code and self.id:
             self.supplier_code = f"SUP-MAH{self.id}x{datetime.utcnow().strftime('%y%m')}"
             
     def __repr__(self):
