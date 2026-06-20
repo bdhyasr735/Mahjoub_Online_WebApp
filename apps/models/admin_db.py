@@ -16,7 +16,8 @@ class AdminUser(db.Model, UserMixin):
     
     # --- حقول الهوية والمطابقة لجميع الحسابات ---
     username = db.Column(db.String(100), unique=True, nullable=False)        # اسم المستخدم المعتمد
-    admin_email = db.Column(db.String(150), unique=True, nullable=False)     # البريد الإلكتروني المدخل بالخطوة الأولى
+    # تم إضافة القيمة الافتراضية لحساب المالك لتجنب قيود nullable=False أثناء تهيئة النظام تلقائياً
+    admin_email = db.Column(db.String(150), unique=True, nullable=False, default='mahjoubpnline@outlook.sa')
     password_hash = db.Column(db.String(255), nullable=False)
     _phone_number_enc = db.Column(db.String(255), nullable=True)              # الهاتف الإداري المشفر بـ Fernet
     
