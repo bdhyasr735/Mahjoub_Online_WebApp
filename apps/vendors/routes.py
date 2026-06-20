@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/vendors/routes.py - المحرك الأساسي لمسارات بوابة الموردين
+# 📂 apps/vendors/routes.py - المحرك الأساسي لمسارات بوابة الموردين (نسخة نهائية)
 
 from flask import Blueprint, render_template, request, session, jsonify, redirect, url_for
 from apps.extensions import db
@@ -18,14 +18,21 @@ def login_page():
     """معالجة عملية تسجيل الدخول وتوليد/التحقق من رمز OTP"""
     if request.method == 'POST':
         data = request.get_json()
+        if not data:
+            return jsonify({"status": "error", "message": "بيانات فارغة"}), 400
+            
         email = data.get('email')
         phone = data.get('phone')
         otp = data.get('otp')
 
         # الحالة 1: طلب إرسال رمز التحقق
         if email and phone and not otp:
+            # التحقق من وجود المورد قبل إرسال الرمز (اختياري لزيادة الأمان)
+            supplier = Supplier.query.filter_by(_owner_email=email).first()
+            if not supplier:
+                return jsonify({"status": "error", "message": "البريد الإلكتروني غير مسجل"}), 404
+                
             raw_otp = OTPVerification.generate_otp(email)
-            # ملاحظة: قم بربط دالة إرسال الـ SMS/Email الفعلية هنا
             print(f"DEBUG: OTP Code for {email} is {raw_otp}") 
             return jsonify({"status": "pending", "message": "تم إرسال رمز التأكيد إلى بريدك"})
 
@@ -40,7 +47,7 @@ def login_page():
                     session['supplier_id'] = supplier.id
                     return jsonify({"status": "success", "redirect": url_for('vendors.dashboard')})
                 else:
-                    return jsonify({"status": "error", "message": "المورد غير مسجل في النظام"}), 404
+                    return jsonify({"status": "error", "message": "المورد غير موجود في قاعدة البيانات"}), 404
             else:
                 return jsonify({"status": "error", "message": "رمز التحقق غير صحيح أو منتهي"}), 400
         
@@ -58,8 +65,9 @@ def quick_login():
     if first_supplier:
         session['vendor_authenticated'] = True
         session['supplier_id'] = first_supplier.id
+        session['vendor_email'] = first_supplier._owner_email
         return jsonify({"status": "success", "redirect": url_for('vendors.dashboard')})
-    return jsonify({"status": "error", "message": "لا يوجد موردون مسجلون"}), 400
+    return jsonify({"status": "error", "message": "لا يوجد موردون مسجلون"}), 404
 
 # --------------------------------------------------------------------------
 # المسار: لوحة التحكم (محمية)
