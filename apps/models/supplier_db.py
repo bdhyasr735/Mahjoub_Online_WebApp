@@ -13,6 +13,10 @@ class Supplier(db.Model, UserMixin):
     __tablename__ = 'suppliers'
 
     id = db.Column(db.Integer, primary_key=True)
+    
+    # 🔗 الجسر السيادي: ربط المورد بحسابه في كيان نظام الهوية الموحد (admin_users)
+    admin_user_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), unique=True, nullable=True)
+
     username = db.Column(db.String(100), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     trade_name = db.Column(db.String(150), nullable=False)  # اسم المتجر/الشركة
@@ -27,13 +31,11 @@ class Supplier(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # العلاقات البرمجية المعزولة (قواعد البيانات الفرعية)
-    # ملاحظة: نستخدم backref لتجنب التداخل الدائري عند التشغيل
     wallet = db.relationship('SupplierWallet', uselist=False, backref='supplier_owner', lazy=True)
 
     @property
     def owner_phone(self):
         """Property ذكية لفك تشفير الهاتف تلقائياً لتعزيز الـ UX"""
-        # هنا كود فك التشفير الخاص بك بـ AES-256
         return self._owner_phone
 
     @owner_phone.setter
@@ -44,8 +46,7 @@ class Supplier(db.Model, UserMixin):
     def generate_codes(self):
         """توليد وحفر الأكواد السيادية الفريدة للمورد في النظام عند التوثيق والولوج"""
         if not self.supplier_code:
-            # توليد كود حوكمي مخصص يحمل طابع المنصة الاستراتيجي
-            self.supplier_code = f"SUP-MAH{self.id}x{datetime.now().strftime('%y%m')}"
+            self.supplier_code = f"SUP-MAH{self.id}x{datetime.utcnow().strftime('%y%m')}"
             
     def __repr__(self):
         return f"<Supplier [{self.supplier_code}] -> {self.trade_name}>"
