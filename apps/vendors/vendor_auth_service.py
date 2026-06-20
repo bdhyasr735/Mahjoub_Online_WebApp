@@ -1,4 +1,18 @@
-from flask import current_app # لاستيراد الإعدادات من Flask
+# coding: utf-8
+# 📂 apps/vendors/vendor_auth_service.py
+
+import requests
+from functools import wraps
+from flask import session, redirect, url_for, current_app
+
+def vendor_login_required(f):
+    """ديكوريتور (Decorator) لحماية المسارات التي تتطلب تسجيل دخول المورد"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'vendor_authenticated' not in session:
+            return redirect(url_for('vendors.login_page'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def send_whatsapp_otp(phone, otp):
     """إرسال الرمز عبر الواتساب باستخدام الإعدادات المركزية"""
@@ -22,7 +36,7 @@ def send_whatsapp_otp(phone, otp):
         "to": phone,
         "type": "template",
         "template": {
-            "name": "otp_verification_template", # تأكد أن هذا الاسم يطابق القالب المعتمد في Meta
+            "name": "otp_verification_template", 
             "language": {"code": "ar"},
             "components": [{"type": "body", "parameters": [{"type": "text", "text": otp}]}]
         }
@@ -30,6 +44,7 @@ def send_whatsapp_otp(phone, otp):
     
     try:
         response = requests.post(api_url, json=payload, headers=headers)
+        # التحقق من نجاح الطلب
         return response.status_code == 200
     except Exception as e:
         print(f"Error in WhatsApp API: {e}")
