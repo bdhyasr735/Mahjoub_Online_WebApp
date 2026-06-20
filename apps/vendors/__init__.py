@@ -1,2 +1,2 @@
-from apps.vendors.routes import vendors_bp
-app.register_blueprint(vendors_bp, url_prefix='/vendors')
+# 📂 apps/vendors/__init__.py
+# اترك هذا الملف فارغاً تماماً لضمان عدم وجود أي كود تنفيذي يسبب خطأ
