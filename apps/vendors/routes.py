@@ -5,9 +5,10 @@ from flask import Blueprint, render_template, request, session, jsonify, redirec
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.otp_db import OTPVerification
-from .vendor_auth_service import vendor_login_required
+from apps.vendors.vendor_auth_service import vendor_login_required
 
 # تعريف الـ Blueprint الخاص بالموردين
+# اسم الـ Blueprint هنا يجب أن يطابق ما يتم استيراده في registry.py
 vendors_bp = Blueprint('vendors', __name__, template_folder='templates')
 
 # --------------------------------------------------------------------------
@@ -33,8 +34,7 @@ def login_page():
             if not supplier:
                 return jsonify({"status": "error", "message": "البريد الإلكتروني غير مسجل"}), 404
             
-            # التأكد من مطابقة رقم الهاتف (افترضنا أن اسم الحقل هو phone_number)
-            # يرجى التأكد من مطابقة اسم الحقل في model الخاص بك
+            # التأكد من مطابقة رقم الهاتف
             if supplier.phone_number != phone:
                 return jsonify({"status": "error", "message": "رقم الهاتف غير مطابق لسجلاتنا"}), 400
             
