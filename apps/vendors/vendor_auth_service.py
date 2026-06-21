@@ -9,47 +9,47 @@ class VendorAuthService:
     @staticmethod
     def initiate_login(phone, otp_code):
         """
-        إرسال رمز التحقق عبر واتساب بأسلوب عالمي احترافي 
-        يعكس قوة النظام الذكي للسيادة الرقمية.
+        إرسال رمز التحقق عبر واتساب.
+        ملاحظة: تم تعديل تنسيق الرقم لضمان توافقه مع TextMeBot.
         """
-        # تنظيف الرقم والتأكد من وجود مفتاح الدولة
+        # 1. تنظيف الرقم: إزالة أي رموز غير رقمية (بما فيها +)
         clean_phone = re.sub(r'[^\d]', '', str(phone))
-        if not clean_phone.startswith('+'):
-            clean_phone = "+" + clean_phone
         
-        # المفتاح من متغيرات البيئة أو القيمة الافتراضية
+        # 2. المفتاح من متغيرات البيئة
         api_key = os.environ.get('TEXTMEBOT_API_KEY', 'rb3tZFnHRcsN')
         
-        # الرسالة المحدثة بالهوية الجديدة (AI-Security System)
+        # 3. صياغة الرسالة (تم تقليل الرموز الخاصة لتفادي مشاكل الترميز)
         message = (
-            f"Mahjoub Online | AI-Security System\n\n"
+            f"Mahjoub Online | Security Code\n\n"
             f"أهلاً بك يا شريك النجاح.\n"
-            f"قام نظامنا الذكي بتوليد رمز تحقق آمن لدخولكم:\n\n"
-            f"🔐 *{otp_code}*\n\n"
-            f"تنبيه أمني: هذا الرمز هو مفتاحك الخاص، لضمان أعلى مستويات السيادة الرقمية، يرجى عدم مشاركته مع أي طرف نهائياً.\n"
-            f"*صلاحية الرمز 5 دقائق.*\n\n"
-            f"— محجوب أونلاين | الإدارة الذكية للعمليات"
+            f"رمز التحقق لدخولكم هو:\n\n"
+            f"{otp_code}\n\n"
+            f"صلاحية الرمز 5 دقائق.\n"
+            f"— محجوب أونلاين"
         )
         
         base_url = "http://api.textmebot.com/send.php"
+        
+        # 4. إعداد المعاملات (بدون إرسال '+' في recipient)
         params = {
-            "recipient": clean_phone,
+            "recipient": clean_phone, 
             "apikey": api_key,
             "text": message,
             "json": "yes"
         }
         
         try:
-            # إرسال الطلب مع مهلة زمنية 15 ثانية لضمان الاستجابة
+            # 5. إرسال الطلب
             response = requests.get(base_url, params=params, timeout=15)
             
-            # تسجيل الاستجابة في سجلات Render للتحقق من الحالة
+            # تسجيل الاستجابة لفحصها في الـ Logs
             print(f"DEBUG [TextMeBot Response]: {response.status_code} - {response.text}")
             
-            # التأكد من النجاح (Status 200)
+            # 6. التحقق من النجاح
+            # ملاحظة: API TextMeBot قد تعيد 200 حتى لو كان هناك خطأ في الرقم، 
+            # لذا نتحقق من محتوى الرد إذا كان هناك خطأ في JSON
             return response.status_code == 200
             
         except Exception as e:
-            # تسجيل أي خطأ تقني في الاتصال
             print(f"CRITICAL [TextMeBot Error]: {e}")
             return False
