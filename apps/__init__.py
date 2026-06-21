@@ -32,14 +32,24 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = 'auth_portal.login'
 
+    # دالة التحقق الشاملة (تدعم الإدارة والموردين)
     @login_manager.user_loader
     def load_user(user_id):
         from apps.models.admin_db import AdminUser
-        return AdminUser.query.get(int(user_id))
+        from apps.models.supplier_db import Supplier
+        
+        # 1. محاولة العثور عليه كمدير
+        user = AdminUser.query.get(int(user_id))
+        if user: return user
+            
+        # 2. محاولة العثور عليه كمورد
+        supplier = Supplier.query.get(int(user_id))
+        if supplier: return supplier
+            
+        return None
 
     # 4. تسجيل المسارات (Blueprints)
-    
-    # أ) التسجيل اليدوي (للأجزاء الأساسية لضمان الاستقرار التام)
+    # أ) التسجيل اليدوي (للأجزاء الأساسية)
     from apps.auth_portal.routes import auth_portal
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
@@ -54,10 +64,8 @@ def create_app():
     app.register_blueprint(orders_bp, url_prefix='/orders')
     app.register_blueprint(webhooks_bp, url_prefix='/api')
 
-    # ب) المحرك التلقائي (لاكتشاف التطبيقات الإضافية الجديدة مثل 'vendors')
-    # سيقوم بمسح أي مجلد جديد يحتوي على ملف registry.py
+    # ب) المحرك التلقائي (اكتشاف الإضافات مثل 'vendors')
     apps_dir = os.path.dirname(__file__)
-    # المجلدات التي قمنا بتسجيلها يدوياً لا نحتاج فحصها
     existing_apps = ['auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders', 'api', 'models', 'static', 'templates']
     
     for folder in os.listdir(apps_dir):
@@ -79,11 +87,10 @@ def create_app():
 
     # 5. إعداد البيانات التأسيسية
     with app.app_context():
-        from apps.models import AdminUser, ProcessedOrder, OrderItem, SyncLog, ExchangeRate, FinancialLog, Supplier, AdminVault, VaultTransaction, SupplierWallet, WalletTransaction
-        
+        from apps.models import AdminUser, Supplier
         try:
             db.create_all() 
-            print("✅ [System] تم الاتصال بقاعدة البيانات وإنشاء الجداول بنجاح.")
+            print("✅ [System] تم الاتصال بقاعدة البيانات.")
             
             owner_username = 'علي محجوب'
             if not AdminUser.query.filter_by(username=owner_username).first():
@@ -92,7 +99,6 @@ def create_app():
                 db.session.add(admin)
                 db.session.commit()
                 print(f"✅ [System] تم تأسيس حساب المالك '{owner_username}' بنجاح.")
-            
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Error] فشل في تهيئة قاعدة البيانات: {e}")
