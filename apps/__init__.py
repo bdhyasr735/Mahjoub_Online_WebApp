@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي للنظام (هجين: مستقر وتلقائي)
+# 📂 apps/__init__.py - المصنع السيادي للنظام
 
 import os
 import importlib
@@ -38,23 +38,21 @@ def create_app():
         return AdminUser.query.get(int(user_id))
 
     # 4. تسجيل المسارات (Blueprints)
-    
-    # أ) التسجيل اليدوي (للأجزاء الأساسية لضمان الاستقرار التام)
     from apps.auth_portal.routes import auth_portal
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
     from apps.vault.routes import vault_bp
     from apps.orders.routes import orders_bp
-    from apps.api.webhooks import webhooks_bp # تفعيل الـ API
+    from apps.api.webhooks import webhooks_bp 
 
     app.register_blueprint(auth_portal, url_prefix='/auth')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
     app.register_blueprint(vault_bp, url_prefix='/vault')
     app.register_blueprint(orders_bp, url_prefix='/orders')
-    app.register_blueprint(webhooks_bp, url_prefix='/api') # مسار المحرك السيادي
+    app.register_blueprint(webhooks_bp, url_prefix='/api')
 
-    # ب) المحرك التلقائي
+    # 5. المحرك التلقائي
     apps_dir = os.path.dirname(__file__)
     existing_apps = ['auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders', 'api', 'models', 'static', 'templates']
     
@@ -67,30 +65,24 @@ def create_app():
                     module = importlib.import_module(f'apps.{folder}.registry')
                     if hasattr(module, 'register_app'):
                         module.register_app(app)
-                        print(f"✅ [System] تم تحميل التطبيق الإضافي تلقائياً: {folder}")
                 except Exception as e:
-                    print(f"⚠️ [System] فشل تحميل التطبيق التلقائي {folder}: {e}")
+                    print(f"⚠️ [System] خطأ أثناء تحميل {folder}: {e}")
 
     @app.route('/')
     def index():
         return redirect(url_for('auth_portal.login'))
 
-    # 5. إعداد البيانات التأسيسية
+    # 6. إعداد البيانات التأسيسية
     with app.app_context():
-        from apps.models import AdminUser # تم اختصار الاستيرادات للتنظيف
-        
+        from apps.models import AdminUser
         try:
             db.create_all() 
-            print("✅ [System] تم الاتصال بقاعدة البيانات وإنشاء الجداول بنجاح.")
-            
             owner_username = 'علي محجوب'
             if not AdminUser.query.filter_by(username=owner_username).first():
                 admin = AdminUser(username=owner_username, role='Owner', phone_number='0000000000')
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
-                print(f"✅ [System] تم تأسيس حساب المالك '{owner_username}' بنجاح.")
-            
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Error] فشل في تهيئة قاعدة البيانات: {e}")
