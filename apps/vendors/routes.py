@@ -8,6 +8,7 @@ from apps.vendors.vendor_auth_service import VendorAuthService
 from apps.models.otp_db import OTPVerification
 from apps.models.supplier_db import Supplier
 from apps.models.marketer_db import Marketer
+import uuid # لاستخدامها في توليد اسم مستخدم فريد
 
 vendors_bp = Blueprint('vendors', __name__, template_folder='templates')
 
@@ -26,10 +27,8 @@ def login():
             return jsonify({"status": "error", "message": "بيانات غير صالحة"}), 400
 
         login_type = data.get('type')
-        # توحيد معالجة الرقم في كلا الحالتين (طلب الرمز أو التحقق)
         raw_phone = data.get('phone', '')
-        phone = "".join(filter(str.isdigit, raw_phone)) # الاحتفاظ بالأرقام فقط
-        
+        phone = "".join(filter(str.isdigit, raw_phone))
         otp = data.get('otp')
         username = data.get('username')
         password = data.get('password')
@@ -43,37 +42,41 @@ def login():
             return jsonify({"status": "error", "message": "بيانات الدخول غير صحيحة"}), 401
 
         # --- 2. دخول الموردين ---
-        # أ) طلب إرسال رمز التحقق
         if phone and not otp:
             new_otp = OTPVerification.generate_otp(phone)
             if new_otp and VendorAuthService.initiate_login(phone, new_otp):
                 return jsonify({"status": "success", "message": "تم إرسال رمز التحقق"})
             return jsonify({"status": "error", "message": "فشل إرسال الرمز"}), 500
 
-        # ب) التحقق من الرمز
         if phone and otp:
-            # طباعة للـ LOGS لاكتشاف الخطأ (افتح Logs في Render لرؤيتها)
-            print(f"DEBUG: Verifying for Phone: {phone}, Received OTP: {otp}")
-            
             if OTPVerification.verify_otp(phone, otp):
                 supplier = Supplier.query.filter_by(_owner_phone=phone).first()
+                
+                # هنا الحل لمنع الخطأ الداخلي (500)
                 if not supplier:
-                    supplier = Supplier(_owner_phone=phone)
+                    # ننشئ المورد ببيانات افتراضية لتلبية شروط قاعدة البيانات
+                    supplier = Supplier(
+                        _owner_phone=phone,
+                        username=f"vendor_{uuid.uuid4().hex[:8]}", # اسم مستخدم فريد
+                        password_hash="temp_pass", # قيمة افتراضية
+                        trade_name="جديد" # قيمة افتراضية
+                    )
                     db.session.add(supplier)
                     db.session.commit()
                 
                 login_user(supplier)
+                # التحقق من is_setup_complete بذكاء دون التسبب في خطأ
                 is_ready = getattr(supplier, 'is_setup_complete', False)
                 return jsonify({"status": "success", "redirect": "/supplier/dashboard" if is_ready else "/vendors/setup"})
             
-            return jsonify({"status": "error", "message": "رمز التحقق خاطئ أو منتهي الصلاحية"}), 400
+            return jsonify({"status": "error", "message": "رمز التحقق خاطئ"}), 400
 
         return jsonify({"status": "error", "message": "بيانات غير مكتملة"}), 400
 
     except Exception as e:
         db.session.rollback()
-        print(f"CRITICAL ERROR: {str(e)}")
-        return jsonify({"status": "error", "message": "خطأ داخلي"}), 500
+        print(f"CRITICAL ERROR: {str(e)}") # هذا السطر سيخبرك بالسبب الحقيقي في الـ Logs
+        return jsonify({"status": "error", "message": "حدث خطأ أثناء الاتصال بقاعدة البيانات"}), 500
 
 @vendors_bp.route('/dashboard')
 @login_required
