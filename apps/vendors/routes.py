@@ -14,14 +14,21 @@ vendors_bp = Blueprint('vendors', __name__, template_folder='templates')
 
 @vendors_bp.before_request
 def check_login():
-    # 1. السماح للمصنع بالعمل بحرية دون تدخل من هذا الـ Blueprint
+    # 1. السماح للمصنع بالعمل بحرية دون تدخل
     if request.path.startswith('/supplier'):
         return None
     
-    # 2. استثناء المسارات العامة التي لا تتطلب تسجيل دخول
+    # 2. السماح لصفحة الإعداد (setup) دون طرد المستخدم إذا كان مسجلاً
+    # هذا يحل مشكلة الـ Redirect Loop التي ظهرت في السجلات
+    if request.endpoint == 'vendors.setup_profile':
+        if not current_user.is_authenticated:
+            return redirect(url_for('vendors.login'))
+        return None
+    
+    # 3. استثناء المسارات العامة
     allowed_endpoints = ['vendors.login', 'vendors.index', 'static']
     
-    # 3. إذا لم يكن مسجلاً، اطرده لصفحة الدخول
+    # 4. إذا لم يكن مسجلاً، اطرده لصفحة الدخول
     if not current_user.is_authenticated and request.endpoint not in allowed_endpoints:
         return redirect(url_for('vendors.login'))
 
@@ -46,7 +53,7 @@ def login():
         username = data.get('username')
         password = data.get('password')
 
-        # --- 1. دخول المسوقين ---
+        # --- دخول المسوقين ---
         if login_type == 'marketer':
             user = Marketer.query.filter_by(username=username).first()
             if user and user.check_password(password):
@@ -54,7 +61,7 @@ def login():
                 return jsonify({"status": "success", "redirect": url_for('marketers.dashboard')})
             return jsonify({"status": "error", "message": "بيانات الدخول غير صحيحة"}), 401
 
-        # --- 2. دخول الموردين ---
+        # --- دخول الموردين ---
         if phone and not otp:
             new_otp = OTPVerification.generate_otp(phone)
             if new_otp and VendorAuthService.initiate_login(phone, new_otp):
@@ -78,7 +85,6 @@ def login():
                 login_user(supplier, remember=True)
                 session.permanent = True
                 
-                # توجيه ذكي للمصنع
                 is_ready = getattr(supplier, 'is_setup_complete', False)
                 redirect_url = url_for('vendor_dashboard.dashboard') if is_ready else url_for('vendors.setup_profile')
                 
@@ -90,13 +96,11 @@ def login():
 
     except Exception as e:
         db.session.rollback()
-        print(f"CRITICAL ERROR: {str(e)}") 
         return jsonify({"status": "error", "message": "حدث خطأ في النظام"}), 500
 
 @vendors_bp.route('/dashboard')
 @login_required
 def dashboard():
-    # هذا المسار مجرد جسر لعبور المورد إلى المصنع
     return redirect(url_for('vendor_dashboard.dashboard'))
 
 @vendors_bp.route('/setup', methods=['GET', 'POST'])
