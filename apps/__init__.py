@@ -45,19 +45,17 @@ def create_app():
     from apps.wallet.routes import wallet_app
     from apps.vault.routes import vault_bp
     from apps.orders.routes import orders_bp
-    from apps.api.webhooks import webhooks_bp
+    from apps.api.webhooks import webhooks_bp # تفعيل الـ API
 
     app.register_blueprint(auth_portal, url_prefix='/auth')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     app.register_blueprint(wallet_app, url_prefix='/wallet')
     app.register_blueprint(vault_bp, url_prefix='/vault')
     app.register_blueprint(orders_bp, url_prefix='/orders')
-    app.register_blueprint(webhooks_bp, url_prefix='/api')
+    app.register_blueprint(webhooks_bp, url_prefix='/api') # مسار المحرك السيادي
 
-    # ب) المحرك التلقائي (لاكتشاف التطبيقات الإضافية الجديدة مثل 'vendors')
-    # سيقوم بمسح أي مجلد جديد يحتوي على ملف registry.py
+    # ب) المحرك التلقائي
     apps_dir = os.path.dirname(__file__)
-    # المجلدات التي قمنا بتسجيلها يدوياً لا نحتاج فحصها
     existing_apps = ['auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders', 'api', 'models', 'static', 'templates']
     
     for folder in os.listdir(apps_dir):
@@ -79,7 +77,7 @@ def create_app():
 
     # 5. إعداد البيانات التأسيسية
     with app.app_context():
-        from apps.models import AdminUser, ProcessedOrder, OrderItem, SyncLog, ExchangeRate, FinancialLog, Supplier, AdminVault, VaultTransaction, SupplierWallet, WalletTransaction
+        from apps.models import AdminUser # تم اختصار الاستيرادات للتنظيف
         
         try:
             db.create_all() 
