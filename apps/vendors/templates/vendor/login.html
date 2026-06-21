@@ -7,16 +7,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; }
-        body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; }
-        .wrapper { display: flex; width: 90%; max-width: 1000px; margin: 50px auto; background: var(--card-bg); border: 1px solid #222; border-radius: 20px; overflow: hidden; }
+        body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .wrapper { display: flex; width: 90%; max-width: 900px; background: var(--card-bg); border: 1px solid #222; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .side { flex: 1; padding: 40px; }
         .login-side { border-left: 1px solid #222; }
         .marketing-side { background: #0a0614; display: flex; flex-direction: column; justify-content: center; padding: 40px; }
-        input { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #333; border-radius: 10px; color: #fff; box-sizing: border-box; }
-        .btn-gold { width: 100%; padding: 15px; background: var(--gold); border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        input, select { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #333; border-radius: 10px; color: #fff; box-sizing: border-box; }
+        .btn-gold { width: 100%; padding: 15px; background: var(--gold); border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; color: #000; }
         .btn-gold:hover { opacity: 0.9; }
+        .resend-link { color: #888; font-size: 0.85rem; cursor: pointer; margin-top: 15px; display: block; text-decoration: underline; }
         .badge-row { display: flex; gap: 10px; margin-bottom: 20px; }
-        .badge { flex: 1; padding: 10px; background: #160d26; border: 1px solid #333; border-radius: 10px; text-align: center; font-size: 0.75rem; }
+        .badge { flex: 1; padding: 10px; background: #160d26; border: 1px solid #333; border-radius: 10px; text-align: center; font-size: 0.7rem; }
     </style>
 </head>
 <body>
@@ -29,26 +30,25 @@
             <div class="badge">المحفظة السيادية<br>MAH-WEL963</div>
         </div>
         
-        <div style="display: flex; gap: 10px; margin: 10px 0;">
-            <select id="country-code" style="width: 35%; background: #000; border: 1px solid #333; border-radius: 10px; color: #fff; padding: 10px; text-align: center;">
+        <div style="display: flex; gap: 10px;">
+            <select id="country-code" style="width: 30%;">
                 <option value="+966">🇸🇦 +966</option>
-                <option value="+967">🇾🇪 +967</option>
+                <option value="+967" selected>🇾🇪 +967</option>
                 <option value="+971">🇦🇪 +971</option>
-                <option value="+20">🇪🇬 +20</option>
             </select>
-            <input type="tel" id="phone" placeholder="رقم الهاتف الإداري" style="flex: 1; margin: 0;">
+            <input type="tel" id="phone" placeholder="رقم الهاتف الإداري">
         </div>
 
-        <button class="btn-gold" onclick="sendOtp()">إرسال رمز التأكيد <i class="fas fa-paper-plane"></i></button>
+        <button class="btn-gold" id="action-btn" onclick="sendOtp()">إرسال رمز التأكيد <i class="fas fa-paper-plane"></i></button>
         
         <div style="margin-top: 20px; text-align: center; color: var(--gold); cursor: pointer;" onclick="quickLogin()">
-            <i class="fas fa-bolt"></i> دخول سريع عابر للأنظمة
+            <i class="fas fa-bolt"></i> دخول سريع
         </div>
     </div>
 
     <div class="side marketing-side">
-        <h1 style="font-size: 2rem;">سوقك الذكي بأعلى المعايير العالمية</h1>
-        <p style="color: #aaa;">اللامركزية في الحوكمة تبدأ من هنا، حيث يربط المورد بضاعته بالمتاجر في منصة واحدة.</p>
+        <h1 style="font-size: 1.8rem;">سوقك الذكي بأعلى المعايير</h1>
+        <p style="color: #aaa;">نظام إدارة الموردين المتكامل، دقة في الحوكمة وسرعة في الإنجاز.</p>
     </div>
 </div>
 
@@ -61,28 +61,29 @@
         currentPhone = countryCode + phoneNum;
         
         const res = await fetch('/vendors/login', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
+            method: 'POST', headers: {'Content-Type': 'application/json'}, 
             body: JSON.stringify({ phone: currentPhone }) 
         });
         
-        if (res.ok) {
+        const result = await res.json();
+        
+        if (result.status === 'success' || result.status === 'warning') {
             document.getElementById('auth-area').innerHTML = `
-                <h3>تأكيد الدخول</h3>
-                <p style="font-size: 0.9rem; color: #888;">تم إرسال الرمز إلى: ${currentPhone}</p>
-                <input type="text" id="otp" placeholder="أدخل رمز الـ OTP">
-                <button class="btn-gold" onclick="verify()">دخول آمن</button>
+                <h3>التحقق من الهوية</h3>
+                <p style="font-size: 0.85rem; color: #888;">تم إرسال رمز التحقق إلى: <strong style="color:#fff;">${currentPhone}</strong></p>
+                <input type="text" id="otp" placeholder="أدخل الرمز المكون من 6 أرقام" maxlength="6">
+                <button class="btn-gold" onclick="verify()">إتمام الدخول الآمن</button>
+                <span class="resend-link" id="resend-btn" onclick="sendOtp()">إعادة إرسال الرمز؟</span>
             `;
         } else {
-            alert("خطأ في الاتصال بالسيرفر، تأكد من البيانات.");
+            alert(result.message);
         }
     }
 
     async function verify() {
         const otp = document.getElementById('otp').value;
         const res = await fetch('/vendors/login', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
+            method: 'POST', headers: {'Content-Type': 'application/json'}, 
             body: JSON.stringify({ phone: currentPhone, otp: otp }) 
         });
         
@@ -90,7 +91,7 @@
         if (result.status === 'success') {
             window.location.href = result.redirect;
         } else {
-            alert(result.message || "رمز التحقق غير صحيح");
+            alert(result.message);
         }
     }
 
@@ -98,7 +99,6 @@
         const res = await fetch('/vendors/quick-login', { method: 'POST' });
         const result = await res.json();
         if (result.status === 'success') window.location.href = result.redirect;
-        else alert("خطأ في الدخول السريع");
     }
 </script>
 </body>
