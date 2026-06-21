@@ -1,8 +1,8 @@
 # coding: utf-8
 # 📂 apps/vendors/routes.py
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
-from flask_login import login_user, login_required, logout_user
+from flask import Blueprint, render_template, request, jsonify
+from flask_login import login_user, login_required
 from apps.vendors.vendor_auth_service import VendorAuthService
 from apps.models.otp_db import OTPVerification
 from apps.models.supplier_db import Supplier
@@ -15,7 +15,6 @@ def login():
         return render_template('vendor/login.html')
 
     try:
-        # استقبال البيانات من المتصفح
         data = request.get_json()
         if not data:
             return jsonify({"status": "error", "message": "لم يتم استلام بيانات"}), 400
@@ -23,30 +22,24 @@ def login():
         phone = data.get('phone')
         otp = data.get('otp')
 
-        # مرحلة 1: طلب الرمز (إرسال OTP)
+        # مرحلة 1: طلب الرمز
         if phone and not otp:
-            if VendorAuthService.initiate_login(phone):
+            # 1. توليد رمز جديد وتخزينه في قاعدة البيانات
+            new_otp = OTPVerification.generate_otp(phone)
+            
+            # 2. إرسال الرمز عبر textmebot باستخدام الخدمة
+            if VendorAuthService.initiate_login(phone, new_otp):
                 return jsonify({"status": "success", "message": "تم إرسال الرمز إلى واتساب"})
             else:
-                # تسجيل الخطأ في الـ Logs لتتبع المشكلة دون إيقاف النظام
-                print(f"DEBUG: Service busy or disconnected for {phone}")
-                return jsonify({
-                    "status": "warning", 
-                    "message": "خدمة الرسائل غير متاحة حالياً، يرجى المحاولة بعد قليل أو التأكد من حالة اتصال واتساب."
-                }), 200
+                return jsonify({"status": "warning", "message": "خدمة الرسائل غير متاحة حالياً"}), 200
 
-        # مرحلة 2: التحقق من الرمز (إتمام الدخول)
+        # مرحلة 2: التحقق من الرمز
         if phone and otp:
-            # التحقق من صحة الرمز من قاعدة البيانات
             if OTPVerification.verify_otp(phone, otp):
-                supplier = Supplier.query.filter_by(_owner_phone=phone).first() 
-                
-                # إذا كان المورد مسجلاً مسبقاً
+                supplier = Supplier.query.filter_by(_owner_phone=phone).first()
                 if supplier:
                     login_user(supplier)
                     return jsonify({"status": "success", "redirect": "/vendors/dashboard"})
-                
-                # إذا كان مورداً جديداً (يتم توجيهه لإكمال بياناته)
                 return jsonify({"status": "success", "redirect": "/vendors/setup"})
             
             return jsonify({"status": "error", "message": "رمز التحقق غير صحيح أو منتهي"}), 400
@@ -54,21 +47,5 @@ def login():
         return jsonify({"status": "error", "message": "بيانات غير مكتملة"}), 400
 
     except Exception as e:
-        # تسجيل الأخطاء الحرجة في سجلات ريندر
         print(f"CRITICAL SYSTEM ERROR in /login: {str(e)}")
-        return jsonify({"status": "error", "message": "حدث خطأ غير متوقع في النظام"}), 500
-
-@vendors_bp.route('/quick-login', methods=['POST'])
-def quick_login():
-    """دخول سريع للمطورين (لأغراض التطوير)"""
-    return jsonify({"status": "success", "redirect": "/vendors/dashboard"})
-
-@vendors_bp.route('/dashboard')
-@login_required
-def dashboard():
-    return "مرحباً بك في لوحة تحكم المورد"
-
-@vendors_bp.route('/setup', methods=['GET', 'POST'])
-@login_required
-def setup_profile():
-    return "صفحة إكمال بيانات المورد"
+        return jsonify({"status": "error", "message": "حدث خطأ غير متوقع"}), 500
