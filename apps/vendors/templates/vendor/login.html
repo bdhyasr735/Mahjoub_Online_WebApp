@@ -2,127 +2,103 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بوابة الشركاء | محجوب أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; --text: #ffffff; }
-        body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-        .wrapper { width: 100%; max-width: 500px; background: var(--card-bg); border-radius: 24px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 1px solid #222; text-align: center; }
-        h3 { color: var(--gold); font-size: 1.8rem; margin-bottom: 20px; }
-        input, select { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #333; border-radius: 12px; color: #fff; box-sizing: border-box; transition: 0.3s; }
-        .btn-gold { width: 100%; padding: 15px; background: var(--gold); border: none; border-radius: 12px; color: #000; font-weight: 900; cursor: pointer; margin-top: 15px; transition: 0.3s; }
-        .btn-gold:disabled { background: #555; cursor: not-allowed; }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; }
+        body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; }
+        .wrapper { display: flex; width: 90%; max-width: 1000px; margin: 50px auto; background: var(--card-bg); border: 1px solid #222; border-radius: 20px; overflow: hidden; }
+        .side { flex: 1; padding: 40px; }
+        .login-side { border-left: 1px solid #222; }
+        .marketing-side { background: #0a0614; display: flex; flex-direction: column; justify-content: center; padding: 40px; }
+        input { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #333; border-radius: 10px; color: #fff; box-sizing: border-box; }
+        .btn-gold { width: 100%; padding: 15px; background: var(--gold); border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-gold:hover { opacity: 0.9; }
+        .badge-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .badge { flex: 1; padding: 10px; background: #160d26; border: 1px solid #333; border-radius: 10px; text-align: center; font-size: 0.75rem; }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
-    <div id="auth-area" class="fade-in">
-        <h3 id="form-title">ابدأ رحلة الشراكة</h3>
-        <div id="auth-fields">
-            <input type="email" id="email" placeholder="البريد الإلكتروني الرسمي" value="{{ pending_email if pending_email else '' }}" required>
-            <div style="display: flex; gap: 10px;">
-                <select id="country-code" style="width: 30%;">
-                    <option value="+966">🇸🇦 +966</option>
-                    <option value="+967">🇾🇪 +967</option>
-                </select>
-                <input type="tel" id="phone" placeholder="رقم الهاتف" style="width: 70%;">
-            </div>
-            <button class="btn-gold" onclick="authGateway()">التالي</button>
+    <div class="side login-side" id="auth-area">
+        <h3>بوابة الشركاء الكرام</h3>
+        <div class="badge-row">
+            <div class="badge">معرف النظام<br>MAH-SUP963</div>
+            <div class="badge">المحفظة السيادية<br>MAH-WEL963</div>
         </div>
+        
+        <div style="display: flex; gap: 10px; margin: 10px 0;">
+            <select id="country-code" style="width: 35%; background: #000; border: 1px solid #333; border-radius: 10px; color: #fff; padding: 10px; text-align: center;">
+                <option value="+966">🇸🇦 +966</option>
+                <option value="+967">🇾🇪 +967</option>
+                <option value="+971">🇦🇪 +971</option>
+                <option value="+20">🇪🇬 +20</option>
+            </select>
+            <input type="tel" id="phone" placeholder="رقم الهاتف الإداري" style="flex: 1; margin: 0;">
+        </div>
+
+        <button class="btn-gold" onclick="sendOtp()">إرسال رمز التأكيد <i class="fas fa-paper-plane"></i></button>
+        
+        <div style="margin-top: 20px; text-align: center; color: var(--gold); cursor: pointer;" onclick="quickLogin()">
+            <i class="fas fa-bolt"></i> دخول سريع عابر للأنظمة
+        </div>
+    </div>
+
+    <div class="side marketing-side">
+        <h1 style="font-size: 2rem;">سوقك الذكي بأعلى المعايير العالمية</h1>
+        <p style="color: #aaa;">اللامركزية في الحوكمة تبدأ من هنا، حيث يربط المورد بضاعته بالمتاجر في منصة واحدة.</p>
     </div>
 </div>
 
 <script>
-    let userData = {
-        email: "{{ pending_email if pending_email else '' }}",
-        phone: "",
-        country_code: "+966"
-    };
+    let currentPhone = "";
 
-    window.onload = function() {
-        if (userData.email !== "") {
-            showOtpScreen();
-        }
-    };
-
-    function startCountdown() {
-        const btn = document.getElementById('resend-btn');
-        let counter = 60;
-        btn.disabled = true;
+    async function sendOtp() {
+        const countryCode = document.getElementById('country-code').value;
+        const phoneNum = document.getElementById('phone').value;
+        currentPhone = countryCode + phoneNum;
         
-        const interval = setInterval(() => {
-            counter--;
-            btn.innerText = `إعادة إرسال الرمز (${counter})`;
-            if (counter <= 0) {
-                clearInterval(interval);
-                btn.disabled = false;
-                btn.innerText = "إعادة إرسال الرمز؟";
-            }
-        }, 1000);
-    }
-
-    function updateUI(title, html) {
-        const area = document.getElementById('auth-area');
-        area.classList.remove('fade-in');
-        void area.offsetWidth;
-        area.classList.add('fade-in');
-        document.getElementById('form-title').innerText = title;
-        document.getElementById('auth-fields').innerHTML = html;
-    }
-
-    async function authGateway() {
-        userData.email = document.getElementById('email').value;
-        userData.phone = document.getElementById('phone')?.value || "";
-        userData.country_code = document.getElementById('country-code')?.value || "+966";
-
-        if (!userData.email || !userData.phone) return alert("يرجى تعبئة كافة الحقول");
-
-        const res = await fetch('/vendors/auth-gateway', { 
+        const res = await fetch('/vendors/login', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify(userData)
+            body: JSON.stringify({ phone: currentPhone }) 
         });
         
         if (res.ok) {
-            showOtpScreen();
+            document.getElementById('auth-area').innerHTML = `
+                <h3>تأكيد الدخول</h3>
+                <p style="font-size: 0.9rem; color: #888;">تم إرسال الرمز إلى: ${currentPhone}</p>
+                <input type="text" id="otp" placeholder="أدخل رمز الـ OTP">
+                <button class="btn-gold" onclick="verify()">دخول آمن</button>
+            `;
         } else {
-            alert("حدث خطأ أثناء الإرسال");
+            alert("خطأ في الاتصال بالسيرفر، تأكد من البيانات.");
         }
     }
 
-    function showOtpScreen() {
-        updateUI("التحقق من الهوية", `
-            <p style="opacity: 0.8;">أدخل رمز التحقق (6 أرقام) المرسل لواتساب</p>
-            <input type="text" id="otp-code" placeholder="------" maxlength="6" style="text-align:center; font-size:1.5rem; letter-spacing: 10px;">
-            <button class="btn-gold" onclick="verifyOTP()">تحقق الآن</button>
-            <button id="resend-btn" class="btn-gold" style="background:transparent; border:1px solid var(--gold); color:var(--gold); margin-top:10px;" onclick="resendOtp()">إعادة إرسال الرمز؟</button>
-        `);
-        startCountdown();
-    }
-
-    async function verifyOTP() {
-        const otp = document.getElementById('otp-code').value;
-        const res = await fetch('/vendors/verify-otp', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ email: userData.email, otp: otp })
+    async function verify() {
+        const otp = document.getElementById('otp').value;
+        const res = await fetch('/vendors/login', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ phone: currentPhone, otp: otp }) 
         });
-        const data = await res.json();
         
-        if (data.status === 'success') {
-            window.location.href = data.redirect;
+        const result = await res.json();
+        if (result.status === 'success') {
+            window.location.href = result.redirect;
         } else {
-            alert(data.message);
+            alert(result.message || "رمز التحقق غير صحيح");
         }
     }
 
-    async function resendOtp() {
-        await authGateway();
-        startCountdown();
+    async function quickLogin() {
+        const res = await fetch('/vendors/quick-login', { method: 'POST' });
+        const result = await res.json();
+        if (result.status === 'success') window.location.href = result.redirect;
+        else alert("خطأ في الدخول السريع");
     }
 </script>
 </body>
