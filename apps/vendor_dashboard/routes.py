@@ -4,8 +4,8 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 from apps import db
-# سنفترض وجود موديلات الطلبات، يمكنك استبدالها بما لديك
-# من apps.models.order_db import Order 
+# استيراد الموديلات المطلوبة هنا عند الحاجة
+# from apps.models.order_db import Order 
 
 dashboard_bp = Blueprint('vendor_dashboard', __name__, template_folder='templates')
 
@@ -19,26 +19,27 @@ def dashboard():
     """
     
     # التحقق من حالة المورد (هل أكمل ملفه الشخصي؟)
-    # إذا لم تكن الخاصية موجودة في الموديل، نعتبره غير مكتمل
+    # نستخدم getattr للتعامل بأمان في حال لم تكن الخاصية موجودة في الموديل
     is_ready = getattr(current_user, 'is_setup_complete', False)
     
     if not is_ready:
         # توجيه المورد لصفحة الإعداد إذا لم يكمل بياناته
         return redirect(url_for('vendors.setup_profile'))
 
-    # جلب البيانات المطلوبة للوحة التحكم
+    # جلب البيانات المطلوبة للوحة التحكم مع معالجة الأخطاء
     try:
-        # ملاحظة: قم بتعديل هذا الجزء ليتناسب مع أسماء الموديلات لديك
+        # جلب أحدث الطلبات (قم بفك التعليق وتعديل الموديل عند تجهيز جداول الطلبات)
         # recent_orders = Order.query.filter_by(supplier_id=current_user.id).order_by(Order.created_at.desc()).limit(5).all()
-        recent_orders = [] # افتراضي فارغ لتجنب الخطأ
+        recent_orders = [] 
         
-        # إحصائيات المورد
+        # إحصائيات المورد (يمكنك لاحقاً ربطها بدالة حسابية من الموديلات)
         supplier_stats = {
             'total_sales': "0.00",
             'pending_orders': 0
         }
+        
     except Exception as e:
-        # في حال حدوث أي خطأ في قاعدة البيانات، نعرض اللوحة بدون بيانات بدلاً من انهيار النظام
+        # في حال حدوث أي خطأ في قاعدة البيانات، نعرض اللوحة فارغة بدلاً من انهيار النظام
         print(f"DEBUG: Dashboard Data Error: {e}")
         recent_orders = []
         supplier_stats = {'total_sales': "0.00", 'pending_orders': 0}
@@ -52,4 +53,5 @@ def dashboard():
 @dashboard_bp.route('/settings')
 @login_required
 def settings():
-    return "صفحة إعدادات المورد قيد التطوير"
+    """صفحة إعدادات الحساب للمورد"""
+    return "صفحة إعدادات المورد قيد التطوير - يمكنك إضافة النموذج الخاص بتحديث البيانات هنا"
