@@ -9,10 +9,22 @@ from .vault_db import AdminVault, VaultTransaction
 from .wallet_db import SupplierWallet, WalletTransaction
 from .orders_db import ProcessedOrder, OrderItem
 from .sync_log import SyncLog
-from .otp_db import OTPVerification  # تم التصحيح هنا
+from .otp_db import OTPVerification
+from .marketer_db import Marketer  # تمت إضافته ليعالج خطأ النظام
 
 __all__ = [
-    'AdminUser', 'ExchangeRate', 'FinancialLog', 'Supplier', 'SupplierProfile',
-    'AdminVault', 'VaultTransaction', 'SupplierWallet', 
-    'WalletTransaction', 'ProcessedOrder', 'OrderItem', 'SyncLog', 'OTPVerification' # تم التصحيح هنا
+    'AdminUser', 
+    'ExchangeRate', 
+    'FinancialLog', 
+    'Supplier', 
+    'SupplierProfile',
+    'AdminVault', 
+    'VaultTransaction', 
+    'SupplierWallet', 
+    'WalletTransaction', 
+    'ProcessedOrder', 
+    'OrderItem', 
+    'SyncLog', 
+    'OTPVerification',
+    'Marketer'  # تمت إضافته للقائمة ليصبح مرئياً للنظام
 ]
