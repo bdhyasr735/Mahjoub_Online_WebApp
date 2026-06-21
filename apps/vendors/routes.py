@@ -24,14 +24,17 @@ def login():
 
         # مرحلة 1: طلب الرمز
         if phone and not otp:
-            # 1. توليد رمز جديد وتخزينه في قاعدة البيانات
+            # توليد رمز جديد
             new_otp = OTPVerification.generate_otp(phone)
             
-            # 2. إرسال الرمز عبر textmebot باستخدام الخدمة
-            if VendorAuthService.initiate_login(phone, new_otp):
-                return jsonify({"status": "success", "message": "تم إرسال الرمز إلى واتساب"})
+            # التأكد من نجاح التوليد قبل محاولة الإرسال
+            if new_otp:
+                if VendorAuthService.initiate_login(phone, new_otp):
+                    return jsonify({"status": "success", "message": "تم إرسال الرمز إلى واتساب"})
+                else:
+                    return jsonify({"status": "warning", "message": "فشل الاتصال بخدمة واتساب، يرجى المحاولة لاحقاً"}), 200
             else:
-                return jsonify({"status": "warning", "message": "خدمة الرسائل غير متاحة حالياً"}), 200
+                return jsonify({"status": "error", "message": "فشل إنشاء رمز التحقق"}), 500
 
         # مرحلة 2: التحقق من الرمز
         if phone and otp:
@@ -42,10 +45,20 @@ def login():
                     return jsonify({"status": "success", "redirect": "/vendors/dashboard"})
                 return jsonify({"status": "success", "redirect": "/vendors/setup"})
             
-            return jsonify({"status": "error", "message": "رمز التحقق غير صحيح أو منتهي"}), 400
+            return jsonify({"status": "error", "message": "رمز التحقق غير صحيح أو منتهي الصلاحية"}), 400
             
         return jsonify({"status": "error", "message": "بيانات غير مكتملة"}), 400
 
     except Exception as e:
         print(f"CRITICAL SYSTEM ERROR in /login: {str(e)}")
-        return jsonify({"status": "error", "message": "حدث خطأ غير متوقع"}), 500
+        return jsonify({"status": "error", "message": "حدث خطأ غير متوقع في النظام"}), 500
+
+@vendors_bp.route('/dashboard')
+@login_required
+def dashboard():
+    return "مرحباً بك في لوحة تحكم المورد"
+
+@vendors_bp.route('/setup', methods=['GET', 'POST'])
+@login_required
+def setup_profile():
+    return "صفحة إكمال بيانات المورد"
