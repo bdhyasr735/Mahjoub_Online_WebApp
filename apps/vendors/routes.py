@@ -26,13 +26,15 @@ def login():
             return jsonify({"status": "error", "message": "بيانات غير صالحة"}), 400
 
         login_type = data.get('type')
-        # تنظيف رقم الهاتف لضمان التوافق ومنع التكرار الناتجة عن المسافات
-        phone = data.get('phone', '').replace(" ", "").replace("-", "")
+        # توحيد معالجة الرقم في كلا الحالتين (طلب الرمز أو التحقق)
+        raw_phone = data.get('phone', '')
+        phone = "".join(filter(str.isdigit, raw_phone)) # الاحتفاظ بالأرقام فقط
+        
         otp = data.get('otp')
         username = data.get('username')
         password = data.get('password')
 
-        # --- 1. دخول المسوقين (نظام تقليدي) ---
+        # --- 1. دخول المسوقين ---
         if login_type == 'marketer':
             user = Marketer.query.filter_by(username=username).first()
             if user and user.check_password(password):
@@ -40,39 +42,29 @@ def login():
                 return jsonify({"status": "success", "redirect": "/marketers/dashboard"})
             return jsonify({"status": "error", "message": "بيانات الدخول غير صحيحة"}), 401
 
-        # --- 2. دخول الموردين (نظام سيادي عبر OTP) ---
-        
+        # --- 2. دخول الموردين ---
         # أ) طلب إرسال رمز التحقق
         if phone and not otp:
             new_otp = OTPVerification.generate_otp(phone)
             if new_otp and VendorAuthService.initiate_login(phone, new_otp):
-                return jsonify({"status": "success", "message": "تم إرسال رمز التحقق عبر واتساب"})
-            return jsonify({"status": "error", "message": "فشل إرسال الرمز، يرجى المحاولة لاحقاً"}), 500
+                return jsonify({"status": "success", "message": "تم إرسال رمز التحقق"})
+            return jsonify({"status": "error", "message": "فشل إرسال الرمز"}), 500
 
         # ب) التحقق من الرمز
         if phone and otp:
+            # طباعة للـ LOGS لاكتشاف الخطأ (افتح Logs في Render لرؤيتها)
+            print(f"DEBUG: Verifying for Phone: {phone}, Received OTP: {otp}")
+            
             if OTPVerification.verify_otp(phone, otp):
-                # البحث عن المورد في قاعدة البيانات
                 supplier = Supplier.query.filter_by(_owner_phone=phone).first()
-                
-                # إذا لم يكن مسجلاً، ننشئ سجل جديد له (مرة واحدة فقط)
                 if not supplier:
                     supplier = Supplier(_owner_phone=phone)
                     db.session.add(supplier)
                     db.session.commit()
                 
-                # تسجيل دخول المورد (سواء كان قديماً أو جديداً)
                 login_user(supplier)
-                
-                # توجيه المورد (إذا أكمل بياناته يذهب للوحة التحكم، وإلا يذهب للإعداد)
                 is_ready = getattr(supplier, 'is_setup_complete', False)
-                redirect_url = "/supplier/dashboard" if is_ready else "/vendors/setup"
-                
-                return jsonify({
-                    "status": "success", 
-                    "message": "تم التحقق بنجاح، جاري تحويلك...", 
-                    "redirect": redirect_url
-                })
+                return jsonify({"status": "success", "redirect": "/supplier/dashboard" if is_ready else "/vendors/setup"})
             
             return jsonify({"status": "error", "message": "رمز التحقق خاطئ أو منتهي الصلاحية"}), 400
 
@@ -80,8 +72,8 @@ def login():
 
     except Exception as e:
         db.session.rollback()
-        print(f"CRITICAL ERROR in login: {str(e)}")
-        return jsonify({"status": "error", "message": "خطأ داخلي في النظام"}), 500
+        print(f"CRITICAL ERROR: {str(e)}")
+        return jsonify({"status": "error", "message": "خطأ داخلي"}), 500
 
 @vendors_bp.route('/dashboard')
 @login_required
