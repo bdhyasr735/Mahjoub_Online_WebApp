@@ -28,84 +28,103 @@
     <div class="side" id="auth-container">
         <div id="main-menu">
             <h3 style="color: var(--gold);">اختر نوع الدخول</h3>
-            <button class="btn-gold" onclick="showForm('register')">اشتراك مورد جديد</button>
-            <button class="btn-gold" onclick="showForm('login')">تسجيل دخول الموردين</button>
-            <button class="btn-gold" style="background: #222; color: #fff;" onclick="showForm('marketer-login')">تسجيل دخول المسوقين</button>
+            <button class="btn-gold" onclick="showForm('register')">الموردون (اشتراك أو دخول عبر واتساب)</button>
+            <button class="btn-gold" style="background: #222; color: #fff;" onclick="showForm('marketer-login')">تسجيل دخول المورد</button>
         </div>
 
         <div id="register-form" class="hidden">
-            <h3 style="color: var(--gold);">الاشتراك برقم الهاتف</h3>
+            <h3 style="color: var(--gold);">دخول الموردين</h3>
             <div style="display: flex; gap: 5px;">
-                <select class="cyber-input" style="width: 35%;">
-                    <option value="+967">اليمن +967</option>
-                    <option value="+966">السعودية +966</option>
-                    <option value="+20">مصر +20</option>
-                    <option value="+971">الإمارات +971</option>
+                <select id="country-code" class="cyber-input" style="width: 35%;">
+                    <option value="+967">+967</option>
+                    <option value="+966">+966</option>
                 </select>
                 <input type="tel" id="reg-phone" class="cyber-input" placeholder="رقم الهاتف">
             </div>
             <button class="btn-gold" id="otp-btn" onclick="sendOtp()">إرسال رمز التحقق</button>
+            
             <div id="otp-section" class="hidden">
-                <input type="text" class="cyber-input" placeholder="أدخل رمز التحقق (6 أرقام)">
-                <button class="btn-gold" onclick="alert('تم التفعيل!')">تفعيل الحساب</button>
-                <button class="btn-gold" id="resend-btn" style="background:#222; color:#fff;" onclick="resendOtp()">إعادة إرسال الرمز (60)</button>
+                <input type="text" id="otp-input" class="cyber-input" placeholder="أدخل رمز التحقق (6 أرقام)">
+                <button class="btn-gold" onclick="verifyOtp()">تأكيد الدخول</button>
+                <button class="btn-gold" id="resend-btn" style="background:#222; color:#fff;" onclick="sendOtp()">إعادة إرسال الرمز</button>
             </div>
-            <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; margin-top:10px;">رجوع</button>
-        </div>
-
-        <div id="login-form" class="hidden">
-            <h3 style="color: var(--gold);">دخول الموردين</h3>
-            <input type="text" class="cyber-input" placeholder="اسم المستخدم">
-            <input type="password" class="cyber-input" placeholder="كلمة المرور">
-            <button class="btn-gold">تسجيل الدخول</button>
-            <span class="forgot-link" onclick="alert('تواصل مع الدعم الفني لاستعادة الوصول')">هل نسيت كلمة المرور؟</span>
             <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; margin-top:10px;">رجوع</button>
         </div>
 
         <div id="marketer-login" class="hidden">
             <h3 style="color: var(--gold);">دخول المسوقين</h3>
-            <input type="text" class="cyber-input" placeholder="البريد الإلكتروني أو كود المسوق">
-            <input type="password" class="cyber-input" placeholder="كلمة المرور">
-            <button class="btn-gold">دخول لوحة المسوق</button>
-            <span class="forgot-link">هل نسيت كلمة المرور؟</span>
+            <input type="text" id="marketer-user" class="cyber-input" placeholder="اسم المستخدم">
+            <input type="password" id="marketer-pass" class="cyber-input" placeholder="كلمة المرور">
+            <button class="btn-gold" onclick="loginMarketer()">تسجيل الدخول</button>
+            <span class="forgot-link" onclick="alert('تواصل مع إدارة النظام لاستعادة الوصول')">هل نسيت كلمة المرور؟</span>
             <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; margin-top:10px;">رجوع</button>
         </div>
     </div>
 </div>
 
 <script>
+    // وظائف التحكم في النماذج
     function showForm(formType) {
         document.querySelectorAll('#auth-container > div').forEach(div => div.classList.add('hidden'));
         if (formType === 'menu') document.getElementById('main-menu').classList.remove('hidden');
         else if (formType === 'register') document.getElementById('register-form').classList.remove('hidden');
-        else if (formType === 'login') document.getElementById('login-form').classList.remove('hidden');
         else if (formType === 'marketer-login') document.getElementById('marketer-login').classList.remove('hidden');
     }
 
-    function sendOtp() {
-        document.getElementById('otp-btn').classList.add('hidden');
-        document.getElementById('otp-section').classList.remove('hidden');
-        startTimer(60);
+    // وظيفة الطلبات للـ Flask
+    async function apiCall(data) {
+        const response = await fetch('/vendors/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        return await response.json();
     }
 
+    // إرسال الـ OTP
+    async function sendOtp() {
+        const phone = document.getElementById('country-code').value + document.getElementById('reg-phone').value;
+        const btn = document.getElementById('resend-btn');
+        btn.disabled = true;
+        
+        const res = await apiCall({type: 'vendor', phone: phone});
+        if(res.status === 'success') {
+            alert(res.message);
+            document.getElementById('otp-btn').classList.add('hidden');
+            document.getElementById('otp-section').classList.remove('hidden');
+            startTimer(60);
+        } else { alert(res.message); btn.disabled = false; }
+    }
+
+    // التحقق من الـ OTP
+    async function verifyOtp() {
+        const phone = document.getElementById('country-code').value + document.getElementById('reg-phone').value;
+        const otp = document.getElementById('otp-input').value;
+        const res = await apiCall({type: 'vendor', phone: phone, otp: otp});
+        if(res.status === 'success') window.location.href = res.redirect;
+        else alert(res.message);
+    }
+
+    // دخول المسوق
+    async function loginMarketer() {
+        const res = await apiCall({
+            type: 'marketer', 
+            username: document.getElementById('marketer-user').value,
+            password: document.getElementById('marketer-pass').value
+        });
+        if(res.status === 'success') window.location.href = res.redirect;
+        else alert(res.message);
+    }
+
+    // مؤقت إعادة الإرسال
     function startTimer(duration) {
         let timer = duration;
         const btn = document.getElementById('resend-btn');
-        btn.disabled = true;
         const interval = setInterval(() => {
             timer--;
-            btn.innerText = "إعادة إرسال الرمز (" + timer + ")";
-            if (timer <= 0) {
-                clearInterval(interval);
-                btn.innerText = "إعادة إرسال الرمز";
-                btn.disabled = false;
-            }
+            btn.innerText = "إعادة إرسال (" + timer + ")";
+            if(timer <= 0) { clearInterval(interval); btn.innerText = "إعادة إرسال الرمز"; btn.disabled = false; }
         }, 1000);
-    }
-
-    function resendOtp() {
-        alert("تم إرسال رمز جديد!");
-        startTimer(60);
     }
 </script>
 </body>
