@@ -14,6 +14,7 @@
         .cyber-input { background: #000; border: 1px solid #333; padding: 15px; color: #fff; border-radius: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; }
         .hidden { display: none; }
         .forgot-link { color: #666; font-size: 0.85rem; cursor: pointer; text-decoration: underline; margin-top: 10px; display: block; }
+        #status-msg { padding: 12px; margin: 10px 0; border-radius: 12px; display: none; text-align: center; font-size: 0.9rem; }
         .marketing-side { background: linear-gradient(145deg, #160d26, #05020a); }
     </style>
 </head>
@@ -26,10 +27,12 @@
     </div>
     
     <div class="side" id="auth-container">
+        <div id="status-msg"></div>
+
         <div id="main-menu">
             <h3 style="color: var(--gold);">اختر نوع الدخول</h3>
             <button class="btn-gold" onclick="showForm('register')">الموردون (اشتراك أو دخول عبر واتساب)</button>
-            <button class="btn-gold" style="background: #222; color: #fff;" onclick="showForm('marketer-login')">تسجيل دخول المورد</button>
+            <button class="btn-gold" style="background: #222; color: #fff;" onclick="showForm('marketer-login')">تسجيل دخول المسوقين</button>
         </div>
 
         <div id="register-form" class="hidden">
@@ -56,22 +59,29 @@
             <input type="text" id="marketer-user" class="cyber-input" placeholder="اسم المستخدم">
             <input type="password" id="marketer-pass" class="cyber-input" placeholder="كلمة المرور">
             <button class="btn-gold" onclick="loginMarketer()">تسجيل الدخول</button>
-            <span class="forgot-link" onclick="alert('تواصل مع إدارة النظام لاستعادة الوصول')">هل نسيت كلمة المرور؟</span>
+            <span class="forgot-link" onclick="showMessage('تواصل مع إدارة النظام لاستعادة الوصول', 'error')">هل نسيت كلمة المرور؟</span>
             <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; margin-top:10px;">رجوع</button>
         </div>
     </div>
 </div>
 
 <script>
-    // وظائف التحكم في النماذج
+    function showMessage(text, type) {
+        const msgDiv = document.getElementById('status-msg');
+        msgDiv.innerText = text;
+        msgDiv.style.display = "block";
+        msgDiv.style.background = type === 'error' ? "rgba(220, 53, 69, 0.2)" : "rgba(40, 167, 69, 0.2)";
+        msgDiv.style.color = type === 'error' ? "#ff4d4d" : "#28a745";
+    }
+
     function showForm(formType) {
-        document.querySelectorAll('#auth-container > div').forEach(div => div.classList.add('hidden'));
+        document.getElementById('status-msg').style.display = 'none';
+        document.querySelectorAll('#auth-container > div:not(#status-msg)').forEach(div => div.classList.add('hidden'));
         if (formType === 'menu') document.getElementById('main-menu').classList.remove('hidden');
         else if (formType === 'register') document.getElementById('register-form').classList.remove('hidden');
         else if (formType === 'marketer-login') document.getElementById('marketer-login').classList.remove('hidden');
     }
 
-    // وظيفة الطلبات للـ Flask
     async function apiCall(data) {
         const response = await fetch('/vendors/login', {
             method: 'POST',
@@ -81,31 +91,29 @@
         return await response.json();
     }
 
-    // إرسال الـ OTP
     async function sendOtp() {
         const phone = document.getElementById('country-code').value + document.getElementById('reg-phone').value;
-        const btn = document.getElementById('resend-btn');
+        const btn = document.getElementById('otp-btn');
+        btn.innerText = "جاري الإرسال...";
         btn.disabled = true;
         
         const res = await apiCall({type: 'vendor', phone: phone});
         if(res.status === 'success') {
-            alert(res.message);
+            showMessage(res.message, 'success');
             document.getElementById('otp-btn').classList.add('hidden');
             document.getElementById('otp-section').classList.remove('hidden');
             startTimer(60);
-        } else { alert(res.message); btn.disabled = false; }
+        } else { showMessage(res.message, 'error'); btn.innerText = "إرسال رمز التحقق"; btn.disabled = false; }
     }
 
-    // التحقق من الـ OTP
     async function verifyOtp() {
         const phone = document.getElementById('country-code').value + document.getElementById('reg-phone').value;
         const otp = document.getElementById('otp-input').value;
         const res = await apiCall({type: 'vendor', phone: phone, otp: otp});
         if(res.status === 'success') window.location.href = res.redirect;
-        else alert(res.message);
+        else showMessage(res.message, 'error');
     }
 
-    // دخول المسوق
     async function loginMarketer() {
         const res = await apiCall({
             type: 'marketer', 
@@ -113,10 +121,9 @@
             password: document.getElementById('marketer-pass').value
         });
         if(res.status === 'success') window.location.href = res.redirect;
-        else alert(res.message);
+        else showMessage(res.message, 'error');
     }
 
-    // مؤقت إعادة الإرسال
     function startTimer(duration) {
         let timer = duration;
         const btn = document.getElementById('resend-btn');
