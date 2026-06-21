@@ -1,4 +1,3 @@
-# coding: utf-8
 # 📂 apps/models/otp_db.py - نظام إدارة الرموز والتحقق السيادي (OTP Engine - AES256)
 
 import random
@@ -10,7 +9,8 @@ class OTPVerification(db.Model):
     __tablename__ = 'otp_verifications'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_email = db.Column(db.String(150), index=True, nullable=False) 
+    # تم تغيير الاسم من user_email إلى user_identifier لدعم الهاتف أو الإيميل
+    user_identifier = db.Column(db.String(150), index=True, nullable=False) 
     
     # تخزين الرمز مشفراً بمعيار AES-256
     _otp_code_enc = db.Column('otp_code', db.String(255), nullable=False)
@@ -31,17 +31,16 @@ class OTPVerification(db.Model):
         self._otp_code_enc = AESCipher.encrypt(str(value)) if value else None
 
     @staticmethod
-    def generate_otp(email, expires_in_minutes=5):
-        """توليد رمز جديد صالح لـ 5 دقائق وإلغاء أي رموز سابقة لنفس البريد"""
-        # إبطال الرموز السابقة لضمان سيادة الرمز الأحدث
-        OTPVerification.query.filter_by(user_email=email, is_used=False).update({"is_used": True})
+    def generate_otp(identifier, expires_in_minutes=5):
+        """توليد رمز جديد وإبطال أي رموز سابقة لنفس المستخدم"""
+        OTPVerification.query.filter_by(user_identifier=identifier, is_used=False).update({"is_used": True})
         
         raw_code = str(random.randint(100000, 999999))
         
         new_otp = OTPVerification(
-            user_email=email,
+            user_identifier=identifier,
             expires_at=datetime.utcnow() + timedelta(minutes=expires_in_minutes),
-            otp_code=raw_code # استخدام الـ setter المشفر
+            otp_code=raw_code 
         )
         db.session.add(new_otp)
         db.session.commit()
@@ -49,17 +48,16 @@ class OTPVerification(db.Model):
         return raw_code
 
     @staticmethod
-    def verify_otp(email, input_code):
-        """التحقق من صحة الرمز واستهلاكه فوراً لمنع هجمات إعادة الاستخدام"""
+    def verify_otp(identifier, input_code):
+        """التحقق من صحة الرمز واستهلاكه فوراً"""
         now = datetime.utcnow()
-        # البحث عن الرمز النشط الأحدث
         otp = OTPVerification.query.filter_by(
-            user_email=email, 
+            user_identifier=identifier, 
             is_used=False
         ).order_by(OTPVerification.created_at.desc()).first()
         
         if otp and otp.expires_at > now and otp.otp_code == str(input_code):
-            otp.is_used = True # استهلاك الرمز
+            otp.is_used = True 
             db.session.commit()
             return True
         return False
