@@ -4,51 +4,52 @@
     <meta charset="UTF-8">
     <title>بوابة الشركاء | محجوب أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; }
-        body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .wrapper { display: flex; width: 90%; max-width: 900px; background: var(--card-bg); border: 1px solid #222; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .side { flex: 1; padding: 40px; }
-        .login-side { border-left: 1px solid #222; }
-        .marketing-side { background: #0a0614; display: flex; flex-direction: column; justify-content: center; padding: 40px; }
-        input, select { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid #333; border-radius: 10px; color: #fff; box-sizing: border-box; }
-        .btn-gold { width: 100%; padding: 15px; background: var(--gold); border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; color: #000; }
-        .btn-gold:hover { opacity: 0.9; }
-        .resend-link { color: #888; font-size: 0.85rem; cursor: pointer; margin-top: 15px; display: block; text-decoration: underline; }
-        .badge-row { display: flex; gap: 10px; margin-bottom: 20px; }
-        .badge { flex: 1; padding: 10px; background: #160d26; border: 1px solid #333; border-radius: 10px; text-align: center; font-size: 0.7rem; }
+        :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; --neon: #7000ff; }
+        body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        
+        /* تأثير خلفية متحرك */
+        body::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 50%, #1a0b35 0%, #05020a 100%); z-index: -1; }
+
+        .wrapper { display: flex; width: 90%; max-width: 900px; background: var(--card-bg); border: 2px solid #222; border-radius: 25px; overflow: hidden; box-shadow: 0 0 40px rgba(112, 0, 255, 0.2); transition: transform 0.5s; }
+        
+        .side { flex: 1; padding: 50px; position: relative; }
+        
+        h3 { font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; color: var(--gold); }
+
+        input, select { width: 100%; padding: 15px; margin: 10px 0; background: #000; border: 1px solid var(--neon); border-radius: 12px; color: #fff; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--gold); box-shadow: 0 0 10px var(--gold); }
+
+        .btn-gold { width: 100%; padding: 15px; background: linear-gradient(45deg, var(--gold), #f3d499); border: none; border-radius: 12px; font-weight: 900; cursor: pointer; transition: 0.3s; color: #000; text-transform: uppercase; }
+        .btn-gold:hover { transform: scale(1.03); box-shadow: 0 0 20px var(--gold); }
+
+        .loading-bar { height: 4px; background: #333; width: 100%; margin: 10px 0; border-radius: 2px; overflow: hidden; }
+        .progress { height: 100%; background: var(--gold); width: 0%; transition: width 2s ease-in-out; }
+
+        .marketing-side { background: linear-gradient(135deg, #0a0614, #160d26); display: flex; flex-direction: column; justify-content: center; }
+        .cyber-text { font-size: 2.5rem; font-weight: 900; background: linear-gradient(to right, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
-    <div class="side login-side" id="auth-area">
-        <h3>بوابة الشركاء الكرام</h3>
-        <div class="badge-row">
-            <div class="badge">معرف النظام<br>MAH-SUP963</div>
-            <div class="badge">المحفظة السيادية<br>MAH-WEL963</div>
+    <div class="side" id="auth-area">
+        <h3>مرحباً بك في النظام السيادي</h3>
+        <div class="badge-row" style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <div style="flex:1; padding:10px; border:1px solid #333; border-radius:8px; font-size:0.7rem;">MAH-SECURE-963</div>
         </div>
         
         <div style="display: flex; gap: 10px;">
-            <select id="country-code" style="width: 30%;">
-                <option value="+966">🇸🇦 +966</option>
-                <option value="+967" selected>🇾🇪 +967</option>
-                <option value="+971">🇦🇪 +971</option>
-            </select>
-            <input type="tel" id="phone" placeholder="رقم الهاتف الإداري">
+            <select id="country-code" style="width: 30%;"><option value="+967">+967 (اليمن)</option></select>
+            <input type="tel" id="phone" placeholder="رقم المورد الإداري">
         </div>
 
-        <button class="btn-gold" id="action-btn" onclick="sendOtp()">إرسال رمز التأكيد <i class="fas fa-paper-plane"></i></button>
-        
-        <div style="margin-top: 20px; text-align: center; color: var(--gold); cursor: pointer;" onclick="quickLogin()">
-            <i class="fas fa-bolt"></i> دخول سريع
-        </div>
+        <button class="btn-gold" id="action-btn" onclick="sendOtp()">تفعيل الاتصال المشفر</button>
     </div>
 
     <div class="side marketing-side">
-        <h1 style="font-size: 1.8rem;">سوقك الذكي بأعلى المعايير</h1>
-        <p style="color: #aaa;">نظام إدارة الموردين المتكامل، دقة في الحوكمة وسرعة في الإنجاز.</p>
+        <h1 class="cyber-text">محجوب أونلاين</h1>
+        <p style="color: #888;">أنت على وشك الوصول إلى لوحة التحكم المركزية. جاهز للبدء؟</p>
     </div>
 </div>
 
@@ -56,49 +57,39 @@
     let currentPhone = "";
 
     async function sendOtp() {
-        const countryCode = document.getElementById('country-code').value;
-        const phoneNum = document.getElementById('phone').value;
-        currentPhone = countryCode + phoneNum;
+        const btn = document.getElementById('action-btn');
+        btn.innerHTML = "جاري الاتصال بالقمر الصناعي...";
         
-        const res = await fetch('/vendors/login', { 
-            method: 'POST', headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ phone: currentPhone }) 
-        });
-        
+        const phone = document.getElementById('country-code').value + document.getElementById('phone').value;
+        currentPhone = phone;
+
+        const res = await fetch('/vendors/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ phone }) });
         const result = await res.json();
-        
-        if (result.status === 'success' || result.status === 'warning') {
+
+        if (result.status === 'success') {
             document.getElementById('auth-area').innerHTML = `
-                <h3>التحقق من الهوية</h3>
-                <p style="font-size: 0.85rem; color: #888;">تم إرسال رمز التحقق إلى: <strong style="color:#fff;">${currentPhone}</strong></p>
-                <input type="text" id="otp" placeholder="أدخل الرمز المكون من 6 أرقام" maxlength="6">
-                <button class="btn-gold" onclick="verify()">إتمام الدخول الآمن</button>
-                <span class="resend-link" id="resend-btn" onclick="sendOtp()">إعادة إرسال الرمز؟</span>
+                <h3>إدخال كود التشفير</h3>
+                <div class="loading-bar"><div class="progress" style="width: 100%;"></div></div>
+                <input type="text" id="otp" placeholder="أدخل الـ 6 أرقام الآن" maxlength="6" style="text-align:center; font-size: 1.5rem; letter-spacing: 10px;">
+                <button class="btn-gold" onclick="verify()">فك التشفير والولوج</button>
             `;
         } else {
-            alert(result.message);
+            btn.innerHTML = "إرسال رمز التأكيد";
+            alert("خطأ في الاتصال: " + result.message);
         }
     }
 
     async function verify() {
         const otp = document.getElementById('otp').value;
-        const res = await fetch('/vendors/login', { 
-            method: 'POST', headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ phone: currentPhone, otp: otp }) 
-        });
+        const res = await fetch('/vendors/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ phone: currentPhone, otp: otp }) });
+        const result = await res.json();
         
-        const result = await res.json();
         if (result.status === 'success') {
-            window.location.href = result.redirect;
+            document.body.innerHTML = "<h1 style='text-align:center; margin-top:20%; color:var(--gold)'>تم فك التشفير بنجاح... جاري التوجيه</h1>";
+            setTimeout(() => window.location.href = result.redirect, 1500);
         } else {
-            alert(result.message);
+            alert("كود خاطئ!");
         }
-    }
-
-    async function quickLogin() {
-        const res = await fetch('/vendors/quick-login', { method: 'POST' });
-        const result = await res.json();
-        if (result.status === 'success') window.location.href = result.redirect;
     }
 </script>
 </body>
