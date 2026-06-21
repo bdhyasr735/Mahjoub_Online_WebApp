@@ -1,7 +1,7 @@
 # coding: utf-8
-# 📂 apps/vendors/routes.py - نظام الدخول السيادي (محدث)
+# 📂 apps/vendors/routes.py - نظام الدخول السيادي (مؤمن ومصحح للتحويل)
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from flask_login import login_user, login_required, logout_user, current_user
 from apps import db
 from apps.vendors.vendor_auth_service import VendorAuthService
@@ -14,9 +14,10 @@ vendors_bp = Blueprint('vendors', __name__, template_folder='templates')
 
 @vendors_bp.before_request
 def check_login():
-    if not current_user.is_authenticated:
-        if request.endpoint not in ['vendors.login', 'vendors.index']:
-            return redirect(url_for('vendors.login'))
+    # استثناء المسارات التي لا تتطلب تسجيل دخول
+    allowed_endpoints = ['vendors.login', 'vendors.index', 'static']
+    if not current_user.is_authenticated and request.endpoint not in allowed_endpoints:
+        return redirect(url_for('vendors.login'))
 
 @vendors_bp.route('/')
 def index():
@@ -43,7 +44,7 @@ def login():
         if login_type == 'marketer':
             user = Marketer.query.filter_by(username=username).first()
             if user and user.check_password(password):
-                login_user(user)
+                login_user(user, remember=True) # إضافة remember=True لتثبيت الجلسة
                 return jsonify({"status": "success", "redirect": url_for('marketers.dashboard')})
             return jsonify({"status": "error", "message": "بيانات الدخول غير صحيحة"}), 401
 
@@ -56,12 +57,11 @@ def login():
 
         if phone and otp:
             if OTPVerification.verify_otp(phone, otp):
-                # تصحيح: البحث باستخدام الفهرس (phone_index) لضمان السرعة والعملية الصحيحة
                 supplier = Supplier.query.filter_by(phone_index=phone).first()
                 
                 if not supplier:
                     supplier = Supplier(
-                        owner_phone=phone, # الحقل الذي يقوم بالتشقير تلقائياً
+                        owner_phone=phone,
                         username=f"vendor_{uuid.uuid4().hex[:8]}",
                         password_hash="temp_pass",
                         trade_name="جديد"
@@ -69,16 +69,14 @@ def login():
                     db.session.add(supplier)
                     db.session.commit()
                 
-                login_user(supplier)
+                # التسجيل القسري للجلسة
+                login_user(supplier, remember=True)
+                session.permanent = True # ضمان استمرارية الجلسة
                 
-                # توجيه ذكي باستخدام url_for
                 is_ready = getattr(supplier, 'is_setup_complete', False)
                 redirect_url = url_for('vendor_dashboard.dashboard') if is_ready else url_for('vendors.setup_profile')
                 
-                return jsonify({
-                    "status": "success", 
-                    "redirect": redirect_url
-                })
+                return jsonify({"status": "success", "redirect": redirect_url})
             
             return jsonify({"status": "error", "message": "رمز التحقق خاطئ"}), 400
 
@@ -92,7 +90,6 @@ def login():
 @vendors_bp.route('/dashboard')
 @login_required
 def dashboard():
-    # التحويل المباشر لـ Blueprint لوحة المورد
     return redirect(url_for('vendor_dashboard.dashboard'))
 
 @vendors_bp.route('/setup', methods=['GET', 'POST'])
