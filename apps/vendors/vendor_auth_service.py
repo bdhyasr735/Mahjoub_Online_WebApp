@@ -9,7 +9,8 @@ class VendorAuthService:
     @staticmethod
     def initiate_login(phone, otp_code):
         """
-        إرسال رمز التحقق عبر واتساب بأسلوب شخصي وودي.
+        إرسال رمز التحقق عبر واتساب بأسلوب عالمي احترافي 
+        يعكس قوة النظام الذكي للسيادة الرقمية.
         """
         # تنظيف الرقم والتأكد من وجود مفتاح الدولة
         clean_phone = re.sub(r'[^\d]', '', str(phone))
@@ -19,13 +20,15 @@ class VendorAuthService:
         # المفتاح من متغيرات البيئة أو القيمة الافتراضية
         api_key = os.environ.get('TEXTMEBOT_API_KEY', 'rb3tZFnHRcsN')
         
-        # الرسالة بصيغة شخصية ومهنية
+        # الرسالة المحدثة بالهوية الجديدة (AI-Security System)
         message = (
-            f"أهلاً بك يا شريكنا في محجوب أونلاين.\n\n"
-            f"رمز التحقق الخاص بك للدخول هو: *{otp_code}*\n\n"
-            f"يرجى استخدامه خلال 5 دقائق.\n\n"
-            f"تحياتي،\n"
-            f"إدارة محجوب أونلاين."
+            f"Mahjoub Online | AI-Security System\n\n"
+            f"أهلاً بك يا شريك النجاح.\n"
+            f"قام نظامنا الذكي بتوليد رمز تحقق آمن لدخولكم:\n\n"
+            f"🔐 *{otp_code}*\n\n"
+            f"تنبيه أمني: هذا الرمز هو مفتاحك الخاص، لضمان أعلى مستويات السيادة الرقمية، يرجى عدم مشاركته مع أي طرف نهائياً.\n"
+            f"*صلاحية الرمز 5 دقائق.*\n\n"
+            f"— محجوب أونلاين | الإدارة الذكية للعمليات"
         )
         
         base_url = "http://api.textmebot.com/send.php"
@@ -37,16 +40,16 @@ class VendorAuthService:
         }
         
         try:
-            # إرسال الطلب
+            # إرسال الطلب مع مهلة زمنية 15 ثانية لضمان الاستجابة
             response = requests.get(base_url, params=params, timeout=15)
             
-            # تسجيل الاستجابة للتحقق من الحالة (لأغراض التطوير)
+            # تسجيل الاستجابة في سجلات Render للتحقق من الحالة
             print(f"DEBUG [TextMeBot Response]: {response.status_code} - {response.text}")
             
-            # التأكد من النجاح
+            # التأكد من النجاح (Status 200)
             return response.status_code == 200
             
         except Exception as e:
-            # تسجيل أي خطأ في الاتصال
+            # تسجيل أي خطأ تقني في الاتصال
             print(f"CRITICAL [TextMeBot Error]: {e}")
             return False
