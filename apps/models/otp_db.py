@@ -27,12 +27,14 @@ class OTPVerification(db.Model):
 
     @otp_code.setter
     def otp_code(self, value):
+        # تشفير الرمز قبل الحفظ في قاعدة البيانات
         self._otp_code_enc = AESCipher.encrypt(str(value)) if value else None
 
     @staticmethod
     def generate_otp(identifier, expires_in_minutes=5):
         """توليد رمز جديد وإبطال أي رموز سابقة لنفس المستخدم"""
         try:
+            # إبطال الرموز القديمة غير المستخدمة لضمان أن الرمز الأحدث هو الوحيد الفعال
             OTPVerification.query.filter_by(user_identifier=identifier, is_used=False).update({"is_used": True})
             
             raw_code = str(random.randint(100000, 999999))
@@ -55,12 +57,14 @@ class OTPVerification(db.Model):
         """التحقق من صحة الرمز واستهلاكه فوراً"""
         try:
             now = datetime.utcnow()
+            # البحث عن الرمز الأحدث
             otp = OTPVerification.query.filter_by(
                 user_identifier=identifier, 
                 is_used=False
             ).order_by(OTPVerification.created_at.desc()).first()
             
-            if otp and otp.expires_at > now and otp.otp_code == str(input_code):
+            # المقارنة بعد فك التشفير لحظياً
+            if otp and otp.expires_at > now and str(otp.otp_code).strip() == str(input_code).strip():
                 otp.is_used = True 
                 db.session.commit()
                 return True
