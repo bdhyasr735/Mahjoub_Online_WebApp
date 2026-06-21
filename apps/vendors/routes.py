@@ -1,32 +1,23 @@
-import requests
+from flask import Blueprint, render_template, request, jsonify
+from apps.vendors.vendor_auth_service import VendorAuthService # سنستخدم الخدمة هنا
 from apps.models.otp_db import OTPVerification
 
-class VendorAuthService:
-    API_KEY = "rb3tZFnHRcsN" # المفتاح الذي ظهر في الصورة
-    
-    @staticmethod
-    def send_whatsapp_otp(phone_number, otp_code):
-        """إرسال الكود عبر واتساب باستخدام API المورد"""
-        message = f"مرحباً، رمز التحقق الخاص بك لبوابة الموردين هو: {otp_code}"
-        # تشفير الرسالة لتناسب الـ URL
-        encoded_message = requests.utils.quote(message)
-        
-        # الرابط بناءً على صيغة الـ API التي أرسلتها
-        url = f"http://api.textmebot.com/send.php?recipient={phone_number}&apikey={VendorAuthService.API_KEY}&text={encoded_message}"
-        
-        try:
-            response = requests.get(url)
-            return response.status_code == 200
-        except Exception as e:
-            print(f"Error sending WhatsApp: {e}")
-            return False
+vendors_bp = Blueprint('vendors', __name__, template_folder='templates')
 
-    @staticmethod
-    def initiate_login(phone):
-        """بدء عملية الدخول: توليد كود وإرساله"""
-        # 1. توليد كود وتخزينه
-        otp = OTPVerification.generate_otp(phone)
-        
-        # 2. إرسال الكود
-        success = VendorAuthService.send_whatsapp_otp(phone, otp)
-        return success
+@vendors_bp.route('/auth-gateway', methods=['POST'])
+def auth_gateway():
+    data = request.json
+    email = data.get('email')
+    phone = data.get('phone')
+    # منطق بدء الدخول
+    if VendorAuthService.initiate_login(email, phone):
+        return jsonify({"status": "success"})
+    return jsonify({"status": "error", "message": "فشل الإرسال"}), 400
+
+@vendors_bp.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    data = request.json
+    if OTPVerification.verify_otp(data.get('email'), data.get('otp')):
+        # هنا يتم توجيه المورد إلى لوحة الإعدادات
+        return jsonify({"status": "success", "redirect": "/vendors/setup"})
+    return jsonify({"status": "error", "message": "رمز التحقق خاطئ"}), 400
