@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/supplier_profile_db.py
+# 📂 apps/models/supplier_profile_db.py - الملف السيادي لبيانات الموردين (مؤمن ومفهرس)
 
 from apps.extensions import db
 from apps.utils.security import AESCipher
@@ -8,11 +8,16 @@ from apps.models.admin_db import AdminUser
 class SupplierProfile(db.Model):
     __tablename__ = 'supplier_profiles'
 
+    # المفاتيح الأساسية مفهرسة تلقائياً
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), unique=True, nullable=False)
-    wallet_code = db.Column(db.String(50), nullable=True)
+    
+    # ⚡ user_id مفهرس لأنه حقل الربط الأساسي للبحث عن البروفايل
+    user_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), unique=True, nullable=False, index=True)
+    
+    # ⚡ wallet_code مفهرس لأنه سيتكرر كثيراً في عمليات المحفظة
+    wallet_code = db.Column(db.String(50), nullable=True, index=True)
 
-    # حقول مشفرة
+    # حقول مشفرة بـ AES-256 (لا يمكن فهرستها مباشرة، لذا نكتفي بتأمينها)
     trade_name_enc = db.Column(db.String(255), nullable=True) 
     owner_name_enc = db.Column(db.String(255), nullable=True)
     id_type_enc = db.Column(db.String(255), nullable=True)
@@ -26,13 +31,14 @@ class SupplierProfile(db.Model):
 
     user = db.relationship('AdminUser', back_populates='supplier_profile', lazy='joined')
 
-    # --- نمط موحد للتشفير وفك التشفير لكل الحقول ---
+    # --- نمط تشفير سيادي موحد ---
     def _encrypt(self, value):
         return AESCipher.encrypt(value) if value else None
 
     def _decrypt(self, value):
         return AESCipher.decrypt(value) if value else None
 
+    # --- Properties ---
     @property
     def trade_name(self): return self._decrypt(self.trade_name_enc)
     @trade_name.setter
