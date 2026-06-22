@@ -12,17 +12,17 @@ from apps.models.supplier_db import Supplier
 from apps.models.marketer_db import Marketer 
 import uuid 
 
-# تعريف الـ Blueprint باسم 'suppliers_portal'
-suppliers_bp = Blueprint('suppliers_portal', __name__, template_folder='templates')
+# تعريف الـ Blueprint باسم 'suppliers'
+suppliers_bp = Blueprint('suppliers', __name__, template_folder='templates')
 
 @suppliers_bp.before_request
 def check_login():
     """حماية سيادية: استثناء مسارات الدخول والملفات الثابتة"""
-    if request.endpoint in ['suppliers_portal.login', 'static']:
+    if request.endpoint in ['suppliers.login', 'static']:
         return None
     
     if not current_user.is_authenticated:
-        return redirect(url_for('suppliers_portal.login'))
+        return redirect(url_for('suppliers.login'))
 
 @suppliers_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -67,7 +67,7 @@ def login():
                 if not supplier:
                     supplier = Supplier(
                         owner_phone=phone,
-                        username=f"vendor_{uuid.uuid4().hex[:8]}",
+                        username=f"supplier_{uuid.uuid4().hex[:8]}",
                         password_hash="temp_pass",
                         trade_name="مورد جديد"
                     )
@@ -84,11 +84,10 @@ def login():
 
     except Exception as e:
         db.session.rollback()
-        # طباعة الخطأ في الـ Console للمساعدة في التشخيص
         print(f"Auth Error: {str(e)}")
         return jsonify({"status": "error", "message": "حدث خطأ فني"}), 500
 
 @suppliers_bp.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('suppliers_portal.login'))
+    return redirect(url_for('suppliers.login'))
