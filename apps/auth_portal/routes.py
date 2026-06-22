@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/auth_portal/routes.py - البوابة السيادية (مُحدثة للعمل برقم الهاتف)
+# 📂 apps/auth_portal/routes.py - البوابة السيادية (مُحدثة للعمل برقم الهاتف مع نظام تتبع)
 
 import os
 import time
@@ -34,15 +34,15 @@ def login():
                 flash('بيانات الدخول غير صحيحة.', 'danger')
                 return render_template('auth/login.html')
 
-            # 💡 التعديل هنا: استخدام رقم الهاتف بدلاً من الاسم للـ OTP
-            # تأكد أن المستخدم لديه رقم هاتف في قاعدة البيانات
+            # 💡 تتبع رقم الهاتف المستخدم
             phone_to_use = getattr(user, 'phone_number', None)
-            if not phone_to_use:
-                flash('الحساب لا يحتوي على رقم هاتف مسجل.', 'danger')
+            print(f"DEBUG [Admin System] محاولة إرسال OTP إلى الرقم: {phone_to_use}")
+
+            if not phone_to_use or len(str(phone_to_use)) < 9:
+                flash('الحساب لا يحتوي على رقم هاتف صحيح.', 'danger')
                 return render_template('auth/login.html')
 
             session['temp_user_id'] = user.id
-            # إرسال رقم الهاتف للـ OTP
             OTPVerification.generate_otp(phone_to_use) 
             
             flash('تم التحقق، يرجى إدخال رمز التحقق (OTP) المرسل لهاتفك.', 'info')
@@ -65,9 +65,8 @@ def verify_otp_page():
     if request.method == 'POST':
         otp_code = request.form.get('otp_code', '').strip()
         user = AdminUser.query.get(session['temp_user_id'])
-        phone_to_use = getattr(user, 'phone_number', user.username)
+        phone_to_use = user.phone_number
 
-        # 💡 التحقق باستخدام رقم الهاتف الذي أرسلنا له الرمز
         if user and OTPVerification.verify_otp(phone_to_use, otp_code):
             login_user(user)
             session.pop('temp_user_id', None)
@@ -85,7 +84,7 @@ def verify_otp_page():
 def resend_otp():
     if 'temp_user_id' in session:
         user = AdminUser.query.get(session['temp_user_id'])
-        phone_to_use = getattr(user, 'phone_number', None)
+        phone_to_use = user.phone_number
         if phone_to_use:
             OTPVerification.generate_otp(phone_to_use)
             flash('تم إرسال رمز تحقق جديد إلى هاتفك.', 'info')
