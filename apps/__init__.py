@@ -64,7 +64,7 @@ def create_app():
     def index():
         return redirect(url_for('auth_portal.login'))
 
-    # 6. إعداد البيانات والجداول (تطابق دقيق مع أسماء الكلاسات)
+    # 6. إعداد البيانات والجداول
     with app.app_context():
         try:
             from apps.models.admin_db import AdminUser
@@ -77,7 +77,8 @@ def create_app():
             from apps.models.supplier_profile_db import SupplierProfile
             from apps.models.supplier_staff_db import SupplierStaff
             from apps.models.sync_log import SyncLog
-            from apps.models.wallet_db import SupplierWallet
+            # تم تصحيح الاسم هنا ليطابق الكلاس في ملف wallet_db.py
+            from apps.models.wallet_db import VendorWallet
 
             db.create_all()
             
