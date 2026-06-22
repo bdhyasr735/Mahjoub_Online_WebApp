@@ -95,7 +95,8 @@ def login():
 @vendors_bp.route('/setup', methods=['GET', 'POST'])
 @login_required
 def setup_profile():
-    return render_template('admin/dashboard_content.html', title="إكمال إعدادات المورد")
+    # تم تغيير المسار ليكون خاصاً بالموردين فقط
+    return render_template('vendor/setup.html', title="إكمال إعدادات المورد")
 
 @vendors_bp.route('/logout')
 def logout():
