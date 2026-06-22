@@ -50,7 +50,7 @@ def create_app():
 
     # 5. المحرك التلقائي لاكتشاف التطبيقات وتسجيلها
     apps_dir = os.path.dirname(__file__)
-    # قائمة المجلدات التي يجب تجاهلها (لا تحتوي على تطبيقات)
+    # قائمة المجلدات التي يجب تجاهلها (لا تحتوي على تطبيقات ذاتية التسجيل)
     ignore_folders = {'models', 'extensions', 'static', 'templates', '__pycache__', 'api', 'auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders'}
     
     for folder in os.listdir(apps_dir):
@@ -90,11 +90,12 @@ def create_app():
             # تأسيس المالك
             owner_username = 'علي محجوب'
             if not AdminUser.query.filter_by(username=owner_username).first():
-                admin = AdminUser(username=owner_username, role='Owner', phone_number='0000000000')
+                # تم تحديث رقم الهاتف هنا
+                admin = AdminUser(username=owner_username, role='Owner', phone_number='779077746')
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
-                print("✅ [System] تم تأسيس حساب المالك بنجاح.")
+                print("✅ [System] تم تأسيس حساب المالك بنجاح برقم 779077746.")
         except Exception as e:
             print(f"⚠️ [Error] فشل في تهيئة قاعدة البيانات: {e}")
 
