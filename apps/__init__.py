@@ -64,15 +64,14 @@ def create_app():
     def index():
         return redirect(url_for('auth_portal.login'))
 
-    # 6. إعداد البيانات والجداول
+    # 6. إعداد البيانات والجداول (تطابق دقيق مع أسماء الكلاسات)
     with app.app_context():
         try:
-            # استيراد النماذج (تم تصحيح اسم OrderFinancial ليطابق ملف financials_db)
             from apps.models.admin_db import AdminUser
             from apps.models.admin_staff_db import AdminStaff
             from apps.models.financials_db import OrderFinancial
             from apps.models.marketers_db import Marketer
-            from apps.models.orders_db import ProcessedOrder
+            from apps.models.orders_db import Order
             from apps.models.otp_db import OTPVerification
             from apps.models.supplier_db import Supplier
             from apps.models.supplier_profile_db import SupplierProfile
