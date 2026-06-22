@@ -1,74 +1,39 @@
-# coding: utf-8
-# 📂 apps/admin_dashboard/routes.py - النسخة السيادية (نظيفة من الأخطاء)
+# 📂 apps/vendor_dashboard/routes.py
 
-from flask import Blueprint, render_template, abort, session
+from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
-from apps.extensions import db
-from datetime import datetime
+from apps.models.supplier_profile_db import SupplierProfile
+from apps.models.supplier_db import Supplier # تأكد من استيراد الموديل
 
-# استيراد النماذج المالية والسيادية
-from apps.models.supplier_db import Supplier
-from apps.models.wallet_db import SupplierWallet, WalletTransaction
+dashboard_bp = Blueprint('vendor_dashboard', __name__, template_folder='templates')
 
-admin_dashboard = Blueprint(
-    'admin_dashboard', 
-    __name__, 
-    template_folder='templates'
-)
-
-@admin_dashboard.before_request
-@login_required
-def make_session_permanent():
-    session.permanent = True
-    session.modified = True 
-
-@admin_dashboard.route('/dashboard', methods=['GET'])
+@dashboard_bp.route('/dashboard')
 @login_required
 def dashboard():
-    if current_user.role not in ['Owner', 'Admin']:
-        abort(403)
+    """
+    لوحة تحكم المورد: جلب البيانات بناءً على هوية المورد الحالية
+    """
+    
+    # 1. البحث عن البروفايل يدوياً بناءً على ID المورد الحالي
+    # بما أننا لا نعدل الجداول، نبحث في البروفايلات عن صاحب هذا الـ ID
+    profile = SupplierProfile.query.filter_by(user_id=current_user.id).first()
+    
+    # 2. إذا لم يوجد بروفايل، يجب إكمال الإعداد
+    if not profile:
+        return redirect(url_for('vendors.setup_profile'))
 
     try:
-        total_suppliers = Supplier.query.count()
-        all_wallets = SupplierWallet.query.all()
-        
-        total_sar = 0.0
-        total_yer = 0.0
-        total_usd = 0.0
-        
-        for w in all_wallets:
-            try:
-                val_sar = float(w.balance_sar) if w.balance_sar is not None else 0.0
-                val_yer = float(w.balance_yer) if w.balance_yer is not None else 0.0
-                val_usd = float(w.balance_usd) if w.balance_usd is not None else 0.0
-                total_sar += val_sar
-                total_yer += val_yer
-                total_usd += val_usd
-            except (ValueError, TypeError, Exception):
-                continue
-
-        recent_transactions = WalletTransaction.query.order_by(WalletTransaction.created_at.desc()).limit(10).all()
-        
-        context = {
-            'total_suppliers': total_suppliers,
-            'total_balance_sar': total_sar,
-            'total_balance_yer': total_yer,
-            'total_balance_usd': total_usd,
-            'recent_transactions': recent_transactions,
-            'now': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'user_name': current_user.username,
-            'store_name': 'محجوب أونلاين'
+        # 3. جلب الإحصائيات (نستخدم current_user لأنه كائن Supplier الفعلي)
+        supplier_stats = {
+            'total_sales': getattr(current_user, 'get_total_sales', lambda: "0.00")(),
+            'pending_orders': getattr(current_user, 'get_pending_orders_count', lambda: 0)()
         }
-        
-        return render_template('admin/dashboard_content.html', **context)
-        
     except Exception as e:
-        print(f"🚨 Dashboard Error: {str(e)}")
-        return f"🚨 عطل في المحرك المالي: {str(e)}", 500
+        print(f"DEBUG: Data Error: {e}")
+        supplier_stats = {'total_sales': "0.00", 'pending_orders': 0}
 
-@admin_dashboard.route('/system_logs', methods=['GET'])
-@login_required
-def system_logs():
-    if current_user.role != 'Owner':
-        abort(403)
-    return "سجل الأحداث السيادي - قيد المراقبة"
+    return render_template(
+        'vendor/dashboard.html', 
+        profile=profile,
+        supplier_stats=supplier_stats
+    )
