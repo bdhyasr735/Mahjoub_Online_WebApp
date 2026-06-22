@@ -54,8 +54,8 @@
         </div>
 
         <nav class="nav-menu">
-            <a href="{{ url_for('vendor_dashboard.dashboard') }}" 
-               class="nav-link {% if request.endpoint == 'vendor_dashboard.dashboard' %}active{% endif %}">
+            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" 
+               class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
                 <i class="fas fa-th-large me-3"></i> <span>الرئيسية</span>
             </a>
             
@@ -73,7 +73,7 @@
 
             <hr class="text-white my-3">
             
-            <a href="{{ url_for('vendors.logout') }}" class="nav-link text-danger">
+            <a href="{{ url_for('suppliers.logout') }}" class="nav-link text-danger">
                 <i class="fas fa-sign-out-alt me-3"></i> <span>تسجيل الخروج</span>
             </a>
         </nav>
