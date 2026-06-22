@@ -33,7 +33,7 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. تسجيل المسارات (Blueprints)
+    # 4. تسجيل المسارات (Blueprints) الأساسية
     from apps.auth_portal.routes import auth_portal
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
@@ -48,9 +48,15 @@ def create_app():
     app.register_blueprint(orders_bp, url_prefix='/orders')
     app.register_blueprint(webhooks_bp, url_prefix='/api')
 
-    # 5. المحرك التلقائي لاكتشاف التطبيقات
+    # 5. المحرك التلقائي لاكتشاف التطبيقات وتسجيلها
     apps_dir = os.path.dirname(__file__)
+    # قائمة المجلدات التي يجب تجاهلها (لا تحتوي على تطبيقات)
+    ignore_folders = {'models', 'extensions', 'static', 'templates', '__pycache__', 'api', 'auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders'}
+    
     for folder in os.listdir(apps_dir):
+        if folder in ignore_folders:
+            continue
+            
         folder_path = os.path.join(apps_dir, folder)
         if os.path.isdir(folder_path) and os.path.exists(os.path.join(folder_path, 'registry.py')):
             try:
@@ -58,7 +64,7 @@ def create_app():
                 if hasattr(module, 'register_app'):
                     module.register_app(app)
             except Exception as e:
-                print(f"⚠️ [System] فشل تحميل {folder}: {e}")
+                print(f"⚠️ [System] فشل تحميل التطبيق في {folder}: {e}")
 
     @app.route('/')
     def index():
@@ -77,7 +83,6 @@ def create_app():
             from apps.models.supplier_profile_db import SupplierProfile
             from apps.models.supplier_staff_db import SupplierStaff
             from apps.models.sync_log import SyncLog
-            # تم تصحيح الاسم هنا ليطابق الكلاس في ملف wallet_db.py
             from apps.models.wallet_db import VendorWallet
 
             db.create_all()
