@@ -3,6 +3,7 @@
 
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
+# تأكد أن هذه الموديلات موجودة في الفهرس الموحد apps/models/__init__.py
 from apps.models.admin_db import AdminUser
 from apps.models.supplier_db import Supplier
 
