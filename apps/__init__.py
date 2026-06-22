@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي للنظام (هجين: مستقر وتلقائي)
+# 📂 apps/__init__.py - المصنع السيادي للنظام
 
 import os
 import importlib
@@ -14,17 +14,13 @@ def create_app():
     app.config.from_object(Config)
 
     # 2. 🛡️ سياسة أمان المحتوى (CSP)
-    csp_policy = {
+    Talisman(app, force_https=True, content_security_policy={
         'default-src': ["'self'"],
         'style-src': ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
         'script-src': ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
         'font-src': ["'self'", "data:", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-        'img-src': ["'self'", "data:", "https://*"],
-        'connect-src': ["'self'", "https://mahjoub.online"]
-    }
-    
-    Talisman(app, force_https=True, content_security_policy=csp_policy,
-             frame_options='SAMEORIGIN', referrer_policy='strict-origin-when-cross-origin')
+        'img-src': ["'self'", "data:", "https://*"]
+    }, frame_options='SAMEORIGIN', referrer_policy='strict-origin-when-cross-origin')
 
     # 3. تهيئة الإضافات
     db.init_app(app)
@@ -52,53 +48,46 @@ def create_app():
     app.register_blueprint(orders_bp, url_prefix='/orders')
     app.register_blueprint(webhooks_bp, url_prefix='/api')
 
-    # ب) المحرك التلقائي لاكتشاف التطبيقات الإضافية
+    # 5. المحرك التلقائي لاكتشاف التطبيقات
     apps_dir = os.path.dirname(__file__)
-    existing_apps = ['auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders', 'api', 'models', 'static', 'templates']
-    
     for folder in os.listdir(apps_dir):
         folder_path = os.path.join(apps_dir, folder)
-        if os.path.isdir(folder_path) and not folder.startswith('__') and folder not in existing_apps:
-            registry_path = os.path.join(folder_path, 'registry.py')
-            if os.path.exists(registry_path):
-                try:
-                    module = importlib.import_module(f'apps.{folder}.registry')
-                    if hasattr(module, 'register_app'):
-                        module.register_app(app)
-                except Exception as e:
-                    print(f"⚠️ [System] فشل تحميل التطبيق {folder}: {e}")
+        if os.path.isdir(folder_path) and os.path.exists(os.path.join(folder_path, 'registry.py')):
+            try:
+                module = importlib.import_module(f'apps.{folder}.registry')
+                if hasattr(module, 'register_app'):
+                    module.register_app(app)
+            except Exception as e:
+                print(f"⚠️ [System] فشل تحميل {folder}: {e}")
 
     @app.route('/')
     def index():
         return redirect(url_for('auth_portal.login'))
 
-    # 5. إعداد البيانات والجداول
+    # 6. إعداد البيانات والجداول (مغلف داخل Context)
     with app.app_context():
-        # استيراد النماذج (تأكد أن جميع هذه الملفات موجودة في مجلد apps/models/)
-        from apps.models.admin_db import AdminUser
-        from apps.models.admin_staff_db import AdminStaff
-        from apps.models.orders_db import ProcessedOrder, OrderItem
-        from apps.models.sync_db import SyncLog
-        from apps.models.finance_db import ExchangeRate, FinancialLog
-        from apps.models.supplier_db import Supplier
-        from apps.models.vault_db import AdminVault, VaultTransaction
-        from apps.models.wallet_db import SupplierWallet, WalletTransaction
-        
         try:
-            db.create_all() 
-            print("✅ [System] تم الاتصال بقاعدة البيانات وإنشاء كافة الجداول بنجاح.")
+            # استيراد النماذج هنا حصراً يمنع حدوث Circular Import
+            from apps.models.admin_db import AdminUser
+            from apps.models.admin_staff_db import AdminStaff
+            from apps.models.orders_db import ProcessedOrder, OrderItem
+            from apps.models.sync_db import SyncLog
+            from apps.models.finance_db import ExchangeRate, FinancialLog
+            from apps.models.supplier_db import Supplier
+            from apps.models.vault_db import AdminVault, VaultTransaction
+            from apps.models.wallet_db import SupplierWallet, WalletTransaction
+
+            db.create_all()
             
-            # تأسيس المالك إذا لم يكن موجوداً
+            # تأسيس المالك
             owner_username = 'علي محجوب'
             if not AdminUser.query.filter_by(username=owner_username).first():
                 admin = AdminUser(username=owner_username, role='Owner', phone_number='0000000000')
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
-                print(f"✅ [System] تم تأسيس حساب المالك '{owner_username}' بنجاح.")
-            
+                print("✅ [System] تم تأسيس حساب المالك بنجاح.")
         except Exception as e:
-            db.session.rollback()
             print(f"⚠️ [Error] فشل في تهيئة قاعدة البيانات: {e}")
 
     return app
