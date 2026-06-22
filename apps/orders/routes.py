@@ -3,7 +3,8 @@
 
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from apps.extensions import db
-from apps.models import ProcessedOrder
+# تم تحديث الاستيراد من ProcessedOrder إلى Order
+from apps.models import Order 
 from apps.api.sync_engine import SyncEngine
 from sqlalchemy import func
 import logging
@@ -11,29 +12,29 @@ import logging
 orders_bp = Blueprint('orders', __name__, url_prefix='/orders', template_folder='templates')
 logger = logging.getLogger(__name__)
 
-# 1. لوحة تحكم الطلبات (بأداء محسن عبر قاعدة البيانات)
+# 1. لوحة تحكم الطلبات
 @orders_bp.route('/dashboard')
 def orders_dashboard():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
     
-    # تحسين الأداء: إجراء الحسابات في قاعدة البيانات مباشرة بدلاً من جلب كل السجلات
+    # تم تحديث الاستعلام ليستخدم Order بدلاً من ProcessedOrder
     stats = db.session.query(
-        func.sum(ProcessedOrder.total_price).label('total_sales'),
-        func.count(ProcessedOrder.id).filter(ProcessedOrder.order_status == 'delivered').label('completed'),
-        func.count(ProcessedOrder.id).filter(ProcessedOrder.order_status == 'cancelled').label('cancelled')
+        func.sum(Order.total_price).label('total_sales'),
+        func.count(Order.id).filter(Order.order_status == 'delivered').label('completed'),
+        func.count(Order.id).filter(Order.order_status == 'cancelled').label('cancelled')
     ).first()
     
     # بناء استعلام البحث
-    query = ProcessedOrder.query.order_by(ProcessedOrder.id.desc())
+    query = Order.query.order_by(Order.id.desc())
     if search:
         search_filter = f"%{search}%"
         query = query.filter(
-            (ProcessedOrder.order_id.ilike(search_filter)) | 
-            (ProcessedOrder.customer_name.ilike(search_filter))
+            (Order.order_id.ilike(search_filter)) | 
+            (Order.customer_name.ilike(search_filter))
         )
     
-    # التقسيم (Pagination) الاحترافي
+    # التقسيم (Pagination)
     pagination = query.paginate(page=page, per_page=10, error_out=False)
     
     return render_template('admin/orders_dashboard.html', 
@@ -60,7 +61,7 @@ def sync_all():
 @orders_bp.route('/update-order-field/<order_id>', methods=['POST'])
 def update_order_field(order_id):
     data = request.json
-    order = ProcessedOrder.query.get(order_id)
+    order = Order.query.get(order_id) # تحديث للكلاس Order
     if order and hasattr(order, data.get('field')):
         try:
             setattr(order, data['field'], data['value'])
@@ -74,7 +75,7 @@ def update_order_field(order_id):
 # 4. حذف طلب
 @orders_bp.route('/delete-order/<order_id>', methods=['POST'])
 def delete_order(order_id):
-    order = ProcessedOrder.query.get(order_id)
+    order = Order.query.get(order_id) # تحديث للكلاس Order
     if order:
         db.session.delete(order)
         db.session.commit()
