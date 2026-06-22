@@ -24,6 +24,14 @@ class Supplier(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     last_login = db.Column(db.DateTime, nullable=True)
 
+    # 5. العلاقة مع الملف الشخصي (الربط المفقود)
+    supplier_profile = db.relationship(
+        'SupplierProfile', 
+        back_populates='supplier', 
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+
     # --- نظام التشفير السيادي ---
     @staticmethod
     def _get_key():
