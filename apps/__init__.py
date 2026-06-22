@@ -38,8 +38,6 @@ def create_app():
         return AdminUser.query.get(int(user_id))
 
     # 4. تسجيل المسارات (Blueprints)
-    
-    # أ) التسجيل اليدوي (للأجزاء الأساسية لضمان الاستقرار التام)
     from apps.auth_portal.routes import auth_portal
     from apps.admin_dashboard.routes import admin_dashboard
     from apps.wallet.routes import wallet_app
@@ -54,10 +52,8 @@ def create_app():
     app.register_blueprint(orders_bp, url_prefix='/orders')
     app.register_blueprint(webhooks_bp, url_prefix='/api')
 
-    # ب) المحرك التلقائي (لاكتشاف التطبيقات الإضافية الجديدة مثل 'vendors')
-    # سيقوم بمسح أي مجلد جديد يحتوي على ملف registry.py
+    # ب) المحرك التلقائي لاكتشاف التطبيقات الإضافية
     apps_dir = os.path.dirname(__file__)
-    # المجلدات التي قمنا بتسجيلها يدوياً لا نحتاج فحصها
     existing_apps = ['auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders', 'api', 'models', 'static', 'templates']
     
     for folder in os.listdir(apps_dir):
@@ -69,22 +65,30 @@ def create_app():
                     module = importlib.import_module(f'apps.{folder}.registry')
                     if hasattr(module, 'register_app'):
                         module.register_app(app)
-                        print(f"✅ [System] تم تحميل التطبيق الإضافي تلقائياً: {folder}")
                 except Exception as e:
-                    print(f"⚠️ [System] فشل تحميل التطبيق التلقائي {folder}: {e}")
+                    print(f"⚠️ [System] فشل تحميل التطبيق {folder}: {e}")
 
     @app.route('/')
     def index():
         return redirect(url_for('auth_portal.login'))
 
-    # 5. إعداد البيانات التأسيسية
+    # 5. إعداد البيانات والجداول
     with app.app_context():
-        from apps.models import AdminUser, ProcessedOrder, OrderItem, SyncLog, ExchangeRate, FinancialLog, Supplier, AdminVault, VaultTransaction, SupplierWallet, WalletTransaction
+        # استيراد النماذج (تأكد أن جميع هذه الملفات موجودة في مجلد apps/models/)
+        from apps.models.admin_db import AdminUser
+        from apps.models.admin_staff_db import AdminStaff
+        from apps.models.orders_db import ProcessedOrder, OrderItem
+        from apps.models.sync_db import SyncLog
+        from apps.models.finance_db import ExchangeRate, FinancialLog
+        from apps.models.supplier_db import Supplier
+        from apps.models.vault_db import AdminVault, VaultTransaction
+        from apps.models.wallet_db import SupplierWallet, WalletTransaction
         
         try:
             db.create_all() 
-            print("✅ [System] تم الاتصال بقاعدة البيانات وإنشاء الجداول بنجاح.")
+            print("✅ [System] تم الاتصال بقاعدة البيانات وإنشاء كافة الجداول بنجاح.")
             
+            # تأسيس المالك إذا لم يكن موجوداً
             owner_username = 'علي محجوب'
             if not AdminUser.query.filter_by(username=owner_username).first():
                 admin = AdminUser(username=owner_username, role='Owner', phone_number='0000000000')
