@@ -7,7 +7,8 @@ import logging
 from flask import Blueprint, request, jsonify
 from config import Config 
 from apps.extensions import db
-from apps.models.orders_db import ProcessedOrder
+# تم تحديث الاستيراد ليطابق الموديل الجديد Order
+from apps.models.orders_db import Order
 
 # إعداد السجلات
 logger = logging.getLogger(__name__)
@@ -42,13 +43,14 @@ def handle_qumra_webhook():
     order_data = data.get('data', {})
     logger.info(f"✅ استلام حدث: {event} | البيانات: {order_data.get('id')}")
 
-    # 3. معالجة وحفظ الطلب
+    # 3. معالجة وحفظ الطلب باستخدام الموديل Order المحدث
     if event in ['order/created', 'order/updated', 'cart/created']:
         order_id = str(order_data.get('id') or order_data.get('_id', ''))
         
         if order_id:
             try:
-                order = ProcessedOrder.query.get(order_id) or ProcessedOrder(id=order_id)
+                # البحث عن الطلب الموجود أو إنشاء جديد
+                order = Order.query.get(order_id) or Order(id=order_id)
                 
                 # تحديث المعلومات الأساسية
                 order.status = order_data.get('status', 'pending')
@@ -62,7 +64,7 @@ def handle_qumra_webhook():
 
                 db.session.add(order)
                 db.session.commit()
-                logger.info(f"💾 تم حفظ الطلب {order_id} في قاعدة البيانات.")
+                logger.info(f"💾 تم حفظ الطلب {order_id} في قاعدة البيانات بنجاح.")
                 
             except Exception as e:
                 db.session.rollback()
