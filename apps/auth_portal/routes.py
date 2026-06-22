@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/auth_portal/routes.py - البوابة السيادية (مُحدثة: تم استبدال البريد بـ اسم المستخدم)
+# 📂 apps/auth_portal/routes.py - البوابة السيادية (مُحدثة للعمل برقم الهاتف)
 
 import os
 import time
@@ -11,7 +11,6 @@ from . import auth_portal
 from apps.models.admin_db import AdminUser
 from apps.models.otp_db import OTPVerification
 
-# مسار الدخول السري
 SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x')
 
 # -------------------------------------------------------------------------
@@ -35,24 +34,23 @@ def login():
                 flash('بيانات الدخول غير صحيحة.', 'danger')
                 return render_template('auth/login.html')
 
-            if hasattr(user, 'is_locked') and user.is_locked():
-                flash('الحساب مقفل مؤقتاً.', 'danger')
+            # 💡 التعديل هنا: استخدام رقم الهاتف بدلاً من الاسم للـ OTP
+            # تأكد أن المستخدم لديه رقم هاتف في قاعدة البيانات
+            phone_to_use = getattr(user, 'phone_number', None)
+            if not phone_to_use:
+                flash('الحساب لا يحتوي على رقم هاتف مسجل.', 'danger')
                 return render_template('auth/login.html')
 
-            if user.role not in ['Owner', 'Admin']:
-                flash('ليس لديك صلاحية الدخول.', 'danger')
-                return render_template('auth/login.html')
-
-            # استخدام 'username' كمعرف للـ OTP بدلاً من 'email'
             session['temp_user_id'] = user.id
-            OTPVerification.generate_otp(user.username) 
+            # إرسال رقم الهاتف للـ OTP
+            OTPVerification.generate_otp(phone_to_use) 
             
-            flash('تم التحقق، يرجى إدخال رمز التحقق (OTP) المرسل لهاتفك/اسمك.', 'info')
+            flash('تم التحقق، يرجى إدخال رمز التحقق (OTP) المرسل لهاتفك.', 'info')
             return redirect(url_for('auth_portal.verify_otp_page'))
                     
         except Exception as e:
-            print(f"🚨 خطأ فني: {e}")
-            flash('حدث خطأ فني.', 'warning')
+            print(f"🚨 خطأ فني في البوابة: {e}")
+            flash('حدث خطأ فني أثناء إرسال الرمز.', 'warning')
     
     return render_template('auth/login.html')
 
@@ -67,9 +65,10 @@ def verify_otp_page():
     if request.method == 'POST':
         otp_code = request.form.get('otp_code', '').strip()
         user = AdminUser.query.get(session['temp_user_id'])
+        phone_to_use = getattr(user, 'phone_number', user.username)
 
-        # التحقق باستخدام username
-        if user and OTPVerification.verify_otp(user.username, otp_code):
+        # 💡 التحقق باستخدام رقم الهاتف الذي أرسلنا له الرمز
+        if user and OTPVerification.verify_otp(phone_to_use, otp_code):
             login_user(user)
             session.pop('temp_user_id', None)
             
@@ -78,7 +77,7 @@ def verify_otp_page():
                 db.session.commit()
             return redirect(url_for('admin_dashboard.dashboard'))
         else:
-            flash('رمز التحقق غير صحيح.', 'danger')
+            flash('رمز التحقق غير صحيح أو منتهي الصلاحية.', 'danger')
             
     return render_template('auth/verify_otp.html')
 
@@ -86,9 +85,10 @@ def verify_otp_page():
 def resend_otp():
     if 'temp_user_id' in session:
         user = AdminUser.query.get(session['temp_user_id'])
-        if user:
-            OTPVerification.generate_otp(user.username)
-            flash('تم إرسال رمز تحقق جديد.', 'info')
+        phone_to_use = getattr(user, 'phone_number', None)
+        if phone_to_use:
+            OTPVerification.generate_otp(phone_to_use)
+            flash('تم إرسال رمز تحقق جديد إلى هاتفك.', 'info')
     return redirect(url_for('auth_portal.verify_otp_page'))
 
 # -------------------------------------------------------------------------
