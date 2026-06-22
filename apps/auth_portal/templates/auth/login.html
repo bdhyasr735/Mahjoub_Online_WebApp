@@ -28,11 +28,10 @@
             box-shadow: 0 30px 70px rgba(0, 0, 0, 0.9);
         }
 
-        /* تعديل اللوجو: لون أبيض، غير قابل للنقر، بدون معلومات مسار */
         .logo-section img {
             width: 90px; margin-bottom: 20px;
             filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
-            pointer-events: none; /* يمنع التفاعل مع الصورة */
+            pointer-events: none;
         }
 
         .brand-name { font-size: 1.8rem; font-weight: 900; color: var(--sovereign-gold); margin: 0; }
@@ -42,7 +41,7 @@
         .input-box input {
             width: 100%; padding: 15px 50px; background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px;
-            color: #fff; outline: none; box-sizing: border-box;
+            color: #fff; outline: none; box-sizing: border-box; text-align: center;
         }
 
         .main-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--sovereign-gold); }
@@ -73,7 +72,7 @@
             {% endfor %}{% endif %}
         {% endwith %}
 
-        <form action="{{ url_for('auth_portal.login') }}" method="POST" autocomplete="off" spellcheck="false">
+        <form action="" method="POST" autocomplete="off" spellcheck="false">
             <div class="input-box">
                 <i class="fas fa-user-shield main-icon"></i>
                 <input type="text" name="username" placeholder="الهوية الرقمية" required autocomplete="off">
@@ -90,7 +89,6 @@
     </div>
 
     <script>
-        // حماية إضافية: إخفاء أي نشاط في سجل المتصفح
         window.console.log = function() {};
         
         const passwordField = document.getElementById('password-field');
