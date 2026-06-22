@@ -61,11 +61,11 @@ def login():
     return render_template('auth/login.html')
 
 # -------------------------------------------------------------------------
-# 2. مسار التحقق من الـ OTP (المصادقة المزدوجة)
+# 2. مسارات التحقق من الـ OTP (المصادقة المزدوجة)
 # -------------------------------------------------------------------------
 @auth_portal.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp_page():
-    # التأكد من وجود جلسة مؤقتة (لا يمكن الدخول هنا بدون كلمة مرور صحيحة)
+    # التأكد من وجود جلسة مؤقتة
     if 'temp_user_id' not in session:
         return redirect(url_for('auth_portal.login'))
 
@@ -86,6 +86,16 @@ def verify_otp_page():
             flash('رمز التحقق غير صحيح أو منتهي الصلاحية.', 'danger')
             
     return render_template('auth/verify_otp.html')
+
+@auth_portal.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    """مسار إعادة إرسال رمز التحقق"""
+    if 'temp_user_id' in session:
+        user = AdminUser.query.get(session['temp_user_id'])
+        if user:
+            OTPVerification.generate_otp(user.email)
+            flash('تم إرسال رمز تحقق جديد إلى بريدك.', 'info')
+    return redirect(url_for('auth_portal.verify_otp_page'))
 
 # -------------------------------------------------------------------------
 # 3. المسارات المساعدة (الكمين والخروج)
