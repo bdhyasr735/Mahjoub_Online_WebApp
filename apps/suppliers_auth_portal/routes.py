@@ -1,23 +1,23 @@
 # coding: utf-8
-# 📂 apps/suppliers_auth_portal/routes.py - نظام الدخول السيادي (مُعرب بالكامل)
+# 📂 apps/suppliers_auth_portal/routes.py - نظام الدخول السيادي (مُحدث بالكامل)
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from flask_login import login_user, logout_user, current_user
 from apps import db
 
-# الاستيرادات الجديدة - تأكد أن هذه الملفات موجودة في المجلدات المشار إليها
+# الاستيرادات من المجلدات المحدثة
 from apps.suppliers_auth_portal.auth_service import VendorAuthService 
 from apps.models.otp_db import OTPVerification
 from apps.models.supplier_db import Supplier
 from apps.models.marketer_db import Marketer 
 import uuid 
 
-# تعريف الـ Blueprint (استخدمنا اسم 'suppliers_portal' لضمان عدم التعارض)
+# تعريف الـ Blueprint باسم 'suppliers_portal'
 suppliers_bp = Blueprint('suppliers_portal', __name__, template_folder='templates')
 
 @suppliers_bp.before_request
 def check_login():
-    """حماية سيادية: استثناء مسارات الدخول"""
+    """حماية سيادية: استثناء مسارات الدخول والملفات الثابتة"""
     if request.endpoint in ['suppliers_portal.login', 'static']:
         return None
     
@@ -27,6 +27,7 @@ def check_login():
 @suppliers_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
+        # مسار القالب الصحيح داخل المجلد الجديد
         return render_template('suppliers_auth_portal/login.html')
 
     try:
@@ -51,12 +52,14 @@ def login():
         phone = "".join(filter(str.isdigit, raw_phone))
         otp = data.get('otp')
 
+        # خطوة 1: إرسال الـ OTP
         if phone and not otp:
             new_otp = OTPVerification.generate_otp(phone)
             if new_otp and VendorAuthService.initiate_login(phone, new_otp):
                 return jsonify({"status": "success", "message": "تم إرسال رمز التحقق"})
             return jsonify({"status": "error", "message": "فشل إرسال الرمز"}), 500
 
+        # خطوة 2: التحقق من الـ OTP والدخول
         if phone and otp:
             if OTPVerification.verify_otp(phone, otp):
                 supplier = Supplier.query.filter_by(owner_phone=phone).first()
@@ -81,6 +84,8 @@ def login():
 
     except Exception as e:
         db.session.rollback()
+        # طباعة الخطأ في الـ Console للمساعدة في التشخيص
+        print(f"Auth Error: {str(e)}")
         return jsonify({"status": "error", "message": "حدث خطأ فني"}), 500
 
 @suppliers_bp.route('/logout')
