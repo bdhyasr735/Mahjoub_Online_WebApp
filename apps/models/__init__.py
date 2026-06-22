@@ -2,11 +2,12 @@
 
 from .admin_db import AdminUser
 from .admin_staff_db import AdminStaff
-# قمنا بتغيير الاسم هنا ليطابق الكلاس في ملف financials_db.py
 from .financials_db import OrderFinancial 
-
 from .marketers_db import Marketer
-from .orders_db import ProcessedOrder
+
+# تم تصحيح الاسم هنا من ProcessedOrder إلى Order
+from .orders_db import Order 
+
 from .otp_db import OTPVerification
 from .supplier_db import Supplier
 from .supplier_profile_db import SupplierProfile
@@ -16,6 +17,6 @@ from .wallet_db import SupplierWallet
 
 __all__ = [
     'AdminUser', 'AdminStaff', 'OrderFinancial', 'Marketer', 
-    'ProcessedOrder', 'OTPVerification', 'Supplier', 
+    'Order', 'OTPVerification', 'Supplier', 
     'SupplierProfile', 'SupplierStaff', 'SyncLog', 'SupplierWallet'
 ]
