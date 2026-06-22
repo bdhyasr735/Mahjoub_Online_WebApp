@@ -18,12 +18,11 @@ def check_login():
     """
     حماية سيادية للمسارات مع ضمان عدم حدوث حلقة إعادة توجيه
     """
-    # المسارات المستثناة
+    # المسارات المستثناة التي لا تتطلب تسجيل دخول
+    # تأكد من أن الـ endpoint يطابق ما يراه Flask
     allowed_endpoints = ['vendors.login', 'static']
     
-    # التحقق من أن الطلب ليس للمسارات المسموحة
     if request.endpoint not in allowed_endpoints:
-        # إذا لم يكن المستخدم مسجلاً، وجهه لصفحة الدخول
         if not current_user.is_authenticated:
             return redirect(url_for('vendors.login'))
 
