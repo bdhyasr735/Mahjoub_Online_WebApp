@@ -16,15 +16,15 @@ vendors_bp = Blueprint('vendors', __name__, template_folder='templates')
 @vendors_bp.before_request
 def check_login():
     """
-    حماية سيادية للمسارات مع ضمان عدم حدوث حلقة إعادة توجيه
+    حماية سيادية: استثناء مسارات الدخول والملفات الثابتة لمنع حلقات إعادة التوجيه
     """
-    # المسارات المستثناة التي لا تتطلب تسجيل دخول
-    # تأكد من أن الـ endpoint يطابق ما يراه Flask
-    allowed_endpoints = ['vendors.login', 'static']
+    # التأكد من عدم حماية مسارات الدخول
+    if request.endpoint in ['vendors.login', 'static']:
+        return None
     
-    if request.endpoint not in allowed_endpoints:
-        if not current_user.is_authenticated:
-            return redirect(url_for('vendors.login'))
+    # حماية باقي المسارات
+    if not current_user.is_authenticated:
+        return redirect(url_for('vendors.login'))
 
 @vendors_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -95,7 +95,6 @@ def login():
 @vendors_bp.route('/setup', methods=['GET', 'POST'])
 @login_required
 def setup_profile():
-    # توجيه المورد إلى قالب الإعداد المخصص
     return render_template('admin/dashboard_content.html', title="إكمال إعدادات المورد")
 
 @vendors_bp.route('/logout')
