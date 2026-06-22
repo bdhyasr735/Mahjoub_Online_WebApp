@@ -1,4 +1,6 @@
 # 📂 apps/models/__init__.py
+# الفهرس الموحد لجميع موديلات قاعدة البيانات
+
 from .admin_db import AdminUser
 from .admin_staff_db import AdminStaff
 from .financials_db import OrderFinancial 
@@ -9,11 +11,22 @@ from .supplier_db import Supplier
 from .supplier_profile_db import SupplierProfile
 from .supplier_staff_db import SupplierStaff
 from .sync_log import SyncLog
-# تم تعديل الاسم هنا ليطابق الكلاس VendorWallet
 from .wallet_db import VendorWallet 
+from .vault_db import AdminVault, VaultTransaction
 
+# قائمة للتصدير لضمان سهولة الوصول إليها من أي مكان في النظام
 __all__ = [
-    'AdminUser', 'AdminStaff', 'OrderFinancial', 'Marketer', 
-    'Order', 'OTPVerification', 'Supplier', 
-    'SupplierProfile', 'SupplierStaff', 'SyncLog', 'VendorWallet'
+    'AdminUser', 
+    'AdminStaff', 
+    'OrderFinancial', 
+    'Marketer', 
+    'Order', 
+    'OTPVerification', 
+    'Supplier', 
+    'SupplierProfile', 
+    'SupplierStaff', 
+    'SyncLog', 
+    'VendorWallet',
+    'AdminVault',
+    'VaultTransaction'
 ]
