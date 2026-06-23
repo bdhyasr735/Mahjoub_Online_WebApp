@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/admin_dashboard/routes.py - لوحة تحكم الإدارة المركزية (مُحسنة)
+# 📂 apps/admin_dashboard/routes.py - لوحة تحكم الإدارة المركزية (مُحدث بالكامل)
 
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
@@ -18,30 +18,43 @@ def dashboard():
     لوحة تحكم القيادة المركزية للمدير
     """
     try:
-        # 1. حماية سيادية: التحقق باستخدام معرف فريد في جدول الإدارة
-        # بدلاً من isinstance التي قد تفشل بسبب Circular Import
-        if not hasattr(current_user, 'is_admin') or not current_user.is_admin:
-            # ملاحظة: تأكد أن نموذج AdminUser يحتوي على خاصية is_admin=True
-            # إذا لم تكن موجودة، استخدم التحقق عبر البريد أو النوع
-            if not isinstance(current_user, AdminUser):
-                flash("هذه المنطقة مخصصة للمدراء فقط.", "danger")
-                return redirect(url_for('auth_portal.login'))
+        # 1. حماية سيادية: التحقق من الصلاحية
+        if not isinstance(current_user, AdminUser):
+            flash("هذه المنطقة مخصصة للمدراء فقط.", "danger")
+            return redirect(url_for('auth_portal.login'))
 
-        # 2. جلب إحصائيات النظام
+        # 2. جلب البيانات المطلوبة في القالب
+        # جلب عدد الموردين
         total_suppliers = Supplier.query.count()
         
-        stats = {
-            'total_suppliers': total_suppliers,
-            'active_orders': 0,
-            'central_balance': "0.00"
-        }
-        
-        return render_template('admin/dashboard.html', stats=stats)
+        # تعريف المتغيرات المالية (تم تعيينها كـ 0.0 لتجنب الأخطاء عند عدم وجود بيانات)
+        # يمكنك استبدال هذه الأصفار باستعلامات من قاعدة بيانات العمليات المالية إذا توفرت
+        total_balance_sar = 0.0
+        total_balance_yer = 0.0
+        total_balance_usd = 0.0
+        recent_transactions = [] # هنا يمكنك جلب العمليات الأخيرة: Transaction.query.order_by(...).limit(5).all()
+
+        # 3. إرسال المتغيرات للقالب (تطابق القالب تماماً)
+        return render_template(
+            'admin/dashboard.html',
+            total_suppliers=total_suppliers,
+            total_balance_sar=total_balance_sar,
+            total_balance_yer=total_balance_yer,
+            total_balance_usd=total_balance_usd,
+            recent_transactions=recent_transactions
+        )
         
     except Exception as e:
         # 💡 طباعة الخطأ الحقيقي بالتفصيل في الـ Logs لتسهيل التصحيح
         print(f"🚨 [CRITICAL ERROR] Dashboard failed: {traceback.format_exc()}")
         return f"حدث خطأ فني أثناء تحميل لوحة التحكم: {str(e)}", 500
+
+@admin_dashboard.route('/settings')
+@login_required
+def settings():
+    if not isinstance(current_user, AdminUser):
+        return redirect(url_for('auth_portal.login'))
+    return "صفحة إعدادات النظام قيد التطوير"
 
 @admin_dashboard.route('/suppliers')
 @login_required
