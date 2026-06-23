@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي للنظام (النسخة المنقحة)
+# 📂 apps/__init__.py - المصنع السيادي للنظام (النسخة النهائية)
 
 import os
 import importlib
@@ -10,7 +10,6 @@ from apps.extensions import db, login_manager, migrate
 
 def create_app():
     # 1. إعداد المصنع مع جعل مسار القوالب أكثر مرونة
-    # نستخدم المجلد الحالي كمصدر أساسي
     app = Flask(__name__, 
                 template_folder='templates', 
                 static_folder='static', 
@@ -19,7 +18,7 @@ def create_app():
     
     app.config.from_object(Config)
 
-    # تحسينات التوافق مع بيئة الإنتاج (Render)
+    # تحسينات التوافق مع بيئة الإنتاج
     app.config['SESSION_COOKIE_SECURE'] = True
     app.config['REMEMBER_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -44,7 +43,7 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. تسجيل المسارات (Blueprints)
+    # 4. تسجيل المسارات الأساسية (Hardcoded Blueprints)
     try:
         from apps.auth_portal.routes import auth_portal
         from apps.admin_dashboard.routes import admin_dashboard
@@ -60,10 +59,11 @@ def create_app():
         app.register_blueprint(orders_bp, url_prefix='/orders')
         app.register_blueprint(webhooks_bp, url_prefix='/api')
     except Exception as e:
-        print(f"🚨 [CRITICAL] خطأ في تسجيل المسارات: {e}")
+        print(f"🚨 [CRITICAL] خطأ في تسجيل المسارات الأساسية: {e}")
 
-    # 5. المحرك التلقائي لاكتشاف التطبيقات (مع حماية ضد الأخطاء)
+    # 5. المحرك التلقائي لاكتشاف التطبيقات (Dynamic Auto-Discovery)
     apps_dir = os.path.dirname(__file__)
+    # المجلدات المستثناة التي لها تسجيل يدوي أعلاه
     ignore_folders = {'models', 'extensions', 'static', 'templates', '__pycache__', 'api', 'auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders'}
     
     for folder in os.listdir(apps_dir):
@@ -77,7 +77,6 @@ def create_app():
                 if hasattr(module, 'register_app'):
                     module.register_app(app)
             except Exception as e:
-                # لا نوقف النظام إذا فشل تطبيق ثانوي، فقط نسجل الخطأ
                 print(f"⚠️ [System] تجاوز خطأ في تحميل التطبيق {folder}: {e}")
 
     @app.route('/')
@@ -87,9 +86,7 @@ def create_app():
     # 6. إعداد البيانات والجداول
     with app.app_context():
         try:
-            # استيراد النماذج الأساسية فقط لتهيئة الجداول
             from apps.models.admin_db import AdminUser
-            # تأكد أن جميع الملفات في مجلد models موجودة بالفعل لتفادي Imports Error
             db.create_all()
             
             # تأسيس المالك
