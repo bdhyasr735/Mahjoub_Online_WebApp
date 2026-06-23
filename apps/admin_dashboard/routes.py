@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/admin_dashboard/routes.py - النسخة المعدلة لضمان العثور على القوالب
+# 📂 apps/admin_dashboard/routes.py - النسخة النهائية الموثوقة
 
 import os
 from flask import Blueprint, render_template, redirect, url_for, flash
@@ -10,19 +10,18 @@ import traceback
 from apps.models.admin_db import AdminUser
 from apps.models.supplier_db import Supplier
 
-# 1. تعريف مسار القوالب بدقة مطلقة
-# نحدد المسار إلى مجلد 'admin' مباشرة لضمان العثور على الملفات
-admin_templates = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates', 'admin')
-
+# تعريف الـ Blueprint
+# ملاحظة: template_folder='templates' تعني أن Flask ستبحث عن أي قالب داخل مجلد templates
 admin_dashboard = Blueprint(
     'admin_dashboard', 
     __name__, 
-    template_folder='templates' # المجلد الأساسي
+    template_folder='templates'
 )
 
 @admin_dashboard.route('/dashboard')
 @login_required
 def dashboard():
+    """لوحة تحكم الإدارة المركزية"""
     try:
         # فحص صلاحية الوصول
         if not getattr(current_user, 'is_admin', False) and not isinstance(current_user, AdminUser):
@@ -30,9 +29,9 @@ def dashboard():
 
         total_suppliers = Supplier.query.count()
         
-        # 2. الحل: بما أننا وضعنا المسار المباشر لـ 'admin' في تعريف الـ Blueprint (أو التعامل المباشر)
-        # إذا استمر الخطأ، جرب إزالة 'admin/' من هنا، لتصبح 'dashboard.html'
-        # ولكن بما أن المجلد اسمه 'admin' داخل 'templates'، فالكود التالي هو الأدق:
+        # عند استخدام template_folder='templates'، المسار يبدأ من داخل هذا المجلد.
+        # بما أن ملفك موجود في 'apps/admin_dashboard/templates/admin/dashboard.html'
+        # فإن الطلب الصحيح هو 'admin/dashboard.html'
         return render_template(
             'admin/dashboard.html',
             total_suppliers=total_suppliers,
@@ -43,14 +42,17 @@ def dashboard():
         )
         
     except Exception as e:
+        # طباعة الخطأ الكامل في الـ Logs لتسهيل التصحيح
         print(f"🚨 [CRITICAL ERROR] {traceback.format_exc()}")
-        return "حدث خطأ في تحميل الواجهة (Template Not Found)", 500
+        return f"حدث خطأ في تحميل الواجهة: {str(e)}", 500
 
 @admin_dashboard.route('/suppliers')
 @login_required
 def manage_suppliers():
+    """عرض قائمة الموردين"""
     if not isinstance(current_user, AdminUser):
         return redirect(url_for('auth_portal.login'))
         
     suppliers = Supplier.query.all()
+    # المسار: templates/admin/suppliers.html
     return render_template('admin/suppliers.html', suppliers=suppliers)
