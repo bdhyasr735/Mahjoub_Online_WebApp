@@ -1,46 +1,29 @@
 # coding: utf-8
-# 📂 apps/utils/security.py - محرك التشفير السيادي
+# 📂 apps/utils/security.py - محرك التشفير السيادي (المُحدث بالمفتاح الصحيح)
 
 from cryptography.fernet import Fernet
-import os
-
-# 🔐 مفتاح التشفير يتم جلبه من متغيرات البيئة لضمان الأمان العالي
-# تأكد من إضافة SECRET_KEY إلى ملف الـ Config أو متغيرات بيئة Render
-# يجب أن يكون مفتاحاً صالحاً لـ Fernet (مشفر بـ Base64)
-KEY = os.environ.get('SECRET_KEY', 'your-secret-key-must-be-32-url-safe-base64-bytes=')
+from apps.config import Config # استيراد المفتاح من ملف الإعدادات
 
 class AESCipher:
-    """
-    محرك تشفير وفك تشفير البيانات (OTP) باستخدام Fernet
-    """
+    """محرك التشفير المعتمد على المفتاح المركزي في Config"""
     
     @staticmethod
     def _get_fernet():
-        # التأكد من أن المفتاح صالح للعمل مع Fernet
-        # ملاحظة: إذا كان الـ Key في البيئة غير صالح، قد تحتاج لعملية تهيئة
-        try:
-            return Fernet(KEY.encode())
-        except Exception:
-            # في حال كان المفتاح غير صحيح، نستخدم مفتاحاً افتراضياً للتطوير
-            # (يجب استبداله في الإنتاج بمفتاح حقيقي)
-            return Fernet(Fernet.generate_key())
+        # استخدام المفتاح الموجود في ملف Config.py
+        key = Config.ENCRYPTION_KEY.encode()
+        return Fernet(key)
 
     @staticmethod
     def encrypt(raw_data):
-        """تشفير النص الخام"""
-        if not raw_data:
-            return None
-        fernet = AESCipher._get_fernet()
-        return fernet.encrypt(str(raw_data).encode()).decode()
+        if not raw_data: return None
+        return AESCipher._get_fernet().encrypt(str(raw_data).encode()).decode()
 
     @staticmethod
     def decrypt(enc_data):
-        """فك تشفير النص المشفر"""
-        if not enc_data:
-            return None
+        if not enc_data: return None
         try:
-            fernet = AESCipher._get_fernet()
-            return fernet.decrypt(enc_data.encode()).decode()
-        except Exception as e:
-            print(f"🚨 [Security] خطأ في فك التشفير: {e}")
+            return AESCipher._get_fernet().decrypt(enc_data.encode()).decode()
+        except Exception:
+            # إذا فشل الفك، فهذا يعني أن البيانات مشفرة بمفتاح آخر 
+            # أو تم تعديلها، سنعيد None لتوليد OTP جديد
             return None
