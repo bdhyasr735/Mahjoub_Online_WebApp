@@ -1,24 +1,28 @@
-# 📂 apps/suppliers_auth_portal/registry.py (النسخة الآمنة)
-from flask import redirect, url_for
+# coding: utf-8
+# 📂 apps/suppliers_auth_portal/registry.py - مسجل موديول الموردين والمسوقين في مصنع النظام
 
-def register_app(app):
+import os
+from apps.suppliers_auth_portal.routes import suppliers_bp
+
+def register_module(app):
+    """
+    تسجيل بوابة الموردين والمسوقين السيادية داخل تطبيق Flask الرئيسي.
+    يتم استدعاء هذه الدالة ديناميكياً بواسطة الـ System Factory (apps/__init__.py).
+    """
     try:
-        # الاستيراد داخل الدالة (Lazy Import) يمنع انهيار النظام عند الإقلاع
-        from .routes import suppliers_bp
-        
-        # 1. تسجيل الـ Blueprint الخاص بالموردين
+        # تسجيل الـ Blueprint مع تحديد بادئة المسار الافتراضية للبوابة
+        # سيصبح مسار الدخول تلقائياً: yourdomain.com/suppliers/login
         app.register_blueprint(suppliers_bp, url_prefix='/suppliers')
         
-        # 2. الجسر الذكي
-        app.add_url_rule(
-            '/auth/login', 
-            endpoint='auth_portal.login', 
-            view_func=lambda: redirect(url_for('suppliers.login'))
-        )
-        
-        print("✅ [System] تم تسجيل بوابة الموردين (Suppliers Portal) بنجاح.")
+        print("✅ [Module Registry]: تم تسجيل بوابة الموردين والمسوقين بنجاح (/suppliers)")
         
     except Exception as e:
-        # في حال وجود خطأ في routes.py الخاص بالموردين، 
-        # سنقوم بطباعة الخطأ فقط ولن ينهار النظام.
-        print(f"⚠️ [Isolation] تعذر تسجيل بوابة الموردين بسبب خطأ في كود الموردين: {e}")
+        print(f"🚨 [Module Registry Error]: فشل تسجيل موديول الموردين: {e}")
+
+# إعدادات الموديول الفنية (Metadata) في حال احتجت لإدارتها ديناميكياً
+MODULE_CONFIG = {
+    "module_name": "suppliers_auth_portal",
+    "version": "2.0.0",
+    "auth_type": "OTP & Credentials",
+    "secured": True
+}
