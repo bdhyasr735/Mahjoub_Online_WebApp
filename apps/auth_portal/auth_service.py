@@ -1,39 +1,33 @@
 # coding: utf-8
-# 📂 apps/auth_portal/auth_service.py - خدمة إرسال رموز الإدارة (Admin OTP Service)
-
 import os
 import requests
 import re
+import time
 
 class AdminAuthService:
     @staticmethod
     def initiate_login(phone, otp_code):
-        """
-        خدمة إرسال الرموز للإدارة. 
-        يمكنك هنا استخدام بوابة مختلفة (مثل SMS) أو نفس بوابة الموردين.
-        """
+        clean_phone = re.sub(r'[^\d]', '', str(phone))
+        # استخدم مفتاح الموردين أو مفتاح إداري خاص إن وجد
+        api_key = os.environ.get('TEXTMEBOT_API_KEY', 'rb3tZFnHRcsN') 
+        
+        message = f"Mahjoub Online | Admin Access\n\nرمز دخول الإدارة: {otp_code}\n— محجوب أونلاين"
+        base_url = "http://api.textmebot.com/send.php"
+        
+        params = {"recipient": clean_phone, "apikey": api_key, "text": message, "json": "yes"}
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        
         try:
-            # تنظيف الرقم
-            clean_phone = re.sub(r'[^\d]', '', str(phone))
+            response = requests.get(base_url, params=params, headers=headers, timeout=15)
             
-            # يمكنك استخدام API مختلف للإدارة لضمان عدم تعارض العمليات
-            api_key = os.environ.get('ADMIN_SMS_API_KEY') 
+            # معالجة التأخير
+            if response.status_code == 403 and "Delay needed" in str(response.text):
+                time.sleep(10)
+                response = requests.get(base_url, params=params, headers=headers, timeout=15)
             
-            # رسالة مخصصة للإدارة
-            message = f"Mahjoub Online | Admin Access\n\nرمز دخول الإدارة: {otp_code}"
-            
-            # مثال لطلب إرسال (قم بضبط الـ URL والـ Params حسب مزود الـ SMS الخاص بك)
-            # response = requests.post("URL_SERVICE_SMS", json={"to": clean_phone, "text": message})
-            
-            # حالياً سنضع منطق الطباعة للتجربة حتى تختار مزود الـ SMS الخاص بك:
-            print(f"🔐 [Admin OTP] إرسال للإدارة: {otp_code} إلى الرقم: {clean_phone}")
-            
-            # سنفترض النجاح دائماً في هذه المرحلة حتى تقوم بربط مزود الـ SMS
-            return True 
+            print(f"DEBUG [Admin OTP Response]: {response.status_code} - {response.text}")
+            return response.status_code == 200
             
         except Exception as e:
             print(f"❌ [Admin Auth Error] {e}")
             return False
-
-# 📂 ملاحظة: لربط هذا الملف بـ otp_db.py، أنشئ ملف dispatcher في مجلد auth_portal 
-# ليكون هو الجسر الذي يستدعي هذه الدالة.
