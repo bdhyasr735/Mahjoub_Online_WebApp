@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي للنظام
+# 📂 apps/__init__.py - المصنع السيادي للنظام (النسخة المنقحة)
 
 import os
 import importlib
@@ -9,7 +9,8 @@ from config import Config
 from apps.extensions import db, login_manager, migrate
 
 def create_app():
-    # 1. إعداد المصنع مع تحديد مسارات ثابتة ومجلدات القوالب
+    # 1. إعداد المصنع مع جعل مسار القوالب أكثر مرونة
+    # نستخدم المجلد الحالي كمصدر أساسي
     app = Flask(__name__, 
                 template_folder='templates', 
                 static_folder='static', 
@@ -61,22 +62,23 @@ def create_app():
     except Exception as e:
         print(f"🚨 [CRITICAL] خطأ في تسجيل المسارات: {e}")
 
-    # 5. المحرك التلقائي لاكتشاف التطبيقات
+    # 5. المحرك التلقائي لاكتشاف التطبيقات (مع حماية ضد الأخطاء)
     apps_dir = os.path.dirname(__file__)
     ignore_folders = {'models', 'extensions', 'static', 'templates', '__pycache__', 'api', 'auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders'}
     
     for folder in os.listdir(apps_dir):
-        if folder in ignore_folders:
+        if folder in ignore_folders or not os.path.isdir(os.path.join(apps_dir, folder)):
             continue
             
-        folder_path = os.path.join(apps_dir, folder)
-        if os.path.isdir(folder_path) and os.path.exists(os.path.join(folder_path, 'registry.py')):
+        registry_path = os.path.join(apps_dir, folder, 'registry.py')
+        if os.path.exists(registry_path):
             try:
                 module = importlib.import_module(f'apps.{folder}.registry')
                 if hasattr(module, 'register_app'):
                     module.register_app(app)
             except Exception as e:
-                print(f"⚠️ [System] فشل تحميل التطبيق في {folder}: {e}")
+                # لا نوقف النظام إذا فشل تطبيق ثانوي، فقط نسجل الخطأ
+                print(f"⚠️ [System] تجاوز خطأ في تحميل التطبيق {folder}: {e}")
 
     @app.route('/')
     def index():
@@ -85,19 +87,9 @@ def create_app():
     # 6. إعداد البيانات والجداول
     with app.app_context():
         try:
-            # استيراد النماذج لضمان تهيئتها في الـ Database
+            # استيراد النماذج الأساسية فقط لتهيئة الجداول
             from apps.models.admin_db import AdminUser
-            from apps.models.admin_staff_db import AdminStaff
-            from apps.models.financials_db import OrderFinancial
-            from apps.models.marketers_db import Marketer
-            from apps.models.orders_db import Order
-            from apps.models.otp_db import OTPVerification
-            from apps.models.supplier_db import Supplier
-            from apps.models.supplier_profile_db import SupplierProfile
-            from apps.models.supplier_staff_db import SupplierStaff
-            from apps.models.sync_log import SyncLog
-            from apps.models.wallet_db import VendorWallet
-
+            # تأكد أن جميع الملفات في مجلد models موجودة بالفعل لتفادي Imports Error
             db.create_all()
             
             # تأسيس المالك
