@@ -13,7 +13,7 @@ from .supplier_staff_db import SupplierStaff
 from .sync_log import SyncLog
 from .wallet_db import VendorWallet 
 
-# تأكد أنك حذفت أي سطر يحتوي على vault_db من هنا
+# القائمة الموحدة للتصدير (Exports)
 __all__ = [
     'AdminUser', 
     'AdminStaff', 
