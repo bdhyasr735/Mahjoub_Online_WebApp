@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي للنظام (النسخة الأكثر استقراراً)
+# 📂 apps/__init__.py - المصنع السيادي للإدارة (نسخة معزولة تماماً)
 
 import os
 import importlib
@@ -18,9 +18,12 @@ def create_app():
     
     app.config.from_object(Config)
 
-    app.config['SESSION_COOKIE_SECURE'] = True
-    app.config['REMEMBER_COOKIE_SECURE'] = True
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    # تحسينات الأمان
+    app.config.update(
+        SESSION_COOKIE_SECURE=True,
+        REMEMBER_COOKIE_SECURE=True,
+        SESSION_COOKIE_HTTPONLY=True
+    )
 
     # 2. 🛡️ سياسة أمان المحتوى (CSP)
     Talisman(app, force_https=True, content_security_policy={
@@ -42,8 +45,8 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. تسجيل المسارات (مع عزل كامل لكل مسار لضمان عدم توقف النظام)
-    blueprints = [
+    # 4. تسجيل مسارات الإدارة فقط (بدون أي استيراد للموردين هنا)
+    core_blueprints = [
         ('apps.auth_portal.routes', 'auth_portal', '/auth'),
         ('apps.admin_dashboard.routes', 'admin_dashboard', '/admin'),
         ('apps.wallet.routes', 'wallet_app', '/wallet'),
@@ -52,48 +55,18 @@ def create_app():
         ('apps.api.webhooks', 'webhooks_bp', '/api')
     ]
 
-    for module_path, bp_name, prefix in blueprints:
+    for module_path, bp_name, prefix in core_blueprints:
         try:
             module = importlib.import_module(module_path)
             app.register_blueprint(getattr(module, bp_name), url_prefix=prefix)
-        except Exception as e:
-            print(f"🚨 [CRITICAL] فشل تسجيل المسار {bp_name}: {e}")
+        except ImportError as e:
+            print(f"🚨 [System] خطأ في تحميل مسار الإدارة {bp_name}: {e}")
 
-    # 5. المحرك التلقائي لاكتشاف التطبيقات (مع حماية ضد الأخطاء)
+    # 5. عزل تام: الموردون لا يُسجلون في هذا المصنع إلا عبر الـ Registry الديناميكي
+    # الميزة: لو انهار الموردون، لن تتأثر الإدارة لأنهم لا يستوردون في `try` أعلاه
     apps_dir = os.path.dirname(__file__)
-    ignore_folders = {'models', 'extensions', 'static', 'templates', '__pycache__', 'api', 'auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders'}
-    
     for folder in os.listdir(apps_dir):
-        if folder in ignore_folders or not os.path.isdir(os.path.join(apps_dir, folder)):
-            continue
-            
-        registry_path = os.path.join(apps_dir, folder, 'registry.py')
-        if os.path.exists(registry_path):
-            try:
-                module = importlib.import_module(f'apps.{folder}.registry')
-                if hasattr(module, 'register_app'):
-                    module.register_app(app)
-            except Exception as e:
-                print(f"⚠️ [System] تجاوز خطأ في تحميل التطبيق {folder}: {e}")
-
-    @app.route('/')
-    def index():
-        return redirect(url_for('auth_portal.login'))
-
-    # 6. إعداد البيانات والجداول
-    with app.app_context():
-        try:
-            from apps.models.admin_db import AdminUser
-            db.create_all()
-            
-            owner_username = 'علي محجوب'
-            if not AdminUser.query.filter_by(username=owner_username).first():
-                admin = AdminUser(username=owner_username, role='Owner', phone_number='779077746')
-                admin.set_password('123')
-                db.session.add(admin)
-                db.session.commit()
-                print("✅ [System] تم تأسيس حساب المالك.")
-        except Exception as e:
-            print(f"⚠️ [Error] فشل في تهيئة قاعدة البيانات: {e}")
-
-    return app
+        # تجاهل أي شيء ليس جزءاً من الإدارة إذا أردت عزلهم تماماً
+        if folder in {'suppliers_auth_portal', 'suppliers_dashboard'}:
+            registry_path = os.path.join(apps_dir, folder, 'registry.py')
+            if os.path.exists(registry_path):
