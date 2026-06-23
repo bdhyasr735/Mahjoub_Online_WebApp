@@ -1,12 +1,10 @@
 # coding: utf-8
-# 📂 apps/models/otp_db.py - نظام إدارة الرموز السيادي (مُحدث للعمل مع الواتساب)
+# 📂 apps/models/otp_db.py - نظام إدارة الرموز السيادي (مُصحح)
 
 import random
 from apps.extensions import db
 from apps.utils.security import AESCipher
 from datetime import datetime, timedelta
-# استيراد خدمة الإرسال المركزية
-from apps.suppliers_auth_portal.auth_service import VendorAuthService
 
 class OTPVerification(db.Model):
     __tablename__ = 'otp_verifications'
@@ -37,18 +35,21 @@ class OTPVerification(db.Model):
     @staticmethod
     def generate_otp(identifier, expires_in_minutes=5):
         """توليد رمز جديد، إبطال الرموز السابقة، وإرسال الرمز عبر واتساب"""
+        
+        # ✅ استيراد محلي (Lazy Import) لمنع الانهيار أثناء بدء تشغيل التطبيق
+        from apps.suppliers_auth_portal.auth_service import VendorAuthService
+        
         try:
             # 1. إبطال الرموز القديمة
             OTPVerification.query.filter_by(user_identifier=identifier, is_used=False).update({"is_used": True})
             
             raw_code = str(random.randint(100000, 999999))
             
-            # 2. إرسال الرمز عبر خدمة الواتساب (يعمل للإدارة والموردين)
+            # 2. إرسال الرمز عبر خدمة الواتساب
             success = VendorAuthService.initiate_login(identifier, raw_code)
             
             if not success:
                 print(f"⚠️ [OTP Delivery] فشل إرسال الرمز للرقم: {identifier}")
-                # نواصل الإنشاء حتى لو فشل الإرسال (اختياري حسب رغبتك)
             
             # 3. حفظ الرمز الجديد
             new_otp = OTPVerification(
