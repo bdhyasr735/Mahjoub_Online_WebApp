@@ -9,9 +9,19 @@ from config import Config
 from apps.extensions import db, login_manager, migrate
 
 def create_app():
-    # 1. إعداد المصنع
-    app = Flask(__name__, template_folder='templates', static_folder='static', instance_relative_config=True)
+    # 1. إعداد المصنع مع تحديد مسارات ثابتة ومجلدات القوالب
+    app = Flask(__name__, 
+                template_folder='templates', 
+                static_folder='static', 
+                static_url_path='/static',
+                instance_relative_config=True)
+    
     app.config.from_object(Config)
+
+    # تحسينات التوافق مع بيئة الإنتاج (Render)
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['REMEMBER_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
 
     # 2. 🛡️ سياسة أمان المحتوى (CSP)
     Talisman(app, force_https=True, content_security_policy={
@@ -33,24 +43,26 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. تسجيل المسارات (Blueprints) الأساسية
-    from apps.auth_portal.routes import auth_portal
-    from apps.admin_dashboard.routes import admin_dashboard
-    from apps.wallet.routes import wallet_app
-    from apps.vault.routes import vault_bp
-    from apps.orders.routes import orders_bp
-    from apps.api.webhooks import webhooks_bp
+    # 4. تسجيل المسارات (Blueprints)
+    try:
+        from apps.auth_portal.routes import auth_portal
+        from apps.admin_dashboard.routes import admin_dashboard
+        from apps.wallet.routes import wallet_app
+        from apps.vault.routes import vault_bp
+        from apps.orders.routes import orders_bp
+        from apps.api.webhooks import webhooks_bp
 
-    app.register_blueprint(auth_portal, url_prefix='/auth')
-    app.register_blueprint(admin_dashboard, url_prefix='/admin')
-    app.register_blueprint(wallet_app, url_prefix='/wallet')
-    app.register_blueprint(vault_bp, url_prefix='/vault')
-    app.register_blueprint(orders_bp, url_prefix='/orders')
-    app.register_blueprint(webhooks_bp, url_prefix='/api')
+        app.register_blueprint(auth_portal, url_prefix='/auth')
+        app.register_blueprint(admin_dashboard, url_prefix='/admin')
+        app.register_blueprint(wallet_app, url_prefix='/wallet')
+        app.register_blueprint(vault_bp, url_prefix='/vault')
+        app.register_blueprint(orders_bp, url_prefix='/orders')
+        app.register_blueprint(webhooks_bp, url_prefix='/api')
+    except Exception as e:
+        print(f"🚨 [CRITICAL] خطأ في تسجيل المسارات: {e}")
 
-    # 5. المحرك التلقائي لاكتشاف التطبيقات وتسجيلها
+    # 5. المحرك التلقائي لاكتشاف التطبيقات
     apps_dir = os.path.dirname(__file__)
-    # قائمة المجلدات التي يجب تجاهلها (لا تحتوي على تطبيقات ذاتية التسجيل)
     ignore_folders = {'models', 'extensions', 'static', 'templates', '__pycache__', 'api', 'auth_portal', 'admin_dashboard', 'wallet', 'vault', 'orders'}
     
     for folder in os.listdir(apps_dir):
@@ -73,6 +85,7 @@ def create_app():
     # 6. إعداد البيانات والجداول
     with app.app_context():
         try:
+            # استيراد النماذج لضمان تهيئتها في الـ Database
             from apps.models.admin_db import AdminUser
             from apps.models.admin_staff_db import AdminStaff
             from apps.models.financials_db import OrderFinancial
@@ -90,12 +103,11 @@ def create_app():
             # تأسيس المالك
             owner_username = 'علي محجوب'
             if not AdminUser.query.filter_by(username=owner_username).first():
-                # تم تحديث رقم الهاتف هنا
                 admin = AdminUser(username=owner_username, role='Owner', phone_number='779077746')
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
-                print("✅ [System] تم تأسيس حساب المالك بنجاح برقم 779077746.")
+                print("✅ [System] تم تأسيس حساب المالك بنجاح.")
         except Exception as e:
             print(f"⚠️ [Error] فشل في تهيئة قاعدة البيانات: {e}")
 
