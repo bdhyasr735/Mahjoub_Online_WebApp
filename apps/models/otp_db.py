@@ -10,8 +10,13 @@ class OTPVerification(db.Model):
     __tablename__ = 'otp_verifications'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    
+    # ⚡ فهرسة user_identifier للوصول السريع
     user_identifier = db.Column(db.String(150), index=True, nullable=False)
+    
+    # 🔐 تخزين الرمز مشفراً
     _otp_code_enc = db.Column('otp_code', db.String(255), nullable=False)
+    
     is_used = db.Column(db.Boolean, default=False, index=True)
     expires_at = db.Column(db.DateTime, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
@@ -34,17 +39,18 @@ class OTPVerification(db.Model):
         dispatcher: كائن يحتوي على دالة .send(identifier, code)
         """
         try:
-            # 1. إبطال الرموز السابقة
+            # 1. إبطال الرموز السابقة لنفس المستخدم
             OTPVerification.query.filter_by(user_identifier=identifier, is_used=False).update({"is_used": True})
             
             raw_code = str(random.randint(100000, 999999))
             
             # 2. الإرسال عبر الخدمة الممررة (فصل تام للبوابات)
+            # dispatcher.send يجب أن تعيد True في حال نجاح الإرسال
             if not dispatcher.send(identifier, raw_code):
                 print(f"⚠️ [OTP Delivery] فشل الإرسال للرقم: {identifier}")
                 return None
             
-            # 3. حفظ الرمز الجديد
+            # 3. حفظ الرمز الجديد في قاعدة البيانات
             new_otp = OTPVerification(
                 user_identifier=identifier,
                 expires_at=datetime.utcnow() + timedelta(minutes=expires_in_minutes),
@@ -60,6 +66,7 @@ class OTPVerification(db.Model):
 
     @staticmethod
     def verify_otp(identifier, input_code):
+        """التحقق من صحة الرمز واستهلاكه فوراً"""
         try:
             now = datetime.utcnow()
             otp = OTPVerification.query.filter_by(
