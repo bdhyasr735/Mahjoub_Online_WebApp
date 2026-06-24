@@ -1,26 +1,28 @@
 # coding: utf-8
-# 📂 apps/auth_portal/routes.py - بوابة الدخول السيادية (النسخة النهائية المؤكدة)
+# 📂 apps/auth_portal/routes.py - بوابة الدخول السيادية (النسخة النهائية المتوافقة)
 
 import random
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from apps.auth_portal.auth_service import AdminAuthService
 from apps.models.admin_db import AdminUser
 
-# تعريف الـ Blueprint
+# تعريف الـ Blueprint مع اسم النطاق الصحيح
 auth_portal = Blueprint('auth_portal', __name__, template_folder='templates')
 
 @auth_portal.route('/m7jb_sovereign_hq_v2_99x', methods=['GET', 'POST'])
 def login():
     """
-    المرحلة 1: استقبال الهوية، البحث عنها في القاعدة، وإرسال الرمز.
+    المرحلة 1: التحقق من الهوية وكلمة المرور ثم إرسال الـ OTP.
     """
     if request.method == 'POST':
         username = request.form.get('username')
+        password = request.form.get('password')
         
-        # البحث عن المسؤول في القاعدة
+        # البحث عن المسؤول
         admin = AdminUser.query.filter_by(username=username).first()
         
-        if admin and admin.phone_number:
+        # التأكد من وجود المستخدم ومطابقة كلمة المرور باستخدام الموديل
+        if admin and admin.check_password(password):
             # توليد رمز عشوائي
             otp_code = str(random.randint(100000, 999999))
             
@@ -30,17 +32,16 @@ def login():
                 session['user_id'] = admin.id
                 return redirect(url_for('auth_portal.verify_otp_page'))
             else:
-                # الرسالة تظهر للمستخدم إذا فشل السيرفر في الإرسال
                 flash("فشل الاتصال بخدمة الإرسال، حاول لاحقاً.")
         else:
-            flash("هوية غير معروفة أو لا يوجد رقم هاتف مرتبط.")
+            flash("اسم المستخدم أو كلمة المرور غير صحيحة.")
             
     return render_template('auth/login.html')
 
 @auth_portal.route('/verify', methods=['GET', 'POST'])
 def verify_otp_page():
     """
-    المرحلة 2: التحقق من الرمز والانتهاء من الدخول.
+    المرحلة 2: التحقق من رمز OTP.
     """
     if 'otp_code' not in session:
         return redirect(url_for('auth_portal.login'))
@@ -49,7 +50,7 @@ def verify_otp_page():
         user_otp = request.form.get('otp_code')
         
         if user_otp == session.get('otp_code'):
-            # نجاح التحقق - هنا يتم تحويل المستخدم للوحة التحكم
+            # إزالة الرمز من الجلسة بعد النجاح
             session.pop('otp_code', None)
             return "✅ تم الدخول بنجاح إلى النظام السيادي."
         else:
@@ -59,7 +60,7 @@ def verify_otp_page():
 
 @auth_portal.route('/resend', methods=['POST'])
 def resend_otp():
-    """إعادة إرسال الرمز"""
+    """إعادة إرسال رمز جديد."""
     user_id = session.get('user_id')
     admin = AdminUser.query.get(user_id) if user_id else None
     
@@ -67,5 +68,8 @@ def resend_otp():
         new_otp = str(random.randint(100000, 999999))
         if AdminAuthService.initiate_login(admin.phone_number, new_otp):
             session['otp_code'] = new_otp
-            flash("تمت إعادة إرسال الرمز.")
+            flash("تمت إعادة إرسال الرمز بنجاح.")
+        else:
+            flash("فشل إعادة الإرسال.")
+            
     return redirect(url_for('auth_portal.verify_otp_page'))
