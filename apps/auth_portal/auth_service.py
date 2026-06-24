@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/auth_portal/auth_service.py - النسخة التشخيصية المكثفة
+# 📂 apps/auth_portal/auth_service.py - النسخة المصححة نهائياً للمسار
 
 import os
 import requests
@@ -13,7 +13,7 @@ class AdminAuthService:
         instance_id = os.environ.get('HYPERSEND_INSTANCE_ID')
         
         if not api_key or not instance_id:
-            print("CRITICAL: المتغيرات البيئية (API_KEY أو INSTANCE_ID) مفقودة!")
+            print("CRITICAL: المتغيرات البيئية (HYPERSEND_API_KEY أو HYPERSEND_INSTANCE_ID) مفقودة!")
             return False
         
         # 2. تنظيف الرقم
@@ -21,7 +21,8 @@ class AdminAuthService:
         if not clean_phone.startswith('967'):
             clean_phone = '967' + clean_phone.lstrip('0')
         
-        url = "https://app.hypersender.com/api/v1/send"
+        # المسار المصحح: إضافة 'messages' هو التعديل الجوهري بناءً على رسالة الخطأ
+        url = "https://app.hypersender.com/api/v1/messages/send"
         
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -37,21 +38,18 @@ class AdminAuthService:
         }
 
         try:
-            # 3. طباعة التشخيص الكامل قبل الإرسال
-            print(f"DEBUG: URL: {url}")
-            print(f"DEBUG: Headers: {headers}") # ملاحظة: الـ Bearer سيظهر هنا
-            print(f"DEBUG: Payload: {json.dumps(payload)}")
+            # 3. طباعة التشخيص
+            print(f"DEBUG: محاولة الاتصال بـ {url}")
             
             response = requests.post(url, json=payload, headers=headers, timeout=15)
             
-            # 4. كشف عميق لنتائج الاستجابة
+            # 4. تحليل النتيجة
             print(f"DEBUG: Status Code: {response.status_code}")
             
             if response.status_code in [200, 201]:
                 print("✅ نجاح: تم إرسال الرمز.")
                 return True
             else:
-                # محاولة قراءة رد الخادم كـ JSON إذا أمكن، وإلا كـ نص
                 try:
                     error_data = response.json()
                     print(f"CRITICAL: HyperSender JSON Error: {error_data}")
