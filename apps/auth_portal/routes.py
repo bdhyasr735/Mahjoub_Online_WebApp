@@ -1,129 +1,46 @@
-# coding: utf-8
-# 📂 apps/auth_portal/routes.py - البوابة السيادية للإدارة العليا (إصدار نظام HyperSender V2 المحصن)
-
 import os
+import requests
 import time
-import random
-import re
-from flask import render_template, request, redirect, url_for, flash, session, abort
-from flask_login import login_user, logout_user, login_required, current_user
-from apps.extensions import db
-from . import auth_portal
-from apps.models.admin_db import AdminUser
-from apps.models.otp_db import OTPVerification
 
-# مسار الدخول (يتم سحبه من المتغيرات في Render)
-SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x')
-
-class AdminDispatcher:
+class AdminAuthService:
     @staticmethod
-    def send(phone, code):
-        from apps.auth_portal.auth_service import AdminAuthService
-        return AdminAuthService.initiate_login(phone, code)
-
-def format_phone_number(phone):
-    """تصحيح الرقم إلى الصيغة الدولية 967"""
-    clean = re.sub(r'[^\d]', '', str(phone))
-    if len(clean) == 9 and clean.startswith('7'):
-        return '967' + clean
-    elif len(clean) == 10 and clean.startswith('07'):
-        return '967' + clean[1:]
-    return clean
-
-# 1. مسار الدخول الأساسي
-@auth_portal.route(SECRET_LOGIN_PATH, methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('admin_dashboard.dashboard'))
-
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
-        time.sleep(random.uniform(1.0, 2.0))
+    def initiate_login(phone, otp_code, retries=3):
+        # سحب المتغيرات من بيئة Render
+        api_key = os.environ.get('HYPERSEND_API_KEY')
+        instance_id = os.environ.get('HYPERSEND_INSTANCE_ID')
         
-        try:
-            user = AdminUser.query.filter_by(username=username).first()
-            if not user or not user.check_password(password):
-                flash('بيانات الدخول غير صحيحة.', 'danger')
-                return render_template('auth/login.html')
+        # تنسيق الرقم
+        clean_phone = "".join(filter(str.isdigit, str(phone)))
+        if not clean_phone.startswith('967'):
+            clean_phone = '967' + clean_phone.lstrip('0')
+        
+        # الرابط الموحد للـ API V1 (الأكثر استقراراً للخطة المجانية)
+        url = f"https://app.hypersender.com/api/v1/instance/{instance_id}/message"
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "number": f"{clean_phone}@c.us", 
+            "type": "text",
+            "message": f"رمز الدخول لمحجوب أونلاين هو: {otp_code}"
+        }
 
-            phone_to_use = format_phone_number(getattr(user, 'phone_number', ''))
-            if not phone_to_use or len(phone_to_use) < 12:
-                flash('رقم الهاتف المسجل غير صالح.', 'danger')
-                return render_template('auth/login.html')
-
-            # حماية Cooldown: منع طلب أكثر من رمز في أقل من 60 ثانية
-            last_otp = session.get('last_otp_sent', 0)
-            if time.time() - last_otp < 60:
-                flash('يرجى الانتظار دقيقة قبل طلب رمز جديد.', 'warning')
-                return redirect(url_for('auth_portal.verify_otp_page'))
-
-            session['temp_user_id'] = user.id
-            session.pop('_flashes', None)
+        for attempt in range(retries):
+            try:
+                response = requests.post(url, json=payload, headers=headers, timeout=15)
+                
+                if response.status_code == 200:
+                    print(f"✅ تم إرسال الرمز بنجاح إلى {clean_phone}")
+                    return True
+                else:
+                    # تسجيل الخطأ في الـ Logs لاكتشاف السبب (404، 401، الخ)
+                    print(f"DEBUG: فشل الإرسال (كود {response.status_code}): {response.text}")
             
-            if OTPVerification.generate_otp(phone_to_use, AdminDispatcher):
-                session['last_otp_sent'] = time.time()
-                flash('تم إرسال رمز التحقق.', 'info')
-                return redirect(url_for('auth_portal.verify_otp_page'))
-            else:
-                flash('فشل في إرسال الرمز، يرجى المحاولة بعد قليل.', 'danger')
-                    
-        except Exception as e:
-            print(f"🚨 خطأ فني في البوابة السيادية: {e}")
-            flash('حدث خطأ فني.', 'warning')
-    
-    return render_template('auth/login.html')
-
-# 2. مسارات التحقق
-@auth_portal.route('/verify-otp', methods=['GET', 'POST'])
-def verify_otp_page():
-    if 'temp_user_id' not in session:
-        return redirect(url_for('auth_portal.login'))
-
-    if request.method == 'POST':
-        otp_code = request.form.get('otp_code', '').strip()
-        user = AdminUser.query.get(session['temp_user_id'])
-        if not user:
-            return redirect(url_for('auth_portal.login'))
+            except Exception as e:
+                print(f"🚨 [Admin Error]: {str(e)}")
             
-        phone_to_use = format_phone_number(user.phone_number)
-
-        if OTPVerification.verify_otp(phone_to_use, otp_code):
-            login_user(user)
-            session.pop('temp_user_id', None)
-            session.pop('last_otp_sent', None)
-            if hasattr(user, 'reset_failed_attempts'):
-                user.reset_failed_attempts()
-                db.session.commit()
-            return redirect(url_for('admin_dashboard.dashboard'))
-        else:
-            flash('رمز التحقق غير صحيح أو منتهي.', 'danger')
-            
-    return render_template('auth/verify_otp.html')
-
-@auth_portal.route('/resend-otp', methods=['POST'])
-def resend_otp():
-    if 'temp_user_id' in session:
-        user = AdminUser.query.get(session['temp_user_id'])
-        # التحقق من Cooldown عند إعادة الإرسال
-        last_otp = session.get('last_otp_sent', 0)
-        if time.time() - last_otp < 60:
-            flash('يرجى الانتظار قبل طلب رمز جديد.', 'warning')
-            return redirect(url_for('auth_portal.verify_otp_page'))
-
-        if OTPVerification.generate_otp(format_phone_number(user.phone_number), AdminDispatcher):
-            session['last_otp_sent'] = time.time()
-            flash('تم إرسال رمز جديد بنجاح.', 'info')
-        else:
-            flash('فشل إعادة الإرسال.', 'danger')
-    return redirect(url_for('auth_portal.verify_otp_page'))
-
-@auth_portal.route('/login', methods=['GET', 'POST'])
-def decoy_login():
-    abort(403) 
-
-@auth_portal.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('auth_portal.login'))
+            time.sleep(2)
+        return False
