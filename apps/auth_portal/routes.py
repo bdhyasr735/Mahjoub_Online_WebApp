@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/auth_portal/routes.py - البوابة السيادية للإدارة العليا (إصدار نظام Twilio المستقر)
+# 📂 apps/auth_portal/routes.py - البوابة السيادية للإدارة العليا (إصدار نظام HyperSend المستقر)
 
 import os
 import time
@@ -11,7 +11,7 @@ from apps.extensions import db
 from . import auth_portal
 from apps.models.admin_db import AdminUser
 from apps.models.otp_db import OTPVerification
-from apps.auth_portal.auth_service import AdminAuthService # استيراد خدمة Twilio المستقلة للإدارة
+from apps.auth_portal.auth_service import AdminAuthService # استيراد خدمة HyperSend المستقلة للإدارة
 
 SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x')
 
@@ -63,11 +63,11 @@ def login():
             # مسح أي ومضات معلقة قبل التوليد والإرسال
             session.pop('_flashes', None)
             
-            # استخدام الموجه (Dispatcher) لإرسال الرمز عبر Twilio
+            # استخدام الموجه (Dispatcher) لإرسال الرمز الفوري عبر الواتساب (HyperSend)
             OTPVerification.generate_otp(phone_to_use, AdminDispatcher) 
             
             # تحديث الرسالة بما يتناسب مع نظام التوثيق الجديد المستقر
-            flash('تم التحقق من الحساب، يرجى إدخال رمز التحقق (OTP) المرسل لهاتفك.', 'info')
+            flash('تم التحقق من الحساب، يرجى إدخال رمز التحقق (OTP) المرسل إلى حساب الواتساب الخاص بك.', 'info')
             return redirect(url_for('auth_portal.verify_otp_page'))
                     
         except Exception as e:
@@ -112,9 +112,9 @@ def resend_otp():
         user = AdminUser.query.get(session['temp_user_id'])
         phone_to_use = format_phone_number(user.phone_number)
         if phone_to_use:
-            # استخدام الموجه لإعادة الإرسال الفعلي عبر Twilio
+            # استخدام الموجه لإعادة الإرسال الفعلي عبر HyperSend
             OTPVerification.generate_otp(phone_to_use, AdminDispatcher)
-            flash('تم إعادة إرسال رمز تحقق جديد إلى هاتفك بنجاح.', 'info')
+            flash('تم إعادة إرسال رمز تحقق جديد إلى حساب الواتساب الخاص بك بنجاح.', 'info')
             
     return redirect(url_for('auth_portal.verify_otp_page'))
 
