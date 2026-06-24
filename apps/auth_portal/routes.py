@@ -15,7 +15,6 @@ from apps.models.otp_db import OTPVerification
 # مسار الدخول (يتم سحبه من المتغيرات في Render)
 SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x')
 
-# جسر إرسال الإدارة - استخدام استيراد محلي لمنع Circular Import
 class AdminDispatcher:
     @staticmethod
     def send(phone, code):
@@ -53,6 +52,12 @@ def login():
                 flash('رقم الهاتف المسجل غير صالح.', 'danger')
                 return render_template('auth/login.html')
 
+            # حماية Cooldown: منع طلب أكثر من رمز في أقل من 60 ثانية
+            last_otp = session.get('last_otp_sent', 0)
+            if time.time() - last_otp < 60:
+                flash('يرجى الانتظار دقيقة قبل طلب رمز جديد.', 'warning')
+                return redirect(url_for('auth_portal.verify_otp_page'))
+
             session['temp_user_id'] = user.id
             session.pop('_flashes', None)
             
@@ -78,9 +83,12 @@ def verify_otp_page():
     if request.method == 'POST':
         otp_code = request.form.get('otp_code', '').strip()
         user = AdminUser.query.get(session['temp_user_id'])
+        if not user:
+            return redirect(url_for('auth_portal.login'))
+            
         phone_to_use = format_phone_number(user.phone_number)
 
-        if user and OTPVerification.verify_otp(phone_to_use, otp_code):
+        if OTPVerification.verify_otp(phone_to_use, otp_code):
             login_user(user)
             session.pop('temp_user_id', None)
             session.pop('last_otp_sent', None)
@@ -97,6 +105,12 @@ def verify_otp_page():
 def resend_otp():
     if 'temp_user_id' in session:
         user = AdminUser.query.get(session['temp_user_id'])
+        # التحقق من Cooldown عند إعادة الإرسال
+        last_otp = session.get('last_otp_sent', 0)
+        if time.time() - last_otp < 60:
+            flash('يرجى الانتظار قبل طلب رمز جديد.', 'warning')
+            return redirect(url_for('auth_portal.verify_otp_page'))
+
         if OTPVerification.generate_otp(format_phone_number(user.phone_number), AdminDispatcher):
             session['last_otp_sent'] = time.time()
             flash('تم إرسال رمز جديد بنجاح.', 'info')
