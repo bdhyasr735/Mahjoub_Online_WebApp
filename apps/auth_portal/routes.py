@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/auth_portal/routes.py - البوابة السيادية (مُحدثة لتدعم نظام الإرسال المستقل والمحصن)
+# 📂 apps/auth_portal/routes.py - البوابة السيادية للإدارة العليا (إصدار نظام Twilio المستقر)
 
 import os
 import time
@@ -11,7 +11,7 @@ from apps.extensions import db
 from . import auth_portal
 from apps.models.admin_db import AdminUser
 from apps.models.otp_db import OTPVerification
-from apps.auth_portal.auth_service import AdminAuthService # استيراد الخدمة المستقلة
+from apps.auth_portal.auth_service import AdminAuthService # استيراد خدمة Twilio المستقلة للإدارة
 
 SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x')
 
@@ -63,15 +63,16 @@ def login():
             # مسح أي ومضات معلقة قبل التوليد والإرسال
             session.pop('_flashes', None)
             
-            # استخدام الموجه (Dispatcher) لإرسال الرمز
+            # استخدام الموجه (Dispatcher) لإرسال الرمز عبر Twilio
             OTPVerification.generate_otp(phone_to_use, AdminDispatcher) 
             
-            flash('تم التحقق، يرجى إدخال رمز التحقق (OTP) المرسل لهاتفك.', 'info')
+            # تحديث الرسالة بما يتناسب مع نظام التوثيق الجديد المستقر
+            flash('تم التحقق من الحساب، يرجى إدخال رمز التحقق (OTP) المرسل لهاتفك.', 'info')
             return redirect(url_for('auth_portal.verify_otp_page'))
                     
         except Exception as e:
-            print(f"🚨 خطأ فني في البوابة: {e}")
-            flash('حدث خطأ فني أثناء إرسال الرمز.', 'warning')
+            print(f"🚨 خطأ فني في البوابة السيادية: {e}")
+            flash('حدث خطأ فني أثناء إرسال رمز التحقق.', 'warning')
     
     return render_template('auth/login.html')
 
@@ -111,9 +112,9 @@ def resend_otp():
         user = AdminUser.query.get(session['temp_user_id'])
         phone_to_use = format_phone_number(user.phone_number)
         if phone_to_use:
-            # استخدام الموجه لإعادة الإرسال الفعلي
+            # استخدام الموجه لإعادة الإرسال الفعلي عبر Twilio
             OTPVerification.generate_otp(phone_to_use, AdminDispatcher)
-            flash('تم إرسال رمز تحقق جديد إلى هاتفك.', 'info')
+            flash('تم إعادة إرسال رمز تحقق جديد إلى هاتفك بنجاح.', 'info')
             
     return redirect(url_for('auth_portal.verify_otp_page'))
 
@@ -122,7 +123,7 @@ def resend_otp():
 # -------------------------------------------------------------------------
 @auth_portal.route('/login', methods=['GET', 'POST'])
 def decoy_login():
-    # حظر مسار تسجيل الدخول الافتراضي لحماية لوحة التحكم السيادية
+    # حظر مسار تسجيل الدخول الافتراضي لحماية لوحة التحكم السيادية من المتسللين
     abort(403) 
 
 @auth_portal.route('/logout')
