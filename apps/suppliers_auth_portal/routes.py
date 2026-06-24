@@ -1,15 +1,16 @@
 # coding: utf-8
-# 📂 apps/suppliers_auth_portal/routes.py - نظام الدخول للموردين والمسوقين (نسخة HyperSend الكاملة والمستقرة)
+# 📂 apps/suppliers_auth_portal/routes.py - نظام الدخول للموردين والمسوقين (نسخة HyperSend V2 المحصنة)
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from flask_login import login_user, logout_user, current_user
 from apps.extensions import db  
 import uuid
+import time
 
-# استيراد خدمة الإرسال الخاصة بالموردين المربوطة بـ HyperSend
+# استيراد خدمة الإرسال الخاصة بالموردين المربوطة بـ HyperSender V2
 from apps.suppliers_auth_portal.auth_service import VendorAuthService
 
-# تعريف الـ Blueprint باسم 'suppliers'
+# تعريف الـ Blueprint
 suppliers_bp = Blueprint('suppliers', __name__, template_folder='templates')
 
 # دالة مساعدة لتوحيد تنسيق الأرقام
@@ -26,6 +27,7 @@ def format_phone(phone):
 class SupplierDispatcher:
     @staticmethod
     def send(phone, code):
+        # في نظام V2، لا نحتاج لتمرير 'code' للخدمة، هي تتولى التوليد
         return VendorAuthService.initiate_login(phone, code)
 
 @suppliers_bp.before_request
@@ -69,10 +71,12 @@ def login():
         if not phone:
             return jsonify({"status": "error", "message": "رقم الهاتف مطلوب"}), 400
 
-        new_otp = OTPVerification.generate_otp(phone, SupplierDispatcher)
-        if new_otp:
+        # استخدام Dispatcher الجديد
+        if OTPVerification.generate_otp(phone, SupplierDispatcher):
+            session['last_otp_sent'] = time.time()
             return jsonify({"status": "success", "message": "تم إرسال رمز التحقق بنجاح"})
-        return jsonify({"status": "error", "message": "فشل إرسال الرمز"}), 500
+        
+        return jsonify({"status": "error", "message": "فشل إرسال الرمز، يرجى المحاولة لاحقاً"}), 500
 
     except Exception as e:
         db.session.rollback()
