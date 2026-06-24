@@ -2,112 +2,34 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
     <title>بوابة الوصول السيادية</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --sovereign-gold: #D4AF37;
-            --deep-space: #1a0b2e;
-        }
-
-        body {
-            margin: 0; padding: 0; font-family: 'Cairo', sans-serif;
-            background: radial-gradient(circle at center, #2a114d 0%, var(--deep-space) 100%);
-            height: 100vh; display: flex; justify-content: center; align-items: center;
-            overflow: hidden; color: #fff; user-select: none;
-        }
-
-        .sovereign-card {
-            background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(40px);
-            border-radius: 40px; border: 1px solid rgba(212, 175, 55, 0.4);
-            padding: 50px; text-align: center; width: 100%; max-width: 400px;
-            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.9);
-        }
-
-        .logo-section img {
-            width: 90px; margin-bottom: 20px;
-            filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
-            pointer-events: none;
-        }
-
-        .brand-name { font-size: 1.8rem; font-weight: 900; color: var(--sovereign-gold); margin: 0; }
-        .philosophy-text { font-size: 0.7rem; color: #a090b5; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; }
-
-        .input-box { position: relative; margin-bottom: 20px; }
-        .input-box input {
-            width: 100%; padding: 15px 50px; background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px;
-            color: #fff; outline: none; box-sizing: border-box; text-align: center;
-        }
-
-        .main-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--sovereign-gold); }
-        .toggle-password { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #666; }
-
-        .btn-access {
-            width: 100%; padding: 15px; background: var(--sovereign-gold);
-            border: none; border-radius: 15px; color: var(--deep-space);
-            font-weight: 900; cursor: pointer; transition: 0.3s;
-        }
-
-        .btn-access:hover { background: #fff; transform: scale(1.02); }
-        .flash-message { padding: 10px; border-radius: 10px; margin-bottom: 15px; font-size: 0.8rem; background: rgba(255, 215, 0, 0.1); border: 1px solid var(--sovereign-gold); color: var(--sovereign-gold); }
-    </style>
-</head>
+    </head>
 <body>
-
     <div class="sovereign-card">
         <div class="logo-section">
-            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" alt="Logo">
             <h1 class="brand-name">محجوب أونلاين</h1>
             <p class="philosophy-text">بوابة الحوكمة الرقمية المشفرة</p>
         </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% with messages = get_flashed_messages() %}
             {% if messages %}
-                {% for category, message in messages %}
+                {% for message in messages %}
                     <div class="flash-message">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
-        <form method="POST" autocomplete="off" spellcheck="false" id="loginForm">
+        <form method="POST" action="{{ url_for('auth_portal.login') }}" autocomplete="off" id="loginForm">
             <div class="input-box">
                 <i class="fas fa-user-shield main-icon"></i>
-                <input type="text" name="username" placeholder="الهوية الرقمية" required autocomplete="off">
+                <input type="text" name="username" placeholder="الهوية الرقمية" required>
             </div>
-
             <div class="input-box">
                 <i class="fas fa-lock main-icon"></i>
-                <input type="password" name="password" id="password-field" placeholder="مفتاح التشفير" required autocomplete="off">
-                <i class="fas fa-eye toggle-password" id="password-toggle-icon"></i>
+                <input type="password" name="password" id="password-field" placeholder="مفتاح التشفير" required>
             </div>
-
             <button type="submit" class="btn-access">دخول آمن</button>
         </form>
     </div>
-
-    <script>
-        window.console.log = function() {};
-        
-        const passwordField = document.getElementById('password-field');
-        const toggleIcon = document.getElementById('password-toggle-icon');
-
-        toggleIcon.addEventListener('click', function() {
-            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordField.setAttribute('type', type);
-            this.classList.toggle('fa-eye-slash');
-        });
-
-        // منع الإرسال المتكرر
-        document.getElementById('loginForm').onsubmit = function() {
-            const btn = this.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            btn.innerText = 'جاري التحقق...';
-        };
-    </script>
-</body>
+    </body>
 </html>
