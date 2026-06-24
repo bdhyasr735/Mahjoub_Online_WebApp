@@ -14,11 +14,7 @@
             --border-color: #333333;
         }
         
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body { 
             font-family: 'Cairo', sans-serif; 
@@ -32,188 +28,50 @@
         }
 
         .wrapper { 
-            display: flex; 
-            flex-direction: row;
-            width: 100%; 
-            max-width: 900px; 
-            background: rgba(15, 7, 28, 0.95); 
-            border: 1px solid var(--border-color); 
-            border-radius: 30px; 
-            overflow: hidden; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            display: flex; flex-direction: row; width: 100%; 
+            max-width: 900px; background: rgba(15, 7, 28, 0.95); 
+            border: 1px solid var(--border-color); border-radius: 30px; 
+            overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
-        .side { 
-            flex: 1; 
-            padding: 40px; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-        }
+        .side { flex: 1; padding: 40px; display: flex; flex-direction: column; justify-content: center; }
+        .marketing-side { background: linear-gradient(145deg, #160d26, #05020a); border-left: 1px solid var(--border-color); }
+        .marketing-side h1 { font-size: 2.2rem; margin-bottom: 15px; font-weight: 900; line-height: 1.4; }
+        .marketing-side p { color: #b3b3b3; font-size: 1.05rem; line-height: 1.6; }
 
-        .marketing-side { 
-            background: linear-gradient(145deg, #160d26, #05020a); 
-            border-left: 1px solid var(--border-color);
-        }
-
-        .marketing-side h1 {
-            font-size: 2.2rem;
-            margin-bottom: 15px;
-            font-weight: 900;
-            line-height: 1.4;
-        }
-
-        .marketing-side p {
-            color: #b3b3b3;
-            font-size: 1.05rem;
-            line-height: 1.6;
-        }
-
-        .auth-form-container {
-            position: relative;
-        }
-
-        .auth-form-container h3 {
-            font-size: 1.4rem;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
+        .auth-form-container { position: relative; }
+        .auth-form-container h3 { font-size: 1.4rem; margin-bottom: 20px; font-weight: 600; }
 
         .btn-gold { 
-            padding: 15px; 
-            background: linear-gradient(90deg, #ce9e49, #9e7634); 
-            border: none; 
-            border-radius: 12px; 
-            font-weight: 900; 
-            font-family: 'Cairo', sans-serif;
-            font-size: 1rem;
-            cursor: pointer; 
-            color: #000; 
-            margin: 10px 0; 
-            width: 100%; 
-            transition: all 0.3s ease; 
-            text-align: center;
+            padding: 15px; background: linear-gradient(90deg, #ce9e49, #9e7634); 
+            border: none; border-radius: 12px; font-weight: 900; 
+            font-family: 'Cairo', sans-serif; font-size: 1rem; cursor: pointer; 
+            color: #000; margin: 10px 0; width: 100%; transition: all 0.3s ease; text-align: center;
         }
-
-        .btn-gold:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(206, 158, 73, 0.3);
-        }
-
-        .btn-gold:disabled { 
-            background: #555 !important; 
-            color: #aaa;
-            cursor: not-allowed; 
-            transform: none;
-            box-shadow: none;
-        }
+        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(206, 158, 73, 0.3); }
+        .btn-gold:disabled { background: #555 !important; color: #aaa; cursor: not-allowed; }
 
         .cyber-input { 
-            background: var(--input-bg); 
-            border: 1px solid var(--border-color); 
-            padding: 15px; 
-            color: #fff; 
-            border-radius: 12px; 
-            margin: 10px 0; 
-            width: 100%; 
-            font-family: 'Cairo', sans-serif;
-            font-size: 1rem;
+            background: var(--input-bg); border: 1px solid var(--border-color); 
+            padding: 15px; color: #fff; border-radius: 12px; margin: 10px 0; 
+            width: 100%; font-family: 'Cairo', sans-serif; font-size: 1rem; 
             transition: border-color 0.3s ease;
         }
+        .cyber-input:focus { outline: none; border-color: var(--gold); }
 
-        .cyber-input:focus {
-            outline: none;
-            border-color: var(--gold);
-        }
+        .phone-group { display: flex; gap: 10px; align-items: center; width: 100%; }
+        #country-code { width: 35%; text-align: center; cursor: pointer; }
+        #reg-phone { width: 65%; }
+        .hidden { display: none !important; }
+        .forgot-link { color: #888; font-size: 0.85rem; cursor: pointer; text-decoration: underline; margin-top: 12px; display: block; }
+        .forgot-link:hover { color: var(--gold); }
+        .back-btn { background: none; border: none; color: #666; font-family: 'Cairo', sans-serif; font-size: 0.95rem; cursor: pointer; margin-top: 15px; align-self: flex-start; }
+        .back-btn:hover { color: #fff; }
+        #status-msg { padding: 15px; margin-bottom: 20px; border-radius: 12px; display: none; text-align: center; font-size: 0.95rem; font-weight: 600; }
 
-        .phone-group {
-            display: flex; 
-            gap: 10px;
-            align-items: center;
-            width: 100%;
-        }
-
-        #country-code {
-            width: 35%;
-            text-align: center;
-            cursor: pointer;
-        }
-
-        #reg-phone {
-            width: 65%;
-        }
-
-        .hidden { 
-            display: none !important; 
-        }
-
-        .forgot-link { 
-            color: #888; 
-            font-size: 0.85rem; 
-            cursor: pointer; 
-            text-decoration: underline; 
-            margin-top: 12px; 
-            display: block; 
-            transition: color 0.3s;
-        }
-
-        .forgot-link:hover {
-            color: var(--gold);
-        }
-
-        .back-btn {
-            background: none; 
-            border: none; 
-            color: #666; 
-            font-family: 'Cairo', sans-serif;
-            font-size: 0.95rem;
-            cursor: pointer; 
-            margin-top: 15px;
-            align-self: flex-start;
-            transition: color 0.3s;
-        }
-
-        .back-btn:hover {
-            color: #fff;
-        }
-
-        #status-msg { 
-            padding: 15px; 
-            margin-bottom: 20px; 
-            border-radius: 12px; 
-            display: none; 
-            text-align: center; 
-            font-size: 0.95rem; 
-            font-weight: 600;
-        }
-
-        /* 📱 شاشات الهواتف والأجهزة الذكية الصغيرة (Responsive Media Queries) */
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .wrapper {
-                flex-direction: column; /* تحويل التخطيط إلى عمودي يناسب الـ Mobile */
-                border-radius: 20px;
-            }
-            .side {
-                padding: 30px 20px;
-            }
-            .marketing-side {
-                border-left: none;
-                border-bottom: 1px solid var(--border-color);
-                text-align: center;
-            }
-            .marketing-side h1 {
-                font-size: 1.8rem;
-            }
-            .marketing-side p {
-                font-size: 0.95rem;
-            }
-            .btn-gold, .cyber-input {
-                padding: 13px;
-                font-size: 0.95rem;
-            }
+            .wrapper { flex-direction: column; }
+            .marketing-side { border-left: none; border-bottom: 1px solid var(--border-color); text-align: center; }
         }
     </style>
 </head>
@@ -222,7 +80,7 @@
 <div class="wrapper">
     <div class="side marketing-side">
         <h1>بوابة الشركاء <span style="color:var(--gold)">السيادية</span></h1>
-        <p>نظام ذكي موحد للمنتسبين والموردين. إدخال رقمك يمنحك ولوجاً فورياً أو ينشئ حسابك بلحظات.</p>
+        <p>نظام ذكي موحد للمنتسبين والموردين. إدخال رقمك يمنحك ولوجاً فورياً أو ينشئ حسابك بلحظات عبر واتساب.</p>
     </div>
     
     <div class="side auth-form-container">
@@ -230,7 +88,7 @@
 
         <div id="main-menu">
             <h3 style="color: var(--gold);">اختر نوع الدخول</h3>
-            <button class="btn-gold" onclick="showForm('register')">الموردون (دخول واشتراك موحد عبر واتساب)</button>
+            <button class="btn-gold" onclick="showForm('register')">الموردون (دخول موحد عبر واتساب)</button>
             <button class="btn-gold" style="background: #222; color: #fff;" onclick="showForm('marketer-login')">تسجيل دخول المسوقين</button>
         </div>
 
@@ -269,44 +127,59 @@
 
     function showForm(formType) {
         document.getElementById('status-msg').style.display = 'none';
-        document.querySelectorAll('#auth-container > div:not(#status-msg), .auth-form-container > div:not(#status-msg)').forEach(div => div.classList.add('hidden'));
+        document.querySelectorAll('.auth-form-container > div:not(#status-msg)').forEach(div => div.classList.add('hidden'));
+        
         if (formType === 'menu') document.getElementById('main-menu').classList.remove('hidden');
         else if (formType === 'register') document.getElementById('register-form').classList.remove('hidden');
         else if (formType === 'marketer-login') document.getElementById('marketer-login').classList.remove('hidden');
     }
 
-    async function apiCall(data) {
-        const response = await fetch('/suppliers/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        return await response.json();
-    }
-
     async function sendOtp() {
         const phone = document.getElementById('country-code').value + document.getElementById('reg-phone').value;
         const btn = document.getElementById('otp-btn');
-        btn.innerText = "جاري الإرسال...";
+        
+        if (document.getElementById('reg-phone').value.length < 8) {
+            showMessage("يرجى إدخال رقم هاتف صحيح.", "error");
+            return;
+        }
+
+        btn.innerText = "جاري الاتصال بـ HyperSend...";
         btn.disabled = true;
         
-        const res = await apiCall({type: 'supplier', phone: phone});
-        if(res.status === 'success') {
-            // التوجيه الفوري لصفحة التأكيد مع تمرير الرقم بشكل آمن ومحمي بالرابط
-            window.location.href = '/suppliers/verify?phone=' + encodeURIComponent(phone);
-        } else { 
-            showMessage(res.message, 'error'); 
-            btn.innerText = "إرسال رمز التحقق"; 
-            btn.disabled = false; 
+        try {
+            const response = await fetch('/suppliers/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: 'supplier', phone: phone})
+            });
+            
+            const res = await response.json();
+            
+            if(response.ok && res.status === 'success') {
+                window.location.href = '/suppliers/verify?phone=' + encodeURIComponent(phone);
+            } else { 
+                showMessage(res.message || "فشل الاتصال بخدمة التحقق.", 'error'); 
+                btn.innerText = "إرسال رمز التحقق"; 
+                btn.disabled = false; 
+            }
+        } catch (err) {
+            showMessage("خطأ فني في الاتصال. يرجى المحاولة لاحقاً.", 'error');
+            btn.innerText = "إرسال رمز التحقق";
+            btn.disabled = false;
         }
     }
 
     async function loginMarketer() {
-        const res = await apiCall({
-            type: 'marketer', 
-            username: document.getElementById('marketer-user').value,
-            password: document.getElementById('marketer-pass').value
+        const response = await fetch('/suppliers/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                type: 'marketer', 
+                username: document.getElementById('marketer-user').value,
+                password: document.getElementById('marketer-pass').value
+            })
         });
+        const res = await response.json();
         if(res.status === 'success') window.location.href = res.redirect;
         else showMessage(res.message, 'error');
     }
