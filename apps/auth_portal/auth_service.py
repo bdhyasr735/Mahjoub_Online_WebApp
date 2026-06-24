@@ -1,19 +1,19 @@
 # coding: utf-8
-# 📂 apps/auth_portal/auth_service.py - خدمة إرسال التحقق للإدارة العليا عبر HyperSend (نسخة Anti-Reset المحصنة)
+# 📂 apps/auth_portal/auth_service.py - نسخة محصنة ضد قفل الاتصال (HyperSend Retry-Enabled)
 
 import os
 import re
 import requests
+import time
 
 class AdminAuthService:
     @staticmethod
-    def initiate_login(phone, otp_code):
-        """
-        إرسال رمز التحقق الـ OTP الخاص بالإدارة العليا عبر خدمة HyperSend المستقرة مع حماية ضد قفل الاتصال فجأة.
-        """
+    def initiate_login(phone, otp_code, retries=3):
+        """إرسال رمز التحقق للإدارة العليا مع آلية إعادة محاولة ذكية."""
         api_key = os.environ.get('HYPERSEND_API_KEY', '1389|sudxqnVbeF8d1HHi1a8ogGRRzkb6LOJDXILMe0Pg70dbd12c')
         instance_id = os.environ.get('HYPERSEND_INSTANCE_ID', 'a219739b-b1b0-4c0b-858c-45d4d309e27f')
 
+        # تنظيف الرقم
         clean_phone = re.sub(r'[^\d]', '', str(phone))
         if clean_phone.startswith('00967'):
             clean_phone = clean_phone[2:]
@@ -28,37 +28,40 @@ class AdminAuthService:
             f"— محجوب أونلاين | النظام الأمني"
         )
 
-        # محاولة الإرسال باستخدام الرابط الرئيسي مع تمرير المفتاح كـ Query Parameter لحل مشكلة الـ Reset
-        url = f"https://hypersend.net/api/v1/messages/send-text?api_key={api_key}"
-        
+        url = "https://hypersend.net/api/v1/messages/send-text"
+        params = {"api_key": api_key}
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "Accept": "application/json"
         }
-        
         payload = {
             "instance_id": instance_id,
             "to": clean_phone,
             "message": message_body
         }
 
-        try:
-            # استخدام Session لإبقاء الاتصال مستقراً وآمناً
-            with requests.Session() as session:
-                session.headers.update(headers)
-                response = session.post(url, json=payload, timeout=20)
+        # آلية إعادة المحاولة (Retry Logic)
+        for attempt in range(retries):
+            try:
+                with requests.Session() as session:
+                    response = session.post(url, params=params, json=payload, headers=headers, timeout=25)
                 
-            res_data = response.json()
+                if response.status_code == 200:
+                    res_data = response.json()
+                    if res_data.get('status') == 'success' or res_data.get('success') is True:
+                        print(f"✅ [Admin OTP Sent] تم التسليم في المحاولة {attempt + 1}")
+                        return True
+                
+                print(f"⚠️ [Admin HyperSend Attempt {attempt + 1}] فشل، محاولة جديدة...")
+            
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                print(f"🚨 [Admin Connection Error] محاولة {attempt + 1}: {str(e)}")
+            
+            except Exception as e:
+                print(f"❌ [Admin Critical Error]: {str(e)}")
+                break
+            
+            time.sleep(2) # انتظار قبل المحاولة التالية
 
-            if response.status_code == 200 and (res_data.get('status') == 'success' or res_data.get('success') is True):
-                print(f"✅ [Admin OTP Sent via HyperSend] تم إرسال رمز المسؤول بنجاح!")
-                return True
-            else:
-                print(f"❌ [Admin HyperSend API Response Error] الحالة: {response.status_code} - الرد: {response.text}")
-                return False
-                
-        except Exception as e:
-            print(f"🚨 CRITICAL [Admin HyperSend Error]: {str(e)}")
-            return False
+        return False
