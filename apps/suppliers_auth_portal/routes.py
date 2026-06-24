@@ -7,12 +7,9 @@ from apps.extensions import db
 import uuid
 import time
 
-# تعريف الـ Blueprint
 suppliers_bp = Blueprint('suppliers', __name__, template_folder='templates')
 
-# دالة مساعدة لتوحيد تنسيق الأرقام
 def format_phone(phone):
-    """توحيد تنسيق رقم الهاتف ليصبح دائماً بالصيغة الدولية"""
     phone = "".join(filter(str.isdigit, str(phone)))
     if len(phone) == 9 and phone.startswith('7'):
         return '967' + phone
@@ -20,7 +17,6 @@ def format_phone(phone):
         return '967' + phone[1:]
     return phone
 
-# جسر إرسال الموردين المستقل (تم نقل الاستيراد ليكون داخل الدالة لمنع الـ Circular Import)
 class SupplierDispatcher:
     @staticmethod
     def send(phone, code):
@@ -29,7 +25,6 @@ class SupplierDispatcher:
 
 @suppliers_bp.before_request
 def check_login():
-    """حماية سيادية للمسارات"""
     if request.endpoint in ['suppliers.login', 'suppliers.verify_page', 'static'] or not request.blueprint == 'suppliers':
         return None
     if request.endpoint and 'marketers' in request.endpoint:
@@ -63,12 +58,16 @@ def login():
                 return jsonify({"status": "success", "redirect": url_for('marketers.dashboard')})
             return jsonify({"status": "error", "message": "بيانات الدخول غير صحيحة"}), 401
 
-        # --- دخول الموردين ---
+        # --- دخول الموردين مع حماية Cooldown ---
         phone = format_phone(data.get('phone', ''))
         if not phone:
             return jsonify({"status": "error", "message": "رقم الهاتف مطلوب"}), 400
 
-        # استخدام Dispatcher
+        # حماية: منع طلب أكثر من رمز في أقل من 60 ثانية
+        last_otp = session.get('last_otp_sent', 0)
+        if time.time() - last_otp < 60:
+            return jsonify({"status": "error", "message": "يرجى الانتظار دقيقة قبل طلب رمز جديد"}), 429
+
         if OTPVerification.generate_otp(phone, SupplierDispatcher):
             session['last_otp_sent'] = time.time()
             return jsonify({"status": "success", "message": "تم إرسال رمز التحقق بنجاح"})
