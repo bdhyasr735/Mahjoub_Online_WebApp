@@ -1,84 +1,71 @@
 # coding: utf-8
-# 📂 apps/suppliers_auth_portal/auth_service.py - خدمة إرسال التحقق للموردين عبر الواتساب (الإصدار المصحح والمؤمن)
+# 📂 apps/suppliers_auth_portal/auth_service.py - خدمة إرسال التحقق للموردين عبر Twilio (الإصدار السيادي المستقر)
 
 import os
 import re
-import time
-import requests
+from twilio.rest import Client
 
 class VendorAuthService:
     @staticmethod
     def initiate_login(phone, otp_code):
         """
-        إرسال رمز التحقق الـ OTP الخاص بالموردين والمسوقين عبر خدمة TextMeBot (WhatsApp).
+        إرسال رمز التحقق الـ OTP الخاص بالموردين والمسوقين عبر خدمة Twilio الرسمية.
         """
-        # تنظيف الرقم من أي رموز أو فراغات وإبقائه أرقاماً فقط
+        # 1. جلب بيانات التوثيق الصارمة من متغيرات بيئة ريندر (Render)
+        account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+        auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+        twilio_number = os.environ.get('TWILIO_NUMBER')
+
+        # تحقق أمني استباقي من اكتمال تهيئة السيرفر للمتغيرات الثلاثة
+        if not all([account_sid, auth_token, twilio_number]):
+            print("🚨 [Twilio Config Error] بيانات التوثيق غير مكتملة في متغيرات البيئة بـ Render!")
+            return False
+
+        # 2. تنظيف الرقم وتجهيز الصياغة الدولية المعتمدة لـ Twilio
         clean_phone = re.sub(r'[^\d]', '', str(phone))
         
-        # حماية إضافية: التأكد من صياغة الرقم اليمني بالشكل الدولي الصحيح لـ TextMeBot
+        # ضبط مدخلات الرقم اليمني المحلي تلقائياً ليطابق البنية الدولية
         if clean_phone.startswith('00967'):
             clean_phone = clean_phone[2:]
         elif clean_phone.startswith('7') and len(clean_phone) == 9:
             clean_phone = '967' + clean_phone
         elif clean_phone.startswith('07') and len(clean_phone) == 10:
             clean_phone = '967' + clean_phone[1:]
-            
-        # 💡 فصل سيادي للمفاتيح: جلب مفتاح الموردين المخصص لـ TextMeBot لمنع تداخل الحسابات مع الإدارة
-        # إذا لم يتم تعيين SUPPLIERS_TEXTMEBOT_KEY في Render، سيعود بشكل تلقائي للمفتاح الاحتياطي
-        api_key = os.environ.get('SUPPLIERS_TEXTMEBOT_KEY', os.environ.get('TEXTMEBOT_API_KEY', 'rb3tZFnHRcsN'))
         
-        # صياغة رسالة مخصصة تليق بهوية محجوب أونلاين للموردين
-        message = (
-            f"*Mahjoub Online | الشركاء والموردين*\n\n"
-            f"رمز التحقق الأمني الخاص بك هو: *{otp_code}*\n\n"
+        # إضافة علامة الزائد (+) الإلزامية لبروتوكول Twilio
+        destination_phone = f"+{clean_phone}"
+
+        # 3. صياغة الرسالة الرسمية المعتمدة لهوية محجوب أونلاين
+        message_body = (
+            f"Mahjoub Online | الشركاء والموردين\n\n"
+            f"رمز التحقق الأمني الخاص بك هو: {otp_code}\n\n"
             f"يرجى عدم مشاركة هذا الرمز مع أي شخص.\n"
             f"— محجوب أونلاين | سوقك الذكي"
         )
-        
-        base_url = "http://api.textmebot.com/send.php"
-        
-        params = {
-            "recipient": clean_phone, 
-            "apikey": api_key, 
-            "text": message, 
-            "json": "yes"
-        }
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        
+
         try:
-            # المحاولة الأولى للإرسال
-            response = requests.get(base_url, params=params, headers=headers, timeout=15)
-            
-            # التعامل الذكي مع قيود التأخير المفروضة من المزود (Rate Limit)
-            if response.status_code == 403 and "Delay needed" in response.text:
-                print("⚠️ [Vendor Auth] تم اكتشاف قيود تأخير من TextMeBot، جاري الانتظار 10 ثوانٍ...")
-                time.sleep(10)
-                response = requests.get(base_url, params=params, headers=headers, timeout=15)
-            
-            # التحليل الفعلي للرد للتأكد من وصول الرسالة
-            if response.status_code == 200:
-                try:
-                    res_json = response.json()
-                    # فحص رد TextMeBot الفعلي لمعرفة هل تم الإرسال أم لا
-                    if res_json.get('status') == 'success' or 'status' in res_json:
-                        print(f"✅ [Vendor OTP Sent] تم تسليم الرسالة لسيرفر الواتساب بنجاح للرقم: {clean_phone}")
-                        return True
-                    else:
-                        print(f"❌ [Vendor OTP API Error] الرد الفعلي للخدمة: {response.text}")
-                        return False
-                except Exception:
-                    # في حال لم يرجع السيرفر JSON بالرغم من الحالة 200
-                    if "success" in response.text.lower() or "sent" in response.text.lower():
-                        print(f"✅ [Vendor OTP Sent] تم الإرسال (رد نصي): {clean_phone}")
-                        return True
-                    print(f"❌ [Vendor OTP Bad Response] الرد الراجع غير متوقع: {response.text}")
-                    return False
+            # 4. بناء الجلسة البرمجية مع سيرفرات Twilio
+            client = Client(account_sid, auth_token)
+
+            # 5. التمييز الذكي لنوع قناة الإرسال (WhatsApp أو SMS عادية) بناءً على طبيعة رقم المرسل
+            # إذا كان رقم المرسل في البيئة مسبوقاً بـ 'whatsapp:' أو تم تهيئته للواتساب، يتم ربطه كقناة واتساب تلقائياً
+            if twilio_number.startswith('whatsapp:') or "whatsapp" in twilio_number.lower():
+                from_number = twilio_number if twilio_number.startswith('whatsapp:') else f"whatsapp:{twilio_number}"
+                to_number = f"whatsapp:{destination_phone}"
             else:
-                print(f"❌ [Vendor OTP Delivery Failed] الحالة: {response.status_code} - الرد: {response.text}")
-                return False
-                
+                from_number = twilio_number
+                to_number = destination_phone
+
+            # 6. إطلاق طلب الإرسال الفعلي
+            message = client.messages.create(
+                body=message_body,
+                from_=from_number,
+                to=to_number
+            )
+
+            print(f"✅ [Vendor OTP Sent via Twilio] تم الإرسال والمصادقة بنجاح! كود الرسالة المرجعي: {message.sid} للرقم: {to_number}")
+            return True
+
         except Exception as e:
-            print(f"🚨 CRITICAL [Vendor TextMeBot Error]: {str(e)}")
+            print(f"🚨 CRITICAL [Vendor Twilio Error]: {str(e)}")
             return False
