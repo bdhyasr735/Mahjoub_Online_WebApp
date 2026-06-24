@@ -93,4 +93,37 @@ def verify_page():
         otp = data.get('otp')
 
         if not phone or not otp:
-            return jsonify({"status": "error", "message": "بي
+            return jsonify({"status": "error", "message": "بيانات التحقق غير مكتملة"}), 400
+
+        if OTPVerification.verify_otp(phone, otp):
+            from apps.models import Supplier
+            supplier = Supplier.query.filter_by(phone=phone).first()
+            
+            if not supplier:
+                supplier = Supplier(
+                    username=f"supplier_{uuid.uuid4().hex[:8]}",
+                    supplier_code=f"VEN-{uuid.uuid4().hex[:6].upper()}",
+                    phone=phone, 
+                    trade_name="مورد جديد لدينا"
+                )
+                db.session.add(supplier)
+                db.session.commit()
+            
+            login_user(supplier, remember=True)
+            session.permanent = True
+            return jsonify({"status": "success", "redirect": url_for('suppliers.dashboard')})
+        
+        return jsonify({"status": "error", "message": "رمز التحقق منتهي أو خاطئ"}), 400
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": "حدث خطأ أثناء فحص رمز التحقق"}), 500
+
+@suppliers_bp.route('/dashboard')
+def dashboard():
+    return "مرحباً بك في لوحة تحكم الموردين لمنصة محجوب أونلاين"
+
+@suppliers_bp.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('suppliers.login'))
