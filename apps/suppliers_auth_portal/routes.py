@@ -10,6 +10,7 @@ import time
 suppliers_bp = Blueprint('suppliers', __name__, template_folder='templates')
 
 def format_phone(phone):
+    """تنسيق رقم الهاتف لضمان توحيد الصيغة 967"""
     phone = "".join(filter(str.isdigit, str(phone)))
     if len(phone) == 9 and phone.startswith('7'):
         return '967' + phone
@@ -18,14 +19,16 @@ def format_phone(phone):
     return phone
 
 class SupplierDispatcher:
+    """موزع مهام إرسال الرموز السيادية"""
     @staticmethod
     def send(phone, code):
         from apps.suppliers_auth_portal.auth_service import VendorAuthService
-        # في نظام HyperSender V2، يتم توليد الرمز وإرساله تلقائياً عبر السيرفر
+        # في نظام HyperSender V2، يتم توليد الرمز وإرساله تلقائياً عبر الخدمة
         return VendorAuthService.initiate_login(phone)
 
 @suppliers_bp.before_request
 def check_login():
+    """حماية المسارات: التحقق من الجلسة قبل السماح بالدخول"""
     if request.endpoint in ['suppliers.login', 'suppliers.verify_page', 'static'] or not request.blueprint == 'suppliers':
         return None
     if request.endpoint and 'marketers' in request.endpoint:
@@ -35,6 +38,7 @@ def check_login():
 
 @suppliers_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    """بوابة دخول الموردين والمسوقين"""
     if request.method == 'GET':
         if current_user.is_authenticated:
             return redirect(url_for('suppliers.dashboard'))
@@ -81,6 +85,7 @@ def login():
 
 @suppliers_bp.route('/verify', methods=['GET', 'POST'])
 def verify_page():
+    """نافذة التحقق من الرمز السيادي"""
     if current_user.is_authenticated:
         return redirect(url_for('suppliers.dashboard'))
         
@@ -100,6 +105,7 @@ def verify_page():
             from apps.models import Supplier
             supplier = Supplier.query.filter_by(phone=phone).first()
             
+            # إنشاء حساب مورد تلقائياً إذا كان جديداً
             if not supplier:
                 supplier = Supplier(
                     username=f"supplier_{uuid.uuid4().hex[:8]}",
