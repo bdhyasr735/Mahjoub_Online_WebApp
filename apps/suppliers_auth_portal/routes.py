@@ -21,7 +21,8 @@ class SupplierDispatcher:
 @suppliers_bp.before_request
 def check_login():
     """حماية سيادية: فحص الحماية فقط إذا كان الطلب يخص مستخدم غير مسجل وموجه لهذا الـ Blueprint"""
-    if request.endpoint in ['suppliers.login', 'static'] or not request.blueprint == 'suppliers':
+    # 🔄 تم إضافة 'suppliers.verify_page' هنا حتى لا يطرد النظام المستخدم أثناء التحقق من الرمز
+    if request.endpoint in ['suppliers.login', 'suppliers.verify_page', 'static'] or not request.blueprint == 'suppliers':
         return None
     
     if request.endpoint and 'marketers' in request.endpoint:
@@ -92,6 +93,7 @@ def login():
                 supplier = Supplier.query.filter_by(phone=phone).first()
                 
                 if not supplier:
+                    # ميزة الدمج الذكي: تسجيل المورد الجديد تلقائياً إذا لم يكن مسجلاً
                     supplier = Supplier(
                         username=f"supplier_{uuid.uuid4().hex[:8]}",
                         supplier_code=f"VEN-{uuid.uuid4().hex[:6].upper()}",
@@ -113,6 +115,13 @@ def login():
         db.session.rollback()
         print(f"🚨 [Supplier Auth Error]: {str(e)}")
         return jsonify({"status": "error", "message": "حدث خطأ فني في خادم المصادقة"}), 500
+
+# 🔄 الموجه المضاف لعرض صفحة التحقق المستقلة للـ OTP
+@suppliers_bp.route('/verify', methods=['GET'])
+def verify_page():
+    if current_user.is_authenticated:
+        return redirect(url_for('suppliers.dashboard'))
+    return render_template('suppliers_auth_portal/verify.html')
 
 @suppliers_bp.route('/dashboard')
 def dashboard():
