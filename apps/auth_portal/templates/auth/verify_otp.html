@@ -61,8 +61,8 @@
                 {% endif %}
             {% endwith %}
 
-            <form action="{{ url_for('auth_portal.verify_otp_page') }}" method="POST">
-                <input type="text" name="otp_code" class="input-otp" maxlength="6" placeholder="******" required autocomplete="off">
+            <form action="{{ url_for('auth_portal.verify_otp_page') }}" method="POST" id="otp-form">
+                <input type="text" name="otp_code" class="input-otp" maxlength="6" placeholder="******" required autocomplete="off" inputmode="numeric" pattern="[0-9]*">
                 <button type="submit" class="btn-verify">تأكيد الدخول</button>
             </form>
 
@@ -76,6 +76,18 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // منطق الإرسال التلقائي عند اكتمال الـ 6 أرقام
+            const otpInput = document.querySelector('.input-otp');
+            const otpForm = document.getElementById('otp-form');
+            
+            otpInput.addEventListener('input', function() {
+                if (this.value.length === 6) {
+                    this.style.borderColor = "#fff";
+                    otpForm.submit();
+                }
+            });
+
+            // منطق المؤقت لإعادة الإرسال
             const resendBtn = document.getElementById('resend-btn');
             const resendText = document.getElementById('resend-text');
             let timeLeft = 60;
