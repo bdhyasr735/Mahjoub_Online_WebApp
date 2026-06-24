@@ -7,9 +7,6 @@ from apps.extensions import db
 import uuid
 import time
 
-# استيراد خدمة الإرسال الخاصة بالموردين المربوطة بـ HyperSender V2
-from apps.suppliers_auth_portal.auth_service import VendorAuthService
-
 # تعريف الـ Blueprint
 suppliers_bp = Blueprint('suppliers', __name__, template_folder='templates')
 
@@ -23,11 +20,11 @@ def format_phone(phone):
         return '967' + phone[1:]
     return phone
 
-# جسر إرسال الموردين المستقل
+# جسر إرسال الموردين المستقل (تم نقل الاستيراد ليكون داخل الدالة لمنع الـ Circular Import)
 class SupplierDispatcher:
     @staticmethod
     def send(phone, code):
-        # في نظام V2، لا نحتاج لتمرير 'code' للخدمة، هي تتولى التوليد
+        from apps.suppliers_auth_portal.auth_service import VendorAuthService
         return VendorAuthService.initiate_login(phone, code)
 
 @suppliers_bp.before_request
@@ -71,7 +68,7 @@ def login():
         if not phone:
             return jsonify({"status": "error", "message": "رقم الهاتف مطلوب"}), 400
 
-        # استخدام Dispatcher الجديد
+        # استخدام Dispatcher
         if OTPVerification.generate_otp(phone, SupplierDispatcher):
             session['last_otp_sent'] = time.time()
             return jsonify({"status": "success", "message": "تم إرسال رمز التحقق بنجاح"})
