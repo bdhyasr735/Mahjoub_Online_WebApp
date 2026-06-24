@@ -52,6 +52,8 @@ def create_app():
         from apps.vault.routes import vault_bp
         from apps.orders.routes import orders_bp
         from apps.api.webhooks import webhooks_bp
+        # إضافة موديول الموردين السيادي
+        from apps.suppliers_auth_portal.routes import suppliers_bp
 
         app.register_blueprint(auth_portal, url_prefix='/auth')
         app.register_blueprint(admin_dashboard, url_prefix='/admin')
@@ -59,8 +61,10 @@ def create_app():
         app.register_blueprint(vault_bp, url_prefix='/vault')
         app.register_blueprint(orders_bp, url_prefix='/orders')
         app.register_blueprint(webhooks_bp, url_prefix='/api')
+        # تسجيل مسار الموردين الموحد
+        app.register_blueprint(suppliers_bp, url_prefix='/suppliers')
     
-    print("✅ [SYSTEM] تم تسجيل كافة المسارات (Blueprints) بنجاح.")
+    print("✅ [SYSTEM] تم تسجيل كافة المسارات (بما في ذلك بوابة الموردين) بنجاح.")
 
     # 5. التوجيه الأساسي
     @app.route('/')
