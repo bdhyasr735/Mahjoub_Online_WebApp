@@ -1,45 +1,47 @@
 # coding: utf-8
-# 📂 apps/auth_portal/auth_service.py - النسخة النهائية المطابقة للتوثيق
+# 📂 apps/auth_portal/routes.py - المسارات المحدثة لنظام التحقق
 
-import os
-import requests
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from apps.auth_portal.auth_service import AdminAuthService
+import random
 
-class AdminAuthService:
-    @staticmethod
-    def initiate_login(phone, otp_code):
-        api_key = os.environ.get('HYPERSEND_API_KEY')
-        
-        # 1. تنظيف الرقم (بدون أي مسافات)
-        clean_phone = "".join(filter(str.isdigit, str(phone)))
-        if not clean_phone.startswith('967'):
-            clean_phone = '967' + clean_phone.lstrip('0')
-        
-        # 2. التنسيق الدقيق المطلوب لـ HyperSender
-        chat_id = f"{clean_phone}@c.us"
-        
-        # 3. الرابط المعتمد من توثيق Postman
-        url = "https://app.hypersender.com/api/whatsapp/v1/instance/send-text"
-        
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        # 4. الـ Payload الدقيق (مطابق لصور Postman)
-        payload = {
-            "chatId": chat_id,
-            "text": f"رمز الدخول لمحجوب أونلاين هو: {otp_code}"
-        }
+# إنشاء Blueprint للـ Auth Portal
+auth_blueprint = Blueprint('auth', __name__, template_folder='templates')
 
-        try:
-            print(f"DEBUG: محاولة الإرسال لـ {chat_id}")
-            response = requests.post(url, json=payload, headers=headers, timeout=15)
+@auth_blueprint.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # هنا يجب إضافة منطق التحقق من المستخدم في قاعدة البيانات
+        # كمثال: user = User.query.filter_by(username=username).first()
+        # إذا نجح التحقق، نولد الكود ونرسله:
+        
+        otp_code = str(random.randint(100000, 999999))
+        session['otp_code'] = otp_code
+        session['phone'] = "77xxxxxxxx" # هذا الرقم يجب أن يأتي من قاعدة البيانات
+        
+        # استدعاء الخدمة المحدثة
+        if AdminAuthService.initiate_login(session['phone'], otp_code):
+            flash('تم إرسال رمز التحقق إلى واتساب الخاص بك.', 'success')
+            return redirect(url_for('auth.verify_otp'))
+        else:
+            flash('حدث خطأ أثناء إرسال الرمز. يرجى المحاولة لاحقاً.', 'danger')
             
-            if response.status_code in [200, 201]:
-                return True
-            else:
-                print(f"CRITICAL: HyperSender Error: {response.text}")
-                return False
-        except Exception as e:
-            print(f"CRITICAL: Connection Error: {str(e)}")
-            return False
+    return render_template('auth/login.html')
+
+@auth_blueprint.route('/verify-otp', methods=['GET', 'POST'])
+def verify_otp():
+    if request.method == 'POST':
+        user_otp = request.form.get('otp_code')
+        
+        # التحقق من الكود
+        if user_otp == session.get('otp_code'):
+            session.pop('otp_code', None)
+            flash('تم تسجيل الدخول بنجاح!', 'success')
+            return redirect(url_for('admin.dashboard')) # مسار الداشبورد الخاص بك
+        else:
+            flash('الرمز غير صحيح، حاول مرة أخرى.', 'danger')
+            
+    return render_template('auth/verify_otp.html')
