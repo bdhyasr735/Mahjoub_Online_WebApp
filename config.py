@@ -48,11 +48,12 @@ class Config:
 
     # 4. إعدادات WhatsApp Cloud API
     WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '1190456080809834')
-    
-    # دمج المفتاح الخاص بك كقيمة افتراضية للربط
     WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', 'rb3tZFnHRcsN')
-    
     WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'Mahjoub_WhatsApp_Secure_2026')
 
-    # 5. ترميز النصوص
+    # 5. إعدادات HyperSender (للتحقق السيادي عبر OTP)
+    HYPERSEND_API_KEY = os.environ.get('HYPERSEND_API_KEY')
+    HYPERSEND_INSTANCE_ID = os.environ.get('HYPERSEND_INSTANCE_ID')
+
+    # 6. ترميز النصوص
     JSON_AS_ASCII = False
