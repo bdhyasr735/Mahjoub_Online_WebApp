@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/auth_portal/routes.py - البوابة السيادية للإدارة العليا (إصدار نظام HyperSend المحصن)
+# 📂 apps/auth_portal/routes.py - البوابة السيادية للإدارة العليا (إصدار نظام HyperSender المحصن V2)
 
 import os
 import time
@@ -15,10 +15,11 @@ from apps.auth_portal.auth_service import AdminAuthService
 
 SECRET_LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x')
 
-# جسر إرسال الإدارة
+# جسر إرسال الإدارة (تم التحديث ليتوافق مع V2)
 class AdminDispatcher:
     @staticmethod
     def send(phone, code):
+        # في نظام V2، الـ API يولد الكود، لذا نرسل الـ phone فقط للخدمة
         return AdminAuthService.initiate_login(phone, code)
 
 def format_phone_number(phone):
@@ -57,7 +58,7 @@ def login():
             session['temp_user_id'] = user.id
             session.pop('_flashes', None)
             
-            # إرسال الرمز والتحقق من النجاح
+            # إرسال طلب التوثيق عبر الـ Dispatcher
             if OTPVerification.generate_otp(phone_to_use, AdminDispatcher):
                 session['last_otp_sent'] = time.time()
                 flash('تم إرسال رمز التحقق إلى واتساب الإدارة.', 'info')
@@ -83,6 +84,7 @@ def verify_otp_page():
         user = AdminUser.query.get(session['temp_user_id'])
         phone_to_use = format_phone_number(user.phone_number)
 
+        # التحقق من الكود (معتمد على منطق OTPVerification المحلي)
         if user and OTPVerification.verify_otp(phone_to_use, otp_code):
             login_user(user)
             session.pop('temp_user_id', None)
