@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي الموحد (النسخة النهائية - تسجيل ديناميكي)
+# 📂 apps/__init__.py - المصنع السيادي الموحد (النسخة النهائية - تسجيل ديناميكي وآمن)
 
 import os
 from flask import Flask, redirect, url_for
@@ -45,7 +45,7 @@ def create_app():
 
     # تسجيل المسارات (ثابت وديناميكي)
     with app.app_context():
-        # 1. تسجيل المسارات الأساسية
+        # 1. تسجيل المسارات الأساسية (الإدارة، المحفظة، إلخ)
         try:
             from apps.auth_portal.routes import auth_portal
             from apps.admin_dashboard.routes import admin_dashboard
@@ -64,7 +64,7 @@ def create_app():
             print(f"❌ [CRITICAL] خطأ في تسجيل المسارات الأساسية: {e}")
             raise
 
-        # 2. تسجيل مسارات الموردين (ديناميكي وآمن)
+        # 2. تسجيل مسارات الموردين (دالة معزولة لمنع انهيار النظام)
         def register_suppliers_module(app):
             try:
                 from apps.suppliers_auth_portal.routes import suppliers_bp
@@ -74,7 +74,7 @@ def create_app():
                 app.register_blueprint(dashboard_bp, url_prefix='/suppliers_dashboard')
                 print("✅ [Registry] تم تسجيل وحدات الموردين بنجاح.")
             except Exception as e:
-                print(f"⚠️ [Registry] تعذر تحميل لوحة تحكم المورد: {e}")
+                print(f"⚠️ [Registry] تعذر تحميل وحدات الموردين: {e}")
 
         register_suppliers_module(app)
 
@@ -83,22 +83,25 @@ def create_app():
     def index():
         return redirect(url_for('auth_portal.login'))
 
-    # إعداد البيانات (Seeding)
+    # إعداد البيانات (Seeding) - مع عزل كامل لكل جزء
     with app.app_context():
+        db.create_all()
+        
+        # 1. زرع المسؤول (أساسي)
         try:
             from apps.models.admin_db import AdminUser
-            from apps.models.supplier_db import Supplier
-            
-            db.create_all()
-            
-            # إنشاء المسؤول
             if not AdminUser.query.filter_by(username='علي محجوب').first():
                 admin = AdminUser(username='علي محجوب', role='Owner', phone_number='779077746')
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
+                print("✅ [Database Setup] تم إنشاء المسؤول.")
+        except Exception as e:
+            print(f"⚠️ [Database Setup] خطأ في زرع المسؤول: {e}")
 
-            # إنشاء المورد الافتراضي
+        # 2. زرع المورد (منفصل لمنع التأثير على الإدارة)
+        try:
+            from apps.models.supplier_db import Supplier
             if not Supplier.query.filter_by(username='mahjoub_store').first():
                 new_supplier = Supplier(
                     username='mahjoub_store',
@@ -109,7 +112,9 @@ def create_app():
                 new_supplier.set_password('123')
                 db.session.add(new_supplier)
                 db.session.commit()
+                print("✅ [Database Setup] تم زرع المورد بنجاح.")
         except Exception as e:
-            print(f"⚠️ [Database Setup] خطأ: {e}")
+            # الخطأ هنا لن يؤثر على عمل الإدارة
+            print(f"⚠️ [Database Setup] خطأ في زرع المورد: {e}")
 
     return app
