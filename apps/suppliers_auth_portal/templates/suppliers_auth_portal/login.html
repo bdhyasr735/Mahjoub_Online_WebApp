@@ -2,116 +2,54 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بوابة الشركاء الموحدة | محجوب أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;600;900&display=swap" rel="stylesheet">
     <style>
-        :root { 
-            --bg: #05020a; 
-            --gold: #ce9e49; 
-            --card-bg: #0f071c; 
-            --input-bg: #000000;
-            --border-color: #333333;
-        }
-        
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body { 
-            font-family: 'Cairo', sans-serif; 
-            background: var(--bg); 
-            color: #fff; 
-            min-height: 100vh; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 15px;
-        }
-
-        .wrapper { 
-            display: flex; flex-direction: row; width: 100%; 
-            max-width: 900px; background: rgba(15, 7, 28, 0.95); 
-            border: 1px solid var(--border-color); border-radius: 30px; 
-            overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-
+        :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; }
+        body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .wrapper { display: flex; width: 95%; max-width: 900px; background: rgba(15, 7, 28, 0.95); border: 1px solid #333; border-radius: 30px; overflow: hidden; }
         .side { flex: 1; padding: 40px; display: flex; flex-direction: column; justify-content: center; }
-        .marketing-side { background: linear-gradient(145deg, #160d26, #05020a); border-left: 1px solid var(--border-color); }
-        .marketing-side h1 { font-size: 2.2rem; margin-bottom: 15px; font-weight: 900; line-height: 1.4; }
-        .marketing-side p { color: #b3b3b3; font-size: 1.05rem; line-height: 1.6; }
-
-        .auth-form-container { position: relative; }
-        .auth-form-container h3 { font-size: 1.4rem; margin-bottom: 20px; font-weight: 600; }
-
-        .btn-gold { 
-            padding: 15px; background: linear-gradient(90deg, #ce9e49, #9e7634); 
-            border: none; border-radius: 12px; font-weight: 900; 
-            font-family: 'Cairo', sans-serif; font-size: 1rem; cursor: pointer; 
-            color: #000; margin: 10px 0; width: 100%; transition: all 0.3s ease; text-align: center;
-        }
-        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(206, 158, 73, 0.3); }
-        .btn-gold:disabled { background: #555 !important; color: #aaa; cursor: not-allowed; }
-
-        .cyber-input { 
-            background: var(--input-bg); border: 1px solid var(--border-color); 
-            padding: 15px; color: #fff; border-radius: 12px; margin: 10px 0; 
-            width: 100%; font-family: 'Cairo', sans-serif; font-size: 1rem; 
-            transition: border-color 0.3s ease;
-        }
-        .cyber-input:focus { outline: none; border-color: var(--gold); }
-
-        .phone-group { display: flex; gap: 10px; align-items: center; width: 100%; }
-        #country-code { width: 35%; text-align: center; cursor: pointer; }
-        #reg-phone { width: 65%; }
-        .hidden { display: none !important; }
-        .forgot-link { color: #888; font-size: 0.85rem; cursor: pointer; text-decoration: underline; margin-top: 12px; display: block; }
-        .forgot-link:hover { color: var(--gold); }
-        .back-btn { background: none; border: none; color: #666; font-family: 'Cairo', sans-serif; font-size: 0.95rem; cursor: pointer; margin-top: 15px; align-self: flex-start; }
-        .back-btn:hover { color: #fff; }
-        #status-msg { padding: 15px; margin-bottom: 20px; border-radius: 12px; display: none; text-align: center; font-size: 0.95rem; font-weight: 600; }
-
-        @media (max-width: 768px) {
-            .wrapper { flex-direction: column; }
-            .marketing-side { border-left: none; border-bottom: 1px solid var(--border-color); text-align: center; }
-        }
+        .btn-gold { padding: 15px; background: linear-gradient(90deg, #ce9e49, #9e7634); border: none; border-radius: 12px; font-weight: 900; cursor: pointer; color: #000; margin: 8px 0; width: 100%; transition: 0.3s; }
+        .cyber-input { background: #000; border: 1px solid #333; padding: 15px; color: #fff; border-radius: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; }
+        .hidden { display: none; }
+        .forgot-link { color: #666; font-size: 0.85rem; cursor: pointer; text-decoration: underline; margin-top: 10px; display: block; }
+        #status-msg { padding: 12px; margin: 10px 0; border-radius: 12px; display: none; text-align: center; font-size: 0.9rem; }
+        .marketing-side { background: linear-gradient(145deg, #160d26, #05020a); }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
     <div class="side marketing-side">
-        <h1>بوابة الشركاء <span style="color:var(--gold)">السيادية</span></h1>
-        <p>نظام ذكي موحد للمنتسبين والموردين. إدخال رقمك يمنحك ولوجاً فورياً أو ينشئ حسابك بلحظات عبر واتساب.</p>
+        <h1 style="font-size: 2.2rem;">بوابة الشركاء <span style="color:var(--gold)">السيادية</span></h1>
+        <p>نظام متكامل لإدارة الموردين والمسوقين بأعلى معايير الأمن الرقمي.</p>
     </div>
     
-    <div class="side auth-form-container">
+    <div class="side" id="auth-container">
         <div id="status-msg"></div>
 
         <div id="main-menu">
             <h3 style="color: var(--gold);">اختر نوع الدخول</h3>
-            <button class="btn-gold" onclick="showForm('register')">الموردون (دخول موحد عبر واتساب)</button>
-            <button class="btn-gold" style="background: #222; color: #fff;" onclick="showForm('marketer-login')">تسجيل دخول المسوقين</button>
+            <button class="btn-gold" onclick="showForm('supplier-login')">دخول الموردين</button>
+            <button class="btn-gold" style="background: #222; color: #fff;" onclick="showForm('marketer-login')">دخول المسوقين</button>
         </div>
 
-        <div id="register-form" class="hidden">
-            <h3 style="color: var(--gold);">دخول واشتراك الموردين</h3>
-            <div class="phone-group">
-                <select id="country-code" class="cyber-input">
-                    <option value="+967">+967</option>
-                    <option value="+966">+966</option>
-                </select>
-                <input type="tel" id="reg-phone" class="cyber-input" placeholder="رقم الهاتف">
-            </div>
-            <button class="btn-gold" id="otp-btn" onclick="sendOtp()">إرسال رمز التحقق</button>
-            <button class="back-btn" onclick="showForm('menu')">← رجوع للقائمة</button>
+        <div id="supplier-login" class="hidden">
+            <h3 style="color: var(--gold);">دخول الموردين</h3>
+            <input type="text" id="sup-user" class="cyber-input" placeholder="اسم المستخدم أو رقم الهاتف">
+            <input type="password" id="sup-pass" class="cyber-input" placeholder="كلمة المرور">
+            <button class="btn-gold" onclick="loginUser('supplier')">تسجيل الدخول</button>
+            <span class="forgot-link" onclick="showMessage('تواصل مع إدارة النظام لاستعادة كلمة المرور', 'error')">هل نسيت كلمة المرور؟</span>
+            <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; margin-top:10px;">رجوع</button>
         </div>
 
         <div id="marketer-login" class="hidden">
-            <h3 style="color: var(--gold);">دخول المسوقين المعتمدين</h3>
+            <h3 style="color: var(--gold);">دخول المسوقين</h3>
             <input type="text" id="marketer-user" class="cyber-input" placeholder="اسم المستخدم">
             <input type="password" id="marketer-pass" class="cyber-input" placeholder="كلمة المرور">
-            <button class="btn-gold" onclick="loginMarketer()">تسجيل الدخول</button>
-            <span class="forgot-link" onclick="showMessage('تواصل مع إدارة النظام لاستعادة الوصول', 'error')">هل نسيت كلمة المرور؟</span>
-            <button class="back-btn" onclick="showForm('menu')">← رجوع للقائمة</button>
+            <button class="btn-gold" onclick="loginUser('marketer')">تسجيل الدخول</button>
+            <span class="forgot-link" onclick="showMessage('تواصل مع إدارة النظام لاستعادة كلمة المرور', 'error')">هل نسيت كلمة المرور؟</span>
+            <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; margin-top:10px;">رجوع</button>
         </div>
     </div>
 </div>
@@ -127,58 +65,23 @@
 
     function showForm(formType) {
         document.getElementById('status-msg').style.display = 'none';
-        document.querySelectorAll('.auth-form-container > div:not(#status-msg)').forEach(div => div.classList.add('hidden'));
-        
+        document.querySelectorAll('#auth-container > div:not(#status-msg)').forEach(div => div.classList.add('hidden'));
         if (formType === 'menu') document.getElementById('main-menu').classList.remove('hidden');
-        else if (formType === 'register') document.getElementById('register-form').classList.remove('hidden');
+        else if (formType === 'supplier-login') document.getElementById('supplier-login').classList.remove('hidden');
         else if (formType === 'marketer-login') document.getElementById('marketer-login').classList.remove('hidden');
     }
 
-    async function sendOtp() {
-        const phone = document.getElementById('country-code').value + document.getElementById('reg-phone').value;
-        const btn = document.getElementById('otp-btn');
+    async function loginUser(type) {
+        const data = type === 'supplier' ? 
+            {type: 'supplier', username: document.getElementById('sup-user').value, password: document.getElementById('sup-pass').value} :
+            {type: 'marketer', username: document.getElementById('marketer-user').value, password: document.getElementById('marketer-pass').value};
         
-        if (document.getElementById('reg-phone').value.length < 8) {
-            showMessage("يرجى إدخال رقم هاتف صحيح.", "error");
-            return;
-        }
-
-        btn.innerText = "جاري الاتصال بـ HyperSend...";
-        btn.disabled = true;
-        
-        try {
-            const response = await fetch('/suppliers/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({type: 'supplier', phone: phone})
-            });
-            
-            const res = await response.json();
-            
-            if(response.ok && res.status === 'success') {
-                window.location.href = '/suppliers/verify?phone=' + encodeURIComponent(phone);
-            } else { 
-                showMessage(res.message || "فشل الاتصال بخدمة التحقق.", 'error'); 
-                btn.innerText = "إرسال رمز التحقق"; 
-                btn.disabled = false; 
-            }
-        } catch (err) {
-            showMessage("خطأ فني في الاتصال. يرجى المحاولة لاحقاً.", 'error');
-            btn.innerText = "إرسال رمز التحقق";
-            btn.disabled = false;
-        }
-    }
-
-    async function loginMarketer() {
         const response = await fetch('/suppliers/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                type: 'marketer', 
-                username: document.getElementById('marketer-user').value,
-                password: document.getElementById('marketer-pass').value
-            })
+            body: JSON.stringify(data)
         });
+        
         const res = await response.json();
         if(res.status === 'success') window.location.href = res.redirect;
         else showMessage(res.message, 'error');
