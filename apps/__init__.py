@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py - المصنع السيادي الموحد (النسخة النهائية)
+# 📂 apps/__init__.py - المصنع السيادي الموحد (النسخة النهائية - تسجيل ديناميكي)
 
 import os
 from flask import Flask, redirect, url_for
@@ -40,12 +40,12 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
-        # ملاحظة: إذا كان لديك مستخدمون متعددون، قد تحتاج لمنطق أذكى هنا
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # تسجيل المسارات
+    # تسجيل المسارات (ثابت وديناميكي)
     with app.app_context():
+        # 1. تسجيل المسارات الأساسية
         try:
             from apps.auth_portal.routes import auth_portal
             from apps.admin_dashboard.routes import admin_dashboard
@@ -53,7 +53,6 @@ def create_app():
             from apps.vault.routes import vault_bp
             from apps.orders.routes import orders_bp
             from apps.api.webhooks import webhooks_bp
-            from apps.suppliers_auth_portal.routes import suppliers_bp
 
             app.register_blueprint(auth_portal, url_prefix='/auth')
             app.register_blueprint(admin_dashboard, url_prefix='/admin')
@@ -61,11 +60,23 @@ def create_app():
             app.register_blueprint(vault_bp, url_prefix='/vault')
             app.register_blueprint(orders_bp, url_prefix='/orders')
             app.register_blueprint(webhooks_bp, url_prefix='/api')
-            app.register_blueprint(suppliers_bp, url_prefix='/suppliers')
-            print("✅ [SYSTEM] تم تسجيل كافة المسارات بنجاح.")
         except Exception as e:
-            print(f"❌ [CRITICAL] خطأ أثناء تسجيل المسارات: {e}")
+            print(f"❌ [CRITICAL] خطأ في تسجيل المسارات الأساسية: {e}")
             raise
+
+        # 2. تسجيل مسارات الموردين (ديناميكي وآمن)
+        def register_suppliers_module(app):
+            try:
+                from apps.suppliers_auth_portal.routes import suppliers_bp
+                from apps.suppliers_dashboard.routes import dashboard_bp
+                
+                app.register_blueprint(suppliers_bp, url_prefix='/suppliers')
+                app.register_blueprint(dashboard_bp, url_prefix='/suppliers_dashboard')
+                print("✅ [Registry] تم تسجيل وحدات الموردين بنجاح.")
+            except Exception as e:
+                print(f"⚠️ [Registry] تعذر تحميل لوحة تحكم المورد: {e}")
+
+        register_suppliers_module(app)
 
     # التوجيه الأساسي
     @app.route('/')
@@ -80,15 +91,14 @@ def create_app():
             
             db.create_all()
             
-            # 1. إنشاء حساب المسؤول
+            # إنشاء المسؤول
             if not AdminUser.query.filter_by(username='علي محجوب').first():
                 admin = AdminUser(username='علي محجوب', role='Owner', phone_number='779077746')
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
-                print("✅ [Database Setup] تم إنشاء المسؤول بنجاح.")
 
-            # 2. إنشاء المورد الافتراضي: متجر محجوب أونلاين
+            # إنشاء المورد الافتراضي
             if not Supplier.query.filter_by(username='mahjoub_store').first():
                 new_supplier = Supplier(
                     username='mahjoub_store',
@@ -99,8 +109,6 @@ def create_app():
                 new_supplier.set_password('123')
                 db.session.add(new_supplier)
                 db.session.commit()
-                print("✅ [Database Setup] تم زرع المورد: متجر محجوب أونلاين بنجاح.")
-
         except Exception as e:
             print(f"⚠️ [Database Setup] خطأ: {e}")
 
