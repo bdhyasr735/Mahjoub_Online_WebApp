@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/models/supplier_profile_db.py
 
-from apps import db
+from apps.extensions import db  # تم التعديل
 from cryptography.fernet import Fernet
 import os
 
@@ -24,7 +24,7 @@ class SupplierProfile(db.Model):
     governorate = db.Column(db.String(100), index=True)
     city = db.Column(db.String(100), index=True)
     
-    # الربط (استخدام 'Supplier' كنص يمنع أخطاء Circular Import عند البدء)
+    # الربط السيادي
     supplier = db.relationship('Supplier', back_populates='supplier_profile')
 
     # --- نظام التشفير ---
