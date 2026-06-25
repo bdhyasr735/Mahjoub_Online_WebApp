@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for
 from flask_login import login_required, current_user
 
 # تعريف الـ Blueprint مع تحديد مسار مجلد القوالب
-# تذكر أن flask سيبحث عن المجلدات داخل 'templates'
+# تذكر: Flask يبحث عن القوالب انطلاقاً من المجلد المحدد (templates)
 dashboard_bp = Blueprint(
     'suppliers_dashboard', 
     __name__, 
