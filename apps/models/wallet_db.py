@@ -27,8 +27,14 @@ class SupplierWallet(db.Model):
     # 4. التحديث التلقائي
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
     
-    # 5. الربط (تأكد من استخدام اسم العلاقة الموحد)
+    # 5. الربط
     supplier = db.relationship('Supplier', back_populates='wallet')
+
+    # --- خصائص إضافية مفيدة للوحة التحكم ---
+    @property
+    def total_balance(self):
+        """حساب الرصيد الكلي (المتاح + المعلق)"""
+        return float(self.balance_available) + float(self.balance_pending)
 
     # --- نظام التشفير ---
     @staticmethod
@@ -49,4 +55,4 @@ class SupplierWallet(db.Model):
             self._bank_details_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
 
     def __repr__(self):
-        return f'<SupplierWallet {self.wallet_code} | Balance: {self.balance_available}>'
+        return f'<SupplierWallet {self.wallet_code} | Available: {self.balance_available}>'
