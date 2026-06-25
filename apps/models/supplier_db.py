@@ -33,7 +33,7 @@ class Supplier(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     last_login = db.Column(db.DateTime, nullable=True)
 
-    # 6. العلاقات (تم إضافة الروابط الناقصة هنا)
+    # 6. العلاقات
     supplier_profile = db.relationship(
         'SupplierProfile', 
         back_populates='supplier', 
@@ -43,7 +43,6 @@ class Supplier(db.Model, UserMixin):
     
     wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
     
-    # الروابط المفقودة التي كانت تسبب الخطأ
     orders = db.relationship('Order', back_populates='supplier', cascade="all, delete-orphan")
     financials = db.relationship('OrderFinancial', back_populates='supplier', cascade="all, delete-orphan")
 
@@ -54,10 +53,12 @@ class Supplier(db.Model, UserMixin):
             self.supplier_code = f"MAH-SUP963{self.id}"
             
             from apps.models.wallet_db import SupplierWallet
+            # التعديل هنا: استخدام أسماء الأعمدة الصحيحة (balance_available / balance_pending)
             new_wallet = SupplierWallet(
                 wallet_code=f"MAH-WEL963{self.id}",
                 supplier_id=self.id,
-                balance=0.0
+                balance_available=0.00,
+                balance_pending=0.00
             )
             db.session.add(new_wallet)
 
