@@ -14,8 +14,11 @@ class Supplier(db.Model, UserMixin):
     # 1. المعرفات الأساسية
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    supplier_code = db.Column(db.String(50), unique=True, nullable=False, index=True) 
-    trade_name = db.Column(db.String(150), nullable=True) # تم إضافة الحقل المفقود هنا
+    
+    # تم تغيير nullable إلى True مؤقتاً لتجنب خطأ الزرع، 
+    # وسيتم ملؤه بواسطة دالة generate_codes بعد الحصول على id
+    supplier_code = db.Column(db.String(50), unique=True, nullable=True, index=True) 
+    trade_name = db.Column(db.String(150), nullable=True)
     
     # 2. البيانات الحساسة (تشفير AES)
     _phone_enc = db.Column(db.String(255), nullable=False) 
@@ -24,7 +27,7 @@ class Supplier(db.Model, UserMixin):
     # 3. بيانات المصادقة
     password_hash = db.Column(db.String(255), nullable=True)
     
-    # 4. الحالات والرتب (مع فهارس لتسريع الاستعلام)
+    # 4. الحالات والرتب
     status = db.Column(db.String(20), default='active', index=True)
     rank = db.Column(db.String(20), default='bronze', index=True)
     
@@ -33,7 +36,6 @@ class Supplier(db.Model, UserMixin):
     last_login = db.Column(db.DateTime, nullable=True)
 
     # 6. العلاقات
-    # تأكد من وجود الموديل SupplierProfile في ملف models/profiles.py أو المكان المخصص له
     supplier_profile = db.relationship(
         'SupplierProfile', 
         back_populates='supplier', 
@@ -42,10 +44,15 @@ class Supplier(db.Model, UserMixin):
         lazy='select'
     )
 
+    # --- منطق توليد الأكواد ---
+    def generate_codes(self):
+        """توليد الكود بناءً على الـ ID الفريد"""
+        if self.id and not self.supplier_code:
+            self.supplier_code = f"MAH-SUP963{self.id}"
+
     # --- نظام التشفير للرقم (AES) ---
     @staticmethod
     def _get_key():
-        # تأكد من أن متغير البيئة ENCRYPTION_KEY موجود في إعدادات Render
         return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
 
     @property
@@ -58,16 +65,13 @@ class Supplier(db.Model, UserMixin):
     @phone.setter
     def phone(self, value):
         self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
-        # تخزين أول 20 رقم لتسهيل البحث (الـ Indexing)
         self.search_phone = str(value)[:20]
 
-    # --- نظام المصادقة بكلمة المرور (Werkzeug) ---
+    # --- نظام المصادقة بكلمة المرور ---
     def set_password(self, password):
-        """تشفير كلمة المرور قبل حفظها"""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """التحقق من تطابق كلمة المرور"""
         return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
