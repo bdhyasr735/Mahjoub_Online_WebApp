@@ -44,26 +44,22 @@ def create_app():
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. تسجيل المسارات (Blueprints)
+    # 4. تسجيل المسارات (Blueprints) والتهيئة الموحدة
     with app.app_context():
         # تسجيل المكونات الأساسية
-        try:
-            from apps.auth_portal.routes import auth_portal
-            from apps.admin_dashboard.routes import admin_dashboard
-            from apps.wallet.routes import wallet_app
-            from apps.vault.routes import vault_bp
-            from apps.orders.routes import orders_bp
-            from apps.api.webhooks import webhooks_bp
+        from apps.auth_portal.routes import auth_portal
+        from apps.admin_dashboard.routes import admin_dashboard
+        from apps.wallet.routes import wallet_app
+        from apps.vault.routes import vault_bp
+        from apps.orders.routes import orders_bp
+        from apps.api.webhooks import webhooks_bp
 
-            app.register_blueprint(auth_portal, url_prefix='/auth')
-            app.register_blueprint(admin_dashboard, url_prefix='/admin')
-            app.register_blueprint(wallet_app, url_prefix='/wallet')
-            app.register_blueprint(vault_bp, url_prefix='/vault')
-            app.register_blueprint(orders_bp, url_prefix='/orders')
-            app.register_blueprint(webhooks_bp, url_prefix='/api')
-        except Exception as e:
-            print(f"❌ [CRITICAL] خطأ في تسجيل المسارات الأساسية: {e}")
-            raise
+        app.register_blueprint(auth_portal, url_prefix='/auth')
+        app.register_blueprint(admin_dashboard, url_prefix='/admin')
+        app.register_blueprint(wallet_app, url_prefix='/wallet')
+        app.register_blueprint(vault_bp, url_prefix='/vault')
+        app.register_blueprint(orders_bp, url_prefix='/orders')
+        app.register_blueprint(webhooks_bp, url_prefix='/api')
 
         # 5. التسجيل الديناميكي لموديولات الموردين
         apps_dir = app.root_path
@@ -72,25 +68,24 @@ def create_app():
                 registry_path = os.path.join(apps_dir, folder, 'registry.py')
                 if os.path.exists(registry_path):
                     try:
-                        module_name = f"apps.{folder}.registry"
-                        module = importlib.import_module(module_name)
+                        module = importlib.import_module(f"apps.{folder}.registry")
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
                     except Exception as e:
-                        print(f"⚠️ [Registry] تعذر تسجيل موديول الموردين {folder}: {e}")
+                        print(f"⚠️ [Registry] تعذر تسجيل الموديول {folder}: {e}")
+
+        # 6. فرض تهيئة جميع العلاقات (Mapper Configuration)
+        # هذا السطر ضروري لمنع خطأ الـ "One or more mappers failed to initialize"
+        db.configure_mappers()
 
     @app.route('/')
     def index():
         return redirect(url_for('auth_portal.login'))
 
-    # 6. تهيئة قاعدة البيانات والبيانات الأولية (Seed)
+    # 7. تهيئة البيانات الأولية (Seeding)
     with app.app_context():
-        # ملاحظة: في بيئة الإنتاج نعتمد على Flask-Migrate فقط
-        # db.create_all() 
-        
         try:
-            from apps.models.admin_db import AdminUser
-            from apps.models.supplier_db import Supplier
+            from apps.models import AdminUser, Supplier
             
             # زرع المسؤول
             if not AdminUser.query.filter_by(username='علي محجوب').first():
@@ -110,10 +105,8 @@ def create_app():
                 new_supplier.set_password('123')
                 db.session.add(new_supplier)
                 db.session.commit()
-                new_supplier.generate_codes()
-                db.session.commit()
-                
+                # generate_codes() تستدعى بعد الـ commit لضمان وجود الـ id
         except Exception as e:
-            print(f"⚠️ [Database Setup] خطأ في تهيئة البيانات الأولية: {e}")
+            print(f"⚠️ [Database Setup] خطأ: {e}")
 
     return app
