@@ -2,19 +2,59 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بوابة الشركاء الموحدة | محجوب أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;600;900&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; }
-        body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .wrapper { display: flex; width: 95%; max-width: 900px; background: rgba(15, 7, 28, 0.95); border: 1px solid #333; border-radius: 30px; overflow: hidden; }
-        .side { flex: 1; padding: 40px; display: flex; flex-direction: column; justify-content: center; }
+        
+        /* إعدادات الجسم لمنع التمرير الافتراضي */
+        body { 
+            margin: 0; 
+            font-family: 'Cairo', sans-serif; 
+            background: var(--bg); 
+            color: #fff; 
+            height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px;
+            overflow: hidden; 
+        }
+        
+        /* الحاوية الرئيسية */
+        .wrapper { 
+            display: flex; 
+            width: 100%; 
+            max-width: 900px; 
+            max-height: 90vh; 
+            background: rgba(15, 7, 28, 0.95); 
+            border: 1px solid #333; 
+            border-radius: 30px; 
+            overflow: hidden; 
+        }
+        
+        /* الجانبين */
+        .side { flex: 1; padding: 40px; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; }
+        
+        /* إخفاء شريط التمرير في المتصفحات */
+        .side::-webkit-scrollbar { display: none; }
+        .side { -ms-overflow-style: none; scrollbar-width: none; }
+        
         .btn-gold { padding: 15px; background: linear-gradient(90deg, #ce9e49, #9e7634); border: none; border-radius: 12px; font-weight: 900; cursor: pointer; color: #000; margin: 8px 0; width: 100%; transition: 0.3s; }
         .cyber-input { background: #000; border: 1px solid #333; padding: 15px; color: #fff; border-radius: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; }
         .hidden { display: none; }
         .forgot-link { color: #666; font-size: 0.85rem; cursor: pointer; text-decoration: underline; margin-top: 10px; display: block; }
         #status-msg { padding: 12px; margin: 10px 0; border-radius: 12px; display: none; text-align: center; font-size: 0.9rem; }
         .marketing-side { background: linear-gradient(145deg, #160d26, #05020a); }
+
+        /* التنسيق الديناميكي للشاشات الصغيرة */
+        @media (max-width: 768px) {
+            body { height: auto; overflow-y: auto; }
+            .wrapper { flex-direction: column; max-height: none; }
+            .side { padding: 30px; }
+            h1 { font-size: 1.6rem !important; }
+        }
     </style>
 </head>
 <body>
@@ -36,8 +76,8 @@
 
         <div id="supplier-login" class="hidden">
             <h3 style="color: var(--gold);">دخول الموردين</h3>
-            <input type="text" id="sup-user" class="cyber-input" placeholder="اسم المستخدم أو رقم الهاتف">
-            <input type="password" id="sup-pass" class="cyber-input" placeholder="كلمة المرور">
+            <input type="text" id="sup-user" class="cyber-input" placeholder="اسم المستخدم أو رقم الهاتف" onkeypress="handleEnter(event, 'supplier')">
+            <input type="password" id="sup-pass" class="cyber-input" placeholder="كلمة المرور" onkeypress="handleEnter(event, 'supplier')">
             <button class="btn-gold" onclick="loginUser('supplier')">تسجيل الدخول</button>
             <span class="forgot-link" onclick="showMessage('تواصل مع إدارة النظام لاستعادة كلمة المرور', 'error')">هل نسيت كلمة المرور؟</span>
             <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; margin-top:10px;">رجوع</button>
@@ -45,8 +85,8 @@
 
         <div id="marketer-login" class="hidden">
             <h3 style="color: var(--gold);">دخول المسوقين</h3>
-            <input type="text" id="marketer-user" class="cyber-input" placeholder="اسم المستخدم">
-            <input type="password" id="marketer-pass" class="cyber-input" placeholder="كلمة المرور">
+            <input type="text" id="marketer-user" class="cyber-input" placeholder="اسم المستخدم" onkeypress="handleEnter(event, 'marketer')">
+            <input type="password" id="marketer-pass" class="cyber-input" placeholder="كلمة المرور" onkeypress="handleEnter(event, 'marketer')">
             <button class="btn-gold" onclick="loginUser('marketer')">تسجيل الدخول</button>
             <span class="forgot-link" onclick="showMessage('تواصل مع إدارة النظام لاستعادة كلمة المرور', 'error')">هل نسيت كلمة المرور؟</span>
             <button onclick="showForm('menu')" style="background:none; border:none; color:#666; cursor:pointer; margin-top:10px;">رجوع</button>
@@ -55,6 +95,8 @@
 </div>
 
 <script>
+    function handleEnter(e, type) { if (e.key === 'Enter') loginUser(type); }
+
     function showMessage(text, type) {
         const msgDiv = document.getElementById('status-msg');
         msgDiv.innerText = text;
@@ -76,15 +118,17 @@
             {type: 'supplier', username: document.getElementById('sup-user').value, password: document.getElementById('sup-pass').value} :
             {type: 'marketer', username: document.getElementById('marketer-user').value, password: document.getElementById('marketer-pass').value};
         
-        const response = await fetch('/suppliers/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        
-        const res = await response.json();
-        if(res.status === 'success') window.location.href = res.redirect;
-        else showMessage(res.message, 'error');
+        try {
+            const response = await fetch('/suppliers/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            
+            const res = await response.json();
+            if(res.status === 'success') window.location.href = res.redirect;
+            else showMessage(res.message, 'error');
+        } catch(e) { showMessage('حدث خطأ في الاتصال بالسيرفر', 'error'); }
     }
 </script>
 </body>
