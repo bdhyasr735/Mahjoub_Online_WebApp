@@ -1,9 +1,10 @@
 # coding: utf-8
 # 📂 apps/models/supplier_profile_db.py
 
-from apps.extensions import db  # تم التعديل
+from apps.extensions import db
 from cryptography.fernet import Fernet
 import os
+from sqlalchemy import event
 
 class SupplierProfile(db.Model):
     __tablename__ = 'supplier_profiles'
@@ -58,3 +59,9 @@ class SupplierProfile(db.Model):
 
     def __repr__(self):
         return f'<Profile {self.trade_name}>'
+
+# --- نظام إنشاء الملف الشخصي تلقائياً عند إنشاء المورد ---
+@event.listens_for(SupplierProfile, 'after_insert')
+def receive_after_insert(mapper, connection, target):
+    """إجراء إضافي اختياري إذا أردت ربط بيانات معينة فور الإنشاء"""
+    pass
