@@ -7,6 +7,9 @@ from datetime import datetime
 
 class SupplierStaff(db.Model):
     __tablename__ = 'supplier_staff'
+    
+    # حل جذري لتجنب خطأ التكرار في تعريف الجدول عند إعادة التحميل
+    __table_args__ = {'extend_existing': True}
 
     # 1. المعرفات
     id = db.Column(db.Integer, primary_key=True)
@@ -26,7 +29,7 @@ class SupplierStaff(db.Model):
     # 5. التوثيق
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
-    # 6. الربط العكسي (تأكد من تحديث كلاس Supplier ليحتوي على staff_members)
+    # 6. الربط العكسي
     supplier = db.relationship('Supplier', back_populates='staff_members')
 
     # --- دوال الأمان ---
