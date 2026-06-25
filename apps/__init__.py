@@ -41,12 +41,12 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
+        # الاستقلالية: نستخدم استيراداً محلياً لتجنب التداخل عند بدء التشغيل
         from apps.models.admin_db import AdminUser
         return AdminUser.query.get(int(user_id))
 
-    # 4. تسجيل المسارات (Blueprints) والتهيئة الموحدة
+    # 4. تسجيل المكونات الأساسية
     with app.app_context():
-        # تسجيل المكونات الأساسية
         from apps.auth_portal.routes import auth_portal
         from apps.admin_dashboard.routes import admin_dashboard
         from apps.wallet.routes import wallet_app
@@ -61,28 +61,31 @@ def create_app():
         app.register_blueprint(orders_bp, url_prefix='/orders')
         app.register_blueprint(webhooks_bp, url_prefix='/api')
 
-        # 5. التسجيل الديناميكي لموديولات الموردين
+        # 5. التسجيل الديناميكي والمعزول لموديولات الموردين
+        # الاستقلالية: كل موديول يحمل مساحته الخاصة ولا يتأثر بالآخرين
         apps_dir = app.root_path
         for folder in os.listdir(apps_dir):
             if folder.startswith('suppliers_'):
                 registry_path = os.path.join(apps_dir, folder, 'registry.py')
                 if os.path.exists(registry_path):
                     try:
+                        # استيراد ديناميكي معزول
                         module = importlib.import_module(f"apps.{folder}.registry")
                         if hasattr(module, 'register_module'):
+                            # تمرير التطبيق للموديول ليقوم بتسجيل نفسه بشكل مستقل
                             module.register_module(app)
                     except Exception as e:
+                        # الاستقلالية: إذا فشل موديول، يستمر التطبيق في العمل للموديولات الأخرى
                         print(f"⚠️ [Registry] تعذر تسجيل الموديول {folder}: {e}")
 
-        # 6. فرض تهيئة جميع العلاقات (Mapper Configuration)
-        # هذا السطر ضروري لمنع خطأ الـ "One or more mappers failed to initialize"
+        # 6. فرض تهيئة جميع العلاقات المكتشفة
         db.configure_mappers()
 
     @app.route('/')
     def index():
         return redirect(url_for('auth_portal.login'))
 
-    # 7. تهيئة البيانات الأولية (Seeding)
+    # 7. تهيئة البيانات الأولية (Seed)
     with app.app_context():
         try:
             from apps.models import AdminUser, Supplier
@@ -105,7 +108,7 @@ def create_app():
                 new_supplier.set_password('123')
                 db.session.add(new_supplier)
                 db.session.commit()
-                # generate_codes() تستدعى بعد الـ commit لضمان وجود الـ id
+                
         except Exception as e:
             print(f"⚠️ [Database Setup] خطأ: {e}")
 
