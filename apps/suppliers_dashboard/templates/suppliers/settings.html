@@ -14,14 +14,34 @@
             <div class="card shadow-sm border-0 p-4 h-100">
                 <h5 class="mb-4 fw-bold text-primary"><i class="fas fa-store me-2"></i> بيانات المتجر العامة</h5>
                 
-                <div class="mb-3">
-                    <label class="form-label text-muted">الاسم التجاري</label>
-                    <input type="text" class="form-control" value="{{ current_user.trade_name }}" disabled>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">الاسم التجاري</label>
+                        <input type="text" class="form-control" value="{{ current_user.trade_name }}" disabled>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">اسم المستخدم</label>
+                        <input type="text" class="form-control" value="{{ current_user.username }}" disabled>
+                    </div>
                 </div>
-                
-                <div class="mb-3">
-                    <label class="form-label text-muted">اسم المستخدم</label>
-                    <input type="text" class="form-control" value="{{ current_user.username }}" disabled>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">كود المورد</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-light font-monospace" value="{{ current_user.supplier_code }}" disabled>
+                            <button class="btn btn-outline-secondary" onclick="navigator.clipboard.writeText('{{ current_user.supplier_code }}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">رقم التواصل المسجل</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-phone"></i></span>
+                            <input type="text" class="form-control" value="****{{ current_user.phone[-4:] if current_user.phone else '0000' }}" disabled>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="alert alert-info border-0 mt-4">
@@ -38,6 +58,10 @@
                 <div class="d-grid gap-2">
                     <button class="btn btn-outline-dark" disabled>تغيير كلمة المرور</button>
                     <a href="{{ url_for('suppliers_auth_portal.logout') }}" class="btn btn-danger">تسجيل الخروج</a>
+                </div>
+
+                <div class="mt-4 pt-3 border-top text-center">
+                    <p class="text-muted small">آخر دخول: {{ current_user.last_login.strftime('%Y-%m-%d %H:%M') if current_user.last_login else 'غير متاح' }}</p>
                 </div>
             </div>
         </div>
