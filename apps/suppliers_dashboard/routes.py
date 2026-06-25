@@ -1,10 +1,11 @@
 # coding: utf-8
 # 📂 apps/suppliers_dashboard/routes.py
 
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
+from apps.models.orders_db import Order # استيراد الموديل للتحقق منه
 
-# تعريف الـ Blueprint مع تحديد مسار القوالب لضمان العزل
+# تعريف الـ Blueprint
 dashboard_bp = Blueprint(
     'suppliers_dashboard', 
     __name__, 
@@ -16,37 +17,36 @@ dashboard_bp = Blueprint(
 def index():
     """
     نقطة الدخول للمسار الجذري (/suppliers/).
-    يتم إعادة التوجيه تلقائياً إلى لوحة التحكم إذا كان المستخدم مورداً مؤهلاً.
+    إعادة توجيه ذكية للمستخدم المعتمد.
     """
-    if hasattr(current_user, 'wallet') and current_user.wallet is not None:
+    # التحقق من أن المستخدم لديه محفظة (يعني أنه مورد مسجل ومفعل)
+    if hasattr(current_user, 'wallet') and current_user.wallet:
         return redirect(url_for('suppliers_dashboard.dashboard'))
     
-    return "عذراً، لا تمتلك صلاحية الوصول لهذه المنطقة."
+    return "عذراً، هذا الحساب غير مخصص للوصول إلى لوحة الموردين."
 
 @dashboard_bp.route('/dashboard')
 @login_required
 def dashboard():
     """
     لوحة تحكم المورد الرئيسية.
-    تستعلم عن بيانات المحفظة والطلبات وتعرضها في قالب dashboard.html
+    تعرض الأرصدة المالية وإحصائيات الطلبات.
     """
-    # 1. التحقق من وجود المحفظة لتجنب أي خطأ برمجي
+    # 1. التحقق من صلاحية الوصول للمحفظة
     if not hasattr(current_user, 'wallet') or current_user.wallet is None:
+        flash("يجب ربط محفظة بحسابك للوصول للوحة التحكم.", "warning")
         return redirect(url_for('suppliers_dashboard.index'))
 
-    # 2. جلب كائن المحفظة
-    wallet = current_user.wallet
+    # 2. حساب الطلبات قيد التنفيذ باستخدام الاستعلام المباشر (أسرع من معالجة القائمة برمجياً)
+    # ملاحظة: إذا كان current_user هو المورد، فلديه علاقة 'orders' مباشرة
+    pending_orders_count = Order.query.filter_by(
+        supplier_id=current_user.id, 
+        status='pending'
+    ).count()
     
-    # 3. حساب الطلبات قيد التنفيذ
-    pending_orders_count = 0
-    if hasattr(current_user, 'orders') and current_user.orders:
-        pending_orders_count = len([o for o in current_user.orders if o.status == 'pending'])
-    
-    # 4. تمرير البيانات للقالب (داخل المجلد الفرعي 'suppliers')
-    # لاحظ أننا نمرر wallet أيضاً ليستخدمه القالب في عرض الأرصدة
+    # 3. عرض البيانات
     return render_template(
         'suppliers/dashboard.html', 
-        wallet=wallet,
         pending_orders_count=pending_orders_count
     )
 
@@ -54,7 +54,6 @@ def dashboard():
 @login_required
 def settings():
     """
-    صفحة إعدادات المتجر.
-    تعرض بيانات المورد وتسمح بإدارة الحساب.
+    صفحة إعدادات المتجر وبيانات الحساب.
     """
     return render_template('suppliers/settings.html')
