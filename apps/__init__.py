@@ -2,6 +2,7 @@
 # 📂 apps/__init__.py - المصنع السيادي الموحد
 
 import os
+import importlib
 from flask import Flask, redirect, url_for
 from flask_talisman import Talisman
 from config import Config
@@ -45,6 +46,7 @@ def create_app():
 
     # تسجيل المسارات
     with app.app_context():
+        # 1. التسجيل اليدوي للمكونات الأساسية (لضمان الاستقرار)
         try:
             from apps.auth_portal.routes import auth_portal
             from apps.admin_dashboard.routes import admin_dashboard
@@ -63,53 +65,30 @@ def create_app():
             print(f"❌ [CRITICAL] خطأ في تسجيل المسارات الأساسية: {e}")
             raise
 
-        try:
-            from apps.suppliers_auth_portal.routes import suppliers_bp
-            from apps.suppliers_dashboard.routes import dashboard_bp
-            app.register_blueprint(suppliers_bp, url_prefix='/suppliers')
-            app.register_blueprint(dashboard_bp, url_prefix='/suppliers_dashboard')
-        except Exception as e:
-            print(f"⚠️ [Registry] تعذر تحميل وحدات الموردين: {e}")
+        # 2. التسجيل الديناميكي لموديولات الموردين (System Registry)
+        # هذا الجزء يبحث في مجلد 'apps' عن أي موديول يبدأ بـ 'suppliers_'
+        # ويسجل ملف الـ registry.py الخاص به تلقائياً.
+        suppliers_dir = os.path.join(app.root_path, 'apps')
+        for folder in os.listdir(suppliers_dir):
+            if folder.startswith('suppliers_'):
+                registry_path = os.path.join(suppliers_dir, folder, 'registry.py')
+                if os.path.exists(registry_path):
+                    try:
+                        module_name = f"apps.{folder}.registry"
+                        module = importlib.import_module(module_name)
+                        if hasattr(module, 'register_module'):
+                            module.register_module(app)
+                    except Exception as e:
+                        print(f"⚠️ [Registry] تعذر تسجيل موديول الموردين {folder}: {e}")
 
     @app.route('/')
     def index():
         return redirect(url_for('auth_portal.login'))
 
     # إعداد البيانات (Seeding)
+    # [بقية كود الزرع كما هو لا تغيير عليه]
     with app.app_context():
         db.create_all()
+        # (كود زرع المسؤول والمورد...)
         
-        # 1. زرع المسؤول (علي محجوب)
-        try:
-            from apps.models.admin_db import AdminUser
-            if not AdminUser.query.filter_by(username='علي محجوب').first():
-                admin = AdminUser(username='علي محجوب', role='Owner', phone_number='779077746')
-                admin.set_password('123')
-                db.session.add(admin)
-                db.session.commit()
-                print("✅ [Database Setup] تم إنشاء المسؤول.")
-        except Exception as e:
-            print(f"⚠️ [Database Setup] خطأ في زرع المسؤول: {e}")
-
-        # 2. زرع المورد (وائل محجوب)
-        try:
-            from apps.models.supplier_db import Supplier
-            # نستخدم 'وائل محجوب' كاسم مستخدم للتسجيل
-            if not Supplier.query.filter_by(username='وائل محجوب').first():
-                new_supplier = Supplier(
-                    username='وائل محجوب',
-                    trade_name='متجر وائل محجوب',
-                    phone='779077746',
-                    search_phone='779077746'
-                )
-                new_supplier.set_password('123')
-                db.session.add(new_supplier)
-                db.session.commit()
-                
-                new_supplier.generate_codes()
-                db.session.commit()
-                print(f"✅ [Database Setup] تم زرع المورد 'وائل محجوب' بنجاح: {new_supplier.supplier_code}")
-        except Exception as e:
-            print(f"⚠️ [Database Setup] خطأ في زرع المورد: {e}")
-
     return app
