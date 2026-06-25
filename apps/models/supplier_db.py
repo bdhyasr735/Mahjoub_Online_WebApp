@@ -15,7 +15,6 @@ class Supplier(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False, index=True)
     
-    # supplier_code اختياري عند الإنشاء (nullable=True) ليتم توليده بعد الـ commit الأول
     supplier_code = db.Column(db.String(50), unique=True, nullable=True, index=True) 
     trade_name = db.Column(db.String(150), nullable=True)
     
@@ -34,26 +33,26 @@ class Supplier(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     last_login = db.Column(db.DateTime, nullable=True)
 
-    # 6. العلاقات
+    # 6. العلاقات (تم إضافة الروابط الناقصة هنا)
     supplier_profile = db.relationship(
         'SupplierProfile', 
         back_populates='supplier', 
         uselist=False,
-        cascade="all, delete-orphan",
-        lazy='select'
+        cascade="all, delete-orphan"
     )
     
-    # علاقة المحفظة (Wallet)
     wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
+    
+    # الروابط المفقودة التي كانت تسبب الخطأ
+    orders = db.relationship('Order', back_populates='supplier', cascade="all, delete-orphan")
+    financials = db.relationship('OrderFinancial', back_populates='supplier', cascade="all, delete-orphan")
 
     # --- منطق توليد الأكواد التلقائي ---
     def generate_codes(self):
         """توليد كود المورد والمحفظة تلقائياً"""
         if self.id and not self.supplier_code:
-            # توليد كود المورد
             self.supplier_code = f"MAH-SUP963{self.id}"
             
-            # توليد كود المحفظة وربطها بالمورد
             from apps.models.wallet_db import SupplierWallet
             new_wallet = SupplierWallet(
                 wallet_code=f"MAH-WEL963{self.id}",
