@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import event
 
 class Supplier(db.Model, UserMixin):
     __tablename__ = 'suppliers'
@@ -45,24 +46,6 @@ class Supplier(db.Model, UserMixin):
     orders = db.relationship('Order', back_populates='supplier', cascade="all, delete-orphan")
     financials = db.relationship('OrderFinancial', back_populates='supplier', cascade="all, delete-orphan")
 
-    # --- منطق توليد الأكواد التلقائي ---
-    def generate_codes(self):
-        """توليد كود المورد والمحفظة تلقائياً مع دعم العملات الثلاث"""
-        if self.id and not self.supplier_code:
-            self.supplier_code = f"MAH-SUP963{self.id}"
-            
-            from apps.models.wallet_db import SupplierWallet
-            # تم تحديث إسناد القيم ليتوافق مع هيكل المحفظة الثلاثية
-            new_wallet = SupplierWallet(
-                wallet_code=f"MAH-WEL963{self.id}",
-                supplier_id=self.id,
-                balance_yer=0.00,
-                balance_usd=0.00,
-                balance_sar=0.00,
-                balance_pending=0.00
-            )
-            db.session.add(new_wallet)
-
     # --- نظام التشفير للرقم (AES) ---
     @staticmethod
     def _get_key():
@@ -89,3 +72,26 @@ class Supplier(db.Model, UserMixin):
 
     def __repr__(self):
         return f'<Supplier {self.username}>'
+
+# --- نظام إنشاء المحفظة التلقائي (Event Listener) ---
+@event.listens_for(Supplier, 'after_insert')
+def receive_after_insert(mapper, connection, target):
+    """توليد المحفظة والكود فور إدراج المورد في قاعدة البيانات"""
+    from apps.models.wallet_db import SupplierWallet
+    
+    # 1. تعيين كود المورد
+    target.supplier_code = f"MAH-SUP963{target.id}"
+    
+    # 2. إنشاء محفظة افتراضية للمورد
+    new_wallet = SupplierWallet(
+        wallet_code=f"MAH-WEL963{target.id}",
+        supplier_id=target.id,
+        balance_yer=0.00,
+        balance_usd=0.00,
+        balance_sar=0.00,
+        balance_pending=0.00
+    )
+    
+    # 3. إضافتها للجلسة
+    session = db.session.object_session(target)
+    session.add(new_wallet)
