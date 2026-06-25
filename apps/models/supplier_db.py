@@ -42,22 +42,23 @@ class Supplier(db.Model, UserMixin):
     )
     
     wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
-    
     orders = db.relationship('Order', back_populates='supplier', cascade="all, delete-orphan")
     financials = db.relationship('OrderFinancial', back_populates='supplier', cascade="all, delete-orphan")
 
     # --- منطق توليد الأكواد التلقائي ---
     def generate_codes(self):
-        """توليد كود المورد والمحفظة تلقائياً"""
+        """توليد كود المورد والمحفظة تلقائياً مع دعم العملات الثلاث"""
         if self.id and not self.supplier_code:
             self.supplier_code = f"MAH-SUP963{self.id}"
             
             from apps.models.wallet_db import SupplierWallet
-            # التعديل هنا: استخدام أسماء الأعمدة الصحيحة (balance_available / balance_pending)
+            # تم تحديث إسناد القيم ليتوافق مع هيكل المحفظة الثلاثية
             new_wallet = SupplierWallet(
                 wallet_code=f"MAH-WEL963{self.id}",
                 supplier_id=self.id,
-                balance_available=0.00,
+                balance_yer=0.00,
+                balance_usd=0.00,
+                balance_sar=0.00,
                 balance_pending=0.00
             )
             db.session.add(new_wallet)
