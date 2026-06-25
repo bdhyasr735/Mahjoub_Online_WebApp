@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}لوحة المورد | محجوب{% endblock %}</title>
     
+    <!-- الخطوط والأيقونات -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap RTL -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
 
     <style>
@@ -15,31 +17,33 @@
             --deep-black: #08020d;
             --mahjoub-gold: #D4AF37;
             --sidebar-width: 280px;
-            --transition: all 0.4s ease;
+            --transition: all 0.3s ease;
         }
         
-        body { font-family: 'Cairo', sans-serif; background-color: #f4f7f6; margin: 0; }
+        body { font-family: 'Cairo', sans-serif; background-color: #f4f7f6; margin: 0; overflow-x: hidden; }
         
+        /* القائمة الجانبية */
         .sidebar {
             width: var(--sidebar-width);
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
             height: 100vh; position: fixed; right: 0; top: 0; z-index: 1050;
-            transition: var(--transition); box-shadow: 2px 0 10px rgba(0,0,0,0.3);
-            overflow-y: auto;
+            transition: var(--transition); box-shadow: 2px 0 10px rgba(0,0,0,0.2);
         }
         
         .logo-container { padding: 30px 10px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.3); }
         .sidebar-logo { width: 70px; filter: brightness(0) invert(1); }
         
         .nav-menu { padding: 20px 15px; }
-        .nav-link { display: flex; align-items: center; padding: 12px 15px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: 10px; transition: var(--transition); cursor: pointer; font-size: 0.95rem; }
+        .nav-link { display: flex; align-items: center; padding: 12px 15px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: 10px; transition: var(--transition); font-size: 0.95rem; }
         .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.2); color: var(--mahjoub-gold); }
         
-        .main-wrapper { margin-right: var(--sidebar-width); transition: var(--transition); }
+        /* المحتوى الرئيسي */
+        .main-wrapper { margin-right: var(--sidebar-width); transition: var(--transition); min-height: 100vh; }
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         
+        /* التجاوب مع الأجهزة */
         @media (max-width: 992px) {
-            .sidebar { right: -280px; }
+            .sidebar { right: calc(-1 * var(--sidebar-width)); }
             .sidebar.active { right: 0; }
             .main-wrapper { margin-right: 0; }
         }
@@ -54,50 +58,45 @@
         </div>
 
         <nav class="nav-menu">
-            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" 
-               class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
+            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
                 <i class="fas fa-th-large me-3"></i> <span>الرئيسية</span>
             </a>
-            
-            <a href="#" class="nav-link">
-                <i class="fas fa-box-open me-3"></i> <span>إدارة منتجاتي</span>
-            </a>
-
-            <a href="#" class="nav-link">
-                <i class="fas fa-shopping-cart me-3"></i> <span>طلبات الزبائن</span>
-            </a>
-
-            <a href="#" class="nav-link">
-                <i class="fas fa-file-invoice-dollar me-3"></i> <span>كشف الحساب المالي</span>
-            </a>
-
+            <a href="#" class="nav-link"><i class="fas fa-box-open me-3"></i> <span>إدارة منتجاتي</span></a>
+            <a href="#" class="nav-link"><i class="fas fa-shopping-cart me-3"></i> <span>طلبات الزبائن</span></a>
+            <a href="#" class="nav-link"><i class="fas fa-file-invoice-dollar me-3"></i> <span>كشف الحساب المالي</span></a>
             <hr class="text-white my-3">
-            
-            <a href="{{ url_for('suppliers.logout') }}" class="nav-link text-danger">
-                <i class="fas fa-sign-out-alt me-3"></i> <span>تسجيل الخروج</span>
-            </a>
+            <a href="{{ url_for('suppliers.logout') }}" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-3"></i> <span>تسجيل الخروج</span></a>
         </nav>
     </aside>
 
-    <main class="main-wrapper">
+    <main class="main-wrapper" id="main">
         <header class="top-navbar">
             <button class="btn d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('active')">
                 <i class="fas fa-bars"></i>
             </button>
             <div class="user-identity">
-                <span class="fw-bold text-dark">
-                    <i class="fas fa-user-tie me-2"></i> 
-                    {{ current_user.trade_name if current_user.is_authenticated else 'شريكنا' }}
+                <span class="fw-bold text-dark d-flex align-items-center">
+                    <i class="fas fa-user-tie me-2"></i> {{ current_user.trade_name if current_user.is_authenticated else 'شريكنا' }}
                 </span>
             </div>
             <div class="badge p-2" style="background-color: var(--mahjoub-gold); color: #000;">بوابة المورد</div>
         </header>
 
-        <section class="p-4">
+        <section class="p-3 p-md-4">
             {% block content %}{% endblock %}
         </section>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // إغلاق القائمة عند النقر خارجها في الموبايل
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.querySelector('.d-lg-none');
+            if (window.innerWidth < 992 && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
+    </script>
 </body>
 </html>
