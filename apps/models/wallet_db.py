@@ -11,23 +11,26 @@ class SupplierWallet(db.Model):
 
     # 1. المعرفات والفهرسة
     id = db.Column(db.Integer, primary_key=True)
+    # إضافة حقل الكود ليكون مطابقاً لهوية المحفظة (MAH-WEL...)
+    wallet_code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True, index=True)
     
     # 2. الأرصدة (بدقة مالية عالية)
     balance_available = db.Column(db.Numeric(15, 2), default=0.00) 
-    balance_pending = db.Column(db.Numeric(15, 2), default=0.00)   
-    total_withdrawn = db.Column(db.Numeric(15, 2), default=0.00)   
+    balance_pending = db.Column(db.Numeric(15, 2), default=0.00)    
+    total_withdrawn = db.Column(db.Numeric(15, 2), default=0.00)    
     
-    # 3. حقل اختياري مشفر للبيانات البنكية (حماية سيادية)
+    # 3. حقل اختياري مشفر للبيانات البنكية
     _bank_details_enc = db.Column(db.String(500), nullable=True)
     
-    # 4. الفهرسة للأداء السريع (للتقارير المالية)
+    # 4. التحديث التلقائي
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
     
-    # 5. الربط
-    supplier = db.relationship('Supplier', backref=db.backref('wallet', uselist=False))
+    # 5. الربط (تأكد من استخدام اسم العلاقة الموحد)
+    supplier = db.relationship('Supplier', back_populates='wallet')
 
-    # --- نظام التشفير للبيانات البنكية (اختياري) ---
+    # --- نظام التشفير ---
     @staticmethod
     def _get_key():
         return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
@@ -46,4 +49,4 @@ class SupplierWallet(db.Model):
             self._bank_details_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
 
     def __repr__(self):
-        return f'<SupplierWallet SupplierID: {self.supplier_id} | Balance: {self.balance_available}>'
+        return f'<SupplierWallet {self.wallet_code} | Balance: {self.balance_available}>'
