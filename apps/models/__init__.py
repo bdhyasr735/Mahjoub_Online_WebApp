@@ -1,41 +1,27 @@
 # coding: utf-8
 # 📂 apps/models/__init__.py
 
-# استيراد الموديلات من الملفات المطابقة لما في المجلد
 from .admin_db import AdminUser
 from .admin_staff_db import AdminStaff
 from .financials_db import OrderFinancial
 from .marketers_db import Marketer
-from .otp_db import OTPVerification
-from .orders_db import Order
-from .supplier_db import Supplier
-from .supplier_profile_db import SupplierProfile
-from .supplier_staff_db import SupplierStaff# coding: utf-8
-# 📂 apps/models/__init__.py
-
-from .admin_db import AdminUser
-from .admin_staff_db import AdminStaff
-from .financials_db import OrderFinancial
-from .marketers_db import Marketer
-# تم حذف OTPVerification
 from .orders_db import Order
 from .supplier_db import Supplier
 from .supplier_profile_db import SupplierProfile
 from .supplier_staff_db import SupplierStaff
 from .sync_log import SyncLog
-from .wallet_db import VendorWallet
+from .wallet_db import SupplierWallet  # تم تحديث الاسم ليكون SupplierWallet
 
+# القائمة الموحدة للتصدير (Export)
 __all__ = [
-    'Supplier', 'AdminUser', 'AdminStaff', 'Marketer', 
-    'SupplierProfile', 'SupplierStaff', 
-    'SyncLog', 'VendorWallet', 'Order', 'OrderFinancial'
-]
-from .sync_log import SyncLog
-from .wallet_db import VendorWallet
-
-# القائمة الموحدة للتصدير
-__all__ = [
-    'Supplier', 'AdminUser', 'AdminStaff', 'Marketer', 
-    'OTPVerification', 'SupplierProfile', 'SupplierStaff', 
-    'SyncLog', 'VendorWallet', 'Order', 'OrderFinancial'
+    'Supplier', 
+    'AdminUser', 
+    'AdminStaff', 
+    'Marketer', 
+    'SupplierProfile', 
+    'SupplierStaff', 
+    'SyncLog', 
+    'SupplierWallet',  # تم تحديث الاسم هنا أيضاً
+    'Order', 
+    'OrderFinancial'
 ]
