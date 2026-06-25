@@ -1,5 +1,7 @@
 # coding: utf-8
-from apps import db
+# 📂 apps/models/admin_staff_db.py
+
+from apps.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
@@ -22,3 +24,6 @@ class AdminStaff(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f'<AdminStaff {self.username} - {self.role}>'
