@@ -16,11 +16,17 @@ def create_app():
     login_manager.init_app(app)
 
     with app.app_context():
-        # [تعديل جوهري]: استيراد الموديلات لضمان تسجيل الجداول في SQLAlchemy
-        # هذا يضمن أن نظام الـ Registry في apps/models/__init__.py يعمل
+        # 1. استيراد الموديلات لتسجيل الجداول في SQLAlchemy
         import apps.models
         
-        # --- نظام الاكتشاف التلقائي (Auto-Discovery) ---
+        # 2. [التعديل]: بناء الجداول تلقائياً إذا لم تكن موجودة
+        try:
+            db.create_all()
+            print("✅ [Database]: تم فحص وبناء الجداول بنجاح.")
+        except Exception as e:
+            print(f"⚠️ [Database]: خطأ أثناء محاولة بناء الجداول: {e}")
+        
+        # 3. --- نظام الاكتشاف التلقائي (Auto-Discovery) ---
         apps_dir = app.root_path
         
         # البحث في جميع المجلدات داخل apps
@@ -44,7 +50,7 @@ def create_app():
                 except Exception as e:
                     print(f"⚠️ [Auto-Discovery] فشل تسجيل {item}: {e}")
 
-        # تثبيت الـ Mappers بعد تسجيل الموديلات والـ Blueprints
+        # 4. تثبيت الـ Mappers بعد تسجيل الموديلات والـ Blueprints
         db.configure_mappers()
 
     return app
