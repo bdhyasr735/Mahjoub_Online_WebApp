@@ -1,48 +1,50 @@
 # coding: utf-8
 # 📂 apps/models/supplier_db.py
 
-from apps.extensions import db
-from cryptography.fernet import Fernet
 import os
 from datetime import datetime
+from cryptography.fernet import Fernet
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import event, update
+from apps.extensions import db
 
 class Supplier(db.Model, UserMixin):
     __tablename__ = 'suppliers'
     
-    # 1. المعرفات الأساسية
+    # [صمام الأمان]: فهرسة مسمّاة ومنع تكرار التعريف
+    __table_args__ = (
+        db.Index('idx_sup_username', 'username'),
+        db.Index('idx_sup_code', 'supplier_code'),
+        db.Index('idx_sup_trade', 'trade_name'),
+        db.Index('idx_sup_phone', 'search_phone'),
+        db.Index('idx_sup_status', 'status'),
+        db.Index('idx_sup_rank', 'rank'),
+        db.Index('idx_sup_created', 'created_at'),
+        {'extend_existing': True}
+    )
+
+    # الأعمدة
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    supplier_code = db.Column(db.String(50), unique=True, nullable=True, index=True) 
-    trade_name = db.Column(db.String(150), nullable=True, index=True)
-    
-    # 2. البيانات الحساسة (تشفير AES)
-    _phone_enc = db.Column(db.String(255), nullable=False) 
-    search_phone = db.Column(db.String(20), index=True) 
-    
-    # 3. بيانات المصادقة
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    supplier_code = db.Column(db.String(50), unique=True, nullable=True)
+    trade_name = db.Column(db.String(150), nullable=True)
+    _phone_enc = db.Column(db.String(255), nullable=False)
+    search_phone = db.Column(db.String(20))
     password_hash = db.Column(db.String(255), nullable=True)
-    
-    # 4. الحالات والرتب
-    status = db.Column(db.String(20), default='active', index=True)
-    rank = db.Column(db.String(20), default='bronze', index=True)
-    
-    # 5. التدقيق الزمني
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    status = db.Column(db.String(20), default='active')
+    rank = db.Column(db.String(20), default='bronze')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
 
-    # 6. العلاقات (تم إضافة staff_members لمنع الخطأ)
-    supplier_profile = db.relationship('SupplierProfile', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
-    wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
-    orders = db.relationship('Order', back_populates='supplier', cascade="all, delete-orphan")
-    financials = db.relationship('OrderFinancial', back_populates='supplier', cascade="all, delete-orphan")
-    
-    # العلاقة المفقودة التي كانت تسبب الخطأ
-    staff_members = db.relationship('SupplierStaff', back_populates='supplier', cascade="all, delete-orphan")
+    # [المسار الكامل]: لمنع خطأ Multiple classes found
+    supplier_profile = db.relationship('apps.models.supplier_profile_db.SupplierProfile', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
+    wallet = db.relationship('apps.models.wallet_db.SupplierWallet', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
+    orders = db.relationship('apps.models.orders_db.Order', back_populates='supplier', cascade="all, delete-orphan")
+    financials = db.relationship('apps.models.financials_db.OrderFinancial', back_populates='supplier', cascade="all, delete-orphan")
+    staff_members = db.relationship('apps.models.supplier_staff_db.SupplierStaff', back_populates='supplier', cascade="all, delete-orphan")
 
-    # --- نظام التشفير ---
+    # --- نظام التشفير (AES) ---
     @staticmethod
     def _get_key():
         return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
@@ -51,16 +53,16 @@ class Supplier(db.Model, UserMixin):
     def phone(self):
         try:
             return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
-        except:
-            return None
+        except: return None
 
     @phone.setter
     def phone(self, value):
         self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
         self.search_phone = str(value)[:20]
 
+    # [التشفير السيادي]: ترقية كلمة المرور لـ PBKDF2
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -68,28 +70,16 @@ class Supplier(db.Model, UserMixin):
     def __repr__(self):
         return f'<Supplier {self.username}>'
 
-# --- نموذج الموظفين التابعين للمورد (لإكمال العلاقة) ---
-class SupplierStaff(db.Model):
-    __tablename__ = 'supplier_staff'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.String(50), default='staff')
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
-    
-    supplier = db.relationship('Supplier', back_populates='staff_members')
-
 # --- نظام إنشاء المحفظة وتحديث الكود تلقائياً ---
 @event.listens_for(Supplier, 'after_insert')
 def receive_after_insert(mapper, connection, target):
     from apps.models.wallet_db import SupplierWallet
     
-    # 1. تحديث كود المورد
     new_supplier_code = f"MAH-SUP963{target.id}"
     connection.execute(
         update(Supplier).where(Supplier.id == target.id).values(supplier_code=new_supplier_code)
     )
     
-    # 2. إنشاء محفظة للمورد
     new_wallet = SupplierWallet(
         wallet_code=f"MAH-WEL963{target.id}",
         supplier_id=target.id,
