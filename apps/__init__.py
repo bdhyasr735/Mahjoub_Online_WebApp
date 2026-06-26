@@ -4,6 +4,7 @@ import importlib
 from flask import Flask
 from apps.extensions import db, login_manager, migrate
 from apps.models.admin_db import AdminUser
+from apps.models import Supplier  # تأكد من استيراد Supplier
 
 def create_app():
     app = Flask(__name__)
@@ -22,36 +23,40 @@ def create_app():
         except Exception as e:
             print(f"⚠️ [Database]: خطأ أثناء محاولة بناء الجداول: {e}")
 
-        # 2. إنشاء المستخدم "علي" تلقائياً
+        # 2. إنشاء المستخدمين تلقائياً (إدارة + مورد)
         try:
-            if not AdminUser.query.filter_by(username='علي').first():
-                admin = AdminUser(username='علي', role='Owner')
+            # إضافة مدير النظام: علي محجوب
+            if not AdminUser.query.filter_by(username='علي محجوب').first():
+                admin = AdminUser(username='علي محجوب', role='Owner')
                 admin.set_password('123')
                 db.session.add(admin)
-                db.session.commit()
-                print("✅ [Admin]: تم إنشاء المستخدم 'علي' بنجاح.")
+                print("✅ [Admin]: تم إنشاء المدير 'علي محجوب'.")
+            
+            # إضافة مورد: وائل محجوب
+            if not Supplier.query.filter_by(username='وائل محجوب').first():
+                supplier = Supplier(
+                    username='وائل محجوب', 
+                    store_name='محجوب أونلاين'
+                )
+                supplier.set_password('123')
+                db.session.add(supplier)
+                print("✅ [Supplier]: تم إنشاء المورد 'وائل محجوب'.")
+            
+            db.session.commit()
         except Exception as e:
-            print(f"⚠️ [Admin]: خطأ أثناء إنشاء المستخدم: {e}")
+            print(f"⚠️ [Users]: خطأ أثناء إنشاء المستخدمين: {e}")
         
         # 3. --- نظام الاكتشاف التلقائي (Auto-Discovery) ---
-        # استخدام app.root_path للوصول لمجلد apps
         apps_dir = app.root_path
-        
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
-            
-            # قائمة المجلدات المستثناة من الاكتشاف التلقائي
             if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations']:
                 continue
 
             registry_file = os.path.join(item_path, 'registry.py')
-            
-            # التحقق من وجود ملف registry.py لتسجيل الموديول
             if os.path.isdir(item_path) and os.path.exists(registry_file):
                 try:
-                    module_path = f"apps.{item}.registry"
-                    module = importlib.import_module(module_path)
-                    
+                    module = importlib.import_module(f"apps.{item}.registry")
                     if hasattr(module, 'register_module'):
                         module.register_module(app)
                         print(f"✅ [Auto-Discovery] تم تسجيل الموديول: {item}")
