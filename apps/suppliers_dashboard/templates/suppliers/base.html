@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}لوحة المورد | محجوب{% endblock %}</title>
     
-    <!-- أيقونة المتجر (Favicon) -->
     <link rel="icon" type="image/webp" href="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp">
     
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
@@ -20,29 +19,15 @@
             --sidebar-width: 280px;
             --transition: all 0.3s ease;
         }
-        
         body { font-family: 'Cairo', sans-serif; background-color: #f4f7f6; margin: 0; overflow-x: hidden; }
-        
-        /* القائمة الجانبية */
-        .sidebar {
-            width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
-            height: 100vh; position: fixed; right: 0; top: 0; z-index: 1050;
-            transition: var(--transition); box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-        }
-        
+        .sidebar { width: var(--sidebar-width); background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); height: 100vh; position: fixed; right: 0; top: 0; z-index: 1050; transition: var(--transition); box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
         .logo-container { padding: 30px 10px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.3); }
         .sidebar-logo { width: 70px; filter: brightness(0) invert(1); }
-        
         .nav-menu { padding: 20px 15px; }
         .nav-link { display: flex; align-items: center; padding: 12px 15px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: 10px; transition: var(--transition); font-size: 0.95rem; }
         .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.2); color: var(--mahjoub-gold); }
-        
-        /* المحتوى الرئيسي */
         .main-wrapper { margin-right: var(--sidebar-width); transition: var(--transition); min-height: 100vh; }
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        
-        /* التجاوب */
         @media (max-width: 992px) {
             .sidebar { right: calc(-1 * var(--sidebar-width)); }
             .sidebar.active { right: 0; }
@@ -65,12 +50,13 @@
             <a href="#" class="nav-link"><i class="fas fa-box-open me-3"></i> <span>إدارة منتجاتي</span></a>
             <a href="#" class="nav-link"><i class="fas fa-shopping-cart me-3"></i> <span>طلبات الزبائن</span></a>
             <a href="#" class="nav-link"><i class="fas fa-file-invoice-dollar me-3"></i> <span>كشف الحساب المالي</span></a>
-            <!-- رابط الإعدادات في القائمة الجانبية -->
             <a href="{{ url_for('suppliers_dashboard.settings') }}" class="nav-link {% if request.endpoint == 'suppliers_dashboard.settings' %}active{% endif %}">
                 <i class="fas fa-cog me-3"></i> <span>إعدادات المتجر</span>
             </a>
             <hr class="text-white my-3">
-            <a href="{{ url_for('suppliers_auth_portal.logout') }}" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-3"></i> <span>تسجيل الخروج</span></a>
+            <a href="{{ url_for('suppliers_auth.logout') }}" class="nav-link text-danger">
+                <i class="fas fa-sign-out-alt me-3"></i> <span>تسجيل الخروج</span>
+            </a>
         </nav>
     </aside>
 
@@ -83,20 +69,16 @@
             <div class="user-identity d-flex align-items-center">
                 <div class="text-end me-3 d-none d-md-block">
                     <div class="fw-bold text-dark" style="font-size: 0.9rem;">
-                        {{ current_user.trade_name }}
+                        {{ current_user.trade_name if current_user.is_authenticated else 'المورد' }}
                     </div>
                     <div class="text-muted" style="font-size: 0.75rem;">
-                        {{ current_user.username }} | 
-                        <span class="badge {% if current_user.rank == 'owner' %}bg-primary{% else %}bg-secondary{% endif %}">
-                            {{ 'مالك' if current_user.rank == 'owner' else 'موظف' }}
-                        </span>
+                        {{ current_user.username if current_user.is_authenticated else '---' }}
                     </div>
                 </div>
                 <div class="avatar-circle bg-light d-flex align-items-center justify-content-center" 
                      style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--mahjoub-gold);">
                     <i class="fas fa-user text-dark"></i>
                 </div>
-                <!-- رابط الإعدادات في الأعلى -->
                 <a href="{{ url_for('suppliers_dashboard.settings') }}" class="btn btn-link text-dark ms-3" title="إعدادات المتجر">
                     <i class="fas fa-cog fa-lg"></i>
                 </a>
