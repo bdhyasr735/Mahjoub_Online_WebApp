@@ -1,6 +1,4 @@
 # coding: utf-8
-# 📂 apps/__init__.py
-
 import os
 import importlib
 from flask import Flask
@@ -17,17 +15,14 @@ def create_app():
     login_manager.init_app(app)
 
     with app.app_context():
-        # 1. تسجيل الجداول
-        import apps.models
-        
-        # 2. بناء الجداول تلقائياً
+        # 1. بناء الجداول تلقائياً
         try:
             db.create_all()
             print("✅ [Database]: تم فحص وبناء الجداول بنجاح.")
         except Exception as e:
             print(f"⚠️ [Database]: خطأ أثناء محاولة بناء الجداول: {e}")
 
-        # 3. [تعديل]: إضافة المستخدم "علي" تلقائياً
+        # 2. إنشاء المستخدم "علي" تلقائياً
         try:
             if not AdminUser.query.filter_by(username='علي').first():
                 admin = AdminUser(username='علي', role='Owner')
@@ -38,16 +33,20 @@ def create_app():
         except Exception as e:
             print(f"⚠️ [Admin]: خطأ أثناء إنشاء المستخدم: {e}")
         
-        # 4. --- نظام الاكتشاف التلقائي (Auto-Discovery) ---
-        apps_dir = app.root_path
+        # 3. --- نظام الاكتشاف التلقائي (Auto-Discovery) ---
+        # المسار الحالي هو مجلد 'apps'
+        apps_dir = os.path.dirname(os.path.abspath(__file__))
+        
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
             
-            if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations']:
+            # استبعاد المجلدات العامة وغير البرمجية
+            if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'auth_portal']:
                 continue
 
             registry_file = os.path.join(item_path, 'registry.py')
             
+            # التحقق من أن المجلد يحتوي على ملف registry.py
             if os.path.isdir(item_path) and os.path.exists(registry_file):
                 try:
                     module_path = f"apps.{item}.registry"
