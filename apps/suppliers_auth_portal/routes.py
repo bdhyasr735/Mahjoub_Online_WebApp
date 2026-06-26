@@ -1,28 +1,23 @@
 # coding: utf-8
 # 📂 apps/suppliers_auth_portal/routes.py - نظام الدخول المباشر للموردين والمسوقين
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, abort
-from flask_login import login_user, logout_user, current_user
-from apps.models import Supplier, Marketer
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask_login import login_user, logout_user, login_required, current_user
+from apps.models.supplier_db import Supplier
+from apps.models.marketer_db import Marketer # تأكد من صحة مسار الاستيراد
 
-# تعريف الـ Blueprint
+# تعريف الـ Blueprint باسم 'suppliers' ليتطابق مع ما تستخدمه في url_for
 suppliers_bp = Blueprint('suppliers', __name__, template_folder='templates')
-
-@suppliers_bp.before_request
-def check_login():
-    # حماية المسارات: استثناء صفحة الدخول
-    if request.endpoint in ['suppliers.login', 'static']:
-        return None
-    if not current_user.is_authenticated and request.blueprint == 'suppliers':
-        return redirect(url_for('suppliers.login'))
 
 @suppliers_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # في حالة الطلب العادي (GET) نعرض صفحة تسجيل الدخول
     if request.method == 'GET':
         if current_user.is_authenticated:
             return redirect(url_for('suppliers.dashboard'))
         return render_template('suppliers_auth_portal/login.html')
 
+    # في حالة طلب تسجيل الدخول (POST)
     try:
         data = request.get_json()
         if not data:
@@ -42,12 +37,11 @@ def login():
 
         # --- منطق دخول الموردين ---
         if login_type == 'supplier':
-            # البحث باستخدام search_phone (غير مشفر) أو username
+            # البحث باستخدام الهاتف أو اسم المستخدم
             supplier = Supplier.query.filter(
                 (Supplier.search_phone == username) | (Supplier.username == username)
             ).first()
             
-            # التحقق من كلمة المرور عبر الموديل
             if supplier and supplier.check_password(password):
                 login_user(supplier, remember=True)
                 return jsonify({"status": "success", "redirect": url_for('suppliers.dashboard')})
@@ -56,10 +50,11 @@ def login():
         return jsonify({"status": "error", "message": "نوع دخول غير معروف"}), 400
 
     except Exception as e:
-        # يفضل تسجيل الخطأ في الـ logs في النظام الفعلي
+        print(f"🚨 [Error] Login failed: {str(e)}")
         return jsonify({"status": "error", "message": "خطأ فني في النظام"}), 500
 
 @suppliers_bp.route('/dashboard')
+@login_required
 def dashboard():
     return "مرحباً بك في لوحة تحكم الشركاء لمنصة محجوب أونلاين"
 
