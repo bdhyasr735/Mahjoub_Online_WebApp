@@ -6,6 +6,15 @@ from apps.extensions import db, login_manager, migrate
 from apps.models.admin_db import AdminUser
 from apps.models import Supplier
 
+# دالة لتحميل المستخدم (ضرورية لـ Flask-Login)
+@login_manager.user_loader
+def load_user(user_id):
+    # نتحقق أولاً إذا كان مديراً، ثم مورداً
+    user = AdminUser.query.get(int(user_id))
+    if not user:
+        user = Supplier.query.get(int(user_id))
+    return user
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
@@ -14,53 +23,32 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    
+    # --- التعديل الهام هنا ---
+    # توجيه Flask-Login إلى مسار تسجيل دخول الموردين
+    login_manager.login_view = 'suppliers_auth.login' 
 
     with app.app_context():
-        # 1. بناء الجداول تلقائياً
+        # ... (بقية كود بناء الجداول وإنشاء المستخدمين كما هو) ...
         try:
             db.create_all()
             print("✅ [Database]: تم فحص وبناء الجداول بنجاح.")
         except Exception as e:
             print(f"⚠️ [Database]: خطأ أثناء محاولة بناء الجداول: {e}")
 
-        # 2. إنشاء المستخدمين تلقائياً (إدارة + مورد)
-        try:
-            # إضافة مدير النظام: علي محجوب
-            if not AdminUser.query.filter_by(username='علي محجوب').first():
-                admin = AdminUser(username='علي محجوب', role='Owner')
-                admin.set_password('123')
-                db.session.add(admin)
-                print("✅ [Admin]: تم إنشاء المدير 'علي محجوب'.")
-            
-            # إضافة مورد: وائل محجوب (مع إضافة رقم هاتف لتجنب خطأ Null)
-            if not Supplier.query.filter_by(username='وائل محجوب').first():
-                supplier = Supplier(
-                    username='وائل محجوب', 
-                    trade_name='محجوب أونلاين',
-                    phone='0000000000' # حل خطأ [NotNullViolation]
-                )
-                supplier.set_password('123')
-                db.session.add(supplier)
-                print("✅ [Supplier]: تم إنشاء المورد 'وائل محجوب'.")
-            
-            db.session.commit()
-            print("✅ [Users]: تم التحقق من المستخدمين بنجاح.")
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠️ [Users]: خطأ أثناء إنشاء المستخدمين: {e}")
-        
+        # إضافة المستخدمين (علي ووائل)
+        # ... (كودك الحالي هنا) ...
+
         # 3. --- نظام الاكتشاف التلقائي (Auto-Discovery) ---
         apps_dir = app.root_path
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
             
-            # قائمة المجلدات المستثناة من الاكتشاف
             if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations']:
                 continue
 
             registry_file = os.path.join(item_path, 'registry.py')
             
-            # التحقق من وجود ملف registry.py لتسجيل الموديول
             if os.path.isdir(item_path) and os.path.exists(registry_file):
                 try:
                     module = importlib.import_module(f"apps.{item}.registry")
@@ -70,7 +58,6 @@ def create_app():
                 except Exception as e:
                     print(f"⚠️ [Auto-Discovery] فشل تسجيل {item}: {e}")
 
-        # ضبط العلاقات بعد تسجيل كافة الموديولات
         db.configure_mappers()
 
     return app
