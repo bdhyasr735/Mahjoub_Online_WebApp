@@ -1,10 +1,11 @@
 # coding: utf-8
 # 📂 apps/auth_portal/__init__.py
 
-# هذا الملف يجعل مجلد 'auth_portal' حزمة (Package) بايثون.
-# لا نضع هنا منطقاً معقداً لتجنب "الاستيراد الدائري" (Circular Imports).
-# كل التسجيل يتم عبر registry.py في نفس المجلد.
+"""
+ملف تهيئة الموديول (Package Initialization).
+هذا الملف يجعل المجلد 'auth_portal' قابلاً للاستيراد كـ Package،
+مما يسمح لنظام الـ Auto-Discovery باكتشافه وتسجيله.
+"""
 
-from .routes import auth_portal
-
-__all__ = ['auth_portal']
+# لا داعي لإضافة أي استيرادات هنا لمنع الـ Circular Imports.
+# النظام يعتمد على ملف 'registry.py' للقيام بعملية التسجيل.
