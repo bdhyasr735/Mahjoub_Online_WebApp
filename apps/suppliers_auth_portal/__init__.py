@@ -1,6 +1,5 @@
+# coding: utf-8
 # 📂 apps/suppliers_auth_portal/__init__.py
-from apps.suppliers_auth_portal.routes import suppliers_bp
 
-# يمكنك إضافة أي تهيئة خاصة للموديول هنا إذا لزم الأمر لاحقاً، 
-# مثل إعدادات الأمان الخاصة أو متغيرات البيئة.
-__all__ = ['suppliers_bp']
+# هذا الملف يجعل من المجلد موديولاً (Package) في بايثون.
+# لا يحتاج عادةً لأي كود إضافي لأن التسجيل يتم عبر registry.py
