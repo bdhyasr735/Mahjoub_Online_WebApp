@@ -4,11 +4,12 @@
 from apps.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from flask_login import UserMixin # ضروري جداً لـ Flask-Login
 
-class SupplierStaff(db.Model):
+class SupplierStaff(db.Model, UserMixin): # إضافة UserMixin هنا
     __tablename__ = 'supplier_staff'
     
-    # [صمام الأمان]: دمج الاندكسات في مكان واحد لمنع التكرار (DuplicateIndex)
+    # [صمام الأمان]: دمج الاندكسات في مكان واحد لمنع التكرار
     __table_args__ = (
         db.Index('idx_staff_supplier_id', 'supplier_id'),
         db.Index('idx_staff_username', 'username'),
@@ -27,18 +28,22 @@ class SupplierStaff(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # [المسار الكامل]: لمنع خطأ Multiple classes found
+    # [العلاقات]: تحديد المسار لضمان عدم حدوث تداخل
     supplier = db.relationship(
-        'apps.models.supplier_db.Supplier', 
+        'Supplier', # تأكد أن الموديل مستورد بشكل صحيح في ملف الـ __init__ أو هنا
         back_populates='staff_members'
     )
 
-    # [التشفير السيادي]: ترقية خوارزمية التشفير
+    # [التشفير السيادي]: إعداد التشفير
     def set_password(self, password):
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    # [تعديل Flask-Login]: التأكد من أن المستخدم نشط
+    def is_active(self):
+        return self.is_active
 
     def __repr__(self):
         return f'<Staff {self.username} | Role: {self.role}>'
