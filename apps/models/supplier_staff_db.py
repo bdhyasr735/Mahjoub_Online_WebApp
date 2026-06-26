@@ -7,9 +7,15 @@ from datetime import datetime
 from flask_login import UserMixin
 
 class SupplierStaff(db.Model, UserMixin):
+    """
+    نموذج موظفي المورد (Supplier Staff)
+    - يدعم Flask-Login للتحقق من الهوية.
+    - يدعم التشفير عبر pbkdf2:sha256.
+    - يحتوي على فهارس (Indices) لتحسين سرعة الاستعلام.
+    """
     __tablename__ = 'supplier_staff'
     
-    # 1. تعريف الأعمدة أولاً (ضروري قبل تعريف الـ Indices)
+    # 1. تعريف الأعمدة
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     username = db.Column(db.String(100), nullable=False)
@@ -19,7 +25,7 @@ class SupplierStaff(db.Model, UserMixin):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # 2. تعريف الفهارس (Indices) بعد الأعمدة مباشرة
+    # 2. تعريف الفهارس (Indices) - تم وضعها بعد الأعمدة لتجنب خطأ الترتيب
     __table_args__ = (
         db.Index('idx_staff_supplier_id', 'supplier_id'),
         db.Index('idx_staff_username', 'username'),
@@ -30,22 +36,16 @@ class SupplierStaff(db.Model, UserMixin):
     )
 
     # 3. العلاقات
-    supplier = db.relationship(
-        'Supplier', 
-        back_populates='staff_members'
-    )
+    supplier = db.relationship('Supplier', back_populates='staff_members')
 
-    # [التشفير السيادي]
+    # 4. التشفير السيادي (PBKDF2)
     def set_password(self, password):
+        """تشفير كلمة المرور قبل التخزين"""
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
+        """التحقق من كلمة المرور المشفرة"""
         return check_password_hash(self.password_hash, password)
-
-    # [تعديل Flask-Login]: لاحظ أننا نستخدم خاصية وليس دالة للـ is_active
-    @property
-    def is_active(self):
-        return self._is_active  # تأكد من استخدام اسم متغير داخلي أو الخاصية بشكل صحيح
 
     def __repr__(self):
         return f'<Staff {self.username} | Role: {self.role}>'
