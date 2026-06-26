@@ -1,34 +1,43 @@
 # coding: utf-8
 # 📂 apps/models/supplier_profile_db.py
 
-from apps.extensions import db
-from cryptography.fernet import Fernet
 import os
-from sqlalchemy import event
+from cryptography.fernet import Fernet
+from apps.extensions import db
 
 class SupplierProfile(db.Model):
     __tablename__ = 'supplier_profiles'
     
+    # [صمام الأمان]: فهرسة مسمّاة ومنع تكرار التعريف
+    __table_args__ = (
+        db.Index('idx_prof_supplier_id', 'supplier_id'),
+        db.Index('idx_prof_trade_name', 'trade_name'),
+        db.Index('idx_prof_email', 'email'),
+        db.Index('idx_prof_gov', 'governorate'),
+        db.Index('idx_prof_city', 'city'),
+        {'extend_existing': True}
+    )
+    
     id = db.Column(db.Integer, primary_key=True)
-    # الفهرسة والربط مع المورد
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True, index=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
     
-    # معلومات النشاط مع الـ Index للبحث السريع
-    trade_name = db.Column(db.String(150), index=True)
-    email = db.Column(db.String(150), index=True)
+    trade_name = db.Column(db.String(150))
+    email = db.Column(db.String(150))
     
-    # بيانات حساسة (مشفرة)
+    # [التشفير السيادي]: بيانات حساسة مشفرة بـ AES
     _bank_account_enc = db.Column(db.String(255), nullable=True)
     _id_number_enc = db.Column(db.String(255), nullable=True)
     
-    # العنوان (فهرسة للتقارير)
-    governorate = db.Column(db.String(100), index=True)
-    city = db.Column(db.String(100), index=True)
+    governorate = db.Column(db.String(100))
+    city = db.Column(db.String(100))
     
-    # الربط السيادي
-    supplier = db.relationship('Supplier', back_populates='supplier_profile')
+    # [المسار الكامل]: الربط السيادي لمنع خطأ Multiple classes found
+    supplier = db.relationship(
+        'apps.models.supplier_db.Supplier', 
+        back_populates='supplier_profile'
+    )
 
-    # --- نظام التشفير ---
+    # --- نظام التشفير (AES) ---
     @staticmethod
     def _get_key():
         return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
@@ -59,9 +68,3 @@ class SupplierProfile(db.Model):
 
     def __repr__(self):
         return f'<Profile {self.trade_name}>'
-
-# --- نظام إنشاء الملف الشخصي تلقائياً عند إنشاء المورد ---
-@event.listens_for(SupplierProfile, 'after_insert')
-def receive_after_insert(mapper, connection, target):
-    """إجراء إضافي اختياري إذا أردت ربط بيانات معينة فور الإنشاء"""
-    pass
