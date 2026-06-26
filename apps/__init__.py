@@ -34,19 +34,19 @@ def create_app():
             print(f"⚠️ [Admin]: خطأ أثناء إنشاء المستخدم: {e}")
         
         # 3. --- نظام الاكتشاف التلقائي (Auto-Discovery) ---
-        # المسار الحالي هو مجلد 'apps'
-        apps_dir = os.path.dirname(os.path.abspath(__file__))
+        # استخدام app.root_path للوصول لمجلد apps
+        apps_dir = app.root_path
         
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
             
-            # استبعاد المجلدات العامة وغير البرمجية
-            if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'auth_portal']:
+            # قائمة المجلدات المستثناة من الاكتشاف التلقائي
+            if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations']:
                 continue
 
             registry_file = os.path.join(item_path, 'registry.py')
             
-            # التحقق من أن المجلد يحتوي على ملف registry.py
+            # التحقق من وجود ملف registry.py لتسجيل الموديول
             if os.path.isdir(item_path) and os.path.exists(registry_file):
                 try:
                     module_path = f"apps.{item}.registry"
