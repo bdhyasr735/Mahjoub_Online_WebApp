@@ -1,10 +1,8 @@
 # coding: utf-8
 # 📂 apps/admin_dashboard/routes.py
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, session, abort
 from flask_login import login_required, current_user
-# ملاحظة: يمكنك استيراد الموديلات هنا لاحقاً لجلب البيانات الحقيقية
-# from apps.models import Supplier, OrderFinancial 
 
 # تعريف البلوبرينت الخاص بالإدارة
 admin_dashboard = Blueprint(
@@ -13,15 +11,21 @@ admin_dashboard = Blueprint(
     template_folder='templates'
 )
 
+def admin_required():
+    """دالة مساعدة للتحقق من أن المستخدم مدير نظام."""
+    if session.get('user_type') != 'admin':
+        abort(403) # منع الوصول لغير المدراء
+
 @admin_dashboard.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
     """
     لوحة تحكم المسؤول الرئيسية.
     المسار النهائي: /admin/dashboard
-    يتم استدعاء القالب من المجلد الفرعي 'admin/' داخل الـ templates.
     """
-    # يمكنك لاحقاً استبدال هذه القيم ببيانات حقيقية من قاعدة البيانات
+    admin_required() # التحقق الأمني قبل عرض الصفحة
+    
+    # يمكن لاحقاً استبدال القيم ببيانات حقيقية من قاعدة البيانات
     context = {
         'total_suppliers': 0,
         'total_balance_sar': 0.00,
@@ -39,4 +43,5 @@ def settings():
     إعدادات النظام العامة.
     المسار النهائي: /admin/settings
     """
+    admin_required() # التحقق الأمني قبل عرض الصفحة
     return render_template('admin/settings.html')
