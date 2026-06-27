@@ -8,47 +8,29 @@
     <style>
         :root { --bg: #05020a; --gold: #ce9e49; --card-bg: #0f071c; }
         
-        /* إعدادات الجسم لمنع التمرير الافتراضي */
         body { 
-            margin: 0; 
-            font-family: 'Cairo', sans-serif; 
-            background: var(--bg); 
-            color: #fff; 
-            height: 100vh; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 20px;
-            overflow: hidden; 
+            margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #fff; 
+            height: 100vh; display: flex; align-items: center; justify-content: center; 
+            padding: 20px; overflow: hidden; 
         }
         
-        /* الحاوية الرئيسية */
         .wrapper { 
-            display: flex; 
-            width: 100%; 
-            max-width: 900px; 
-            max-height: 90vh; 
-            background: rgba(15, 7, 28, 0.95); 
-            border: 1px solid #333; 
-            border-radius: 30px; 
-            overflow: hidden; 
+            display: flex; width: 100%; max-width: 900px; max-height: 90vh; 
+            background: rgba(15, 7, 28, 0.95); border: 1px solid #333; 
+            border-radius: 30px; overflow: hidden; 
         }
         
-        /* الجانبين */
         .side { flex: 1; padding: 40px; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; }
-        
-        /* إخفاء شريط التمرير في المتصفحات */
         .side::-webkit-scrollbar { display: none; }
         .side { -ms-overflow-style: none; scrollbar-width: none; }
         
         .btn-gold { padding: 15px; background: linear-gradient(90deg, #ce9e49, #9e7634); border: none; border-radius: 12px; font-weight: 900; cursor: pointer; color: #000; margin: 8px 0; width: 100%; transition: 0.3s; }
-        .cyber-input { background: #000; border: 1px solid #333; padding: 15px; color: #fff; border-radius: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; }
+        .cyber-input { background: #000; border: 1px solid #333; padding: 15px; color: #fff; border-radius: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; outline: none; }
         .hidden { display: none; }
         .forgot-link { color: #666; font-size: 0.85rem; cursor: pointer; text-decoration: underline; margin-top: 10px; display: block; }
         #status-msg { padding: 12px; margin: 10px 0; border-radius: 12px; display: none; text-align: center; font-size: 0.9rem; }
         .marketing-side { background: linear-gradient(145deg, #160d26, #05020a); }
 
-        /* التنسيق الديناميكي للشاشات الصغيرة */
         @media (max-width: 768px) {
             body { height: auto; overflow-y: auto; }
             .wrapper { flex-direction: column; max-height: none; }
