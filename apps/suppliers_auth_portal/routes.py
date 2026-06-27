@@ -11,8 +11,12 @@ suppliers_bp = Blueprint('suppliers_auth', __name__, template_folder='templates'
 
 @suppliers_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    # ... (نفس الكود الخاص بك لا تغيير فيه) ...
+    """
+    بوابة تسجيل دخول الموردين والمسوقين.
+    تستخدم session['user_type'] للتمييز بين أنواع المستخدمين في النظام.
+    """
     if request.method == 'GET':
+        # إذا كان المستخدم مسجلاً بالفعل، يتم توجيهه للداشبورد مباشرة
         if current_user.is_authenticated:
             return redirect(url_for('suppliers_dashboard.dashboard'))
         return render_template('suppliers_auth_portal/login.html')
@@ -31,6 +35,7 @@ def login():
             user = Marketer.query.filter_by(marketing_code=username).first()
             if user and user.check_password(password):
                 login_user(user, remember=True)
+                # تخزين نوع المستخدم في الجلسة للفصل الأمني
                 session['user_type'] = 'supplier' 
                 return jsonify({"status": "success", "redirect": url_for('suppliers_dashboard.dashboard')})
             return jsonify({"status": "error", "message": "بيانات دخول المسوق غير صحيحة"}), 401
@@ -43,6 +48,7 @@ def login():
             
             if supplier and supplier.check_password(password):
                 login_user(supplier, remember=True)
+                # تخزين نوع المستخدم في الجلسة للفصل الأمني
                 session['user_type'] = 'supplier'
                 return jsonify({"status": "success", "redirect": url_for('suppliers_dashboard.dashboard')})
             return jsonify({"status": "error", "message": "بيانات دخول المورد غير صحيحة"}), 401
@@ -55,7 +61,7 @@ def login():
 @suppliers_bp.route('/logout')
 def logout():
     """
-    تسجيل خروج آمن: إزالة @login_required لضمان التنفيذ دائماً.
+    تسجيل خروج آمن: تمت إزالة @login_required للسماح بالتنفيذ دائماً.
     """
     # 1. تسجيل الخروج من Flask-Login
     logout_user()
