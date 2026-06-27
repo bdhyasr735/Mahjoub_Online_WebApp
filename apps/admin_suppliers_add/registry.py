@@ -1,7 +1,7 @@
-# 📂 apps/suppliers_add/registry.py
-from apps.suppliers_add.routes import suppliers_add_bp
+# 📂 apps/admin_suppliers_add/registry.py
+from .routes import admin_suppliers_add_bp
 
 def register_module(app):
-    """تسجيل بلوبرينت إضافة الموردين"""
-    app.register_blueprint(suppliers_add_bp, url_prefix='/admin/suppliers')
-    print("✅ [Registry]: تم تسجيل موديول 'suppliers_add' بنجاح.")
+    # تسجيل الموديول بالمسار المحدث
+    app.register_blueprint(admin_suppliers_add_bp, url_prefix='/admin/suppliers')
+    print("✅ [Registry]: تم تسجيل موديول 'admin_suppliers_add' بنجاح.")
