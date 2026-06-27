@@ -4,7 +4,7 @@
 import os
 
 class Config:
-    # 🛡️ مفتاح الأمان السيادي للمنصة
+    # 🛡️ مفتاح الأمان السيادي للمنصة (يُفضل تعريفه كمتغير بيئة في Render)
     SECRET_KEY = os.environ.get('SECRET_KEY', 'SOVEREIGN_KEY_2026')
     
     # 🔐 مفتاح التشفير المركزي (لـ AES-256) 
@@ -16,9 +16,11 @@ class Config:
     # 🌐 رابط المتجر الأساسي
     STORE_BASE_URL = os.environ.get('STORE_BASE_URL', 'https://mahjoub.online')
     
-    # 🔒 إعدادات الحماية الأمنية للـ Cookies
-    SESSION_COOKIE_SECURE = True
-    REMEMBER_COOKIE_SECURE = True
+    # 🔒 إعدادات الحماية الأمنية للـ Cookies (تعديل ديناميكي للإنتاج)
+    # ملاحظة: إذا كان التطبيق يعمل على Render، يفضل ضبط ENV=production في المتغيرات
+    IS_PRODUCTION = os.environ.get('ENV') == 'production'
+    SESSION_COOKIE_SECURE = IS_PRODUCTION 
+    REMEMBER_COOKIE_SECURE = IS_PRODUCTION
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
