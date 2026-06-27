@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/suppliers_auth_portal/routes.py
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, make_response
 from flask_login import login_user, logout_user, login_required, current_user
 from apps.models.supplier_db import Supplier
 from apps.models.marketer_db import Marketer
@@ -37,6 +37,7 @@ def login():
                 login_user(user, remember=True)
                 # تخزين نوع المستخدم في الجلسة للفصل الأمني
                 session['user_type'] = 'supplier' 
+                session.modified = True
                 return jsonify({"status": "success", "redirect": url_for('suppliers_dashboard.dashboard')})
             return jsonify({"status": "error", "message": "بيانات دخول المسوق غير صحيحة"}), 401
 
@@ -50,6 +51,7 @@ def login():
                 login_user(supplier, remember=True)
                 # تخزين نوع المستخدم في الجلسة للفصل الأمني
                 session['user_type'] = 'supplier'
+                session.modified = True
                 return jsonify({"status": "success", "redirect": url_for('suppliers_dashboard.dashboard')})
             return jsonify({"status": "error", "message": "بيانات دخول المورد غير صحيحة"}), 401
 
@@ -61,11 +63,24 @@ def login():
 @suppliers_bp.route('/logout')
 def logout():
     """
-    تسجيل خروج آمن: تمت إزالة @login_required للسماح بالتنفيذ دائماً.
+    تسجيل خروج آمن: إزالة كافة بيانات الجلسة وإخبار المتصفح بإلغاء التخزين المؤقت.
+    هذا يمنع ظهور خطأ 403 عند محاولة العودة لصفحات محمية بعد الخروج.
     """
     # 1. تسجيل الخروج من Flask-Login
     logout_user()
-    # 2. مسح كامل للجلسة (يضمن التخلص من user_type والتداخلات)
+    
+    # 2. مسح كامل للجلسة من السيرفر
     session.clear() 
-    # 3. توجيه للمستخدم لبوابة الدخول
-    return redirect(url_for('suppliers_auth.login'))
+    
+    # 3. إنشاء استجابة مع إعدادات منع التخزين المؤقت
+    response = make_response(redirect(url_for('suppliers_auth.login')))
+    
+    # 4. إخبار المتصفح بمسح الكوكي
+    response.set_cookie('session', '', expires=0)
+    
+    # 5. رؤوس أمنية لمنع المتصفح من تخزين الصفحة
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
+    return response
