@@ -6,8 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_user, logout_user, login_required, current_user
 from apps.models.admin_db import AdminUser
 
-# تعريف الـ Blueprint الخاص ببوابة الإدارة فقط
-# تم إزالة url_prefix من هنا لضمان عدم حدوث تداخل (يتم تحديده في registry.py)
+# تعريف الـ Blueprint الخاص ببوابة الإدارة
 auth_portal = Blueprint(
     'auth_portal', 
     __name__, 
@@ -23,7 +22,7 @@ def login():
     بوابة دخول الإدارة حصراً.
     تخزن نوع المستخدم في الجلسة لضمان الفصل التام.
     """
-    if current_user.is_authenticated:
+    if current_user.is_authenticated and session.get('user_type') == 'admin':
         return redirect(url_for('admin_dashboard.dashboard'))
 
     if request.method == 'POST':
@@ -46,12 +45,15 @@ def login():
     return render_template('auth/login.html')
 
 @auth_portal.route('/logout')
-@login_required
 def logout():
     """
     تسجيل الخروج مع مسح شامل للجلسة لمنع أي تداخل في الصلاحيات.
+    تمت إزالة @login_required لضمان التنفيذ في جميع الحالات.
     """
+    # تسجيل الخروج من Flask-Login
     logout_user()
+    # مسح الجلسة بالكامل لضمان عدم بقاء أي أثر لـ user_type أو غيره
     session.clear() 
-    # التوجيه للرابط المباشر للمسؤول باستخدام البادئة التي تم تسجيلها في registry
+    
+    # التوجيه لبوابة دخول الإدارة
     return redirect(url_for('auth_portal.login'))
