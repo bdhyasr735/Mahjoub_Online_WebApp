@@ -1,69 +1,118 @@
-{% extends 'suppliers/base.html' %}
+{# 📂 apps/suppliers_dashboard/templates/suppliers/base.html #}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}لوحة المورد | محجوب{% endblock %}</title>
+    
+    <link rel="icon" type="image/webp" href="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
 
-{% block title %}الرئيسية | لوحة المورد{% endblock %}
+    <style>
+        :root {
+            --royal-purple: #1a0b2e;
+            --deep-black: #08020d;
+            --mahjoub-gold: #D4AF37;
+            --sidebar-width: 280px;
+            --transition: all 0.3s ease;
+        }
+        body { font-family: 'Cairo', sans-serif; background-color: #f4f7f6; margin: 0; overflow-x: hidden; }
+        .sidebar { width: var(--sidebar-width); background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); height: 100vh; position: fixed; right: 0; top: 0; z-index: 1050; transition: var(--transition); box-shadow: 2px 0 10px rgba(0,0,0,0.2); }
+        .logo-container { padding: 30px 10px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.3); }
+        .sidebar-logo { width: 70px; filter: brightness(0) invert(1); }
+        .nav-menu { padding: 20px 15px; }
+        .nav-link { display: flex; align-items: center; padding: 12px 15px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: 10px; transition: var(--transition); font-size: 0.95rem; }
+        .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.2); color: var(--mahjoub-gold); }
+        .main-wrapper { margin-right: var(--sidebar-width); transition: var(--transition); min-height: 100vh; }
+        .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .notification-btn { position: relative; color: #555; transition: var(--transition); }
+        .notification-btn:hover { color: var(--mahjoub-gold); }
+        .notification-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; font-size: 0.6rem; padding: 2px 6px; }
+        @media (max-width: 992px) {
+            .sidebar { right: calc(-1 * var(--sidebar-width)); }
+            .sidebar.active { right: 0; }
+            .main-wrapper { margin-right: 0; }
+        }
+    </style>
+</head>
+<body>
 
-{% block content %}
-<div class="container-fluid">
-    <!-- الترحيب -->
-    <div class="mb-4">
-        <h3 class="fw-bold text-dark">مرحباً بك، {{ current_user.trade_name }}</h3>
-        <p class="text-muted">هذه نظرة سريعة على أداء متجرك اليوم.</p>
-    </div>
-
-    <!-- لوحة المؤشرات (KPIs) -->
-    <div class="row g-3">
-        <div class="col-md-4">
-            <div class="card p-3 border-0 shadow-sm text-center">
-                <i class="fas fa-box fa-2x text-primary mb-2"></i>
-                <h6 class="text-muted">المنتجات النشطة</h6>
-                <h4 class="fw-bold">{{ active_products_count|default(0) }}</h4>
-            </div>
+    <aside class="sidebar" id="sidebar">
+        <div class="logo-container">
+            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="sidebar-logo" alt="MAHJOUB">
+            <h6 class="text-white mt-3 fw-bold">لوحة المورد</h6>
         </div>
-        <div class="col-md-4">
-            <div class="card p-3 border-0 shadow-sm text-center">
-                <i class="fas fa-shopping-cart fa-2x text-warning mb-2"></i>
-                <h6 class="text-muted">طلبات جديدة</h6>
-                <h4 class="fw-bold">{{ new_orders_count|default(0) }}</h4>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card p-3 border-0 shadow-sm text-center">
-                <i class="fas fa-wallet fa-2x text-success mb-2"></i>
-                <h6 class="text-muted">الرصيد المتاح</h6>
-                <h4 class="fw-bold">{{ balance|default('0.00') }} <small style="font-size: 0.8rem;">ر.ي</small></h4>
-            </div>
-        </div>
-    </div>
 
-    <!-- تنبيه إكمال الملف الشخصي -->
-    {% if not current_user.supplier_profile %}
-    <div class="alert alert-warning border-0 mt-4 shadow-sm">
-        <i class="fas fa-exclamation-triangle me-2"></i> 
-        <strong>تنبيه:</strong> لم تقم بإكمال ملفك الشخصي بعد. يرجى التوجه لـ <a href="{{ url_for('suppliers_dashboard.settings') }}" class="alert-link">إعدادات المتجر</a> لإكمال بياناتك.
-    </div>
-    {% endif %}
+        <nav class="nav-menu">
+            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
+                <i class="fas fa-th-large me-3"></i> <span>الرئيسية</span>
+            </a>
+            <a href="#" class="nav-link"><i class="fas fa-box-open me-3"></i> <span>إدارة منتجاتي</span></a>
+            <a href="#" class="nav-link"><i class="fas fa-shopping-cart me-3"></i> <span>طلبات الزبائن</span></a>
+            <a href="#" class="nav-link"><i class="fas fa-file-invoice-dollar me-3"></i> <span>كشف الحساب المالي</span></a>
+            <a href="{{ url_for('suppliers_dashboard.settings') }}" class="nav-link {% if request.endpoint == 'suppliers_dashboard.settings' %}active{% endif %}">
+                <i class="fas fa-cog me-3"></i> <span>إعدادات المتجر</span>
+            </a>
+            <hr class="text-white my-3">
+            <a href="{{ url_for('suppliers_auth.logout') }}" id="logout-btn" class="nav-link text-danger">
+                <i class="fas fa-sign-out-alt me-3"></i> <span>تسجيل الخروج</span>
+            </a>
+        </nav>
+    </aside>
 
-    <!-- آخر الطلبات (جدول فارغ للبدء) -->
-    <div class="card shadow-sm border-0 mt-4">
-        <div class="card-body">
-            <h5 class="fw-bold mb-3">آخر الطلبات</h5>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>رقم الطلب</th>
-                            <th>الحالة</th>
-                            <th>التاريخ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td colspan="3" class="text-center text-muted py-4">لا توجد طلبات حالياً</td>
-                        </tr>
-                    </tbody>
-                </table>
+    <main class="main-wrapper" id="main">
+        <header class="top-navbar">
+            <button class="btn d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('active')">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="user-identity d-flex align-items-center">
+                <div class="text-end me-3 d-none d-md-block">
+                    <div class="fw-bold text-dark" style="font-size: 0.9rem;">
+                        {{ current_user.trade_name if current_user.is_authenticated else 'المورد' }}
+                    </div>
+                    <div class="text-muted" style="font-size: 0.75rem;">
+                        {{ current_user.username if current_user.is_authenticated else '---' }}
+                    </div>
+                </div>
+                <div class="avatar-circle bg-light d-flex align-items-center justify-content-center" 
+                        style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--mahjoub-gold);">
+                    <i class="fas fa-user text-dark"></i>
+                </div>
+                
+                <a href="#" class="btn btn-link notification-btn ms-3" title="الإشعارات">
+                    <i class="fas fa-bell fa-lg"></i>
+                    <span class="notification-badge">0</span>
+                </a>
             </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+            <div class="badge p-2 d-none d-sm-block" style="background-color: var(--mahjoub-gold); color: #000;">بوابة المورد</div>
+        </header>
+
+        <section class="p-3 p-md-4">
+            {% block content %}{% endblock %}
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.querySelector('.d-lg-none');
+            if (window.innerWidth < 992 && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', function(e) {
+            e.preventDefault(); 
+            sessionStorage.clear();
+            localStorage.clear();
+            window.location.href = this.href; 
+        });
+    </script>
+</body>
+</html>
