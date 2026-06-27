@@ -68,8 +68,8 @@ def create_app():
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
             
-            # استثناء المجلدات غير الموديولية
-            if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'auth_portal']:
+            # تم حذف 'auth_portal' من قائمة الاستثناءات أدناه
+            if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations']:
                 continue
 
             registry_file = os.path.join(item_path, 'registry.py')
