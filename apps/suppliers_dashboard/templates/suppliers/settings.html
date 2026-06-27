@@ -1,3 +1,4 @@
+{# 📂 apps/suppliers_dashboard/templates/suppliers/settings.html #}
 {% extends 'suppliers/base.html' %}
 
 {% block title %}إعدادات المتجر | محجوب أونلاين{% endblock %}
@@ -39,13 +40,25 @@
                         <label class="form-label text-muted">رقم التواصل المسجل</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="fas fa-phone"></i></span>
-                            <input type="text" class="form-control" value="****{{ current_user.phone[-4:] if current_user.phone else '0000' }}" disabled>
+                            <input type="text" class="form-control" value="{{ current_user.phone or 'غير متوفر' }}" disabled>
                         </div>
                     </div>
                 </div>
+
+                <h5 class="mt-4 mb-3 fw-bold text-success"><i class="fas fa-user-edit me-2"></i> بيانات الملف الشخصي</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">البريد الإلكتروني</label>
+                        <input type="email" class="form-control" value="{{ current_user.supplier_profile.email if current_user.supplier_profile else 'لم يتم التحديد' }}" disabled>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">الموقع (المحافظة / المدينة)</label>
+                        <input type="text" class="form-control" value="{{ (current_user.supplier_profile.governorate ~ ' - ' ~ current_user.supplier_profile.city) if current_user.supplier_profile else 'غير محدد' }}" disabled>
+                    </div>
+                </div>
                 
-                <div class="alert alert-info border-0 mt-4">
-                    <i class="fas fa-info-circle me-2"></i> لتعديل البيانات، يرجى التواصل مع إدارة محجوب أونلاين.
+                <div class="alert alert-info border-0 mt-3">
+                    <i class="fas fa-info-circle me-2"></i> لتحديث بيانات الملف الشخصي، يرجى تقديم طلب للإدارة أو التوجه لقسم الإعدادات المتقدمة.
                 </div>
             </div>
         </div>
@@ -56,7 +69,7 @@
                 <p class="small text-muted mb-4">إدارة الوصول وتأمين الحساب.</p>
                 
                 <div class="d-grid gap-2">
-                    <button class="btn btn-outline-dark" disabled>تغيير كلمة المرور</button>
+                    <button class="btn btn-outline-dark" onclick="alert('سيتوفر قريباً')">تغيير كلمة المرور</button>
                     <a href="{{ url_for('suppliers_auth_portal.logout') }}" class="btn btn-danger">تسجيل الخروج</a>
                 </div>
 
