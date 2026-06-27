@@ -5,82 +5,27 @@
 
 {% block content %}
 <style>
-    /* الهوية البصرية: الذهبي والبنفسجي الملكي */
     .btn-mahjoub-gold { background-color: #D4AF37; color: #1a0b2e; font-weight: bold; border: none; }
     .btn-mahjoub-gold:hover { background-color: #b8962f; color: #fff; }
     .card-header-custom { border-bottom: 2px solid #D4AF37; color: #1a0b2e; }
-    .form-control:focus { border-color: #D4AF37; box-shadow: 0 0 0 0.25rem rgba(212, 175, 55, 0.25); }
+    .bg-royal-purple { background-color: #1a0b2e; color: #fff; }
 </style>
 
 <div class="container-fluid py-4">
     <div class="mb-4">
-        <h3 class="fw-bold text-dark">إعدادات المتجر</h3>
-        <p class="text-muted">قم بتحديث معلوماتك الشخصية لضمان تواصل أفضل.</p>
+        <h3 class="fw-bold text-dark">إعدادات المتجر المتقدمة</h3>
+        <p class="text-muted">إدارة بيانات حسابك الشخصي وهويتك التجارية.</p>
     </div>
 
     <form action="{{ url_for('suppliers_dashboard.update_settings') }}" method="POST">
         <div class="row g-4">
-            <div class="col-lg-8">
-                <div class="card shadow-sm border-0 p-4">
-                    <h5 class="mb-4 fw-bold card-header-custom pb-2"><i class="fas fa-store me-2"></i> بيانات المتجر والملف الشخصي</h5>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">الاسم التجاري (لا يمكن تعديله)</label>
-                            <input type="text" class="form-control bg-light" value="{{ current_user.trade_name }}" disabled>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">اسم المالك</label>
-                            <input type="text" name="owner_name" class="form-control" value="{{ current_user.supplier_profile.owner_name or '' }}">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">البريد الإلكتروني</label>
-                            <input type="email" name="email" class="form-control" value="{{ current_user.supplier_profile.email or '' }}">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">رقم الهاتف الإضافي</label>
-                            <input type="text" name="secondary_phone" class="form-control" value="{{ current_user.supplier_profile.phone_secondary or '' }}">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label text-muted">المحافظة</label>
-                            <input type="text" name="governorate" class="form-control" value="{{ current_user.supplier_profile.governorate or '' }}">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label text-muted">المدينة</label>
-                            <input type="text" name="city" class="form-control" value="{{ current_user.supplier_profile.city or '' }}">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label text-muted">العنوان التفصيلي</label>
-                            <input type="text" name="address" class="form-control" value="{{ current_user.supplier_profile.address or '' }}">
-                        </div>
-                    </div>
-
-                    <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-mahjoub-gold px-4 py-2">حفظ التغييرات</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
+            <div class="col-lg-6">
                 <div class="card shadow-sm border-0 p-4 h-100">
-                    <h5 class="mb-3 fw-bold text-dark"><i class="fas fa-lock me-2"></i> بيانات النظام</h5>
+                    <h5 class="mb-4 fw-bold card-header-custom pb-2"><i class="fas fa-user-shield me-2"></i> بيانات الحساب الرسمية</h5>
+                    
                     <div class="mb-3">
-                        <label class="form-label text-muted small">كود المورد (ثابت)</label>
-                        <input type="text" class="form-control bg-light" value="{{ current_user.supplier_code }}" disabled>
+                        <label class="form-label text-muted">الاسم التجاري</label>
+                        <input type="text" class="form-control bg-light" value="{{ current_user.trade_name }}" disabled>
                     </div>
-                    <div class="d-grid gap-2 mt-4">
-                        <button type="button" class="btn btn-outline-dark" onclick="alert('سيتوفر قريباً')">تغيير كلمة المرور</button>
-                        <a href="{{ url_for('suppliers_auth.logout') }}" class="btn btn-outline-danger">تسجيل الخروج</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </form>
-</div>
-{% endblock %}
+                    <div class="mb-3">
+                        <label class
