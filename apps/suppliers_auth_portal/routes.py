@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/suppliers_auth_portal/routes.py
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from flask_login import login_user, logout_user, login_required, current_user
 from apps.models.supplier_db import Supplier
 from apps.models.marketer_db import Marketer
@@ -13,7 +13,6 @@ suppliers_bp = Blueprint('suppliers_auth', __name__, template_folder='templates'
 def login():
     if request.method == 'GET':
         if current_user.is_authenticated:
-            # توجيه المورد للمسار الصحيح الخاص به
             return redirect(url_for('suppliers_dashboard.dashboard'))
         return render_template('suppliers_auth_portal/login.html')
 
@@ -31,6 +30,7 @@ def login():
             user = Marketer.query.filter_by(marketing_code=username).first()
             if user and user.check_password(password):
                 login_user(user, remember=True)
+                session['user_type'] = 'supplier' # المسوق يُعامل تقنياً في نفس مجموعة الموردين
                 return jsonify({"status": "success", "redirect": url_for('suppliers_dashboard.dashboard')})
             return jsonify({"status": "error", "message": "بيانات دخول المسوق غير صحيحة"}), 401
 
@@ -42,6 +42,7 @@ def login():
             
             if supplier and supplier.check_password(password):
                 login_user(supplier, remember=True)
+                session['user_type'] = 'supplier' # <--- هذا السطر هو مفتاح الحل
                 return jsonify({"status": "success", "redirect": url_for('suppliers_dashboard.dashboard')})
             return jsonify({"status": "error", "message": "بيانات دخول المورد غير صحيحة"}), 401
 
@@ -53,4 +54,5 @@ def login():
 @suppliers_bp.route('/logout')
 def logout():
     logout_user()
+    session.clear() # <--- مسح كامل للجلسة عند الخروج يضمن عدم تداخل البيانات لاحقاً
     return redirect(url_for('suppliers_auth.login'))
