@@ -18,7 +18,6 @@ dashboard_bp = Blueprint(
 def supplier_required():
     """
     دالة تحقق أمني: تضمن أن المستخدم الحالي مورد.
-    إذا حاول مدير الوصول هنا، سيتم منعه فوراً بـ 403 Forbidden.
     """
     if session.get('user_type') != 'supplier':
         abort(403)
@@ -60,4 +59,9 @@ def settings():
         joinedload(Supplier.wallet)
     ).get(current_user.id)
     
+    # إضافة تحقق بسيط للتأكد من وجود المورد
+    if not supplier_data:
+        abort(404)
+    
+    # تمرير supplier_data كـ current_user للقالب كما طلبت
     return render_template('suppliers/settings.html', current_user=supplier_data)
