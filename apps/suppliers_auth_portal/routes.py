@@ -59,11 +59,16 @@ def login():
         return jsonify({"status": "error", "message": f"خطأ فني: {str(e)}"}), 500
 
 @suppliers_bp.route('/logout')
+@login_required
 def logout():
     """
-    تسجيل خروج المورد/المسوق مع مسح كامل لكافة بيانات الجلسة 
-    لضمان عدم تداخل هويات المستخدمين.
+    تسجيل خروج المورد/المسوق مع التأكد من نوع الجلسة 
+    لضمان الفصل الأمني الكامل وعدم التداخل مع الإدارة.
     """
-    logout_user()
-    session.clear() # مسح شامل للجلسة والكوكيز المؤقتة
+    # التحقق من أن الجلسة الحالية تخص مورد أو مسوق فقط
+    if session.get('user_type') == 'supplier':
+        logout_user()
+        session.clear() # مسح شامل للجلسة
+    
+    # التوجيه لبوابة دخول الموردين
     return redirect(url_for('suppliers_auth.login'))
