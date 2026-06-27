@@ -23,6 +23,8 @@
         .nav-link { display: flex; align-items: center; padding: 12px 15px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: 10px; transition: 0.3s; cursor: pointer; }
         .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.2); color: var(--mahjoub-gold); }
         .dropdown-content { display: none; list-style: none; padding-right: 35px; border-right: 2px solid var(--mahjoub-gold); margin: 5px 0; }
+        .dropdown-content a { color: rgba(255,255,255,0.8); display: block; padding: 8px 10px; font-size: 0.9rem; border-radius: 5px; }
+        .dropdown-content a:hover { background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold); }
         .main-wrapper { margin-right: var(--sidebar-width); transition: 0.3s; }
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .menu-toggle { display: none; background: none; border: none; font-size: 1.5rem; color: var(--royal-purple); }
@@ -50,15 +52,16 @@
             <div class="nav-item">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-handshake me-3"></i> <span>إدارة الموردين</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
-                    <li><a href="#" class="text-white text-decoration-none p-2">قائمة الشركاء</a></li>
+                    <li><a href="#"><i class="fas fa-list-ul me-2"></i> قائمة الشركاء</a></li>
+                    <li><a href="#"><i class="fas fa-user-plus me-2"></i> إضافة شريك</a></li>
                 </ul>
             </div>
 
             <div class="nav-item">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-wallet me-3"></i> <span>الرقابة المالية</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
-                    <li><a href="#" class="text-white text-decoration-none p-2">خزينة المنصة</a></li>
-                    <li><a href="#" class="text-white text-decoration-none p-2">محفظة الموردين</a></li>
+                    <li><a href="#"><i class="fas fa-vault me-2"></i> خزينة المنصة</a></li>
+                    <li><a href="#"><i class="fas fa-money-check-alt me-2"></i> محفظة الموردين</a></li>
                 </ul>
             </div>
 
@@ -84,6 +87,7 @@
         function toggleSub(el) {
             let drop = el.nextElementSibling;
             drop.style.display = (drop.style.display === "block") ? "none" : "block";
+            el.querySelector('.fa-chevron-down').style.transform = (drop.style.display === "block") ? "rotate(180deg)" : "rotate(0deg)";
         }
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('active');
