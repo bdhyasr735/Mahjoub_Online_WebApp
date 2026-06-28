@@ -1,8 +1,9 @@
 # coding: utf-8
-# 📂 apps/__init__.py (الكود النهائي لربط البيانات بالخزنة)
+# 📂 apps/__init__.py (الكود النهائي المحدث والمصحح)
 
 import os
 import importlib
+from decimal import Decimal  # تم إضافة الاستيراد لحل خطأ الـ Decimal
 from flask import Flask, session
 from apps.extensions import db, login_manager, migrate
 from apps.models.admin_db import AdminUser
@@ -63,12 +64,21 @@ def create_app():
                 financial = OrderFinancial(order_id=custom_id, supplier_id=supplier.id, total_paid=1250.50, mahjoub_commission=62.25, supplier_cost=1188.25, settlement_status='paid')
                 db.session.add(financial)
                 
-                # ج. تسجيل الحركة وتحديث المحفظة (السبب في ظهور الرصيد والحركات)
+                # ج. تسجيل الحركة وتحديث المحفظة (تم استخدام Decimal لتجنب خطأ التوافق)
                 wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
                 if wallet:
-                    transaction = WalletTransaction(wallet_id=wallet.id, trans_type='credit', source_type='order', amount=1188.25, currency='SAR', description='ربح طلب MAH-WEL9631', reference_number=custom_id)
+                    amount_to_add = Decimal('1188.25')
+                    transaction = WalletTransaction(
+                        wallet_id=wallet.id, 
+                        trans_type='credit', 
+                        source_type='order', 
+                        amount=amount_to_add, 
+                        currency='SAR', 
+                        description='ربح طلب MAH-WEL9631', 
+                        reference_number=custom_id
+                    )
                     db.session.add(transaction)
-                    wallet.balance_sar += 1188.25 # تحديث الرصيد لتظهر القيمة في البطاقة العلوية
+                    wallet.balance_sar = (wallet.balance_sar or Decimal('0.00')) + amount_to_add
                 
                 db.session.commit()
                 print(f"✅ [Test Data]: تم ربط {custom_id} بالخزنة والحركات بنجاح.")
