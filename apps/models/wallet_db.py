@@ -21,7 +21,7 @@ class SupplierWallet(db.Model):
     wallet_code = db.Column(db.String(50), unique=True, nullable=False)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
     
-    # الأرصدة المالية
+    # الأرصدة المالية - باستخدام Numeric للدقة المحاسبية
     balance_yer = db.Column(db.Numeric(18, 2), default=0.00) 
     balance_usd = db.Column(db.Numeric(18, 2), default=0.00) 
     balance_sar = db.Column(db.Numeric(18, 2), default=0.00) 
@@ -35,7 +35,7 @@ class SupplierWallet(db.Model):
     supplier = db.relationship('apps.models.supplier_db.Supplier', back_populates='wallet')
     transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan")
 
-    # [تشفير البيانات البنكية]
+    # --- نظام التشفير (AES) ---
     @staticmethod
     def _get_key():
         key = os.environ.get('ENCRYPTION_KEY')
@@ -63,20 +63,22 @@ class WalletTransaction(db.Model):
     __table_args__ = (
         db.Index('idx_trans_wallet', 'wallet_id'),
         db.Index('idx_trans_date', 'created_at'),
+        db.Index('idx_trans_source', 'source_type'), # فهرس لتحسين البحث عن نوع الحركة
         {'extend_existing': True}
     )
 
     id = db.Column(db.Integer, primary_key=True)
     wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
     
-    # دائن أو مدين
+    # تفاصيل الحركة
     trans_type = db.Column(db.String(20), nullable=False) # 'credit', 'debit'
+    source_type = db.Column(db.String(20), default='manual') # 'order', 'voucher', 'manual'
     amount = db.Column(db.Numeric(18, 2), nullable=False)
     currency = db.Column(db.String(5), nullable=False) # 'SAR', 'YER', 'USD'
     
     # تفاصيل السند
     description = db.Column(db.String(255))
-    reference_number = db.Column(db.String(50)) # رقم سند التسوية
+    reference_number = db.Column(db.String(50)) # رقم سند التسوية أو رقم الطلب
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     wallet = db.relationship('SupplierWallet', back_populates='transactions')
