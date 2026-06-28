@@ -3,9 +3,9 @@
 
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required
-from apps import db
+from apps.extensions import db  # استخدام المسار الآمن لمنع Circular Import
 from apps.models.orders_db import Order
-from apps.models.financials_db import OrderFinancial # استيراد الموديل المالي
+from apps.models.financials_db import OrderFinancial
 from apps.orders.services import OrderService
 
 # تعريف الـ Blueprint
@@ -57,9 +57,9 @@ def sync_all():
 @login_required
 def view_order(order_id):
     """عرض تفاصيل طلب محدد"""
-    # جلب الطلب مع بياناته المالية
-    order_data = db.session.query(Order, OrderFinancial)\
+    # جلب الطلب مع بياناته المالية باستخدام Join
+    result = db.session.query(Order, OrderFinancial)\
         .filter(Order.id == order_id)\
         .join(OrderFinancial, Order.id == OrderFinancial.order_id).first_or_404()
         
-    return render_template('admin/order_details.html', order=order_data[0], financial=order_data[1])
+    return render_template('admin/order_details.html', order=result[0], financial=result[1])
