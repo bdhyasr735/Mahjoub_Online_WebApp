@@ -15,18 +15,19 @@ orders_bp = Blueprint('orders', __name__, template_folder='templates')
 @login_required
 def dashboard():
     """
-    عرض لوحة تحكم الطلبات مع الإحصائيات الحية
-    يتم الربط بين الطلبات والمالية لجلب البيانات كاملة
+    عرض لوحة تحكم الطلبات مع الإحصائيات الحية.
+    يتم استخدام Join للربط بين الطلبات والمالية لجلب البيانات كاملة في استعلام واحد.
     """
     
     # 1. حساب الإحصائيات (Stats)
     # نستخدم الموديل المالي OrderFinancial لحساب إجمالي المبيعات
+    # ملاحظة: تم استدعاء amount وهي Property قمنا بتعريفها في الموديل للوصول للقيمة المشفرة
     total_sales = db.session.query(db.func.sum(OrderFinancial.amount)).scalar() or 0
     
     stats = {
         'cancelled': Order.query.filter_by(status='cancelled').count(),
         'completed': Order.query.filter_by(status='completed').count(),
-        'total_sales': total_sales
+        'total_sales': float(total_sales)
     }
     
     # 2. جلب قائمة الطلبات مع بياناتها المالية (Join)
@@ -41,9 +42,9 @@ def dashboard():
 @login_required
 def sync_all():
     """
-    دالة تشغيل المزامنة اليدوية
+    دالة تشغيل المزامنة اليدوية.
+    تأكد من تحديث الـ API_KEY لاحقاً.
     """
-    # استدعاء المصنع (تأكد من تمرير المعرفات الصحيحة)
     success = OrderService.fetch_and_sync_orders(api_key="YOUR_API_KEY", supplier_id=1)
     
     if success:
@@ -56,10 +57,13 @@ def sync_all():
 @orders_bp.route('/view-order/<int:order_id>')
 @login_required
 def view_order(order_id):
-    """عرض تفاصيل طلب محدد"""
+    """عرض تفاصيل طلب محدد مع بياناته المالية"""
+    
     # جلب الطلب مع بياناته المالية باستخدام Join
     result = db.session.query(Order, OrderFinancial)\
         .filter(Order.id == order_id)\
         .join(OrderFinancial, Order.id == OrderFinancial.order_id).first_or_404()
         
+    # result[0] هو كائن الطلب (Order)
+    # result[1] هو كائن المالية (OrderFinancial)
     return render_template('admin/order_details.html', order=result[0], financial=result[1])
