@@ -1,11 +1,10 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة (وضع التشخيص)
+# 📂 apps/api/sync_engine.py - محرك المزامنة (وضع الاستكشاف الذاتي)
 
 import os
 import requests
 import logging
 from apps.extensions import db
-from apps.models.orders_db import Order
 from apps.models.sync_log import SyncLog
 
 logger = logging.getLogger(__name__)
@@ -15,7 +14,6 @@ class SyncEngine:
 
     @staticmethod
     def _get_headers():
-        # استخدام الـ API Key المعتمد في البيئة أو القيمة الافتراضية
         api_key = os.environ.get("QUMRA_API_KEY", "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9")
         return {
             "Authorization": f"Bearer {api_key}",
@@ -26,18 +24,22 @@ class SyncEngine:
     @staticmethod
     def fetch_and_sync_order():
         """
-        دالة المزامنة التجريبية لاكتشاف بنية الـ API الحقيقية
+        دالة استكشاف Schema الـ API عبر GraphQL Introspection
         """
-        logger.info("🔄 بدء عملية مزامنة استكشافية لمعرفة بنية الـ API...")
+        logger.info("🔄 بدء عملية الاستكشاف الذاتي للـ Schema...")
         
-        # استعلام مبسط جداً بدون arguments لنكتشف الحقول المتاحة في الـ Schema
-        # إذا نجح هذا، سنعرف بالضبط ما هي الحقول الصحيحة وسننتقل للخطوة التالية
+        # استعلام Introspection لطلب وصف جميع الحقول المتاحة تحت PaginatedOrdersResponse
         query = """
         query {
-            findAllOrders {
-                _id
-                totalPrice
-                createdAt
+            __type(name: "PaginatedOrdersResponse") {
+                fields {
+                    name
+                    type {
+                        name
+                        kind
+                        ofType { name }
+                    }
+                }
             }
         }
         """
@@ -50,13 +52,12 @@ class SyncEngine:
                 timeout=60
             )
             
-            # طباعة الرد في الـ Logs لمساعدتنا في التشخيص (هام جداً)
+            # طباعة الرد في الـ Logs (هذا الرد سيحتوي على خريطة الحقول الصحيحة)
             response_text = response.text
-            logger.info(f"🔍 رد الـ API (Raw Data): {response_text}")
+            logger.info(f"💡 رد الاستكشاف (الخريطة): {response_text}")
             
             if response.status_code == 200:
-                logger.info("✅ نجح الاتصال التجريبي. تم استلام البيانات بنجاح.")
-                SyncEngine._log_sync('orders', 'success', "نجح الاتصال التجريبي.")
+                SyncEngine._log_sync('orders', 'success', "تم جلب خريطة الـ Schema بنجاح.")
                 return True
             else:
                 error_msg = f"فشل الاستكشاف: {response.status_code} - {response_text}"
@@ -74,7 +75,6 @@ class SyncEngine:
     def _log_sync(sync_type, status, message):
         """تسجيل العمليات في قاعدة البيانات"""
         try:
-            # نستخدم try-except لتجنب فشل المزامنة بسبب خطأ في التسجيل
             log = SyncLog(sync_type=sync_type, status=status, error_message=message)
             db.session.add(log)
             db.session.commit()
