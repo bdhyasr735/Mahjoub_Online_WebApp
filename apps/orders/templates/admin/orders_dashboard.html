@@ -4,39 +4,82 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>إدارة الطلبات المزامنة</h3>
-        <form action="{{ url_for('orders.sync_all') }}" method="POST">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-sync-alt"></i> مزامنة البيانات
-            </button>
-        </form>
+        <div>
+            <a href="{{ url_for('admin.index') }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-right"></i> رجوع للوحة التحكم
+            </a>
+            <form action="{{ url_for('orders.sync_all') }}" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sync-alt"></i> مزامنة البيانات
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('orders.dashboard') }}" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="q" class="form-control" placeholder="بحث باسم العميل أو رقم الطلب..." value="{{ request.args.get('q', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">كل الحالات</option>
+                        <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
+                        <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>معلق</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-dark w-100">تصفية</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div class="card">
         <div class="card-body">
             <table class="table table-hover">
-                <thead>
+                <thead class="table-light">
                     <tr>
                         <th>رقم الطلب</th>
                         <th>اسم العميل</th>
                         <th>الحالة</th>
                         <th>الإجمالي</th>
+                        <th>الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for order in orders %}
+                    {% for item in pagination.items %}
                     <tr>
-                        <td>{{ order.id }}</td>
-                        <td>{{ order.customer_name }}</td>
-                        <td><span class="badge bg-info">{{ order.status }}</span></td>
-                        <td>{{ order.financials[0].total_paid if order.financials else '0' }}</td>
+                        <td>{{ item[0].id }}</td>
+                        <td>{{ item[0].customer_name }}</td>
+                        <td><span class="badge bg-info">{{ item[0].status }}</span></td>
+                        <td>{{ item[1].total_paid if item[1] else '0' }}</td>
+                        <td>
+                            <a href="{{ url_for('orders.view_order', order_id=item[0].id) }}" class="btn btn-sm btn-outline-primary">عرض</a>
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="text-center">لا توجد طلبات مزامنة حالياً.</td>
+                        <td colspan="5" class="text-center">لا توجد طلبات تطابق بحثك.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('orders.dashboard', page=page_num, q=request.args.get('q'), status=request.args.get('status')) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </nav>
         </div>
     </div>
 </div>
