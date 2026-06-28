@@ -37,7 +37,7 @@ def dashboard():
     # التصفح (20 عنصراً لكل صفحة)
     wallets = query.paginate(page=page, per_page=20, error_out=False)
     
-    # حساب الإحصائيات العامة (تُحسب دائماً لتحديث البطاقات العلوية إذا لزم الأمر)
+    # حساب الإحصائيات العامة
     stats = {
         'count': SupplierWallet.query.count(),
         'sar': db.session.query(db.func.sum(SupplierWallet.balance_sar)).scalar() or 0,
@@ -46,8 +46,9 @@ def dashboard():
     }
 
     # التحقق مما إذا كان الطلب Ajax لتحديث الجدول فقط
+    # تم تحديث المسار هنا ليتوافق مع المسار الجديد: admin/partials/wallet_table_body.html
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('admin/wallet_table_partial.html', 
+        return render_template('admin/partials/wallet_table_body.html', 
                                wallets=wallets.items, 
                                pagination=wallets)
 
@@ -61,8 +62,7 @@ def dashboard():
 @login_required
 def manage_wallet(supplier_id):
     """
-    عرض تفاصيل محفظة مورد محدد مع كشف الحساب
+    عرض تفاصيل محفظة مورد محدد
     """
-    # جلب المحفظة مع المورد المرتبط بها في استعلام واحد (Eager loading للأداء)
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
     return render_template('admin/view_wallet.html', wallet=wallet)
