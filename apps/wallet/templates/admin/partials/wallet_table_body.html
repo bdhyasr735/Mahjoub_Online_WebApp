@@ -1,33 +1,44 @@
-<table class="table table-hover">
-    <thead>
+<table class="table table-hover align-middle">
+    <thead class="table-light">
         <tr>
             <th>اسم المورد</th>
             <th>رقم المحفظة</th>
-            <th>الرصيد (SAR)</th>
-            <th>الرصيد (YER)</th>
-            <th>الرصيد (USD)</th>
-            <th>الإجراءات</th>
+            <th>رصيد (SAR)</th>
+            <th>رصيد (YER)</th>
+            <th>رصيد (USD)</th>
+            <th class="text-center">الإجراءات</th>
         </tr>
     </thead>
     <tbody>
         {% for wallet in wallets %}
         <tr>
-            <td>{{ wallet.supplier.trade_name }}</td>
-            <td>{{ wallet.wallet_code }}</td>
-            <td>{{ "{:,.2f}".format(wallet.balance_sar) }}</td>
-            <td>{{ "{:,.2f}".format(wallet.balance_yer) }}</td>
-            <td>{{ "{:,.2f}".format(wallet.balance_usd) }}</td>
-            <td>
-                <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=wallet.supplier_id) }}" class="btn btn-sm btn-info">إدارة</a>
+            <td class="fw-bold">{{ wallet.supplier.trade_name }}</td>
+            <td><code>{{ wallet.wallet_code }}</code></td>
+            <td class="{{ 'text-danger fw-bold' if wallet.balance_sar < 0 else '' }}">
+                {{ "{:,.2f}".format(wallet.balance_sar) }}
+            </td>
+            <td class="{{ 'text-danger fw-bold' if wallet.balance_yer < 0 else '' }}">
+                {{ "{:,.2f}".format(wallet.balance_yer) }}
+            </td>
+            <td class="{{ 'text-danger fw-bold' if wallet.balance_usd < 0 else '' }}">
+                {{ "{:,.2f}".format(wallet.balance_usd) }}
+            </td>
+            <td class="text-center">
+                <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=wallet.supplier_id) }}" 
+                   class="btn btn-sm btn-outline-primary">
+                   <i class="fas fa-file-invoice-dollar"></i> كشف الحساب
+                </a>
             </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="text-center">لا توجد نتائج مطابقة.</td></tr>
+        <tr>
+            <td colspan="6" class="text-center py-4 text-muted">لا توجد محافظ مطابقة لبحثك.</td>
+        </tr>
         {% endfor %}
     </tbody>
 </table>
 
-<nav class="mt-3">
+<nav class="mt-4">
     <ul class="pagination justify-content-center">
         {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
             {% if page_num %}
