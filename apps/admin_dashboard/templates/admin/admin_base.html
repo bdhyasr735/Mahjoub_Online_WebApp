@@ -61,8 +61,7 @@
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-wallet me-3"></i> <span>الرقابة المالية</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
                     <li><a href="#"><i class="fas fa-vault me-2"></i> خزينة المنصة</a></li>
-                    {# الرابط معطل مؤقتاً لحين إصلاح تسجيل موديول المحفظة #}
-                    <li><a href="#"><i class="fas fa-money-check-alt me-2"></i> محفظة الموردين (قريباً)</a></li>
+                    <li><a href="{{ url_for('wallet_app.dashboard') }}"><i class="fas fa-money-check-alt me-2"></i> محفظة الموردين</a></li>
                 </ul>
             </div>
 
