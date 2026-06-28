@@ -54,7 +54,11 @@
                     <tr>
                         <td>{{ item[0].order_id_display }}</td>
                         <td>{{ item[0].customer_name }}</td>
-                        <td><span class="badge bg-info">{{ item[0].order_status }}</span></td>
+                        <td>
+                            <span class="badge {% if item[0].status == 'completed' %}bg-success{% else %}bg-info{% endif %}">
+                                {{ item[0].status }}
+                            </span>
+                        </td>
                         <td>{{ "{:,.2f}".format(item[1].total_paid) if item[1] and item[1].total_paid else '0.00' }}</td>
                         <td>
                             <a href="{{ url_for('orders.view_order', order_id=item[0].id) }}" class="btn btn-sm btn-outline-primary">عرض</a>
