@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/wallet/routes.py
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request
 from flask_login import login_required
 from apps.models.wallet_db import SupplierWallet
 from apps.models.supplier_db import Supplier
@@ -24,8 +24,8 @@ def dashboard():
     search = request.args.get('search', '')
     page = request.args.get('page', 1, type=int)
 
-    # بناء استعلام البحث
-    query = SupplierWallet.query.join(Supplier)
+    # بناء استعلام البحث: استخدام التعبير الواضح للـ Join لمنع أي أخطاء في الموديلات
+    query = SupplierWallet.query.join(Supplier, SupplierWallet.supplier_id == Supplier.id)
     
     if search:
         query = query.filter(or_(
@@ -35,9 +35,9 @@ def dashboard():
         ))
 
     # التصفح (Pagination)
-    wallets = query.paginate(page=page, per_page=20)
+    wallets = query.paginate(page=page, per_page=20, error_out=False)
     
-    # حساب الإحصائيات العامة
+    # حساب الإحصائيات العامة (استخدام الدوال المباشرة للـ Session)
     stats = {
         'count': SupplierWallet.query.count(),
         'sar': db.session.query(db.func.sum(SupplierWallet.balance_sar)).scalar() or 0,
@@ -45,7 +45,7 @@ def dashboard():
         'usd': db.session.query(db.func.sum(SupplierWallet.balance_usd)).scalar() or 0
     }
 
-    # التحقق مما إذا كان الطلب Ajax لتحديث الجدول فقط
+    # التحقق مما إذا كان الطلب Ajax
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/wallet_table_partial.html', wallets=wallets.items, stats=stats)
 
@@ -58,4 +58,4 @@ def manage_wallet(supplier_id):
     عرض تفاصيل محفظة مورد محدد
     """
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
-    return render_template('admin/wallet_details.html', wallet=wallet)
+    return render_template('admin/view_wallet.html', wallet=wallet)
