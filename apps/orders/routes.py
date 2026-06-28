@@ -28,7 +28,7 @@ def dashboard():
     # 3. تطبيق الفلاتر
     q = request.args.get('q', '').strip()
     if q:
-        # البحث باستخدام الحقول المحدثة
+        # البحث باستخدام الحقول المتاحة (Order.id هو الـ _id من قمرة)
         query = query.filter(
             Order.order_id_display.contains(q) | 
             Order.customer_name.contains(q)
@@ -36,15 +36,16 @@ def dashboard():
     
     status = request.args.get('status', '').strip()
     if status:
-        query = query.filter(Order.order_status == status)
+        # تم التصحيح: استخدام Order.status بدلاً من Order.order_status
+        query = query.filter(Order.status == status)
         
     # 4. الترتيب والتنفيذ (Pagination)
     pagination = query.order_by(Order.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
     
     # 5. حساب إحصائيات عامة
     stats = {
-        'cancelled': Order.query.filter_by(order_status='cancelled').count(),
-        'completed': Order.query.filter_by(order_status='completed').count(),
+        'cancelled': Order.query.filter_by(status='cancelled').count(),
+        'completed': Order.query.filter_by(status='completed').count(),
         'total_sales': db.session.query(db.func.sum(OrderFinancial.total_paid)).scalar() or 0.0
     }
     
@@ -53,15 +54,15 @@ def dashboard():
 @orders_bp.route('/sync-all', methods=['POST'])
 @login_required
 def sync_all():
-    """دالة المزامنة مع التقاط الأخطاء التفصيلي."""
+    """دالة المزامنة."""
     try:
         success = SyncEngine.fetch_and_sync_order()
         if success:
             flash("تمت المزامنة وتحديث البيانات بنجاح", "success")
         else:
-            flash("فشلت عملية المزامنة. يرجى مراجعة سجلات النظام (Logs).", "danger")
+            flash("فشلت عملية المزامنة. يرجى مراجعة سجلات النظام.", "danger")
     except Exception as e:
-        flash(f"حدث خطأ تقني غير متوقع: {str(e)}", "danger")
+        flash(f"حدث خطأ تقني: {str(e)}", "danger")
         traceback.print_exc()
         
     return redirect(url_for('orders.dashboard'))
