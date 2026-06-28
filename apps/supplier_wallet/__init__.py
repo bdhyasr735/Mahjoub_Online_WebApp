@@ -1,7 +1,8 @@
+# coding: utf-8
 # 📂 apps/supplier_wallet/__init__.py
 
-# استيراد الـ Blueprint لتسهيل الوصول إليه عند التسجيل
-from .routes import supplier_wallet_bp
-
-# استيراد الخدمات لتسهيل الوصول إليها عند تنفيذ المنطق المالي
-from .services import WalletService
+"""
+ملف تعريف موديول محفظة المورد كـ Package.
+يُترك فارغاً لمنع أي تداخل في الاستيرادات (Circular Imports).
+عملية تسجيل البلوبرينت تتم حصرياً عبر ملف 'registry.py'.
+"""
