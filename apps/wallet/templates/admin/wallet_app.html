@@ -3,21 +3,41 @@
 {% block title %}إدارة محافظ الموردين{% endblock %}
 
 {% block content %}
+<style>
+    /* هوية بصرية ملكية متوافقة */
+    :root {
+        --royal-purple: #2e003e; /* نفس لون القائمة الجانبية */
+        --royal-gold: #d4af37;
+    }
+    .text-royal-purple { color: var(--royal-purple) !important; }
+    .btn-royal-back {
+        background-color: transparent;
+        border: 1px solid var(--royal-purple);
+        color: var(--royal-purple);
+    }
+    .btn-royal-back:hover {
+        background-color: var(--royal-purple);
+        color: #fff;
+    }
+    .search-card { border-right: 5px solid var(--royal-gold) !important; }
+</style>
+
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold"><i class="fas fa-wallet me-2 text-primary"></i>محافظ الموردين</h2>
+            <h2 class="fw-bold text-royal-purple"><i class="fas fa-wallet me-2"></i>محافظ الموردين</h2>
             <p class="text-muted">نظرة عامة على أرصدة الموردين وحركات التسوية</p>
         </div>
-        <div class="text-end">
-            <span class="badge bg-light text-dark p-2 border">تحديث لحظي لدفتر الأستاذ</span>
-        </div>
+        
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-royal-back px-4">
+            <i class="fas fa-arrow-left me-2"></i>العودة للقيادة المركزية
+        </a>
     </div>
 
-    <div class="card shadow-sm border-0 mb-4">
+    <div class="card shadow-sm border-0 mb-4 search-card">
         <div class="card-body p-2">
             <div class="input-group">
-                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-primary"></i></span>
+                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-royal-purple"></i></span>
                 <input type="text" id="liveSearch" class="form-control border-0" 
                        placeholder="البحث بالاسم التجاري، كود المحفظة...">
             </div>
@@ -39,7 +59,6 @@ $(document).ready(function() {
         clearTimeout(timer);
         let query = $(this).val();
         timer = setTimeout(function() {
-            // إظهار حالة تحميل بسيطة
             $('#tableContainer').css('opacity', '0.5');
             
             $.ajax({
@@ -68,7 +87,6 @@ $(document).ready(function() {
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             success: function(response) {
                 $('#tableContainer').html(response).css('opacity', '1');
-                // التمرير لأعلى الجدول بعد تحميل الصفحة الجديدة
                 window.scrollTo({top: $('#tableContainer').offset().top - 100, behavior: 'smooth'});
             }
         });
