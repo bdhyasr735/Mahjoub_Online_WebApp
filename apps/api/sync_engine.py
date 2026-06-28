@@ -15,6 +15,7 @@ class SyncEngine:
 
     @staticmethod
     def _get_headers():
+        # استخدام الـ API Key المعتمد في البيئة أو القيمة الافتراضية
         api_key = os.environ.get("QUMRA_API_KEY", "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9")
         return {
             "Authorization": f"Bearer {api_key}",
@@ -24,10 +25,13 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
+        """
+        دالة المزامنة التجريبية لاكتشاف بنية الـ API الحقيقية
+        """
         logger.info("🔄 بدء عملية مزامنة استكشافية لمعرفة بنية الـ API...")
         
         # استعلام مبسط جداً بدون arguments لنكتشف الحقول المتاحة في الـ Schema
-        # إذا نجح هذا، سنعرف بالضبط ما هي الحقول الصحيحة
+        # إذا نجح هذا، سنعرف بالضبط ما هي الحقول الصحيحة وسننتقل للخطوة التالية
         query = """
         query {
             findAllOrders {
@@ -46,11 +50,12 @@ class SyncEngine:
                 timeout=60
             )
             
-            # طباعة الرد في الـ Logs لمساعدتنا في التشخيص
+            # طباعة الرد في الـ Logs لمساعدتنا في التشخيص (هام جداً)
             response_text = response.text
             logger.info(f"🔍 رد الـ API (Raw Data): {response_text}")
             
             if response.status_code == 200:
+                logger.info("✅ نجح الاتصال التجريبي. تم استلام البيانات بنجاح.")
                 SyncEngine._log_sync('orders', 'success', "نجح الاتصال التجريبي.")
                 return True
             else:
@@ -69,8 +74,9 @@ class SyncEngine:
     def _log_sync(sync_type, status, message):
         """تسجيل العمليات في قاعدة البيانات"""
         try:
+            # نستخدم try-except لتجنب فشل المزامنة بسبب خطأ في التسجيل
             log = SyncLog(sync_type=sync_type, status=status, error_message=message)
             db.session.add(log)
             db.session.commit()
-        except:
+        except Exception:
             db.session.rollback()
