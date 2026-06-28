@@ -1,8 +1,7 @@
 # coding: utf-8
-# 📂 apps/__init__.py (نسخة الزرع المصححة والمطابقة للموديل)
+# 📂 apps/__init__.py (نسخة الزرع المحدثة بـ MAH-WEL9631)
 
 import os
-import uuid
 import importlib
 from flask import Flask, session
 from apps.extensions import db, login_manager, migrate
@@ -48,16 +47,16 @@ def create_app():
                 profile = SupplierProfile(supplier_id=supplier.id, trade_name='محجوب أونلاين')
                 db.session.add(profile)
 
-            # 2. زرع الطلب التجريبي (مطابق لـ models/financials_db.py)
+            # 2. زرع الطلب باستخدام الكود المخصص MAH-WEL9631
             from apps.models.orders_db import Order
             from apps.models.financials_db import OrderFinancial
             
-            if not Order.query.filter_by(order_id_display='MJ-2026-001').first():
-                unique_id = str(uuid.uuid4()) 
-                
+            custom_id = 'MAH-WEL9631'
+            
+            if not Order.query.filter_by(id=custom_id).first():
                 # إنشاء الطلب
                 real_order = Order(
-                    id=unique_id, 
+                    id=custom_id, 
                     order_id_display='MJ-2026-001',
                     customer_name='عميل حقيقي - تجربة',
                     status='completed',
@@ -66,24 +65,24 @@ def create_app():
                 )
                 db.session.add(real_order)
                 
-                # إنشاء السجل المالي (مطابق للحقول المشفرة في financials_db.py)
+                # إنشاء السجل المالي مرتبط بـ MAH-WEL9631
                 financial = OrderFinancial(
-                    order_id=unique_id,
+                    order_id=custom_id,
                     supplier_id=supplier.id,
-                    total_paid=1250.50,           # سيتم تشفيره تلقائياً عبر الـ setter
-                    mahjoub_commission=62.25,     # سيتم تشفيره تلقائياً عبر الـ setter
-                    supplier_cost=1188.25,        # حقل إضافي لضمان اكتمال السجل
-                    settlement_status='paid'      # الحالة الفعلية في الموديل
+                    total_paid=1250.50,
+                    mahjoub_commission=62.25,
+                    supplier_cost=1188.25,
+                    settlement_status='paid'
                 )
                 db.session.add(financial)
-                db.session.commit() # الحفظ هنا لضمان عدم وجود أخطاء
-                print("✅ [Test Data]: تم زرع الطلب والبيانات المالية بنجاح.")
+                db.session.commit()
+                print(f"✅ [Test Data]: تم زرع الطلب {custom_id} بنجاح.")
 
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Error]: {e}")
 
-        # 3. الاكتشاف التلقائي (Auto-Discovery)
+        # 3. الاكتشاف التلقائي
         apps_dir = app.root_path
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
