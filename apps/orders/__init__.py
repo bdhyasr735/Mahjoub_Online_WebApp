@@ -1,4 +1,4 @@
-# coding: utf-8
-from .routes import orders_bp
+# 📂 apps/orders/__init__.py
 
-__all__ = ['orders_bp']
+# هذا الملف يجعل مجلد 'orders' بمثابة حزمة (Package) في بايثون.
+# يُفضل تركه فارغاً لتجنب أي تضارب في الاستيرادات (Circular Imports).
