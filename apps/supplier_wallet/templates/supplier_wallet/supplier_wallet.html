@@ -5,59 +5,78 @@
 
 {% block content %}
 <style>
-    :root { --royal-purple: #2e003e; --royal-gold: #d4af37; --sar-color: #007bff; --yer-color: #28a745; --usd-color: #ffc107; }
-    .balance-card { cursor: pointer; transition: transform 0.2s; color: white; border: none; }
-    .balance-card:hover { transform: translateY(-5px); }
-    .card-sar { background: var(--sar-color); }
-    .card-yer { background: var(--yer-color); }
-    .card-usd { background: var(--usd-color); }
-    .table-head-custom { background-color: var(--royal-purple) !important; color: white !important; }
+    :root { 
+        --royal-purple: #2e003e; 
+        --royal-gold: #d4af37; 
+        --light-purple: #5a0077;
+    }
+    .text-royal-purple { color: var(--royal-purple) !important; }
+    
+    /* هوية البطاقات البنفسجية */
+    .balance-card { 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+        color: white; 
+        border: none; 
+        background: linear-gradient(135deg, var(--royal-purple), var(--light-purple));
+        border-bottom: 4px solid var(--royal-gold);
+    }
+    .balance-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(46, 0, 62, 0.2); }
+    
+    .table-head-custom { background-color: var(--royal-purple) !important; color: var(--royal-gold) !important; }
+    .btn-royal { background-color: var(--royal-purple); color: white; }
+    .btn-royal:hover { background-color: var(--light-purple); color: white; }
 </style>
 
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold text-royal-purple">خزانة المورد</h2>
-            <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-right"></i> رجوع</a>
+            <h2 class="fw-bold text-royal-purple"><i class="fas fa-vault"></i> خزانة المورد</h2>
+            <button onclick="history.back()" class="btn btn-outline-dark btn-sm mt-2"><i class="fas fa-arrow-right"></i> رجوع</button>
         </div>
-        <button class="btn btn-danger" onclick="window.print()"><i class="fas fa-file-pdf"></i> تصدير كشف حساب (PDF)</button>
+        <button class="btn btn-royal" onclick="window.print()"><i class="fas fa-file-pdf"></i> تصدير (PDF)</button>
     </div>
 
     <div class="row g-3 mb-4">
-        {% for curr, bal, color in [('SAR', wallet.balance_sar, 'sar'), ('YER', wallet.balance_yer, 'yer'), ('USD', wallet.balance_usd, 'usd')] %}
+        {% for curr, bal in [('SAR', wallet.balance_sar), ('YER', wallet.balance_yer), ('USD', wallet.balance_usd)] %}
         <div class="col-md-4">
-            <div class="card balance-card card-{{color}} p-3 shadow" onclick="filterTable('{{curr}}')">
-                <h6>رصيد {{curr}}</h6>
-                <h3 class="fw-bold">{{ "{:,.2f}".format(bal) }}</h3>
+            <div class="card balance-card p-4 shadow" onclick="filterTable('{{curr}}')">
+                <small class="text-white-50">رصيد {{curr}}</small>
+                <h3 class="fw-bold mb-0">{{ "{:,.2f}".format(bal) }} <span class="fs-6">{{curr}}</span></h3>
             </div>
         </div>
         {% endfor %}
+        <div class="col-12">
+            <button class="btn btn-sm btn-outline-secondary" onclick="filterTable('ALL')">عرض الكل</button>
+        </div>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-hover align-middle mb-0" id="walletTable">
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
                 <thead class="table-head-custom">
                     <tr>
-                        <th>التاريخ</th>
+                        <th class="px-4">التاريخ</th>
                         <th>البيان</th>
                         <th>مدين</th>
                         <th>دائن</th>
-                        <th>العملة</th>
+                        <th class="text-center">العملة</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
                     {% for trans in wallet.transactions|sort(attribute='created_at', reverse=True) %}
                     <tr class="trans-row" data-currency="{{ trans.currency }}">
-                        <td>{{ trans.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td class="px-4">{{ trans.created_at.strftime('%Y-%m-%d') }}</td>
                         <td>
                             <strong>{{ trans.description }}</strong><br>
-                            <small class="text-muted">رقم الطلب: {{ trans.order_id|default('N/A') }} | {{ trans.reference_number }}</small>
+                            <small class="text-muted">طلب: {{ trans.order_id|default('---') }} | مرجع: {{ trans.reference_number }}</small>
                         </td>
-                        <td class="text-danger">{{ trans.amount if trans.trans_type == 'debit' else '-' }}</td>
-                        <td class="text-success">{{ trans.amount if trans.trans_type == 'credit' else '-' }}</td>
-                        <td><span class="badge bg-secondary">{{ trans.currency }}</span></td>
+                        <td class="text-danger fw-bold">{{ trans.amount if trans.trans_type == 'debit' else '-' }}</td>
+                        <td class="text-success fw-bold">{{ trans.amount if trans.trans_type == 'credit' else '-' }}</td>
+                        <td class="text-center"><span class="badge bg-dark">{{ trans.currency }}</span></td>
                     </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center py-4">لا توجد حركات مالية حالياً.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -66,14 +85,10 @@
 </div>
 
 <script>
-    // وظيفة الفلترة
     function filterTable(currency) {
         document.querySelectorAll('.trans-row').forEach(row => {
             row.style.display = (currency === 'ALL' || row.dataset.currency === currency) ? '' : 'none';
         });
     }
-
-    // إضافة ترقيم الصفحات (Pagination) - يفضل استخدام DataTables في مشاريع أكبر
-    // للبدء السريع: استخدم مكتبة simple-datatables أو jQuery DataTables
 </script>
 {% endblock %}
