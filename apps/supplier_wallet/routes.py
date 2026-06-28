@@ -3,7 +3,8 @@
 
 from flask import Blueprint, render_template, abort
 from flask_login import login_required, current_user
-from apps.supplier_wallet import WalletService
+# تم التعديل هنا لاستيراد الخدمة مباشرة من ملف services لتجنب Circular Import
+from apps.supplier_wallet.services import WalletService
 
 # تعريف الـ Blueprint الخاص بالمورد
 supplier_wallet_bp = Blueprint(
@@ -19,16 +20,19 @@ def view_my_wallet():
     عرض خزانة المورد الخاصة بالمستخدم المسجل حالياً.
     نستخدم معرف المورد من current_user لضمان الخصوصية.
     """
-    # نفترض أن كائن المستخدم الحالي يحتوي على supplier_id
-    # يرجى تعديل 'current_user.supplier_id' بما يناسب هيكلية قاعدة بياناتك
+    # جلب معرف المورد من المستخدم الحالي المسجل
+    # يرجى التأكد أن نموذج المستخدم (User Model) يحتوي على حقل supplier_id
     supplier_id = getattr(current_user, 'supplier_id', None)
     
     if not supplier_id:
+        # إيقاف الوصول إذا لم يكن المستخدم مرتبطاً بمورد
         abort(403, description="لا تملك صلاحية الوصول إلى هذه المحفظة.")
 
+    # جلب بيانات المحفظة من خلال خدمة المحفظة
     wallet = WalletService.get_supplier_wallet(supplier_id)
     
     if not wallet:
+        # في حال لم تكن هناك محفظة منشأة للمورد
         abort(404, description="لم يتم العثور على محفظة مرتبطة بحسابك.")
 
     # عرض القالب مع تمرير بيانات المحفظة
