@@ -14,6 +14,7 @@ class SyncEngine:
 
     @staticmethod
     def _get_headers():
+        # استخدام الـ API Key المعتمد في البيئة أو القيمة الافتراضية
         api_key = os.environ.get("QUMRA_API_KEY", "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9")
         return {
             "Authorization": f"Bearer {api_key}",
@@ -52,7 +53,7 @@ class SyncEngine:
                 timeout=60
             )
             
-            # طباعة الرد في الـ Logs (هذا الرد سيحتوي على خريطة الحقول الصحيحة)
+            # طباعة الرد في الـ Logs (هذا الرد هو المفتاح لحل مشكلة الاتصال)
             response_text = response.text
             logger.info(f"💡 رد الاستكشاف (الخريطة): {response_text}")
             
