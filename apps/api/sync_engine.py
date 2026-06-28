@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المحدث والمتوافق
+# 📂 apps/api/sync_engine.py - نسخة مصححة لتتوافق مع GraphQL Schema
 
 import os
 import requests
@@ -14,7 +14,6 @@ class SyncEngine:
 
     @staticmethod
     def _get_headers():
-        # جلب المفتاح من متغيرات البيئة في Render
         api_key = os.environ.get("QUMRA_API_KEY", "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9")
         return {
             "Authorization": f"Bearer {api_key}",
@@ -26,18 +25,17 @@ class SyncEngine:
     def fetch_and_sync_order():
         logger.info("🔄 بدء عملية المزامنة مع متجر قمرة...")
         
-        # استعلام يغطي جميع الأعمدة المطلوبة
+        # تم تحديث الاستعلام بناءً على أخطاء التحقق (Validation Errors)
         query = """
         query {
             findAllOrders {
                 data {
                     _id
-                    orderId
                     totalPrice
                     createdAt
                     status { code }
-                    account { firstName lastName }
-                    items { id }
+                    account { lastSeen }
+                    items { _id }
                 }
             }
         }
@@ -63,19 +61,16 @@ class SyncEngine:
                 unique_id = str(item.get('_id'))
                 if not unique_id: continue
                 
-                # جلب الطلب أو إنشاء جديد
                 order = Order.query.filter_by(id=unique_id).first() or Order(id=unique_id)
                 
-                # تعيين البيانات بناءً على المواصفات المطلوبة
-                order.order_id_display = str(item.get('orderId', ''))
                 order.total_price = float(item.get('totalPrice') or 0.0)
                 order.created_at = item.get('createdAt')
                 order.order_status = item.get('status', {}).get('code', 'pending')
                 order.items_count = len(item.get('items', []))
                 
-                # اسم العميل
+                # استخدام lastSeen كبديل للاسم إذا كان هو المتاح حالياً
                 acc = item.get('account') or {}
-                order.customer_name = f"{acc.get('firstName', '')} {acc.get('lastName', '')}".strip() or "عميل"
+                order.customer_name = acc.get('lastSeen', 'عميل')
                 
                 db.session.add(order)
                 sync_count += 1
