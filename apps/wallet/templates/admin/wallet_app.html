@@ -5,17 +5,26 @@
 {% block content %}
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">محافظ الموردين</h2>
-    </div>
-
-    <div class="card shadow-sm border-0 p-3 mb-4">
-        <div class="input-group">
-            <span class="input-group-text bg-transparent border-0"><i class="fas fa-search"></i></span>
-            <input type="text" id="liveSearch" class="form-control border-0" placeholder="البحث بالاسم التجاري، رقم المحفظة، أو الهاتف...">
+        <div>
+            <h2 class="fw-bold"><i class="fas fa-wallet me-2 text-primary"></i>محافظ الموردين</h2>
+            <p class="text-muted">نظرة عامة على أرصدة الموردين وحركات التسوية</p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-light text-dark p-2 border">تحديث لحظي لدفتر الأستاذ</span>
         </div>
     </div>
 
-    <div id="tableContainer" class="table-responsive">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-2">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-primary"></i></span>
+                <input type="text" id="liveSearch" class="form-control border-0" 
+                       placeholder="البحث بالاسم التجاري، كود المحفظة...">
+            </div>
+        </div>
+    </div>
+
+    <div id="tableContainer" class="table-responsive shadow-sm bg-white rounded">
         {% include 'admin/partials/wallet_table_body.html' %}
     </div>
 </div>
@@ -25,38 +34,42 @@
 $(document).ready(function() {
     let timer;
 
-    // وظيفة البحث المباشر (Live Search) مع مؤقت لتقليل الطلبات على السيرفر
+    // بحث متقدم مع مؤقت
     $('#liveSearch').on('keyup', function() {
         clearTimeout(timer);
         let query = $(this).val();
         timer = setTimeout(function() {
+            // إظهار حالة تحميل بسيطة
+            $('#tableContainer').css('opacity', '0.5');
+            
             $.ajax({
                 url: "{{ url_for('wallet_app.dashboard') }}",
                 data: { 'search': query },
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 success: function(response) {
-                    $('#tableContainer').html(response);
+                    $('#tableContainer').html(response).css('opacity', '1');
                 },
                 error: function() {
-                    console.error("حدث خطأ أثناء البحث.");
+                    $('#tableContainer').css('opacity', '1');
+                    alert("تعذر الاتصال بالسيرفر، يرجى المحاولة لاحقاً.");
                 }
             });
-        }, 400);
+        }, 500);
     });
 
-    // معالجة التنقل بين الصفحات (Pagination) برمجياً عبر AJAX
+    // معالجة التنقل (Pagination)
     $(document).on('click', '.pagination a', function(e) {
         e.preventDefault();
         let url = $(this).attr('href');
         
+        $('#tableContainer').css('opacity', '0.5');
         $.ajax({
             url: url,
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             success: function(response) {
-                $('#tableContainer').html(response);
-            },
-            error: function() {
-                console.error("حدث خطأ أثناء تحميل الصفحة.");
+                $('#tableContainer').html(response).css('opacity', '1');
+                // التمرير لأعلى الجدول بعد تحميل الصفحة الجديدة
+                window.scrollTo({top: $('#tableContainer').offset().top - 100, behavior: 'smooth'});
             }
         });
     });
