@@ -9,7 +9,6 @@ from apps.extensions import db
 class OrderFinancial(db.Model):
     __tablename__ = 'order_financials'
 
-    # [صمام الأمان]: فهرسة مسمّاة لضمان سرعة الاستعلامات والربط
     __table_args__ = (
         db.Index('idx_fin_order_id', 'order_id'),
         db.Index('idx_fin_supplier_id', 'supplier_id'),
@@ -20,7 +19,10 @@ class OrderFinancial(db.Model):
 
     # 1. المعرفات والربط
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False, unique=True)
+    
+    # [تعديل هام]: تم تغيير النوع إلى String(100) ليطابق Order.id
+    order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False, unique=True)
+    
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     
     # 2. المبالغ المالية (مشفرة)
@@ -36,7 +38,7 @@ class OrderFinancial(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     settled_at = db.Column(db.DateTime, nullable=True)
 
-    # [الربط السيادي]: تم تعديل المسارات لكسر حلقة الـ Import ومنع الانهيار
+    # [الربط السيادي]
     order = db.relationship('Order', back_populates='financials')
     supplier = db.relationship('Supplier', back_populates='financials')
 
@@ -73,7 +75,6 @@ class OrderFinancial(db.Model):
     @total_paid.setter
     def total_paid(self, value): self._total_paid_enc = self._encrypt(value)
 
-    # [إصلاح الخطأ 500]: تمت إضافة الخاصية amount ليدعمها الاستعلام في routes.py
     @property
     def amount(self):
         return self.total_paid
