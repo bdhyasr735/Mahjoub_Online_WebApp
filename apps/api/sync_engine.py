@@ -1,45 +1,43 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المحدث
+# 📂 apps/api/sync_engine.py - محرك المزامنة المحدث والمتوافق
 
+import os
 import requests
 import logging
 from apps.extensions import db
-# تم تحديث الاستيراد ليعتمد على الموديل الجديد Order
 from apps.models.orders_db import Order
 
 logger = logging.getLogger(__name__)
 
 class SyncEngine:
     API_URL = "https://mahjoub.online/admin/graphql"  
-    API_TOKEN = "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9"
 
     @staticmethod
     def _get_headers():
+        # جلب المفتاح من متغيرات البيئة في Render
+        api_key = os.environ.get("QUMRA_API_KEY", "qmr_e063f7f4-ed44-4c86-b105-8405326b9eb9")
         return {
-            "Authorization": f"Bearer {SyncEngine.API_TOKEN}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
 
     @staticmethod
     def fetch_and_sync_order():
-        logger.info("🔄 بدء المزامنة مع استبعاد الحقول المرفوضة...")
+        logger.info("🔄 بدء عملية المزامنة مع متجر قمرة...")
         
+        # استعلام يغطي جميع الأعمدة المطلوبة
         query = """
         query {
             findAllOrders {
                 data {
                     _id
+                    orderId
                     totalPrice
+                    createdAt
                     status { code }
-                    account { 
-                        firstName
-                        lastName
-                    }
-                    shippingAddress { 
-                        city { name } 
-                        street 
-                    }
+                    account { firstName lastName }
+                    items { id }
                 }
             }
         }
@@ -65,24 +63,19 @@ class SyncEngine:
                 unique_id = str(item.get('_id'))
                 if not unique_id: continue
                 
-                # استخدام الكلاس المحدث Order
+                # جلب الطلب أو إنشاء جديد
                 order = Order.query.filter_by(id=unique_id).first() or Order(id=unique_id)
                 
-                # تحديث البيانات الأساسية
+                # تعيين البيانات بناءً على المواصفات المطلوبة
+                order.order_id_display = str(item.get('orderId', ''))
                 order.total_price = float(item.get('totalPrice') or 0.0)
+                order.created_at = item.get('createdAt')
                 order.order_status = item.get('status', {}).get('code', 'pending')
+                order.items_count = len(item.get('items', []))
                 
-                # تحديث بيانات العميل
+                # اسم العميل
                 acc = item.get('account') or {}
-                first_name = acc.get('firstName', '')
-                last_name = acc.get('lastName', '')
-                order.customer_name = f"{first_name} {last_name}".strip() or "غير معروف"
-                
-                # بيانات الشحن
-                ship = item.get('shippingAddress') or {}
-                city_obj = ship.get('city') or {}
-                order.shipping_city = city_obj.get('name') or "---"
-                order.shipping_street = ship.get('street') or "---"
+                order.customer_name = f"{acc.get('firstName', '')} {acc.get('lastName', '')}".strip() or "عميل"
                 
                 db.session.add(order)
                 sync_count += 1
