@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py (نسخة الزرع المحدثة بـ MAH-WEL9631)
+# 📂 apps/__init__.py (الكود النهائي لربط البيانات بالخزنة)
 
 import os
 import importlib
@@ -46,37 +46,32 @@ def create_app():
                 db.session.flush() 
                 profile = SupplierProfile(supplier_id=supplier.id, trade_name='محجوب أونلاين')
                 db.session.add(profile)
+                db.session.commit()
 
-            # 2. زرع الطلب باستخدام الكود المخصص MAH-WEL9631
+            # 2. زرع الطلب والمالية وربطها بالخزنة
             from apps.models.orders_db import Order
             from apps.models.financials_db import OrderFinancial
+            from apps.models.wallet_db import SupplierWallet, WalletTransaction
             
             custom_id = 'MAH-WEL9631'
-            
             if not Order.query.filter_by(id=custom_id).first():
-                # إنشاء الطلب
-                real_order = Order(
-                    id=custom_id, 
-                    order_id_display='MJ-2026-001',
-                    customer_name='عميل حقيقي - تجربة',
-                    status='completed',
-                    supplier_id=supplier.id,
-                    total_price=1250.50
-                )
+                # أ. الطلب
+                real_order = Order(id=custom_id, order_id_display='MJ-2026-001', customer_name='عميل تجربة', status='completed', supplier_id=supplier.id, total_price=1250.50)
                 db.session.add(real_order)
                 
-                # إنشاء السجل المالي مرتبط بـ MAH-WEL9631
-                financial = OrderFinancial(
-                    order_id=custom_id,
-                    supplier_id=supplier.id,
-                    total_paid=1250.50,
-                    mahjoub_commission=62.25,
-                    supplier_cost=1188.25,
-                    settlement_status='paid'
-                )
+                # ب. البيانات المالية
+                financial = OrderFinancial(order_id=custom_id, supplier_id=supplier.id, total_paid=1250.50, mahjoub_commission=62.25, supplier_cost=1188.25, settlement_status='paid')
                 db.session.add(financial)
+                
+                # ج. تسجيل الحركة وتحديث المحفظة (السبب في ظهور الرصيد والحركات)
+                wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+                if wallet:
+                    transaction = WalletTransaction(wallet_id=wallet.id, trans_type='credit', source_type='order', amount=1188.25, currency='SAR', description='ربح طلب MAH-WEL9631', reference_number=custom_id)
+                    db.session.add(transaction)
+                    wallet.balance_sar += 1188.25 # تحديث الرصيد لتظهر القيمة في البطاقة العلوية
+                
                 db.session.commit()
-                print(f"✅ [Test Data]: تم زرع الطلب {custom_id} بنجاح.")
+                print(f"✅ [Test Data]: تم ربط {custom_id} بالخزنة والحركات بنجاح.")
 
         except Exception as e:
             db.session.rollback()
