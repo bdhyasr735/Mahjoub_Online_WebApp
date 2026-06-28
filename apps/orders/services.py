@@ -9,7 +9,7 @@ class OrderService:
     @staticmethod
     def get_paginated_orders(page=1, per_page=10, search_query=None, status=None):
         """
-        جلب الطلبات مع بياناتها المالية (Financials) مع دعم التصفية والتقليب
+        جلب الطلبات مع بياناتها المالية مع دعم الفلترة والتقليب
         """
         # بناء الاستعلام الأساسي (Join بين الطلبات والبيانات المالية)
         query = db.session.query(Order, OrderFinancial).outerjoin(
@@ -20,14 +20,14 @@ class OrderService:
         if search_query:
             query = query.filter(
                 or_(
-                    Order.customer_name.ilike(f'%{search_query}%'),
+                    Order._customer_name.ilike(f'%{search_query}%'), # بحث في الاسم المشفر (العمود الفعلي)
                     Order.order_id_display.ilike(f'%{search_query}%')
                 )
             )
 
-        # تطبيق فلترة الحالة
+        # تطبيق فلترة الحالة (استخدام عمود status الفعلي في قاعدة البيانات)
         if status:
-            query = query.filter(Order.order_status == status)
+            query = query.filter(Order.status == status)
 
         # الترتيب حسب الأحدث
         query = query.order_by(Order.created_at.desc())
@@ -38,7 +38,7 @@ class OrderService:
     @staticmethod
     def get_order_with_financials(order_id):
         """
-        جلب طلب محدد مع تفاصيله المالية لصفحة 'عرض'
+        جلب طلب محدد مع تفاصيله المالية
         """
         result = db.session.query(Order, OrderFinancial).outerjoin(
             OrderFinancial, Order.id == OrderFinancial.order_id
@@ -49,7 +49,7 @@ class OrderService:
     @staticmethod
     def sync_all_orders():
         """
-        خدمة استدعاء المزامنة (تغليف لـ SyncEngine)
+        خدمة استدعاء المزامنة
         """
         from apps.api.sync_engine import SyncEngine
         return SyncEngine.fetch_and_sync_order()
