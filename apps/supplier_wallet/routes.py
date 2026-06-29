@@ -42,9 +42,9 @@ def view_my_wallet():
     # الترتيب حسب الأحدث
     all_transactions = sorted(all_transactions, key=lambda x: x.created_at, reverse=True)
     
-    # 3. إعداد الترقيم (Pagination)
+    # 3. إعداد الترقيم (Pagination) - مضبوط على 20 عملية لكل صفحة
     page = request.args.get(get_page_parameter(), type=int, default=1)
-    per_page = 10
+    per_page = 20
     offset = (page - 1) * per_page
     
     transactions_paginated = all_transactions[offset : offset + per_page]
