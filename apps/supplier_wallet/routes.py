@@ -15,7 +15,7 @@ def view_my_wallet():
     if not wallet:
         abort(404, description="لم يتم العثور على محفظة.")
 
-    # الاستعلام الأساسي من قاعدة البيانات مباشرة
+    # الاستعلام الأساسي
     query = WalletTransaction.query.filter_by(wallet_id=wallet.id)
 
     # 1. فلتر العملة
@@ -23,7 +23,7 @@ def view_my_wallet():
     if currency:
         query = query.filter_by(currency=currency)
 
-    # 2. البحث المرن (في البيان أو رقم السند)
+    # 2. البحث المرن
     search = request.args.get('search', '').strip()
     if search:
         query = query.filter(
@@ -31,8 +31,12 @@ def view_my_wallet():
             (WalletTransaction.description.ilike(f'%{search}%'))
         )
 
-    # ترتيب النتائج
+    # ترتيب النتائج (نحتاج كل النتائج للحسابات الصحيحة)
     all_transactions = query.order_by(WalletTransaction.created_at.desc()).all()
+    
+    # حساب الإجماليات بناءً على النتائج المفلترة فقط
+    total_debit = sum(t.amount for t in all_transactions if t.trans_type == 'debit')
+    total_credit = sum(t.amount for t in all_transactions if t.trans_type == 'credit')
     
     # الترقيم
     page = request.args.get(get_page_parameter(), type=int, default=1)
@@ -42,12 +46,14 @@ def view_my_wallet():
     
     pagination = Pagination(page=page, total=len(all_transactions), per_page=per_page, css_framework='bootstrap5')
 
-    # حساب الإجماليات
-    total_debit = sum(t.amount for t in all_transactions if t.trans_type == 'debit')
-    total_credit = sum(t.amount for t in all_transactions if t.trans_type == 'credit')
-
+    # إذا كان الطلب AJAX (بحث)، نرسل الإجماليات أيضاً لتعريف الجدول بها
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('supplier_wallet/_table_partial.html', transactions=transactions_paginated)
+        return render_template(
+            'supplier_wallet/_table_partial.html', 
+            transactions=transactions_paginated,
+            total_debit=total_debit,
+            total_credit=total_credit
+        )
 
     return render_template(
         'supplier_wallet/supplier_wallet.html', 
