@@ -53,7 +53,7 @@
                     {% for trans in wallet.transactions|sort(attribute='created_at', reverse=True) %}
                     <tr class="trans-row" data-currency="{{ trans.currency }}" data-debit="{{ trans.amount if trans.trans_type == 'debit' else 0 }}" data-credit="{{ trans.amount if trans.trans_type == 'credit' else 0 }}">
                         <td>{{ trans.created_at.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ trans.description }} <br><small class="text-muted">رقم الطلب الطلب: {{ trans.reference_number }}</small></td>
+                        <td class="fw-bold">مبيعات رقم الطلب {{ trans.reference_number }}</td>
                         <td class="text-danger fw-bold">{{ trans.amount if trans.trans_type == 'debit' else '-' }}</td>
                         <td class="text-success fw-bold">{{ trans.amount if trans.trans_type == 'credit' else '-' }}</td>
                         <td><span class="badge bg-dark">{{ trans.currency }}</span></td>
@@ -90,7 +90,6 @@ function filterTable(currency) {
     document.getElementById('totalDebit').innerText = d.toFixed(2);
     document.getElementById('totalCredit').innerText = c.toFixed(2);
 }
-// تشغيل عند التحميل
 filterTable('ALL');
 </script>
 {% endblock %}
