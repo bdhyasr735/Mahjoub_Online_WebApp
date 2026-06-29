@@ -21,14 +21,10 @@
     <td class="{{ 'text-success fw-bold' if trans.trans_type == 'credit' else 'text-muted' }}">
         {{ "{:,.2f}".format(trans.amount) if trans.trans_type == 'credit' else '-' }}
     </td>
-    
-    <td class="text-center">
-        <span class="badge bg-secondary">{{ trans.currency }}</span>
-    </td>
 </tr>
 {% else %}
 <tr>
-    <td colspan="6" class="text-center py-4 text-muted">
+    <td colspan="5" class="text-center py-4 text-muted">
         <i class="fas fa-search"></i> لا توجد حركات تطابق معايير البحث الحالية.
     </td>
 </tr>
