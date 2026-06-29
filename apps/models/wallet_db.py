@@ -1,7 +1,58 @@
 # coding: utf-8
 # 📂 apps/models/wallet_db.py
 
-# ... (الكود السابق لـ SupplierWallet يظل كما هو)
+import os
+from datetime import datetime
+from cryptography.fernet import Fernet
+from apps.extensions import db  # استيراد db هنا ضروري جداً
+from sqlalchemy import event, func
+
+class SupplierWallet(db.Model):
+    """موديل محفظة الموردين: الأرصدة والبيانات المشفرة."""
+    __tablename__ = 'supplier_wallets'
+
+    __table_args__ = (
+        db.Index('idx_wall_code', 'wallet_code'),
+        db.Index('idx_wall_supplier_id', 'supplier_id'),
+        db.Index('idx_wall_updated', 'updated_at'),
+        {'extend_existing': True}
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    wallet_code = db.Column(db.String(50), unique=True, nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
+    
+    balance_yer = db.Column(db.Numeric(18, 2), default=0.00) 
+    balance_usd = db.Column(db.Numeric(18, 2), default=0.00) 
+    balance_sar = db.Column(db.Numeric(18, 2), default=0.00) 
+    balance_pending = db.Column(db.Numeric(18, 2), default=0.00)    
+    total_withdrawn = db.Column(db.Numeric(18, 2), default=0.00)    
+    
+    _bank_details_enc = db.Column(db.String(500), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    supplier = db.relationship('apps.models.supplier_db.Supplier', back_populates='wallet')
+    transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan")
+
+    @staticmethod
+    def _get_key():
+        key = os.environ.get('ENCRYPTION_KEY')
+        return key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
+
+    @property
+    def bank_details(self):
+        if not self._bank_details_enc: return None
+        try:
+            f = Fernet(self._get_key())
+            return f.decrypt(self._bank_details_enc.encode()).decode()
+        except: return None
+
+    @bank_details.setter
+    def bank_details(self, value):
+        if value:
+            f = Fernet(self._get_key())
+            self._bank_details_enc = f.encrypt(str(value).encode()).decode()
+        else: self._bank_details_enc = None
 
 class WalletTransaction(db.Model):
     """سجل الحركات المالية (دفتر الأستاذ) لكل محفظة."""
@@ -11,47 +62,41 @@ class WalletTransaction(db.Model):
         db.Index('idx_trans_wallet', 'wallet_id'),
         db.Index('idx_trans_date', 'created_at'),
         db.Index('idx_trans_source', 'source_type'),
-        db.Index('idx_trans_voucher', 'voucher_number'), # [التشقير] لضمان سرعة البحث عن السند
+        db.Index('idx_trans_voucher', 'voucher_number'), # فهرس لسرعة البحث عن السند
         {'extend_existing': True}
     )
 
     id = db.Column(db.Integer, primary_key=True)
     wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
     
-    # تفاصيل الحركة
     trans_type = db.Column(db.String(20), nullable=False) # 'credit', 'debit'
     source_type = db.Column(db.String(20), default='manual')
     amount = db.Column(db.Numeric(18, 2), nullable=False)
     currency = db.Column(db.String(5), nullable=False)
     
-    # تفاصيل السند الموحد
     description = db.Column(db.String(255))
-    reference_number = db.Column(db.String(50)) # المرجع الأصلي (مثل رقم الطلب)
-    voucher_number = db.Column(db.String(20), unique=True, nullable=True) # [رقم السند الموحد الجديد]
+    reference_number = db.Column(db.String(50)) 
+    voucher_number = db.Column(db.String(20), unique=True, nullable=True) 
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     wallet = db.relationship('SupplierWallet', back_populates='transactions')
 
 # --- محرك الترقيم التلقائي ---
-from sqlalchemy import event, func
-
 @event.listens_for(WalletTransaction, 'before_insert')
 def set_voucher_number(mapper, connection, target):
     if not target.voucher_number:
-        # 1. جلب أعلى رقم موجود حالياً
+        # البحث عن أعلى رقم سند حالي
         last_trans = db.session.query(func.max(WalletTransaction.voucher_number)).scalar()
         
         if last_trans:
-            # استخراج الرقم من التنسيق: MJ-2026-0012328 -> 12328
             try:
+                # MJ-2026-0012328
                 last_num = int(last_trans.split('-')[-1])
             except:
-                last_num = 12327 # احتياط
+                last_num = 12327
             new_num = last_num + 1
         else:
-            # الرقم الابتدائي للمنصة
             new_num = 12328
             
-        # 2. تركيب الرقم الجديد: MJ-2026-0012329
         target.voucher_number = f"MJ-2026-{new_num:07d}"
