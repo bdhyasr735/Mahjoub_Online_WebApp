@@ -4,40 +4,22 @@
 
 {% block content %}
 <style>
-    :root {
-        --royal-purple: #2e003e;
-        --royal-gold: #d4af37;
-    }
+    :root { --royal-purple: #2e003e; --royal-gold: #d4af37; }
     .text-royal-purple { color: var(--royal-purple) !important; }
-    .btn-royal-back {
-        background-color: transparent;
-        border: 2px solid var(--royal-purple);
-        color: var(--royal-purple);
-    }
-    .btn-royal-back:hover {
-        background-color: var(--royal-purple);
-        color: #fff;
-    }
-    .card-header-royal {
-        background-color: var(--royal-purple) !important;
-        color: white;
-    }
+    .btn-royal-back { background-color: transparent; border: 2px solid var(--royal-purple); color: var(--royal-purple); }
+    .btn-royal-back:hover { background-color: var(--royal-purple); color: #fff; }
+    .card-header-royal { background-color: var(--royal-purple) !important; color: white; }
+    .summary-footer { background-color: #f8f9fa; font-weight: bold; border-top: 2px solid var(--royal-purple); }
 </style>
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold text-royal-purple"><i class="fas fa-wallet me-2"></i> تفاصيل: {{ wallet.supplier.trade_name }}</h3>
-        <a href="/admin/dashboard" class="btn btn-royal-back px-4">
-            <i class="fas fa-arrow-left me-2"></i>العودة للقائمة
-        </a>
+        <a href="/admin/dashboard" class="btn btn-royal-back px-4"><i class="fas fa-arrow-left me-2"></i>العودة للقائمة</a>
     </div>
 
     <div class="row">
-        {% for balance, currency, color in [
-            (wallet.balance_sar, 'SAR', 'bg-primary'),
-            (wallet.balance_yer, 'YER', 'bg-success'),
-            (wallet.balance_usd, 'USD', 'bg-warning')
-        ] %}
+        {% for balance, currency, color in [(wallet.balance_sar, 'SAR', 'bg-primary'), (wallet.balance_yer, 'YER', 'bg-success'), (wallet.balance_usd, 'USD', 'bg-warning')] %}
         <div class="col-md-4">
             <button onclick="filterTable('{{ currency }}')" class="btn p-0 w-100 text-start shadow-sm border-0">
                 <div class="card text-white {{ color }} mb-3">
@@ -49,14 +31,6 @@
             </button>
         </div>
         {% endfor %}
-    </div>
-
-    <div class="card mt-4 border-0 shadow-sm" style="border-right: 5px solid var(--royal-gold);">
-        <div class="card-header bg-light fw-bold">معلومات المحفظة</div>
-        <div class="card-body">
-            <p><strong>كود المحفظة:</strong> <code class="text-dark">{{ wallet.wallet_code }}</code></p>
-            <p><strong>آخر تحديث:</strong> {{ wallet.updated_at.strftime('%Y-%m-%d %H:%M') if wallet.updated_at else 'غير متوفر' }}</p>
-        </div>
     </div>
 
     <div class="card mt-4 border-0 shadow-sm">
@@ -75,19 +49,25 @@
                         <th>العملة</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="transBody">
                     {% for trans in wallet.transactions|sort(attribute='created_at', reverse=True) %}
-                    <tr class="trans-row" data-currency="{{ trans.currency }}">
+                    <tr class="trans-row" data-currency="{{ trans.currency }}" data-debit="{{ trans.amount if trans.trans_type == 'debit' else 0 }}" data-credit="{{ trans.amount if trans.trans_type == 'credit' else 0 }}">
                         <td>{{ trans.created_at.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ trans.description }} <br><small class="text-muted">رقم: {{ trans.reference_number }}</small></td>
+                        <td>{{ trans.description }} <br><small class="text-muted">رقم الطلب: {{ trans.reference_number }}</small></td>
                         <td class="text-danger fw-bold">{{ trans.amount if trans.trans_type == 'debit' else '-' }}</td>
                         <td class="text-success fw-bold">{{ trans.amount if trans.trans_type == 'credit' else '-' }}</td>
                         <td><span class="badge bg-dark">{{ trans.currency }}</span></td>
                     </tr>
-                    {% else %}
-                    <tr><td colspan="5" class="text-center text-muted py-4">لا توجد حركات مالية مسجلة.</td></tr>
                     {% endfor %}
                 </tbody>
+                <tfoot class="summary-footer">
+                    <tr>
+                        <td colspan="2" class="text-end">الإجمالي:</td>
+                        <td id="totalDebit" class="text-danger">0.00</td>
+                        <td id="totalCredit" class="text-success">0.00</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
@@ -97,9 +77,20 @@
 function filterTable(currency) {
     document.getElementById('currentFilter').innerText = currency;
     const rows = document.querySelectorAll('.trans-row');
+    let d = 0, c = 0;
+    
     rows.forEach(row => {
-        row.style.display = (currency === 'ALL' || row.getAttribute('data-currency') === currency) ? '' : 'none';
+        const isMatch = (currency === 'ALL' || row.getAttribute('data-currency') === currency);
+        row.style.display = isMatch ? '' : 'none';
+        if(isMatch) {
+            d += parseFloat(row.getAttribute('data-debit'));
+            c += parseFloat(row.getAttribute('data-credit'));
+        }
     });
+    document.getElementById('totalDebit').innerText = d.toFixed(2);
+    document.getElementById('totalCredit').innerText = c.toFixed(2);
 }
+// تشغيل عند التحميل
+filterTable('ALL');
 </script>
 {% endblock %}
