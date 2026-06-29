@@ -11,13 +11,17 @@
             </a>
             <div>
                 <h3 class="fw-bold text-royal-purple mb-0"><i class="fas fa-handshake me-2"></i> قائمة الشركاء</h3>
-                <small class="text-muted">إدارة بيانات الموردين والشركاء المتعاملين</small>
+                <small class="text-muted">إدارة بيانات الموردين وحالة المحافظ</small>
             </div>
         </div>
         
-        <a href="#" class="btn btn-royal-purple shadow-sm px-4">
-            <i class="fas fa-user-plus me-2"></i>إضافة شريك جديد
-        </a>
+        <div class="d-flex gap-2">
+            <form class="d-flex" method="GET" action="{{ url_for('supplier_app.list_suppliers') }}">
+                <input type="text" name="search" class="form-control" placeholder="بحث باسم الشريك..." value="{{ search or '' }}">
+                <button class="btn btn-royal-purple ms-2" type="submit"><i class="fas fa-search"></i></button>
+            </form>
+            <a href="#" class="btn btn-royal-purple shadow-sm"><i class="fas fa-user-plus"></i></a>
+        </div>
     </div>
 
     <div class="card border-0 shadow-sm">
@@ -27,9 +31,10 @@
                     <thead class="table-light">
                         <tr>
                             <th class="ps-4">اسم الشريك</th>
+                            <th>الحالة / الرتبة</th>
                             <th>الموقع</th>
-                            <th>البريد الإلكتروني</th>
-                            <th>الهاتف</th>
+                            <th>البريد</th>
+                            <th>تاريخ التسجيل</th>
                             <th>طاقم العمل</th>
                             <th class="text-center">إجراءات</th>
                         </tr>
@@ -42,47 +47,30 @@
                                 <small class="text-muted">{{ s.supplier_code }}</small>
                             </td>
                             <td>
+                                <span class="badge {{ 'bg-success' if s.status == 'active' else 'bg-danger' }}">{{ s.status }}</span>
+                                <span class="badge bg-warning text-dark">{{ s.rank }}</span>
+                            </td>
+                            <td>
                                 {% if s.supplier_profile and s.supplier_profile.governorate %}
-                                    <span class="badge bg-light text-dark border">{{ s.supplier_profile.governorate }} - {{ s.supplier_profile.city }}</span>
-                                {% else %}
-                                    <span class="text-muted small">غير محدد</span>
-                                {% endif %}
+                                    {{ s.supplier_profile.governorate }}
+                                {% else %}---{% endif %}
                             </td>
                             <td>{{ s.supplier_profile.email if s.supplier_profile else '---' }}</td>
-                            <td><span dir="ltr">{{ s.phone }}</span></td>
-                            
+                            <td>{{ s.created_at.strftime('%Y-%m-%d') }}</td>
                             <td>
                                 {% if s.staff_members %}
                                     <div class="dropdown">
-                                        <button class="btn btn-sm btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                            <i class="fas fa-users me-1"></i> {{ s.staff_members|length }}
-                                        </button>
-                                        <ul class="dropdown-menu p-2 shadow-sm" style="min-width: 220px;">
+                                        <button class="btn btn-sm btn-outline-info dropdown-toggle" data-bs-toggle="dropdown">{{ s.staff_members|length }}</button>
+                                        <ul class="dropdown-menu p-2 shadow-sm">
                                             {% for staff in s.staff_members %}
-                                            <li class="mb-2 border-bottom pb-1">
-                                                <div class="fw-bold small">{{ staff.username }}</div>
-                                                <div class="text-muted small"><i class="fas fa-phone-alt me-1"></i> {{ staff.phone or 'لا يوجد هاتف' }}</div>
-                                            </li>
+                                            <li class="small border-bottom mb-1">{{ staff.username }}: <span dir="ltr">{{ staff.phone }}</span></li>
                                             {% endfor %}
                                         </ul>
                                     </div>
-                                {% else %}
-                                    <span class="text-muted small">لا يوجد</span>
-                                {% endif %}
+                                {% else %}<span class="text-muted small">---</span>{% endif %}
                             </td>
-
                             <td class="text-center">
-                                <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=s.id) }}" 
-                                   class="btn btn-sm btn-primary shadow-sm" title="عرض المحفظة">
-                                    <i class="fas fa-wallet"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="fas fa-search fa-2x mb-3 d-block opacity-50"></i>
-                                لا يوجد شركاء مسجلون حالياً.
+                                <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=s.id) }}" class="btn btn-sm btn-primary"><i class="fas fa-wallet"></i></a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -90,6 +78,24 @@
                 </table>
             </div>
         </div>
+        
+        {% if pagination %}
+        <div class="card-footer bg-white border-0 py-3">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {{ 'active' if page_num == pagination.page }}">
+                                <a class="page-link" href="{{ url_for('supplier_app.list_suppliers', page=page_num, search=search) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
