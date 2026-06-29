@@ -21,8 +21,15 @@ def view_my_wallet():
     if not wallet:
         abort(404, description="لم يتم العثور على محفظة مرتبطة بحسابك.")
 
-    # 2. تطبيق الفلاتر الزمنية
+    # 2. تطبيق الفلاتر (العملة + الزمن)
     all_transactions = wallet.transactions
+    
+    # فلتر العملة
+    currency_filter = request.args.get('currency')
+    if currency_filter:
+        all_transactions = [t for t in all_transactions if t.currency == currency_filter]
+
+    # فلتر الزمن
     filter_type = request.args.get('filter_type', 'all')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
