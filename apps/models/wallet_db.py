@@ -1,102 +1,73 @@
-# coding: utf-8
-# 📂 apps/models/wallet_db.py
+{% extends 'admin/admin_base.html' %}
 
-import os
-from datetime import datetime
-from cryptography.fernet import Fernet
-from apps.extensions import db  # استيراد db هنا ضروري جداً
-from sqlalchemy import event, func
+{% block title %}قائمة الشركاء{% endblock %}
 
-class SupplierWallet(db.Model):
-    """موديل محفظة الموردين: الأرصدة والبيانات المشفرة."""
-    __tablename__ = 'supplier_wallets'
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-royal-purple"><i class="fas fa-handshake me-2"></i> قائمة الموردين الشاملة</h3>
+            <p class="text-muted mb-0">إدارة بيانات الموردين، المواقع، والحسابات</p>
+        </div>
+        <a href="#" class="btn btn-royal-purple"><i class="fas fa-user-plus me-2"></i>إضافة مورد جديد</a>
+    </div>
 
-    __table_args__ = (
-        db.Index('idx_wall_code', 'wallet_code'),
-        db.Index('idx_wall_supplier_id', 'supplier_id'),
-        db.Index('idx_wall_updated', 'updated_at'),
-        {'extend_existing': True}
-    )
-    
-    id = db.Column(db.Integer, primary_key=True)
-    wallet_code = db.Column(db.String(50), unique=True, nullable=False)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
-    
-    balance_yer = db.Column(db.Numeric(18, 2), default=0.00) 
-    balance_usd = db.Column(db.Numeric(18, 2), default=0.00) 
-    balance_sar = db.Column(db.Numeric(18, 2), default=0.00) 
-    balance_pending = db.Column(db.Numeric(18, 2), default=0.00)    
-    total_withdrawn = db.Column(db.Numeric(18, 2), default=0.00)    
-    
-    _bank_details_enc = db.Column(db.String(500), nullable=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    supplier = db.relationship('apps.models.supplier_db.Supplier', back_populates='wallet')
-    transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan")
+    <div class="card border-0 shadow-sm p-3 mb-4">
+        <form method="GET" action="{{ url_for('supplier_app.list_suppliers') }}" class="row g-3">
+            <div class="col-md-3"><input type="text" name="search" class="form-control" placeholder="اسم المورد أو الكود..." value="{{ search or '' }}"></div>
+            <div class="col-md-2"><input type="text" name="gov" class="form-control" placeholder="المحافظة" value="{{ gov or '' }}"></div>
+            <div class="col-md-2"><select name="rank" class="form-select"><option value="">الرتبة</option><option value="gold">ذهبي</option><option value="silver">فضي</option></select></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-royal-purple w-100">فلترة</button></div>
+        </form>
+    </div>
 
-    @staticmethod
-    def _get_key():
-        key = os.environ.get('ENCRYPTION_KEY')
-        return key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
-
-    @property
-    def bank_details(self):
-        if not self._bank_details_enc: return None
-        try:
-            f = Fernet(self._get_key())
-            return f.decrypt(self._bank_details_enc.encode()).decode()
-        except: return None
-
-    @bank_details.setter
-    def bank_details(self, value):
-        if value:
-            f = Fernet(self._get_key())
-            self._bank_details_enc = f.encrypt(str(value).encode()).decode()
-        else: self._bank_details_enc = None
-
-class WalletTransaction(db.Model):
-    """سجل الحركات المالية (دفتر الأستاذ) لكل محفظة."""
-    __tablename__ = 'wallet_transactions'
-    
-    __table_args__ = (
-        db.Index('idx_trans_wallet', 'wallet_id'),
-        db.Index('idx_trans_date', 'created_at'),
-        db.Index('idx_trans_source', 'source_type'),
-        db.Index('idx_trans_voucher', 'voucher_number'), # فهرس لسرعة البحث عن السند
-        {'extend_existing': True}
-    )
-
-    id = db.Column(db.Integer, primary_key=True)
-    wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
-    
-    trans_type = db.Column(db.String(20), nullable=False) # 'credit', 'debit'
-    source_type = db.Column(db.String(20), default='manual')
-    amount = db.Column(db.Numeric(18, 2), nullable=False)
-    currency = db.Column(db.String(5), nullable=False)
-    
-    description = db.Column(db.String(255))
-    reference_number = db.Column(db.String(50)) 
-    voucher_number = db.Column(db.String(20), unique=True, nullable=True) 
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    wallet = db.relationship('SupplierWallet', back_populates='transactions')
-
-# --- محرك الترقيم التلقائي ---
-@event.listens_for(WalletTransaction, 'before_insert')
-def set_voucher_number(mapper, connection, target):
-    if not target.voucher_number:
-        # البحث عن أعلى رقم سند حالي
-        last_trans = db.session.query(func.max(WalletTransaction.voucher_number)).scalar()
-        
-        if last_trans:
-            try:
-                # MJ-2026-0012328
-                last_num = int(last_trans.split('-')[-1])
-            except:
-                last_num = 12327
-            new_num = last_num + 1
-        else:
-            new_num = 12328
-            
-        target.voucher_number = f"MJ-2026-{new_num:07d}"
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>كود / اسم المورد</th>
+                        <th>المالك والموقع</th>
+                        <th>التواصل</th>
+                        <th>البيانات البنكية/الهوية</th>
+                        <th>الرتبة والحالة</th>
+                        <th>طاقم العمل</th>
+                        <th class="text-center">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in suppliers %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ s.trade_name }}</div>
+                            <small class="text-muted">{{ s.supplier_code }}</small>
+                        </td>
+                        <td>
+                            <div class="small fw-bold">المالك: {{ s.supplier_profile.owner_name or '---' }}</div>
+                            <small class="text-muted">{{ s.supplier_profile.governorate }} - {{ s.supplier_profile.district }}</small>
+                        </td>
+                        <td>
+                            <div class="small"><i class="fas fa-phone"></i> {{ s.phone_primary }}</div>
+                            <div class="small text-muted"><i class="fas fa-envelope"></i> {{ s.supplier_profile.email }}</div>
+                        </td>
+                        <td>
+                            <small>ح.بنكي: {{ s.supplier_profile.bank_account_enc[:10] }}***</small><br>
+                            <small>هوية: {{ s.supplier_profile.id_number_enc[:4] }}***</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if s.status == 'active' else 'danger' }}">{{ s.status }}</span>
+                            <span class="badge bg-warning">{{ s.rank }}</span>
+                        </td>
+                        <td><span class="badge bg-info">{{ s.staff_members|length }} موظف</span></td>
+                        <td class="text-center">
+                            <a href="{{ url_for('supplier_app.edit_supplier', id=s.id) }}" class="btn btn-sm btn-outline-secondary" title="تعديل"><i class="fas fa-pen"></i></a>
+                            <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=s.id) }}" class="btn btn-sm btn-primary" title="المحفظة"><i class="fas fa-wallet"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
