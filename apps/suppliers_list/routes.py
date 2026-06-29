@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from apps.models.supplier_db import Supplier
 
 # تعريف الـ Blueprint الخاص بموديول الشركاء
+# لاحظ أننا نستخدم اسم المجلد كاسم للـ template_folder
 supplier_bp = Blueprint(
     'supplier_app', 
     __name__, 
@@ -17,9 +18,11 @@ supplier_bp = Blueprint(
 @login_required
 def list_suppliers():
     """
-    عرض قائمة بجميع الشركاء/الموردين المسجلين في النظام،
-    مع جلب بيانات البروفايل والموظفين المرتبطين بهم بكفاءة (Eager Loading).
+    عرض قائمة بجميع الشركاء/الموردين المسجلين في النظام.
+    يتم استخدام joinedload لجلب البيانات المرتبطة (Profile & Staff)
+    في استعلام واحد لتحسين الأداء (Eager Loading).
     """
+    
     # جلب جميع الشركاء مرتبين من الأحدث للأقدم مع بياناتهم المرتبطة
     suppliers = Supplier.query.options(
         joinedload(Supplier.supplier_profile),
