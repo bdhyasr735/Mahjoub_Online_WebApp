@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_profile_db import SupplierProfile
 from apps.extensions import db
-from apps.utils.security import decrypt_data 
+from apps.utils.security import AESCipher  # استيراد محرك التشفير السيادي
 
 supplier_bp = Blueprint('supplier_app', __name__, template_folder='templates')
 
@@ -37,12 +37,12 @@ def list_suppliers():
     # الترقيم (20 عنصر في الصفحة)
     pagination = query.order_by(Supplier.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
     
-    # فك تشفير البيانات الحساسة للعرض
+    # فك تشفير البيانات الحساسة للعرض باستخدام AESCipher
     for s in pagination.items:
         if s.phone_primary:
-            s.decrypted_phone = decrypt_data(s.phone_primary)
+            s.decrypted_phone = AESCipher.decrypt(s.phone_primary)
         if s.supplier_profile and hasattr(s.supplier_profile, '_bank_account_enc') and s.supplier_profile._bank_account_enc:
-            s.supplier_profile.decrypted_bank = decrypt_data(s.supplier_profile._bank_account_enc)
+            s.supplier_profile.decrypted_bank = AESCipher.decrypt(s.supplier_profile._bank_account_enc)
 
     return render_template(
         'suppliers_list/suppliers_list.html',
