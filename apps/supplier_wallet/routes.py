@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, abort, request
 from flask_login import login_required, current_user
 from flask_paginate import Pagination, get_page_parameter
 from apps.supplier_wallet.services import WalletService
+from datetime import datetime, timedelta
 
 supplier_wallet_bp = Blueprint(
     'supplier_wallet', 
@@ -15,41 +16,51 @@ supplier_wallet_bp = Blueprint(
 @supplier_wallet_bp.route('/my-wallet', methods=['GET'])
 @login_required
 def view_my_wallet():
-    # 1. جلب المحفظة الخاصة بالمورد الحالي
-    wallet = getattr(current_user, 'wallet', None)
-    if not wallet:
-        wallet = WalletService.get_supplier_wallet(current_user.id)
-    
+    # 1. جلب المحفظة
+    wallet = getattr(current_user, 'wallet', None) or WalletService.get_supplier_wallet(current_user.id)
     if not wallet:
         abort(404, description="لم يتم العثور على محفظة مرتبطة بحسابك.")
 
-    # 2. إعداد الترقيم (Pagination)
-    # جلب كافة حركات المحفظة مرتبة حسب التاريخ (الأحدث أولاً)
-    all_transactions = sorted(wallet.transactions, key=lambda x: x.created_at, reverse=True)
+    # 2. تطبيق الفلاتر الزمنية
+    all_transactions = wallet.transactions
+    filter_type = request.args.get('filter_type', 'all')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    now = datetime.now()
+    if filter_type == 'day':
+        all_transactions = [t for t in all_transactions if t.created_at.date() == now.date()]
+    elif filter_type == 'week':
+        all_transactions = [t for t in all_transactions if t.created_at >= (now - timedelta(days=7))]
+    elif filter_type == 'month':
+        all_transactions = [t for t in all_transactions if t.created_at.month == now.month and t.created_at.year == now.year]
+    elif start_date and end_date:
+        s = datetime.strptime(start_date, '%Y-%m-%d')
+        e = datetime.strptime(end_date, '%Y-%m-%d')
+        all_transactions = [t for t in all_transactions if s.date() <= t.created_at.date() <= e.date()]
+
+    # الترتيب حسب الأحدث
+    all_transactions = sorted(all_transactions, key=lambda x: x.created_at, reverse=True)
     
-    # تحديد الصفحة الحالية وعدد العناصر في كل صفحة
+    # 3. إعداد الترقيم (Pagination)
     page = request.args.get(get_page_parameter(), type=int, default=1)
-    per_page = 10  # عرض 10 حركات لكل صفحة
+    per_page = 10
     offset = (page - 1) * per_page
     
-    # استخراج الحركات الخاصة بالصفحة الحالية فقط (لضمان سرعة الأداء)
     transactions_paginated = all_transactions[offset : offset + per_page]
     
-    # تهيئة كائن الترقيم
     pagination = Pagination(
         page=page, 
         total=len(all_transactions), 
         per_page=per_page, 
         css_framework='bootstrap5',
-        record_name='حركات'
+        record_name='حركة'
     )
 
-    # 3. حساب الإجماليات (محرك المحاسبة)
-    # يتم حسابها بناءً على كامل حركات المحفظة وليس فقط الحركات المعروضة في الصفحة الحالية
+    # 4. حساب الإجماليات (على مستوى المحفظة كاملة)
     total_debit = sum(t.amount for t in wallet.transactions if t.trans_type == 'debit')
     total_credit = sum(t.amount for t in wallet.transactions if t.trans_type == 'credit')
 
-    # 4. تمرير البيانات للقالب
     return render_template(
         'supplier_wallet/supplier_wallet.html', 
         wallet=wallet,
