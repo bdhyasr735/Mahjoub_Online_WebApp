@@ -1,4 +1,6 @@
 # coding: utf-8
+# 📂 apps/supplier_wallet/routes.py
+
 from flask import Blueprint, render_template, abort, request
 from flask_login import login_required, current_user
 from flask_paginate import Pagination, get_page_parameter
@@ -59,7 +61,7 @@ def view_my_wallet():
     # الترتيب حسب الأحدث
     all_transactions = sorted(all_transactions, key=lambda x: x.created_at, reverse=True)
     
-    # 3. إعداد الترقيم
+    # 3. إعداد الترقيم (20 حركة في كل صفحة)
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = 20
     offset = (page - 1) * per_page
@@ -73,11 +75,11 @@ def view_my_wallet():
         record_name='حركة'
     )
 
-    # 4. حساب الإجماليات (على النتائج المفلترة فقط)
+    # 4. حساب الإجماليات (على كافة الحركات المفلترة للعملة والفترة)
     total_debit = sum(t.amount for t in all_transactions if t.trans_type == 'debit')
     total_credit = sum(t.amount for t in all_transactions if t.trans_type == 'credit')
 
-    # استجابة AJAX للبحث اللحظي
+    # AJAX Response للبحث اللحظي
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('supplier_wallet/_table_partial.html', transactions=transactions_paginated)
 
