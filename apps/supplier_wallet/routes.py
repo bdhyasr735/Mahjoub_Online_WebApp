@@ -1,6 +1,4 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/routes.py
-
 from flask import Blueprint, render_template, abort, request
 from flask_login import login_required, current_user
 from flask_paginate import Pagination, get_page_parameter
@@ -29,13 +27,13 @@ def view_my_wallet():
     if currency_filter:
         all_transactions = [t for t in all_transactions if t.currency == currency_filter]
 
-    # ب. فلتر البحث اللحظي
-    search_query = request.args.get('search', '').lower()
+    # ب. فلتر البحث اللحظي (مرن: يبحث في رقم السند أو البيان)
+    search_query = request.args.get('search', '').lower().strip()
     if search_query:
         all_transactions = [
             t for t in all_transactions 
             if search_query in str(t.voucher_number).lower() or 
-               search_query in t.description.lower()
+               search_query in (t.description or "").lower()
         ]
 
     # ج. فلتر الزمن
@@ -75,15 +73,15 @@ def view_my_wallet():
         record_name='حركة'
     )
 
-    # 4. حساب الإجماليات
+    # 4. حساب الإجماليات (على النتائج المفلترة فقط)
     total_debit = sum(t.amount for t in all_transactions if t.trans_type == 'debit')
     total_credit = sum(t.amount for t in all_transactions if t.trans_type == 'credit')
 
-    # AJAX Response
+    # استجابة AJAX للبحث اللحظي
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('supplier_wallet/_table_partial.html', transactions=transactions_paginated)
 
-    # العرض العادي مع تمرير كائن now للواجهة
+    # العرض العادي
     return render_template(
         'supplier_wallet/supplier_wallet.html', 
         wallet=wallet,
