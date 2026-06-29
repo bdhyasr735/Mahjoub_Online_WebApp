@@ -76,6 +76,20 @@
                         <td class="text-success">د: {{ "{:,.2f}".format(total_credit) }}</td>
                         <td class="text-center">{{ request.args.get('currency', 'ALL') }}</td>
                     </tr>
+                    <tr class="table-light">
+                        <td colspan="3" class="text-end px-4 text-royal-purple fs-5">صافي الموقف المالي:</td>
+                        <td colspan="2" class="text-center fw-bold fs-4">
+                            {% set net = total_credit - total_debit %}
+                            <span class="{{ 'text-success' if net >= 0 else 'text-danger' }}">
+                                {{ "{:,.2f}".format(net) }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge {{ 'bg-success' if net >= 0 else 'bg-danger' }} fs-6">
+                                {{ 'لكم' if net >= 0 else 'عليكم' }}
+                            </span>
+                        </td>
+                    </tr>
                 </tfoot>
             </table>
         </div>
