@@ -21,7 +21,7 @@ def view_my_wallet():
     if not wallet:
         abort(404, description="لم يتم العثور على محفظة مرتبطة بحسابك.")
 
-    # 2. تطبيق الفلاتر (العملة + البحث + الزمن)
+    # 2. تطبيق الفلاتر
     all_transactions = wallet.transactions
     
     # أ. فلتر العملة
@@ -29,7 +29,7 @@ def view_my_wallet():
     if currency_filter:
         all_transactions = [t for t in all_transactions if t.currency == currency_filter]
 
-    # ب. فلتر البحث اللحظي (يبحث في كامل السجلات المفلترة)
+    # ب. فلتر البحث اللحظي
     search_query = request.args.get('search', '').lower()
     if search_query:
         all_transactions = [
@@ -42,8 +42,8 @@ def view_my_wallet():
     filter_type = request.args.get('filter_type', 'all')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-
     now = datetime.now()
+
     if filter_type == 'day':
         all_transactions = [t for t in all_transactions if t.created_at.date() == now.date()]
     elif filter_type == 'week':
@@ -56,16 +56,15 @@ def view_my_wallet():
             e = datetime.strptime(end_date, '%Y-%m-%d')
             all_transactions = [t for t in all_transactions if s.date() <= t.created_at.date() <= e.date()]
         except ValueError:
-            pass # تجاهل التاريخ في حال وجود صيغة خاطئة
+            pass
 
     # الترتيب حسب الأحدث
     all_transactions = sorted(all_transactions, key=lambda x: x.created_at, reverse=True)
     
-    # 3. إعداد الترقيم (20 عملية لكل صفحة)
+    # 3. إعداد الترقيم
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = 20
     offset = (page - 1) * per_page
-    
     transactions_paginated = all_transactions[offset : offset + per_page]
     
     pagination = Pagination(
@@ -76,23 +75,21 @@ def view_my_wallet():
         record_name='حركة'
     )
 
-    # 4. حساب الإجماليات (للحركات المفلترة كلياً)
+    # 4. حساب الإجماليات
     total_debit = sum(t.amount for t in all_transactions if t.trans_type == 'debit')
     total_credit = sum(t.amount for t in all_transactions if t.trans_type == 'credit')
 
-    # دعم البحث اللحظي عبر AJAX (تحديث الجدول فقط)
+    # AJAX Response
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template(
-            'supplier_wallet/_table_partial.html', 
-            transactions=transactions_paginated
-        )
+        return render_template('supplier_wallet/_table_partial.html', transactions=transactions_paginated)
 
-    # العرض العادي للصفحة
+    # العرض العادي مع تمرير كائن now للواجهة
     return render_template(
         'supplier_wallet/supplier_wallet.html', 
         wallet=wallet,
         transactions=transactions_paginated, 
         pagination=pagination,
         total_debit=total_debit,
-        total_credit=total_credit
+        total_credit=total_credit,
+        now=now 
     )
