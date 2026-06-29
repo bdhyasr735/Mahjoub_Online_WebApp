@@ -1,16 +1,49 @@
 <style>
-    .table thead { background-color: #2e003e !important; color: #d4af37 !important; }
-    .btn-royal-outline { border: 1px solid #2e003e; color: #2e003e; transition: 0.3s; }
-    .btn-royal-outline:hover { background-color: #2e003e; color: #d4af37; }
-    .page-item.active .page-link { background-color: #2e003e; border-color: #2e003e; color: #d4af37; }
-    .badge-status { font-size: 0.85em; padding: 5px 10px; border-radius: 15px; }
+    /* تنسيقات الجدول والخطوط */
+    .table thead { 
+        background-color: #2e003e !important; 
+        color: #d4af37 !important; 
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .wallet-code-badge {
+        background-color: #f8f9fa;
+        color: #2e003e;
+        font-family: 'Courier New', Courier, monospace;
+        font-weight: 800;
+        padding: 5px 10px;
+        border-radius: 6px;
+        border: 1px solid #d4af37;
+        display: inline-block;
+    }
+    .btn-royal-outline { 
+        border: 1px solid #2e003e; 
+        color: #2e003e; 
+        transition: 0.3s; 
+        font-weight: 600;
+    }
+    .btn-royal-outline:hover { 
+        background-color: #2e003e; 
+        color: #d4af37; 
+    }
+    .page-item.active .page-link { 
+        background-color: #2e003e; 
+        border-color: #2e003e; 
+        color: #d4af37; 
+    }
+    .badge-status { 
+        font-size: 0.85em; 
+        padding: 6px 12px; 
+        border-radius: 20px; 
+        font-weight: 600;
+    }
 </style>
 
-<table class="table table-hover align-middle">
+<table class="table table-hover align-middle border">
     <thead class="table-light">
         <tr>
             <th>المورد</th>
-            <th>كود المحفظة</th>
+            <th>رقم المحفظة</th>
             <th>رصيد (SAR)</th>
             <th>رصيد (YER)</th>
             <th>رصيد (USD)</th>
@@ -22,9 +55,11 @@
         {% for wallet in wallets %}
         <tr>
             <td>
-                <div class="fw-bold text-dark">{{ wallet.supplier.trade_name }}</div>
+                <div class="fw-bold text-dark fs-6">{{ wallet.supplier.trade_name }}</div>
             </td>
-            <td><code class="text-secondary fw-bold">{{ wallet.wallet_code }}</code></td>
+            <td>
+                <span class="wallet-code-badge">{{ wallet.wallet_code }}</span>
+            </td>
             
             <td class="{{ 'text-danger fw-bold' if wallet.balance_sar < 0 else 'text-dark' }}">
                 {{ "{:,.2f}".format(wallet.balance_sar) }}
@@ -38,7 +73,7 @@
 
             <td>
                 {% set has_debt = (wallet.balance_sar < 0 or wallet.balance_yer < 0 or wallet.balance_usd < 0) %}
-                <span class="badge badge-status {{ 'bg-danger' if has_debt else 'bg-success' }}">
+                <span class="badge badge-status {{ 'bg-danger text-white' if has_debt else 'bg-success text-white' }}">
                     {{ 'عليكم (مدين)' if has_debt else 'لكم (دائن)' }}
                 </span>
             </td>
@@ -52,7 +87,10 @@
         </tr>
         {% else %}
         <tr>
-            <td colspan="7" class="text-center py-5 text-muted">لا توجد بيانات محافظ لعرضها حالياً.</td>
+            <td colspan="7" class="text-center py-5 text-muted">
+                <i class="fas fa-folder-open fa-2x mb-2"></i><br>
+                لا توجد بيانات محافظ لعرضها حالياً.
+            </td>
         </tr>
         {% endfor %}
     </tbody>
