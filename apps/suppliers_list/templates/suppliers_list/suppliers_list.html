@@ -1,1 +1,70 @@
+{% extends 'admin/admin_base.html' %}
 
+{% block title %}قائمة الشركاء{% endblock %}
+
+{% block content %}
+<style>
+    :root { --royal-purple: #2e003e; --royal-gold: #d4af37; }
+    .text-royal-purple { color: var(--royal-purple) !important; }
+    .btn-royal-purple { background-color: var(--royal-purple); color: white; }
+    .btn-royal-purple:hover { background-color: #4a0063; color: white; }
+    .card-header-royal { background-color: var(--royal-purple) !important; color: white; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-royal-purple"><i class="fas fa-handshake me-2"></i> قائمة الشركاء</h3>
+            <p class="text-muted">إدارة بيانات الموردين والشركاء المتعاملين</p>
+        </div>
+        <a href="#" class="btn btn-royal-purple shadow-sm px-4">
+            <i class="fas fa-user-plus me-2"></i>إضافة شريك جديد
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header card-header-royal d-flex justify-content-between align-items-center">
+            <span class="fw-bold">جميع الشركاء</span>
+            <span class="badge bg-light text-dark">{{ suppliers|length }} شريك</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">اسم الشريك</th>
+                            <th>رقم الهاتف</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>تاريخ الانضمام</th>
+                            <th class="text-center">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in suppliers %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-royal-purple">{{ s.trade_name }}</td>
+                            <td>{{ s.phone }}</td>
+                            <td>{{ s.email }}</td>
+                            <td>{{ s.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td class="text-center">
+                                <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=s.id) }}" 
+                                   class="btn btn-sm btn-outline-primary" title="عرض المحفظة">
+                                    <i class="fas fa-wallet"></i>
+                                </a>
+                                <a href="#" class="btn btn-sm btn-outline-warning" title="تعديل البيانات">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">لا يوجد شركاء مسجلون حالياً.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
