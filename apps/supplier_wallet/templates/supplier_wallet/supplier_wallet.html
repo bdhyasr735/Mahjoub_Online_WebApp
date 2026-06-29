@@ -25,6 +25,9 @@
     .table-head-custom { background-color: var(--royal-purple) !important; color: var(--royal-gold) !important; }
     .btn-royal { background-color: var(--royal-purple); color: white; }
     .btn-royal:hover { background-color: var(--light-purple); color: white; }
+    
+    /* تنسيق صف الزبدة */
+    .summary-footer { background-color: var(--royal-purple) !important; color: var(--royal-gold) !important; font-size: 1.1rem; }
 </style>
 
 <div class="container py-4">
@@ -57,20 +60,23 @@
                     <tr>
                         <th class="px-4">التاريخ</th>
                         <th>البيان</th>
-                        <th>رقم السند</th> <th>مدين</th>
+                        <th>رقم السند</th>
+                        <th>مدين</th>
                         <th>دائن</th>
                         <th class="text-center">العملة</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    {% for trans in wallet.transactions|sort(attribute='created_at', reverse=True) %}
+                    {# عرض البيانات المقسمة ديناميكياً #}
+                    {% for trans in transactions %}
                     <tr class="trans-row" data-currency="{{ trans.currency }}">
                         <td class="px-4">{{ trans.created_at.strftime('%Y-%m-%d') }}</td>
                         <td>
                             <strong>{{ trans.description }}</strong><br>
                             <small class="text-muted">طلب: {{ trans.order_id|default('---') }}</small>
                         </td>
-                        <td class="text-muted small">{{ trans.voucher_number|default('---') }}</td> <td class="text-danger fw-bold">{{ trans.amount if trans.trans_type == 'debit' else '-' }}</td>
+                        <td class="text-muted small">{{ trans.voucher_number|default('---') }}</td>
+                        <td class="text-danger fw-bold">{{ trans.amount if trans.trans_type == 'debit' else '-' }}</td>
                         <td class="text-success fw-bold">{{ trans.amount if trans.trans_type == 'credit' else '-' }}</td>
                         <td class="text-center"><span class="badge bg-dark">{{ trans.currency }}</span></td>
                     </tr>
@@ -82,12 +88,22 @@
                 <tfoot class="bg-light fw-bold">
                     <tr>
                         <td colspan="3" class="text-end px-4">إجمالي الحركة</td>
-                        <td class="text-danger">{{ "{:,.2f}".format(wallet.transactions|selectattr('trans_type','equalto','debit')|map(attribute='amount')|sum) }}</td>
-                        <td class="text-success">{{ "{:,.2f}".format(wallet.transactions|selectattr('trans_type','equalto','credit')|map(attribute='amount')|sum) }}</td>
+                        <td class="text-danger">{{ "{:,.2f}".format(total_debit|default(0)) }}</td>
+                        <td class="text-success">{{ "{:,.2f}".format(total_credit|default(0)) }}</td>
                         <td></td>
+                    </tr>
+                    <tr class="summary-footer">
+                        <td colspan="3" class="text-center">صافي الموقف المالي للمحفظة</td>
+                        <td colspan="3" class="text-center">
+                            إجمالي الرصيد: <span class="fw-bold">{{ "{:,.2f}".format(wallet.balance_sar) }}</span> SAR
+                        </td>
                     </tr>
                 </tfoot>
             </table>
+        </div>
+        {# أزرار التنقل بين الصفحات #}
+        <div class="d-flex justify-content-center py-3 bg-light">
+            {{ pagination.links }}
         </div>
     </div>
 </div>
