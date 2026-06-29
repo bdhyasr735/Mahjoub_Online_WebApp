@@ -42,7 +42,7 @@ def view_my_wallet():
     # الترتيب حسب الأحدث
     all_transactions = sorted(all_transactions, key=lambda x: x.created_at, reverse=True)
     
-    # 3. إعداد الترقيم (Pagination) - مضبوط على 20 عملية لكل صفحة
+    # 3. إعداد الترقيم (Pagination) - 20 عملية لكل صفحة
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = 20
     offset = (page - 1) * per_page
@@ -57,9 +57,9 @@ def view_my_wallet():
         record_name='حركة'
     )
 
-    # 4. حساب الإجماليات (على مستوى المحفظة كاملة)
-    total_debit = sum(t.amount for t in wallet.transactions if t.trans_type == 'debit')
-    total_credit = sum(t.amount for t in wallet.transactions if t.trans_type == 'credit')
+    # 4. حساب الإجماليات (بناءً على الحركات المفلترة فقط)
+    total_debit = sum(t.amount for t in all_transactions if t.trans_type == 'debit')
+    total_credit = sum(t.amount for t in all_transactions if t.trans_type == 'credit')
 
     return render_template(
         'supplier_wallet/supplier_wallet.html', 
