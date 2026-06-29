@@ -4,51 +4,43 @@
 
 {% block content %}
 <style>
-    :root { --royal-purple: #2e003e; --royal-gold: #d4af37; --light-purple: #5a0077; }
-    .text-royal-purple { color: var(--royal-purple) !important; }
-    .wallet-header-box { background: #f8f9fa; border-right: 5px solid var(--royal-purple); }
-    .balance-card { 
-        cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-        color: white; background: linear-gradient(135deg, var(--royal-purple), var(--light-purple)); 
-        border-bottom: 4px solid var(--royal-gold); 
-    }
+    :root { --royal-purple: #2e003e; --royal-gold: #d4af37; }
+    .balance-card { cursor: pointer; transition: 0.4s; color: white; background: linear-gradient(135deg, var(--royal-purple), #5a0077); border-bottom: 4px solid var(--royal-gold); }
     .balance-card:hover { transform: translateY(-10px); box-shadow: 0 10px 20px rgba(0,0,0,0.3) !important; }
-    .table-head-custom { background-color: var(--royal-purple) !important; color: var(--royal-gold) !important; }
-    .summary-footer { background-color: var(--royal-purple) !important; color: var(--royal-gold) !important; }
+    .table-head-custom, .summary-footer { background-color: var(--royal-purple) !important; color: var(--royal-gold) !important; }
     .search-box { border: 2px solid var(--royal-purple); border-radius: 20px; }
     .text-success { color: #28a745 !important; font-weight: bold; }
     .text-danger { color: #ff6b6b !important; font-weight: bold; }
 </style>
 
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 p-3 shadow-sm rounded wallet-header-box">
+    <!-- الرأس: العنوان ورقم المحفظة -->
+    <div class="d-flex justify-content-between align-items-center mb-4 p-3 shadow-sm rounded bg-light border-end border-5 border-royal-purple">
         <div>
             <h2 class="fw-bold text-royal-purple mb-1"><i class="fas fa-wallet"></i> محفظة المورد</h2>
-            <span class="text-muted"><i class="fas fa-fingerprint"></i> رقم المحفظة: <strong>{{ wallet.wallet_number }}</strong></span>
+            <small class="text-muted"><i class="fas fa-fingerprint"></i> رقم المحفظة: <strong>{{ wallet.wallet_number }}</strong></small>
         </div>
         <button class="btn btn-dark" onclick="window.print()"><i class="fas fa-file-pdf"></i> تصدير (PDF)</button>
     </div>
 
+    <!-- بطاقات الأرصدة -->
     <div class="row g-3 mb-4">
-        {% for curr, bal in [('SAR', wallet.balance_sar), ('YER', wallet.balance_yer), ('USD', wallet.balance_usd)] %}
+        {% for c, b in [('SAR', wallet.balance_sar), ('YER', wallet.balance_yer), ('USD', wallet.balance_usd)] %}
         <div class="col-md-4">
-            <div class="card balance-card p-3 shadow" onclick="window.location.href='?currency={{curr}}'">
-                <small class="text-white-50">رصيد {{curr}}</small>
-                <h3 class="fw-bold mb-0 {{ 'text-success' if bal >= 0 else 'text-danger' }}">
-                    {{ "{:,.2f}".format(bal) }} <span class="fs-6 text-white">{{curr}}</span>
-                </h3>
+            <div class="card balance-card p-3 shadow" onclick="location.href='?currency={{c}}'">
+                <small class="text-white-50">رصيد {{c}}</small>
+                <h3 class="fw-bold mb-0 {{ 'text-success' if b >= 0 else 'text-danger' }}">{{ "{:,.2f}".format(b) }} <span class="fs-6 text-white">{{c}}</span></h3>
             </div>
         </div>
         {% endfor %}
     </div>
 
+    <!-- الفلاتر -->
     <form method="GET" class="row g-2 mb-4">
         <div class="col-md-2">
             <select name="currency" class="form-select search-box" onchange="this.form.submit()">
                 <option value="">كل العملات</option>
-                <option value="SAR" {% if request.args.get('currency') == 'SAR' %}selected{% endif %}>SAR</option>
-                <option value="YER" {% if request.args.get('currency') == 'YER' %}selected{% endif %}>YER</option>
-                <option value="USD" {% if request.args.get('currency') == 'USD' %}selected{% endif %}>USD</option>
+                {% for c in ['SAR', 'YER', 'USD'] %}<option value="{{c}}" {{ 'selected' if request.args.get('currency') == c }}>{{c}}</option>{% endfor %}
             </select>
         </div>
         <div class="col-md-3">
@@ -60,33 +52,30 @@
             </select>
         </div>
         <div class="col-md-3 d-flex gap-2">
-            <input type="date" name="start_date" class="form-control search-box" onchange="this.form.submit()" value="{{ request.args.get('start_date', '') }}">
-            <input type="date" name="end_date" class="form-control search-box" onchange="this.form.submit()" value="{{ request.args.get('end_date', '') }}">
+            <!-- تم ربط القيمة بـ now الممرر من السيرفر -->
+            <input type="date" name="start_date" class="form-control search-box" onchange="this.form.submit()" 
+                   value="{{ request.args.get('start_date', now.strftime('%Y-%m-%d')) }}">
+            <input type="date" name="end_date" class="form-control search-box" onchange="this.form.submit()" 
+                   value="{{ request.args.get('end_date', now.strftime('%Y-%m-%d')) }}">
         </div>
         <div class="col-md-4">
-            <input type="text" id="searchInput" class="form-control search-box px-3" placeholder="بحث سريع في جميع الصفحات...">
+            <input type="text" id="searchInput" class="form-control search-box px-3" placeholder="بحث سريع في كل الصفحات...">
         </div>
     </form>
 
+    <!-- الجدول -->
     <div class="card shadow-sm border-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-head-custom">
-                    <tr>
-                        <th class="px-4">التاريخ</th>
-                        <th>البيان</th>
-                        <th>رقم السند</th>
-                        <th>مدين</th>
-                        <th>دائن</th>
-                        <th class="text-center">العملة</th>
-                    </tr>
+                    <tr><th class="px-4">التاريخ</th><th>البيان</th><th>رقم السند</th><th>مدين</th><th>دائن</th><th class="text-center">العملة</th></tr>
                 </thead>
                 <tbody id="tableBody">
                     {% include 'supplier_wallet/_table_partial.html' %}
                 </tbody>
                 <tfoot class="bg-light fw-bold">
                     <tr class="summary-footer text-white">
-                        <td colspan="3" class="text-start px-4">إجمالي الفترة المحددة:</td>
+                        <td colspan="3" class="text-start px-4">إجمالي الفترة:</td>
                         <td class="text-danger">م: {{ "{:,.2f}".format(total_debit) }}</td>
                         <td class="text-success">د: {{ "{:,.2f}".format(total_credit) }}</td>
                         <td class="text-center">{{ request.args.get('currency', 'ALL') }}</td>
@@ -94,25 +83,14 @@
                 </tfoot>
             </table>
         </div>
-        <div class="d-flex justify-content-center py-3 bg-light border-top">
-            {{ pagination.links }}
-        </div>
+        <div class="d-flex justify-content-center py-3 bg-light border-top">{{ pagination.links }}</div>
     </div>
 </div>
 
 <script>
-    document.getElementById('searchInput').addEventListener('input', function() {
-        let query = this.value;
-        let urlParams = new URLSearchParams(window.location.search);
-        let currentCurrency = urlParams.get('currency') || '';
-        
-        fetch(`/my-wallet?search=${query}&currency=${currentCurrency}`, {
-            headers: {'X-Requested-With': 'XMLHttpRequest'}
-        })
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('tableBody').innerHTML = html;
-        });
-    });
+    document.getElementById('searchInput').oninput = e => {
+        fetch(`/my-wallet?search=${e.target.value}&currency=${new URLSearchParams(location.search).get('currency')||''}`, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.text()).then(html => document.getElementById('tableBody').innerHTML = html);
+    };
 </script>
 {% endblock %}
