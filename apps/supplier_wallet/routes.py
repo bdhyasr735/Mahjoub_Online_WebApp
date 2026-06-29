@@ -21,15 +21,24 @@ def view_my_wallet():
     if not wallet:
         abort(404, description="لم يتم العثور على محفظة مرتبطة بحسابك.")
 
-    # 2. تطبيق الفلاتر (العملة + الزمن)
+    # 2. تطبيق الفلاتر (العملة + البحث + الزمن)
     all_transactions = wallet.transactions
     
-    # فلتر العملة
+    # أ. فلتر العملة
     currency_filter = request.args.get('currency')
     if currency_filter:
         all_transactions = [t for t in all_transactions if t.currency == currency_filter]
 
-    # فلتر الزمن
+    # ب. فلتر البحث اللحظي (يبحث في جميع الحركات المفلترة)
+    search_query = request.args.get('search', '').lower()
+    if search_query:
+        all_transactions = [
+            t for t in all_transactions 
+            if search_query in str(t.voucher_number).lower() or 
+               search_query in t.description.lower()
+        ]
+
+    # ج. فلتر الزمن
     filter_type = request.args.get('filter_type', 'all')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -64,9 +73,16 @@ def view_my_wallet():
         record_name='حركة'
     )
 
-    # 4. حساب الإجماليات (بناءً على الحركات المفلترة فقط)
+    # 4. حساب الإجماليات (بناءً على الحركات المفلترة كلياً)
     total_debit = sum(t.amount for t in all_transactions if t.trans_type == 'debit')
     total_credit = sum(t.amount for t in all_transactions if t.trans_type == 'credit')
+
+    # دعم البحث اللحظي عبر AJAX (تحديث الجدول فقط)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render_template(
+            'supplier_wallet/_table_partial.html', 
+            transactions=transactions_paginated
+        )
 
     return render_template(
         'supplier_wallet/supplier_wallet.html', 
