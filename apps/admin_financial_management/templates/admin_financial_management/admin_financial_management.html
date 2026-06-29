@@ -1,1 +1,78 @@
-apps/admin_financial_management/templates/admin_financial_management/admin_financial_management.html
+{% extends 'admin/admin_base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>إدارة طلبات سحب الرصيد</h2>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>المورد</th>
+                            <th>المبلغ</th>
+                            <th>طريقة الدفع</th>
+                            <th>التاريخ</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in requests %}
+                        <tr>
+                            <td>
+                                <strong>{{ req.supplier.trade_name }}</strong><br>
+                                <small class="text-muted">{{ req.supplier.username }}</small>
+                            </td>
+                            <td><span class="badge bg-success">{{ "{:,.2f}".format(req.amount) }} SAR</span></td>
+                            <td>
+                                {{ req.payment_method }}<br>
+                                <small>{{ req.payment_details }}</small>
+                            </td>
+                            <td>{{ req.requested_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <form action="{{ url_for('admin_financial.process_withdrawal', req_id=req.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('هل أنت متأكد من الموافقة على تحويل المبلغ؟')">
+                                        <i class="fas fa-check"></i> قبول
+                                    </button>
+                                </form>
+
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ req.id }}">
+                                    <i class="fas fa-times"></i> رفض
+                                </button>
+                            </td>
+                        </tr>
+
+                        <div class="modal fade" id="rejectModal{{ req.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <form action="{{ url_for('admin_financial.process_withdrawal', req_id=req.id) }}" method="POST" class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">رفض طلب السحب</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="hidden" name="action" value="reject">
+                                        <label class="form-label">سبب الرفض:</label>
+                                        <textarea name="notes" class="form-control" required></textarea>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" class="btn btn-danger">تأكيد الرفض</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">لا توجد طلبات سحب معلقة حالياً.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
