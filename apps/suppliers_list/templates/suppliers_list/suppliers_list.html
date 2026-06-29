@@ -5,7 +5,16 @@
 {% block content %}
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-royal-purple"><i class="fas fa-handshake me-2"></i> قائمة الشركاء</h3>
+        <div class="d-flex align-items-center">
+            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="fas fa-arrow-right"></i>
+            </a>
+            <div>
+                <h3 class="fw-bold text-royal-purple mb-0"><i class="fas fa-handshake me-2"></i> قائمة الشركاء</h3>
+                <small class="text-muted">إدارة بيانات الموردين والشركاء المتعاملين</small>
+            </div>
+        </div>
+        
         <a href="#" class="btn btn-royal-purple shadow-sm px-4">
             <i class="fas fa-user-plus me-2"></i>إضافة شريك جديد
         </a>
@@ -34,24 +43,27 @@
                             </td>
                             <td>
                                 {% if s.supplier_profile and s.supplier_profile.governorate %}
-                                    {{ s.supplier_profile.governorate }} - {{ s.supplier_profile.city }}
+                                    <span class="badge bg-light text-dark border">{{ s.supplier_profile.governorate }} - {{ s.supplier_profile.city }}</span>
                                 {% else %}
                                     <span class="text-muted small">غير محدد</span>
                                 {% endif %}
                             </td>
                             <td>{{ s.supplier_profile.email if s.supplier_profile else '---' }}</td>
-                            <td>{{ s.phone }}</td>
+                            <td><span dir="ltr">{{ s.phone }}</span></td>
                             <td>{{ s.created_at.strftime('%Y-%m-%d') }}</td>
                             <td class="text-center">
                                 <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=s.id) }}" 
-                                   class="btn btn-sm btn-outline-primary" title="عرض المحفظة">
+                                   class="btn btn-sm btn-primary shadow-sm" title="عرض المحفظة">
                                     <i class="fas fa-wallet"></i>
                                 </a>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">لا يوجد شركاء مسجلون حالياً.</td>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fas fa-search fa-2x mb-3 d-block opacity-50"></i>
+                                لا يوجد شركاء مسجلون حالياً.
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
