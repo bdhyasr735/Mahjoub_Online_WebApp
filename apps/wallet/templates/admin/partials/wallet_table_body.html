@@ -1,18 +1,9 @@
 <style>
     .table thead { background-color: #2e003e !important; color: #d4af37 !important; }
-    .btn-royal-outline {
-        border: 1px solid #2e003e;
-        color: #2e003e;
-    }
-    .btn-royal-outline:hover {
-        background-color: #2e003e;
-        color: #d4af37;
-    }
-    .page-item.active .page-link {
-        background-color: #2e003e;
-        border-color: #2e003e;
-        color: #d4af37;
-    }
+    .btn-royal-outline { border: 1px solid #2e003e; color: #2e003e; transition: 0.3s; }
+    .btn-royal-outline:hover { background-color: #2e003e; color: #d4af37; }
+    .page-item.active .page-link { background-color: #2e003e; border-color: #2e003e; color: #d4af37; }
+    .badge-status { font-size: 0.85em; padding: 5px 10px; border-radius: 15px; }
 </style>
 
 <table class="table table-hover align-middle">
@@ -46,11 +37,10 @@
             </td>
 
             <td>
-                {% if wallet.balance_sar < 0 or wallet.balance_yer < 0 or wallet.balance_usd < 0 %}
-                    <span class="badge" style="background-color: #dc3545;">مدين</span>
-                {% else %}
-                    <span class="badge" style="background-color: #2e003e; color: #d4af37;">دائن</span>
-                {% endif %}
+                {% set has_debt = (wallet.balance_sar < 0 or wallet.balance_yer < 0 or wallet.balance_usd < 0) %}
+                <span class="badge badge-status {{ 'bg-danger' if has_debt else 'bg-success' }}">
+                    {{ 'عليكم (مدين)' if has_debt else 'لكم (دائن)' }}
+                </span>
             </td>
 
             <td class="text-center">
