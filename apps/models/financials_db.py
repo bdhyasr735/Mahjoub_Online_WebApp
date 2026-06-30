@@ -7,6 +7,7 @@ from cryptography.fernet import Fernet
 from apps.extensions import db
 
 class OrderFinancial(db.Model):
+    """المركز المالي للطلبات: يربط الطلب بالمورد ويشفر البيانات الحساسة."""
     __tablename__ = 'order_financials'
 
     __table_args__ = (
@@ -19,26 +20,23 @@ class OrderFinancial(db.Model):
 
     # 1. المعرفات والربط
     id = db.Column(db.Integer, primary_key=True)
-    
-    # [تعديل هام]: تم تغيير النوع إلى String(100) ليطابق Order.id
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False, unique=True)
-    
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     
-    # 2. المبالغ المالية (مشفرة)
+    # 2. المبالغ المالية (مشفرة لحماية الخصوصية التجارية)
     _supplier_cost_enc = db.Column(db.String(255), nullable=False)
     _mahjoub_commission_enc = db.Column(db.String(255), nullable=False)
     _total_paid_enc = db.Column(db.String(255), nullable=False)
     shipping_fees = db.Column(db.Numeric(18, 2), default=0.00)
     
-    # 3. حالة التسوية
-    settlement_status = db.Column(db.String(20), default='pending')
+    # 3. حالة التسوية (الرابط المالي للتحويلات)
+    settlement_status = db.Column(db.String(20), default='pending') # pending, settled, failed
     
-    # 4. توثيق زمني
+    # 4. توثيق زمني (للأرشفة والتدقيق)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     settled_at = db.Column(db.DateTime, nullable=True)
 
-    # [الربط السيادي]
+    # [العلاقات - الربط السيادي]
     order = db.relationship('Order', back_populates='financials')
     supplier = db.relationship('Supplier', back_populates='financials')
 
@@ -56,8 +54,7 @@ class OrderFinancial(db.Model):
         try:
             f = Fernet(self._get_key())
             return float(f.decrypt(value.encode()).decode())
-        except:
-            return 0.0
+        except: return 0.0
 
     # --- Properties للمبالغ المشفرة ---
     @property
@@ -76,8 +73,7 @@ class OrderFinancial(db.Model):
     def total_paid(self, value): self._total_paid_enc = self._encrypt(value)
 
     @property
-    def amount(self):
-        return self.total_paid
+    def amount(self): return self.total_paid
 
     def calculate_net_profit(self):
         return self.mahjoub_commission
