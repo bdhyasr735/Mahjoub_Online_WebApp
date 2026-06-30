@@ -21,8 +21,8 @@ def treasury_dashboard():
     end_date = request.args.get('end_date')
     page = request.args.get('page', 1, type=int)
     
-    # 2. استدعاء الإحصائيات العامة (الأرصدة)
-    stats = get_treasury_stats()
+    # 2. استدعاء الإحصائيات العامة (الأرصدة) مع تمرير db كما يتطلب الـ utils
+    stats = get_treasury_stats(db)
     
     # 3. استدعاء الحركات المفلترة (باستخدام المرجع الزمني الموحد في الـ utils)
     # نمرر التاريخ والوقت لضمان دقة التقارير
