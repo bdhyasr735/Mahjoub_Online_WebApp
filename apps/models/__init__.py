@@ -16,9 +16,9 @@ from .admin_staff_db import AdminStaff
 from .supplier_staff_db import SupplierStaff
 from .supplier_profile_db import SupplierProfile
 
-# ثالثاً: موديلات المحفظة والطلبات المالية
+# ثالثاً: موديلات المحفظة
 from .wallet_db import SupplierWallet, WalletTransaction
-from .withdrawal_db import WithdrawalRequest  # استيراد الموديل الجديد
+# تم حذف سطر withdrawal_db مؤقتاً حتى ننشئ الملف
 
 # رابعاً: الموديلات المرتبطة بالطلبات والماليات
 from .orders_db import Order
@@ -33,7 +33,6 @@ __all__ = [
     'SupplierProfile',
     'SupplierWallet',
     'WalletTransaction',
-    'WithdrawalRequest', # تصدير الموديل الجديد
     'Order',
     'OrderFinancial',
     'Marketer',
