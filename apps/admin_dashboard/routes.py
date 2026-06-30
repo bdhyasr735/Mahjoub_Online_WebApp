@@ -1,47 +1,26 @@
-# coding: utf-8
-# 📂 apps/admin_dashboard/routes.py
-
-from flask import Blueprint, render_template, session, abort
-from flask_login import login_required, current_user
-
-# تعريف البلوبرينت الخاص بالإدارة
-admin_dashboard = Blueprint(
-    'admin_dashboard', 
-    __name__, 
-    template_folder='templates'
-)
-
-def admin_required():
-    """دالة مساعدة للتحقق من أن المستخدم مدير نظام."""
-    if session.get('user_type') != 'admin':
-        abort(403) # منع الوصول لغير المدراء
+from apps.models.admin_db import AdminUser
+from apps.models.supplier_profile_db import SupplierProfile # أو الموديل الخاص بالموردين
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
+from sqlalchemy import func
 
 @admin_dashboard.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
-    """
-    لوحة تحكم المسؤول الرئيسية.
-    المسار النهائي: /admin/dashboard
-    """
-    admin_required() # التحقق الأمني قبل عرض الصفحة
+    admin_required()
     
-    # يمكن لاحقاً استبدال القيم ببيانات حقيقية من قاعدة البيانات
+    # 1. إجمالي الموردين
+    total_suppliers = SupplierProfile.query.count()
+    
+    # 2. الأرصدة (مثال لجمع الأرصدة من المحفظة)
+    total_balance_sar = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or 0
+    
+    # 3. آخر 10 عمليات
+    recent_transactions = WalletTransaction.query.order_by(WalletTransaction.created_at.desc()).limit(10).all()
+    
     context = {
-        'total_suppliers': 0,
-        'total_balance_sar': 0.00,
-        'total_balance_yer': 0.00,
-        'total_balance_usd': 0.00,
-        'recent_transactions': []
+        'total_suppliers': total_suppliers,
+        'total_balance_sar': float(total_balance_sar),
+        'recent_transactions': recent_transactions
     }
     
     return render_template('admin/dashboard.html', **context)
-
-@admin_dashboard.route('/settings', methods=['GET', 'POST'])
-@login_required
-def settings():
-    """
-    إعدادات النظام العامة.
-    المسار النهائي: /admin/settings
-    """
-    admin_required() # التحقق الأمني قبل عرض الصفحة
-    return render_template('admin/settings.html')
