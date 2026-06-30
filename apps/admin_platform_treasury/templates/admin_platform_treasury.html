@@ -1,1 +1,30 @@
+<div class="row">
+    <div class="col-md-6">
+        <div class="card p-3 shadow">
+            <h5>أرباح المنصة (العمولات)</h5>
+            <h2>{{ "{:,.2f}".format(total_revenue) }}</h2>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card p-3 shadow">
+            <h5>إجمالي مدفوعات الموردين</h5>
+            <h2>{{ "{:,.2f}".format(total_payouts) }}</h2>
+        </div>
+    </div>
+</div>
 
+<table class="table mt-4">
+    <thead>
+        <tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>النوع</th></tr>
+    </thead>
+    <tbody>
+        {% for t in transactions %}
+        <tr>
+            <td>{{ t.created_at.strftime('%Y-%m-%d') }}</td>
+            <td>{{ t.description }}</td>
+            <td>{{ t.amount }}</td>
+            <td>{{ t.trans_type }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
