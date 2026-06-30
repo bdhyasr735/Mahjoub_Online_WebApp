@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/financials_db.py
+# 📂 apps/models/financials_db.py (النسخة النهائية مع الربط السيادي)
 
 import os
 from datetime import datetime
@@ -15,6 +15,8 @@ class OrderFinancial(db.Model):
         db.Index('idx_fin_supplier_id', 'supplier_id'),
         db.Index('idx_fin_settlement', 'settlement_status'),
         db.Index('idx_fin_created', 'created_at'),
+        # الربط السيادي للفهرسة
+        db.Index('idx_fin_transaction', 'transaction_id'),
         {'extend_existing': True}
     )
 
@@ -23,22 +25,26 @@ class OrderFinancial(db.Model):
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False, unique=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     
+    # ربط سيادي بجدول الخزينة (دفتر الأستاذ العام)
+    transaction_id = db.Column(db.Integer, db.ForeignKey('wallet_transactions.id'), nullable=True)
+    
     # 2. المبالغ المالية (مشفرة لحماية الخصوصية التجارية)
     _supplier_cost_enc = db.Column(db.String(255), nullable=False)
     _mahjoub_commission_enc = db.Column(db.String(255), nullable=False)
     _total_paid_enc = db.Column(db.String(255), nullable=False)
     shipping_fees = db.Column(db.Numeric(18, 2), default=0.00)
     
-    # 3. حالة التسوية (الرابط المالي للتحويلات)
+    # 3. حالة التسوية
     settlement_status = db.Column(db.String(20), default='pending') # pending, settled, failed
     
-    # 4. توثيق زمني (للأرشفة والتدقيق)
+    # 4. توثيق زمني
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     settled_at = db.Column(db.DateTime, nullable=True)
 
-    # [العلاقات - الربط السيادي]
+    # [العلاقات]
     order = db.relationship('Order', back_populates='financials')
     supplier = db.relationship('Supplier', back_populates='financials')
+    transaction = db.relationship('WalletTransaction', backref='order_financials')
 
     # --- نظام التشفير (AES) ---
     @staticmethod
