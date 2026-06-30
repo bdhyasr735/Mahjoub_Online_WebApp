@@ -15,8 +15,9 @@ from .orders_db import Order
 from .supplier_db import Supplier
 from .supplier_profile_db import SupplierProfile
 from .supplier_staff_db import SupplierStaff
-from .wallet_db import SupplierWallet, WalletTransaction  # تم تصحيح الاسم هنا ليطابق الملف الفعلي
+from .wallet_db import SupplierWallet, WalletTransaction
 from .sync_log import SyncLog
+from .treasury_db import PlatformTreasury, WithdrawalRequest # إضافة موديلات الخزينة الجديدة
 
 __all__ = [
     'AdminStaff',
@@ -29,5 +30,7 @@ __all__ = [
     'SupplierStaff',
     'SupplierWallet',
     'SyncLog',
-    'WalletTransaction'
+    'WalletTransaction',
+    'PlatformTreasury',    # إضافة للمسجل
+    'WithdrawalRequest'    # إضافة للمسجل
 ]
