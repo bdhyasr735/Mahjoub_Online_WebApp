@@ -1,10 +1,12 @@
 # coding: utf-8
+# 📂 apps/admin_platform_treasury/routes.py
+
 from flask import render_template
 from flask_login import login_required
 from apps.extensions import db
 from apps.models.wallet_db import WalletTransaction
 from sqlalchemy import func
-from . import treasury_bp # تأكد أن هذا هو نفس الاسم المستخدم عند التسجيل في __init__.py
+from . import treasury_bp 
 
 @treasury_bp.route('/dashboard', methods=['GET'])
 @login_required
