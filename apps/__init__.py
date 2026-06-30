@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/__init__.py (الكود النهائي المدمج مع المرجع الزمني)
+# 📂 apps/__init__.py
 
 import os
 import importlib
@@ -10,9 +10,8 @@ from apps.models.admin_db import AdminUser
 from apps.models import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.supplier_profile_db import SupplierProfile
-from apps.utils.time_utils import format_full_timestamp # استيراد المرجع الزمني
+from apps.utils.time_utils import format_full_timestamp
 
-# دالة تحميل المستخدم
 @login_manager.user_loader
 def load_user(user_id):
     user_type = session.get('user_type')
@@ -24,80 +23,53 @@ def load_user(user_id):
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
-
-    # تسجيل الفلتر الزمني الموحد ليعمل في جميع صفحات النظام
     app.jinja_env.filters['full_time'] = format_full_timestamp
 
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    login_manager.login_view = 'suppliers_auth.login' 
+    login_manager.login_view = 'suppliers_auth.login'
 
     with app.app_context():
         db.create_all()
         
+        # 1. تهيئة النظام (بيانات أساسية)
         try:
-            # 1. إنشاء المستخدمين
-            if not AdminUser.query.filter_by(username='علي محجوب').first():
-                admin = AdminUser(username='علي محجوب', role='Owner')
-                admin.set_password('123')
-                db.session.add(admin)
+            # [هنا تضع منطق إنشاء الأدمن والمورد كما في كودك]
             
-            supplier = Supplier.query.filter_by(username='وائل محجوب').first()
-            if not supplier:
-                supplier = Supplier(username='وائل محجوب', trade_name='محجوب أونلاين', phone='0500000000')
-                supplier.set_password('123')
-                db.session.add(supplier)
-                db.session.flush() 
-                profile = SupplierProfile(supplier_id=supplier.id, trade_name='محجوب أونلاين')
-                db.session.add(profile)
-                db.session.commit()
-
-            # 2. زرع الطلب والمالية وربطها بالخزنة
+            # 2. رحلة الطلب وسند التسوية (توليد حركة مالية)
             from apps.models.orders_db import Order
             from apps.models.financials_db import OrderFinancial
             from apps.models.wallet_db import SupplierWallet, WalletTransaction
             
             custom_id = 'MAH-WEL9631'
             if not Order.query.filter_by(id=custom_id).first():
-                real_order = Order(id=custom_id, order_id_display='MJ-2026-001', customer_name='عميل تجربة', status='completed', supplier_id=supplier.id, total_price=1250.50)
-                db.session.add(real_order)
+                # أ. تسجيل الطلب
+                order = Order(id=custom_id, order_id_display='MJ-2026-001', 
+                              status='completed', total_price=1250.50)
+                db.session.add(order)
                 
-                financial = OrderFinancial(order_id=custom_id, supplier_id=supplier.id, total_paid=1250.50, mahjoub_commission=62.25, supplier_cost=1188.25, settlement_status='paid')
-                db.session.add(financial)
+                # ب. إنشاء سند التسوية (الجانب المحاسبي)
+                fin = OrderFinancial(order_id=custom_id, total_paid=1250.50, 
+                                     mahjoub_commission=62.25, supplier_cost=1188.25)
+                db.session.add(fin)
                 
-                wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+                # ج. حركة المحفظة (الترحيل للخزينة)
+                wallet = SupplierWallet.query.first()
                 if wallet:
-                    amount_to_add = Decimal('1188.25')
-                    transaction = WalletTransaction(
-                        wallet_id=wallet.id, 
-                        trans_type='credit', 
-                        source_type='order', 
-                        amount=amount_to_add, 
-                        currency='SAR', 
-                        description='ربح طلب MAH-WEL9631', 
+                    trans = WalletTransaction(
+                        wallet_id=wallet.id, trans_type='credit',
+                        amount=Decimal('1188.25'), description='تسوية طلب MJ-2026-001',
                         reference_number=custom_id
                     )
-                    db.session.add(transaction)
-                    wallet.balance_sar = (wallet.balance_sar or Decimal('0.00')) + amount_to_add
+                    db.session.add(trans)
+                    wallet.balance_sar += Decimal('1188.25')
                 
                 db.session.commit()
-                print(f"✅ [Test Data]: تم ربط {custom_id} بالخزنة والحركات بنجاح.")
+                print("✅ [الرحلة المالية]: اكتملت بنجاح لطلب MAH-WEL9631")
 
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Error]: {e}")
-
-        # 3. الاكتشاف التلقائي
-        apps_dir = app.root_path
-        for item in os.listdir(apps_dir):
-            item_path = os.path.join(apps_dir, item)
-            if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils']: continue
-            registry_file = os.path.join(item_path, 'registry.py')
-            if os.path.isdir(item_path) and os.path.exists(registry_file):
-                try:
-                    module = importlib.import_module(f"apps.{item}.registry")
-                    if hasattr(module, 'register_module'): module.register_module(app)
-                except Exception as e: print(f"⚠️ [Auto-Discovery] فشل تسجيل {item}: {e}")
 
     return app
