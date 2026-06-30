@@ -1,69 +1,52 @@
-<div class="row">
-    <div class="col-md-6">
-        <div class="card p-3 shadow">
-            <h5>أرباح المنصة (العمولات)</h5>
-            <h2>{{ "{:,.2f}".format(total_revenue) }}</h2>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card p-3 shadow">
-            <h5>إجمالي مدفوعات الموردين</h5>
-            <h2>{{ "{:,.2f}".format(total_payouts) }}</h2>
-        </div>
-    </div>{% extends 'admin/admin_base.html' %}
+{% extends 'admin/admin_base.html' %}
 
 {% block title %}خزينة المنصة{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row g-4">
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-dark">خزينة المنصة</h4>
+    </div>
+
+    <div class="row g-4 mb-4">
         <div class="col-md-6">
-            <div class="card p-3 shadow-sm border-0" style="border-radius: 15px;">
-                <h5 class="text-muted">أرباح المنصة (العمولات)</h5>
-                <h2 class="fw-bold text-primary">{{ "{:,.2f}".format(total_revenue) }}</h2>
+            <div class="card p-4 shadow-sm border-0 bg-white">
+                <h6 class="text-muted">أرباح المنصة (العمولات)</h6>
+                <h3 class="fw-bold text-primary">{{ "{:,.2f}".format(total_revenue) }}</h3>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card p-3 shadow-sm border-0" style="border-radius: 15px;">
-                <h5 class="text-muted">إجمالي مدفوعات الموردين</h5>
-                <h2 class="fw-bold text-success">{{ "{:,.2f}".format(total_payouts) }}</h2>
+            <div class="card p-4 shadow-sm border-0 bg-white">
+                <h6 class="text-muted">إجمالي مدفوعات الموردين</h6>
+                <h3 class="fw-bold text-success">{{ "{:,.2f}".format(total_payouts) }}</h3>
             </div>
         </div>
     </div>
 
-    <div class="card mt-4 shadow-sm border-0 p-4" style="border-radius: 15px;">
-        <table class="table align-middle">
-            <thead class="table-light">
-                <tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>النوع</th></tr>
-            </thead>
-            <tbody>
-                {% for t in transactions %}
-                <tr>
-                    <td>{{ t.created_at.strftime('%Y-%m-%d') }}</td>
-                    <td>{{ t.description }}</td>
-                    <td>{{ t.amount }}</td>
-                    <td><span class="badge bg-info">{{ t.trans_type }}</span></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="card shadow-sm border-0 p-4 bg-white">
+        <h5 class="fw-bold mb-3">سجل العمليات المالية</h5>
+        <div class="table-responsive">
+            <table class="table align-middle table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>البيان</th>
+                        <th>المبلغ</th>
+                        <th>النوع</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td>{{ t.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ t.description }}</td>
+                        <td>{{ t.amount }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ t.trans_type }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
-</div>
-
-<table class="table mt-4">
-    <thead>
-        <tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th><th>النوع</th></tr>
-    </thead>
-    <tbody>
-        {% for t in transactions %}
-        <tr>
-            <td>{{ t.created_at.strftime('%Y-%m-%d') }}</td>
-            <td>{{ t.description }}</td>
-            <td>{{ t.amount }}</td>
-            <td>{{ t.trans_type }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
