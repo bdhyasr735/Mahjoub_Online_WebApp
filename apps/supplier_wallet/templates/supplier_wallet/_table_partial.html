@@ -1,45 +1,64 @@
-{% for trans in transactions %}
-<tr>
-    <td class="px-4">{{ trans.created_at.strftime('%Y-%m-%d') }}</td>
-    <td><strong>{{ trans.description }}</strong></td>
-    <td>
-        {% if trans.reference_number %}
-            <a href="{{ url_for('orders.view_order', order_id=trans.reference_number) }}" class="text-decoration-none fw-bold text-primary">
-                {{ trans.voucher_number }}
-            </a>
-        {% else %}
-            <span class="text-muted">{{ trans.voucher_number }}</span>
-        {% endif %}
-    </td>
-    <td class="{{ 'text-danger fw-bold' if trans.trans_type == 'debit' else 'text-muted' }}">
-        {{ "{:,.2f}".format(trans.amount) if trans.trans_type == 'debit' else '-' }}
-    </td>
-    <td class="{{ 'text-success fw-bold' if trans.trans_type == 'credit' else 'text-muted' }}">
-        {{ "{:,.2f}".format(trans.amount) if trans.trans_type == 'credit' else '-' }}
-    </td>
-    <td class="text-center"><span class="badge bg-light text-dark border">{{ trans.currency }}</span></td>
-</tr>
-{% else %}
-<tr>
-    <td colspan="6" class="text-center py-4 text-muted">لا توجد حركات تطابق معايير البحث الحالية.</td>
-</tr>
-{% endfor %}
+<!-- 📂 apps/supplier_wallet/templates/supplier_wallet/_table_partial.html -->
 
-<tr class="summary-footer fw-bold" style="background-color: #2e003e; color: #d4af37;">
-    <td colspan="3" class="text-start px-4">إجمالي الفترة:</td>
-    <td class="text-danger">م: {{ "{:,.2f}".format(total_debit) }}</td>
-    <td class="text-success">د: {{ "{:,.2f}".format(total_credit) }}</td>
-    <td></td>
-</tr>
-<tr class="table-light fw-bold">
-    <td colspan="3" class="text-end px-4 text-royal-purple fs-5">صافي الموقف المالي:</td>
-    <td colspan="3" class="text-center fs-4">
-        {% set net = total_credit - total_debit %}
-        <span class="{{ 'text-success' if net >= 0 else 'text-danger' }}">
-            {{ "{:,.2f}".format(net) }}
-        </span>
-        <span class="badge {{ 'bg-success' if net >= 0 else 'bg-danger' }} fs-6 ms-2">
-            {{ 'لكم' if net >= 0 else 'عليكم' }}
-        </span>
-    </td>
-</tr>
+<table class="table table-hover align-middle mb-0">
+    <thead class="table-light">
+        <tr>
+            <th class="px-4">التاريخ</th>
+            <th>البيان</th>
+            <th>رقم الطلب/السند</th>
+            <th>مدين (-)</th>
+            <th>دائن (+)</th>
+            <th class="text-center">العملة</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for trans in transactions %}
+        <tr>
+            <td class="px-4">{{ trans.created_at.strftime('%Y-%m-%d') }}</td>
+            <td><strong>{{ trans.description }}</strong></td>
+            <td>
+                {% if trans.reference_number %}
+                    <a href="{{ url_for('orders.view_order', order_id=trans.reference_number) }}" class="text-decoration-none fw-bold text-primary">
+                        {{ trans.voucher_number }}
+                    </a>
+                {% else %}
+                    <span class="text-muted">{{ trans.voucher_number }}</span>
+                {% endif %}
+            </td>
+            <td class="{{ 'text-danger fw-bold' if trans.trans_type == 'debit' else 'text-muted' }}">
+                {{ "{:,.2f}".format(trans.amount) if trans.trans_type == 'debit' else '-' }}
+            </td>
+            <td class="{{ 'text-success fw-bold' if trans.trans_type == 'credit' else 'text-muted' }}">
+                {{ "{:,.2f}".format(trans.amount) if trans.trans_type == 'credit' else '-' }}
+            </td>
+            <td class="text-center"><span class="badge bg-light text-dark border">{{ trans.currency }}</span></td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" class="text-center py-4 text-muted">لا توجد حركات تطابق معايير البحث الحالية.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+
+    <!-- تذييل التلخيص المالي -->
+    <tfoot>
+        <tr class="summary-footer fw-bold" style="background-color: #2e003e; color: #d4af37;">
+            <td colspan="3" class="text-start px-4">إجمالي الفترة:</td>
+            <td class="text-danger">م: {{ "{:,.2f}".format(total_debit) }}</td>
+            <td class="text-success">د: {{ "{:,.2f}".format(total_credit) }}</td>
+            <td></td>
+        </tr>
+        <tr class="table-light fw-bold">
+            <td colspan="3" class="text-end px-4 text-royal-purple fs-5">صافي الموقف المالي:</td>
+            <td colspan="3" class="text-center fs-4">
+                {% set net = total_credit - total_debit %}
+                <span class="{{ 'text-success' if net >= 0 else 'text-danger' }}">
+                    {{ "{:,.2f}".format(net) }}
+                </span>
+                <span class="badge {{ 'bg-success' if net >= 0 else 'bg-danger' }} fs-6 ms-2">
+                    {{ 'لكم' if net >= 0 else 'عليكم' }}
+                </span>
+            </td>
+        </tr>
+    </tfoot>
+</table>
