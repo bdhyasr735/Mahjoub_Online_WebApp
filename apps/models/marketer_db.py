@@ -4,13 +4,15 @@
 import os
 from datetime import datetime
 from cryptography.fernet import Fernet
-from apps.extensions import db
 from flask_login import UserMixin 
 from werkzeug.security import generate_password_hash, check_password_hash
+from apps.extensions import db
 
 class Marketer(db.Model, UserMixin):
+    """موديل المسوق: إدارة المسوقين (نظام إداري داخلي) مع تشفير وفهرسة متقدمة."""
     __tablename__ = 'marketers'
 
+    # [فهرسة متقدمة]: لضمان سرعة فائقة في لوحة الإدارة
     __table_args__ = (
         db.Index('idx_mkt_name', 'full_name'),
         db.Index('idx_mkt_code', 'marketing_code'),
@@ -25,9 +27,11 @@ class Marketer(db.Model, UserMixin):
     full_name = db.Column(db.String(150), nullable=False)
     marketing_code = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    
+    # [تشفير حساس]: رقم الهاتف مشفر بالكامل
     _phone_enc = db.Column(db.String(255), nullable=True) 
     
-    # حالات التشغيل والتحصيلات
+    # حالات التشغيل والإحصائيات
     is_active = db.Column(db.Boolean, default=True)
     total_referrals = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -35,7 +39,7 @@ class Marketer(db.Model, UserMixin):
     # العلاقات (لربط المسوق بطلباته مباشرة)
     orders = db.relationship('Order', back_populates='marketer', lazy='dynamic')
 
-    # --- نظام التشفير (AES) للرقم ---
+    # --- نظام التشفير (AES-256) ---
     @staticmethod
     def _get_key():
         key = os.environ.get('ENCRYPTION_KEY')
@@ -43,26 +47,29 @@ class Marketer(db.Model, UserMixin):
 
     @property
     def phone(self):
+        """فك تشفير رقم الهاتف"""
         if not self._phone_enc: return None
         try:
             return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
-        except: return None
+        except Exception: 
+            return None
 
     @phone.setter
     def phone(self, value):
+        """تشفير رقم الهاتف قبل التخزين"""
         if value:
             self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
 
-    # --- طرق تسجيل الدخول وتأمين كلمة المرور ---
+    # --- نظام أمن كلمات المرور ---
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    # --- دالة مساعدة لحساب إجمالي العمولات لاحقاً ---
+    # --- دالة مساعدة لحساب العمولات ---
     def get_total_commissions(self):
-        # يمكن توسيع هذه الدالة لاحقاً لربطها بجدول الحركات المالية
+        # هذه الدالة مهيأة للربط المباشر مع سجلات المحفظة (WalletTransaction) لاحقاً
         return 0.0
 
     def __repr__(self):
