@@ -1,1 +1,39 @@
+<!-- 📂 apps/orders/templates/admin/partials/_filters.html -->
+<form id="filterForm" class="row g-3 align-items-end" onsubmit="event.preventDefault(); updateTable('{{ url_for('orders.dashboard') }}?' + $(this).serialize());">
+    
+    <!-- خانة البحث النصي -->
+    <div class="col-md-5">
+        <label class="form-label text-royal-purple fw-bold small">بحث سريع</label>
+        <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+            <input type="text" name="q" class="form-control border-start-0" 
+                   placeholder="رقم الطلب أو اسم العميل..." 
+                   value="{{ request.args.get('q', '') }}">
+        </div>
+    </div>
 
+    <!-- فلتر الحالة -->
+    <div class="col-md-4">
+        <label class="form-label text-royal-purple fw-bold small">حالة الطلب</label>
+        <select name="status" class="form-select">
+            <option value="">جميع الحالات</option>
+            <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
+            <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>معلق</option>
+            <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>ملغي</option>
+        </select>
+    </div>
+
+    <!-- زر التصفية -->
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-royal-purple w-100 text-white shadow-sm">
+            <i class="fas fa-filter me-1"></i> تطبيق الفلتر
+        </button>
+    </div>
+</form>
+
+<script>
+    // تفعيل البحث المباشر عند تغيير الحالة
+    $('select[name="status"]').on('change', function() {
+        $('#filterForm').submit();
+    });
+</script>
