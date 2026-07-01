@@ -3,44 +3,58 @@
 
 from flask import Blueprint, render_template, request
 from flask_login import login_required
-from apps.extensions import db
-from .utils import get_treasury_stats, get_filtered_transactions
+from apps.models.wallet_db import WalletTransaction, SupplierWallet
+from sqlalchemy import func
 
-treasury_bp = Blueprint('treasury', __name__, template_folder='templates', url_prefix='/admin/treasury')
+# تعريف البلوبرنت
+treasury_bp = Blueprint(
+    'treasury_bp', 
+    __name__, 
+    template_folder='templates'
+)
 
-@treasury_bp.route('/dashboard', methods=['GET'])
+@treasury_bp.route('/', methods=['GET'])
 @login_required
-def treasury_dashboard():
-    """
-    لوحة تحكم الخزينة (الأستاذ العام):
-    يتم الآن عرض البيانات بنظام المدين (Debit) والدائن (Credit).
-    """
-    # 1. التقاط المدخلات
-    currency = request.args.get('currency', 'all')
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    page = request.args.get('page', 1, type=int)
+def index():
+    """عرض الأستاذ العام (كشف حساب المنصة)."""
     
-    # 2. جلب الإحصائيات (تأكد أن get_treasury_stats في utils تقوم بجمع debit و credit)
-    stats = get_treasury_stats(db)
-    
-    # 3. جلب الاستعلام المفلتر
-    # query الآن سيعيد كائنات تحتوي على debit و credit بدلاً من amount فقط
-    query = get_filtered_transactions(
-        currency=currency, 
-        start_date=start_date, 
-        end_date=end_date
-    )
-    
-    # 4. تنفيذ التقسيم
-    pagination = query.paginate(page=page, per_page=20, error_out=False)
-    
+    # 1. جلب كافة الحركات المالية بترتيب زمني تنازلي
+    # ملاحظة: نحن نقوم بجلب البيانات وتصنيفها إلى مدين ودائن في كائن النتيجة
+    query = WalletTransaction.query.order_by(WalletTransaction.created_at.desc())
+    transactions = query.all()
+
+    # 2. تحضير الحركات للعرض (المدين والدائن)
+    processed_transactions = []
+    for t in transactions:
+        # تحديد المدين والدائن بناءً على نوع الحركة
+        # المدين (Debit): المبالغ التي تُخصم من الرصيد
+        # الدائن (Credit): المبالغ التي تضاف للرصيد
+        is_credit = t.trans_type in ['credit', 'adjustment_credit', 'sale_revenue']
+        
+        t.debit = 0.00 if is_credit else t.amount
+        t.credit = t.amount if is_credit else 0.00
+        
+        processed_transactions.append(t)
+
+    # 3. حساب إجمالي رصيد الخزينة (الرصيد الأخير في آخر حركة)
+    last_trans = WalletTransaction.query.order_by(WalletTransaction.id.desc()).first()
+    total_balance = last_trans.balance_after if last_trans else 0.00
+
     return render_template(
-        'admin_platform_treasury.html', 
-        stats=stats, 
-        transactions=pagination.items, 
-        pagination=pagination,
-        current_currency=currency,
-        start_date=start_date,
-        end_date=end_date
+        'admin_platform_treasury.html',
+        transactions=processed_transactions,
+        total_balance=total_balance
     )
+
+@treasury_bp.route('/filter', methods=['GET'])
+@login_required
+def filter_treasury():
+    """دالة إضافية للبحث المتقدم (اختياري)"""
+    voucher = request.args.get('voucher')
+    if voucher:
+        transactions = WalletTransaction.query.filter(
+            WalletTransaction.voucher_number.like(f"%{voucher}%")
+        ).all()
+        # (يمكن هنا إضافة منطق حساب الأرصدة المفلترة)
+        return render_template('admin_platform_treasury.html', transactions=transactions)
+    return index()
