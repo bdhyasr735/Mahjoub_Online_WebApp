@@ -1,10 +1,15 @@
 # coding: utf-8
 import os
 import importlib
+import uuid
+from decimal import Decimal
 from flask import Flask, session
 from apps.extensions import db, login_manager, migrate
 from apps.models import AdminUser, Supplier, SupplierProfile
 from apps.models.supplier_staff_db import SupplierStaff
+from apps.models.financials_db import OrderFinancial
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
+from apps.models.order_db import Order # تأكد من المسار الصحيح لجدول الطلبات
 from apps.utils.time_utils import format_full_timestamp
 
 @login_manager.user_loader
@@ -30,7 +35,6 @@ def create_app():
         
         # 1. زرع البيانات الأساسية
         try:
-            # زرع المالك: علي محجوب
             admin = AdminUser.query.filter_by(username='علي محجوب').first()
             if not admin:
                 admin = AdminUser(username='علي محجوب')
@@ -39,7 +43,6 @@ def create_app():
                 db.session.commit()
                 print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
 
-            # زرع المورد
             supplier = Supplier.query.filter_by(username='وائل محجوب').first()
             if not supplier:
                 supplier = Supplier(username='وائل محجوب', trade_name='محجوب أونلاين', phone='0500000000')
@@ -50,11 +53,53 @@ def create_app():
                 db.session.commit()
                 print("✅ [Seed]: تم زرع المورد وائل محجوب بنجاح.")
 
+            # 2. سكريبت زرع العجب: تجربة طلب قمرة (SAR)
+            order_ref = "QAMRA-2026-001"
+            order_exists = Order.query.filter_by(order_reference=order_ref).first()
+            if not order_exists:
+                new_order = Order(
+                    id=str(uuid.uuid4()),
+                    order_id_display="طلب-001",
+                    supplier_id=supplier.id,
+                    order_reference=order_ref,
+                    total_price=500.00,
+                    status='completed'
+                )
+                db.session.add(new_order)
+                db.session.flush()
+
+                # إضافة المركز المالي
+                financial = OrderFinancial(
+                    order_id=new_order.id,
+                    supplier_id=supplier.id,
+                    currency='SAR',
+                    supplier_cost=400.00,
+                    mahjoub_commission=100.00,
+                    total_paid=500.00,
+                    settlement_status='settled'
+                )
+                db.session.add(financial)
+
+                # إضافة الحركة المالية (تلقائياً ستحدث رصيد SAR في المحفظة)
+                wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+                if wallet:
+                    transaction = WalletTransaction(
+                        wallet_id=wallet.id,
+                        owner_id=supplier.id,
+                        trans_type='sale_revenue',
+                        amount=100.00,
+                        currency='SAR'
+                    )
+                    db.session.add(transaction)
+                
+                db.session.commit()
+                print("🚀 [العجب]: تم زرع طلب قمرة وتحديث رصيد المورد بـ SAR بنجاح!")
+
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Data Seed Error]: {e}")
 
-        # 2. الاكتشاف التلقائي للموديولات
+        # 3. الاكتشاف التلقائي للموديولات
         apps_dir = app.root_path
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
