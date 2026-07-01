@@ -5,7 +5,6 @@
 مركز التحكم في الموديلات (Model Registry)
 """
 
-# ترتيب الاستيراد مهم لتجنب تعارضات SQLAlchemy
 from .admin_db import AdminUser
 from .admin_staff_db import AdminStaff
 from .supplier_db import Supplier
