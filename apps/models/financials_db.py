@@ -24,32 +24,34 @@ class OrderFinancial(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False, unique=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
-    
-    # ربط سيادي بجدول الخزينة (العمليات المالية)
     transaction_id = db.Column(db.Integer, db.ForeignKey('wallet_transactions.id'), nullable=True)
     
-    # 2. حقل العملة (غير مشفر للفلترة السريعة)
+    # 2. حقل العملة
     currency = db.Column(db.String(5), default='SAR', nullable=False)
     
-    # 3. المبالغ المالية (مشفرة بـ Fernet/AES لحماية الخصوصية التجارية)
+    # 3. المبالغ المالية (مشفرة للخصوصية + خام للعمليات الحسابية)
     _supplier_cost_enc = db.Column(db.String(255), nullable=False)
+    supplier_cost_raw = db.Column(db.Numeric(18, 2), default=0.00)
+    
     _mahjoub_commission_enc = db.Column(db.String(255), nullable=False)
+    mahjoub_commission_raw = db.Column(db.Numeric(18, 2), default=0.00)
+    
     _total_paid_enc = db.Column(db.String(255), nullable=False)
+    total_paid_raw = db.Column(db.Numeric(18, 2), default=0.00)
+    
     shipping_fees = db.Column(db.Numeric(18, 2), default=0.00)
     
-    # 4. حالة التسوية (pending, settled, cancelled)
+    # 4. حالة التسوية
     settlement_status = db.Column(db.String(20), default='pending') 
-    
-    # 5. توثيق زمني
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     settled_at = db.Column(db.DateTime, nullable=True)
 
-    # [العلاقات]
+    # العلاقات
     order = db.relationship('Order', back_populates='financials')
     supplier = db.relationship('Supplier', back_populates='financials')
     transaction = db.relationship('WalletTransaction', backref='order_financials')
 
-    # --- منطق التشفير الاحترافي ---
+    # --- منطق التشفير ---
     @staticmethod
     def _get_key():
         key = os.environ.get('ENCRYPTION_KEY')
@@ -63,24 +65,29 @@ class OrderFinancial(db.Model):
         try:
             f = Fernet(self._get_key())
             return float(f.decrypt(value.encode()).decode())
-        except Exception: 
-            return 0.0
+        except Exception: return 0.0
 
-    # --- Properties للوصول للمبالغ ---
+    # --- Properties الذكية ---
     @property
     def supplier_cost(self): return self._decrypt(self._supplier_cost_enc)
     @supplier_cost.setter
-    def supplier_cost(self, value): self._supplier_cost_enc = self._encrypt(value)
+    def supplier_cost(self, value): 
+        self._supplier_cost_enc = self._encrypt(value)
+        self.supplier_cost_raw = float(value)
 
     @property
     def mahjoub_commission(self): return self._decrypt(self._mahjoub_commission_enc)
     @mahjoub_commission.setter
-    def mahjoub_commission(self, value): self._mahjoub_commission_enc = self._encrypt(value)
+    def mahjoub_commission(self, value): 
+        self._mahjoub_commission_enc = self._encrypt(value)
+        self.mahjoub_commission_raw = float(value)
 
     @property
     def total_paid(self): return self._decrypt(self._total_paid_enc)
     @total_paid.setter
-    def total_paid(self, value): self._total_paid_enc = self._encrypt(value)
+    def total_paid(self, value): 
+        self._total_paid_enc = self._encrypt(value)
+        self.total_paid_raw = float(value)
 
     def __repr__(self):
         return f'<OrderFinancial OrderID: {self.order_id} | Status: {self.settlement_status}>'
