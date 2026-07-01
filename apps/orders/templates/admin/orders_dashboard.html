@@ -1,39 +1,89 @@
+<!-- 📂 apps/orders/templates/admin/orders_dashboard.html -->
 {% extends 'admin/admin_base.html' %}
 
 {% block title %}إدارة الطلبات{% endblock %}
 
 {% block content %}
+<style>
+    :root {
+        --royal-purple: #2e003e;
+        --royal-gold: #d4af37;
+    }
+    .text-royal-purple {
+        color: var(--royal-purple) !important;
+    }
+    .btn-royal-back {
+        background-color: transparent;
+        border: 2px solid var(--royal-purple);
+        color: var(--royal-purple);
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .btn-royal-back:hover {
+        background-color: var(--royal-purple);
+        color: #ffffff;
+    }
+    .card {
+        border: none;
+        border-radius: 8px;
+    }
+    .border-royal {
+        border-right: 4px solid var(--royal-purple) !important;
+    }
+</style>
+
 <div class="container-fluid py-4">
-    <!-- الرأس والإحصائيات -->
+    <!-- الرأس والإجراءات -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-royal-purple"><i class="fas fa-shopping-bag me-2"></i>طلبات المتجر</h3>
+        <div>
+            <h3 class="fw-bold text-royal-purple"><i class="fas fa-shopping-bag me-2"></i>طلبات المتجر</h3>
+            <p class="text-muted small mb-0">مراقبة حركة الطلبات وتوزيعها بين المتاجر والموردين</p>
+        </div>
         <form action="{{ url_for('orders.sync_all') }}" method="POST">
-            <button type="submit" class="btn btn-royal-back"><i class="fas fa-sync-alt me-2"></i>مزامنة الطلبات</button>
+            <button type="submit" class="btn btn-royal-back shadow-sm">
+                <i class="fas fa-sync-alt me-2"></i>مزامنة الطلبات
+            </button>
         </form>
     </div>
 
     <!-- بطاقات الإحصائيات -->
     <div class="row g-3 mb-4">
-        <div class="col-md-4"><div class="card p-3 shadow-sm border-start border-primary border-4"><h6>المكتملة</h6><h3>{{ stats.completed }}</h3></div></div>
-        <div class="col-md-4"><div class="card p-3 shadow-sm border-start border-danger border-4"><h6>الملغاة</h6><h3>{{ stats.cancelled }}</h3></div></div>
-        <div class="col-md-4"><div class="card p-3 shadow-sm border-start border-success border-4"><h6>إجمالي المبيعات</h6><h3>{{ "{:,.2f}".format(stats.total_sales) }}</h3></div></div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm border-start border-success border-4 h-100">
+                <h6 class="text-muted small fw-bold text-uppercase">إجمالي المبيعات</h6>
+                <h3 class="fw-bold text-success mb-0">{{ "{:,.2f}".format(stats.total_sales) }} <span class="fs-6 fw-normal">SAR</span></h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm border-start border-primary border-4 h-100">
+                <h6 class="text-muted small fw-bold text-uppercase">المكتملة</h6>
+                <h3 class="fw-bold text-primary mb-0">{{ stats.completed }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm border-start border-danger border-4 h-100">
+                <h6 class="text-muted small fw-bold text-uppercase">الملغاة</h6>
+                <h3 class="fw-bold text-danger mb-0">{{ stats.cancelled }}</h3>
+            </div>
+        </div>
     </div>
 
     <!-- الفلاتر -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
+    <div class="card mb-4 shadow-sm border-royal shadow-sm">
+        <div class="card-body py-3">
             {% include 'admin/partials/_filters.html' %}
         </div>
     </div>
 
     <!-- جدول الطلبات -->
-    <div class="card shadow-sm">
-        <div id="tableContainer">
+    <div class="card shadow-sm border-0">
+        <div id="tableContainer" class="table-responsive">
             {% include 'admin/partials/_table.html' %}
         </div>
     </div>
 </div>
 
+<!-- تفعيل جافا سكريبت للتحديث الديناميكي -->
 <script>
     // تحديث AJAX للجدول عند البحث أو التصفح
     function updateTable(url) {
@@ -43,6 +93,10 @@
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             success: function(data) {
                 $('#tableContainer').html(data).fadeTo(200, 1);
+            },
+            error: function() {
+                $('#tableContainer').fadeTo(200, 1);
+                alert("حدث خطأ أثناء تحميل البيانات، يرجى المحاولة مرة أخرى.");
             }
         });
     }
