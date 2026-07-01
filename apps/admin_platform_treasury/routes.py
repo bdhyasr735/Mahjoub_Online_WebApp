@@ -31,8 +31,11 @@ def index():
     last_trans = base_query.order_by(WalletTransaction.id.desc()).first()
     total_balance = last_trans.balance_after if last_trans else 0.00
     
-    # 4. إجمالي محفظة الموردين (يمكن إضافة تصفية بالعملة إذا كان الموديل يدعم ذلك)
-    total_supplier_wallet = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or 0.00
+    # 4. إجمالي محفظة الموردين (استخدام try-except لتجنب خطأ الأعمدة المفقودة أثناء التحديث)
+    try:
+        total_supplier_wallet = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or 0.00
+    except Exception:
+        total_supplier_wallet = 0.00
     
     # 5. الترقيم (Pagination) للحركات المالية المفلترة
     pagination = base_query.order_by(WalletTransaction.created_at.desc()).paginate(
