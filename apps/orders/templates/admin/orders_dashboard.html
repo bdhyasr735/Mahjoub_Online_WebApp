@@ -1,91 +1,50 @@
-{% extends "admin/admin_base.html" %}
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}إدارة الطلبات{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid py-4">
+    <!-- الرأس والإحصائيات -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>إدارة الطلبات المزامنة</h3>
-        <div>
-            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-secondary me-2">
-                <i class="fas fa-arrow-right"></i> رجوع للوحة التحكم
-            </a>
-            <form action="{{ url_for('orders.sync_all') }}" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-sync-alt"></i> مزامنة البيانات
-                </button>
-            </form>
+        <h3 class="fw-bold text-royal-purple"><i class="fas fa-shopping-bag me-2"></i>طلبات المتجر</h3>
+        <form action="{{ url_for('orders.sync_all') }}" method="POST">
+            <button type="submit" class="btn btn-royal-back"><i class="fas fa-sync-alt me-2"></i>مزامنة الطلبات</button>
+        </form>
+    </div>
+
+    <!-- بطاقات الإحصائيات -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="card p-3 shadow-sm border-start border-primary border-4"><h6>المكتملة</h6><h3>{{ stats.completed }}</h3></div></div>
+        <div class="col-md-4"><div class="card p-3 shadow-sm border-start border-danger border-4"><h6>الملغاة</h6><h3>{{ stats.cancelled }}</h3></div></div>
+        <div class="col-md-4"><div class="card p-3 shadow-sm border-start border-success border-4"><h6>إجمالي المبيعات</h6><h3>{{ "{:,.2f}".format(stats.total_sales) }}</h3></div></div>
+    </div>
+
+    <!-- الفلاتر -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            {% include 'admin/partials/_filters.html' %}
         </div>
     </div>
 
-    <div class="card mb-3">
-        <div class="card-body">
-            <form method="GET" action="{{ url_for('orders.dashboard') }}" class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" name="q" class="form-control" placeholder="بحث باسم العميل أو رقم الطلب..." value="{{ request.args.get('q', '') }}">
-                </div>
-                <div class="col-md-3">
-                    <select name="status" class="form-select">
-                        <option value="">كل الحالات</option>
-                        <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
-                        <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>معلق</option>
-                        <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>ملغي</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-dark w-100">تصفية</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-body">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>رقم الطلب</th>
-                        <th>اسم العميل</th>
-                        <th>الحالة</th>
-                        <th>الإجمالي</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in pagination.items %}
-                    <tr>
-                        <td>{{ item[0].order_id_display }}</td>
-                        <td>{{ item[0].customer_name }}</td>
-                        <td>
-                            <span class="badge {% if item[0].status == 'completed' %}bg-success{% else %}bg-info{% endif %}">
-                                {{ item[0].status }}
-                            </span>
-                        </td>
-                        <td>{{ "{:,.2f}".format(item[1].total_paid) if item[1] and item[1].total_paid else '0.00' }}</td>
-                        <td>
-                            <a href="{{ url_for('orders.view_order', order_id=item[0].id) }}" class="btn btn-sm btn-outline-primary">عرض</a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center py-4">لا توجد طلبات لعرضها حالياً.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-
-            <nav aria-label="Page navigation">
-                <ul class="pagination justify-content-center mt-3">
-                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                        {% if page_num %}
-                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('orders.dashboard', page=page_num, q=request.args.get('q'), status=request.args.get('status')) }}">{{ page_num }}</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                        {% endif %}
-                    {% endfor %}
-                </ul>
-            </nav>
+    <!-- جدول الطلبات -->
+    <div class="card shadow-sm">
+        <div id="tableContainer">
+            {% include 'admin/partials/_table.html' %}
         </div>
     </div>
 </div>
+
+<script>
+    // تحديث AJAX للجدول عند البحث أو التصفح
+    function updateTable(url) {
+        $('#tableContainer').fadeTo(200, 0.5);
+        $.ajax({
+            url: url,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            success: function(data) {
+                $('#tableContainer').html(data).fadeTo(200, 1);
+            }
+        });
+    }
+</script>
 {% endblock %}
