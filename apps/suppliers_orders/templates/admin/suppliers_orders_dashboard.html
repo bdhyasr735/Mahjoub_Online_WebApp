@@ -1,1 +1,85 @@
+<!-- 📂 apps/suppliers_orders/templates/admin/suppliers_orders_dashboard.html -->
+{% extends 'admin/admin_base.html' %}
 
+{% block title %}طلبات الموردين{% endblock %}
+
+{% block content %}
+<style>
+    .card-stat { border-right: 5px solid #1a0b2e; transition: 0.3s; }
+    .card-stat:hover { transform: translateY(-3px); }
+    .text-mahjoub-gold { color: #D4AF37; }
+</style>
+
+<div class="container-fluid py-4">
+    <!-- الرأس -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark"><i class="fas fa-truck-loading me-2 text-royal-purple"></i>طلبات الموردين</h3>
+            <p class="text-muted small">متابعة دقيقة لعمليات التوريد والطلبات المسندة</p>
+        </div>
+    </div>
+
+    <!-- بطاقات الإحصائيات -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card p-4 shadow-sm card-stat">
+                <small class="text-muted text-uppercase fw-bold">إجمالي الطلبات المسندة</small>
+                <h2 class="fw-bold text-dark mt-2">{{ pagination.total }}</h2>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-4 shadow-sm card-stat border-warning">
+                <small class="text-muted text-uppercase fw-bold">حالة المزامنة الأخيرة</small>
+                <h2 class="fw-bold text-mahjoub-gold mt-2">متصل</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- فلتر الموردين -->
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-body">
+            <form id="supplierFilterForm" class="row g-3 align-items-center">
+                <div class="col-md-8">
+                    <label class="form-label fw-bold small">فلترة حسب المورد:</label>
+                    <select name="supplier_id" class="form-select" onchange="updateSupplierTable('{{ url_for('suppliers_orders.dashboard') }}?supplier_id=' + this.value)">
+                        <option value="">عرض جميع الطلبات من كل الموردين...</option>
+                        {% for s in suppliers %}
+                        <option value="{{ s.id }}" {% if request.args.get('supplier_id')|int == s.id %}selected{% endif %}>
+                            {{ s.trade_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button type="button" class="btn btn-outline-dark" onclick="window.location.reload()">تحديث القائمة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول الطلبات -->
+    <div class="card shadow-sm border-0">
+        <div id="supplierTableContainer" class="table-responsive p-3">
+            {% include 'admin/partials/_supplier_table.html' %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // تحديث الجدول ديناميكياً
+    function updateSupplierTable(url) {
+        $('#supplierTableContainer').fadeTo(200, 0.5);
+        $.ajax({
+            url: url,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            success: function(data) {
+                $('#supplierTableContainer').html(data).fadeTo(200, 1);
+            },
+            error: function() {
+                alert("تعذر تحديث البيانات");
+                $('#supplierTableContainer').fadeTo(200, 1);
+            }
+        });
+    }
+</script>
+{% endblock %}
