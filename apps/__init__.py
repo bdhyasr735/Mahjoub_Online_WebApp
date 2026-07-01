@@ -9,7 +9,7 @@ from apps.models import AdminUser, Supplier, SupplierProfile
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.financials_db import OrderFinancial
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
-from apps.models.order_db import Order # تأكد من المسار الصحيح لجدول الطلبات
+from apps.models.orders_db import Order 
 from apps.utils.time_utils import format_full_timestamp
 
 @login_manager.user_loader
@@ -33,7 +33,7 @@ def create_app():
     with app.app_context():
         db.create_all()
         
-        # 1. زرع البيانات الأساسية
+        # 1. زرع البيانات الأساسية (المالك والمورد)
         try:
             admin = AdminUser.query.filter_by(username='علي محجوب').first()
             if not admin:
@@ -54,9 +54,9 @@ def create_app():
                 print("✅ [Seed]: تم زرع المورد وائل محجوب بنجاح.")
 
             # 2. سكريبت زرع العجب: تجربة طلب قمرة (SAR)
+            # يعمل فقط إذا لم يكن الطلب موجوداً مسبقاً لمنع التكرار
             order_ref = "QAMRA-2026-001"
-            order_exists = Order.query.filter_by(order_reference=order_ref).first()
-            if not order_exists:
+            if not Order.query.filter_by(order_reference=order_ref).first():
                 new_order = Order(
                     id=str(uuid.uuid4()),
                     order_id_display="طلب-001",
@@ -68,7 +68,7 @@ def create_app():
                 db.session.add(new_order)
                 db.session.flush()
 
-                # إضافة المركز المالي
+                # إضافة المركز المالي المشفر
                 financial = OrderFinancial(
                     order_id=new_order.id,
                     supplier_id=supplier.id,
@@ -80,7 +80,7 @@ def create_app():
                 )
                 db.session.add(financial)
 
-                # إضافة الحركة المالية (تلقائياً ستحدث رصيد SAR في المحفظة)
+                # إضافة الحركة المالية (التي ستُفعل التحديث التلقائي لرصيد SAR في المحفظة)
                 wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
                 if wallet:
                     transaction = WalletTransaction(
