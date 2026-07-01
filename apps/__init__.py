@@ -1,4 +1,6 @@
 # coding: utf-8
+# 📂 apps/__init__.py
+
 import os
 import importlib
 import uuid
@@ -31,16 +33,10 @@ def create_app():
     login_manager.login_view = 'suppliers_auth.login'
 
     with app.app_context():
-        # [إصلاح طوارئ]: التأكد من وجود عمود العملة
-        try:
-            with db.engine.connect() as conn:
-                conn.execute(db.text("ALTER TABLE order_financials ADD COLUMN IF NOT EXISTS currency VARCHAR(5) DEFAULT 'SAR'"))
-                conn.commit()
-        except Exception as e:
-            print(f"⚠️ [Database Fix Alert]: {e}")
-
+        # 1. إنشاء الجداول وتحديث الهيكل
         db.create_all()
-        
+
+        # 2. سكريبت زرع البيانات (Data Seed) - مُحسّن
         try:
             admin = AdminUser.query.filter_by(username='علي محجوب').first()
             if not admin:
@@ -58,7 +54,14 @@ def create_app():
                 db.session.add(SupplierProfile(supplier_id=supplier.id, trade_name='محجوب أونلاين'))
                 db.session.commit()
 
-            # 2. سكريبت زرع العمليات المالية المفصلة
+            # التأكد من وجود محفظة للمورد
+            wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+            if not wallet:
+                wallet = SupplierWallet(wallet_code=f"MJ-{supplier.id}-2026", supplier_id=supplier.id)
+                db.session.add(wallet)
+                db.session.commit()
+
+            # زرع طلب تجريبي
             order_ref = "QAMRA-2026-001"
             if not Order.query.filter_by(order_reference=order_ref).first():
                 new_order = Order(
@@ -72,7 +75,6 @@ def create_app():
                 db.session.add(new_order)
                 db.session.flush()
 
-                # حفظ المالي المشفر
                 financial = OrderFinancial(
                     order_id=new_order.id,
                     supplier_id=supplier.id,
@@ -84,18 +86,12 @@ def create_app():
                 )
                 db.session.add(financial)
 
-                # إضافة الحركات المالية التفصيلية للوحة التحكم (كما طلبت)
-                wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
-                if wallet:
-                    # الحركة الأولى: تكلفة المورد
-                    db.session.add(WalletTransaction(wallet_id=wallet.id, owner_id=supplier.id, trans_type='supplier_cost', amount=400.00, currency='SAR'))
-                    # الحركة الثانية: عمولة المنصة
-                    db.session.add(WalletTransaction(wallet_id=wallet.id, owner_id=1, trans_type='platform_commission', amount=100.00, currency='SAR'))
-                    # الحركة الثالثة: عمولة مسوق (اختياري)
-                    # db.session.add(WalletTransaction(wallet_id=wallet.id, owner_id=2, trans_type='marketer_commission', amount=20.00, currency='SAR'))
+                # إضافة الحركات المالية
+                db.session.add(WalletTransaction(wallet_id=wallet.id, owner_id=supplier.id, trans_type='supplier_cost', amount=400.00, currency='SAR'))
+                db.session.add(WalletTransaction(wallet_id=wallet.id, owner_id=1, trans_type='platform_commission', amount=100.00, currency='SAR'))
                 
                 db.session.commit()
-                print("🚀 [الخزينة]: تم تسجيل الحركات المالية المفصلة بنجاح!")
+                print("🚀 [الخزينة]: تم تسجيل الحركات المالية بنجاح!")
 
         except Exception as e:
             db.session.rollback()
