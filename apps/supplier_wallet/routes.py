@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, abort, request
 from flask_login import login_required, current_user
 from flask_paginate import Pagination, get_page_parameter
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
+from apps.api.sync_engine import SyncEngine
 from datetime import datetime
 
 supplier_wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates')
@@ -62,3 +63,12 @@ def view_my_wallet():
         total_credit=total_credit,
         now=datetime.utcnow()
     )
+
+# مسار تجريبي لتشغيل المزامنة يدوياً من المتصفح
+@supplier_wallet_bp.route('/test-sync', methods=['GET'])
+@login_required
+def test_sync():
+    success = SyncEngine.fetch_and_sync_order()
+    if success:
+        return "✅ تم تنفيذ عملية المزامنة بنجاح، تحقق من محفظتك الآن."
+    return "❌ فشلت عملية المزامنة، تحقق من سجلات النظام (Logs)."
