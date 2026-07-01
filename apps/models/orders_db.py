@@ -1,4 +1,6 @@
 # coding: utf-8
+# 📂 apps/models/orders_db.py
+
 import os
 from datetime import datetime
 from cryptography.fernet import Fernet
@@ -12,9 +14,10 @@ def get_cipher():
 cipher = get_cipher()
 
 class Order(db.Model):
+    """موديل الطلبات: المحرك التشغيلي الذي يربط العميل بالمورد والمسوق."""
     __tablename__ = 'orders'
 
-    # تحسين الأداء: فهارس للبحث السريع عن الطلبات حسب المورد، الحالة، أو المسوق ووسم التتبع
+    # [فهرسة متقدمة]: للبحث السريع في آلاف الطلبات
     __table_args__ = (
         db.Index('idx_ord_supplier_id', 'supplier_id'),
         db.Index('idx_ord_marketer_id', 'marketer_id'),
@@ -31,17 +34,17 @@ class Order(db.Model):
     
     # الربط السيادي (تتبع المورد والمسوق)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
-    marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True) # ربط المسوق
+    marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
     tracking_tag = db.Column(db.String(100), nullable=True) # وسم التتبع الذكي
     
     order_reference = db.Column(db.String(100), unique=True, nullable=True) 
     
-    # بيانات ظاهرة (بدون تشفير) للتقارير والفلترة المالية السريعة
+    # بيانات ظاهرة (للفلترة والتقارير المالية السريعة)
     total_price = db.Column(db.Numeric(18, 2), default=0.00)
     items_count = db.Column(db.Integer, default=0)
     status = db.Column(db.String(30), default='pending') 
     
-    # بيانات مشفرة (لحماية خصوصية العميل)
+    # [تشفير حساس]: حماية خصوصية بيانات العميل
     _customer_name = db.Column(db.Text)
     _customer_phone = db.Column(db.Text)
     _customer_address = db.Column(db.Text)
@@ -52,15 +55,15 @@ class Order(db.Model):
 
     # العلاقات
     supplier = db.relationship('Supplier', back_populates='orders')
-    marketer = db.relationship('Marketer', back_populates='orders') # علاقة جديدة مع المسوق
+    marketer = db.relationship('Marketer', back_populates='orders')
     financials = db.relationship('OrderFinancial', back_populates='order', uselist=False, cascade="all, delete-orphan")
 
     # --- منطق التشفير الاحترافي ---
     
     @property
     def customer_name(self):
-        if not self._customer_name: return "غير معروف"
-        try: return cipher.decrypt(self._customer_name.encode()).decode()
+        try:
+            return cipher.decrypt(self._customer_name.encode()).decode() if self._customer_name else "غير معروف"
         except: return "خطأ في التشفير"
 
     @customer_name.setter
@@ -69,7 +72,8 @@ class Order(db.Model):
 
     @property
     def customer_phone(self):
-        try: return cipher.decrypt(self._customer_phone.encode()).decode() if self._customer_phone else None
+        try:
+            return cipher.decrypt(self._customer_phone.encode()).decode() if self._customer_phone else None
         except: return None
 
     @customer_phone.setter
@@ -78,7 +82,8 @@ class Order(db.Model):
 
     @property
     def customer_address(self):
-        try: return cipher.decrypt(self._customer_address.encode()).decode() if self._customer_address else None
+        try:
+            return cipher.decrypt(self._customer_address.encode()).decode() if self._customer_address else None
         except: return None
 
     @customer_address.setter
