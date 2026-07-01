@@ -3,6 +3,7 @@ import os
 import importlib
 from decimal import Decimal
 from flask import Flask, session
+from werkzeug.security import generate_password_hash
 from apps.extensions import db, login_manager, migrate
 from apps.models import AdminUser, Supplier, SupplierProfile, SupplierWallet, WalletTransaction, Order, OrderFinancial
 from apps.models.supplier_staff_db import SupplierStaff
@@ -29,8 +30,17 @@ def create_app():
     with app.app_context():
         db.create_all()
         
-        # 1. زرع البيانات الأساسية والمالية (بدون تسجيل مسارات يدوي)
+        # 1. زرع البيانات الأساسية والمالية
         try:
+            # زرع المالك: علي محجوب
+            admin = AdminUser.query.filter_by(username='Ali Mahjoub').first()
+            if not admin:
+                admin = AdminUser(username='Ali Mahjoub', password=generate_password_hash('123'))
+                db.session.add(admin)
+                db.session.commit()
+                print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
+
+            # زرع المورد وتفاصيل الطلب
             supplier = Supplier.query.filter_by(username='وائل محجوب').first()
             if not supplier:
                 supplier = Supplier(username='وائل محجوب', trade_name='محجوب أونلاين', phone='0500000000')
@@ -55,9 +65,10 @@ def create_app():
                 wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
                 if wallet:
                     amount = Decimal('1188.25')
+                    # تم إصلاح الخطأ هنا: إزالة credit= و debit= واستخدام الحقول المتاحة فقط
                     transaction = WalletTransaction(
                         wallet_id=wallet.id, owner_type='supplier', owner_id=supplier.id,
-                        credit=amount, debit=0.00, trans_type='credit', 
+                        amount=amount, trans_type='credit', 
                         source_type='order', currency='SAR', 
                         description='مستحقات المورد MAH-WEL9631', 
                         reference_number=custom_id, related_order_id=custom_id
@@ -71,11 +82,10 @@ def create_app():
             db.session.rollback()
             print(f"⚠️ [Data Seed Error]: {e}")
 
-        # 2. الاكتشاف التلقائي للموديولات (تسجيل المسارات ديناميكياً)
+        # 2. الاكتشاف التلقائي للموديولات
         apps_dir = app.root_path
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
-            # استثناء المجلدات الثابتة
             if item in ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'suppliers_auth']: continue
             
             registry_file = os.path.join(item_path, 'registry.py')
