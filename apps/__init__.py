@@ -29,10 +29,10 @@ def create_app():
     login_manager.login_view = 'suppliers_auth.login'
 
     with app.app_context():
-        # 1. إنشاء الجداول (دع SQLAlchemy يقوم بعمله)
+        # 1. إنشاء الجداول (سيعيد إنشاء أي جداول مفقودة بعد حذفنا اليدوي في Neon)
         db.create_all()
 
-        # 2. سكريبت زرع البيانات (Data Seed) المحمي والمجزأ لمنع التراجع الكلي (Rollback)
+        # 2. سكريبت زرع البيانات (Data Seed) المحمي والمجزأ
         
         # --- الجزء الأول: إنشاء المسؤول ---
         try:
@@ -41,7 +41,7 @@ def create_app():
                 admin = AdminUser(username='علي محجوب')
                 admin.set_password('123')
                 db.session.add(admin)
-                db.session.commit() # حفظ نهائي
+                db.session.commit()
                 print("✅ [Seed]: تم إنشاء المسؤول بنجاح.")
         except Exception as e:
             db.session.rollback()
@@ -54,18 +54,17 @@ def create_app():
                 supplier = Supplier(username='وائل محجوب', trade_name='محجوب أونلاين', phone='0500000000')
                 supplier.set_password('123')
                 db.session.add(supplier)
-                db.session.commit() # حفظ نهائي لضمان وجود الـ ID
+                db.session.commit() 
                 
                 db.session.add(SupplierProfile(supplier_id=supplier.id, trade_name='محجوب أونلاين'))
-                db.session.commit() # حفظ الملف الشخصي
+                db.session.commit()
                 print("✅ [Seed]: تم إنشاء المورد وملفه الشخصي بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Supplier Seed Error]: {e}")
 
-        # --- الجزء الثالث: إنشاء المحفظة (معزول تماماً عن البقية) ---
+        # --- الجزء الثالث: إنشاء المحفظة (معزول لضمان استقرار الدخول) ---
         try:
-            # نبحث عن المورد مرة أخرى لضمان وجوده في الجلسة الحالية
             current_supplier = Supplier.query.filter_by(username='وائل محجوب').first()
             if current_supplier:
                 wallet = SupplierWallet.query.filter_by(supplier_id=current_supplier.id).first()
@@ -75,7 +74,7 @@ def create_app():
                     print("✅ [Seed]: تم إنشاء المحفظة بنجاح.")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ [Wallet Seed Error]: خطأ في المحفظة (لن يمنع الدخول) - {e}")
+            print(f"⚠️ [Wallet Seed Error]: {e}")
 
         # 3. الاكتشاف التلقائي للموديولات
         apps_dir = app.root_path
