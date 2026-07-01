@@ -17,26 +17,29 @@ treasury_bp = Blueprint(
 @treasury_bp.route('/dashboard', methods=['GET'])
 @login_required
 def index():
-    """عرض الأستاذ العام (كشف حساب المنصة) مع دعم الترقيم والعملات."""
+    """عرض الأستاذ العام (كشف حساب المنصة) مع دعم الترقيم وفلترة العملات."""
     
-    # 1. فلتر العملات والصفحات
+    # 1. الحصول على العملة المختارة من الرابط
     currency = request.args.get('currency', 'SAR')
     page = request.args.get('page', 1, type=int)
     per_page = 20
     
-    # 2. إجمالي رصيد الخزينة (الرصيد التراكمي لآخر حركة)
-    last_trans = WalletTransaction.query.order_by(WalletTransaction.id.desc()).first()
+    # 2. إنشاء استعلام أساسي مفلتر بالعملة
+    base_query = WalletTransaction.query.filter_by(currency=currency)
+    
+    # 3. إجمالي رصيد الخزينة (لعملة محددة)
+    last_trans = base_query.order_by(WalletTransaction.id.desc()).first()
     total_balance = last_trans.balance_after if last_trans else 0.00
     
-    # 3. إجمالي محفظة الموردين
+    # 4. إجمالي محفظة الموردين (يمكن إضافة تصفية بالعملة إذا كان الموديل يدعم ذلك)
     total_supplier_wallet = db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or 0.00
     
-    # 4. الترقيم (Pagination) للحركات المالية
-    pagination = WalletTransaction.query.order_by(WalletTransaction.created_at.desc()).paginate(
+    # 5. الترقيم (Pagination) للحركات المالية المفلترة
+    pagination = base_query.order_by(WalletTransaction.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
     
-    # 5. معالجة البيانات للعرض
+    # 6. معالجة البيانات للعرض
     processed_transactions = []
     for t in pagination.items:
         is_credit = t.trans_type in ['credit', 'adjustment_credit', 'sale_revenue']
@@ -65,11 +68,10 @@ def filter_treasury():
     """دالة البحث المتقدم عن سند معين"""
     voucher = request.args.get('voucher')
     if voucher:
-        # البحث المباشر
         transactions = WalletTransaction.query.filter(
             WalletTransaction.voucher_number.like(f"%{voucher}%")
         ).all()
-        # تحويل بسيط للعرض
+        
         processed = []
         for t in transactions:
             is_credit = t.trans_type in ['credit', 'adjustment_credit', 'sale_revenue']
@@ -77,11 +79,12 @@ def filter_treasury():
                 'voucher_number': t.voucher_number,
                 'created_at': t.created_at,
                 'description': t.description,
+                'related_order_id': getattr(t, 'related_order_id', None),
                 'debit': 0.00 if is_credit else t.amount,
                 'credit': t.amount if is_credit else 0.00,
                 'balance_after': t.balance_after
             })
-        return render_template('admin_platform_treasury.html', transactions=processed)
+        return render_template('admin_platform_treasury.html', transactions=processed, active_currency='SAR')
     return index()
 
 def register_module(app):
