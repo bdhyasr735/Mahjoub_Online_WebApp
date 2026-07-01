@@ -3,6 +3,7 @@
 
 import os
 from datetime import datetime
+from decimal import Decimal
 from cryptography.fernet import Fernet
 from apps.extensions import db
 from sqlalchemy import event, func
@@ -55,7 +56,7 @@ class SupplierWallet(db.Model):
         else: self._bank_details_enc = None
 
 class WalletTransaction(db.Model):
-    """سجل الحركات المالية الموحد (دفتر الأستاذ) لكل المنصة."""
+    """سجل الحركات المالية الموحد (دفتر الأستاذ)."""
     __tablename__ = 'wallet_transactions'
     
     __table_args__ = (
@@ -91,25 +92,9 @@ class WalletTransaction(db.Model):
 
     wallet = db.relationship('SupplierWallet', back_populates='transactions')
 
-    @classmethod
-    def execute_transfer(cls, wallet_id, amount, trans_type, currency='SAR', owner_type='supplier', owner_id=0, description=''):
-        """المحرك المالي الرشيق: سطر كود واحد لتنفيذ أي عملية مالية."""
-        new_trans = cls(
-            wallet_id=wallet_id,
-            amount=amount,
-            trans_type=trans_type,
-            currency=currency,
-            owner_type=owner_type,
-            owner_id=owner_id,
-            description=description
-        )
-        db.session.add(new_trans)
-        db.session.commit()
-        return new_trans
-
 @event.listens_for(WalletTransaction, 'before_insert')
 def set_voucher_number(mapper, connection, target):
-    # توليد رقم القسيمة
+    # 1. توليد رقم القسيمة
     if not target.voucher_number:
         last_trans = db.session.query(func.max(WalletTransaction.voucher_number)).scalar()
         if last_trans and '-' in last_trans:
@@ -118,27 +103,29 @@ def set_voucher_number(mapper, connection, target):
         else: last_num = 12327
         target.voucher_number = f"MJ-2026-{last_num + 1:07d}"
 
-    # تحديث الأرصدة بناءً على العملة
+    # 2. تحديث الأرصدة (فرض Decimal لتجنب أخطاء float+Decimal)
     if target.balance_before is None or target.balance_after is None:
         wallet = SupplierWallet.query.get(target.wallet_id)
         if wallet:
-            # تحديد الرصيد الحالي بناءً على العملة
+            # تحويل القيم لـ Decimal
+            amount_dec = Decimal(str(target.amount or 0))
+            
             if target.currency == 'YER':
-                current = wallet.balance_yer or 0.00
+                current = Decimal(str(wallet.balance_yer or 0))
             elif target.currency == 'USD':
-                current = wallet.balance_usd or 0.00
-            else: # SAR افتراضياً
-                current = wallet.balance_sar or 0.00
+                current = Decimal(str(wallet.balance_usd or 0))
+            else: # SAR
+                current = Decimal(str(wallet.balance_sar or 0))
             
             target.balance_before = current
             
-            # حساب الحركة (إيداع أو سحب)
+            # العمليات الحسابية الآن بين Decimal و Decimal
             if target.trans_type in ['credit', 'adjustment_credit', 'sale_revenue']:
-                target.balance_after = current + target.amount
+                target.balance_after = current + amount_dec
             else:
-                target.balance_after = current - target.amount
+                target.balance_after = current - amount_dec
             
-            # حفظ الرصيد الجديد في العمود الصحيح
+            # حفظ النتائج
             if target.currency == 'YER':
                 wallet.balance_yer = target.balance_after
             elif target.currency == 'USD':
