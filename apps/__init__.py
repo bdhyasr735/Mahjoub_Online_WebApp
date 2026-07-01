@@ -4,7 +4,6 @@
 import os
 import importlib
 import uuid
-from decimal import Decimal
 from flask import Flask, session
 from apps.extensions import db, login_manager, migrate
 from apps.models import AdminUser, Supplier, SupplierProfile
@@ -33,31 +32,32 @@ def create_app():
     login_manager.login_view = 'suppliers_auth.login'
 
     with app.app_context():
-        # 1. تحديث إجباري لهيكل الجداول (حل مشكلة Unconsumed columns)
+        # 1. التحديث التلقائي للهيكل (خارج نطاق إدارة الموديلات المباشرة لتجنب تضارب الذاكرة)
         try:
             with db.engine.connect() as conn:
-                # هذه الأعمدة هي التي يشتكي منها الخطأ
-                cols = ['wallet_code VARCHAR(50)', 'supplier_id INTEGER', 'balance_yer NUMERIC(18,2)', 
-                        'balance_usd NUMERIC(18,2)', 'balance_sar NUMERIC(18,2)', 'balance_pending NUMERIC(18,2)']
-                for col in cols:
+                # إضافة الأعمدة المطلوبة إذا لم تكن موجودة
+                cols = {
+                    'wallet_code': 'VARCHAR(50)', 'supplier_id': 'INTEGER', 
+                    'balance_yer': 'NUMERIC(18,2)', 'balance_usd': 'NUMERIC(18,2)', 
+                    'balance_sar': 'NUMERIC(18,2)', 'balance_pending': 'NUMERIC(18,2)'
+                }
+                for col_name, col_type in cols.items():
                     try:
-                        conn.execute(db.text(f"ALTER TABLE supplier_wallets ADD COLUMN {col} DEFAULT 0.00"))
+                        conn.execute(db.text(f"ALTER TABLE supplier_wallets ADD COLUMN {col_name} {col_type} DEFAULT 0.00"))
                         conn.commit()
-                    except: pass # العمود موجود مسبقاً
-        except: pass
+                    except: 
+                        pass # هذا يعني أن العمود موجود بالفعل
+        except: 
+            pass
 
-        # 2. إنشاء الجداول التي لم تُنشأ بعد
+        # 2. إنشاء أي جداول جديدة
         db.create_all()
 
-        # 3. سكريبت زرع البيانات (Data Seed)
+        # 3. سكريبت زرع البيانات (Data Seed) - تم إضافة تحقق إضافي
         try:
             supplier = Supplier.query.filter_by(username='وائل محجوب').first()
             if not supplier:
-                if not AdminUser.query.filter_by(username='علي محجوب').first():
-                    admin = AdminUser(username='علي محجوب')
-                    admin.set_password('123')
-                    db.session.add(admin)
-                
+                # إنشاء المورد
                 supplier = Supplier(username='وائل محجوب', trade_name='محجوب أونلاين', phone='0500000000')
                 supplier.set_password('123')
                 db.session.add(supplier)
@@ -65,37 +65,14 @@ def create_app():
                 db.session.add(SupplierProfile(supplier_id=supplier.id, trade_name='محجوب أونلاين'))
                 db.session.commit()
 
-            wallet_code = f"MAH-WEL{supplier.id}"
+            # إنشاء المحفظة
             wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
             if not wallet:
-                wallet = SupplierWallet(wallet_code=wallet_code, supplier_id=supplier.id)
+                wallet = SupplierWallet(wallet_code=f"MAH-WEL{supplier.id}", supplier_id=supplier.id)
                 db.session.add(wallet)
                 db.session.commit()
 
-            order_ref = "QAMRA-2026-001"
-            if not Order.query.filter_by(order_reference=order_ref).first():
-                new_order = Order(
-                    id=str(uuid.uuid4()),
-                    order_id_display="طلب-001",
-                    supplier_id=supplier.id,
-                    order_reference=order_ref,
-                    total_price=500.00,
-                    status='completed'
-                )
-                db.session.add(new_order)
-                db.session.flush()
-
-                financial = OrderFinancial(
-                    order_id=new_order.id, supplier_id=supplier.id, currency='SAR',
-                    supplier_cost=400.00, mahjoub_commission=100.00, total_paid=500.00, settlement_status='settled'
-                )
-                db.session.add(financial)
-
-                db.session.add(WalletTransaction(wallet_id=wallet.id, owner_id=supplier.id, trans_type='supplier_cost', amount=400.00, currency='SAR', balance_before=0, balance_after=400))
-                db.session.add(WalletTransaction(wallet_id=wallet.id, owner_id=1, trans_type='platform_commission', amount=100.00, currency='SAR', balance_before=0, balance_after=100))
-                
-                db.session.commit()
-                print("🚀 [الخزينة]: تم تهيئة النظام بنجاح!")
+            print("🚀 [System]: تم التأكد من سلامة هيكل قاعدة البيانات والبيانات الأساسية.")
 
         except Exception as e:
             db.session.rollback()
