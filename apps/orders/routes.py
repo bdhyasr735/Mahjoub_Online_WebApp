@@ -18,10 +18,10 @@ def dashboard():
     page = request.args.get('page', 1, type=int)
     per_page = 20
     
-    # استخدام استعلام واحد ذكي
+    # 1. استخدام استعلام واحد ذكي لجلب البيانات والربط
     query = db.session.query(Order, OrderFinancial).outerjoin(OrderFinancial, Order.id == OrderFinancial.order_id)
     
-    # تطبيق الفلاتر
+    # 2. تطبيق الفلاتر
     q = request.args.get('q', '').strip()
     if q:
         query = query.filter(Order.order_id_display.ilike(f'%{q}%') | Order.customer_name.ilike(f'%{q}%'))
@@ -34,16 +34,18 @@ def dashboard():
         page=page, per_page=per_page, error_out=False
     )
     
-    # إحصائيات سريعة - تصحيح: نستخدم db.session.query مع العمود الفعلي
+    # 3. إحصائيات سريعة (استخدام العمود الخام total_paid_raw)
     try:
-        total_sales = db.session.query(func.sum(OrderFinancial.total_paid)).scalar() or 0
-    except Exception:
-        total_sales = 0 # تجاوز الخطأ في حال كان الموديل لا يزال يواجه تعارضاً
+        # هنا التعديل الجوهري: استخدام total_paid_raw بدلاً من total_paid
+        total_sales = db.session.query(func.sum(OrderFinancial.total_paid_raw)).scalar() or 0
+    except Exception as e:
+        print(f"⚠️ Error calculating stats: {e}")
+        total_sales = 0 
         
     stats = {
         'cancelled': Order.query.filter_by(status='cancelled').count(),
         'completed': Order.query.filter_by(status='completed').count(),
-        'total_sales': total_sales
+        'total_sales': float(total_sales) # تحويل الناتج لـ float لضمان العرض الصحيح
     }
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -51,4 +53,23 @@ def dashboard():
     
     return render_template('admin/orders_dashboard.html', pagination=pagination, stats=stats)
 
-# ... باقي الدوال (sync_all و view_order) تظل كما هي ...
+@orders_bp.route('/sync-all', methods=['POST'])
+@login_required
+def sync_all():
+    try:
+        if SyncEngine.fetch_and_sync_order():
+            flash("تم تحديث الطلبات بنجاح.", "success")
+        else:
+            flash("حدث خطأ أثناء المزامنة.", "danger")
+    except Exception as e:
+        flash(f"خطأ تقني: {str(e)}", "danger")
+    return redirect(url_for('orders.dashboard'))
+
+@orders_bp.route('/view-order/<int:order_id>') 
+@login_required
+def view_order(order_id):
+    result = db.session.query(Order, OrderFinancial)\
+        .outerjoin(OrderFinancial, Order.id == OrderFinancial.order_id)\
+        .filter(Order.id == order_id).first_or_404()
+        
+    return render_template('admin/order_details.html', order=result[0], financial=result[1])
