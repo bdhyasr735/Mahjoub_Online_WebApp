@@ -362,6 +362,7 @@
 </div>
 {% endif %}
 
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <!-- تضمين مكتبة الجافا سكريبت لـ Select2 -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
@@ -377,6 +378,7 @@ function buildSelect2Engine() {
         $('#supplier_id').select2({
             placeholder: "🔍 ابحث باسم المتجر أو المورد القانوني...",
             allowClear: true,
+            minimumResultsForSearch:0,
             dir: "rtl",
             width: '100%',
             dropdownParent: $('#select2Wrapper'),
@@ -388,6 +390,7 @@ function buildSelect2Engine() {
         });
 
         // مراقبة التغيير الفوري في القائمة لتحديث صلاحية الحقول والزر
+        $(document).on('select2:open',()=>setTimeout(()=>document.querySelector('.select2-search__field')?.focus(),50));
         $('#supplier_id').on('change.select2', function() {
             checkFormErrors();
         });
