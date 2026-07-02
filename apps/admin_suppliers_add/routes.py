@@ -61,7 +61,7 @@ def check_availability():
 @admin_suppliers_add_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_supplier_or_staff():
-    """نقطة دخول موحدة وآمنة لإضافة مورد (مالك كيان) أو موظف تشغيلي مع أتمتة المحفظة المالي."""
+    """نقطة دخول موحدة وآمنة لإضافة مورد (مالك كيان) أو موظف تشغيلي مع أتمتة المحفظة المالية."""
     
     if request.method == 'POST':
         action_type = request.form.get('action_type')  # 'owner' أو 'staff'
