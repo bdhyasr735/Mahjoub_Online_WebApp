@@ -40,7 +40,7 @@ def check_availability():
             return jsonify({'available': False, 'message': 'اسم المستخدم مسجل مسبقاً في النظام'})
         return jsonify({'available': True, 'message': 'اسم المستخدم متاح للاستخدام'})
 
-    # 2. التحقق من توفر وصحة رقم الهاتف (9 أرقام محلية يمنية بدون مفتاح دولي)
+    # 2. التحقق من توفر وصحة رقم الهاتف (9 أرقام محلية بدون مفتاح دولي)
     elif field_type == 'phone':
         if not re.match(r'^\d{9}$', value):
             return jsonify({'available': False, 'message': 'يجب أن يتكون رقم الهاتف من 9 أرقام فقط'})
@@ -172,9 +172,11 @@ def add_supplier_or_staff():
         except IntegrityError:
             db.session.rollback()
             flash("❌ خطأ فني: البيانات المدخلة تسببت في تعارض مع قواعد البيانات (مكررة).", "danger")
+            return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
         except Exception as e:
             db.session.rollback()
             flash(f"⚠️ حدث خطأ تقني غير متوقع: {str(e)}", "danger")
+            return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
 
     # -----------------------------------------------------------
     # مرحلة الـ GET (عرض الصفحة أو بعد الـ Redirect المباشر)
