@@ -5,7 +5,7 @@
 
 {% block content %}
 <style>
-    /* تخصيص الألوان بناءً على الهوية البصرية في image_89d3fd.png */
+    /* تخصيص الألوان بناءً على الهوية البصرية لمحجوب أونلاين */
     :root {
         --mahjoub-primary: #2d144d;    /* البنفسجي الداكن الفاخر */
         --mahjoub-accent: #dfb743;     /* الذهبي الخاص بمحجوب أونلاين */
@@ -82,7 +82,7 @@
         outline: none;
     }
 
-    /* أنماط التحقق المباشر */
+    /* أنماط التحقق المباشر والحيوي */
     .validation-badge {
         font-size: 0.85rem;
         font-weight: 500;
@@ -233,7 +233,7 @@ function toggleForm() {
     if (type === 'owner') {
         ownerFields.style.display = 'block';
         staffFields.style.display = 'none';
-        // تحديث متطلبات الحقول لمنع أخطاء المتصفح
+        // تحديث متطلبات الحقول لمنع أخطاء المتصفح عند الإرسال
         document.getElementById('owner_username').required = true;
         document.getElementById('owner_phone').required = true;
         document.getElementById('staff_username').required = false;
@@ -246,7 +246,7 @@ function toggleForm() {
         document.getElementById('staff_username').required = true;
         document.getElementById('staff_phone').required = true;
     }
-    // مسح الحالات السابقة عند التبديل
+    // مسح الحالات السابقة والـ Feedback عند التبديل
     resetValidationEffects();
 }
 
@@ -261,7 +261,7 @@ function resetValidationEffects() {
     });
 }
 
-// محرك الفحص الفوري Live AJAX Engine
+// محرك الفحص الفوري الحي عبر الـ AJAX Engine
 async function validateField(inputElement, type, feedbackElementId) {
     const value = inputElement.value.trim();
     const feedbackEl = document.getElementById(feedbackElementId);
@@ -272,7 +272,7 @@ async function validateField(inputElement, type, feedbackElementId) {
         return;
     }
 
-    // تحقق محلي سريع لأرقام الهواتف لتخفيف الضغط على السيرفر
+    // تحقق محلي سريع لأرقام الهواتف لتخفيف الضغط غير المبرر على السيرفر
     if (type === 'phone') {
         if (!/^\d+$/.test(value) || value.length !== 9) {
             inputElement.classList.remove('is-valid-input');
@@ -283,7 +283,7 @@ async function validateField(inputElement, type, feedbackElementId) {
         }
     }
 
-    // إرسال الطلب للخلفية فورا للفحص المباشر
+    // إرسال الطلب للخلفية فورا للفحص المباشر وإرجاع النتيجة
     try {
         const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
             method: "POST",
@@ -308,9 +308,9 @@ async function validateField(inputElement, type, feedbackElementId) {
     }
 }
 
-// ربط المستمعات (Event Listeners) بالحقول المطلوبة للعمل بشكل حيوي وفوري
+// ربط المستمعات (Event Listeners) بالحقول المطلوبة للعمل بشكل حيوي وفوري عند الكتابة
 document.addEventListener("DOMContentLoaded", () => {
-    // فحص المورد الأساسي
+    // فحص المورد الأساسي (المالك)
     document.getElementById('owner_username').addEventListener('input', function() {
         validateField(this, 'username', 'owner_username_feedback');
     });
@@ -318,7 +318,7 @@ document.addEventListener("DOMContentLoaded", () => {
         validateField(this, 'phone', 'owner_phone_feedback');
     });
 
-    // فحص الموظف التشغيلي
+    // فحص الموظف التشغيلي (التابع)
     document.getElementById('staff_username').addEventListener('input', function() {
         validateField(this, 'username', 'staff_username_feedback');
     });
