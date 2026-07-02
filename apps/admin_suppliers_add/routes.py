@@ -17,12 +17,12 @@ admin_suppliers_add_bp = Blueprint(
 )
 
 # -----------------------------------------------------------
-# API: للتحقق اللحظي والحي في الخلفية (فحص التكرار عبر الـ AJAX)
+# API: للتحقق اللحظي والحي في الخلفية
 # -----------------------------------------------------------
 @admin_suppliers_add_bp.route('/check_availability', methods=['POST'])
 @login_required
 def check_availability():
-    """توفير فحص ديناميكي فوري لمنع تكرار البيانات قبل اعتماد الإرسال من الواجهات."""
+    """توفير فحص ديناميكي فوري لمنع تكرار البيانات قبل اعتماد الإرسال."""
     data = request.get_json() or {}
     field_type = data.get('type')  # 'username' أو 'phone'
     value = data.get('value', '').strip()
@@ -55,7 +55,7 @@ def check_availability():
 
 
 # -----------------------------------------------------------
-# مسار الحفظ والمعالجة الرئيسي لبيانات النماذج (GET & POST)
+# مسار الحفظ والمعالجة الرئيسي
 # -----------------------------------------------------------
 @admin_suppliers_add_bp.route('/add', methods=['GET', 'POST'])
 @login_required
@@ -64,10 +64,10 @@ def add_supplier_or_staff():
     
     if request.method == 'POST':
         action_type = request.form.get('action_type')  # 'owner' أو 'staff'
-        temp_password = secrets.token_hex(4)  # توليد كلمة مرور عشوائية آمنة
+        temp_password = secrets.token_hex(4)
         
         try:
-            # ================= أولاً: معالجة إضافة المورد المالك =================
+            # ================= معالجة المورد المالك =================
             if action_type == 'owner':
                 username = request.form.get('username', '').strip()
                 phone = request.form.get('phone', '').strip()
@@ -113,7 +113,7 @@ def add_supplier_or_staff():
                 
                 flash(f"✅ تم تسجيل المورد بنجاح: {new_supplier.trade_name}", "success")
             
-            # ================= ثانياً: معالجة إضافة الموظف التشغيلي =================
+            # ================= معالجة الموظف التشغيلي =================
             elif action_type == 'staff':
                 staff_username = request.form.get('staff_username', '').strip()
                 staff_phone = request.form.get('staff_phone', '').strip()
@@ -157,9 +157,7 @@ def add_supplier_or_staff():
             flash(f"⚠️ حدث خطأ تقني: {str(e)}", "danger")
             return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
 
-    # -----------------------------------------------------------
-    # مرحلة الـ GET (عرض الصفحة)
-    # -----------------------------------------------------------
+    # عرض الصفحة (GET)
     new_user = session.pop('new_user_data', None)
     suppliers = Supplier.query.order_by(Supplier.trade_name.asc()).all()
     
