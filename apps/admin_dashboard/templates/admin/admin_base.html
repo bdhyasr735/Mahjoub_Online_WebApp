@@ -54,7 +54,8 @@
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-handshake me-3"></i> <span>إدارة الموردين</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
                     <li><a href="{{ url_for('supplier_app.list_suppliers') }}"><i class="fas fa-list-ul me-2"></i> قائمة الشركاء</a></li>
-                    <li><a href="{{ url_for('admin_suppliers_add.add_supplier') }}"><i class="fas fa-user-plus me-2"></i> إضافة شريك</a></li>
+                    <!-- تم تصحيح المسار هنا حسب التقرير الفني -->
+                    <li><a href="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}"><i class="fas fa-user-plus me-2"></i> إضافة شريك</a></li>
                 </ul>
             </div>
 
