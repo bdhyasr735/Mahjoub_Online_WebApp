@@ -62,7 +62,7 @@
                 <div class="nav-link" id="finance-nav" onclick="toggleSub(this)"><i class="fas fa-wallet me-3"></i> <span>الرقابة المالية</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content" id="finance-dropdown">
                     <li>
-                        <a href="/admin/treasury/dashboard" class="{{ 'active' if request.endpoint == 'treasury.treasury_dashboard' }}">
+                        <a href="{{ url_for('treasury.treasury_dashboard') }}" class="{{ 'active' if request.endpoint == 'treasury.treasury_dashboard' }}">
                            <i class="fas fa-vault me-2"></i> خزينة المنصة
                         </a>
                     </li>
