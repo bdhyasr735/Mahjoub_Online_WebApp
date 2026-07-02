@@ -59,6 +59,7 @@
         font-weight: 600;
         border-radius: 8px;
         transition: all 0.3s ease;
+        cursor: pointer;
     }
 
     .btn-mahjoub-outline:hover {
@@ -111,10 +112,10 @@
     }
 
     /* ==========================================
-       تنسيقات مخصصة لـ Select2 لتطابق نظام محجوب أونلاين
+       تنسيقات احترافية ومثبتة لـ Select2 متوافقة مع الـ RTL
        ========================================== */
     .select2-container--default .select2-selection--single {
-        height: calc(1.3rem + 1.3rem + 2px) !important; /* نفس ارتفاع حقول النظام المعتادة */
+        height: calc(1.5rem + 1.3rem + 2px) !important;
         border: 1.5px solid #e2e8f0 !important;
         border-radius: 8px !important;
         padding: 0.65rem 1rem !important;
@@ -123,7 +124,6 @@
         transition: all 0.2s ease-in-out !important;
     }
 
-    /* تأثير الـ Focus للحقل المنسدل */
     .select2-container--default.select2-container--open .select2-selection--single,
     .select2-container--default.select2-container--focus .select2-selection--single {
         border-color: var(--mahjoub-accent) !important;
@@ -131,7 +131,6 @@
         outline: none !important;
     }
 
-    /* نص الخيار المختار */
     .select2-container--default .select2-selection--single .select2-selection__rendered {
         color: var(--mahjoub-primary) !important;
         font-weight: 600 !important;
@@ -140,35 +139,45 @@
         line-height: normal !important;
     }
 
-    /* السهم الخاص بالقائمة المنسدلة للـ RTL */
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 100% !important;
         top: 0 !important;
-        left: 12px !important; /* نقله لليسار للواجهات العربية */
+        left: 12px !important;
         right: auto !important;
     }
 
-    /* الصندوق السفلي المنسدل للنتائج */
     .select2-dropdown {
-        border: 1.5px solid var(--mahjoub-accent) !important;
+        border: 1.5px solid var(--mahjoub-primary) !important;
         border-radius: 8px !important;
-        box-shadow: 0 8px 24px rgba(45, 20, 77, 0.08) !important;
+        box-shadow: 0 8px 24px rgba(45, 20, 77, 0.12) !important;
         overflow: hidden !important;
-        z-index: 1060 !important;
+        z-index: 9999 !important;
     }
 
-    /* صندوق البحث المدمج المباشر */
+    /* إصلاح وإظهار محرك البحث داخل القائمة الاحترافية */
+    .select2-search--dropdown {
+        display: block !important;
+        padding: 8px !important;
+        background-color: #f8f9fa !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+
     .select2-container--default .select2-search--dropdown .select2-search__field {
-        border: 1.5px solid #e2e8f0 !important;
+        border: 1.5px solid #cbd5e1 !important;
         border-radius: 6px !important;
         padding: 0.5rem 0.75rem !important;
         outline: none !important;
-    }
-    .select2-container--default .select2-search--dropdown .select2-search__field:focus {
-        border-color: var(--mahjoub-primary) !important;
+        direction: rtl !important;
+        text-align: right !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
-    /* تأثير تمرير الماوس فوق الخيارات المعروضة */
+    .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+        border-color: var(--mahjoub-primary) !important;
+        box-shadow: 0 0 0 3px rgba(45, 20, 77, 0.1) !important;
+    }
+
     .select2-container--default .select2-results__option--highlighted[aria-selected] {
         background-color: var(--mahjoub-primary) !important;
         color: #ffffff !important;
@@ -191,9 +200,10 @@
                     </div>
                     <h3 class="fw-bold mb-0" style="color: var(--mahjoub-primary);">إضافة شريك نجاح جديد</h3>
                 </div>
-                <a href="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" class="btn btn-mahjoub-outline d-flex align-items-center gap-2">
-                    <i class="fas fa-arrow-right"></i> لوحة الإدارة
-                </a>
+                <!-- تحديث منطق الزر ليعود خطوة للخلف منطقياً بحسب تصفح المشرف -->
+                <button onclick="window.history.back();" class="btn btn-mahjoub-outline d-flex align-items-center gap-2">
+                    <i class="fas fa-arrow-right"></i> العودة للصفحة السابقة
+                </button>
             </div>
 
             <div class="card card-mahjoub overflow-hidden">
@@ -245,13 +255,15 @@
                         <div id="staffFields" style="display: none;">
                             <div class="mb-4">
                                 <label class="form-label">المورد القانوني التابع له الحساب:</label>
-                                <select name="supplier_id" id="supplier_id" class="form-select fw-bold" dir="rtl">
-                                    <!-- خيار فارغ لتهيئة الـ Placeholder الذكي للمكتبة -->
-                                    <option value=""></option>
-                                    {% for s in suppliers %}
-                                    <option value="{{ s.id }}">🏢 {{ s.trade_name }} ({{ s.username }})</option>
-                                    {% endfor %}
-                                </select>
+                                <!-- غلاف مخصص لحصر إحداثيات صندوق البحث ومنعه من التطاير في أرجاء الشاشة -->
+                                <div id="select2Wrapper" style="position: relative;">
+                                    <select name="supplier_id" id="supplier_id" class="form-select fw-bold" dir="rtl">
+                                        <option value=""></option>
+                                        {% for s in suppliers %}
+                                        <option value="{{ s.id }}">🏢 {{ s.trade_name }} ({{ s.username }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -316,7 +328,7 @@
                     </div>
                 </div>
 
-                <div class="alert alert-danger py-2 mb-2 border-0 shadow-none text-center small fw-bold shadow-sm animate__animated animate__headShake" style="border-radius: 8px; color: #842029; background-color: #f8d7da;">
+                <div class="alert alert-danger py-2 mb-2 border-0 shadow-none text-center small p-3 fw-bold shadow-sm" style="border-radius: 8px; color: #842029; background-color: #f8d7da;">
                     <i class="fas fa-exclamation-triangle me-1"></i> يرجى تغيير كلمة المرور من إعدادات لوحة التحكم محجوب أونلاين | سوقك الذكي.
                 </div>
 
@@ -339,6 +351,34 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
+// دالة موحدة لبناء وتهيئة محرك البحث لمنع الـ Layout Break عند استدعائه داخل عناصر مخفية
+function buildSelect2Engine() {
+    if (typeof jQuery !== 'undefined' && $.fn.select2) {
+        // تدمير أي تكرار قديم للمحرك لضمان بناء نظيف وخالٍ من الأخطاء الرسومية
+        if ($('#supplier_id').hasClass("select2-hidden-accessible")) {
+            $('#supplier_id').select2('destroy');
+        }
+
+        $('#supplier_id').select2({
+            placeholder: "🔍 ابحث باسم المتجر أو المورد القانوني...",
+            allowClear: true,
+            dir: "rtl",
+            width: '100%',
+            dropdownParent: $('#select2Wrapper'), // إجبار القائمة المنسدلة على التموضع التلقائي داخل الغلاف المرئي
+            language: {
+                noResults: function() {
+                    return "❌ لا توجد نتائج مطابقة لبحثك";
+                }
+            }
+        });
+
+        // مراقبة التغيير الفوري في القائمة لتحديث صلاحية الحقول
+        $('#supplier_id').on('change', function() {
+            checkFormErrors();
+        });
+    }
+}
+
 // تبديل النوافذ والكيانات بسلاسة وإدارة الـ required ديناميكياً لمنع حظر المتصفح الصامت
 function toggleForm() {
     const type = document.getElementById('actionTypeSelector').value;
@@ -372,10 +412,8 @@ function toggleForm() {
         document.getElementById('staff_username').required = true;
         document.getElementById('staff_phone').required = true;
 
-        // إعادة تهيئة أبعاد وحجم حقل Select2 عند إظهاره لتفادي مشاكل الـ Responsive
-        if (typeof jQuery !== 'undefined') {
-            $('#supplier_id').select2('open').select2('close');
-        }
+        // بناء المحرك فوراً بعد أن أصبح العنصر الأب مرئياً (مما يضمن عرض شريط البحث وحجم حقيقي 100%)
+        setTimeout(buildSelect2Engine, 50);
     }
     // مسح الحالات السابقة والـ Feedback عند التبديل
     resetValidationEffects();
@@ -470,25 +508,8 @@ function checkFormErrors() {
 
 // ربط المستمعات (Event Listeners) ووظائف التشغيل الآلي للمودال عند التحميل
 document.addEventListener("DOMContentLoaded", () => {
-    // تهيئة محرك بحث القائمة المنسدلة (الفرز الاحتوائي الفوري واللحظي)
-    if (typeof jQuery !== 'undefined') {
-        $('#supplier_id').select2({
-            placeholder: "🔍 ابحث باسم المتجر أو المورد القانوني...",
-            allowClear: true,
-            dir: "rtl",
-            width: '100%',
-            language: {
-                noResults: function() {
-                    return "❌ لا توجد نتائج مطابقة لبحثك";
-                }
-            }
-        });
-
-        // مراقبة التغيير الفوري في القائمة لتحديث صلاحية الزر الأساسي
-        $('#supplier_id').on('change', function() {
-            checkFormErrors();
-        });
-    }
+    // تهيئة محرك البحث في الوضع الافتراضي إذا كانت نافذة الموظفين مفتوحة مسبقاً لأي سبب
+    buildSelect2Engine();
 
     // فحص المورد الأساسي (المالك)
     document.getElementById('owner_username').addEventListener('input', function() {
@@ -506,7 +527,7 @@ document.addEventListener("DOMContentLoaded", () => {
         validateField(this, 'phone', 'staff_phone_feedback');
     });
 
-    // الاستدعاء التلقائي للمودال في حال توفر بيانات مستخدم من السيرفر
+    // الاستدعائي التلقائي للمودال في حال توفر بيانات مستخدم من السيرفر
     {% if new_user %}
     const userModalEl = document.getElementById('newUserModal');
     if (userModalEl) {
