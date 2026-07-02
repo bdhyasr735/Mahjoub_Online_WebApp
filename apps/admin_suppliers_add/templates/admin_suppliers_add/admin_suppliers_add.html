@@ -4,6 +4,7 @@
 {% block title %}إضافة شريك جديد | محجوب أونلاين{% endblock %}
 
 {% block content %}
+{% if current_user.is_authenticated %}
 <!-- تضمين ملفات مكتبة Select2 للبحث الذكي -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
@@ -504,4 +505,13 @@ function copyCredentials() {
 }
 {% endif %}
 </script>
+{% else %}
+<!-- رسالة في حال عدم تسجيل الدخول -->
+<div class="container py-5 text-center">
+    <div class="alert alert-warning">
+        <h4>عذراً، يجب عليك تسجيل الدخول للوصول لهذه الصفحة.</h4>
+        <a href="{{ url_for('login_route') }}" class="btn btn-primary mt-3">الذهاب لصفحة تسجيل الدخول</a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
