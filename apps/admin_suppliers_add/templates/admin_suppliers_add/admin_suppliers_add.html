@@ -5,7 +5,7 @@
 
 {% block content %}
 {% if current_user.is_authenticated %}
-<!-- تضمين ملفات مكتبة Select2 للبحث الذكي -->
+<!-- تضمين مكتبة Select2 -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <style>
@@ -204,7 +204,6 @@
                     </div>
 
                     <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="partnerForm" onsubmit="handleFormSubmit()">
-                        <!-- إضافة رمز الحماية CSRF -->
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action_type" id="actionTypeInput" value="owner">
                         
@@ -333,7 +332,6 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-// تفعيل حالة التحميل عند الإرسال
 function handleFormSubmit() {
     const btn = document.getElementById('submitBtn');
     const text = document.getElementById('submitText');
@@ -506,7 +504,6 @@ function copyCredentials() {
 {% endif %}
 </script>
 {% else %}
-<!-- رسالة في حال عدم تسجيل الدخول -->
 <div class="container py-5 text-center">
     <div class="alert alert-warning">
         <h4>عذراً، يجب عليك تسجيل الدخول للوصول لهذه الصفحة.</h4>
