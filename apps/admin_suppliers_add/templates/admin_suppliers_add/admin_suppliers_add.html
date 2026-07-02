@@ -141,7 +141,7 @@
                         </select>
                     </div>
 
-                    <!-- استمارة الإدخال -->
+                    <!-- :استمارة الإدخال -->
                     <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="partnerForm">
                         <input type="hidden" name="action_type" id="actionTypeInput" value="owner">
                         
@@ -155,7 +155,8 @@
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">الاسم التجاري للمتجر/المؤسسة:</label>
-                                    <input type="text" name="trade_name" class="form-control" placeholder="مثال: شركة محجوب للخدمات" required>
+                                    <!-- تم إضافة الـ id هنا لإدارته برمجياً ومنع تعليق النموذج -->
+                                    <input type="text" name="trade_name" id="trade_name" class="form-control" placeholder="مثال: شركة محجوب للخدمات" required>
                                 </div>
                             </div>
                             <div class="row">
@@ -222,7 +223,7 @@
 </div>
 
 <script>
-// تبديل النوافذ والكيانات بسلاسة
+// تبديل النوافذ والكيانات بسلاسة وإدارة الـ required ديناميكياً لمنع حظر المتصفح الصامت
 function toggleForm() {
     const type = document.getElementById('actionTypeSelector').value;
     document.getElementById('actionTypeInput').value = type;
@@ -233,16 +234,25 @@ function toggleForm() {
     if (type === 'owner') {
         ownerFields.style.display = 'block';
         staffFields.style.display = 'none';
-        // تحديث متطلبات الحقول لمنع أخطاء المتصفح عند الإرسال
+        
+        // تفعيل المتطلبات لحقول المورد المالك
         document.getElementById('owner_username').required = true;
+        document.getElementById('trade_name').required = true;
         document.getElementById('owner_phone').required = true;
+        
+        // إلغاء المتطلبات لحقول الموظف
         document.getElementById('staff_username').required = false;
         document.getElementById('staff_phone').required = false;
     } else {
         ownerFields.style.display = 'none';
         staffFields.style.display = 'block';
+        
+        // إلغاء المتطلبات لحقول المورد المالك لضمان عدم حظر الإرسال عند إخفائها
         document.getElementById('owner_username').required = false;
+        document.getElementById('trade_name').required = false; 
         document.getElementById('owner_phone').required = false;
+        
+        // تفعيل المتطلبات لحقول الموظف
         document.getElementById('staff_username').required = true;
         document.getElementById('staff_phone').required = true;
     }
@@ -259,6 +269,7 @@ function resetValidationEffects() {
             feedback.innerHTML = '';
         }
     });
+    checkFormErrors();
 }
 
 // محرك الفحص الفوري الحي عبر الـ AJAX Engine
@@ -269,6 +280,7 @@ async function validateField(inputElement, type, feedbackElementId) {
     if (!value) {
         inputElement.classList.remove('is-valid-input', 'is-invalid-input');
         feedbackEl.innerHTML = '';
+        checkFormErrors();
         return;
     }
 
@@ -279,11 +291,12 @@ async function validateField(inputElement, type, feedbackElementId) {
             inputElement.classList.add('is-invalid-input');
             feedbackEl.innerHTML = '❌ يجب أن يتكون الرقم من 9 أرقام فقط ويحتوي على أعداد.';
             feedbackEl.style.color = '#dc3545';
+            checkFormErrors();
             return;
         }
     }
 
-    // إرسال الطلب للخلفية فورا للفحص المباشر وإرجاع النتيجة
+    // إرسال الطلب للخلفية فوراً للفحص المباشر وإرجاع النتيجة
     try {
         const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
             method: "POST",
@@ -303,9 +316,29 @@ async function validateField(inputElement, type, feedbackElementId) {
             feedbackEl.innerHTML = `${data.message}`;
             feedbackEl.style.color = '#dc3545';
         }
+        
+        // فحص الأخطاء لتعطيل أو تمكين زر الإرسال
+        checkFormErrors();
+        
     } catch (error) {
         console.error("خطأ أثناء الفحص المباشر:", error);
     }
+}
+
+// وظيفة مراقبة الأخطاء لمنع الإرسال في حال وجود حقول غير صالحة مكررة
+function checkFormErrors() {
+    const activeType = document.getElementById('actionTypeSelector').value;
+    let hasErrors = false;
+
+    if (activeType === 'owner') {
+        hasErrors = document.getElementById('owner_username').classList.contains('is-invalid-input') || 
+                    document.getElementById('owner_phone').classList.contains('is-invalid-input');
+    } else {
+        hasErrors = document.getElementById('staff_username').classList.contains('is-invalid-input') || 
+                    document.getElementById('staff_phone').classList.contains('is-invalid-input');
+    }
+
+    document.getElementById('submitBtn').disabled = hasErrors;
 }
 
 // ربط المستمعات (Event Listeners) بالحقول المطلوبة للعمل بشكل حيوي وفوري عند الكتابة
