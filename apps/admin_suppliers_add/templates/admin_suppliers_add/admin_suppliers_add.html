@@ -141,7 +141,7 @@
                         </select>
                     </div>
 
-                    <!-- :استمارة الإدخال -->
+                    <!-- استمارة الإدخال -->
                     <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="partnerForm">
                         <input type="hidden" name="action_type" id="actionTypeInput" value="owner">
                         
@@ -155,7 +155,6 @@
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">الاسم التجاري للمتجر/المؤسسة:</label>
-                                    <!-- تم إضافة الـ id هنا لإدارته برمجياً ومنع تعليق النموذج -->
                                     <input type="text" name="trade_name" id="trade_name" class="form-control" placeholder="مثال: شركة محجوب للخدمات" required>
                                 </div>
                             </div>
@@ -221,6 +220,50 @@
         </div>
     </div>
 </div>
+
+<!-- ================= النافذة المنبثقة التفاعلية لبيانات الحساب المنشأ حديثاً ================= -->
+{% if new_user %}
+<div class="modal fade" id="newUserModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="newUserModalLabel" aria-hidden="true" dir="rtl">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 15px 40px rgba(45, 20, 77, 0.25); overflow: hidden;">
+            <div class="modal-header text-white" style="background-color: var(--mahjoub-primary); border-bottom: 3px solid var(--mahjoub-accent);">
+                <h5 class="modal-title fw-bold" id="newUserModalLabel"><i class="fas fa-shield-alt me-2"></i> بيانات وثائق الدخول الصادرة</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="margin-right: auto; margin-left: 0;"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div class="text-center mb-3">
+                    <div class="display-6 text-success"><i class="fas fa-check-circle"></i></div>
+                    <h5 class="fw-bold text-success mt-2">تم إنشاء الحساب بنجاح</h5>
+                </div>
+                
+                <div class="p-3 bg-white border rounded-3 shadow-sm mb-3">
+                    <p class="mb-2"><strong>نوع الحساب:</strong> <span class="badge rounded-pill px-3" style="background-color: var(--mahjoub-primary);">{{ new_user.type }}</span></p>
+                    <p class="mb-2"><strong>الجهة الشريكة:</strong> <span class="fw-bold" style="color: var(--mahjoub-primary);">{{ new_user.trade_name }}</span></p>
+                    <hr class="my-2" style="border-top: 1px dashed #cbd5e1;">
+                    
+                    <div class="mb-2">
+                        <label class="text-muted small fw-bold mb-1 d-block">👤 اسم المستخدم (Username):</label>
+                        <input type="text" class="form-control bg-light text-center fw-bold text-dark fs-5" value="{{ new_user.username }}" readonly>
+                    </div>
+                    <div class="mb-2">
+                        <label class="text-muted small fw-bold mb-1 d-block">🔑 كلمة المرور المؤقتة (Temporary Password):</label>
+                        <input type="text" class="form-control bg-light text-center fw-bold text-danger fs-5" value="{{ new_user.password }}" readonly style="letter-spacing: 0.5px;">
+                    </div>
+                </div>
+                <div class="alert alert-warning py-2 mb-0 border-0 shadow-none text-center small" style="border-radius: 8px;">
+                    <i class="fas fa-info-circle me-1"></i> يرجى نسخ هذه البيانات ومشاركتها مع الشريك فوراً؛ لن تظهر البيانات مجدداً لأسباب أمنية.
+                </div>
+            </div>
+            <div class="modal-footer bg-white border-0 d-flex gap-2">
+                <button type="button" class="btn btn-light border flex-grow-1 fw-bold" data-bs-dismiss="modal" style="border-radius: 8px;">إغلاق النافذة</button>
+                <button type="button" id="copyBtn" class="btn btn-mahjoub-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2" onclick="copyCredentials()" style="border-radius: 8px;">
+                    <i class="fas fa-copy"></i> نسخ بيانات الدخول
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <script>
 // تبديل النوافذ والكيانات بسلاسة وإدارة الـ required ديناميكياً لمنع حظر المتصفح الصامت
@@ -341,7 +384,7 @@ function checkFormErrors() {
     document.getElementById('submitBtn').disabled = hasErrors;
 }
 
-// ربط المستمعات (Event Listeners) بالحقول المطلوبة للعمل بشكل حيوي وفوري عند الكتابة
+// ربط المستمعات (Event Listeners) ووظائف التشغيل الآلي للمودال عند التحميل
 document.addEventListener("DOMContentLoaded", () => {
     // فحص المورد الأساسي (المالك)
     document.getElementById('owner_username').addEventListener('input', function() {
@@ -358,6 +401,40 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('staff_phone').addEventListener('input', function() {
         validateField(this, 'phone', 'staff_phone_feedback');
     });
+
+    // الاستدعاء التلقائي للمودال في حال توفر بيانات مستخدم من السيرفر
+    {% if new_user %}
+    const userModalEl = document.getElementById('newUserModal');
+    if (userModalEl) {
+        const userModal = new bootstrap.Modal(userModalEl);
+        userModal.show();
+    }
+    {% endif %}
 });
+
+// وظيفة نسخ بيانات الاعتماد بشكل منسق واحترافي
+{% if new_user %}
+function copyCredentials() {
+    const type = "{{ new_user.type }}";
+    const tradeName = "{{ new_user.trade_name }}";
+    const username = "{{ new_user.username }}";
+    const password = "{{ new_user.password }}";
+    
+    const formattedText = `🏬 مرحباً بك شريكنا في منصة محجوب أونلاين\n\nتم إعداد الحساب الخاص بكم بنجاح وصلاحيات الدخول كالتالي:\n\n🔹 نوع الحساب: ${type}\n🏢 الجهة/الشريك: ${tradeName}\n👤 اسم المستخدم: ${username}\n🔑 كلمة المرور المؤقتة: ${password}\n\n🌐 رابط تسجيل دخول الموردين:\n${window.location.origin}/supplier/login\n\n💡 ملاحظة أمنية: يرجى المبادرة بتغيير كلمة المرور فور تسجيل الدخول الأول للحفاظ على خصوصية بياناتكم المالية والتجارية.`;
+    
+    navigator.clipboard.writeText(formattedText).then(() => {
+        const copyBtn = document.getElementById('copyBtn');
+        copyBtn.innerHTML = `<i class="fas fa-check-circle"></i> تم النسخ للحافظة!`;
+        copyBtn.className = "btn btn-success flex-grow-1 d-flex align-items-center justify-content-center gap-2";
+        
+        setTimeout(() => {
+            copyBtn.innerHTML = `<i class="fas fa-copy"></i> نسخ بيانات الدخول`;
+            copyBtn.className = "btn btn-mahjoub-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2";
+        }, 3000);
+    }).catch(err => {
+        console.error('فشلت عملية النسخ التلقائي للبيانات:', err);
+    });
+}
+{% endif %}
 </script>
 {% endblock %}
