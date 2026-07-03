@@ -1,8 +1,10 @@
+# coding: utf-8
 # 📂 apps/admin_suppliers_add/routes.py
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, session, abort
 from flask_login import login_required
 from apps.extensions import db
+from apps import csrf  # استيراد حماية CSRF
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.wallet_db import SupplierWallet
@@ -17,7 +19,7 @@ admin_suppliers_add_bp = Blueprint(
     template_folder='templates'
 )
 
-# دالة مساعدة للتحقق من وجود المستخدم (لأغراض تسجيل الدخول)
+# دالة مساعدة للتحقق من وجود المستخدم
 def check_user_exists(username=None, phone=None):
     if username:
         return Supplier.query.filter_by(username=username).first() or \
@@ -28,9 +30,10 @@ def check_user_exists(username=None, phone=None):
     return None
 
 # -----------------------------------------------------------
-# API: للتحقق اللحظي
+# API: للتحقق اللحظي (تم استثناؤه من حماية CSRF للعمل بسلاسة)
 # -----------------------------------------------------------
 @admin_suppliers_add_bp.route('/check_availability', methods=['POST'])
+@csrf.exempt  # استثناء من حماية CSRF لتجنب أخطاء 400 Bad Request
 @login_required
 def check_availability():
     data = request.get_json() or {}
@@ -54,7 +57,7 @@ def check_availability():
             return jsonify({'available': False, 'message': 'رقم الهاتف مرتبط بحساب آخر'})
         return jsonify({'available': True, 'message': 'متاح'})
 
-    # التحقق من الاسم التجاري (الجديد)
+    # التحقق من الاسم التجاري
     elif field_type == 'trade_name':
         if len(value) < 3:
             return jsonify({'available': False, 'message': 'الاسم قصير جداً'})
