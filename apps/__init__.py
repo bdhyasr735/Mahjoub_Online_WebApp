@@ -11,10 +11,9 @@ from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.wallet_db import SupplierWallet
 from apps.utils.time_utils import format_full_timestamp
 
-# تهيئة الحماية
 csrf = CSRFProtect()
 
-# قاموس لتخزين الموديولات المسجلة (للفصل التام)
+# REGISTERED_MODULES الآن سيحتوي على بيانات الموديول (الاسم، الأيقونة، الرابط)
 REGISTERED_MODULES = {}
 
 @login_manager.user_loader
@@ -32,19 +31,16 @@ def load_user(user_id):
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
-    
     app.jinja_env.filters['full_time'] = format_full_timestamp
 
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
-    
     login_manager.login_view = 'suppliers_auth.login'
 
     @app.context_processor
     def inject_vars():
-        # حقن حالة الموديولات للقوالب، لكي تعرف القوالب ما هو متاح وما هو معطل
         return dict(
             csrf_token=generate_csrf,
             registered_modules=REGISTERED_MODULES
@@ -61,32 +57,32 @@ def create_app():
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
-        except Exception as e:
+        except:
             db.session.rollback()
-            print(f"⚠️ خطأ أثناء زرع البيانات: {e}")
 
         # [التسجيل التلقائي للموديولات - الفصل التام]
-        apps_dir = os.path.join(app.root_path)
+        apps_dir = app.root_path
         ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'suppliers_auth']
         
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
-            
             if os.path.isdir(item_path) and item not in ignored_dirs:
                 registry_file = os.path.join(item_path, 'registry.py')
-                
                 if os.path.exists(registry_file):
                     try:
-                        module_path = f"apps.{item}.registry"
-                        module = importlib.import_module(module_path)
+                        module = importlib.import_module(f"apps.{item}.registry")
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
-                            # تسجيل الموديول كـ "نشط"
-                            REGISTERED_MODULES[item] = True
+                            
+                            # التعديل الذكي: تخزين بيانات الموديول ليقرأها الهيكل تلقائياً
+                            REGISTERED_MODULES[item] = {
+                                "display_name": getattr(module, 'MODULE_NAME', item.capitalize()),
+                                "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
+                                "active": True
+                            }
                             print(f"✅ [Auto-Discovery] تم تسجيل موديول: {item}")
                     except Exception as e:
-                        # في حالة فشل موديول، النظام يستمر في العمل (الفصل التام)
-                        print(f"⚠️ [Auto-Discovery] خطأ في الموديول {item}: {e} - تم تخطيه.")
-                        REGISTERED_MODULES[item] = False
+                        print(f"⚠️ [Auto-Discovery] خطأ في الموديول {item}: {e}")
+                        REGISTERED_MODULES[item] = {"active": False}
 
     return app
