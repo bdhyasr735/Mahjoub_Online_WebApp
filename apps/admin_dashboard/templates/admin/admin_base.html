@@ -53,6 +53,8 @@
             
             <a href="{{ url_for('orders.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'orders.dashboard' }}"><i class="fas fa-shopping-bag me-3"></i> <span>إدارة الطلبات</span></a>
 
+            <!-- القائمة الذكية للموردين -->
+            {% if registered_modules.get('admin_suppliers_list') %}
             <div class="nav-item">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-handshake me-3"></i> <span>إدارة الموردين</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
@@ -60,7 +62,10 @@
                     <li><a href="{{ url_for('suppliers_bp.add_supplier') }}" class="{{ 'active' if request.endpoint == 'suppliers_bp.add_supplier' }}"><i class="fas fa-user-plus me-2"></i> إضافة شريك</a></li>
                 </ul>
             </div>
+            {% endif %}
 
+            <!-- القائمة الذكية للمالية -->
+            {% if registered_modules.get('finance_module') %}
             <div class="nav-item">
                 <div class="nav-link" id="finance-nav" onclick="toggleSub(this)"><i class="fas fa-wallet me-3"></i> <span>الرقابة المالية</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content" id="finance-dropdown">
@@ -68,6 +73,7 @@
                     <li><a href="{{ url_for('wallet_app.dashboard') }}" class="{{ 'active' if request.endpoint == 'wallet_app.dashboard' }}"><i class="fas fa-money-check-alt me-2"></i> محفظة الموردين</a></li>
                 </ul>
             </div>
+            {% endif %}
 
             <a href="#" class="nav-link disabled-link"><i class="fas fa-cog me-3"></i> <span>إعدادات النظام (قريباً)</span></a>
 
@@ -92,25 +98,21 @@
     <script>
         function toggleSub(el) {
             let drop = el.nextElementSibling;
+            if(!drop) return;
             drop.style.display = (drop.style.display === "block") ? "none" : "block";
             el.querySelector('.fa-chevron-down').style.transform = (drop.style.display === "block") ? "rotate(180deg)" : "rotate(0deg)";
         }
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-        }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
         document.addEventListener("DOMContentLoaded", function() {
-            // تفعيل المنسدل تلقائياً إذا كان المسار الحالي ضمن الموردين أو الخزينة
-            let path = window.location.href;
-            if (path.includes('suppliers') || path.includes('treasury') || path.includes('wallet')) {
-                let allDrops = document.querySelectorAll('.dropdown-content');
-                allDrops.forEach(d => {
-                    if (d.querySelector('.active')) {
-                        d.style.display = "block";
-                        let chevron = d.previousElementSibling.querySelector('.fa-chevron-down');
-                        if (chevron) chevron.style.transform = "rotate(180deg)";
-                    }
-                });
-            }
+            let activeLinks = document.querySelectorAll('.dropdown-content .active');
+            activeLinks.forEach(link => {
+                let drop = link.closest('.dropdown-content');
+                if(drop) {
+                    drop.style.display = "block";
+                    let icon = drop.previousElementSibling.querySelector('.fa-chevron-down');
+                    if(icon) icon.style.transform = "rotate(180deg)";
+                }
+            });
         });
     </script>
 </body>
