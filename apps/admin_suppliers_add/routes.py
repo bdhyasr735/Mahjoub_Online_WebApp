@@ -1,10 +1,9 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, session
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, session, abort
 from flask_login import login_required
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.wallet_db import SupplierWallet
-from sqlalchemy.exc import IntegrityError
 import secrets
 import re
 import logging
@@ -16,9 +15,8 @@ admin_suppliers_add_bp = Blueprint(
     template_folder='templates'
 )
 
-# دالة مساعدة للتحقق من وجود المستخدم (لتقليل التكرار)
+# دالة مساعدة للتحقق من وجود المستخدم
 def check_user_exists(username=None, phone=None):
-    """التحقق من تكرار المستخدم أو الهاتف في كلا الجدولين."""
     if username:
         return Supplier.query.filter_by(username=username).first() or \
                SupplierStaff.query.filter_by(username=username).first()
@@ -61,8 +59,12 @@ def check_availability():
 @login_required
 def add_supplier_or_staff():
     if request.method == 'POST':
+        # التحقق من Honeypot (حماية خفيفة وسريعة من البوتات)
+        if request.form.get('hp_field'):
+            abort(403) # رفض الطلب إذا تم تعبئة الحقل المخفي
+
         action_type = request.form.get('action_type')
-        temp_password = secrets.token_hex(4)
+        temp_password = secrets.token_hex(4) # توليد كلمة مرور آمنة
         
         try:
             # ================= معالجة المورد المالك =================
@@ -81,14 +83,20 @@ def add_supplier_or_staff():
                 new_supplier.set_password(temp_password)
                 
                 db.session.add(new_supplier)
-                db.session.flush()  # للحصول على الـ ID قبل الـ Commit النهائي
+                db.session.flush()  # الحصول على ID
                 
                 # إنشاء المحفظة
                 new_wallet = SupplierWallet(wallet_code=f"MAH-WEL{new_supplier.id}", supplier_id=new_supplier.id)
                 db.session.add(new_wallet)
                 db.session.commit()
                 
-                session['new_user_data'] = {'type': '🏬 مورد جديد', 'trade_name': trade_name, 'username': username, 'password': temp_password}
+                # تحديث التسمية هنا
+                session['new_user_data'] = {
+                    'type': 'مورد جديد كيان تجاري', 
+                    'trade_name': trade_name, 
+                    'username': username, 
+                    'password': temp_password
+                }
                 flash(f"✅ تم تسجيل المورد: {trade_name}", "success")
 
             # ================= معالجة الموظف التشغيلي =================
@@ -108,7 +116,12 @@ def add_supplier_or_staff():
                 db.session.commit()
                 
                 parent = Supplier.query.get(supplier_id)
-                session['new_user_data'] = {'type': '🔑 موظف تشغيلي', 'trade_name': parent.trade_name if parent else "غير محدد", 'username': username, 'password': temp_password}
+                session['new_user_data'] = {
+                    'type': 'موظف تشغيلي', 
+                    'trade_name': parent.trade_name if parent else "غير محدد", 
+                    'username': username, 
+                    'password': temp_password
+                }
                 flash("✅ تم إضافة الموظف بنجاح.", "success")
             
             return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
