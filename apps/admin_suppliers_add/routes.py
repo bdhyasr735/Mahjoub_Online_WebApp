@@ -1,3 +1,5 @@
+# 📂 apps/admin_suppliers_add/routes.py
+
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, session, abort
 from flask_login import login_required
 from apps.extensions import db
@@ -15,7 +17,7 @@ admin_suppliers_add_bp = Blueprint(
     template_folder='templates'
 )
 
-# دالة مساعدة للتحقق من وجود المستخدم
+# دالة مساعدة للتحقق من وجود المستخدم (لأغراض تسجيل الدخول)
 def check_user_exists(username=None, phone=None):
     if username:
         return Supplier.query.filter_by(username=username).first() or \
@@ -38,17 +40,27 @@ def check_availability():
     if not value:
         return jsonify({'available': False, 'message': '⚠️ الحقل فارغ'})
 
+    # التحقق من اسم المستخدم
     if field_type == 'username':
         if check_user_exists(username=value):
             return jsonify({'available': False, 'message': 'اسم المستخدم مسجل مسبقاً'})
         return jsonify({'available': True, 'message': 'متاح'})
 
+    # التحقق من رقم الهاتف
     elif field_type == 'phone':
         if not re.match(r'^\d{9}$', value):
             return jsonify({'available': False, 'message': 'يجب أن يكون 9 أرقام'})
         if check_user_exists(phone=value):
             return jsonify({'available': False, 'message': 'رقم الهاتف مرتبط بحساب آخر'})
         return jsonify({'available': True, 'message': 'متاح'})
+
+    # التحقق من الاسم التجاري (الجديد)
+    elif field_type == 'trade_name':
+        if len(value) < 3:
+            return jsonify({'available': False, 'message': 'الاسم قصير جداً'})
+        if Supplier.query.filter_by(trade_name=value).first():
+            return jsonify({'available': False, 'message': 'هذا الاسم التجاري مسجل مسبقاً'})
+        return jsonify({'available': True, 'message': 'اسم المتجر متاح'})
 
     return jsonify({'available': False, 'message': 'غير مدعوم'})
 
@@ -59,12 +71,12 @@ def check_availability():
 @login_required
 def add_supplier_or_staff():
     if request.method == 'POST':
-        # التحقق من Honeypot (حماية خفيفة وسريعة من البوتات)
+        # التحقق من Honeypot (حماية من البوتات)
         if request.form.get('hp_field'):
-            abort(403) # رفض الطلب إذا تم تعبئة الحقل المخفي
+            abort(403) 
 
         action_type = request.form.get('action_type')
-        temp_password = secrets.token_hex(4) # توليد كلمة مرور آمنة
+        temp_password = secrets.token_hex(4) # توليد كلمة مرور عشوائية
         
         try:
             # ================= معالجة المورد المالك =================
@@ -74,8 +86,9 @@ def add_supplier_or_staff():
                 trade_name = request.form.get('trade_name', '').strip()
                 rank = request.form.get('rank', 'bronze')
 
-                if not re.match(r'^\d{9}$', phone) or check_user_exists(username=username, phone=phone):
-                    flash("❌ بيانات غير صالحة أو موجودة مسبقاً.", "danger")
+                # التحقق النهائي من الخادم قبل الحفظ
+                if not re.match(r'^\d{9}$', phone) or check_user_exists(username=username, phone=phone) or Supplier.query.filter_by(trade_name=trade_name).first():
+                    flash("❌ البيانات غير صالحة أو مسجلة مسبقاً في النظام.", "danger")
                     return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
 
                 new_supplier = Supplier(username=username, trade_name=trade_name, rank=rank, status='active')
@@ -85,12 +98,12 @@ def add_supplier_or_staff():
                 db.session.add(new_supplier)
                 db.session.flush()  # الحصول على ID
                 
-                # إنشاء المحفظة
+                # إنشاء المحفظة (Wallet)
                 new_wallet = SupplierWallet(wallet_code=f"MAH-WEL{new_supplier.id}", supplier_id=new_supplier.id)
                 db.session.add(new_wallet)
                 db.session.commit()
                 
-                # تحديث التسمية هنا
+                # تخزين البيانات في الجلسة لإظهار النافذة المنبثقة
                 session['new_user_data'] = {
                     'type': 'مورد جديد كيان تجاري', 
                     'trade_name': trade_name, 
