@@ -10,38 +10,18 @@
     :root { --mahjoub-primary: #2d144d; --mahjoub-accent: #dfb743; }
     body { background-color: #f4f7f6; }
     
-    /* تصميم البطاقة */
     .card-mahjoub { 
         border-radius: 25px; 
         box-shadow: 0 15px 35px rgba(45, 20, 77, 0.1); 
         border: none; 
         background: #ffffff;
     }
-
-    /* حقول الإدخال */
     .form-control { border-radius: 12px; padding: 12px; border: 2px solid #eee; transition: all 0.3s; }
     .form-control:focus { border-color: var(--mahjoub-primary); box-shadow: 0 0 0 0.2rem rgba(45, 20, 77, 0.15); }
-    
-    /* تحسين زر الاعتماد */
-    .btn-submit { 
-        background-color: var(--mahjoub-primary); 
-        transition: all 0.3s;
-        position: relative;
-    }
+    .btn-submit { background-color: var(--mahjoub-primary); transition: all 0.3s; position: relative; }
     .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(45, 20, 77, 0.3); }
-    
-    /* تنسيق كود المورد */
-    .credential-box { 
-        background: #fdfdfd; 
-        border: 2px dashed #e0e0e0; 
-        padding: 20px; 
-        border-radius: 15px; 
-        direction: ltr; 
-        text-align: left; 
-    }
+    .credential-box { background: #fdfdfd; border: 2px dashed #e0e0e0; padding: 20px; border-radius: 15px; direction: ltr; text-align: left; }
     .credential-box code { font-size: 1.2rem; color: #d63384; font-weight: bold; }
-    
-    /* مؤشر التحميل */
     .spinner-border-sm { display: none; }
 </style>
 
@@ -120,50 +100,49 @@
 {% endif %}
 
 <script>
-    // 1. التعامل مع النافذة المنبثقة
-    {% if new_user %}
     document.addEventListener('DOMContentLoaded', () => {
+        {% if new_user %}
         const modalEl = document.getElementById('successModal');
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        const modal = new bootstrap.Modal(modalEl);
         modal.show();
-    });
-    {% endif %}
+        {% endif %}
 
-    // 2. تفعيل حالة التحميل عند الإرسال
-    document.getElementById('supplierForm').addEventListener('submit', function() {
-        const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.querySelector('.spinner-border-sm').style.display = 'inline-block';
-        document.getElementById('btnText').innerText = 'جاري المعالجة...';
-    });
-
-    // 3. التحقق الديناميكي
-    async function checkField(type, value) {
-        const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
-            body: JSON.stringify({type: type, value: value})
+        // 2. تفعيل حالة التحميل عند الإرسال
+        document.getElementById('supplierForm').addEventListener('submit', function() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.querySelector('.spinner-border-sm').style.display = 'inline-block';
+            document.getElementById('btnText').innerText = 'جاري المعالجة...';
         });
-        return await response.json();
-    }
 
-    const fields = { username: { el: document.getElementById('username'), valid: false }, trade_name: { el: document.getElementById('trade_name'), valid: false }, phone: { el: document.getElementById('phone'), valid: false } };
+        // 3. التحقق الديناميكي
+        async function checkField(type, value) {
+            const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+                body: JSON.stringify({type: type, value: value})
+            });
+            return await response.json();
+        }
 
-    function updateUI(id, data) {
-        const el = fields[id].el;
-        const feedback = document.getElementById(id + '_feedback');
-        fields[id].valid = data.available;
-        el.classList.toggle('is-valid', data.available);
-        el.classList.toggle('is-invalid', !data.available);
-        feedback.innerText = (data.available ? '✓ ' : '❌ ') + data.message;
-        feedback.style.color = data.available ? '#198754' : '#dc3545';
-        document.getElementById('submitBtn').disabled = !(fields.username.valid && fields.trade_name.valid && fields.phone.valid);
-    }
+        const fields = { username: { el: document.getElementById('username'), valid: false }, trade_name: { el: document.getElementById('trade_name'), valid: false }, phone: { el: document.getElementById('phone'), valid: false } };
 
-    ['username', 'trade_name', 'phone'].forEach(id => {
-        fields[id].el.addEventListener('blur', async () => {
-            const val = fields[id].el.value.trim();
-            if(val.length >= (id === 'phone' ? 9 : 3)) updateUI(id, await checkField(id, val));
+        function updateUI(id, data) {
+            const el = fields[id].el;
+            const feedback = document.getElementById(id + '_feedback');
+            fields[id].valid = data.available;
+            el.classList.toggle('is-valid', data.available);
+            el.classList.toggle('is-invalid', !data.available);
+            feedback.innerText = (data.available ? '✓ ' : '❌ ') + data.message;
+            feedback.style.color = data.available ? '#198754' : '#dc3545';
+            document.getElementById('submitBtn').disabled = !(fields.username.valid && fields.trade_name.valid && fields.phone.valid);
+        }
+
+        ['username', 'trade_name', 'phone'].forEach(id => {
+            fields[id].el.addEventListener('blur', async () => {
+                const val = fields[id].el.value.trim();
+                if(val.length >= (id === 'phone' ? 9 : 3)) updateUI(id, await checkField(id, val));
+            });
         });
     });
 
