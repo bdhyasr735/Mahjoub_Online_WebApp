@@ -1,46 +1,30 @@
 # coding: utf-8
 # 📂 apps/admin_suppliers_list/routes.py
 
-from flask import Blueprint, render_template, jsonify, abort
-from apps.models.suppliers_db import Supplier
-from apps.models.supplier_profile_db import SupplierProfile
-from apps.extensions import db
+from flask import Blueprint, render_template
+from flask_login import login_required
+from apps.models import Supplier
 
-# تعريف الـ Blueprint
-suppliers_list_bp = Blueprint(
-    'suppliers_list_bp', 
+# تعريف البلوبرنت
+suppliers_bp = Blueprint(
+    'suppliers_bp', 
     __name__, 
     template_folder='templates'
 )
 
-@suppliers_list_bp.route('/', methods=['GET'])
+@suppliers_bp.route('/list', methods=['GET'])
+@login_required
 def list_suppliers():
-    """عرض قائمة الشركاء في الجدول الرئيسي."""
-    # جلب كافة الموردين مع بيانات البروفايل الخاصة بهم
-    suppliers = Supplier.query.join(SupplierProfile, Supplier.id == SupplierProfile.supplier_id).all()
-    return render_template('admin_suppliers_list/admin_suppliers_list.html', suppliers=suppliers)
-
-@suppliers_list_bp.route('/details/<int:supplier_id>', methods=['GET'])
-def get_supplier_details(supplier_id):
-    """جلب البيانات التفصيلية للمورد لعرضها في النافذة الجديدة (Modal)."""
-    # جلب المورد مع بيانات البروفايل والمحفظة
-    supplier = Supplier.query.get_or_404(supplier_id)
-    profile = SupplierProfile.query.filter_by(supplier_id=supplier.id).first()
+    """عرض قائمة الموردين/الشركاء في المنصة."""
+    suppliers = Supplier.query.order_by(Supplier.created_at.desc()).all()
     
-    if not profile:
-        abort(404)
+    return render_template(
+        'admin_suppliers_list/list.html', 
+        suppliers=suppliers
+    )
 
-    # تجهيز البيانات للنافذة الجديدة
-    data = {
-        "trade_name": profile.trade_name,
-        "phone": supplier.phone,
-        "email": profile.email,
-        "governorate": profile.governorate,
-        "city": profile.city,
-        "rank": supplier.rank,
-        "status": supplier.status,
-        "id_number": profile.id_number,  # مشفر
-        "bank_account": profile.bank_account # مشفر
-    }
-    
-    return jsonify(data)
+@suppliers_bp.route('/add', methods=['GET', 'POST'])
+@login_required
+def add_supplier():
+    """صفحة إضافة مورد جديد."""
+    return render_template('admin_suppliers_list/add.html')
