@@ -85,7 +85,10 @@
     async function checkField(type, value) {
         const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
             body: JSON.stringify({type: type, value: value})
         });
         return await response.json();
@@ -106,7 +109,6 @@
         feedback.innerText = (data.available ? '✓ ' : '❌ ') + data.message;
         feedback.style.color = data.available ? '#198754' : '#dc3545';
         
-        // التحقق من تفعيل زر الإرسال
         document.getElementById('submitBtn').disabled = !(fields.username.valid && fields.trade_name.valid && fields.phone.valid);
     }
 
