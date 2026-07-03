@@ -1,282 +1,59 @@
 {# 📂 apps/admin_suppliers_add/templates/admin_suppliers_add/admin_suppliers_add.html #}
 {% extends "admin/admin_base.html" %}
 
-{% block title %}إضافة شريك جديد | محجوب أونلاين{% endblock %}
+{% block title %}تعميد مورد جديد | محجوب أونلاين{% endblock %}
 
 {% block content %}
+<!-- أمن الصفحة: منع الزحف والأرشفة -->
+<meta name="robots" content="noindex, nofollow">
+
 {% if current_user.is_authenticated %}
-<!-- تضمين مكتبة Select2 -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
 <style>
-    :root {
-        --mahjoub-primary: #2d144d;
-        --mahjoub-accent: #dfb743;
-        --mahjoub-hover: #3d1c66;
-        --mahjoub-bg: #f8f9fa;
-    }
-
-    body { background-color: var(--mahjoub-bg); }
-
-    .card-mahjoub {
-        border: none;
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(45, 20, 77, 0.05);
-        background: #ffffff;
-    }
-
-    .card-header-mahjoub {
-        background-color: var(--mahjoub-primary);
-        color: #ffffff;
-        border-top-left-radius: 16px !important;
-        border-top-right-radius: 16px !important;
-        border-bottom: 3px solid var(--mahjoub-accent);
-        padding: 1.5rem;
-    }
-
-    .btn-mahjoub-primary {
-        background-color: var(--mahjoub-primary);
-        color: #ffffff;
-        border: 1px solid var(--mahjoub-primary);
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .btn-mahjoub-primary:hover {
-        background-color: var(--mahjoub-hover);
-        color: #ffffff;
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(45, 20, 77, 0.2);
-    }
-
-    .btn-mahjoub-outline {
-        border: 2px solid var(--mahjoub-primary);
-        color: var(--mahjoub-primary);
-        font-weight: 600;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-
-    .btn-mahjoub-outline:hover {
-        background-color: var(--mahjoub-primary);
-        color: #ffffff;
-    }
-
-    .form-label { color: var(--mahjoub-primary); font-weight: 600; margin-bottom: 0.5rem; }
-
-    .form-control, .form-select {
-        border: 1.5px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 0.65rem 1rem;
-        transition: all 0.2s ease-in-out;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: var(--mahjoub-accent);
-        box-shadow: 0 0 0 3px rgba(223, 183, 67, 0.15);
-        outline: none;
-    }
-
-    .validation-badge {
-        font-size: 0.85rem;
-        font-weight: 500;
-        margin-top: 0.35rem;
-        display: block;
-        transition: all 0.3s ease;
-    }
-    
-    .is-valid-input {
-        border-color: #198754 !important;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e") !important;
-        background-repeat: no-repeat !important;
-        background-position: left calc(0.375em + 0.1875rem) center !important;
-        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
-    }
-
-    .is-invalid-input {
-        border-color: #dc3545 !important;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='%23dc3545' d='M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e") !important;
-        background-repeat: no-repeat !important;
-        background-position: left calc(0.375em + 0.1875rem) center !important;
-        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
-    }
-
-    /* تنسيقات احترافية لـ Select2 */
-    .select2-container--default .select2-selection--single {
-        height: calc(1.5rem + 1.3rem + 2px) !important;
-        border: 1.5px solid #e2e8f0 !important;
-        border-radius: 8px !important;
-        padding: 0.35rem 1rem !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        transition: all 0.2s ease-in-out !important;
-        direction: rtl !important;
-    }
-
-    .select2-container--default.select2-container--open .select2-selection--single,
-    .select2-container--default.select2-container--focus .select2-selection--single {
-        border-color: var(--mahjoub-accent) !important;
-        box-shadow: 0 0 0 3px rgba(223, 183, 67, 0.15) !important;
-        outline: none !important;
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: var(--mahjoub-primary) !important;
-        font-weight: 600 !important;
-        padding-right: 0 !important;
-        padding-left: 20px !important;
-        flex-grow: 1 !important;
-        width: 100% !important;
-        text-align: right !important;
-    }
-
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-        position: relative !important;
-        height: 100% !important;
-        top: auto !important;
-        left: 0 !important;
-        right: auto !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-
-    .select2-dropdown {
-        border: 1.5px solid var(--mahjoub-primary) !important;
-        border-radius: 8px !important;
-        box-shadow: 0 8px 24px rgba(45, 20, 77, 0.12) !important;
-        overflow: hidden !important;
-        z-index: 9999 !important;
-    }
-
-    .select2-container--default .select2-search--dropdown {
-        display: block !important;
-        padding: 10px !important;
-        background-color: #f8f9fa !important;
-        border-bottom: 1px solid #e2e8f0 !important;
-    }
-
-    .select2-container--default .select2-search--dropdown .select2-search__field {
-        border: 1.5px solid #cbd5e1 !important;
-        border-radius: 6px !important;
-        padding: 0.5rem 0.75rem !important;
-        outline: none !important;
-        direction: rtl !important;
-        text-align: right !important;
-        width: 100% !important;
-    }
-
-    .select2-container--default .select2-results__option--highlighted[aria-selected] {
-        background-color: var(--mahjoub-primary) !important;
-        color: #ffffff !important;
-    }
+    :root { --mahjoub-primary: #2d144d; --mahjoub-accent: #dfb743; }
+    .card-mahjoub { border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
+    .form-control:focus { border-color: var(--mahjoub-accent); box-shadow: 0 0 0 0.2rem rgba(223, 183, 67, 0.25); }
+    .feedback-icon { font-size: 0.85rem; font-weight: bold; margin-top: 5px; display: block; }
+    .is-valid-field { border-color: #198754 !important; }
+    .is-invalid-field { border-color: #dc3545 !important; }
 </style>
 
-<div class="container-fluid py-5" dir="rtl">
+<div class="container py-5" dir="rtl">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="d-flex align-items-center">
-                    <div class="p-2 bg-white rounded-3 shadow-sm me-3" style="border: 2px solid var(--mahjoub-accent);">
-                        <i class="fas fa-user-plus fa-lg" style="color: var(--mahjoub-primary);"></i>
-                    </div>
-                    <h3 class="fw-bold mb-0" style="color: var(--mahjoub-primary);">إضافة شريك نجاح جديد</h3>
-                </div>
-                <button onclick="window.history.back();" class="btn btn-mahjoub-outline d-flex align-items-center gap-2">
-                    <i class="fas fa-arrow-right"></i> العودة للصفحة السابقة
-                </button>
-            </div>
-
-            <div class="card card-mahjoub overflow-hidden">
-                <div class="card-header-mahjoub">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-sliders-h me-2"></i> إعدادات وتخصيص الحساب الصادر</h5>
+        <div class="col-lg-7">
+            <div class="card card-mahjoub border-0">
+                <div class="card-header bg-white border-0 pt-4 pb-0 text-center">
+                    <h3 class="fw-bold" style="color: var(--mahjoub-primary);">تعميد مورد جديد</h3>
+                    <p class="text-muted">إضافة كيان تجاري جديد لنظام الشركاء</p>
                 </div>
                 <div class="card-body p-4">
-                    <div class="mb-4 p-3 rounded-3" style="background-color: rgba(45, 20, 77, 0.03); border: 1px dashed rgba(45, 20, 77, 0.15);">
-                        <label class="form-label fw-bold"><i class="fas fa-user-shield me-1"></i> نوع الكيان المطلوب تفعيله:</label>
-                        <select id="actionTypeSelector" class="form-select form-select-lg fw-bold" style="color: var(--mahjoub-primary);" onchange="toggleForm()">
-                            <option value="owner">🏬 مورد جديد (مالك كيان تجاري)</option>
-                            <option value="staff">🔑 موظف تشغيلي (تابع لمورد حالي)</option>
-                        </select>
-                    </div>
-
-                    <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="partnerForm" onsubmit="handleFormSubmit()">
+                    <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="supplierForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="action_type" id="actionTypeInput" value="owner">
+                        <input type="hidden" name="action_type" value="owner">
                         
-                        <div id="ownerFields">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">اسم المستخدم للرابط والتوثيق:</label>
-                                    <input type="text" name="username" id="owner_username" class="form-control" placeholder="مثال: ali_mahjoub" required>
-                                    <div id="owner_username_feedback" class="validation-badge"></div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">الاسم التجاري للمتجر/المؤسسة:</label>
-                                    <input type="text" name="trade_name" id="trade_name" class="form-control" placeholder="مثال: شركة محجوب للخدمات" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">رقم الهاتف (9 أرقام بدون مفتاح):</label>
-                                    <input type="text" name="phone" id="owner_phone" class="form-control" placeholder="77XXXXXXX" maxlength="9" required>
-                                    <div id="owner_phone_feedback" class="validation-badge"></div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">تصنيف رتبة المورد المعتمدة:</label>
-                                    <select name="rank" class="form-select fw-bold">
-                                        <option value="bronze" style="color: #cd7f32;">🥉 التصنيف البرونزي (الأساسي)</option>
-                                        <option value="silver" style="color: #c0c0c0;">🥈 التصنيف الفضي (المتقدم)</option>
-                                        <option value="gold" style="color: #ffd700;">🥇 التصنيف الذهبي (شريك VIP)</option>
-                                    </select>
-                                </div>
-                            </div>
+                        <!-- حقل Honeypot للحماية من البوتات -->
+                        <input type="text" name="hp_field" style="display:none;" tabindex="-1" autocomplete="off">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">اسم المستخدم (Username)</label>
+                            <input type="text" name="username" id="username" class="form-control" placeholder="اسم فريد للرابط" required>
+                            <span id="username_feedback" class="feedback-icon"></span>
                         </div>
 
-                        <div id="staffFields" style="display: none;">
-                            <div class="mb-4">
-                                <label class="form-label">المورد القانوني التابع له الحساب:</label>
-                                <div id="select2Wrapper" style="position: relative;">
-                                    <select name="supplier_id" id="supplier_id" class="form-control fw-bold" dir="rtl">
-                                        <option value="" selected disabled>🔍 ابحث باسم المتجر أو المورد القانوني...</option>
-                                        {% for s in suppliers %}
-                                        <option value="{{ s.id }}">🏢 {{ s.trade_name }} ({{ s.username }})</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div id="supplier_id_feedback" class="validation-badge"></div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">اسم مستخدم الموظف:</label>
-                                    <input type="text" name="staff_username" id="staff_username" class="form-control" placeholder="مثال: staff_ali">
-                                    <div id="staff_username_feedback" class="validation-badge"></div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">رقم هاتف الموظف (9 أرقام):</label>
-                                    <input type="text" name="staff_phone" id="staff_phone" class="form-control" placeholder="77XXXXXXX" maxlength="9">
-                                    <div id="staff_phone_feedback" class="validation-badge"></div>
-                                </div>
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">الاسم التجاري للمتجر</label>
+                            <input type="text" name="trade_name" id="trade_name" class="form-control" placeholder="اسم الشركة أو المؤسسة" required>
+                            <span id="trade_name_feedback" class="feedback-icon"></span>
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label text-muted">التحقق الأمني وصلاحيات الدخول:</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light text-muted"><i class="fas fa-magic"></i></span>
-                                <input type="text" class="form-control bg-light text-muted" placeholder="سيقوم النظام بتوليد كلمة مرور مشفرة وآمنة تلقائياً وإرسالها للشريك" disabled>
-                            </div>
+                            <label class="form-label fw-bold">رقم الهاتف (9 أرقام)</label>
+                            <input type="text" name="phone" id="phone" class="form-control" maxlength="9" placeholder="77XXXXXXX" required>
+                            <span id="phone_feedback" class="feedback-icon"></span>
                         </div>
 
-                        <div class="d-grid mt-4">
-                            <button type="submit" id="submitBtn" class="btn btn-mahjoub-primary btn-lg fs-5">
-                                <span id="submitText"><i class="fas fa-check-circle me-2"></i> اعتماد وتثبيت الشريك في النظام</span>
-                                <span id="loadingSpinner" style="display:none;"><i class="fas fa-spinner fa-spin me-2"></i> جاري المعالجة...</span>
-                            </button>
-                        </div>
+                        <button type="submit" id="submitBtn" class="btn btn-lg w-100 text-white" style="background-color: var(--mahjoub-primary);" disabled>
+                            اعتماد الشريك وتوليد بيانات الدخول
+                        </button>
                     </form>
                 </div>
             </div>
@@ -284,231 +61,108 @@
     </div>
 </div>
 
+<!-- Modal -->
 {% if new_user %}
-<div class="modal fade" id="newUserModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="newUserModalLabel" aria-hidden="true" dir="rtl">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 15px 40px rgba(45, 20, 77, 0.25); overflow: hidden;">
-            <div class="modal-header text-white" style="background-color: var(--mahjoub-primary); border-bottom: 3px solid var(--mahjoub-accent);">
-                <h5 class="modal-title fw-bold" id="newUserModalLabel"><i class="fas fa-shield-alt me-2"></i> بيانات وثائق الدخول الصادرة</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title"><i class="fas fa-check-circle"></i> تم التعميد بنجاح!</h5>
             </div>
-            <div class="modal-body p-4 bg-light">
-                <div class="text-center mb-3">
-                    <div class="display-6 text-success"><i class="fas fa-check-circle"></i></div>
-                    <h5 class="fw-bold text-success mt-2">تم إنشاء الحساب بنجاح</h5>
-                </div>
+            <div class="modal-body p-4" style="line-height: 1.8; direction: rtl; text-align: right;">
+                <p>🏬 <strong>مرحباً بك شريكنا في منصة محجوب أونلاين</strong></p>
+                <p>تم إعداد الحساب الخاص بكم بنجاح وصلاحيات الدخول كالتالي:</p>
                 
-                <div class="p-3 bg-white border rounded-3 shadow-sm mb-3">
-                    <p class="mb-2"><strong>نوع الحساب:</strong> <span class="badge rounded-pill px-3" style="background-color: var(--mahjoub-primary);">{{ new_user.type }}</span></p>
-                    <p class="mb-2"><strong>الجهة الشريكة:</strong> <span class="fw-bold" style="color: var(--mahjoub-primary);">{{ new_user.trade_name }}</span></p>
-                    <hr class="my-2" style="border-top: 1px dashed #cbd5e1;">
-                    
-                    <div class="mb-2">
-                        <label class="text-muted small fw-bold mb-1 d-block">👤 اسم المستخدم (Username):</label>
-                        <input type="text" class="form-control bg-light text-center fw-bold text-dark fs-5" value="{{ new_user.username }}" readonly>
-                    </div>
-                    <div class="mb-2">
-                        <label class="text-muted small fw-bold mb-1 d-block">🔑 كلمة المرور المؤقتة (Temporary Password):</label>
-                        <input type="text" class="form-control bg-light text-center fw-bold text-danger fs-5" value="{{ new_user.password }}" readonly>
-                    </div>
+                <div class="bg-light p-3 rounded border my-3">
+                    🔹 <strong>نوع الحساب:</strong> مورد جديد كيان تجاري<br>
+                    🏢 <strong>الجهة/الشريك:</strong> <span id="modal_trade_name">{{ new_user.trade_name }}</span><br>
+                    👤 <strong>اسم المستخدم:</strong> <code>{{ new_user.username }}</code><br>
+                    🔑 <strong>كلمة المرور المؤقتة:</strong> <code class="text-danger fw-bold">{{ new_user.password }}</code>
                 </div>
 
-                <div class="alert alert-danger py-2 mb-2 border-0 shadow-none text-center small p-3 fw-bold shadow-sm" style="border-radius: 8px; color: #842029; background-color: #f8d7da;">
-                    <i class="fas fa-exclamation-triangle me-1"></i> يرجى تغيير كلمة المرور من إعدادات لوحة التحكم.
-                </div>
+                <p>🌐 <strong>رابط تسجيل دخول الموردين:</strong><br>
+                <a href="https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login" target="_blank">https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login</a></p>
+
+                <p class="text-muted small">⚠️ <strong>تنبيه هام:</strong> يرجى تغيير كلمة المرور من إعدادات لوحة التحكم واستكمال بياناتكم محجوب أونلاين | سوقك الذكي لضمان أعلى مستويات الأمان والخصوصية لبياناتكم التجارية.</p>
             </div>
-            <div class="modal-footer bg-white border-0 d-flex gap-2">
-                <button type="button" class="btn btn-light border flex-grow-1 fw-bold" data-bs-dismiss="modal" style="border-radius: 8px;">إغلاق النافذة</button>
-                <button type="button" id="copyBtn" class="btn btn-mahjoub-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2" onclick="copyCredentials()" style="border-radius: 8px;">
-                    <i class="fas fa-copy"></i> نسخ بيانات الدخول
-                </button>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" id="copyBtn" class="btn btn-success px-4" onclick="copyFormattedCredentials()">نسخ الرسالة كاملة</button>
             </div>
         </div>
     </div>
 </div>
 {% endif %}
 
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
 <script>
-function handleFormSubmit() {
-    const btn = document.getElementById('submitBtn');
-    const text = document.getElementById('submitText');
-    const spinner = document.getElementById('loadingSpinner');
-    btn.disabled = true;
-    text.style.display = 'none';
-    spinner.style.display = 'inline';
-}
+    const form = document.getElementById('supplierForm');
+    const fields = {
+        username: { el: document.getElementById('username'), valid: false },
+        trade_name: { el: document.getElementById('trade_name'), valid: false },
+        phone: { el: document.getElementById('phone'), valid: false }
+    };
 
-function buildSelect2Engine() {
-    if (typeof jQuery !== 'undefined' && $.fn.select2) {
-        if ($('#supplier_id').hasClass("select2-hidden-accessible")) {
-            $('#supplier_id').select2('destroy');
-        }
-        $('#supplier_id').select2({
-            placeholder: "🔍 ابحث باسم المتجر أو المورد القانوني...",
-            allowClear: true,
-            minimumResultsForSearch: 0,
-            dir: "rtl",
-            width: '100%',
-            dropdownParent: $('#select2Wrapper'),
-            language: { noResults: () => "❌ لا توجد نتائج مطابقة لبحثك" }
-        });
-        
-        $('#supplier_id').on('change', function() {
-            const container = $(this).next('.select2-container').find('.select2-selection--single');
-            const feedback = $('#supplier_id_feedback');
-            
-            if ($(this).val()) {
-                container.addClass('is-valid-input').removeClass('is-invalid-input');
-                feedback.html('✓ تم اختيار المتجر بنجاح').css('color', '#198754');
-            } else {
-                container.removeClass('is-valid-input').addClass('is-invalid-input');
-                feedback.html('❌ يرجى اختيار متجر صحيح').css('color', '#dc3545');
-            }
-            checkFormErrors();
-        });
-
-        $(document).on('select2:open',()=>setTimeout(()=>document.querySelector('.select2-search__field')?.focus(),50));
-    }
-}
-
-function toggleForm() {
-    const type = document.getElementById('actionTypeSelector').value;
-    document.getElementById('actionTypeInput').value = type;
-    const ownerFields = document.getElementById('ownerFields');
-    const staffFields = document.getElementById('staffFields');
-    
-    if (type === 'owner') {
-        ownerFields.style.display = 'block';
-        staffFields.style.display = 'none';
-        document.getElementById('owner_username').required = true;
-        document.getElementById('trade_name').required = true;
-        document.getElementById('owner_phone').required = true;
-        document.getElementById('staff_username').required = false;
-        document.getElementById('staff_phone').required = false;
-        document.getElementById('supplier_id').required = false;
-    } else {
-        ownerFields.style.display = 'none';
-        staffFields.style.display = 'block';
-        document.getElementById('owner_username').required = false;
-        document.getElementById('trade_name').required = false; 
-        document.getElementById('owner_phone').required = false;
-        document.getElementById('staff_username').required = true;
-        document.getElementById('staff_phone').required = true;
-        document.getElementById('supplier_id').required = true;
-        setTimeout(buildSelect2Engine, 100);
-    }
-    resetValidationEffects();
-}
-
-function resetValidationEffects() {
-    ['owner_username', 'owner_phone', 'staff_username', 'staff_phone'].forEach(id => {
-        const input = document.getElementById(id);
+    function updateState(id, isValid, msg, color) {
+        fields[id].valid = isValid;
         const feedback = document.getElementById(id + '_feedback');
-        if(input) {
-            input.classList.remove('is-valid-input', 'is-invalid-input');
-            feedback.innerHTML = '';
-        }
+        fields[id].el.className = 'form-control ' + (isValid ? 'is-valid-field' : 'is-invalid-field');
+        feedback.innerText = msg;
+        feedback.style.color = color;
+        document.getElementById('submitBtn').disabled = !(fields.username.valid && fields.trade_name.valid && fields.phone.valid);
+    }
+
+    fields.username.el.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        updateState('username', val.length >= 3, val.length >= 3 ? '✓ مقبول' : '❌ قصير جداً', val.length >= 3 ? '#198754' : '#dc3545');
     });
-    if ($('#supplier_id').hasClass("select2-hidden-accessible")) {
-        $('#supplier_id').next('.select2-container').find('.select2-selection--single').removeClass('is-valid-input is-invalid-input');
-        $('#supplier_id_feedback').html('');
-    }
-    checkFormErrors();
-}
 
-async function validateField(inputElement, type, feedbackElementId) {
-    const value = inputElement.value.trim();
-    const feedbackEl = document.getElementById(feedbackElementId);
-    if (!value) {
-        inputElement.classList.remove('is-valid-input', 'is-invalid-input');
-        feedbackEl.innerHTML = '';
-        checkFormErrors();
-        return;
-    }
-    if (type === 'phone' && (!/^\d+$/.test(value) || value.length !== 9)) {
-        inputElement.classList.remove('is-valid-input');
-        inputElement.classList.add('is-invalid-input');
-        feedbackEl.innerHTML = '❌ يجب أن يتكون الرقم من 9 أرقام.';
-        feedbackEl.style.color = '#dc3545';
-        checkFormErrors();
-        return;
-    }
-    try {
-        const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token() }}" },
-            body: JSON.stringify({ type: type, value: value })
-        });
-        const data = await response.json();
-        if (data.available) {
-            inputElement.classList.remove('is-invalid-input');
-            inputElement.classList.add('is-valid-input');
-            feedbackEl.innerHTML = `✓ ${data.message}`;
-            feedbackEl.style.color = '#198754';
-        } else {
-            inputElement.classList.remove('is-valid-input');
-            inputElement.classList.add('is-invalid-input');
-            feedbackEl.innerHTML = `${data.message}`;
-            feedbackEl.style.color = '#dc3545';
-        }
-        checkFormErrors();
-    } catch (error) { console.error("Error:", error); }
-}
+    fields.trade_name.el.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        updateState('trade_name', val.length > 3, val.length > 3 ? '✓ مقبول' : '❌ اسم المتجر قصير', val.length > 3 ? '#198754' : '#dc3545');
+    });
 
-function checkFormErrors() {
-    const activeType = document.getElementById('actionTypeSelector').value;
-    let hasErrors = false;
-    
-    if (activeType === 'owner') {
-        hasErrors = document.getElementById('owner_username').classList.contains('is-invalid-input') || 
-                    document.getElementById('owner_phone').classList.contains('is-invalid-input') ||
-                    !document.getElementById('owner_username').value ||
-                    !document.getElementById('owner_phone').value ||
-                    !document.getElementById('trade_name').value;
-    } else {
-        const isSelect2Invalid = $('#supplier_id').next('.select2-container').find('.select2-selection--single').hasClass('is-invalid-input');
-        const isSelect2Empty = !$('#supplier_id').val();
+    fields.phone.el.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        const isValid = /^\d{9}$/.test(val);
+        updateState('phone', isValid, isValid ? '✓ رقم صحيح' : '❌ يجب أن يتكون من 9 أرقام', isValid ? '#198754' : '#dc3545');
+    });
+
+    function copyFormattedCredentials() {
+        const tradeName = document.getElementById('modal_trade_name').innerText;
+        const username = "{{ new_user.username if new_user else '' }}";
+        const password = "{{ new_user.password if new_user else '' }}";
         
-        hasErrors = document.getElementById('staff_username').classList.contains('is-invalid-input') || 
-                    document.getElementById('staff_phone').classList.contains('is-invalid-input') ||
-                    !document.getElementById('staff_username').value ||
-                    !document.getElementById('staff_phone').value ||
-                    isSelect2Invalid || isSelect2Empty;
+        const textToCopy = `🏬 مرحباً بك شريكنا في منصة محجوب أونلاين
+
+تم إعداد الحساب الخاص بكم بنجاح وصلاحيات الدخول كالتالي:
+
+🔹 نوع الحساب: مورد جديد كيان تجاري
+🏢 الجهة/الشريك: ${tradeName}
+👤 اسم المستخدم: ${username}
+🔑 كلمة المرور المؤقتة: ${password}
+
+🌐 رابط تسجيل دخول الموردين:
+https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login
+
+⚠️ تنبيه هام: يرجى تغيير كلمة المرور من إعدادات لوحة التحكم واستكمال بياناتكم محجوب أونلاين | سوقك الذكي لضمان أعلى مستويات الأمان والخصوصية لبياناتكم التجارية.`;
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const btn = document.getElementById('copyBtn');
+            const originalText = btn.innerText;
+            btn.innerText = '✅ تم النسخ بنجاح!';
+            btn.classList.replace('btn-success', 'btn-primary');
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.replace('btn-primary', 'btn-success');
+            }, 3000);
+        });
     }
-    document.getElementById('submitBtn').disabled = hasErrors;
-}
 
-document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById('owner_username').addEventListener('input', function() { validateField(this, 'username', 'owner_username_feedback'); });
-    document.getElementById('owner_phone').addEventListener('input', function() { validateField(this, 'phone', 'owner_phone_feedback'); });
-    document.getElementById('staff_username').addEventListener('input', function() { validateField(this, 'username', 'staff_username_feedback'); });
-    document.getElementById('staff_phone').addEventListener('input', function() { validateField(this, 'phone', 'staff_phone_feedback'); });
-    checkFormErrors();
     {% if new_user %}
-    new bootstrap.Modal(document.getElementById('newUserModal')).show();
-    {% endif %}
-});
-
-{% if new_user %}
-function copyCredentials() {
-    const formattedText = `مرحباً بك في منصة محجوب أونلاين\n\nاسم المستخدم: {{ new_user.username }}\nكلمة المرور: {{ new_user.password }}\n\n⚠️ تنبيه هام: يرجى تغيير كلمة المرور من إعدادات لوحة التحكم محجوب أونلاين | سوقك الذكي لضمان أعلى مستويات الأمان والخصوصية لبياناتكم التجارية.`;
-    navigator.clipboard.writeText(formattedText).then(() => {
-        const copyBtn = document.getElementById('copyBtn');
-        copyBtn.innerHTML = `<i class="fas fa-check-circle"></i> تم النسخ!`;
-        copyBtn.className = "btn btn-success flex-grow-1 d-flex align-items-center justify-content-center gap-2";
+    document.addEventListener('DOMContentLoaded', () => {
+        new bootstrap.Modal(document.getElementById('successModal')).show();
     });
-}
-{% endif %}
+    {% endif %}
 </script>
-{% else %}
-<div class="container py-5 text-center">
-    <div class="alert alert-warning">
-        <h4>عذراً، يجب عليك تسجيل الدخول للوصول لهذه الصفحة.</h4>
-        <a href="{{ url_for('login_route') }}" class="btn btn-primary mt-3">الذهاب لصفحة تسجيل الدخول</a>
-    </div>
-</div>
 {% endif %}
 {% endblock %}
