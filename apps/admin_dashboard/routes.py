@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, session, abort
 from flask_login import login_required
 from sqlalchemy import func
 
-# الاستيرادات الضرورية التي كانت ناقصة
+# الاستيرادات الضرورية
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.supplier_db import Supplier 
@@ -27,21 +27,22 @@ def admin_required():
 def dashboard():
     admin_required()
     
-    # 1. حساب الإحصائيات
+    # 1. حساب الإحصائيات (عدد الموردين)
     total_suppliers = Supplier.query.count() or 0
     
-    # 2. حساب الأرصدة (باستخدام db المستورد)
+    # 2. حساب الأرصدة (إضافة احتياطية في حال كان الجدول فارغاً)
     stats = db.session.query(
         func.sum(SupplierWallet.balance_sar),
         func.sum(SupplierWallet.balance_yer),
         func.sum(SupplierWallet.balance_usd)
-    ).first()
+    ).first() or (0.0, 0.0, 0.0)
     
-    # 3. جلب آخر 10 عمليات
+    # 3. جلب آخر 10 عمليات (مع ترتيب تنازلي حسب التاريخ)
     recent_transactions = WalletTransaction.query.order_by(
         WalletTransaction.created_at.desc()
     ).limit(10).all()
     
+    # تجهيز السياق لإرساله للقالب
     context = {
         'total_suppliers': total_suppliers,
         'total_balance_sar': stats[0] or 0.00,
