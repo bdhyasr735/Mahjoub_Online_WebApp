@@ -4,16 +4,13 @@
 {% block title %}تعميد مورد جديد | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<!-- أمن الصفحة: منع الزحف والأرشفة -->
 <meta name="robots" content="noindex, nofollow">
 
-{% if current_user.is_authenticated %}
 <style>
     :root { --mahjoub-primary: #2d144d; --mahjoub-accent: #dfb743; }
     .card-mahjoub { border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
-    .form-control:focus { border-color: var(--mahjoub-accent); box-shadow: 0 0 0 0.2rem rgba(223, 183, 67, 0.25); }
-    .feedback-icon { font-size: 0.85rem; font-weight: bold; margin-top: 5px; display: block; }
-    .is-valid-field { border-color: #198754 !important; }
+    .feedback-icon { font-size: 0.85rem; font-weight: bold; margin-top: 5px; display: block; transition: all 0.3s ease; }
+    .is-valid-field { border-color: #198754 !important; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right calc(0.375em + 0.1875rem) center; background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem); }
     .is-invalid-field { border-color: #dc3545 !important; }
 </style>
 
@@ -29,25 +26,23 @@
                     <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="supplierForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action_type" value="owner">
-                        
-                        <!-- حقل Honeypot للحماية من البوتات -->
                         <input type="text" name="hp_field" style="display:none;" tabindex="-1" autocomplete="off">
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">اسم المستخدم (Username)</label>
-                            <input type="text" name="username" id="username" class="form-control" placeholder="اسم فريد للرابط" required>
+                            <label class="form-label fw-bold">اسم المستخدم</label>
+                            <input type="text" name="username" id="username" class="form-control" placeholder="اسم فريد للرابط" required autocomplete="off">
                             <span id="username_feedback" class="feedback-icon"></span>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-bold">الاسم التجاري للمتجر</label>
-                            <input type="text" name="trade_name" id="trade_name" class="form-control" placeholder="اسم الشركة أو المؤسسة" required>
+                            <input type="text" name="trade_name" id="trade_name" class="form-control" placeholder="اسم الشركة أو المؤسسة" required autocomplete="off">
                             <span id="trade_name_feedback" class="feedback-icon"></span>
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label fw-bold">رقم الهاتف (9 أرقام)</label>
-                            <input type="text" name="phone" id="phone" class="form-control" maxlength="9" placeholder="77XXXXXXX" required>
+                            <input type="text" name="phone" id="phone" class="form-control" maxlength="9" placeholder="77XXXXXXX" required autocomplete="off">
                             <span id="phone_feedback" class="feedback-icon"></span>
                         </div>
 
@@ -61,33 +56,25 @@
     </div>
 </div>
 
-<!-- Modal -->
 {% if new_user %}
-<div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1">
+<div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header bg-success text-white border-0">
+            <div class="modal-header bg-success text-white border-0 rounded-top-4">
                 <h5 class="modal-title"><i class="fas fa-check-circle"></i> تم التعميد بنجاح!</h5>
             </div>
-            <div class="modal-body p-4" style="line-height: 1.8; direction: rtl; text-align: right;">
+            <div class="modal-body p-4" style="line-height: 1.8; text-align: right;">
                 <p>🏬 <strong>مرحباً بك شريكنا في منصة محجوب أونلاين</strong></p>
-                <p>تم إعداد الحساب الخاص بكم بنجاح وصلاحيات الدخول كالتالي:</p>
-                
                 <div class="bg-light p-3 rounded border my-3">
-                    🔹 <strong>نوع الحساب:</strong> مورد جديد كيان تجاري<br>
+                    🔹 <strong>نوع الحساب:</strong> {{ new_user.type }}<br>
                     🏢 <strong>الجهة/الشريك:</strong> <span id="modal_trade_name">{{ new_user.trade_name }}</span><br>
                     👤 <strong>اسم المستخدم:</strong> <code>{{ new_user.username }}</code><br>
-                    🔑 <strong>كلمة المرور المؤقتة:</strong> <code class="text-danger fw-bold">{{ new_user.password }}</code>
+                    🔑 <strong>كلمة المرور:</strong> <code class="text-danger fw-bold">{{ new_user.password }}</code>
                 </div>
-
-                <p>🌐 <strong>رابط تسجيل دخول الموردين:</strong><br>
-                <a href="https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login" target="_blank">https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login</a></p>
-
-                <p class="text-muted small">⚠️ <strong>تنبيه هام:</strong> يرجى تغيير كلمة المرور من إعدادات لوحة التحكم واستكمال بياناتكم محجوب أونلاين | سوقك الذكي لضمان أعلى مستويات الأمان والخصوصية لبياناتكم التجارية.</p>
             </div>
             <div class="modal-footer border-0 justify-content-center">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إغلاق</button>
-                <button type="button" id="copyBtn" class="btn btn-success px-4" onclick="copyFormattedCredentials()">نسخ الرسالة كاملة</button>
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" id="copyBtn" class="btn btn-success px-4" onclick="copyCredentials()">نسخ البيانات كاملة</button>
             </div>
         </div>
     </div>
@@ -95,67 +82,60 @@
 {% endif %}
 
 <script>
-    const form = document.getElementById('supplierForm');
+    async function checkField(type, value) {
+        const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+            body: JSON.stringify({type: type, value: value})
+        });
+        return await response.json();
+    }
+
     const fields = {
         username: { el: document.getElementById('username'), valid: false },
         trade_name: { el: document.getElementById('trade_name'), valid: false },
         phone: { el: document.getElementById('phone'), valid: false }
     };
 
-    function updateState(id, isValid, msg, color) {
-        fields[id].valid = isValid;
+    function updateUI(id, data) {
+        const el = fields[id].el;
         const feedback = document.getElementById(id + '_feedback');
-        fields[id].el.className = 'form-control ' + (isValid ? 'is-valid-field' : 'is-invalid-field');
-        feedback.innerText = msg;
-        feedback.style.color = color;
+        fields[id].valid = data.available;
+        
+        el.className = 'form-control ' + (data.available ? 'is-valid-field' : 'is-invalid-field');
+        feedback.innerText = (data.available ? '✓ ' : '❌ ') + data.message;
+        feedback.style.color = data.available ? '#198754' : '#dc3545';
+        
+        // التحقق من تفعيل زر الإرسال
         document.getElementById('submitBtn').disabled = !(fields.username.valid && fields.trade_name.valid && fields.phone.valid);
     }
 
-    fields.username.el.addEventListener('input', (e) => {
-        const val = e.target.value.trim();
-        updateState('username', val.length >= 3, val.length >= 3 ? '✓ مقبول' : '❌ قصير جداً', val.length >= 3 ? '#198754' : '#dc3545');
+    fields.username.el.addEventListener('blur', async () => {
+        const val = fields.username.el.value.trim();
+        if(val.length >= 3) updateUI('username', await checkField('username', val));
     });
 
-    fields.trade_name.el.addEventListener('input', (e) => {
-        const val = e.target.value.trim();
-        updateState('trade_name', val.length > 3, val.length > 3 ? '✓ مقبول' : '❌ اسم المتجر قصير', val.length > 3 ? '#198754' : '#dc3545');
+    fields.trade_name.el.addEventListener('blur', async () => {
+        const val = fields.trade_name.el.value.trim();
+        if(val.length >= 3) updateUI('trade_name', await checkField('trade_name', val));
     });
 
-    fields.phone.el.addEventListener('input', (e) => {
-        const val = e.target.value.trim();
-        const isValid = /^\d{9}$/.test(val);
-        updateState('phone', isValid, isValid ? '✓ رقم صحيح' : '❌ يجب أن يتكون من 9 أرقام', isValid ? '#198754' : '#dc3545');
+    fields.phone.el.addEventListener('blur', async () => {
+        const val = fields.phone.el.value.trim();
+        if(/^\d{9}$/.test(val)) updateUI('phone', await checkField('phone', val));
     });
 
-    function copyFormattedCredentials() {
-        const tradeName = document.getElementById('modal_trade_name').innerText;
-        const username = "{{ new_user.username if new_user else '' }}";
-        const password = "{{ new_user.password if new_user else '' }}";
+    function copyCredentials() {
+        const text = `بيانات دخول مورد جديد - محجوب أونلاين:
+المتجر: {{ new_user.trade_name if new_user }}
+اسم المستخدم: {{ new_user.username if new_user }}
+كلمة المرور: {{ new_user.password if new_user }}
+رابط الدخول: https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login`;
         
-        const textToCopy = `🏬 مرحباً بك شريكنا في منصة محجوب أونلاين
-
-تم إعداد الحساب الخاص بكم بنجاح وصلاحيات الدخول كالتالي:
-
-🔹 نوع الحساب: مورد جديد كيان تجاري
-🏢 الجهة/الشريك: ${tradeName}
-👤 اسم المستخدم: ${username}
-🔑 كلمة المرور المؤقتة: ${password}
-
-🌐 رابط تسجيل دخول الموردين:
-https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login
-
-⚠️ تنبيه هام: يرجى تغيير كلمة المرور من إعدادات لوحة التحكم واستكمال بياناتكم محجوب أونلاين | سوقك الذكي لضمان أعلى مستويات الأمان والخصوصية لبياناتكم التجارية.`;
-
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            const btn = document.getElementById('copyBtn');
-            const originalText = btn.innerText;
-            btn.innerText = '✅ تم النسخ بنجاح!';
-            btn.classList.replace('btn-success', 'btn-primary');
-            setTimeout(() => {
-                btn.innerText = originalText;
-                btn.classList.replace('btn-primary', 'btn-success');
-            }, 3000);
-        });
+        navigator.clipboard.writeText(text);
+        const btn = document.getElementById('copyBtn');
+        btn.innerText = '✅ تم النسخ!';
+        setTimeout(() => btn.innerText = 'نسخ البيانات كاملة', 3000);
     }
 
     {% if new_user %}
@@ -164,5 +144,4 @@ https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login
     });
     {% endif %}
 </script>
-{% endif %}
 {% endblock %}
