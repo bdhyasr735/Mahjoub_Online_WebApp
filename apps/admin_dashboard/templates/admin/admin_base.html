@@ -56,8 +56,8 @@
             <div class="nav-item">
                 <div class="nav-link" onclick="toggleSub(this)"><i class="fas fa-handshake me-3"></i> <span>إدارة الموردين</span> <i class="fas fa-chevron-down ms-auto"></i></div>
                 <ul class="dropdown-content">
-                    <li><a href="#" class="disabled-link"><i class="fas fa-list-ul me-2"></i> قائمة الشركاء (معطل)</a></li>
-                    <li><a href="#" class="disabled-link"><i class="fas fa-user-plus me-2"></i> إضافة شريك (معطل)</a></li>
+                    <li><a href="{{ url_for('suppliers_bp.list_suppliers') }}" class="{{ 'active' if request.endpoint == 'suppliers_bp.list_suppliers' }}"><i class="fas fa-list-ul me-2"></i> قائمة الشركاء</a></li>
+                    <li><a href="{{ url_for('suppliers_bp.add_supplier') }}" class="{{ 'active' if request.endpoint == 'suppliers_bp.add_supplier' }}"><i class="fas fa-user-plus me-2"></i> إضافة شريك</a></li>
                 </ul>
             </div>
 
@@ -69,7 +69,6 @@
                 </ul>
             </div>
 
-            <!-- الرابط معطل برمجياً لتفادي خطأ الـ BuildError -->
             <a href="#" class="nav-link disabled-link"><i class="fas fa-cog me-3"></i> <span>إعدادات النظام (قريباً)</span></a>
 
             <hr class="text-white my-3">
@@ -100,11 +99,17 @@
             document.getElementById('sidebar').classList.toggle('active');
         }
         document.addEventListener("DOMContentLoaded", function() {
-            if (window.location.href.includes('treasury')) {
-                let drop = document.getElementById('finance-dropdown');
-                drop.style.display = "block";
-                let icon = document.getElementById('finance-nav').querySelector('.fa-chevron-down');
-                icon.style.transform = "rotate(180deg)";
+            // تفعيل المنسدل تلقائياً إذا كان المسار الحالي ضمن الموردين أو الخزينة
+            let path = window.location.href;
+            if (path.includes('suppliers') || path.includes('treasury') || path.includes('wallet')) {
+                let allDrops = document.querySelectorAll('.dropdown-content');
+                allDrops.forEach(d => {
+                    if (d.querySelector('.active')) {
+                        d.style.display = "block";
+                        let chevron = d.previousElementSibling.querySelector('.fa-chevron-down');
+                        if (chevron) chevron.style.transform = "rotate(180deg)";
+                    }
+                });
             }
         });
     </script>
