@@ -8,35 +8,54 @@
 
 <style>
     :root { --mahjoub-primary: #2d144d; --mahjoub-accent: #dfb743; }
-    body { background-color: #f8f9fa; }
-    .card-mahjoub { border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; border: none; }
-    .card-header { background: #fff !important; border-bottom: 1px solid #eee !important; }
-    .form-control:focus { border-color: var(--mahjoub-primary); box-shadow: 0 0 0 0.2rem rgba(45, 20, 77, 0.1); }
-    .feedback-icon { font-size: 0.8rem; font-weight: 600; margin-top: 5px; display: block; }
+    body { background-color: #f4f7f6; }
     
-    /* تحسين زر العودة */
-    .btn-back { color: var(--mahjoub-primary); text-decoration: none; font-weight: 600; transition: 0.3s; }
-    .btn-back:hover { color: var(--mahjoub-accent); }
+    /* تصميم البطاقة */
+    .card-mahjoub { 
+        border-radius: 25px; 
+        box-shadow: 0 15px 35px rgba(45, 20, 77, 0.1); 
+        border: none; 
+        background: #ffffff;
+    }
 
+    /* حقول الإدخال */
+    .form-control { border-radius: 12px; padding: 12px; border: 2px solid #eee; transition: all 0.3s; }
+    .form-control:focus { border-color: var(--mahjoub-primary); box-shadow: 0 0 0 0.2rem rgba(45, 20, 77, 0.15); }
+    
+    /* تحسين زر الاعتماد */
+    .btn-submit { 
+        background-color: var(--mahjoub-primary); 
+        transition: all 0.3s;
+        position: relative;
+    }
+    .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(45, 20, 77, 0.3); }
+    
     /* تنسيق كود المورد */
-    .credential-box { background: #fdfdfd; border: 1px dashed #ccc; padding: 15px; border-radius: 12px; direction: ltr; text-align: left; }
-    .credential-box code { font-size: 1.1rem; color: #d63384; }
+    .credential-box { 
+        background: #fdfdfd; 
+        border: 2px dashed #e0e0e0; 
+        padding: 20px; 
+        border-radius: 15px; 
+        direction: ltr; 
+        text-align: left; 
+    }
+    .credential-box code { font-size: 1.2rem; color: #d63384; font-weight: bold; }
+    
+    /* مؤشر التحميل */
+    .spinner-border-sm { display: none; }
 </style>
 
 <div class="container py-5" dir="rtl">
     <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <!-- زر العودة -->
-            <div class="mb-4">
-                <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn-back">
-                    <i class="fas fa-arrow-right ms-2"></i> العودة للوحة التحكم
-                </a>
-            </div>
+        <div class="col-lg-6 col-md-8">
+            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="text-decoration-none mb-4 d-inline-block text-muted">
+                <i class="fas fa-arrow-right ms-2"></i> العودة للوحة التحكم
+            </a>
 
             <div class="card card-mahjoub p-4">
-                <div class="card-header text-center border-0 pt-2 pb-3">
-                    <h4 class="fw-bold m-0" style="color: var(--mahjoub-primary);">تعميد مورد جديد</h4>
-                    <p class="text-muted small mt-2">إضافة كيان تجاري جديد لنظام الشركاء</p>
+                <div class="text-center mb-4">
+                    <h3 class="fw-bold" style="color: var(--mahjoub-primary);">تعميد مورد جديد</h3>
+                    <p class="text-muted small">إضافة كيان تجاري جديد لمنظومة محجوب أونلاين</p>
                 </div>
                 
                 <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="supplierForm">
@@ -46,23 +65,24 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">اسم المستخدم</label>
                         <input type="text" name="username" id="username" class="form-control" placeholder="اسم فريد للرابط" required autocomplete="off">
-                        <span id="username_feedback" class="feedback-icon"></span>
+                        <span id="username_feedback" class="small mt-1 d-block"></span>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">الاسم التجاري للمتجر</label>
                         <input type="text" name="trade_name" id="trade_name" class="form-control" placeholder="اسم الشركة أو المؤسسة" required autocomplete="off">
-                        <span id="trade_name_feedback" class="feedback-icon"></span>
+                        <span id="trade_name_feedback" class="small mt-1 d-block"></span>
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label fw-bold">رقم الهاتف (9 أرقام)</label>
                         <input type="text" name="phone" id="phone" class="form-control" maxlength="9" placeholder="77XXXXXXX" required autocomplete="off">
-                        <span id="phone_feedback" class="feedback-icon"></span>
+                        <span id="phone_feedback" class="small mt-1 d-block"></span>
                     </div>
 
-                    <button type="submit" id="submitBtn" class="btn btn-lg w-100 text-white rounded-pill" style="background-color: var(--mahjoub-primary);" disabled>
-                        <i class="fas fa-shield-alt me-2"></i> اعتماد الشريك وتوليد البيانات
+                    <button type="submit" id="submitBtn" class="btn btn-lg btn-primary w-100 rounded-pill btn-submit" disabled>
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span id="btnText"><i class="fas fa-shield-alt me-2"></i> اعتماد الشريك وتوليد البيانات</span>
                     </button>
                 </form>
             </div>
@@ -74,15 +94,14 @@
 {% if new_user %}
 <div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
             <div class="modal-header border-0 bg-success text-white rounded-top-4">
-                <h5 class="modal-title w-100 text-center"><i class="fas fa-check-circle fa-lg"></i> تم التعميد بنجاح</h5>
+                <h5 class="modal-title w-100 text-center fw-bold"><i class="fas fa-check-circle me-2"></i> تم التعميد بنجاح</h5>
             </div>
             <div class="modal-body p-4">
-                <p class="text-center text-muted">تم إنشاء بيانات الشريك. يمكنك الآن إرسال هذه البيانات عبر واتساب:</p>
-                
+                <p class="text-center text-muted">تم إنشاء بيانات الشريك. البيانات جاهزة للمشاركة:</p>
                 <div class="credential-box my-3">
-                    <small class="text-muted d-block mb-2">نسخة للمورد:</small>
+                    <small class="text-muted d-block mb-2">بيانات دخول المورد:</small>
                     <strong>المتجر:</strong> {{ new_user.trade_name }}<br>
                     <strong>اسم المستخدم:</strong> {{ new_user.username }}<br>
                     <strong>كلمة المرور:</strong> <code>{{ new_user.password }}</code><br>
@@ -90,7 +109,7 @@
                 </div>
             </div>
             <div class="modal-footer border-0 justify-content-center">
-                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">إغلاق</button>
                 <button type="button" id="copyBtn" class="btn btn-success px-4" onclick="copyCredentials()">
                     <i class="fas fa-copy me-2"></i> نسخ البيانات
                 </button>
@@ -101,7 +120,24 @@
 {% endif %}
 
 <script>
-    // Logic for validation and interaction...
+    // 1. التعامل مع النافذة المنبثقة
+    {% if new_user %}
+    document.addEventListener('DOMContentLoaded', () => {
+        const modalEl = document.getElementById('successModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    });
+    {% endif %}
+
+    // 2. تفعيل حالة التحميل عند الإرسال
+    document.getElementById('supplierForm').addEventListener('submit', function() {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.querySelector('.spinner-border-sm').style.display = 'inline-block';
+        document.getElementById('btnText').innerText = 'جاري المعالجة...';
+    });
+
+    // 3. التحقق الديناميكي
     async function checkField(type, value) {
         const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
             method: 'POST',
@@ -117,13 +153,13 @@
         const el = fields[id].el;
         const feedback = document.getElementById(id + '_feedback');
         fields[id].valid = data.available;
-        el.className = 'form-control ' + (data.available ? 'is-valid' : 'is-invalid');
+        el.classList.toggle('is-valid', data.available);
+        el.classList.toggle('is-invalid', !data.available);
         feedback.innerText = (data.available ? '✓ ' : '❌ ') + data.message;
         feedback.style.color = data.available ? '#198754' : '#dc3545';
         document.getElementById('submitBtn').disabled = !(fields.username.valid && fields.trade_name.valid && fields.phone.valid);
     }
 
-    // Event Listeners
     ['username', 'trade_name', 'phone'].forEach(id => {
         fields[id].el.addEventListener('blur', async () => {
             const val = fields[id].el.value.trim();
@@ -132,7 +168,7 @@
     });
 
     function copyCredentials() {
-        const text = `مرحباً بك في محجوب أونلاين. بيانات دخولك للمتجر:
+        const text = `محجوب أونلاين - بيانات المورد:
 المتجر: {{ new_user.trade_name if new_user }}
 اسم المستخدم: {{ new_user.username if new_user }}
 كلمة المرور: {{ new_user.password if new_user }}
@@ -145,13 +181,7 @@
         setTimeout(() => {
             btn.innerHTML = '<i class="fas fa-copy me-2"></i> نسخ البيانات';
             btn.classList.replace('btn-outline-success', 'btn-success');
-        }, 3000);
+        }, 2000);
     }
-
-    {% if new_user %}
-    document.addEventListener('DOMContentLoaded', () => {
-        new bootstrap.Modal(document.getElementById('successModal')).show();
-    });
-    {% endif %}
 </script>
 {% endblock %}
