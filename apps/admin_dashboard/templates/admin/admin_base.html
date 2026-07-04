@@ -42,6 +42,12 @@
         </div>
         
         <nav class="nav-menu">
+            <!-- منطقة التصحيح (Debug Zone) -->
+            <div style="background: #ffeb3b; color: #000; padding: 10px; margin-bottom: 10px; font-size: 11px; border-radius: 5px;">
+                <strong>DEBUG:</strong> Count: {{ registered_modules|length }} <br>
+                Items: {{ registered_modules.keys() }}
+            </div>
+
             <!-- رابط الإحصائيات الرئيسي -->
             <a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard.dashboard' }}">
                 <i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span>
