@@ -4,13 +4,22 @@
 
 {% block content %}
 <style>
-    :root { --royal-purple: #2e003e; --royal-gold: #d4af37; }
-    .text-royal-purple { color: var(--royal-purple) !important; }
-    .btn-royal-back { background-color: transparent; border: 2px solid var(--royal-purple); color: var(--royal-purple); }
+    /* النمط الملكي الفاخر */
+    :root { 
+        --royal-purple: #2e003e; 
+        --royal-black: #05000a; 
+        --royal-gold: #d4af37; 
+    }
+    .regal-gradient { 
+        background: linear-gradient(135deg, var(--royal-black) 0%, var(--royal-purple) 100%); 
+        color: #ffffff;
+    }
+    .text-royal-gold { color: var(--royal-gold) !important; }
+    .border-gold { border: 1px solid var(--royal-gold); }
+    .btn-royal-back { background-color: transparent; border: 2px solid var(--royal-purple); color: var(--royal-purple); font-weight: bold; }
     .btn-royal-back:hover { background-color: var(--royal-purple); color: #fff; }
-    .card-header-royal { background-color: var(--royal-purple) !important; color: white; }
-    .summary-footer { background-color: #f8f9fa; font-weight: bold; border-top: 2px solid var(--royal-purple); }
-    .wallet-code-badge { font-family: monospace; background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #444; border: 1px solid #ccc; }
+    .wallet-code-badge { font-family: monospace; background: #eee; padding: 4px 8px; border-radius: 4px; font-weight: bold; border: 1px solid var(--royal-gold); color: #333; }
+    .summary-footer { background-color: #f8f9fa; font-weight: bold; border-top: 2px solid var(--royal-gold); }
 </style>
 
 <div class="container-fluid py-4">
@@ -20,15 +29,15 @@
             <h3 class="fw-bold text-royal-purple"><i class="fas fa-wallet me-2"></i> {{ wallet.supplier.trade_name }}</h3>
             <p class="text-muted">كود المحفظة: <span class="wallet-code-badge">{{ wallet.wallet_code }}</span></p>
         </div>
-        <a href="{{ url_for('wallet_app.dashboard') }}" class="btn btn-royal-back px-4"><i class="fas fa-arrow-left me-2"></i>العودة للقائمة</a>
+        <a href="{{ url_for('wallet_app.dashboard') }}" class="btn btn-royal-back px-4"><i class="fas fa-arrow-left me-2"></i>العودة للخزينة</a>
     </div>
 
-    <!-- بطاقات الأرصدة -->
+    <!-- بطاقات الأرصدة (بتدرج ملكي) -->
     <div class="row">
         {% for balance, currency, color in [(wallet.balance_sar, 'SAR', 'bg-primary'), (wallet.balance_yer, 'YER', 'bg-success'), (wallet.balance_usd, 'USD', 'bg-warning')] %}
         <div class="col-md-4">
             <button onclick="filterTable('{{ currency }}')" class="btn p-0 w-100 text-start shadow-sm border-0">
-                <div class="card text-white {{ color }} mb-3">
+                <div class="card text-white {{ color }} mb-3" style="border: 1px solid #d4af37;">
                     <div class="card-body">
                         <h5 class="card-title">الرصيد بـ {{ currency }}</h5>
                         <h2 class="fw-bold">{{ "{:,.2f}".format(balance) }} <small class="fs-6">{{ currency }}</small></h2>
@@ -40,9 +49,9 @@
     </div>
 
     <!-- جدول الحركات -->
-    <div class="card mt-4 border-0 shadow-sm">
-        <div class="card-header card-header-royal fw-bold d-flex justify-content-between align-items-center">
-            <span>سجل الحركات (الفلتر: <span id="currentFilter" class="text-warning">الكل</span>)</span>
+    <div class="card mt-4 border-gold shadow-sm">
+        <div class="card-header regal-gradient fw-bold d-flex justify-content-between align-items-center">
+            <span class="text-white">سجل الحركات (الفلتر: <span id="currentFilter" class="text-royal-gold">الكل</span>)</span>
             <button class="btn btn-sm btn-outline-light" onclick="filterTable('ALL')">إظهار الكل</button>
         </div>
         <div class="card-body table-responsive">
@@ -66,7 +75,7 @@
                         <td class="fw-bold">{{ trans.description or 'حركة مالية رقم ' ~ trans.reference_number }}</td>
                         <td class="text-danger fw-bold">{{ trans.amount if is_debit else '-' }}</td>
                         <td class="text-success fw-bold">{{ trans.amount if not is_debit else '-' }}</td>
-                        <td><span class="badge bg-dark">{{ trans.currency }}</span></td>
+                        <td><span class="badge" style="background-color: var(--royal-purple); color: #fff;">{{ trans.currency }}</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
