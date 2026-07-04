@@ -10,19 +10,26 @@
     <style>
         :root { --royal-purple: #1a0b2e; --deep-black: #08020d; --mahjoub-gold: #D4AF37; --sidebar-width: 280px; }
         body { font-family: 'Cairo', sans-serif; background-color: #f4f7f6; margin: 0; }
+        
         .sidebar { width: var(--sidebar-width); background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); height: 100vh; position: fixed; right: 0; top: 0; z-index: 1050; transition: all 0.3s; box-shadow: 2px 0 10px rgba(0,0,0,0.3); overflow-y: auto; }
         .logo-container { padding: 30px 10px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.3); }
         .sidebar-logo { width: 70px; filter: brightness(0) invert(1); }
         .brand-text { color: var(--mahjoub-gold); font-size: 0.9rem; margin-top: 10px; display: block; }
+        
         .nav-menu { padding: 20px 15px; }
         .nav-link { display: flex; align-items: center; padding: 12px 15px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: 10px; transition: 0.3s; cursor: pointer; }
         .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.2); color: var(--mahjoub-gold); }
+        
         .dropdown-content { display: none; list-style: none; padding-right: 35px; border-right: 2px solid var(--mahjoub-gold); margin: 5px 0; }
         .dropdown-content a { color: rgba(255,255,255,0.8); display: block; padding: 8px 10px; font-size: 0.9rem; border-radius: 5px; text-decoration: none; }
         .dropdown-content a:hover { background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold); }
+        
+        .fa-chevron-down { transition: transform 0.3s ease; } /* حركة سلسة للسهم */
+        
         .main-wrapper { margin-right: var(--sidebar-width); transition: 0.3s; }
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .menu-toggle { display: none; background: none; border: none; font-size: 1.5rem; color: var(--royal-purple); }
+        
         @media (max-width: 992px) { .sidebar { right: -280px; } .sidebar.active { right: 0; } .main-wrapper { margin-right: 0; } .menu-toggle { display: block !important; } }
     </style>
 </head>
@@ -33,9 +40,14 @@
             <h6 class="text-white mt-3 fw-bold mb-0">القيادة المركزية</h6>
             <span class="brand-text">محجوب أونلاين | سوقك الذكي</span>
         </div>
+        
         <nav class="nav-menu">
-            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard.dashboard' }}"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a>
+            <!-- رابط الإحصائيات الرئيسي -->
+            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard.dashboard' }}">
+                <i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span>
+            </a>
             
+            <!-- الموديولات المكتشفة ديناميكياً -->
             {% for key, module in registered_modules.items() %}
             <div class="nav-item">
                 <div class="nav-link" onclick="toggleSub(this)">
@@ -52,7 +64,9 @@
             {% endfor %}
 
             <hr class="text-white my-3">
-            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-3"></i> <span>خروج آمن</span></a>
+            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link text-danger">
+                <i class="fas fa-sign-out-alt me-3"></i> <span>خروج آمن</span>
+            </a>
         </nav>
     </aside>
 
@@ -69,10 +83,19 @@
         function toggleSub(el) {
             let drop = el.nextElementSibling;
             if(!drop) return;
-            drop.style.display = (drop.style.display === "block") ? "none" : "block";
-            el.querySelector('.fa-chevron-down').style.transform = (drop.style.display === "block") ? "rotate(180deg)" : "rotate(0deg)";
+            
+            // التبديل بين الظهور والإخفاء
+            let isVisible = drop.style.display === "block";
+            drop.style.display = isVisible ? "none" : "block";
+            
+            // تدوير السهم
+            let icon = el.querySelector('.fa-chevron-down');
+            icon.style.transform = isVisible ? "rotate(0deg)" : "rotate(180deg)";
         }
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+        
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('active'); 
+        }
     </script>
 </body>
 </html>
