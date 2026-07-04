@@ -7,6 +7,9 @@
     .validation-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; z-index: 10; }
     .is-valid { border-color: #198754 !important; }
     .is-invalid { border-color: #dc3545 !important; }
+    /* إخفاء أسهم الأرقام */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 </style>
 
 <div class="container py-5" dir="rtl" style="min-height: 80vh;">
@@ -34,7 +37,8 @@
                             <div id="trade_name_icon" class="validation-icon"></div>
                         </div>
                         <div class="form-floating mb-4 position-relative">
-                            <input type="number" class="form-control" name="phone" id="phone" placeholder="77XXXXXXX" required>
+                            <!-- تم تغيير النوع إلى text مع تقييد المدخلات لـ 9 أرقام لمنع ظهور الأسهم -->
+                            <input type="text" class="form-control" name="phone" id="phone" placeholder="77XXXXXXX" required pattern="\d{9}" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             <label>رقم الهاتف (9 أرقام)</label>
                             <div id="phone_icon" class="validation-icon"></div>
                         </div>
@@ -60,18 +64,20 @@
                     <p>🏬 <strong>مرحباً بك شريكنا في منصة محجوب أونلاين</strong></p>
                     <p>تم إعداد الحساب الخاص بكم بنجاح وصلاحيات الدخول كالتالي:</p>
                     <p>🔹 <strong>نوع الحساب:</strong> 🔑 مورد رئيسي<br>
-                    🏢 <strong>الجهة/الشريك:</strong> {{ new_user.trade_name }}<br>
                     👤 <strong>اسم المستخدم:</strong> {{ new_user.username }}<br>
                     🔑 <strong>كلمة المرور المؤقتة:</strong> <span class="text-danger fw-bold">{{ new_user.password }}</span><br>
                     🏷️ <strong>رمز المحفظة:</strong> {{ new_user.wallet_code }}</p>
-                    <p>🌐 <strong>رابط تسجيل دخول الموردين:</strong><br>
-                    <small>https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login</small></p>
+                    <p class="text-warning p-2 border border-warning rounded">
+                        ⚠️ <strong>تنبيه هام:</strong> يرجى تغيير كلمة المرور من إعدادات لوحة التحكم محجوب أونلاين | سوقك الذكي لضمان أعلى مستويات الأمان والخصوصية لبياناتكم التجارية.
+                    </p>
                 </div>
                 {% endif %}
             </div>
-            <div class="modal-footer border-0">
+            <div class="modal-footer border-0 justify-content-between">
                 <button type="button" class="btn btn-outline-primary" onclick="copyToClipboard()">نسخ البيانات</button>
-                <a href="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" class="btn btn-secondary">تعميد مورد آخر</a>
+                <a href="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" class="btn btn-dark px-4">
+                    <i class="fas fa-plus-circle me-1"></i> تعميد مورد آخر
+                </a>
             </div>
         </div>
     </div>
@@ -84,7 +90,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // التحقق اللحظي
         const validateField = async (field, value) => {
             if (!value) return;
             const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
@@ -109,7 +114,6 @@
             document.getElementById(field).addEventListener('blur', (e) => validateField(field, e.target.value));
         });
 
-        // إظهار النافذة بتأخير بسيط لضمان تحميل الـ DOM
         {% if new_user %}
             setTimeout(() => {
                 var myModal = new bootstrap.Modal(document.getElementById('successModal'));
