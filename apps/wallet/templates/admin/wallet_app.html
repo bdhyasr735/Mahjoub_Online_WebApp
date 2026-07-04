@@ -1,119 +1,101 @@
-{% extends 'admin/admin_base.html' %}
+{% extends "admin/base.html" %}
 
-{% block title %}إدارة محافظ الموردين{% endblock %}
+{% block title %}إدارة محافظ الموردين | Mahjoub Online{% endblock %}
 
 {% block content %}
-<style>
-    :root {
-        --royal-purple: #2e003e; 
-        --royal-gold: #d4af37;
-    }
-    .text-royal-purple { color: var(--royal-purple) !important; }
-    
-    .btn-royal-back {
-        background-color: transparent;
-        border: 2px solid var(--royal-purple);
-        color: var(--royal-purple);
-        font-weight: 600;
-        transition: all 0.3s;
-    }
-    .btn-royal-back:hover {
-        background-color: var(--royal-purple);
-        color: #fff;
-    }
-    .search-card { 
-        border-right: 5px solid var(--royal-gold) !important; 
-        background-color: #fcfcfc;
-    }
-    .summary-card {
-        background: linear-gradient(135deg, var(--royal-purple), #4a0060);
-        color: var(--royal-gold);
-        border: none;
-        border-bottom: 4px solid var(--royal-gold);
-    }
-    /* تحسين وضوح الجدول */
-    .table thead { background-color: var(--royal-purple); color: #fff; }
-    .table tbody tr:hover { background-color: #f8f9fa; }
-    .badge-code { background-color: #eee; color: var(--royal-purple); font-family: monospace; font-size: 0.9em; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; }
-</style>
-
 <div class="container-fluid py-4">
+    <!-- رأس الصفحة -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold text-royal-purple"><i class="fas fa-wallet me-2"></i>محافظ الموردين</h2>
-            <p class="text-muted">إدارة أرصدة الموردين وحركات التسوية</p>
+            <h4 class="mb-0 fw-bold">الخزينة المركزية</h4>
+            <small class="text-muted">نظام إدارة المحافظ والأرصدة</small>
         </div>
-        
-        <a href="/admin/dashboard" class="btn btn-royal-back px-4">
-            <i class="fas fa-arrow-left me-2"></i>العودة للقيادة المركزية
-        </a>
     </div>
 
-    <div class="row g-3 mb-4">
-        {% for label, val, color in [('إجمالي SAR', total_sar, '#fff'), ('إجمالي YER', total_yer, '#fff'), ('إجمالي USD', total_usd, '#fff')] %}
-        <div class="col-md-4">
-            <div class="card summary-card p-3 shadow-sm">
-                <small class="text-white-50">{{ label }}</small>
-                <h3 class="fw-bold mb-0 text-white">{{ "{:,.2f}".format(val or 0) }} <span class="fs-6 text-gold">{{ label.split()[-1] }}</span></h3>
+    <!-- لوحة ملخص الأرصدة (محاكاة لهوية image_9eaa08.png) -->
+    <div class="card mb-4 border-0 shadow-sm" style="background-color: #4b0082; color: white;">
+        <div class="card-body">
+            <h5 class="mb-3">ملخص الأرصدة</h5>
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <p class="mb-1 opacity-75">عدد المحافظ</p>
+                    <h3 class="fw-bold">{{ wallets|length }}</h3>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1 opacity-75">إجمالي رصيد SAR</p>
+                    <h3 class="fw-bold">{{ "{:,.2f}".format(wallets|sum(attribute='balance_sar')) }}</h3>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1 opacity-75">إجمالي رصيد YER</p>
+                    <h3 class="fw-bold">{{ "{:,.2f}".format(wallets|sum(attribute='balance_yer')) }}</h3>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-1 opacity-75">إجمالي رصيد USD</p>
+                    <h3 class="fw-bold">{{ "{:,.2f}".format(wallets|sum(attribute='balance_usd')) }}</h3>
+                </div>
             </div>
         </div>
-        {% endfor %}
     </div>
 
-    <div class="card shadow-sm border-0 mb-4 search-card">
-        <div class="card-body p-2">
+    <!-- شريط البحث -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
             <div class="input-group">
-                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-royal-purple"></i></span>
-                <input type="text" id="liveSearch" class="form-control border-0" 
-                       placeholder="البحث بالاسم التجاري أو كود المحفظة (مثال: MAH-9631)...">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="walletSearch" class="form-control border-start-0" 
+                       placeholder="ابحث عن مورد بالاسم أو رمز المحفظة...">
             </div>
         </div>
     </div>
 
-    <div id="tableContainer" class="table-responsive shadow-sm bg-white rounded border">
-        {% include 'admin/partials/wallet_table_body.html' %}
+    <!-- جدول المحافظ -->
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="walletTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>كود المحفظة</th>
+                        <th>المورد</th>
+                        <th>رصيد SAR</th>
+                        <th>رصيد YER</th>
+                        <th>رصيد USD</th>
+                        <th>المعلق (Pending)</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wallet in wallets %}
+                    <tr data-supplier="{{ wallet.supplier.trade_name }}" data-code="{{ wallet.wallet_code }}">
+                        <td class="fw-bold text-dark">{{ wallet.wallet_code }}</td>
+                        <td>{{ wallet.supplier.trade_name }}</td>
+                        <td class="text-success fw-bold">{{ "{:,.2f}".format(wallet.balance_sar) }}</td>
+                        <td class="text-primary fw-bold">{{ "{:,.2f}".format(wallet.balance_yer) }}</td>
+                        <td class="text-info fw-bold">{{ "{:,.2f}".format(wallet.balance_usd) }}</td>
+                        <td class="text-warning fw-bold">{{ "{:,.2f}".format(wallet.balance_pending) }}</td>
+                        <td>
+                            <a href="{{ url_for('wallet.view_transactions', wallet_id=wallet.id) }}" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-history"></i> كشف
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-$(document).ready(function() {
-    let timer;
-
-    $('#liveSearch').on('keyup', function() {
-        clearTimeout(timer);
-        let query = $(this).val();
-        timer = setTimeout(function() {
-            $('#tableContainer').css('opacity', '0.5');
-            $.ajax({
-                url: "{{ url_for('wallet_app.dashboard') }}",
-                data: { 'search': query },
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                success: function(response) {
-                    $('#tableContainer').html(response).css('opacity', '1');
-                },
-                error: function() {
-                    $('#tableContainer').css('opacity', '1');
-                    alert("تعذر الاتصال بالسيرفر.");
-                }
-            });
-        }, 500);
-    });
-
-    // تحسين التنقل بين الصفحات
-    $(document).on('click', '.pagination a', function(e) {
-        e.preventDefault();
-        let url = $(this).attr('href');
-        $('#tableContainer').css('opacity', '0.5');
-        $.ajax({
-            url: url,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            success: function(response) {
-                $('#tableContainer').html(response).css('opacity', '1');
-                $('html, body').animate({scrollTop: $('#tableContainer').offset().top - 100}, 500);
-            }
+    // 🔍 فلترة فورية للجدول
+    document.getElementById('walletSearch').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#walletTable tbody tr');
+        
+        rows.forEach(row => {
+            let code = row.getAttribute('data-code').toLowerCase();
+            let supplier = row.getAttribute('data-supplier').toLowerCase();
+            row.style.display = (code.includes(filter) || supplier.includes(filter)) ? '' : 'none';
         });
     });
-});
 </script>
 {% endblock %}
