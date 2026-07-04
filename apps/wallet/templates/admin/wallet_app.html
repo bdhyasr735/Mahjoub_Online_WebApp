@@ -35,15 +35,15 @@
                 </div>
                 <div class="col-md-3">
                     <p class="mb-1 opacity-75">إجمالي رصيد SAR</p>
-                    <h3 class="fw-bold text-gold">{{ "{:,.2f}".format(stats.total_sar) }}</h3>
+                    <h3 class="fw-bold text-gold">{{ "{:,.2f}".format(stats.total_sar or 0) }}</h3>
                 </div>
                 <div class="col-md-3">
                     <p class="mb-1 opacity-75">إجمالي رصيد YER</p>
-                    <h3 class="fw-bold text-gold">{{ "{:,.2f}".format(stats.total_yer) }}</h3>
+                    <h3 class="fw-bold text-gold">{{ "{:,.2f}".format(stats.total_yer or 0) }}</h3>
                 </div>
                 <div class="col-md-3">
                     <p class="mb-1 opacity-75">إجمالي رصيد USD</p>
-                    <h3 class="fw-bold text-gold">{{ "{:,.2f}".format(stats.total_usd) }}</h3>
+                    <h3 class="fw-bold text-gold">{{ "{:,.2f}".format(stats.total_usd or 0) }}</h3>
                 </div>
             </div>
         </div>
@@ -79,11 +79,11 @@
                     <tr data-supplier="{{ wallet.supplier.trade_name }}" data-code="{{ wallet.wallet_code }}">
                         <td class="fw-bold" style="color: #4b0082;">{{ wallet.wallet_code }}</td>
                         <td class="text-dark">{{ wallet.supplier.trade_name }}</td>
-                        <td class="text-success fw-bold">{{ "{:,.2f}".format(wallet.balance_sar) }}</td>
-                        <td class="text-primary fw-bold">{{ "{:,.2f}".format(wallet.balance_yer) }}</td>
-                        <td class="text-info fw-bold">{{ "{:,.2f}".format(wallet.balance_usd) }}</td>
+                        <!-- تم إضافة or 0 للحماية من قيم None -->
+                        <td class="text-success fw-bold">{{ "{:,.2f}".format(wallet.balance_sar or 0) }}</td>
+                        <td class="text-primary fw-bold">{{ "{:,.2f}".format(wallet.balance_yer or 0) }}</td>
+                        <td class="text-info fw-bold">{{ "{:,.2f}".format(wallet.balance_usd or 0) }}</td>
                         <td>
-                            <!-- رابط صحيح يطابق الـ Blueprint والـ Route -->
                             <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=wallet.supplier_id) }}" class="btn btn-sm" style="background-color: #4b0082; color: white;">
                                 <i class="fas fa-history"></i> كشف الحساب
                             </a>
