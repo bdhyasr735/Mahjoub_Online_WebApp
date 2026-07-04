@@ -17,12 +17,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
-    # 1. تسجيل الـ Blueprints الأساسية يدوياً (التي تم استثناؤها من الاكتشاف التلقائي)
+    # تسجيل الـ Blueprints الأساسية للإدارة فقط
     from apps.auth_portal.routes import auth_portal
-    from apps.suppliers_auth.routes import suppliers_auth
-    
     app.register_blueprint(auth_portal, url_prefix='/auth')
-    app.register_blueprint(suppliers_auth, url_prefix='/suppliers')
     
     # إضافة الفلاتر المخصصة
     app.jinja_env.filters['full_time'] = format_full_timestamp
@@ -59,6 +56,7 @@ def create_app():
 
         # [نظام التسجيل التلقائي للموديولات]
         apps_dir = app.root_path
+        # استبعاد المجلدات التي لا تحتاج تسجيل تلقائي أو التي تسبب مشاكل
         ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'suppliers_auth', 'auth_portal', 'admin_dashboard']
         
         for item in os.listdir(apps_dir):
