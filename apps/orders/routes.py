@@ -9,11 +9,12 @@ from apps.models.financials_db import OrderFinancial
 from apps.api.sync_engine import SyncEngine
 from sqlalchemy import func
 
-orders_bp = Blueprint('orders', __name__, template_folder='templates')
+# تعريف الـ Blueprint
+orders_bp = Blueprint('orders_bp', __name__, template_folder='templates')
 
 @orders_bp.route('/dashboard')
 @login_required
-def dashboard():
+def index():
     """لوحة تحكم الطلبات - محسنة للأداء العالي."""
     page = request.args.get('page', 1, type=int)
     per_page = 20
@@ -36,7 +37,6 @@ def dashboard():
     
     # 3. إحصائيات سريعة (استخدام العمود الخام total_paid_raw)
     try:
-        # هنا التعديل الجوهري: استخدام total_paid_raw بدلاً من total_paid
         total_sales = db.session.query(func.sum(OrderFinancial.total_paid_raw)).scalar() or 0
     except Exception as e:
         print(f"⚠️ Error calculating stats: {e}")
@@ -45,7 +45,7 @@ def dashboard():
     stats = {
         'cancelled': Order.query.filter_by(status='cancelled').count(),
         'completed': Order.query.filter_by(status='completed').count(),
-        'total_sales': float(total_sales) # تحويل الناتج لـ float لضمان العرض الصحيح
+        'total_sales': float(total_sales) 
     }
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -63,7 +63,7 @@ def sync_all():
             flash("حدث خطأ أثناء المزامنة.", "danger")
     except Exception as e:
         flash(f"خطأ تقني: {str(e)}", "danger")
-    return redirect(url_for('orders.dashboard'))
+    return redirect(url_for('orders_bp.index'))
 
 @orders_bp.route('/view-order/<int:order_id>') 
 @login_required
