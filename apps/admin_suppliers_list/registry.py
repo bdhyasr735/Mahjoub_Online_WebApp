@@ -1,6 +1,8 @@
 # coding: utf-8
 # 📂 apps/admin_suppliers_list/registry.py
 
+# قم بحذف "from .routes import suppliers_bp" من هنا (أعلى الملف)
+
 MODULE_NAME = "إدارة الموردين"
 MODULE_ICON = "fa-users"
 
@@ -9,7 +11,7 @@ LINKS = {
 }
 
 def register_module(app):
-    # الاستيراد يجب أن يكون هنا فقط (داخل الدالة)
+    # قم بعمل الاستيراد هنا داخل الدالة فقط
     from .routes import suppliers_bp 
     
     try:
