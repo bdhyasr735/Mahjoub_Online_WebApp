@@ -7,12 +7,13 @@ from flask_login import login_required
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from decimal import Decimal
 
 # إعداد المسجل (Logger) لتتبع الأخطاء المالية
 logger = logging.getLogger(__name__)
 
+# تعريف البلوبرنت
 wallet_bp = Blueprint('wallet_app', __name__, template_folder='templates')
 
 @wallet_bp.route('/admin/dashboard', methods=['GET'])
@@ -22,7 +23,7 @@ def dashboard():
     search = request.args.get('search', '')
     page = request.args.get('page', 1, type=int)
     
-    # استعلام جلب المحافظ مع ربط بيانات المورد
+    # 1. جلب بيانات المحافظ مع ربط اسم المورد للبحث
     query = SupplierWallet.query.join(Supplier, SupplierWallet.supplier_id == Supplier.id)
     
     if search:
@@ -33,23 +34,21 @@ def dashboard():
     
     wallets = query.paginate(page=page, per_page=20, error_out=False)
     
-    # حساب الإجماليات المالية للمنصة
+    # 2. حساب الإجماليات المالية للمنصة
     stats = {
-        'total_sar': db.session.query(db.func.sum(SupplierWallet.balance_sar)).scalar() or 0,
-        'total_yer': db.session.query(db.func.sum(SupplierWallet.balance_yer)).scalar() or 0,
-        'total_usd': db.session.query(db.func.sum(SupplierWallet.balance_usd)).scalar() or 0
+        'total_sar': db.session.query(func.sum(SupplierWallet.balance_sar)).scalar() or 0,
+        'total_yer': db.session.query(func.sum(SupplierWallet.balance_yer)).scalar() or 0,
+        'total_usd': db.session.query(func.sum(SupplierWallet.balance_usd)).scalar() or 0
     }
     
-    # دعم التحديث الديناميكي عبر AJAX
+    # 3. دعم التحديث الديناميكي (AJAX)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/wallet_table_body.html', wallets=wallets.items, pagination=wallets)
         
     return render_template(
         'admin/wallet_app.html', 
         wallets=wallets.items, 
-        total_sar=stats['total_sar'], 
-        total_yer=stats['total_yer'], 
-        total_usd=stats['total_usd'], 
+        stats=stats, # تمرير الإحصائيات في قاموس واحد أنظف
         pagination=wallets
     )
 
@@ -67,11 +66,13 @@ def add_transaction(supplier_id):
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
     
     try:
+        # استخراج ومعالجة البيانات
         amount_raw = request.form.get('amount', 0)
         amount = Decimal(str(amount_raw))
-        trans_type = request.form.get('type') # 'credit' أو 'debit'
+        trans_type = request.form.get('type')  # 'credit' أو 'debit'
         order_ref = request.form.get('reference_number', '').strip()
         currency = request.form.get('currency', 'SAR')
+        description = request.form.get('description', f"تسوية يدوية للطلب {order_ref}")
         
         if amount <= 0:
             flash("يجب أن يكون المبلغ أكبر من صفر.", "danger")
@@ -84,10 +85,10 @@ def add_transaction(supplier_id):
             trans_type=trans_type,
             owner_type='supplier',
             owner_id=wallet.supplier_id,
-            description=request.form.get('description', f"تسوية يدوية للطلب {order_ref}")
+            description=description
         )
         
-        # تعيين البيانات الإضافية للحركة
+        # تعيين البيانات الإضافية
         new_trans.currency = currency
         new_trans.related_order_id = order_ref if order_ref else None
         new_trans.reference_number = order_ref if order_ref else None
