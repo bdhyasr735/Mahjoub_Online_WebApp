@@ -23,17 +23,9 @@
         .dropdown-content a:hover { background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold); }
         .fa-chevron-down { transition: transform 0.3s ease; }
         .main-wrapper { margin-right: var(--sidebar-width); transition: 0.3s; }
-        .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 15px; }
+        .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .menu-toggle { display: none; background: none; border: none; font-size: 1.5rem; color: var(--royal-purple); }
-        .btn-back { color: var(--royal-purple); border: 1px solid var(--royal-purple); padding: 5px 15px; border-radius: 20px; transition: 0.3s; }
-        .btn-back:hover { background: var(--royal-purple); color: white; }
         
-        /* نظام التقليب السيادي */
-        .pagination .page-link { color: var(--royal-purple); border-color: var(--royal-purple); font-weight: bold; }
-        .pagination .page-item.active .page-link { background-color: var(--royal-purple); border-color: var(--royal-purple); color: var(--mahjoub-gold); }
-        .pagination .page-item.disabled .page-link { color: #ccc; }
-        .pagination .page-link:hover { background-color: var(--mahjoub-gold); border-color: var(--mahjoub-gold); color: white; }
-
         @media (max-width: 992px) { .sidebar { right: -280px; } .sidebar.active { right: 0; } .main-wrapper { margin-right: 0; } .menu-toggle { display: block !important; } }
     </style>
 </head>
@@ -74,21 +66,7 @@
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
             <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-            
-            <!-- حقل البحث -->
-            <form action="{{ url_for('admin_dashboard.search') }}" method="GET" class="d-flex" style="flex: 1; max-width: 400px;">
-                <div class="input-group">
-                    <input type="text" name="q" class="form-control" placeholder="بحث في السجلات..." style="border: 1px solid var(--royal-purple); border-radius: 20px 0 0 20px;">
-                    <button class="btn" type="submit" style="background: var(--royal-purple); color: var(--mahjoub-gold); border-radius: 0 20px 20px 0;">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </form>
-
-            <div class="d-flex align-items-center gap-3">
-                <a href="javascript:history.back()" class="btn btn-back text-decoration-none">
-                    <i class="fas fa-arrow-right"></i> عودة
-                </a>
+            <div class="d-flex align-items-center gap-3 ms-auto">
                 <div class="user-identity fw-bold d-none d-md-block">{{ current_user.username if current_user.is_authenticated else 'المسؤول' }}</div>
                 <div class="badge bg-warning text-dark">بيئة التحكم السيادية</div>
             </div>
