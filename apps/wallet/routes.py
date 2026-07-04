@@ -2,15 +2,15 @@
 # 📂 apps/wallet/routes.py - إدارة محافظ الموردين (الإدارة)
 
 import logging
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
 from sqlalchemy import or_, func
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
-# إعداد المسجل (Logger) لتتبع الأخطاء المالية
+# إعداد المسجل (Logger) لتتبع العمليات المالية الحساسة
 logger = logging.getLogger(__name__)
 
 # تعريف البلوبرنت
@@ -23,7 +23,7 @@ def dashboard():
     search = request.args.get('search', '')
     page = request.args.get('page', 1, type=int)
     
-    # 1. جلب بيانات المحافظ مع ربط اسم المورد للبحث
+    # 1. جلب بيانات المحافظ مع البحث
     query = SupplierWallet.query.join(Supplier, SupplierWallet.supplier_id == Supplier.id)
     
     if search:
@@ -32,7 +32,7 @@ def dashboard():
             SupplierWallet.wallet_code.ilike(f'%{search}%')
         ))
     
-    wallets = query.paginate(page=page, per_page=20, error_out=False)
+    wallets = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=20, error_out=False)
     
     # 2. حساب الإجماليات المالية للمنصة
     stats = {
@@ -41,14 +41,14 @@ def dashboard():
         'total_usd': db.session.query(func.sum(SupplierWallet.balance_usd)).scalar() or 0
     }
     
-    # 3. دعم التحديث الديناميكي (AJAX)
+    # 3. دعم التحديث الديناميكي (AJAX) للجدول
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/wallet_table_body.html', wallets=wallets.items, pagination=wallets)
         
     return render_template(
         'admin/wallet_app.html', 
         wallets=wallets.items, 
-        stats=stats, # تمرير الإحصائيات في قاموس واحد أنظف
+        stats=stats,
         pagination=wallets
     )
 
@@ -67,8 +67,13 @@ def add_transaction(supplier_id):
     
     try:
         # استخراج ومعالجة البيانات
-        amount_raw = request.form.get('amount', 0)
-        amount = Decimal(str(amount_raw))
+        amount_raw = request.form.get('amount', '0')
+        try:
+            amount = Decimal(amount_raw)
+        except InvalidOperation:
+            flash("قيمة المبلغ غير صحيحة.", "danger")
+            return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
+            
         trans_type = request.form.get('type')  # 'credit' أو 'debit'
         order_ref = request.form.get('reference_number', '').strip()
         currency = request.form.get('currency', 'SAR')
