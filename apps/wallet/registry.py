@@ -3,15 +3,13 @@
 
 from apps.wallet.routes import wallet_bp
 
-# تم تحديث الاسم ليظهر بوضوح في القائمة الجانبية
+# نترك الاسم والأيقونة كما هما لتعريف الموديول برمجياً
 MODULE_NAME = "إدارة المحافظ"
 MODULE_ICON = "fas fa-wallet"
 
-# ✅ إضافة الرابط هنا سيجعل الموديول يظهر تلقائياً في القائمة الجانبية
-# لاحظ أننا استخدمنا 'wallet_app.dashboard' لأن اسم الـ Blueprint هو 'wallet_app'
-LINKS = {
-    "محفظة الموردين": "wallet_app.dashboard"
-}
+# ✅ نجعل القائمة فارغة هنا، لأننا قمنا بتعريفها بالفعل داخل 'الرقابة المالية'
+# هذا يمنع ظهورها كعنصر مستقل في القائمة الجانبية ويجعلها تعمل في الخلفية فقط
+LINKS = {}
 
 def register_module(app):
     """
@@ -19,6 +17,6 @@ def register_module(app):
     """
     try:
         app.register_blueprint(wallet_bp, url_prefix='/wallet')
-        print("✅ [Registry]: تم تسجيل موديول 'إدارة المحافظ' وإظهاره في القائمة.")
+        print("✅ [Registry]: تم تسجيل موديول 'إدارة المحافظ' بنجاح (مدمج في الرقابة المالية).")
     except Exception as e:
         print(f"❌ [Registry Error]: فشل تسجيل موديول 'Wallet': {e}")
