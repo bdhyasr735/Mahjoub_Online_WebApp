@@ -39,7 +39,6 @@ def create_app():
     
     # 2. اكتشاف الموديولات وتسجيلها تلقائياً
     apps_dir = app.root_path 
-    # قمنا بإزالة auth_portal و admin_dashboard من القائمة ليدخلوا في نظام الأتمتة
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils']
     
     print(f"--- بدء اكتشاف الموديولات في: {apps_dir} ---")
@@ -67,6 +66,9 @@ def create_app():
     # 3. حقن المتغيرات (Global Context)
     @app.context_processor
     def inject_vars():
+        # [تعديل للتشخيص]: هذا السطر سيطبع محتوى الموديولات في سجلات Render كلما فتحت صفحة
+        print(f"DEBUG: Injecting {len(REGISTERED_MODULES)} modules to template: {list(REGISTERED_MODULES.keys())}")
+        
         return dict(
             csrf_token=generate_csrf,
             registered_modules=REGISTERED_MODULES
