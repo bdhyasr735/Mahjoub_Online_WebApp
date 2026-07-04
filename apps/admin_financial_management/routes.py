@@ -1,30 +1,19 @@
 # coding: utf-8
-# 📂 apps/admin_suppliers_list/routes.py
+# 📂 apps/admin_financial_management/routes.py
 
 from flask import Blueprint, render_template
 from flask_login import login_required
-from apps.models import Supplier
 
-# تعريف البلوبرنت
-suppliers_bp = Blueprint(
-    'suppliers_bp', 
+# تأكد أن هذا الاسم يطابق تماماً ما هو موجود في registry.py
+financial_bp = Blueprint(
+    'financial_bp', 
     __name__, 
     template_folder='templates'
 )
 
-@suppliers_bp.route('/list', methods=['GET'])
+@financial_bp.route('/', methods=['GET'])
 @login_required
-def list_suppliers():
-    """عرض قائمة الموردين/الشركاء في المنصة."""
-    suppliers = Supplier.query.order_by(Supplier.created_at.desc()).all()
-    
-    return render_template(
-        'admin_suppliers_list/list.html', 
-        suppliers=suppliers
-    )
-
-@suppliers_bp.route('/add', methods=['GET', 'POST'])
-@login_required
-def add_supplier():
-    """صفحة إضافة مورد جديد."""
-    return render_template('admin_suppliers_list/add.html')
+def index():
+    # هنا ستضع الكود الخاص بجلب البيانات (transactions)
+    # وتمريرها للقالب admin_financial_management.html
+    return render_template('admin_financial_management/admin_financial_management.html')
