@@ -16,14 +16,13 @@ admin_dashboard = Blueprint(
 @login_required
 def dashboard():
     """
-    عرض لوحة تحكم النظام الرئيسية مع جلب الموديولات المسجلة من الـ Config.
+    عرض لوحة تحكم النظام الرئيسية مع جلب الموديولات المسجلة من الـ Application.
     """
     
-    # نقوم بجلب الموديولات المسجلة من current_app 
-    # (بافتراض أنك قمت بتخزينها في current_app.config عند التشغيل)
+    # جلب الموديولات المسجلة مع التأكد من وجودها كقاموس لتفادي أي أخطاء
     registered_modules = getattr(current_app, 'REGISTERED_MODULES', {})
     
-    # تهيئة البيانات الأساسية
+    # تهيئة البيانات الأساسية (سيتم استبدال القيم ببيانات حقيقية من قاعدة البيانات لاحقاً)
     context = {
         "total_suppliers": 0,
         "total_balance_sar": 0.00,
