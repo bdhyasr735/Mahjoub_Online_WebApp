@@ -3,22 +3,18 @@
 
 from apps.admin_financial_management.routes import financial_bp
 
-# إعدادات الموديول للظهور في القائمة الجانبية
-# إذا كان هذا هو الموديول "القائد" الذي تريده أن يظهر، أبقِ هذه السطور كما هي.
 MODULE_NAME = "الرقابة المالية"
 MODULE_ICON = "fa-wallet"
 
-# تعريف الروابط المتاحة لهذا الموديول
+# دمجنا هنا كل الروابط التي تريدها تحت مظلة واحدة
 LINKS = {
-    "إدارة المحافظ": "financial_bp.manage_wallets"
+    "إدارة المحافظ": "financial_bp.manage_wallets",
+    "خزينة المنصة": "treasury_bp.dashboard"  # تأكد من اسم الـ Endpoint الصحيح الخاص بالخزينة
 }
 
 def register_module(app):
-    """
-    دالة تسجيل موديول الإدارة المالية في التطبيق الرئيسي
-    """
     try:
         app.register_blueprint(financial_bp, url_prefix='/admin/financial')
-        print("✅ [Registry]: تم تسجيل موديول 'Admin Financial Management' بنجاح.")
+        print("✅ [Registry]: تم تسجيل موديول 'الرقابة المالية' بنجاح.")
     except Exception as e:
-        print(f"❌ [Registry Error]: فشل تسجيل موديول 'Admin Financial Management': {e}")
+        print(f"❌ [Registry Error]: {e}")
