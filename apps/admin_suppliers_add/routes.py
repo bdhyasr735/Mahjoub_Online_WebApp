@@ -23,18 +23,16 @@ def check_availability():
     if not value:
         return jsonify({'available': False})
 
-    # التحقق اللحظي لقاعدة البيانات لكل الحقول
+    # التحقق اللحظي لقاعدة البيانات
+    exists = False
     if field == 'username':
         exists = Supplier.query.filter_by(username=value).first()
     elif field == 'phone':
-        # البحث باستخدام آخر 9 أرقام كما هو مخزن في الموديل
         exists = Supplier.query.filter_by(search_phone=str(value)[-9:]).first()
     elif field == 'trade_name':
         exists = Supplier.query.filter_by(trade_name=value).first()
     elif field == 'owner_name':
         exists = Supplier.query.filter_by(owner_name=value).first()
-    else:
-        return jsonify({'available': False})
         
     return jsonify({'available': not exists})
 
@@ -49,12 +47,12 @@ def add_supplier_or_staff():
             trade_name = request.form.get('trade_name', '').strip()
             phone = request.form.get('phone', '').strip()
             
-            # التحقق النهائي (تجنب التكرار في حال تجاوز المستخدم للتحقق اللحظي)
+            # التحقق النهائي
             if Supplier.query.filter((Supplier.username == username) | (Supplier.search_phone == phone[-9:])).first():
                 flash("اسم المستخدم أو رقم الهاتف مستخدم مسبقاً", "danger")
                 return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
 
-            # توليد كلمة مرور عشوائية قوية
+            # توليد كلمة مرور عشوائية
             temp_password = secrets.token_hex(4)
 
             # إنشاء المورد
@@ -71,11 +69,11 @@ def add_supplier_or_staff():
             db.session.add(new_supplier)
             db.session.commit()
 
-            # جلب المحفظة التي تم إنشاؤها تلقائياً
+            # جلب المحفظة
             wallet = SupplierWallet.query.filter_by(supplier_id=new_supplier.id).first()
             wallet_code = wallet.wallet_code if wallet else "N/A"
             
-            # تخزين البيانات في الجلسة لعرضها في النافذة المنبثقة
+            # تخزين البيانات في الجلسة لمرة واحدة فقط
             session['new_user_data'] = {
                 'trade_name': trade_name,
                 'username': username,
@@ -83,6 +81,7 @@ def add_supplier_or_staff():
                 'wallet_code': wallet_code
             }
             
+            # استخدام redirect لضمان تحديث الصفحة وتفعيل النافذة
             return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
 
         except Exception as e:
@@ -91,6 +90,7 @@ def add_supplier_or_staff():
             flash("حدث خطأ تقني، يرجى المحاولة لاحقاً", "danger")
             return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
 
-    # معالجة عرض الصفحة: استخدام pop لحذف البيانات من الجلسة بعد العرض مباشرة
+    # معالجة عرض الصفحة: استخدام pop لضمان مسح البيانات بعد ظهور النافذة
     new_user = session.pop('new_user_data', None)
+    
     return render_template('admin_suppliers_add/admin_suppliers_add.html', new_user=new_user)
