@@ -25,7 +25,8 @@
         .main-wrapper { margin-right: var(--sidebar-width); transition: 0.3s; }
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .menu-toggle { display: none; background: none; border: none; font-size: 1.5rem; color: var(--royal-purple); }
-        
+        /* تصميم الإشعارات */
+        .notification-modal { display: block; background: rgba(0,0,0,0.6); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; }
         @media (max-width: 992px) { .sidebar { right: -280px; } .sidebar.active { right: 0; } .main-wrapper { margin-right: 0; } .menu-toggle { display: block !important; } }
     </style>
 </head>
@@ -73,6 +74,27 @@
         </header>
         <section class="p-4">{% block content %}{% endblock %}</section>
     </main>
+
+    <!-- نظام الإشعارات -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="notification-modal">
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <div class="card shadow-lg border-0" style="width: 350px;">
+                        <div class="card-header bg-{{ 'success' if category == 'success' else 'danger' }} text-white text-center fw-bold">
+                            {{ 'تم التنفيذ' if category == 'success' else 'تنبيه نظام' }}
+                        </div>
+                        <div class="card-body text-center py-4">
+                            <p class="fs-5">{{ message }}</p>
+                            <button class="btn btn-dark mt-3 px-4" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">موافق</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
