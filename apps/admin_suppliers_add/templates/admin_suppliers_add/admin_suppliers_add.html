@@ -17,6 +17,8 @@
                     <h4 class="text-center fw-bold mb-4" style="color: #2d144d;">تعميد مورد جديد</h4>
                     <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="supplierForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <!-- الحقول مع تفعيل التحقق اللحظي لجميع الحقول -->
                         <div class="form-floating mb-3 position-relative">
                             <input type="text" class="form-control" name="owner_name" id="owner_name" placeholder="اسم المالك" required>
                             <label>اسم المالك</label>
@@ -37,6 +39,7 @@
                             <label>رقم الهاتف (9 أرقام)</label>
                             <div id="phone_icon" class="validation-icon"></div>
                         </div>
+                        
                         <button type="submit" id="submitBtn" class="btn btn-primary w-100 py-3 fw-bold" style="background: #2d144d; border: none;">حفظ التعميد</button>
                     </form>
                 </div>
@@ -60,16 +63,17 @@
                     <p>🔹 <strong>نوع الحساب:</strong> 🔑 مورد رئيسي<br>
                     🏢 <strong>الجهة/الشريك:</strong> {{ new_user.trade_name }}<br>
                     👤 <strong>اسم المستخدم:</strong> {{ new_user.username }}<br>
-                    🔑 <strong>كلمة المرور المؤقتة:</strong> <span class="text-danger fw-bold">{{ new_user.password }}</span></p>
+                    🔑 <strong>كلمة المرور المؤقتة:</strong> <span class="text-danger fw-bold">{{ new_user.password }}</span><br>
+                    🏷️ <strong>رمز المحفظة:</strong> {{ new_user.wallet_code }}</p>
                     <p>🌐 <strong>رابط تسجيل دخول الموردين:</strong><br>
                     <small>https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login</small></p>
-                    <p class="text-muted small">⚠️ تنبيه هام: يرجى تغيير كلمة المرور من إعدادات لوحة التحكم لضمان أعلى مستويات الأمان.</p>
+                    <p class="text-muted small">⚠️ تنبيه: يرجى تغيير كلمة المرور من إعدادات لوحة التحكم لضمان أعلى مستويات الأمان.</p>
                 </div>
                 {% endif %}
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-outline-primary" onclick="copyToClipboard()">نسخ البيانات</button>
-                <button type="button" class="btn btn-secondary" onclick="window.location.reload()">رجوع للبدء</button>
+                <a href="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" class="btn btn-secondary">تعميد مورد آخر</a>
             </div>
         </div>
     </div>
@@ -78,11 +82,11 @@
 <script>
     function copyToClipboard() {
         const text = document.getElementById('copyContent').innerText;
-        navigator.clipboard.writeText(text).then(() => alert('تم نسخ البيانات!'));
+        navigator.clipboard.writeText(text).then(() => alert('تم نسخ البيانات بنجاح!'));
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // التحقق اللحظي
+        // دالة التحقق اللحظي
         const validateField = async (field, value) => {
             if (!value) return;
             const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
@@ -93,6 +97,7 @@
             const data = await response.json();
             const iconDiv = document.getElementById(`${field}_icon`);
             const inputField = document.getElementById(field);
+            
             if (data.available) {
                 inputField.classList.add('is-valid'); inputField.classList.remove('is-invalid');
                 iconDiv.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
@@ -102,17 +107,22 @@
             }
         };
 
-        ['username', 'phone', 'trade_name'].forEach(field => {
+        // تفعيل الاستماع لجميع الحقول بما فيها owner_name
+        ['username', 'phone', 'trade_name', 'owner_name'].forEach(field => {
             document.getElementById(field).addEventListener('blur', (e) => validateField(field, e.target.value));
         });
 
+        // إظهار النافذة إذا وجدت بيانات في الجلسة (تم النجاح)
         {% if new_user %}
-            new bootstrap.Modal(document.getElementById('successModal')).show();
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
         {% endif %}
 
+        // تعطيل الزر عند الإرسال لمنع التكرار
         document.getElementById('supplierForm').addEventListener('submit', function() {
-            document.getElementById('submitBtn').disabled = true;
-            document.getElementById('submitBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الحفظ...';
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري المعالجة...';
         });
     });
 </script>
