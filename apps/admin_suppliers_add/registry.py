@@ -1,14 +1,21 @@
-# 📂 apps/admin_suppliers_list/registry.py
-from apps.admin_suppliers_list.routes import suppliers_bp
+# 📂 apps/admin_suppliers_add/registry.py
 
-# أضف هذه المتغيرات لكي يراها نظام التسجيل التلقائي
-MODULE_NAME = "سجل الشركاء"
-MODULE_ICON = "fa-users"
+# 1. استيراد البلوبرينت المعرف في ملف المسارات
+from apps.admin_suppliers_add.routes import suppliers_bp
+
+# 2. تعريف بيانات الموديول (هذه المتغيرات يقرؤها المحرك التلقائي في __init__.py)
+MODULE_NAME = "إضافة موردين"
+MODULE_ICON = "fa-user-plus"
 LINKS = {
-    "قائمة الشركاء": "suppliers_bp.list_suppliers" # تأكد من مطابقة اسم الـ endpoint في routes.py
+    "إضافة مورد جديد": "admin_suppliers_add.add_supplier_route" 
+    # ملاحظة: تأكد أن "admin_suppliers_add.add_supplier_route" يطابق اسم الـ endpoint في routes.py
 }
 
 def register_module(app):
-    """تسجيل موديول 'سجل الشركاء'."""
+    """
+    تسجيل موديول إضافة الموردين.
+    """
+    # تسجيل البلوبرينت
     app.register_blueprint(suppliers_bp, url_prefix='/admin/suppliers')
-    print("✅ [Registry]: تم تسجيل موديول 'admin_suppliers_list' بنجاح.")
+    
+    print("✅ [Registry]: تم تسجيل موديول 'admin_suppliers_add' بنجاح.")
