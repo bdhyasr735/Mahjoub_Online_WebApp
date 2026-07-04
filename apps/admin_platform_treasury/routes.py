@@ -1,22 +1,16 @@
 # coding: utf-8
 # 📂 apps/admin_platform_treasury/registry.py
 
+# تأكد أنك تستورد 'treasury_bp' وليس أي اسم آخر
 from apps.admin_platform_treasury.routes import treasury_bp
 
-# ✅ قم بحذف أو تعليق هذا السطر لإخفاء "الخزينة" من القائمة الرئيسية
-# MODULE_NAME = "الخزينة" 
-# MODULE_ICON = "fa-vault"
-
-# تأكد أن LINKS فارغ أيضاً
+# إخفاء الموديول من القائمة الرئيسية لمنع التكرار (بما أننا وضعنا الرابط في الرقابة المالية)
 LINKS = {} 
 
 def register_module(app):
-    """
-    تسجيل موديول الخزينة برمجياً فقط (لتعمل الروابط) 
-    دون إظهار أي شيء في الشريط الجانبي.
-    """
     try:
+        # تسجيل الـ Blueprint باستخدام الاسم الصحيح 'treasury_bp'
         app.register_blueprint(treasury_bp, url_prefix='/admin/treasury')
-        print("✅ [Registry]: تم تسجيل موديول 'Admin Platform Treasury' بنجاح (مخفي من القائمة).")
+        print("✅ [Registry]: تم تسجيل موديول 'Admin Platform Treasury' بنجاح.")
     except Exception as e:
         print(f"❌ [Registry Error]: {e}")
