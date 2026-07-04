@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/admin_dashboard/routes.py
 
-from flask import Blueprint, render_template, current_app
+from flask import Blueprint, render_template
 from flask_login import login_required
 
 # 1. إنشاء الـ Blueprint
@@ -16,20 +16,17 @@ admin_dashboard = Blueprint(
 @login_required
 def dashboard():
     """
-    عرض لوحة تحكم النظام الرئيسية مع جلب الموديولات المسجلة من الـ Application.
+    عرض لوحة تحكم النظام الرئيسية.
+    تم إزالة الجلب اليدوي للموديولات لأنها تُحقن تلقائياً بواسطة الـ Context Processor.
     """
     
-    # جلب الموديولات المسجلة مع التأكد من وجودها كقاموس لتفادي أي أخطاء
-    registered_modules = getattr(current_app, 'REGISTERED_MODULES', {})
-    
-    # تهيئة البيانات الأساسية (سيتم استبدال القيم ببيانات حقيقية من قاعدة البيانات لاحقاً)
+    # تهيئة البيانات الأساسية فقط (سيتم استبدال القيم ببيانات حقيقية من قاعدة البيانات)
     context = {
         "total_suppliers": 0,
         "total_balance_sar": 0.00,
         "total_balance_yer": 0.00,
         "total_balance_usd": 0.00,
-        "recent_transactions": [],
-        "registered_modules": registered_modules
+        "recent_transactions": []
     }
     
     return render_template('admin/dashboard.html', **context)
