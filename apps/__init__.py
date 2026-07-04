@@ -43,7 +43,7 @@ def create_app():
     
     login_manager.login_view = 'suppliers_auth.login'
 
-    # حقن المتغيرات في القوالب تلقائياً
+    # [تحسين الحقن التلقائي]: الحقن المباشر للمتغير العالمي لضمان التحديث اللحظي
     @app.context_processor
     def inject_vars():
         return dict(
@@ -80,11 +80,11 @@ def create_app():
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
                             
-                            # تخزين البيانات ليقرأها نظام القوالب تلقائياً (تم التحديث هنا)
+                            # تخزين البيانات ليقرأها نظام القوالب تلقائياً
                             REGISTERED_MODULES[item] = {
                                 "display_name": getattr(module, 'MODULE_NAME', item.capitalize()),
                                 "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
-                                "links": getattr(module, 'LINKS', {}), # تم إضافة روابط الموديول
+                                "links": getattr(module, 'LINKS', {}),
                                 "active": True
                             }
                             print(f"✅ [Auto-Discovery] تم تسجيل موديول: {item}")
