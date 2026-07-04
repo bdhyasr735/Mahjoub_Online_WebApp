@@ -36,16 +36,16 @@ def load_user(user_id):
     try:
         uid = int(user_id)
         
-        # البحث التسلسلي: الترتيب يحسن الأداء بناءً على كثرة الاستخدام
-        user = Supplier.query.get(uid) or \
-               SupplierStaff.query.get(uid) or \
-               Marketer.query.get(uid) or \
-               AdminUser.query.get(uid)
+        # البحث التسلسلي باستخدام db.session.get (الطريقة الحديثة والأكثر توافقية)
+        user = db.session.get(Supplier, uid) or \
+               db.session.get(SupplierStaff, uid) or \
+               db.session.get(Marketer, uid) or \
+               db.session.get(AdminUser, uid)
                
         return user
         
     except (ValueError, TypeError, Exception):
-        # في حال حدوث أي خطأ في التحويل أو الاستعلام يتم إرجاع None (المستخدم غير مسجل)
+        # في حال حدوث أي خطأ في التحويل أو الاستعلام يتم إرجاع None
         return None
 
 # إعداد مسار تسجيل الدخول الموحد (الاسم يجب أن يطابق Blueprint + Route)
