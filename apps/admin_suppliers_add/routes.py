@@ -6,7 +6,6 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from flask_login import login_required
 from apps.extensions import db
-# تم تصحيح اسم الملف هنا من suppliers_db إلى supplier_db
 from apps.models.supplier_db import Supplier
 from apps.models.wallet_db import SupplierWallet
 
@@ -24,6 +23,7 @@ def check_availability():
     if not value:
         return jsonify({'available': False})
 
+    # التحقق اللحظي لكل الحقول بما فيها اسم المالك
     if field == 'username':
         exists = Supplier.query.filter_by(username=value).first()
     elif field == 'phone':
@@ -31,6 +31,8 @@ def check_availability():
         exists = Supplier.query.filter_by(search_phone=str(value)[-9:]).first()
     elif field == 'trade_name':
         exists = Supplier.query.filter_by(trade_name=value).first()
+    elif field == 'owner_name':
+        exists = Supplier.query.filter_by(owner_name=value).first()
     else:
         return jsonify({'available': False})
         
@@ -55,7 +57,7 @@ def add_supplier_or_staff():
             # توليد كلمة مرور عشوائية قوية
             temp_password = secrets.token_hex(4)
 
-            # إنشاء المورد (الموديل سيتولى إنشاء المحفظة والموظف تلقائياً بفضل after_insert)
+            # إنشاء المورد
             new_supplier = Supplier(
                 owner_name=owner_name,
                 username=username,
@@ -67,9 +69,9 @@ def add_supplier_or_staff():
             new_supplier.set_password(temp_password)
             
             db.session.add(new_supplier)
-            db.session.commit() # هنا يتم تفعيل الـ Event Listeners (إنشاء المحفظة والموظف)
+            db.session.commit()
 
-            # جلب المحفظة التي تم إنشاؤها تلقائياً لعرض كودها في النافذة
+            # جلب المحفظة التي تم إنشاؤها تلقائياً
             wallet = SupplierWallet.query.filter_by(supplier_id=new_supplier.id).first()
             wallet_code = wallet.wallet_code if wallet else "N/A"
             
