@@ -42,8 +42,8 @@
             </a>
             
             {% if registered_modules %}
-                {# القائمة البيضاء: فقط الموديولات المذكورة هنا ستظهر في الشريط الجانبي #}
-                {% set allowed_modules = ['admin_suppliers_list', 'admin_platform_treasury'] %}
+                {# القائمة البيضاء: تمت إضافة admin_financial_control هنا لتظهر في القائمة #}
+                {% set allowed_modules = ['admin_suppliers_list', 'admin_platform_treasury', 'admin_financial_control'] %}
                 
                 {% for key, module in registered_modules.items() %}
                     {% if key in allowed_modules %}
