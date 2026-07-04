@@ -36,9 +36,12 @@ def add_supplier():
     if request.method == 'POST':
         try:
             # هنا يمكنك إضافة logic الإضافة (استلام البيانات من النموذج)
-            # مثال: name = request.form.get('name')
+            # مثال:
+            # name = request.form.get('name')
+            # new_supplier = Supplier(name=name, ...)
             # db.session.add(new_supplier)
             # db.session.commit()
+            
             flash("تم استلام طلب الإضافة (يجب ربط النموذج بقاعدة البيانات).", "info")
             return redirect(url_for('suppliers_bp.list_suppliers'))
         except Exception as e:
