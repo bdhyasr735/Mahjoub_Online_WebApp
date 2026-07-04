@@ -12,30 +12,38 @@ from apps.utils.time_utils import format_full_timestamp
 csrf = CSRFProtect()
 REGISTERED_MODULES = {}
 
-# دالة تحميل المستخدم للـ Login Manager
+# دالة تحميل المستخدم للـ Login Manager (تعتمد على حزمة الموديلات الموحدة)
 @login_manager.user_loader
 def load_user(user_id):
-    from apps.models.admin_db import AdminUser
-    from apps.models.suppliers_db import Supplier
-    from apps.models.supplier_staff_db import SupplierStaff
-    
-    user_type = session.get('user_type')
-    uid = int(user_id)
-    if user_type == 'admin': return AdminUser.query.get(uid)
-    elif user_type == 'supplier': return Supplier.query.get(uid)
-    elif user_type == 'staff': return SupplierStaff.query.get(uid)
-    return AdminUser.query.get(uid) or Supplier.query.get(uid) or SupplierStaff.query.get(uid)
+    try:
+        # استيراد من واجهة الموديلات الموحدة بدلاً من الملفات المباشرة
+        from apps.models import AdminUser, Supplier, SupplierStaff
+        
+        user_type = session.get('user_type')
+        uid = int(user_id)
+        
+        if user_type == 'admin': return AdminUser.query.get(uid)
+        elif user_type == 'supplier': return Supplier.query.get(uid)
+        elif user_type == 'staff': return SupplierStaff.query.get(uid)
+        
+        # محاولة أخيرة في حال عدم توفر النوع
+        return AdminUser.query.get(uid) or Supplier.query.get(uid) or SupplierStaff.query.get(uid)
+    except Exception as e:
+        print(f"⚠️ خطأ في تحميل المستخدم: {e}")
+        return None
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
     # 1. إعدادات الأساس
-    from apps.auth_portal.routes import auth_portal
-    from apps.admin_dashboard.routes import admin_dashboard
-    
-    app.register_blueprint(auth_portal, url_prefix='/auth')
-    app.register_blueprint(admin_dashboard, url_prefix='/admin')
+    try:
+        from apps.auth_portal.routes import auth_portal
+        from apps.admin_dashboard.routes import admin_dashboard
+        app.register_blueprint(auth_portal, url_prefix='/auth')
+        app.register_blueprint(admin_dashboard, url_prefix='/admin')
+    except ImportError as e:
+        print(f"⚠️ تحذير: فشل تحميل البلوبرينت الأساسي: {e}")
     
     # الفلاتر والإضافات
     app.jinja_env.filters['full_time'] = format_full_timestamp
@@ -45,7 +53,7 @@ def create_app():
     csrf.init_app(app)
     login_manager.login_view = 'auth_portal.login'
     
-    # 2. اكتشاف الموديولات وتسجيلها
+    # 2. اكتشاف الموديولات وتسجيلها (آلية عزل كاملة)
     apps_dir = app.root_path 
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'auth_portal', 'admin_dashboard']
     
@@ -58,10 +66,10 @@ def create_app():
                 registry_file = os.path.join(item_path, 'registry.py')
                 if os.path.exists(registry_file):
                     try:
+                        # استيراد ديناميكي مع عزل كامل للأخطاء
                         module = importlib.import_module(f"apps.{item}.registry")
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
-                            # تسجيل بيانات الموديول للداشبورد
                             REGISTERED_MODULES[item] = {
                                 "display_name": getattr(module, 'MODULE_NAME', item.capitalize()),
                                 "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
@@ -70,9 +78,10 @@ def create_app():
                             }
                             print(f"✅ تم تسجيل الموديول بنجاح: {item}")
                     except Exception as e:
+                        # الخطأ هنا لا يوقف تشغيل باقي النظام
                         print(f"⚠️ [Auto-Discovery] Error in {item}: {e}")
 
-    # 3. حقن المتغيرات في جميع القوالب
+    # 3. حقن المتغيرات
     @app.context_processor
     def inject_vars():
         return dict(
@@ -80,19 +89,19 @@ def create_app():
             registered_modules=REGISTERED_MODULES
         )
 
-    # 4. إكمال الإعدادات (Database)
+    # 4. إكمال الإعدادات (Database) - مع عزل الخطأ
     with app.app_context():
-        db.create_all()
-        # زرع المستخدم الافتراضي
         try:
-            from apps.models.admin_db import AdminUser
+            db.create_all()
+            from apps.models import AdminUser
             admin = AdminUser.query.filter_by(username='علي محجوب').first()
             if not admin:
                 admin = AdminUser(username='علي محجوب')
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
-        except Exception:
+        except Exception as e:
+            print(f"⚠️ خطأ أثناء تهيئة قاعدة البيانات: {e}")
             db.session.rollback()
 
     app.config['ENDPOINT_MAP'] = {rule.endpoint for rule in app.url_map.iter_rules()}
