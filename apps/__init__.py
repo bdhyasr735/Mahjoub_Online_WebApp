@@ -10,24 +10,19 @@ from apps.utils.time_utils import format_full_timestamp
 
 csrf = CSRFProtect()
 
-# هذا القاموس هو المحرك الذي يغذي الشريط الجانبي
 REGISTERED_MODULES = {}
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
-    # 1. تسجيل الموديولات الأساسية
     from apps.auth_portal.routes import auth_portal
     from apps.admin_dashboard.routes import admin_dashboard
     
     app.register_blueprint(auth_portal, url_prefix='/auth')
     app.register_blueprint(admin_dashboard, url_prefix='/admin')
     
-    # إضافة الفلاتر
     app.jinja_env.filters['full_time'] = format_full_timestamp
-
-    # إعداد الإضافات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -40,10 +35,12 @@ def create_app():
             registered_modules=REGISTERED_MODULES
         )
 
-    # 2. نظام التسجيل التلقائي الذكي (خارج app_context لضمان توفره عند بدء التشغيل)
+    # 2. نظام التسجيل المطور مع التتبع
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'suppliers_auth', 'auth_portal', 'admin_dashboard']
+    # تأكد أن المجلد الذي تريده ليس في هذه القائمة
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'auth_portal', 'admin_dashboard']
     
+    print(f"--- بدء اكتشاف الموديولات ---")
     for item in os.listdir(apps_dir):
         item_path = os.path.join(apps_dir, item)
         if os.path.isdir(item_path) and item not in ignored_dirs:
@@ -59,24 +56,16 @@ def create_app():
                             "links": getattr(module, 'LINKS', {}),
                             "active": True
                         }
+                        print(f"✅ تم تسجيل الموديول بنجاح: {item}")
                 except Exception as e:
                     print(f"⚠️ [Auto-Discovery] Error in {item}: {e}")
+    print(f"--- اكتشاف الموديولات انتهى: تم تسجيل {len(REGISTERED_MODULES)} موديول ---")
 
-    # 3. تحديث خريطة المسارات بعد تسجيل كل شيء
     with app.app_context():
         db.create_all()
-        # زرع المستخدم الافتراضي
-        try:
-            from apps.models.admin_db import AdminUser
-            admin = AdminUser.query.filter_by(username='علي محجوب').first()
-            if not admin:
-                admin = AdminUser(username='علي محجوب')
-                admin.set_password('123')
-                db.session.add(admin)
-                db.session.commit()
-        except Exception:
-            db.session.rollback()
+        # ... (باقي كود زرع المستخدم) ...
 
+    # تحديث الخريطة بعد التسجيل
     app.config['ENDPOINT_MAP'] = {rule.endpoint for rule in app.url_map.iter_rules()}
     
     return app
