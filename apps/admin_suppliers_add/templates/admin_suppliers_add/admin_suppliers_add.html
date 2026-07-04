@@ -1,4 +1,3 @@
-{# 📂 apps/admin_suppliers_add/templates/admin_suppliers_add/admin_suppliers_add.html #}
 {% extends "admin/admin_base.html" %}
 
 {% block title %}تعميد مورد جديد | محجوب أونلاين{% endblock %}
@@ -21,19 +20,16 @@
     .btn-submit { background-color: var(--mahjoub-primary); color: white; transition: all 0.3s; border: none; padding: 12px; }
     .btn-submit:hover:not(:disabled) { background-color: #3d1c66; transform: translateY(-2px); }
     
-    /* تنسيق زر الرجوع */
     .back-btn { color: var(--mahjoub-primary); font-weight: 600; text-decoration: none; transition: 0.3s; padding: 8px 16px; border-radius: 8px; background: #eee; }
     .back-btn:hover { background: var(--mahjoub-primary); color: white; }
 
-    .credential-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 20px; border-radius: 15px; direction: ltr; text-align: left; position: relative; }
-    .credential-box code { font-size: 1.1rem; color: #d63384; font-weight: bold; background: #fff; padding: 2px 8px; border-radius: 4px; }
+    .credential-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 20px; border-radius: 15px; direction: rtl; text-align: right; position: relative; }
+    .credential-box code { font-size: 1.1rem; color: #d63384; font-weight: bold; background: #fff; padding: 2px 8px; border-radius: 4px; direction: ltr; display: inline-block; }
 </style>
 
 <div class="container py-4" dir="rtl">
     <div class="row justify-content-center">
         <div class="col-lg-6 col-md-8">
-            
-            <!-- زر الرجوع الاحترافي -->
             <div class="mb-4">
                 <a href="{{ url_for('suppliers_bp.list_suppliers') }}" class="back-btn">
                     <i class="fas fa-arrow-right ms-2"></i> العودة لقائمة الشركاء
@@ -46,14 +42,17 @@
                         <i class="fas fa-user-plus fa-2x"></i>
                     </div>
                     <h3 class="fw-bold" style="color: var(--mahjoub-primary);">تعميد مورد جديد</h3>
-                    <p class="text-muted small">إضافة كيان تجاري جديد لمنظومة محجوب أونلاين</p>
                 </div>
                 
                 <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="supplierForm">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="action_type" value="owner">
-                    <input type="text" name="hp_field" style="display:none;">
                     
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">اسم المالك</label>
+                        <input type="text" name="owner_name" id="owner_name" class="form-control" placeholder="أدخل اسم مالك الشريك" required autocomplete="off">
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label fw-bold small text-secondary">اسم المستخدم</label>
                         <input type="text" name="username" id="username" class="form-control" placeholder="اسم المستخدم (باللغة الإنجليزية)" required autocomplete="off">
@@ -82,7 +81,6 @@
     </div>
 </div>
 
-<!-- النافذة المنبثقة للاعتماد -->
 {% if new_user %}
 <div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -91,19 +89,18 @@
                 <h5 class="modal-title w-100 text-center fw-bold"><i class="fas fa-check-circle me-2"></i> تم التعميد بنجاح</h5>
             </div>
             <div class="modal-body p-4">
-                <p class="text-center text-muted">تم إنشاء بيانات الشريك. البيانات جاهزة للمشاركة:</p>
                 <div class="credential-box my-3">
-                    <small class="text-secondary d-block mb-2">بيانات دخول المورد:</small>
-                    <strong>المتجر:</strong> {{ new_user.trade_name }}<br>
-                    <strong>اسم المستخدم:</strong> {{ new_user.username }}<br>
-                    <strong>كلمة المرور:</strong> <code>{{ new_user.password }}</code><br>
-                    <strong>رابط الدخول:</strong> <span class="text-primary d-block small">mahjoub-online-webapp-ocnb.onrender.com/supplier/login</span>
+                    <strong>الجهة:</strong> {{ new_user.trade_name }}<br>
+                    <strong>اسم المالك:</strong> {{ new_user.owner_name }}<br>
+                    <strong>رقم المحفظة:</strong> <code>{{ new_user.wallet.wallet_code if new_user.wallet else 'N/A' }}</code><br>
+                    <strong>المستخدم:</strong> {{ new_user.username }}<br>
+                    <strong>كلمة المرور:</strong> <code>{{ new_user.password }}</code>
                 </div>
             </div>
             <div class="modal-footer border-0 justify-content-center">
                 <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">إغلاق</button>
                 <button type="button" id="copyBtn" class="btn btn-success px-4" onclick="copyCredentials()">
-                    <i class="fas fa-copy me-2"></i> نسخ البيانات
+                    <i class="fas fa-copy me-2"></i> نسخ الرسالة الكاملة
                 </button>
             </div>
         </div>
@@ -115,8 +112,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         {% if new_user %}
         const modalEl = document.getElementById('successModal');
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
+        new bootstrap.Modal(modalEl).show();
         {% endif %}
 
         document.getElementById('supplierForm').addEventListener('submit', function() {
@@ -126,6 +122,7 @@
             document.getElementById('btnText').innerText = 'جاري المعالجة...';
         });
 
+        // ... (باقي منطق التحقق والـ Script الموجود لديك مسبقاً)
         async function checkField(type, value) {
             const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
                 method: 'POST',
@@ -163,20 +160,31 @@
     });
 
     function copyCredentials() {
-        const text = `محجوب أونلاين - بيانات المورد:
-المتجر: {{ new_user.trade_name if new_user }}
-اسم المستخدم: {{ new_user.username if new_user }}
-كلمة المرور: {{ new_user.password if new_user }}
-رابط الدخول: https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login`;
+        const now = new Date().toLocaleString('ar-EG', { hour12: true });
+        const text = `🏬 مرحباً بك شريكنا في منصة محجوب أونلاين
+تاريخ التعميد: ${now}
+
+تم إعداد الحساب الخاص بكم بنجاح وصلاحيات الدخول كالتالي:
+
+🔹 نوع الحساب: 🔑 موظف تشغيلي (تابع لمورد)
+🏢 الجهة/الشريك: {{ new_user.trade_name if new_user }}
+👤 اسم المالك: {{ new_user.owner_name if new_user }}
+💳 رقم المحفظة: {{ new_user.wallet.wallet_code if new_user and new_user.wallet else 'غير متاح' }}
+👤 اسم المستخدم: {{ new_user.username if new_user }}
+🔑 كلمة المرور المؤقتة: {{ new_user.password if new_user }}
+
+🌐 رابط تسجيل دخول الموردين:
+https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login
+
+⚠️ تنبيه هام: يرجى تغيير كلمة المرور من إعدادات لوحة التحكم محجوب أونلاين | سوقك الذكي لضمان أعلى مستويات الأمان والخصوصية لبياناتكم التجارية.`;
         
         navigator.clipboard.writeText(text);
         const btn = document.getElementById('copyBtn');
-        const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-check me-2"></i> تم النسخ!';
-        btn.classList.replace('btn-success', 'btn-outline-success');
+        btn.className = 'btn btn-outline-success px-4';
         setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.classList.replace('btn-outline-success', 'btn-success');
+            btn.innerHTML = '<i class="fas fa-copy me-2"></i> نسخ الرسالة الكاملة';
+            btn.className = 'btn btn-success px-4';
         }, 2000);
     }
 </script>
