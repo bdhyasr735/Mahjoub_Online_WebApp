@@ -36,7 +36,7 @@ def check_user_exists(username=None, phone=None):
 # API: للتحقق اللحظي من توفر البيانات
 # -----------------------------------------------------------
 @admin_suppliers_add_bp.route('/check_availability', methods=['POST'])
-@csrf.exempt  # استثناء من حماية CSRF لطلبات AJAX
+@csrf.exempt 
 @login_required
 def check_availability():
     data = request.get_json() or {}
@@ -46,13 +46,11 @@ def check_availability():
     if not value:
         return jsonify({'available': False, 'message': '⚠️ الحقل فارغ'})
 
-    # التحقق من اسم المستخدم
     if field_type == 'username':
         if check_user_exists(username=value):
             return jsonify({'available': False, 'message': 'اسم المستخدم مسجل مسبقاً'})
         return jsonify({'available': True, 'message': 'متاح'})
 
-    # التحقق من رقم الهاتف
     elif field_type == 'phone':
         if not re.match(r'^\d{9}$', value):
             return jsonify({'available': False, 'message': 'يجب أن يكون 9 أرقام'})
@@ -60,7 +58,6 @@ def check_availability():
             return jsonify({'available': False, 'message': 'رقم الهاتف مرتبط بحساب آخر'})
         return jsonify({'available': True, 'message': 'متاح'})
 
-    # التحقق من الاسم التجاري
     elif field_type == 'trade_name':
         if len(value) < 3:
             return jsonify({'available': False, 'message': 'الاسم قصير جداً'})
@@ -77,12 +74,11 @@ def check_availability():
 @login_required
 def add_supplier_or_staff():
     if request.method == 'POST':
-        # 1. حماية ضد البوتات (Honeypot)
         if request.form.get('hp_field'):
             abort(403) 
 
         action_type = request.form.get('action_type')
-        temp_password = secrets.token_hex(4) # كلمة مرور عشوائية قوية
+        temp_password = secrets.token_hex(4) 
         registration_time = datetime.utcnow()
         
         try:
@@ -91,16 +87,17 @@ def add_supplier_or_staff():
                 username = request.form.get('username', '').strip()
                 phone = request.form.get('phone', '').strip()
                 trade_name = request.form.get('trade_name', '').strip()
+                owner_name = request.form.get('owner_name', '').strip() # استلام اسم المالك
                 rank = request.form.get('rank', 'bronze')
 
-                # التحقق النهائي قبل الحفظ
                 if not re.match(r'^\d{9}$', phone) or check_user_exists(username=username, phone=phone) or Supplier.query.filter_by(trade_name=trade_name).first():
                     flash("❌ البيانات غير صالحة أو مسجلة مسبقاً في النظام.", "danger")
                     return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
 
                 new_supplier = Supplier(
                     username=username, 
-                    trade_name=trade_name, 
+                    trade_name=trade_name,
+                    owner_name=owner_name, # حفظ اسم المالك
                     rank=rank, 
                     status='active',
                     registration_date=registration_time
@@ -112,17 +109,20 @@ def add_supplier_or_staff():
                 db.session.flush() # الحصول على ID قبل الـ Commit
                 
                 # إنشاء المحفظة تلقائياً
+                wallet_code = f"MAH-WEL{new_supplier.id}"
                 new_wallet = SupplierWallet(
-                    wallet_code=f"MAH-WEL{new_supplier.id}", 
+                    wallet_code=wallet_code, 
                     supplier_id=new_supplier.id
                 )
                 db.session.add(new_wallet)
                 db.session.commit()
                 
-                # تخزين البيانات في الجلسة لإظهار النافذة المنبثقة
+                # تخزين البيانات في الجلسة مع اسم المالك ورقم المحفظة
                 session['new_user_data'] = {
                     'type': 'مورد جديد',
-                    'trade_name': trade_name, 
+                    'trade_name': trade_name,
+                    'owner_name': owner_name, # إضافة اسم المالك للجلسة
+                    'wallet_code': wallet_code, # إضافة كود المحفظة للجلسة
                     'username': username, 
                     'password': temp_password
                 }
