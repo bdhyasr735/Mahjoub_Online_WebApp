@@ -17,16 +17,23 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
+    # 1. تسجيل الـ Blueprints الأساسية يدوياً (التي تم استثناؤها من الاكتشاف التلقائي)
+    from apps.auth_portal.routes import auth_portal
+    from apps.suppliers_auth.routes import suppliers_auth
+    
+    app.register_blueprint(auth_portal, url_prefix='/auth')
+    app.register_blueprint(suppliers_auth, url_prefix='/suppliers')
+    
     # إضافة الفلاتر المخصصة
     app.jinja_env.filters['full_time'] = format_full_timestamp
 
-    # إعداد الإضافات (لاحظ أننا لا نعيد كتابة إعدادات login_manager هنا لأنها تمت في extensions.py)
+    # إعداد الإضافات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
     
-    # [تحديث مهم]: الحقن المباشر للمتغير لضمان وصول الموديولات للشريط الجانبي
+    # الحقن المباشر للمتغيرات لضمان وصول الموديولات للشريط الجانبي
     @app.context_processor
     def inject_vars():
         return dict(
@@ -52,7 +59,7 @@ def create_app():
 
         # [نظام التسجيل التلقائي للموديولات]
         apps_dir = app.root_path
-        ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'suppliers_auth', 'auth_portal']
+        ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'suppliers_auth', 'auth_portal', 'admin_dashboard']
         
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
