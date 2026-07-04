@@ -87,42 +87,42 @@ def add_supplier_or_staff():
                 username = request.form.get('username', '').strip()
                 phone = request.form.get('phone', '').strip()
                 trade_name = request.form.get('trade_name', '').strip()
-                owner_name = request.form.get('owner_name', '').strip() # استلام اسم المالك
+                # نستقبل الاسم للعرض فقط في الجلسة (Session)
+                owner_name = request.form.get('owner_name', '').strip() 
                 rank = request.form.get('rank', 'bronze')
 
                 if not re.match(r'^\d{9}$', phone) or check_user_exists(username=username, phone=phone) or Supplier.query.filter_by(trade_name=trade_name).first():
                     flash("❌ البيانات غير صالحة أو مسجلة مسبقاً في النظام.", "danger")
                     return redirect(url_for('admin_suppliers_add_bp.add_supplier_or_staff'))
 
+                # إنشاء المورد (بدون حقل owner_name لأنه غير موجود في الموديل)
                 new_supplier = Supplier(
                     username=username, 
-                    trade_name=trade_name,
-                    owner_name=owner_name, # حفظ اسم المالك
+                    trade_name=trade_name, 
                     rank=rank, 
                     status='active',
-                    registration_date=registration_time
+                    created_at=registration_time
                 )
                 new_supplier.phone = phone 
                 new_supplier.set_password(temp_password)
                 
                 db.session.add(new_supplier)
-                db.session.flush() # الحصول على ID قبل الـ Commit
+                db.session.flush() # الحصول على ID بعد الإنشاء لإنشاء المحفظة
                 
-                # إنشاء المحفظة تلقائياً
-                wallet_code = f"MAH-WEL{new_supplier.id}"
-                new_wallet = SupplierWallet(
-                    wallet_code=wallet_code, 
-                    supplier_id=new_supplier.id
-                )
-                db.session.add(new_wallet)
+                # إنشاء المحفظة تلقائياً (الـ ID متاح هنا)
+                wallet_code = f"MAH-WEL963{new_supplier.id}"
+                
+                # ملاحظة: الموديل الخاص بك يقوم بإنشاء المحفظة تلقائياً عبر Event
+                # لذا سنقوم فقط بتجهيز البيانات للنافذة المنبثقة
+                
                 db.session.commit()
                 
-                # تخزين البيانات في الجلسة مع اسم المالك ورقم المحفظة
+                # تخزين البيانات في الجلسة لإظهار النافذة المنبثقة (بما في ذلك اسم المالك والكود)
                 session['new_user_data'] = {
                     'type': 'مورد جديد',
-                    'trade_name': trade_name,
-                    'owner_name': owner_name, # إضافة اسم المالك للجلسة
-                    'wallet_code': wallet_code, # إضافة كود المحفظة للجلسة
+                    'trade_name': trade_name, 
+                    'owner_name': owner_name, # للعرض فقط
+                    'wallet_code': wallet_code, # للعرض فقط
                     'username': username, 
                     'password': temp_password
                 }
