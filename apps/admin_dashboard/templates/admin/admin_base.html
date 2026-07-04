@@ -24,7 +24,7 @@
         .dropdown-content a { color: rgba(255,255,255,0.8); display: block; padding: 8px 10px; font-size: 0.9rem; border-radius: 5px; text-decoration: none; }
         .dropdown-content a:hover { background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold); }
         
-        .fa-chevron-down { transition: transform 0.3s ease; } /* حركة سلسة للسهم */
+        .fa-chevron-down { transition: transform 0.3s ease; }
         
         .main-wrapper { margin-right: var(--sidebar-width); transition: 0.3s; }
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
@@ -84,11 +84,9 @@
             let drop = el.nextElementSibling;
             if(!drop) return;
             
-            // التبديل بين الظهور والإخفاء
             let isVisible = drop.style.display === "block";
             drop.style.display = isVisible ? "none" : "block";
             
-            // تدوير السهم
             let icon = el.querySelector('.fa-chevron-down');
             icon.style.transform = isVisible ? "rotate(0deg)" : "rotate(180deg)";
         }
