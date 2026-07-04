@@ -3,212 +3,81 @@
 {% block title %}تعميد مورد جديد | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<meta name="robots" content="noindex, nofollow">
-
-<style>
-    :root { 
-        --mahjoub-primary: #2d144d; 
-        --mahjoub-accent: #dfb743; 
-        --success-soft: #d4edda;
-    }
-    
-    .card-mahjoub { 
-        border-radius: 20px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-        border: none; 
-        background: #ffffff;
-        transition: transform 0.3s ease;
-    }
-
-    .form-floating > .form-control { border-radius: 12px; }
-    
-    .btn-submit { 
-        background: linear-gradient(45deg, var(--mahjoub-primary), #4a2b72);
-        color: white; 
-        padding: 14px;
-        font-weight: 600;
-        border: none; 
-        transition: 0.3s;
-    }
-    
-    .btn-submit:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(45, 20, 77, 0.3); }
-
-    .credential-box { 
-        background: #fdfdfd; 
-        border: 2px dashed #dee2e6; 
-        padding: 20px; 
-        border-radius: 15px; 
-        position: relative; 
-    }
-    
-    .credential-box code { 
-        font-size: 1.1rem; 
-        color: #d63384; 
-        background: #f8f9fa; 
-        padding: 4px 10px; 
-        border-radius: 6px; 
-        display: inline-block;
-        border: 1px solid #e9ecef;
-    }
-
-    .status-badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; }
-    
-    .floating-icon { color: var(--mahjoub-primary); }
-</style>
-
-<div class="container py-5" dir="rtl">
+<div class="container py-5" dir="rtl" style="min-height: 80vh;">
     <div class="row justify-content-center">
-        <!-- البطاقة الرئيسية للنموذج -->
-        <div class="col-lg-7">
-            <div class="text-center mb-5">
-                <h2 class="fw-bold" style="color: var(--mahjoub-primary);">إضافة شريك تجاري</h2>
-                <p class="text-muted">التحكم الكامل في بيانات الموردين والمحفظة الرقمية</p>
-            </div>
-
-            <div class="card card-mahjoub p-4 p-md-5">
-                <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="supplierForm">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="action_type" value="owner">
+        <div class="col-12 col-md-6 col-lg-5">
+            <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+                <div class="card-body p-4">
+                    <h4 class="text-center fw-bold mb-4" style="color: #2d144d;">تعميد مورد جديد</h4>
                     
-                    <div class="row g-3">
-                        <!-- اسم المالك -->
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">اسم المالك</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-0"><i class="fas fa-user"></i></span>
-                                <input type="text" name="owner_name" id="owner_name" class="form-control" placeholder="اسم مالك الشريك" required>
-                            </div>
+                    <form action="{{ url_for('admin_suppliers_add_bp.add_supplier_or_staff') }}" method="POST" id="supplierForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" name="owner_name" id="owner_name" placeholder="اسم المالك" required>
+                            <label>اسم المالك</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" name="username" id="username" placeholder="اسم المستخدم" required>
+                            <label>اسم المستخدم (إنجليزي)</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" name="trade_name" id="trade_name" placeholder="الاسم التجاري" required>
+                            <label>الاسم التجاري</label>
+                        </div>
+                        <div class="form-floating mb-4">
+                            <input type="number" class="form-control" name="phone" id="phone" placeholder="77XXXXXXX" required>
+                            <label>رقم الهاتف (9 أرقام)</label>
                         </div>
 
-                        <!-- اسم المستخدم -->
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small text-secondary">اسم المستخدم</label>
-                            <input type="text" name="username" id="username" class="form-control" placeholder="English Username" required>
-                            <span id="username_feedback" class="small mt-1 d-block"></span>
-                        </div>
-
-                        <!-- الاسم التجاري -->
-                        <div class="col-12">
-                            <label class="form-label fw-bold small text-secondary">الاسم التجاري للمتجر</label>
-                            <input type="text" name="trade_name" id="trade_name" class="form-control" placeholder="اسم المتجر/الشركة" required>
-                            <span id="trade_name_feedback" class="small mt-1 d-block"></span>
-                        </div>
-
-                        <!-- الهاتف -->
-                        <div class="col-12">
-                            <label class="form-label fw-bold small text-secondary">رقم الهاتف (9 أرقام)</label>
-                            <input type="text" name="phone" id="phone" class="form-control" maxlength="9" placeholder="77XXXXXXX" required>
-                            <span id="phone_feedback" class="small mt-1 d-block"></span>
-                        </div>
-                    </div>
-
-                    <div class="mt-4">
-                        <button type="submit" id="submitBtn" class="btn w-100 btn-submit rounded-pill shadow" disabled>
-                            <span class="spinner-border spinner-border-sm me-2 d-none" role="status"></span>
-                            <span id="btnText"><i class="fas fa-check-circle me-2"></i> اعتماد الشريك وتوليد البيانات</span>
+                        <button type="submit" id="submitBtn" class="btn btn-primary w-100 py-3 fw-bold" style="background: #2d144d; border: none;">
+                            حفظ التعميد
                         </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal للبيانات -->
-{% if new_user %}
-<div class="modal fade" id="successModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow-lg">
-            <div class="modal-header border-0 bg-success text-white rounded-top-4">
-                <h5 class="modal-title w-100 text-center"><i class="fas fa-check-double me-2"></i> تم التعميد بنجاح</h5>
-            </div>
-            <div class="modal-body p-4">
-                <p class="text-center text-muted">تم إنشاء المورد والمحفظة بنجاح، احفظ البيانات أدناه:</p>
-                <div class="credential-box my-3">
-                    <div class="mb-2"><strong>الجهة:</strong> {{ new_user.trade_name }}</div>
-                    <div class="mb-2"><strong>المالك:</strong> {{ new_user.owner_name }}</div>
-                    <div class="mb-2"><strong>المحفظة:</strong> <code>{{ new_user.wallet_code }}</code></div>
-                    <div class="mb-2"><strong>المستخدم:</strong> {{ new_user.username }}</div>
-                    <div class="mb-2"><strong>كلمة السر:</strong> <code>{{ new_user.password }}</code></div>
+                    </form>
                 </div>
             </div>
-            <div class="modal-footer border-0 justify-content-center">
-                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">إغلاق</button>
-                <button type="button" id="copyBtn" class="btn btn-success px-4" onclick="copyCredentials()">
-                    <i class="fas fa-copy me-2"></i> نسخ البيانات
-                </button>
+        </div>
+    </div>
+</div>
+
+<!-- النافذة المنبثقة (Success Modal) -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title">تم التعميد بنجاح</h5>
+            </div>
+            <div class="modal-body text-center p-4">
+                {% if new_user %}
+                <p>تم تعميد: <strong>{{ new_user.trade_name }}</strong></p>
+                <div class="bg-dark text-light p-3 rounded text-start mt-3" style="direction: ltr;">
+                    <div class="mb-2"><strong>User:</strong> {{ new_user.username }}</div>
+                    <div class="mb-2"><strong>Pass:</strong> {{ new_user.password }}</div>
+                    <div><strong>Wallet:</strong> {{ new_user.wallet_code }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">إغلاق</button>
             </div>
         </div>
     </div>
 </div>
-{% endif %}
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        {% if new_user %}
-            new bootstrap.Modal(document.getElementById('successModal')).show();
-        {% endif %}
+document.addEventListener('DOMContentLoaded', () => {
+    // إظهار النافذة فوراً إذا كانت البيانات موجودة في الجلسة
+    {% if new_user %}
+        const modal = new bootstrap.Modal(document.getElementById('successModal'));
+        modal.show();
+    {% endif %}
 
-        // التفاعل مع زر الإرسال
-        document.getElementById('supplierForm').addEventListener('submit', function() {
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.querySelector('.spinner-border-sm').classList.remove('d-none');
-            document.getElementById('btnText').innerText = 'جاري الإعداد...';
-        });
-
-        // التحقق اللحظي
-        async function checkField(type, value) {
-            const response = await fetch("{{ url_for('admin_suppliers_add_bp.check_availability') }}", {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
-                body: JSON.stringify({type: type, value: value})
-            });
-            return await response.json();
-        }
-
-        const fields = { 
-            username: { el: document.getElementById('username'), valid: false }, 
-            trade_name: { el: document.getElementById('trade_name'), valid: false }, 
-            phone: { el: document.getElementById('phone'), valid: false } 
-        };
-
-        function updateUI(id, data) {
-            const el = fields[id].el;
-            const feedback = document.getElementById(id + '_feedback');
-            fields[id].valid = data.available;
-            el.classList.toggle('is-valid', data.available);
-            el.classList.toggle('is-invalid', !data.available);
-            feedback.innerText = (data.available ? '✓ ' : '❌ ') + data.message;
-            feedback.style.color = data.available ? '#198754' : '#dc3545';
-            document.getElementById('submitBtn').disabled = !(fields.username.valid && fields.trade_name.valid && fields.phone.valid);
-        }
-
-        ['username', 'trade_name', 'phone'].forEach(id => {
-            fields[id].el.addEventListener('blur', async () => {
-                const val = fields[id].el.value.trim();
-                if(val.length >= (id === 'phone' ? 9 : 3)) {
-                    updateUI(id, await checkField(id, val));
-                }
-            });
-        });
+    // إضافة تأثير ضغط الزر
+    document.getElementById('supplierForm').addEventListener('submit', function() {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جاري الحفظ...';
     });
-
-    function copyCredentials() {
-        const text = `🏬 مرحباً بك شريكنا في منصة محجوب أونلاين
-📋 تفاصيل الحساب الجديد:
-🏢 الجهة: {{ new_user.trade_name if new_user }}
-👤 المالك: {{ new_user.owner_name if new_user }}
-💳 رقم المحفظة: {{ new_user.wallet_code if new_user }}
-👤 المستخدم: {{ new_user.username if new_user }}
-🔑 كلمة المرور: {{ new_user.password if new_user }}
-
-رابط الدخول: https://mahjoub-online-webapp-ocnb.onrender.com/supplier/login`;
-        
-        navigator.clipboard.writeText(text);
-        const btn = document.getElementById('copyBtn');
-        btn.innerHTML = '<i class="fas fa-check me-2"></i> تم النسخ!';
-        setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy me-2"></i> نسخ البيانات'; }, 2000);
-    }
+});
 </script>
 {% endblock %}
