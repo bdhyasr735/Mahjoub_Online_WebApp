@@ -10,16 +10,18 @@ from apps.utils.time_utils import format_full_timestamp
 
 csrf = CSRFProtect()
 
-# قاموس لتخزين بيانات الموديولات المكتشفة تلقائياً
 REGISTERED_MODULES = {}
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
-    # تسجيل الـ Blueprints الأساسية للإدارة فقط
+    # 1. تسجيل Blueprints الإدارة يدوياً لضمان توفرها في خريطة المسارات
     from apps.auth_portal.routes import auth_portal
+    from apps.admin_dashboard.routes import admin_dashboard
+    
     app.register_blueprint(auth_portal, url_prefix='/auth')
+    app.register_blueprint(admin_dashboard, url_prefix='/admin')
     
     # إضافة الفلاتر المخصصة
     app.jinja_env.filters['full_time'] = format_full_timestamp
@@ -30,7 +32,6 @@ def create_app():
     login_manager.init_app(app)
     csrf.init_app(app)
     
-    # الحقن المباشر للمتغيرات لضمان وصول الموديولات للشريط الجانبي
     @app.context_processor
     def inject_vars():
         return dict(
@@ -41,7 +42,7 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-        # زرع المستخدم الافتراضي (المدير)
+        # زرع المستخدم الافتراضي
         try:
             from apps.models.admin_db import AdminUser
             admin = AdminUser.query.filter_by(username='علي محجوب').first()
@@ -50,13 +51,11 @@ def create_app():
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
-        except Exception as e:
+        except Exception:
             db.session.rollback()
-            print(f"⚠️ خطأ أثناء إنشاء المستخدم الافتراضي: {e}")
 
-        # [نظام التسجيل التلقائي للموديولات]
+        # نظام التسجيل التلقائي للموديولات الأخرى
         apps_dir = app.root_path
-        # استبعاد المجلدات التي لا تحتاج تسجيل تلقائي أو التي تسبب مشاكل
         ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'suppliers_auth', 'auth_portal', 'admin_dashboard']
         
         for item in os.listdir(apps_dir):
@@ -65,24 +64,19 @@ def create_app():
                 registry_file = os.path.join(item_path, 'registry.py')
                 if os.path.exists(registry_file):
                     try:
-                        # استيراد الموديول ديناميكياً
                         module = importlib.import_module(f"apps.{item}.registry")
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
-                            
-                            # تخزين البيانات ليقرأها نظام القوالب تلقائياً
                             REGISTERED_MODULES[item] = {
                                 "display_name": getattr(module, 'MODULE_NAME', item.capitalize()),
                                 "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
                                 "links": getattr(module, 'LINKS', {}),
                                 "active": True
                             }
-                            print(f"✅ [Auto-Discovery] تم تسجيل موديول: {item}")
                     except Exception as e:
-                        print(f"⚠️ [Auto-Discovery] خطأ في الموديول {item}: {e}")
-                        REGISTERED_MODULES[item] = {"active": False}
+                        print(f"⚠️ [Auto-Discovery] Error in {item}: {e}")
 
-    # تحديث الـ Config بـ خريطة المسارات لتفادي BuildError في القوالب
+    # تحديث خريطة المسارات لتفادي BuildError
     app.config['ENDPOINT_MAP'] = {rule.endpoint for rule in app.url_map.iter_rules()}
 
     return app
