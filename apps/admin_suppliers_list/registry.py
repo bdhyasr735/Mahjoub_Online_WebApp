@@ -3,14 +3,12 @@
 
 from .routes import suppliers_bp
 
-MODULE_NAME = "قائمة الشركاء"
-MODULE_ICON = "fa-users"
+MODULE_NAME = "إدارة الموردين" # اسم الموديول الموحد
+MODULE_ICON = "fa-users"       # الأيقونة التي ستظهر للقسم
 
-# ✅ الربط تحت المظلة الرئيسية "إدارة الموردين"
-# النظام سيكتشف وجود نفس المفتاح ("إدارة الموردين") في الموديولين وسيدمجهما تلقائياً
 LINKS = {
     "إدارة الموردين": {
-        "قائمة الشركاء": "suppliers.list_suppliers" # تأكد من اسم الـ Route هنا
+        "قائمة الشركاء": "suppliers_bp.list_suppliers" 
     }
 }
 
