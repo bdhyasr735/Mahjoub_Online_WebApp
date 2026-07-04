@@ -1,6 +1,7 @@
 # coding: utf-8
 # 📂 apps/wallet/routes.py - إدارة محافظ الموردين (الإدارة)
 
+import logging
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -8,6 +9,9 @@ from apps.models.supplier_db import Supplier
 from apps.extensions import db
 from sqlalchemy import or_
 from decimal import Decimal
+
+# إعداد المسجل (Logger) لتتبع الأخطاء المالية
+logger = logging.getLogger(__name__)
 
 wallet_bp = Blueprint('wallet_app', __name__, template_folder='templates')
 
