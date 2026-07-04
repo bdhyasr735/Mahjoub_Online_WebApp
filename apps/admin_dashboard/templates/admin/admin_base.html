@@ -36,7 +36,7 @@
         <nav class="nav-menu">
             <a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard.dashboard' }}"><i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span></a>
             
-            {# حلقة ديناميكية شاملة للموديولات #}
+            {# حلقة ديناميكية آمنة للموديولات #}
             {% for key, module in registered_modules.items() %}
             <div class="nav-item">
                 <div class="nav-link" onclick="toggleSub(this)">
@@ -47,7 +47,12 @@
                 <ul class="dropdown-content">
                     {% if module.links %}
                         {% for link_text, endpoint in module.links.items() %}
-                        <li><a href="{{ url_for(endpoint) }}"><i class="fas fa-circle me-2" style="font-size: 8px;"></i> {{ link_text }}</a></li>
+                            {# التحقق من وجود المسار في خريطة المسارات قبل البناء #}
+                            {% if endpoint in config.get('ENDPOINT_MAP', []) %}
+                                <li><a href="{{ url_for(endpoint) }}"><i class="fas fa-circle me-2" style="font-size: 8px;"></i> {{ link_text }}</a></li>
+                            {% else %}
+                                <li><a href="#" class="text-secondary"><i class="fas fa-exclamation-triangle me-2"></i> {{ link_text }} (معلق)</a></li>
+                            {% endif %}
                         {% endfor %}
                     {% else %}
                         <li><a href="#"><i class="fas fa-info-circle me-2"></i> لا توجد روابط</a></li>
