@@ -3,16 +3,15 @@
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required
-from apps.models import Supplier
+from apps.models import Supplier  # الاستيراد من الواجهة الموحدة
 from apps.extensions import db
 
-# تعريف البلوبرنت
-# لاحظ: url_prefix='/admin/suppliers' سيجعل المسارات تبدأ بـ /admin/suppliers تلقائياً
+# تعريف البلوبرينت
+# ملاحظة: تمت إزالة url_prefix من هنا لأننا نحدده في registry.py عند تسجيل الموديول
 suppliers_bp = Blueprint(
     'suppliers_bp', 
     __name__, 
-    template_folder='templates',
-    url_prefix='/admin/suppliers' 
+    template_folder='templates'
 )
 
 @suppliers_bp.route('/list', methods=['GET'])
@@ -26,7 +25,7 @@ def list_suppliers():
         suppliers = []
         print(f"⚠️ خطأ أثناء جلب الموردين: {e}")
     
-    # تأكد من أن هذا المسار يطابق موقع الملف الذي أنشأته
+    # تأكد من أن المسار في الـ render_template يطابق هيكل مجلد الـ templates عندك
     return render_template(
         'admin_suppliers_list/admin_suppliers_list.html', 
         suppliers=suppliers
@@ -36,12 +35,15 @@ def list_suppliers():
 @login_required
 def add_supplier():
     """صفحة إضافة مورد جديد."""
-    # سيتم ربط هذه الصفحة لاحقاً بـ add.html
     return render_template('admin_suppliers_list/add.html')
 
 @suppliers_bp.route('/<int:supplier_id>/details', methods=['GET'])
 @login_required
 def supplier_details(supplier_id):
     """عرض تفاصيل مورد معين."""
-    supplier = Supplier.query.get_or_404(supplier_id)
-    return render_template('admin_suppliers_list/details.html', supplier=supplier)
+    try:
+        supplier = Supplier.query.get_or_404(supplier_id)
+        return render_template('admin_suppliers_list/details.html', supplier=supplier)
+    except Exception as e:
+        flash("حدث خطأ أثناء جلب تفاصيل المورد.")
+        return redirect(url_for('suppliers_bp.list_suppliers'))
