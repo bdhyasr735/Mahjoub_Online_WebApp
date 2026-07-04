@@ -3,8 +3,6 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required
-# استيراد النماذج من قاعدة البيانات (قم بتعديل المسار بناءً على هيكل ملفاتك)
-from apps.models import Store, Product, Order 
 
 # 1. إنشاء الـ Blueprint
 admin_dashboard = Blueprint(
@@ -32,6 +30,9 @@ def dashboard():
 @login_required
 def search():
     """البحث في كافة أرجاء النظام."""
+    # يتم استيراد النماذج هنا (Lazy Import) لحل مشكلة الدائرة المغلقة (Circular Import)
+    from apps.models import Store, Product, Order 
+    
     query = request.args.get('q', '').strip()
     
     if not query:
