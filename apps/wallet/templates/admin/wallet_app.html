@@ -1,4 +1,4 @@
-{% extends "admin/base.html" %}
+{% extends "admin_base.html" %}
 
 {% block title %}إدارة محافظ الموردين | Mahjoub Online{% endblock %}
 
@@ -83,6 +83,7 @@
                         <td class="text-primary fw-bold">{{ "{:,.2f}".format(wallet.balance_yer) }}</td>
                         <td class="text-info fw-bold">{{ "{:,.2f}".format(wallet.balance_usd) }}</td>
                         <td>
+                            <!-- تأكد أن اسم الـ route هو 'wallet.view_transactions' -->
                             <a href="{{ url_for('wallet.view_transactions', wallet_id=wallet.id) }}" class="btn btn-sm" style="background-color: #4b0082; color: white;">
                                 <i class="fas fa-history"></i> كشف الحساب
                             </a>
