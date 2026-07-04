@@ -42,26 +42,34 @@
         </div>
         
         <nav class="nav-menu">
-            <!-- رابط الإحصائيات الرئيسي (ثابت) -->
+            <!-- رابط الإحصائيات الرئيسي -->
             <a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard.dashboard' }}">
                 <i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span>
             </a>
             
-            <!-- الموديولات المكتشفة ديناميكياً (Auto-Discovery) -->
-            {% for key, module in registered_modules.items() %}
-            <div class="nav-item">
-                <div class="nav-link" onclick="toggleSub(this)">
-                    <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
-                    <span>{{ module.display_name }}</span> 
-                    <i class="fas fa-chevron-down ms-auto"></i>
+            <!-- الموديولات المكتشفة -->
+            {% if registered_modules %}
+                {% for key, module in registered_modules.items() %}
+                <div class="nav-item">
+                    <div class="nav-link" onclick="toggleSub(this)">
+                        <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
+                        <span>{{ module.display_name }}</span> 
+                        <i class="fas fa-chevron-down ms-auto"></i>
+                    </div>
+                    <ul class="dropdown-content">
+                        {% if module.links %}
+                            {% for label, endpoint in module.links.items() %}
+                                <li><a href="{{ url_for(endpoint) }}"><i class="fas fa-circle me-2" style="font-size: 8px;"></i> {{ label }}</a></li>
+                            {% endfor %}
+                        {% else %}
+                            <li><a href="#"><small class="text-muted">لا توجد روابط</small></a></li>
+                        {% endif %}
+                    </ul>
                 </div>
-                <ul class="dropdown-content">
-                    {% for label, endpoint in module.links.items() %}
-                        <li><a href="{{ url_for(endpoint) }}"><i class="fas fa-circle me-2" style="font-size: 8px;"></i> {{ label }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endfor %}
+                {% endfor %}
+            {% else %}
+                <div class="px-3 py-2 text-white-50 small"><i class="fas fa-info-circle me-2"></i> لا توجد موديولات نشطة</div>
+            {% endif %}
 
             <hr class="text-white my-3">
             <a href="{{ url_for('auth_portal.logout') }}" class="nav-link text-danger">
@@ -83,14 +91,11 @@
         function toggleSub(el) {
             let drop = el.nextElementSibling;
             if(!drop) return;
-            
             let isVisible = drop.style.display === "block";
             drop.style.display = isVisible ? "none" : "block";
-            
             let icon = el.querySelector('.fa-chevron-down');
             icon.style.transform = isVisible ? "rotate(0deg)" : "rotate(180deg)";
         }
-        
         function toggleSidebar() { 
             document.getElementById('sidebar').classList.toggle('active'); 
         }
