@@ -3,46 +3,58 @@
 {% block title %}إدارة محافظ الموردين | Mahjoub Online{% endblock %}
 
 {% block content %}
+<style>
+    /* لمسات ملكية خاصة */
+    .regal-gradient {
+        background: linear-gradient(135deg, #0f001e 0%, #4b0082 100%);
+        color: #ffffff;
+        border: 1px solid #d4af37; /* ذهبي */
+    }
+    .text-gold { color: #d4af37 !important; }
+    .card-royal { border: 1px solid #d4af37; box-shadow: 0 4px 15px rgba(75, 0, 130, 0.3); }
+    .table thead { background-color: #f8f9fa; border-bottom: 2px solid #4b0082; }
+</style>
+
 <div class="container-fluid py-4">
     <!-- رأس الصفحة -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="mb-0 fw-bold">الخزينة المركزية</h4>
+            <h4 class="mb-0 fw-bold text-dark">الخزينة المركزية</h4>
             <small class="text-muted">نظام إدارة المحافظ والأرصدة</small>
         </div>
     </div>
 
-    <!-- لوحة ملخص الأرصدة (محاكاة لهوية image_9eaa08.png) -->
-    <div class="card mb-4 border-0 shadow-sm" style="background-color: #4b0082; color: white;">
-        <div class="card-body">
-            <h5 class="mb-3">ملخص الأرصدة</h5>
+    <!-- لوحة ملخص الأرصدة (بنفسجي ملكي) -->
+    <div class="card mb-4 regal-gradient border-0 shadow-lg">
+        <div class="card-body p-4">
+            <h5 class="mb-4 text-gold"><i class="fas fa-crown me-2"></i>ملخص الأرصدة العام</h5>
             <div class="row text-center">
                 <div class="col-md-3">
                     <p class="mb-1 opacity-75">عدد المحافظ</p>
-                    <h3 class="fw-bold">{{ wallets|length }}</h3>
+                    <h3 class="fw-bold text-white">{{ wallets|length }}</h3>
                 </div>
                 <div class="col-md-3">
                     <p class="mb-1 opacity-75">إجمالي رصيد SAR</p>
-                    <h3 class="fw-bold">{{ "{:,.2f}".format(wallets|sum(attribute='balance_sar')) }}</h3>
+                    <h3 class="fw-bold text-gold">{{ "{:,.2f}".format(wallets|sum(attribute='balance_sar')) }}</h3>
                 </div>
                 <div class="col-md-3">
                     <p class="mb-1 opacity-75">إجمالي رصيد YER</p>
-                    <h3 class="fw-bold">{{ "{:,.2f}".format(wallets|sum(attribute='balance_yer')) }}</h3>
+                    <h3 class="fw-bold text-gold">{{ "{:,.2f}".format(wallets|sum(attribute='balance_yer')) }}</h3>
                 </div>
                 <div class="col-md-3">
                     <p class="mb-1 opacity-75">إجمالي رصيد USD</p>
-                    <h3 class="fw-bold">{{ "{:,.2f}".format(wallets|sum(attribute='balance_usd')) }}</h3>
+                    <h3 class="fw-bold text-gold">{{ "{:,.2f}".format(wallets|sum(attribute='balance_usd')) }}</h3>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- شريط البحث -->
-    <div class="card mb-4 border-0 shadow-sm">
+    <div class="card mb-4 card-royal border-0 shadow-sm">
         <div class="card-body">
             <div class="input-group">
-                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                <input type="text" id="walletSearch" class="form-control border-start-0" 
+                <span class="input-group-text bg-white border-end-0 border-primary"><i class="fas fa-search text-primary"></i></span>
+                <input type="text" id="walletSearch" class="form-control border-start-0 border-primary" 
                        placeholder="ابحث عن مورد بالاسم أو رمز المحفظة...">
             </div>
         </div>
@@ -53,28 +65,26 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" id="walletTable">
                 <thead class="table-light">
-                    <tr>
+                    <tr style="color: #4b0082;">
                         <th>كود المحفظة</th>
                         <th>المورد</th>
                         <th>رصيد SAR</th>
                         <th>رصيد YER</th>
                         <th>رصيد USD</th>
-                        <th>المعلق (Pending)</th>
                         <th>الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for wallet in wallets %}
                     <tr data-supplier="{{ wallet.supplier.trade_name }}" data-code="{{ wallet.wallet_code }}">
-                        <td class="fw-bold text-dark">{{ wallet.wallet_code }}</td>
-                        <td>{{ wallet.supplier.trade_name }}</td>
+                        <td class="fw-bold" style="color: #4b0082;">{{ wallet.wallet_code }}</td>
+                        <td class="text-dark">{{ wallet.supplier.trade_name }}</td>
                         <td class="text-success fw-bold">{{ "{:,.2f}".format(wallet.balance_sar) }}</td>
                         <td class="text-primary fw-bold">{{ "{:,.2f}".format(wallet.balance_yer) }}</td>
                         <td class="text-info fw-bold">{{ "{:,.2f}".format(wallet.balance_usd) }}</td>
-                        <td class="text-warning fw-bold">{{ "{:,.2f}".format(wallet.balance_pending) }}</td>
                         <td>
-                            <a href="{{ url_for('wallet.view_transactions', wallet_id=wallet.id) }}" class="btn btn-sm btn-outline-info">
-                                <i class="fas fa-history"></i> كشف
+                            <a href="{{ url_for('wallet.view_transactions', wallet_id=wallet.id) }}" class="btn btn-sm" style="background-color: #4b0082; color: white;">
+                                <i class="fas fa-history"></i> كشف الحساب
                             </a>
                         </td>
                     </tr>
