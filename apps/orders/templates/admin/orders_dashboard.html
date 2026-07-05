@@ -36,14 +36,22 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-royal-purple"><i class="fas fa-shopping-bag me-2"></i>طلبات المتجر</h3>
-            <p class="text-muted small mb-0">مراقبة حركة الطلبات وتوزيعها بين المتاجر والموردين</p>
+            <p class="text-muted small mb-0">نظام محجوب أونلاين المستقل - إدارة الطلبات والمالية</p>
         </div>
-        <!-- المسار المباشر والمصحح -->
-        <form action="{{ url_for('orders.sync_all') }}" method="POST">
-            <button type="submit" class="btn btn-royal-back shadow-sm">
-                <i class="fas fa-sync-alt me-2"></i>مزامنة الطلبات
-            </button>
-        </form>
+        
+        <div class="d-flex gap-2">
+            <!-- زر الطلب الجديد (للإدخال اليدوي السيادي) -->
+            <a href="{{ url_for('orders.add_new_order') }}" class="btn btn-primary shadow-sm" style="background-color: var(--royal-purple); border-color: var(--royal-purple);">
+                <i class="fas fa-plus me-2"></i>طلب جديد
+            </a>
+            
+            <!-- زر المزامنة (اختياري) -->
+            <form action="{{ url_for('orders.sync_all') }}" method="POST">
+                <button type="submit" class="btn btn-royal-back shadow-sm">
+                    <i class="fas fa-sync-alt me-2"></i>مزامنة يدوي
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- بطاقات الإحصائيات -->
