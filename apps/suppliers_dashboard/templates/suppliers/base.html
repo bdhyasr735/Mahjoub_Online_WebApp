@@ -43,7 +43,9 @@
     <aside class="sidebar" id="sidebar">
         <div class="logo-container">
             <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="sidebar-logo" alt="MAHJOUB">
-            <h6 class="text-white mt-3 fw-bold">لوحة المورد</h6>
+            <h6 class="text-white mt-3 fw-bold">
+                {{ current_user.trade_name if session.get('user_type') == 'supplier' else current_user.supplier.trade_name }}
+            </h6>
         </div>
 
         <nav class="nav-menu">
@@ -79,7 +81,11 @@
             <div class="user-identity d-flex align-items-center">
                 <div class="text-end me-3 d-none d-md-block">
                     <div class="fw-bold text-dark" style="font-size: 0.9rem;">
-                        {{ current_user.trade_name if current_user.is_authenticated else 'المورد' }}
+                        {% if session.get('user_type') == 'supplier' %}
+                            {{ current_user.trade_name }}
+                        {% else %}
+                            {{ current_user.full_name }} ({{ current_user.role }})
+                        {% endif %}
                     </div>
                 </div>
                 <div class="avatar-circle bg-light d-flex align-items-center justify-content-center" 
