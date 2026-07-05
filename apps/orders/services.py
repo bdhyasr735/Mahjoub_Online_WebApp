@@ -1,40 +1,41 @@
-# coding: utf-8
-# 📂 apps/orders/services.py
+# 📂 apps/orders/routes.py
 
-from apps.extensions import db
-from apps.models.orders_db import Order
-from apps.models.financials_db import OrderFinancial
-from sqlalchemy import func
+from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask_login import login_required
+from apps.orders.services import OrderService # استيراد الخدمة الجديدة
+from apps.api.sync_engine import SyncEngine
 
-class OrderService:
-    @staticmethod
-    def get_paginated_orders(page, per_page, search_query=None, status=None):
-        """جلب الطلبات مع الربط والفلترة."""
-        query = db.session.query(Order, OrderFinancial).outerjoin(OrderFinancial)
-        
-        if search_query:
-            query = query.filter(
-                Order.order_id_display.ilike(f'%{search_query}%') | 
-                Order.customer_name.ilike(f'%{search_query}%')
-            )
-        
-        if status:
-            query = query.filter(Order.status == status)
-            
-        return query.order_by(Order.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+orders_bp = Blueprint('orders', __name__, template_folder='templates')
 
-    @staticmethod
-    def get_dashboard_stats():
-        """حساب إحصائيات لوحة التحكم بدقة عالية."""
-        return {
-            'cancelled': Order.query.filter_by(status='cancelled').count(),
-            'completed': Order.query.filter_by(status='completed').count(),
-            'total_sales': db.session.query(func.sum(OrderFinancial.total_paid)).scalar() or 0
-        }
+@orders_bp.route('/dashboard')
+@login_required
+def dashboard():
+    # استخدام الخدمة لجلب البيانات
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '').strip()
+    status = request.args.get('status', '').strip()
+    
+    pagination = OrderService.get_paginated_orders(page, 20, search_query, status)
+    stats = OrderService.get_dashboard_stats()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render_template('admin/partials/_table.html', pagination=pagination)
+    
+    return render_template('admin/orders_dashboard.html', pagination=pagination, stats=stats)
 
-    @staticmethod
-    def get_order_details(order_id):
-        """جلب تفاصيل طلب محدد مع بياناته المالية."""
-        return db.session.query(Order, OrderFinancial)\
-            .outerjoin(OrderFinancial, Order.id == OrderFinancial.order_id)\
-            .filter(Order.id == order_id).first_or_404()
+@orders_bp.route('/sync-all', methods=['POST'])
+@login_required
+def sync_all():
+    # منطق المزامنة يبقى هنا أو يمكن نقله لـ Service لاحقاً
+    if SyncEngine.fetch_and_sync_order():
+        flash("تم تحديث الطلبات بنجاح.", "success")
+    else:
+        flash("حدث خطأ أثناء المزامنة.", "danger")
+    return redirect(url_for('orders.dashboard'))
+
+@orders_bp.route('/view-order/<int:order_id>') 
+@login_required
+def view_order(order_id):
+    # استخدام الخدمة لجلب التفاصيل
+    order_data = OrderService.get_order_details(order_id)
+    return render_template('admin/order_details.html', order=order_data[0], financial=order_data[1])
