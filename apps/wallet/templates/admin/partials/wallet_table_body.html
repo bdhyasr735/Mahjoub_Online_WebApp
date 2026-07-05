@@ -1,14 +1,26 @@
 {% for wallet in wallets %}
-<tr class="wallet-row">
+<!-- أزرار الفلترة المدمجة -->
+<div class="mb-3 d-flex gap-2">
+    <button onclick="filterTable('ALL')" class="btn btn-outline-dark btn-sm">الكل</button>
+    <button onclick="filterTable('SAR')" class="btn btn-primary btn-sm">SAR</button>
+    <button onclick="filterTable('YER')" class="btn btn-success btn-sm">YER</button>
+    <button onclick="filterTable('USD')" class="btn btn-warning btn-sm">USD</button>
+</div>
+
+<!-- محتوى الجدول -->
+{% for wallet in wallets %}
+<tr class="wallet-row" 
+    data-sar="{{ wallet.balance_sar or 0 }}" 
+    data-yer="{{ wallet.balance_yer or 0 }}" 
+    data-usd="{{ wallet.balance_usd or 0 }}">
+    
     <td class="font-monospace">{{ wallet.wallet_code }}</td>
     <td class="fw-bold">{{ wallet.supplier.trade_name }}</td>
     
-    <!-- معالجة الأرصدة بشكل آمن لمنع أخطاء NoneType -->
     <td>{{ "{:,.2f}".format(wallet.balance_sar if wallet.balance_sar is not none else 0) }} <small class="text-muted">SAR</small></td>
     <td>{{ "{:,.2f}".format(wallet.balance_yer if wallet.balance_yer is not none else 0) }} <small class="text-muted">YER</small></td>
     <td>{{ "{:,.2f}".format(wallet.balance_usd if wallet.balance_usd is not none else 0) }} <small class="text-muted">USD</small></td>
     
-    <!-- عمود التاريخ والوقت المحدث بنظام 12 ساعة -->
     <td class="text-muted" dir="ltr">
         <small>{{ wallet.updated_at.strftime('%Y-%m-%d %I:%M %p') if wallet.updated_at else '---' }}</small>
     </td>
@@ -26,4 +38,22 @@
         لا توجد محافظ مطابقة لمعايير البحث.
     </td>
 </tr>
+{% endfor %}
+
+<!-- سكربت الفلترة -->
+<script>
+function filterTable(currency) {
+    const rows = document.querySelectorAll('.wallet-row');
+    rows.forEach(row => {
+        if (currency === 'ALL') {
+            row.style.display = '';
+        } else {
+            // جلب القيمة من السكربت المخزن في الصف
+            const val = parseFloat(row.getAttribute('data-' + currency.toLowerCase()));
+            // إظهار الصف فقط إذا كان الرصيد أكبر من صفر للعملة المختارة
+            row.style.display = (val > 0) ? '' : 'none';
+        }
+    });
+}
+</script>
 {% endfor %}
