@@ -74,7 +74,7 @@ def add_new_order():
         # إنشاء سجل مالي افتراضي مرتبط بالطلب
         new_financial = OrderFinancial(
             order_id=order_id,
-            supplier_id=int(request.form.get('supplier_id')),
+            supplier_id=request.form.get('supplier_id'),
             total_paid=float(request.form.get('total_price', 0)),
             currency='SAR'
         )
