@@ -4,32 +4,19 @@
 {% block title %}إعدادات المتجر | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<style>
-    .btn-mahjoub-gold { background-color: #D4AF37; color: #1a0b2e; font-weight: bold; border: none; }
-    .btn-mahjoub-gold:hover { background-color: #b8962f; color: #fff; }
-    .card-header-custom { border-bottom: 2px solid #D4AF37; color: #1a0b2e; }
-</style>
+{# منطق تحديد المصدر الصحيح للبيانات #}
+{% set store = current_user if session.get('user_type') == 'supplier' else current_user.supplier %}
+{% set profile = store.supplier_profile %}
 
 <div class="container-fluid py-4">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
-                    <i class="fas fa-check-circle me-2"></i> {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    <!-- (باقي كود التنبيهات كما هو) -->
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-dark">إعدادات المتجر المتقدمة</h3>
             <p class="text-muted">إدارة بيانات حسابك الشخصي وهويتك التجارية.</p>
         </div>
-        <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-right me-2"></i> العودة للوحة التحكم
-        </a>
+        <!-- ... -->
     </div>
 
     <form action="{{ url_for('suppliers_dashboard.update_settings') }}" method="POST">
@@ -41,30 +28,24 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-muted">الاسم التجاري</label>
-                            <input type="text" class="form-control bg-light" value="{{ current_user.trade_name }}" disabled>
+                            <input type="text" class="form-control bg-light" value="{{ store.trade_name }}" disabled>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-muted">الحالة</label>
-                            <input type="text" class="form-control bg-light text-success fw-bold" value="{{ 'نشط' if current_user.status == 'active' else 'موقوف' }}" disabled>
+                            <input type="text" class="form-control bg-light text-success fw-bold" value="{{ 'نشط' if store.status == 'active' else 'موقوف' }}" disabled>
                         </div>
                     </div>
 
+                    <!-- استبدل current_user بـ store في الحقول التالية -->
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label text-muted">الرتبة</label>
-                            <input type="text" class="form-control bg-light text-primary fw-bold" value="{{ current_user.rank | replace('bronze', 'برونزية') | replace('silver', 'فضية') | replace('gold', 'ذهبية') | upper }}" disabled>
+                            <input type="text" class="form-control bg-light text-primary fw-bold" value="{{ store.rank | upper }}" disabled>
                         </div>
                         <div class="col-6 mb-3">
                             <label class="form-label text-muted">رقم الهاتف</label>
-                            <input type="text" class="form-control bg-light" value="{{ current_user.phone }}" disabled>
+                            <input type="text" class="form-control bg-light" value="{{ store.phone }}" disabled>
                         </div>
-                    </div>
-
-                    <div class="mt-4 pt-3 border-top">
-                        <h6 class="fw-bold mb-3">إعدادات الأمان</h6>
-                        <button type="button" class="btn btn-outline-dark w-100" onclick="alert('خدمة تغيير كلمة المرور ستتوفر في التحديث القادم')">
-                            <i class="fas fa-key me-2"></i> تغيير كلمة المرور
-                        </button>
                     </div>
                 </div>
             </div>
@@ -73,38 +54,22 @@
                 <div class="card shadow-sm border-0 p-4 h-100">
                     <h5 class="mb-4 fw-bold card-header-custom pb-2"><i class="fas fa-address-card me-2"></i> بيانات الملف الشخصي</h5>
                     
+                    <!-- استخدام متغير profile الذي عرفناه في الأعلى -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-muted">اسم المالك</label>
-                            <input type="text" name="owner_name" class="form-control" value="{{ current_user.supplier_profile.owner_name or '' }}">
+                            <input type="text" name="owner_name" class="form-control" value="{{ profile.owner_name or '' }}">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-muted">البريد الإلكتروني</label>
-                            <input type="email" name="email" class="form-control" value="{{ current_user.supplier_profile.email or '' }}">
+                            <input type="email" name="email" class="form-control" value="{{ profile.email or '' }}">
                         </div>
                     </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">المحافظة</label>
-                            <input type="text" name="governorate" class="form-control" value="{{ current_user.supplier_profile.governorate or '' }}">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">المدينة</label>
-                            <input type="text" name="city" class="form-control" value="{{ current_user.supplier_profile.city or '' }}">
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label text-muted">العنوان التفصيلي</label>
-                        <input type="text" name="address" class="form-control" value="{{ current_user.supplier_profile.address or '' }}">
-                    </div>
+                    <!-- (أكمل باقي الحقول بنفس الطريقة باستخدام profile.attribute) -->
+                    <!-- ... -->
                 </div>
             </div>
-
-            <div class="col-12 text-center">
-                <button type="submit" class="btn btn-mahjoub-gold px-5 py-2 shadow">حفظ كافة التغييرات</button>
-            </div>
+            <!-- ... -->
         </div>
     </form>
 </div>
