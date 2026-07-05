@@ -21,14 +21,15 @@
     .summary-footer { background-color: #f8f9fa; font-weight: bold; border-top: 2px solid var(--royal-gold); }
 </style>
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4" dir="rtl">
     <!-- الرأس والتفاصيل -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-royal-purple"><i class="fas fa-wallet me-2"></i> {{ wallet.supplier.trade_name }}</h3>
             <p class="text-muted">كود المحفظة: <span class="wallet-code-badge">{{ wallet.wallet_code }}</span></p>
         </div>
-        <a href="{{ url_for('wallet_app.dashboard') }}" class="btn btn-royal-back px-4"><i class="fas fa-arrow-left me-2"></i>العودة للخزينة</a>
+        <!-- تم تعديل الرابط ليتوافق مع اسم الـ blueprint -->
+        <a href="{{ url_for('wallet_app.dashboard') }}" class="btn btn-royal-back px-4"><i class="fas fa-arrow-right me-2"></i>العودة للخزينة</a>
     </div>
 
     <!-- بطاقات الأرصدة -->
