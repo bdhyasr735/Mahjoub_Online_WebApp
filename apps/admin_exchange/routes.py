@@ -1,10 +1,10 @@
-# 📂 apps/exchange/exchange_routes.py
+# 📂 apps/admin_exchange/routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.exchange_db import ExchangeRate
 
-# تم تعديل اسم الـ Blueprint ليكون متسقاً مع الموديول المستقل
+# تم تعريف الـ Blueprint ليكون متسقاً مع الموديول المستقل في مسار admin_exchange
 admin_exchange_bp = Blueprint('admin_exchange', __name__, template_folder='templates')
 
 @admin_exchange_bp.route('/exchange-rates', methods=['GET', 'POST'])
