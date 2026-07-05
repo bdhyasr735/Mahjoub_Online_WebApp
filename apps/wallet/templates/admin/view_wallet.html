@@ -28,7 +28,6 @@
             <h3 class="fw-bold text-royal-purple"><i class="fas fa-wallet me-2"></i> {{ wallet.supplier.trade_name }}</h3>
             <p class="text-muted">كود المحفظة: <span class="wallet-code-badge">{{ wallet.wallet_code }}</span></p>
         </div>
-        <!-- تم تعديل الرابط ليتوافق مع اسم الـ blueprint -->
         <a href="{{ url_for('wallet_app.dashboard') }}" class="btn btn-royal-back px-4"><i class="fas fa-arrow-right me-2"></i>العودة للخزينة</a>
     </div>
 
@@ -58,7 +57,7 @@
             <table class="table table-hover align-middle" id="transactionsTable">
                 <thead class="table-light">
                     <tr>
-                        <th>التاريخ</th>
+                        <th>التاريخ والوقت</th>
                         <th>البيان</th>
                         <th>مدين (-)</th>
                         <th>دائن (+)</th>
@@ -72,7 +71,10 @@
                     <tr class="trans-row" data-currency="{{ trans.currency }}" 
                         data-debit="{{ amount if is_debit else 0 }}" 
                         data-credit="{{ amount if not is_debit else 0 }}">
-                        <td>{{ trans.created_at.strftime('%Y-%m-%d') if trans.created_at else 'N/A' }}</td>
+                        <!-- تعديل التنسيق ليظهر التاريخ والوقت -->
+                        <td dir="ltr" class="text-muted small">
+                            {{ trans.created_at.strftime('%Y-%m-%d %H:%M') if trans.created_at else 'N/A' }}
+                        </td>
                         <td class="fw-bold">{{ trans.description or 'حركة مالية رقم ' ~ trans.reference_number }}</td>
                         <td class="text-danger fw-bold">{{ "{:,.2f}".format(amount) if is_debit else '-' }}</td>
                         <td class="text-success fw-bold">{{ "{:,.2f}".format(amount) if not is_debit else '-' }}</td>
@@ -109,7 +111,6 @@ function filterTable(currency) {
     document.getElementById('totalDebit').innerText = d.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('totalCredit').innerText = c.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
-// تشغيل عند التحميل
 filterTable('ALL');
 </script>
 {% endblock %}
