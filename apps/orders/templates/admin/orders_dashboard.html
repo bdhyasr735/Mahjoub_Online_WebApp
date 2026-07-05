@@ -8,9 +8,7 @@
         --royal-purple: #2e003e;
         --royal-gold: #d4af37;
     }
-    .text-royal-purple {
-        color: var(--royal-purple) !important;
-    }
+    .text-royal-purple { color: var(--royal-purple) !important; }
     .btn-royal-back {
         background-color: transparent;
         border: 2px solid var(--royal-purple);
@@ -22,13 +20,8 @@
         background-color: var(--royal-purple);
         color: #ffffff;
     }
-    .card {
-        border: none;
-        border-radius: 8px;
-    }
-    .border-royal {
-        border-right: 4px solid var(--royal-purple) !important;
-    }
+    .card { border: none; border-radius: 8px; }
+    .border-royal { border-right: 4px solid var(--royal-purple) !important; }
 </style>
 
 <div class="container-fluid py-4">
@@ -40,13 +33,13 @@
         </div>
         
         <div class="d-flex gap-2">
-            <!-- زر الطلب الجديد (للإدخال اليدوي السيادي) -->
+            <!-- زر الطلب الجديد - هذا هو الزر الذي سيقوم بالعمل -->
             <a href="{{ url_for('orders.add_new_order') }}" class="btn btn-primary shadow-sm" style="background-color: var(--royal-purple); border-color: var(--royal-purple);">
                 <i class="fas fa-plus me-2"></i>طلب جديد
             </a>
             
-            <!-- زر المزامنة (اختياري) -->
-            <form action="{{ url_for('orders.sync_all') }}" method="POST">
+            <!-- زر المزامنة -->
+            <form action="{{ url_for('orders.sync_all') }}" method="POST" class="m-0">
                 <button type="submit" class="btn btn-royal-back shadow-sm">
                     <i class="fas fa-sync-alt me-2"></i>مزامنة يدوي
                 </button>
