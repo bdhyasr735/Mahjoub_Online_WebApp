@@ -19,11 +19,15 @@ orders_bp = Blueprint('orders', __name__, template_folder='templates')
 @login_required
 def add_new_order():
     if request.method == 'POST':
-        # المعرف هنا نصي بالفعل كما حددناه سابقاً
+        # المعرف هنا نصي كما حددناه سابقاً
         order_id = str(int(datetime.utcnow().timestamp()))
         
-        # نأخذ supplier_id كـ نص مباشرة من الفورم
-        supplier_id_input = request.form.get('supplier_id')
+        # تحويل supplier_id إلى Integer لأن الموديلات المحدثة تتوقع Integer
+        try:
+            supplier_id_input = int(request.form.get('supplier_id'))
+        except (ValueError, TypeError):
+            flash("خطأ في بيانات المورد.", "danger")
+            return redirect(url_for('orders.add_new_order'))
         
         new_order = Order(
             id=order_id,
@@ -50,7 +54,6 @@ def add_new_order():
     
     return render_template('admin/add_order.html')
 
-# تغيير نوع المدخل من int إلى string
 @orders_bp.route('/complete-order/<string:order_id>', methods=['POST'])
 @login_required
 def complete_order(order_id):
@@ -60,7 +63,6 @@ def complete_order(order_id):
         flash("فشل في تسوية الطلب.", "danger")
     return redirect(url_for('orders.view_order', order_id=order_id))
 
-# تغيير نوع المدخل من int إلى string
 @orders_bp.route('/view-order/<string:order_id>') 
 @login_required
 def view_order(order_id):
@@ -70,4 +72,4 @@ def view_order(order_id):
         
     return render_template('admin/order_details.html', order=order, financial=financial)
 
-# ... (باقي الدوال sync_all تبقى كما هي) ...
+# ... (باقي الدوال تبقى كما هي) ...
