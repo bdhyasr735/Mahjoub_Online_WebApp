@@ -2,13 +2,15 @@
 <tr class="wallet-row">
     <td class="font-monospace">{{ wallet.wallet_code }}</td>
     <td class="fw-bold">{{ wallet.supplier.trade_name }}</td>
-    <td>{{ "{:,.2f}".format(wallet.balance_sar|default(0)) }} <small class="text-muted">SAR</small></td>
-    <td>{{ "{:,.2f}".format(wallet.balance_yer|default(0)) }} <small class="text-muted">YER</small></td>
-    <td>{{ "{:,.2f}".format(wallet.balance_usd|default(0)) }} <small class="text-muted">USD</small></td>
     
-    <!-- عمود التاريخ والوقت المضاف -->
+    <!-- معالجة الأرصدة بشكل آمن لمنع أخطاء NoneType -->
+    <td>{{ "{:,.2f}".format(wallet.balance_sar if wallet.balance_sar is not none else 0) }} <small class="text-muted">SAR</small></td>
+    <td>{{ "{:,.2f}".format(wallet.balance_yer if wallet.balance_yer is not none else 0) }} <small class="text-muted">YER</small></td>
+    <td>{{ "{:,.2f}".format(wallet.balance_usd if wallet.balance_usd is not none else 0) }} <small class="text-muted">USD</small></td>
+    
+    <!-- عمود التاريخ والوقت المحدث بنظام 12 ساعة -->
     <td class="text-muted" dir="ltr">
-        <small>{{ wallet.updated_at.strftime('%Y-%m-%d %H:%M') if wallet.updated_at else '---' }}</small>
+        <small>{{ wallet.updated_at.strftime('%Y-%m-%d %I:%M %p') if wallet.updated_at else '---' }}</small>
     </td>
 
     <td>
