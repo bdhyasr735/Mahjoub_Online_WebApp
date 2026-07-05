@@ -41,17 +41,17 @@ def dashboard():
     }
     
     # 4. تنفيذ الترقيم (20 مورد لكل صفحة)
-    wallets = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=20, error_out=False)
+    pagination = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=20, error_out=False)
     
-    # 5. استجابة AJAX لتحديث الجدول فقط عبر wallet_table_body.html
+    # 5. استجابة AJAX لتحديث الجدول فقط
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('admin/partials/wallet_table_body.html', wallets=wallets.items, pagination=wallets)
+        return render_template('admin/partials/wallet_table_body.html', wallets=pagination.items)
         
     return render_template(
         'admin/wallet_app.html', 
-        wallets=wallets.items, 
+        wallets=pagination.items, 
         stats=stats,
-        pagination=wallets
+        pagination=pagination
     )
 
 @wallet_bp.route('/admin/manage/<int:supplier_id>', methods=['GET'])
@@ -84,7 +84,7 @@ def add_transaction(supplier_id):
             flash("يجب أن يكون المبلغ أكبر من صفر.", "danger")
             return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
 
-        # إضافة الحركة يدوياً لضمان الاستقرار
+        # إضافة الحركة يدوياً
         new_trans = WalletTransaction(
             wallet_id=wallet.id,
             amount=amount,
