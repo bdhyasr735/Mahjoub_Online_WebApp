@@ -91,6 +91,7 @@ def create_app():
                 admin.set_password('123')
                 db.session.add(admin)
                 db.session.commit()
+                print("✅ تم إنشاء حساب المسؤول بنجاح.")
         except Exception as e:
             print(f"⚠️ خطأ أثناء تهيئة قاعدة البيانات: {e}")
             db.session.rollback()
