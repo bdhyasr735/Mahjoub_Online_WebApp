@@ -8,9 +8,9 @@ MODULE_NAME = "الطلبات"
 MODULE_ICON = "fa-shopping-cart"
 
 # تعريف الروابط المتاحة لهذا الموديول
-# تم تحديث الرابط من orders_bp.index إلى orders.index ليتوافق مع تسمية الـ Blueprint الجديد
+# تم التعديل إلى 'orders.dashboard' ليطابق الدالة المعرفة في routes.py
 LINKS = {
-    "قائمة الطلبات": "orders.index"
+    "قائمة الطلبات": "orders.dashboard"
 }
 
 def register_module(app):
