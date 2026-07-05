@@ -10,7 +10,6 @@ from apps.utils.time_utils import format_full_timestamp
 csrf = CSRFProtect()
 REGISTERED_MODULES = {}
 
-# ... (دالة load_user تظل كما هي) ...
 @login_manager.user_loader
 def load_user(user_id):
     try:
@@ -36,9 +35,10 @@ def create_app():
     login_manager.init_app(app)
     csrf.init_app(app)
     
-    # --- التعديل هنا: استثناء مسار الموردين من حماية CSRF ---
+    # --- التعديل: تسجيل موديول الموردين لضمان عمل الرابط /supplier/login ---
     from apps.suppliers_auth_portal.routes import suppliers_bp
     csrf.exempt(suppliers_bp) 
+    app.register_blueprint(suppliers_bp, url_prefix='/supplier')
     # ----------------------------------------------------
 
     login_manager.login_view = 'auth_portal.login'
