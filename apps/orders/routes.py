@@ -9,8 +9,8 @@ from apps.models.financials_db import OrderFinancial
 from apps.api.sync_engine import SyncEngine
 from sqlalchemy import func
 
-# تعريف الـ Blueprint
-orders_bp = Blueprint('orders_bp', __name__, template_folder='templates')
+# تعريف الـ Blueprint باسم 'orders' لضمان توافق url_for
+orders_bp = Blueprint('orders', __name__, template_folder='templates')
 
 @orders_bp.route('/dashboard')
 @login_required
@@ -35,7 +35,7 @@ def index():
         page=page, per_page=per_page, error_out=False
     )
     
-    # 3. إحصائيات سريعة (استخدام العمود الخام total_paid_raw)
+    # 3. إحصائيات سريعة
     try:
         total_sales = db.session.query(func.sum(OrderFinancial.total_paid_raw)).scalar() or 0
     except Exception as e:
@@ -48,6 +48,7 @@ def index():
         'total_sales': float(total_sales) 
     }
     
+    # دعم طلبات الـ AJAX
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/_table.html', pagination=pagination)
     
@@ -63,7 +64,7 @@ def sync_all():
             flash("حدث خطأ أثناء المزامنة.", "danger")
     except Exception as e:
         flash(f"خطأ تقني: {str(e)}", "danger")
-    return redirect(url_for('orders_bp.index'))
+    return redirect(url_for('orders.index'))
 
 @orders_bp.route('/view-order/<int:order_id>') 
 @login_required
