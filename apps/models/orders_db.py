@@ -17,7 +17,7 @@ class Order(db.Model):
     """موديل الطلبات: المحرك التشغيلي الذي يربط العميل بالمورد والمسوق."""
     __tablename__ = 'orders'
 
-    # [فهرسة متقدمة]: للبحث السريع في آلاف الطلبات
+    # [فهرسة متقدمة]: للبحث السريع
     __table_args__ = (
         db.Index('idx_ord_supplier_id', 'supplier_id'),
         db.Index('idx_ord_marketer_id', 'marketer_id'),
@@ -32,24 +32,23 @@ class Order(db.Model):
     id = db.Column(db.String(100), primary_key=True) 
     order_id_display = db.Column(db.String(50), nullable=True)
     
-    # الربط السيادي (تم التعديل إلى String لدعم المعرفات النصية مثل MAH-WEL9637)
-    supplier_id = db.Column(db.String(50), db.ForeignKey('suppliers.id'), nullable=True)
+    # الربط السيادي: تم تعديل supplier_id إلى Integer ليتطابق مع ID المورد في جدول suppliers
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
     
-    tracking_tag = db.Column(db.String(100), nullable=True) # وسم التتبع الذكي
+    tracking_tag = db.Column(db.String(100), nullable=True)
     order_reference = db.Column(db.String(100), unique=True, nullable=True) 
     
-    # بيانات ظاهرة (للفلترة والتقارير المالية السريعة)
+    # بيانات ظاهرة
     total_price = db.Column(db.Numeric(18, 2), default=0.00)
     items_count = db.Column(db.Integer, default=0)
     status = db.Column(db.String(30), default='pending') 
     
-    # [تشفير حساس]: حماية خصوصية بيانات العميل
+    # [تشفير حساس]
     _customer_name = db.Column(db.Text)
     _customer_phone = db.Column(db.Text)
     _customer_address = db.Column(db.Text)
     
-    # التوثيق الزمني
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -59,7 +58,6 @@ class Order(db.Model):
     financials = db.relationship('OrderFinancial', back_populates='order', uselist=False, cascade="all, delete-orphan")
 
     # --- منطق التشفير الاحترافي ---
-    
     @property
     def customer_name(self):
         try:
