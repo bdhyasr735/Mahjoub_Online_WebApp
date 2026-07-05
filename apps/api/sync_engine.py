@@ -1,11 +1,12 @@
-# 📂 apps/api/sync_engine.py - محرك المزامنة المحاسبي (النسخة النهائية)
+# 📂 apps/api/sync_engine.py - محرك المزامنة المحاسبي (النسخة النهائية والمدمجة)
 
 import os
 import logging
 from decimal import Decimal
 from apps.extensions import db
 from apps.models.wallet_db import WalletTransaction, SupplierWallet
-from apps.models.sync_log import SyncLog  # استيراد سجل الحقيقة
+from apps.models.sync_log import SyncLog 
+from apps.models.financials_db import OrderFinancial # تم الاستيراد
 from apps.api.tracker_service import TrackerService
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,6 @@ logger = logging.getLogger(__name__)
 class SyncEngine:
     @staticmethod
     def _log_to_db(order_id, supplier_id, sync_type, status, error=None):
-        """توثيق كل حركة مالية في سجل الحقائق المشفر"""
         log = SyncLog(
             supplier_id=supplier_id,
             order_id=order_id,
@@ -56,23 +56,34 @@ class SyncEngine:
                     voucher_number=f"MKT-{order_id}", reference_number=order_id
                 ))
 
-            # 4. تسجيل إيراد المورد
+            # 4. تسجيل إيراد المورد في المحفظة
             db.session.add(WalletTransaction(
                 wallet_id=wallet.id, amount=supplier_cost,
                 trans_type='sale_revenue', currency=product_currency,
                 description=f"إيراد مبيعات الطلب {order_id}",
                 voucher_number=f"SUP-{order_id}", reference_number=order_id
             ))
+
+            # 5. التوثيق في المركز المالي (الجديد)
+            financial_record = OrderFinancial(
+                order_id=order_id,
+                supplier_id=supplier_id,
+                currency=product_currency,
+                total_paid=float(total_price),
+                mahjoub_commission=float(platform_profit),
+                supplier_cost=float(supplier_cost),
+                settlement_status='pending'
+            )
+            db.session.add(financial_record)
             
             db.session.commit()
             
-            # تسجيل النجاح في سجل الحقائق
+            # تسجيل النجاح
             SyncEngine._log_to_db(order_id, supplier_id, 'financial_sync', 'success')
             return True
 
         except Exception as e:
             db.session.rollback()
-            # تسجيل الفشل في سجل الحقائق (مشفر)
             SyncEngine._log_to_db(order_id, supplier_id, 'financial_sync', 'failed', error=str(e))
             logger.error(f"❌ خطأ حرج في الطلب {order_id}: {e}")
             return False
