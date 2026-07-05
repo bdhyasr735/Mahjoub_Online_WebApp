@@ -9,20 +9,21 @@ from apps.models.financials_db import OrderFinancial
 from apps.api.sync_engine import SyncEngine
 from sqlalchemy import func
 
-# تعريف الـ Blueprint باسم 'orders' لضمان توافق url_for
+# تعريف الـ Blueprint باسم 'orders'
+# يجب أن تكون جميع الروابط في القوالب تستخدم 'orders.اسم_الدالة'
 orders_bp = Blueprint('orders', __name__, template_folder='templates')
 
 @orders_bp.route('/dashboard')
 @login_required
-def index():
+def dashboard():
     """لوحة تحكم الطلبات - محسنة للأداء العالي."""
     page = request.args.get('page', 1, type=int)
     per_page = 20
     
-    # 1. استخدام استعلام واحد ذكي لجلب البيانات والربط
+    # استخدام استعلام واحد لجلب الطلبات مع بياناتها المالية
     query = db.session.query(Order, OrderFinancial).outerjoin(OrderFinancial, Order.id == OrderFinancial.order_id)
     
-    # 2. تطبيق الفلاتر
+    # تطبيق الفلاتر
     q = request.args.get('q', '').strip()
     if q:
         query = query.filter(Order.order_id_display.ilike(f'%{q}%') | Order.customer_name.ilike(f'%{q}%'))
@@ -35,7 +36,7 @@ def index():
         page=page, per_page=per_page, error_out=False
     )
     
-    # 3. إحصائيات سريعة
+    # إحصائيات سريعة
     try:
         total_sales = db.session.query(func.sum(OrderFinancial.total_paid_raw)).scalar() or 0
     except Exception as e:
@@ -48,7 +49,7 @@ def index():
         'total_sales': float(total_sales) 
     }
     
-    # دعم طلبات الـ AJAX
+    # دعم طلبات الـ AJAX (يتم استدعاؤه من الـ Templates)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/_table.html', pagination=pagination)
     
@@ -64,7 +65,7 @@ def sync_all():
             flash("حدث خطأ أثناء المزامنة.", "danger")
     except Exception as e:
         flash(f"خطأ تقني: {str(e)}", "danger")
-    return redirect(url_for('orders.index'))
+    return redirect(url_for('orders.dashboard'))
 
 @orders_bp.route('/view-order/<int:order_id>') 
 @login_required
