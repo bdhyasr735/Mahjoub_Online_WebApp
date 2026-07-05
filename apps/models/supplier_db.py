@@ -23,32 +23,31 @@ class Supplier(db.Model, UserMixin):
         {'extend_existing': True}
     )
 
-    # الأعمدة الأساسية
+    # المعرف رقمي ليطابق قيود Foreign Keys في PostgreSQL
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     supplier_code = db.Column(db.String(50), unique=True, nullable=True)
     owner_name = db.Column(db.String(150), nullable=True) 
     trade_name = db.Column(db.String(150), nullable=True)
     
-    # التشفير والبحث (تشفير رقم الهاتف)
+    # التشفير
     _phone_enc = db.Column(db.String(255), nullable=False) 
     search_phone = db.Column(db.String(20))
     
-    # الإعدادات والحالة
     password_hash = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(20), default='active')
     rank = db.Column(db.String(20), default='bronze')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
 
-    # العلاقات (Relationships)
+    # العلاقات
     supplier_profile = db.relationship('SupplierProfile', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
     wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
     orders = db.relationship('Order', back_populates='supplier', cascade="all, delete-orphan")
     financials = db.relationship('OrderFinancial', back_populates='supplier', cascade="all, delete-orphan")
     staff_members = db.relationship('SupplierStaff', back_populates='supplier', cascade="all, delete-orphan")
 
-    # --- نظام التشفير (AES) ---
+    # نظام التشفير
     @staticmethod
     def _get_key():
         key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
@@ -72,10 +71,10 @@ class Supplier(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# --- نظام المحرك التلقائي (Auto-Discovery & Auto-Creation) ---
+# --- المحرك التلقائي ---
 @event.listens_for(Supplier, 'after_insert')
 def receive_after_insert(mapper, connection, target):
-    # 1. تحديث الكود الخاص بالمورد
+    # 1. تحديث الكود البصري
     new_code = f"MAH-SUP963{target.id}"
     connection.execute(
         update(Supplier).where(Supplier.id == target.id).values(supplier_code=new_code)
@@ -83,24 +82,24 @@ def receive_after_insert(mapper, connection, target):
     
     metadata = MetaData()
     
-    # 2. إنشاء المحفظة تلقائياً (تعديل ليتناسب مع supplier_id النصي في الجداول الأخرى)
+    # 2. إنشاء المحفظة (الآن supplier_id من نوع Integer)
     wallets_table = Table('supplier_wallets', metadata, 
                           Column('id', Integer, primary_key=True),
                           Column('wallet_code', String(50)),
-                          Column('supplier_id', String(50)), # تغيير لـ String
+                          Column('supplier_id', Integer), 
                           autoload_with=connection)
     
     connection.execute(
         wallets_table.insert().values(
             wallet_code=f"MAH-WEL963{target.id}",
-            supplier_id=str(target.id) # تمرير كـ نص
+            supplier_id=target.id # تمرير كـ Integer
         )
     )
 
-    # 3. إنشاء المالك تلقائياً (تعديل ليتناسب مع supplier_id النصي)
+    # 3. إنشاء المالك (الآن supplier_id من نوع Integer)
     staff_table = Table('supplier_staff', metadata,
                         Column('id', Integer, primary_key=True),
-                        Column('supplier_id', String(50)), # تغيير لـ String
+                        Column('supplier_id', Integer),
                         Column('username', String(100)),
                         Column('phone', String(20)),
                         Column('password_hash', String(255)),
@@ -111,7 +110,7 @@ def receive_after_insert(mapper, connection, target):
     
     connection.execute(
         staff_table.insert().values(
-            supplier_id=str(target.id), # تمرير كـ نص
+            supplier_id=target.id, # تمرير كـ Integer
             username=target.username,
             phone=target.phone, 
             password_hash=default_pw,
