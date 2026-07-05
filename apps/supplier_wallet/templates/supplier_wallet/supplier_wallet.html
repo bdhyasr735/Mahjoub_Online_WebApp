@@ -21,7 +21,7 @@
             <a href="javascript:history.back()" class="btn btn-outline-dark"><i class="fas fa-arrow-right"></i></a>
             <div>
                 <h2 class="fw-bold text-royal-purple mb-1"><i class="fas fa-wallet"></i> محفظة المورد</h2>
-                <small class="text-muted"><i class="fas fa-fingerprint"></i> رقم المحفظة: <strong>{{ wallet.wallet_code }}</strong></small>
+                <small class="text-muted"><i class="fas fa-fingerprint"></i> رقم المحفظة: <strong>{{ wallet.wallet_code if wallet else '---' }}</strong></small>
             </div>
         </div>
         <button class="btn btn-dark" onclick="window.print()"><i class="fas fa-file-pdf"></i> تصدير (PDF)</button>
@@ -30,10 +30,13 @@
     <!-- بطاقات الرصيد -->
     <div class="row g-3 mb-4">
         {% for c, b in [('SAR', wallet.balance_sar), ('YER', wallet.balance_yer), ('USD', wallet.balance_usd)] %}
+        {% set safe_b = b|float if b is not none else 0.0 %}
         <div class="col-md-4">
             <div class="card balance-card p-3 shadow" onclick="location.href='?currency={{c}}'">
                 <small class="text-white-50">رصيد {{c}}</small>
-                <h3 class="fw-bold mb-0 {{ 'text-success' if b >= 0 else 'text-danger' }}">{{ "{:,.2f}".format(b) }} <span class="fs-6 text-white">{{c}}</span></h3>
+                <h3 class="fw-bold mb-0 {{ 'text-success' if safe_b >= 0 else 'text-danger' }}">
+                    {{ "{:,.2f}".format(safe_b) }} <span class="fs-6 text-white">{{c}}</span>
+                </h3>
             </div>
         </div>
         {% endfor %}
@@ -82,7 +85,6 @@
 </div>
 
 <script>
-    // البحث التفاعلي
     document.getElementById('searchInput').oninput = e => {
         const urlParams = new URLSearchParams(window.location.search);
         const currency = urlParams.get('currency') || 'SAR';
@@ -92,7 +94,6 @@
         .then(r => r.text()).then(html => document.getElementById('tableBody').innerHTML = html);
     };
 
-    // التوجيه عند النقر على الصف (إضافة كلاس clickable-row في الـ partial)
     document.querySelectorAll('.clickable-row').forEach(row => {
         row.onclick = () => {
             const url = row.getAttribute('data-href');
