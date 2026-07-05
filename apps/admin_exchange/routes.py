@@ -12,10 +12,13 @@ admin_exchange_bp = Blueprint('admin_exchange', __name__, template_folder=templa
 @admin_exchange_bp.route('/exchange-rates', methods=['GET', 'POST'])
 @login_required
 def manage_rates():
-    # التحقق من صلاحيات المدير
-    if not hasattr(current_user, 'rank') or current_user.rank != 'admin': 
-        flash("غير مصرح لك بالوصول إلى هذه الصفحة", "danger")
-        # تم التعديل هنا ليتوافق مع اسم الـ endpoint المكتشف في النظام
+    # التحقق من الصلاحيات بطريقة أكثر مرونة لتجنب الطرد غير المقصود
+    user_rank = getattr(current_user, 'rank', None)
+    
+    if user_rank != 'admin':
+        # طباعة للتحقق في السجلات (سجل render)
+        print(f"DEBUG: Access denied. User rank is: {user_rank}")
+        flash(f"غير مصرح لك (رتبتك الحالية: {user_rank})", "danger")
         return redirect(url_for('admin_dashboard.dashboard'))
 
     if request.method == 'POST':
