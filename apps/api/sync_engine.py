@@ -1,8 +1,7 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المحاسبي المحدث
+# 📂 apps/api/sync_engine.py - محرك المزامنة المحاسبي المحدث (نسخة المصنع)
 
 import os
-import requests
 import logging
 from decimal import Decimal
 from apps.extensions import db
@@ -24,46 +23,48 @@ class SyncEngine:
         }
 
     @staticmethod
-    def process_financials(order_id, supplier_id, total_price, tracking_tag=None):
-        """توزيع مالي ذكي للحصص مع دعم التتبع المشفر والربط المحاسبي"""
+    def process_financials(order_id, supplier_id, total_price, tracking_tag=None, product_currency='SAR'):
+        """توزيع مالي ذكي للحصص مع دعم العملات المتعددة والربط المحاسبي"""
         try:
             total_price = Decimal(str(total_price))
             
             # 1. فك تشفير بيانات المسوق
             marketer_id = None
             if tracking_tag and '|' in tracking_tag:
-                data = TrackerService.verify_and_resolve(tracking_tag.split('|')[0], tracking_tag.split('|')[1])
-                if data: marketer_id = data.get('marketer_id')
+                parts = tracking_tag.split('|')
+                if len(parts) >= 2:
+                    data = TrackerService.verify_and_resolve(parts[0], parts[1])
+                    if data: marketer_id = data.get('marketer_id')
 
             # 2. جلب المحفظة
             wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
             if not wallet: return False
 
-            # 3. منطق الحسابات
+            # 3. منطق الحسابات (يتم دائماً بناءً على القيمة الواصلة من قمرة بالريال)
             supplier_cost = total_price * Decimal('0.80')
             platform_profit = total_price * Decimal('0.20')
             
-            # خصم حصة المسوق
+            # خصم حصة المسوق (تُسجل دائماً بالريال كعملة المنصة الموحدة)
             if marketer_id:
                 marketer_share = platform_profit * Decimal('0.50')
                 platform_profit -= marketer_share
                 db.session.add(WalletTransaction(
                     wallet_id=wallet.id, 
                     amount=marketer_share, 
-                    trans_type='adjustment_debit', # خصم من المنصة أو عمولة
+                    trans_type='adjustment_debit',
                     currency='SAR',
                     description=f"عمولة مسوق للطلب {order_id}",
                     voucher_number=f"MKT-{order_id}",
                     reference_number=order_id
                 ))
 
-            # تسجيل إيراد المبيعات للمورد (دائن)
+            # 4. تسجيل إيراد المبيعات للمورد (دائن) بالعملة الأصلية للمنتج
             db.session.add(WalletTransaction(
                 wallet_id=wallet.id, 
                 amount=supplier_cost, 
-                trans_type='sale_revenue', # متوافق مع الفلترة في routes.py
-                currency='SAR',
-                description=f"إيراد مبيعات الطلب {order_id}",
+                trans_type='sale_revenue',
+                currency=product_currency, # هنا يتم توجيه المبلغ للرصيد الصحيح (USD/YER/SAR)
+                description=f"إيراد مبيعات الطلب {order_id} (عملة: {product_currency})",
                 voucher_number=f"SUP-{order_id}",
                 reference_number=order_id
             ))
@@ -77,7 +78,13 @@ class SyncEngine:
 
     @staticmethod
     def fetch_and_sync_order():
-        """جلب ومزامنة الطلبات من قمرة (هيكل تجريبي)"""
-        # عند جلب الطلبات من الـ GraphQL API:
-        # success = SyncEngine.process_financials(order['id'], order['supplierId'], order['totalPrice'], order.get('trackingTag'))
+        """هيكل تجريبي للزرع في المصنع"""
+        # مثال لزراعة المنتجات الثلاثة برمجياً:
+        test_orders = [
+            {'id': 'T-USD-001', 's_id': 1, 'price': 100, 'curr': 'USD'},
+            {'id': 'T-YER-002', 's_id': 1, 'price': 100, 'curr': 'YER'},
+            {'id': 'T-SAR-003', 's_id': 1, 'price': 100, 'curr': 'SAR'}
+        ]
+        for o in test_orders:
+            SyncEngine.process_financials(o['id'], o['s_id'], o['price'], product_currency=o['curr'])
         return True
