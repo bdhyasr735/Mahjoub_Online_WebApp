@@ -22,8 +22,8 @@ class SupplierWallet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     wallet_code = db.Column(db.String(50), unique=True, nullable=False)
     
-    # تم تعديل supplier_id إلى String لقبول المعرفات النصية
-    supplier_id = db.Column(db.String(50), db.ForeignKey('suppliers.id'), nullable=False, unique=True)
+    # تم تعديل supplier_id إلى Integer ليتطابق مع ID المورد في Suppliers
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
     
     # أرصدة العملات
     balance_yer = db.Column(db.Numeric(18, 2), default=0.00) 
@@ -74,8 +74,8 @@ class WalletTransaction(db.Model):
     wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
     owner_type = db.Column(db.String(20), default='supplier') 
     
-    # تم تعديل owner_id إلى String لقبول المعرفات النصية للمالك
-    owner_id = db.Column(db.String(50), nullable=False)
+    # تم تعديل owner_id إلى Integer ليتطابق مع معرفات النظام الرقمية
+    owner_id = db.Column(db.Integer, nullable=False)
     
     trans_type = db.Column(db.String(20), nullable=False) 
     source_type = db.Column(db.String(20), default='manual')
@@ -94,7 +94,6 @@ class WalletTransaction(db.Model):
 
 @event.listens_for(WalletTransaction, 'before_insert')
 def set_voucher_number(mapper, connection, target):
-    # 1. توليد رقم القسيمة
     if not target.voucher_number:
         last_trans = connection.execute(
             select(func.max(WalletTransaction.voucher_number))
@@ -106,7 +105,6 @@ def set_voucher_number(mapper, connection, target):
             except: pass
         target.voucher_number = f"MJ-2026-{last_num + 1:07d}"
 
-    # 2. التحديث الحسابي للأرصدة
     if target.balance_before is None or target.balance_after is None:
         wallet = connection.execute(
             select(SupplierWallet).filter_by(id=target.wallet_id)
