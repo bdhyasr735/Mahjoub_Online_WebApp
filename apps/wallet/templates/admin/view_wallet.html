@@ -1,4 +1,4 @@
-<!-- 📂 view_wallet.html -->
+<!-- 📂 view_wallet.html - النسخة المصححة -->
 <style>
     :root { 
         --royal-purple: #2e003e; 
@@ -35,7 +35,11 @@
                 <div class="card text-white {{ color }} mb-3" style="border: 1px solid #d4af37;">
                     <div class="card-body">
                         <h5 class="card-title">الرصيد بـ {{ currency }}</h5>
-                        <h2 class="fw-bold">{{ "{:,.2f}".format(balance|default(0)) }} <small class="fs-6">{{ currency }}</small></h2>
+                        <!-- تم إصلاح الخطأ عبر تحويل القيمة لـ float وضمان وجود default -->
+                        <h2 class="fw-bold">
+                            {{ "{:,.2f}".format((balance or 0)|float) }} 
+                            <small class="fs-6">{{ currency }}</small>
+                        </h2>
                     </div>
                 </div>
             </button>
@@ -106,6 +110,5 @@ function filterTable(currency) {
     document.getElementById('totalDebit').innerText = d.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('totalCredit').innerText = c.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
-// تشغيل الفلترة عند تحميل الصفحة لعرض الإجمالي العام
 filterTable('ALL');
 </script>
