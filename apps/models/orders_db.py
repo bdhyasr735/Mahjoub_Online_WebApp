@@ -32,11 +32,11 @@ class Order(db.Model):
     id = db.Column(db.String(100), primary_key=True) 
     order_id_display = db.Column(db.String(50), nullable=True)
     
-    # الربط السيادي (تتبع المورد والمسوق)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
+    # الربط السيادي (تم التعديل إلى String لدعم المعرفات النصية مثل MAH-WEL9637)
+    supplier_id = db.Column(db.String(50), db.ForeignKey('suppliers.id'), nullable=True)
     marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
-    tracking_tag = db.Column(db.String(100), nullable=True) # وسم التتبع الذكي
     
+    tracking_tag = db.Column(db.String(100), nullable=True) # وسم التتبع الذكي
     order_reference = db.Column(db.String(100), unique=True, nullable=True) 
     
     # بيانات ظاهرة (للفلترة والتقارير المالية السريعة)
