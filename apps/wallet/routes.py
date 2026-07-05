@@ -33,7 +33,7 @@ def dashboard():
             SupplierWallet.wallet_code.ilike(f'%{search}%')
         ))
     
-    # 3. حساب الإجماليات بناءً على نتيجة البحث (وليس كل القاعدة)
+    # 3. حساب الإجماليات بناءً على نتيجة البحث
     stats = {
         'total_sar': query.with_entities(func.sum(SupplierWallet.balance_sar)).scalar() or 0,
         'total_yer': query.with_entities(func.sum(SupplierWallet.balance_yer)).scalar() or 0,
@@ -43,7 +43,7 @@ def dashboard():
     # 4. تنفيذ الترقيم (20 مورد لكل صفحة)
     wallets = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=20, error_out=False)
     
-    # 5. استجابة AJAX لتحديث الجدول فقط
+    # 5. استجابة AJAX لتحديث الجدول فقط عبر wallet_table_body.html
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/wallet_table_body.html', wallets=wallets.items, pagination=wallets)
         
@@ -84,20 +84,22 @@ def add_transaction(supplier_id):
             flash("يجب أن يكون المبلغ أكبر من صفر.", "danger")
             return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
 
-        new_trans = WalletTransaction.execute_transfer(
+        # إضافة الحركة يدوياً لضمان الاستقرار
+        new_trans = WalletTransaction(
             wallet_id=wallet.id,
             amount=amount,
             trans_type=trans_type,
             owner_type='supplier',
             owner_id=wallet.supplier_id,
-            description=description
+            description=description,
+            currency=currency,
+            related_order_id=order_ref if order_ref else None,
+            reference_number=order_ref if order_ref else None
         )
         
-        new_trans.currency = currency
-        new_trans.related_order_id = order_ref if order_ref else None
-        new_trans.reference_number = order_ref if order_ref else None
-        
+        db.session.add(new_trans)
         db.session.commit()
+        
         logger.info(f"Financial Audit: Wallet ID {wallet.id} | Amount: {amount} {currency}")
         flash(f"تم تسجيل العملية بنجاح للمورد: {wallet.supplier.trade_name}", "success")
         
