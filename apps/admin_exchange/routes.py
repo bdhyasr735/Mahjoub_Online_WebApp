@@ -27,6 +27,7 @@ def manage_rates():
         new_rate = request.form.get('rate')
         
         # التحديث أو الإضافة
+        # النظام سيتعامل مع last_updated_by تلقائياً ويقوم بتشفيره
         rate_entry = ExchangeRate.query.filter_by(currency_code=code).first()
         if rate_entry:
             rate_entry.rate_to_sar = new_rate
@@ -44,5 +45,6 @@ def manage_rates():
         return redirect(url_for('admin_exchange.manage_rates'))
 
     # جلب كافة الأسعار للعرض في الجدول
+    # القالب سيقوم بفك التشفير تلقائياً عند عرض last_updated_by
     rates = ExchangeRate.query.all()
     return render_template('admin/exchange_rates.html', rates=rates)
