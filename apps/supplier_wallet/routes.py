@@ -14,14 +14,11 @@ supplier_wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='tem
 @supplier_wallet_bp.route('/my-wallet', methods=['GET'])
 @login_required
 def view_my_wallet():
-    # 1. تحديد الـ s_id بمرونة لتجنب خطأ المدير
+    # 1. تحديد الـ s_id بمرونة
     user_type = session.get('user_type')
-    
     if user_type == 'supplier':
-        # إذا كان مورداً، نستخدم معرفه الخاص
         s_id = current_user.id
     else:
-        # إذا كان مديراً، يجب أن يأتي المعرف من الرابط (مثال: ?supplier_id=5)
         s_id = request.args.get('supplier_id')
         if not s_id:
             abort(400, description="يجب تحديد معرف المورد (supplier_id) لعرض المحفظة.")
@@ -70,8 +67,15 @@ def view_my_wallet():
     
     total_credit = stats.total_credit or 0
     total_debit = stats.total_debit or 0
+    calculated_balance = total_credit - total_debit
 
-    # 7. الترقيم (Pagination)
+    # منطق التدقيق (Audit Logic) للمدير فقط
+    wallet_imbalance = None
+    if getattr(current_user, 'is_admin', False):
+        if abs(float(wallet.balance) - float(calculated_balance)) > 0.01:
+            wallet_imbalance = calculated_balance
+
+    # 7. الترقيم
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = 20
     total_records = query.count()
@@ -81,7 +85,7 @@ def view_my_wallet():
                         .offset((page - 1) * per_page)\
                         .limit(per_page).all()
 
-    # 8. استجابة الـ AJAX
+    # 8. استجابة
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('supplier_wallet/_table_partial.html', 
                                transactions=transactions, 
@@ -93,15 +97,14 @@ def view_my_wallet():
                            transactions=transactions, 
                            pagination=pagination,
                            total_debit=total_debit, 
-                           total_credit=total_credit)
+                           total_credit=total_credit,
+                           wallet_imbalance=wallet_imbalance)
 
 @supplier_wallet_bp.route('/test-sync', methods=['GET'])
 @login_required
 def test_sync():
-    # التحقق من صلاحيات المدير
     if not getattr(current_user, 'is_admin', False): 
         abort(403)
-    
     if SyncEngine.fetch_and_sync_order():
         return "✅ تم تنفيذ المزامنة بنجاح."
     return "❌ فشل عملية المزامنة."
