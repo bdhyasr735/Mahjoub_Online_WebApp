@@ -1,115 +1,115 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}تفاصيل محفظة {{ wallet.supplier.trade_name }}{% endblock %}
+
+{% block content %}
 <style>
-    /* تنسيقات النمط الملكي */
-    :root {
-        --royal-purple: #2e003e;
-        --royal-gold: #d4af37;
+    :root { 
+        --royal-purple: #2e003e; 
+        --royal-black: #05000a; 
+        --royal-gold: #d4af37; 
     }
-    .table thead { 
-        background-color: var(--royal-purple) !important; 
-        color: var(--royal-gold) !important; 
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 3px solid var(--royal-gold);
+    .regal-gradient { 
+        background: linear-gradient(135deg, var(--royal-black) 0%, var(--royal-purple) 100%); 
+        color: #ffffff;
     }
-    .wallet-code-badge {
-        background-color: #f8f9fa;
-        color: var(--royal-purple);
-        font-family: 'Courier New', Courier, monospace;
-        font-weight: 800;
-        padding: 5px 10px;
-        border-radius: 6px;
-        border: 1px solid var(--royal-gold);
-        display: inline-block;
-    }
-    .btn-royal-outline { 
-        border: 1px solid var(--royal-purple); 
-        color: var(--royal-purple); 
-        transition: 0.3s; 
-        font-weight: 600;
-    }
-    .btn-royal-outline:hover { 
-        background-color: var(--royal-purple); 
-        color: var(--royal-gold); 
-    }
-    .page-item.active .page-link { 
-        background-color: var(--royal-purple); 
-        border-color: var(--royal-purple); 
-        color: var(--royal-gold); 
-    }
-    .badge-status { 
-        font-size: 0.85em; 
-        padding: 6px 12px; 
-        border-radius: 20px; 
-        font-weight: 600;
-    }
+    .text-royal-gold { color: var(--royal-gold) !important; }
+    .border-gold { border: 1px solid var(--royal-gold); }
+    .btn-royal-back { background-color: transparent; border: 2px solid var(--royal-purple); color: var(--royal-purple); font-weight: bold; }
+    .btn-royal-back:hover { background-color: var(--royal-purple); color: #fff; }
+    .wallet-code-badge { font-family: monospace; background: #eee; padding: 4px 8px; border-radius: 4px; font-weight: bold; border: 1px solid var(--royal-gold); color: #333; }
+    .summary-footer { background-color: #f8f9fa; font-weight: bold; border-top: 2px solid var(--royal-gold); }
 </style>
 
-<div class="table-responsive">
-    <table class="table table-hover align-middle border">
-        <thead>
-            <tr>
-                <th>المورد</th>
-                <th>رقم المحفظة</th>
-                <th>رصيد (SAR)</th>
-                <th>رصيد (YER)</th>
-                <th>رصيد (USD)</th>
-                <th>المركز المالي</th>
-                <th class="text-center">إجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for wallet in wallets %}
-            <tr>
-                <td><div class="fw-bold text-dark fs-6">{{ wallet.supplier.trade_name }}</div></td>
-                <td><span class="wallet-code-badge">{{ wallet.wallet_code }}</span></td>
-                
-                <td class="{{ 'text-danger fw-bold' if wallet.balance_sar < 0 else 'text-dark' }}">
-                    {{ "{:,.2f}".format(wallet.balance_sar|default(0)) }}
-                </td>
-                <td class="{{ 'text-danger fw-bold' if wallet.balance_yer < 0 else 'text-dark' }}">
-                    {{ "{:,.0f}".format(wallet.balance_yer|default(0)) }}
-                </td>
-                <td class="{{ 'text-danger fw-bold' if wallet.balance_usd < 0 else 'text-dark' }}">
-                    {{ "{:,.2f}".format(wallet.balance_usd|default(0)) }}
-                </td>
+<div class="container-fluid py-4" dir="rtl">
+    <!-- الرأس والتفاصيل -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-royal-purple"><i class="fas fa-wallet me-2"></i> {{ wallet.supplier.trade_name }}</h3>
+            <p class="text-muted">كود المحفظة: <span class="wallet-code-badge">{{ wallet.wallet_code }}</span></p>
+        </div>
+        <!-- تم تعديل الرابط ليتوافق مع اسم الـ blueprint -->
+        <a href="{{ url_for('wallet_app.dashboard') }}" class="btn btn-royal-back px-4"><i class="fas fa-arrow-right me-2"></i>العودة للخزينة</a>
+    </div>
 
-                <td>
-                    {% set has_debt = (wallet.balance_sar < 0 or wallet.balance_yer < 0 or wallet.balance_usd < 0) %}
-                    <span class="badge badge-status {{ 'bg-danger text-white' if has_debt else 'bg-success text-white' }}">
-                        {{ 'عليكم (مدين)' if has_debt else 'لكم (دائن)' }}
-                    </span>
-                </td>
+    <!-- بطاقات الأرصدة -->
+    <div class="row">
+        {% for balance, currency, color in [(wallet.balance_sar, 'SAR', 'bg-primary'), (wallet.balance_yer, 'YER', 'bg-success'), (wallet.balance_usd, 'USD', 'bg-warning')] %}
+        <div class="col-md-4">
+            <button onclick="filterTable('{{ currency }}')" class="btn p-0 w-100 text-start shadow-sm border-0">
+                <div class="card text-white {{ color }} mb-3" style="border: 1px solid #d4af37;">
+                    <div class="card-body">
+                        <h5 class="card-title">الرصيد بـ {{ currency }}</h5>
+                        <h2 class="fw-bold">{{ "{:,.2f}".format(balance|default(0)) }} <small class="fs-6">{{ currency }}</small></h2>
+                    </div>
+                </div>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
 
-                <td class="text-center">
-                    <a href="{{ url_for('wallet_app.manage_wallet', supplier_id=wallet.supplier_id) }}" 
-                       class="btn btn-sm btn-royal-outline">
-                       <i class="fas fa-eye me-1"></i> كشف الحساب
-                    </a>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="7" class="text-center py-5 text-muted">
-                    <i class="fas fa-folder-open fa-2x mb-2"></i><br>
-                    لا توجد بيانات محافظ لعرضها حالياً.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- جدول الحركات -->
+    <div class="card mt-4 border-gold shadow-sm">
+        <div class="card-header regal-gradient fw-bold d-flex justify-content-between align-items-center">
+            <span class="text-white">سجل الحركات (الفلتر: <span id="currentFilter" class="text-royal-gold">الكل</span>)</span>
+            <button class="btn btn-sm btn-outline-light" onclick="filterTable('ALL')">إظهار الكل</button>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-hover align-middle" id="transactionsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>البيان</th>
+                        <th>مدين (-)</th>
+                        <th>دائن (+)</th>
+                        <th>العملة</th>
+                    </tr>
+                </thead>
+                <tbody id="transBody">
+                    {% for trans in wallet.transactions|sort(attribute='created_at', reverse=True) %}
+                    {% set is_debit = trans.trans_type in ['debit', 'adjustment_debit', 'marketer_commission'] %}
+                    {% set amount = trans.amount|default(0) %}
+                    <tr class="trans-row" data-currency="{{ trans.currency }}" 
+                        data-debit="{{ amount if is_debit else 0 }}" 
+                        data-credit="{{ amount if not is_debit else 0 }}">
+                        <td>{{ trans.created_at.strftime('%Y-%m-%d') if trans.created_at else 'N/A' }}</td>
+                        <td class="fw-bold">{{ trans.description or 'حركة مالية رقم ' ~ trans.reference_number }}</td>
+                        <td class="text-danger fw-bold">{{ "{:,.2f}".format(amount) if is_debit else '-' }}</td>
+                        <td class="text-success fw-bold">{{ "{:,.2f}".format(amount) if not is_debit else '-' }}</td>
+                        <td><span class="badge" style="background-color: var(--royal-purple); color: #fff;">{{ trans.currency }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="summary-footer">
+                    <tr>
+                        <td colspan="2" class="text-end">الإجمالي:</td>
+                        <td id="totalDebit" class="text-danger">0.00</td>
+                        <td id="totalCredit" class="text-success">0.00</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
 </div>
 
-<!-- ترقيم الصفحات -->
-<nav class="mt-4">
-    <ul class="pagination pagination-sm justify-content-center">
-        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-            {% if page_num %}
-                <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
-                    <a class="page-link" href="{{ url_for('wallet_app.dashboard', page=page_num, search=request.args.get('search', '')) }}">{{ page_num }}</a>
-                </li>
-            {% else %}
-                <li class="page-item disabled"><span class="page-link">...</span></li>
-            {% endif %}
-        {% endfor %}
-    </ul>
-</nav>
+<script>
+function filterTable(currency) {
+    document.getElementById('currentFilter').innerText = currency;
+    const rows = document.querySelectorAll('.trans-row');
+    let d = 0, c = 0;
+    rows.forEach(row => {
+        const isMatch = (currency === 'ALL' || row.getAttribute('data-currency') === currency);
+        row.style.display = isMatch ? '' : 'none';
+        if(isMatch) {
+            d += parseFloat(row.getAttribute('data-debit'));
+            c += parseFloat(row.getAttribute('data-credit'));
+        }
+    });
+    document.getElementById('totalDebit').innerText = d.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('totalCredit').innerText = c.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+// تشغيل عند التحميل
+filterTable('ALL');
+</script>
+{% endblock %}
