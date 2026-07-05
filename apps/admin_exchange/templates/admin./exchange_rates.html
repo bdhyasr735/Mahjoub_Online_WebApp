@@ -1,4 +1,4 @@
-<!-- 📂 apps/exchange/templates/admin/exchange_rates.html -->
+<!-- 📂 apps/admin_exchange/templates/admin/exchange_rates.html -->
 {% extends 'admin/admin_base.html' %}
 
 {% block title %}إدارة أسعار الصرف | محجوب أونلاين{% endblock %}
@@ -26,7 +26,8 @@
                 <p class="text-muted small">تعديل أسعار الصرف المعتمدة للتسوية المالية (SAR)</p>
             </div>
         </div>
-        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-dark shadow-sm">
+        <!-- تم تعديل الرابط ليتوافق مع موديول لوحة التحكم -->
+        <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-dark shadow-sm">
             <i class="fas fa-arrow-right me-1"></i> العودة للوحة التحكم
         </a>
     </div>
@@ -55,9 +56,14 @@
                                        class="form-control form-control-sm border-secondary" style="width: 120px;">
                             </td>
                             <td class="text-muted small">
-                                {{ rate.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                {{ rate.updated_at.strftime('%Y-%m-%d %H:%M') if rate.updated_at else '---' }}
                             </td>
-                            <td><span class="badge bg-secondary">{{ rate.last_updated_by or 'النظام' }}</span></td>
+                            <!-- القالب هنا يستخدم الخاصية المشفرة التي قمنا بفك تشفيرها في الموديل -->
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ rate.last_updated_by if rate.last_updated_by else 'النظام' }}
+                                </span>
+                            </td>
                             <td class="text-center">
                                 <button type="submit" class="btn btn-sm btn-gold px-3">
                                     <i class="fas fa-save me-1"></i> حفظ
