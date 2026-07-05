@@ -13,13 +13,9 @@ def dashboard():
     page = request.args.get('page', 1, type=int)
     
     # تحديد معرف المورد بناءً على هوية المستخدم المسجل
-    # إذا كان user_type == 'supplier' فهو المورد الرئيسي (current_user.id)
-    # إذا كان user_type == 'staff' فهو المالك أو الموظف (current_user.supplier_id)
-    
     if session.get('user_type') == 'supplier':
         target_supplier_id = current_user.id
     else:
-        # الموظف/المالك لديه حقل supplier_id في جدول SupplierStaff
         target_supplier_id = getattr(current_user, 'supplier_id', None)
 
     # التحقق من أن المستخدم لديه صلاحية الوصول
@@ -33,7 +29,9 @@ def dashboard():
     pagination = query.order_by(Order.created_at.desc()).paginate(page=page, per_page=20)
     
     # دعم طلبات الـ AJAX
+    # ملاحظة: تأكد من أن ملف البارتشال موجود في نفس المسار الفرعي (admin/)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template('suppliers_orders/partials/_orders_table.html', pagination=pagination)
+        return render_template('admin/partials/_orders_table.html', pagination=pagination)
         
-    return render_template('suppliers_orders/dashboard.html', pagination=pagination)
+    # استدعاء المسار الصحيح للملف
+    return render_template('admin/suppliers_orders_dashboard.html', pagination=pagination)
