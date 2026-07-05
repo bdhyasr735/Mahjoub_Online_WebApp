@@ -1,3 +1,5 @@
+<!-- 📂 apps/orders/templates/admin/add_order.html -->
+
 {% extends 'admin/admin_base.html' %}
 
 {% block title %}إضافة طلب جديد{% endblock %}
@@ -17,9 +19,9 @@
                     <input type="text" name="customer_phone" class="form-control" required>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">المورد (Store ID)</label>
-                    <!-- تم تغيير type من number إلى text ليتوافق مع التعديل في الباك إند -->
-                    <input type="text" name="supplier_id" class="form-control" required>
+                    <label class="form-label">رقم المورد (Store ID)</label>
+                    <!-- تم تغيير type إلى number لضمان إدخال أرقام فقط وتوافقها مع الـ Integer في الباك إند -->
+                    <input type="number" name="supplier_id" class="form-control" placeholder="أدخل الرقم التعريفي للمتجر" required>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">المبلغ الإجمالي (SAR)</label>
