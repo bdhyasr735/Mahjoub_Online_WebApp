@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/routes.py
 
-from flask import Blueprint, render_template, abort, request
+from flask import Blueprint, render_template, abort, request, session
 from flask_login import login_required, current_user
 from flask_paginate import Pagination, get_page_parameter
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
@@ -14,19 +14,22 @@ supplier_wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='tem
 @supplier_wallet_bp.route('/my-wallet', methods=['GET'])
 @login_required
 def view_my_wallet():
-    # 1. جلب محفظة المورد
-    wallet = SupplierWallet.query.filter_by(supplier_id=current_user.id).first()
+    # 1. تحديد الـ s_id الموحد (للمورد أو المالك)
+    s_id = current_user.id if session.get('user_type') == 'supplier' else current_user.supplier_id
+    
+    # 2. جلب محفظة المتجر
+    wallet = SupplierWallet.query.filter_by(supplier_id=s_id).first()
     if not wallet:
         abort(404, description="لم يتم العثور على محفظة مرتبطة بحسابك.")
 
-    # 2. الفلاتر الأساسية
+    # 3. الفلاتر الأساسية
     currency = request.args.get('currency', 'SAR')
     filter_type = request.args.get('filter_type', 'all')
     search = request.args.get('search', '').strip()
     
     query = WalletTransaction.query.filter_by(wallet_id=wallet.id, currency=currency)
 
-    # 3. الفلترة الزمنية
+    # 4. الفلترة الزمنية
     if filter_type == 'day':
         query = query.filter(WalletTransaction.created_at >= datetime.utcnow().date())
     elif filter_type == 'week':
@@ -40,15 +43,14 @@ def view_my_wallet():
     if start_date: query = query.filter(WalletTransaction.created_at >= start_date)
     if end_date: query = query.filter(WalletTransaction.created_at <= end_date)
 
-    # 4. البحث المرن
+    # 5. البحث المرن
     if search:
         query = query.filter(
             (WalletTransaction.voucher_number.ilike(f'%{search}%')) | 
             (WalletTransaction.description.ilike(f'%{search}%'))
         )
 
-    # 5. حساب الإجماليات (لكل الفترة المفلترة)
-    # استخدام دالة التجميع لضمان دقة التقارير المالية
+    # 6. حساب الإجماليات
     stats = query.with_entities(
         func.sum(WalletTransaction.amount).filter(
             WalletTransaction.trans_type.in_(['credit', 'adjustment_credit', 'sale_revenue'])
@@ -61,7 +63,7 @@ def view_my_wallet():
     total_credit = stats.total_credit or 0
     total_debit = stats.total_debit or 0
 
-    # 6. الترقيم (Pagination)
+    # 7. الترقيم (Pagination)
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = 20
     total_records = query.count()
@@ -71,7 +73,7 @@ def view_my_wallet():
                         .offset((page - 1) * per_page)\
                         .limit(per_page).all()
 
-    # 7. استجابة الـ AJAX (لتحديث الجدول دون إعادة تحميل الصفحة)
+    # 8. استجابة الـ AJAX
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('supplier_wallet/_table_partial.html', 
                                transactions=transactions, 
@@ -88,7 +90,7 @@ def view_my_wallet():
 @supplier_wallet_bp.route('/test-sync', methods=['GET'])
 @login_required
 def test_sync():
-    # التحقق من صلاحيات المدير فقط لتشغيل المزامنة
+    # التحقق من صلاحيات المدير العام للنظام
     if not hasattr(current_user, 'is_admin') or not current_user.is_admin: 
         abort(403)
     
