@@ -1,3 +1,8 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}تفاصيل محفظة {{ wallet.supplier.trade_name }}{% endblock %}
+
+{% block content %}
 <!-- 📂 view_wallet.html - النسخة المصححة -->
 <style>
     :root { 
@@ -112,3 +117,4 @@ function filterTable(currency) {
 }
 filterTable('ALL');
 </script>
+{% endblock %}
