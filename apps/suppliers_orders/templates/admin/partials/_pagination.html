@@ -1,1 +1,32 @@
+<table class="table table-hover align-middle">
+    <thead class="table-light">
+        <tr>
+            <th>الطلب</th>
+            <th>العميل</th>
+            <th>الحالة</th>
+            <th>المبلغ المستحق</th>
+            <th>الإجراء</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for fin in pagination.items %}
+        <tr>
+            <td><span class="badge bg-dark">#{{ fin.order.order_id_display }}</span></td>
+            <td>{{ fin.order.customer_name }}</td>
+            <td>
+                <span class="badge {{ 'bg-success' if fin.order.status == 'completed' else 'bg-warning text-dark' }}">
+                    {{ fin.order.status }}
+                </span>
+            </td>
+            <td class="fw-bold text-success">{{ "{:,.2f}".format(fin.supplier_cost) }} YER</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary">عرض</button>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center py-4">لا توجد طلبات حالياً</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
 
+{% include 'admin/partials/_pagination.html' %}
