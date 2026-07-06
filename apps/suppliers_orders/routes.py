@@ -1,15 +1,14 @@
 # coding: utf-8
 # 📂 apps/suppliers_orders/routes.py
 
-from flask import Blueprint, render_template, request, jsonify, abort, session
+from flask import Blueprint, render_template, request, jsonify, abort, session, url_for
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.financials_db import OrderFinancial
 from apps.api.sync_engine import SyncEngine 
 from sqlalchemy.orm import joinedload
 
-# تم تغيير اسم الـ Blueprint ليصبح فريداً 'supplier_orders_module' 
-# لمنع تعارض الأسماء الذي ظهر في الـ Auto-Discovery
+# اسم البلوبرينت فريد لمنع تكرار التسجيل في الـ Auto-Discovery
 suppliers_orders_bp = Blueprint('supplier_orders_module', __name__, template_folder='templates')
 
 @suppliers_orders_bp.route('/dashboard')
@@ -22,9 +21,9 @@ def dashboard():
     page = request.args.get('page', 1, type=int)
     
     pagination = OrderFinancial.query.filter_by(supplier_id=current_user.id)\
-                        .options(joinedload(OrderFinancial.order))\
-                        .order_by(OrderFinancial.created_at.desc())\
-                        .paginate(page=page, per_page=20)
+                      .options(joinedload(OrderFinancial.order))\
+                      .order_by(OrderFinancial.created_at.desc())\
+                      .paginate(page=page, per_page=20)
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/_supplier_table.html', pagination=pagination)
@@ -36,6 +35,9 @@ def dashboard():
 @login_required
 def complete_order(order_id):
     """إكمال الطلب عبر المحرك المالي"""
+    if session.get('user_type') != 'supplier':
+        return jsonify({'status': 'error', 'message': 'صلاحية غير كافية'}), 403
+
     fin = OrderFinancial.query.filter_by(order_id=order_id, supplier_id=current_user.id).first_or_404()
     
     if fin.order.status == 'completed':
