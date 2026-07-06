@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from sqlalchemy import MetaData
 
-# تعريف الـ Naming Convention لمنع تعارض الأسماء في الجداول
+# تعريف الـ Naming Convention لمنع تعارض الأسماء
 metadata = MetaData(
     naming_convention={
         "ix": "ix_%(column_0_label)s",
@@ -21,14 +21,14 @@ db = SQLAlchemy(metadata=metadata)
 migrate = Migrate()
 login_manager = LoginManager()
 
-# [المخزن المركزي للموديولات]: هذا القاموس سيسجل فيه كل موديول بياناته ليظهر في القائمة الجانبية
-registered_modules = {}
+# ملاحظة: تم إزالة registered_modules من هنا 
+# لأن العزل التام يقتضي عدم وجود قائمة مركزية مشتركة.
 
-# [صمام الأمان لـ Flask-Login]: تعريف دالة تحميل المستخدم المركزية
 @login_manager.user_loader
 def load_user(user_id):
     """
-    دالة موحدة لتحميل المستخدمين من الموديلات المختلفة.
+    دالة موحدة لتحميل المستخدمين.
+    ملاحظة: تأكد من تمرير نوع المستخدم في الـ Session لزيادة دقة البحث.
     """
     from apps.models.admin_db import AdminUser
     from apps.models.supplier_db import Supplier
@@ -37,19 +37,24 @@ def load_user(user_id):
     
     try:
         uid = int(user_id)
+        # التحقق من نوع المستخدم من الجلسة أولاً لتسريع الوصول (أمان إضافي)
+        from flask import session
+        user_type = session.get('user_type')
         
-        # البحث التسلسلي باستخدام db.session.get
-        user = db.session.get(Supplier, uid) or \
+        if user_type == 'admin': return db.session.get(AdminUser, uid)
+        if user_type == 'supplier': return db.session.get(Supplier, uid)
+        if user_type == 'staff': return db.session.get(SupplierStaff, uid)
+        if user_type == 'marketer': return db.session.get(Marketer, uid)
+        
+        # البحث الشامل في حال عدم وجود Session
+        return db.session.get(Supplier, uid) or \
                db.session.get(SupplierStaff, uid) or \
                db.session.get(Marketer, uid) or \
                db.session.get(AdminUser, uid)
                
-        return user
-        
     except (ValueError, TypeError, Exception):
         return None
 
-# إعداد مسار تسجيل الدخول الموحد
 login_manager.login_view = 'auth_portal.login'
 login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى لوحة التحكم."
 login_manager.login_message_category = "info"
