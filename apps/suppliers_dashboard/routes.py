@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, abort, session, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from apps.models.supplier_db import Supplier, db
-from apps.models.orders_db import Order  # استيراد من الاسم الصحيح للملف
+from apps.models.orders_db import Order
 
 # تعريف الـ Blueprint
 suppliers_dashboard_bp = Blueprint('suppliers_dashboard', __name__, template_folder='templates')
