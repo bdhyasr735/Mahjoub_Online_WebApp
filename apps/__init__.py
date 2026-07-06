@@ -54,7 +54,8 @@ def create_app():
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
             
-            if os.path.isdir(item_path) and item not in ignored_dirs:
+            # حماية إضافية: التأكد من عدم إعادة معالجة الموديول
+            if os.path.isdir(item_path) and item not in ignored_dirs and item not in REGISTERED_MODULES:
                 registry_file = os.path.join(item_path, 'registry.py')
                 
                 if os.path.exists(registry_file):
