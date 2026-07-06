@@ -10,12 +10,9 @@ from apps.models.financials_db import OrderFinancial
 from apps.models.supplier_db import Supplier
 from apps.orders.services import OrderService
 from apps.api.sync_engine import SyncEngine
-from sqlalchemy import func
 
-# تم توحيد اسم البلوبرينت إلى 'orders' ليطابق هيكل المجلد ويمنع تضارب التسجيل
 orders_bp = Blueprint('orders', __name__, template_folder='templates')
 
-# دالة مساعدة للتحقق من صلاحية الإدارة
 def admin_required():
     if session.get('user_type') != 'admin':
         abort(403)
@@ -24,23 +21,22 @@ def admin_required():
 @login_required
 def dashboard():
     admin_required()
-    return render_template('admin/orders_dashboard.html')
+    # جلب آخر 20 طلباً لعرضها في لوحة تحكم الإدارة
+    recent_orders = Order.query.order_by(Order.id.desc()).limit(20).all()
+    return render_template('admin/orders_dashboard.html', orders=recent_orders)
 
 @orders_bp.route('/add-order', methods=['GET', 'POST'])
 @login_required
 def add_new_order():
     admin_required()
     if request.method == 'POST':
+        # استخدام معرف فريد
         order_id = str(int(datetime.utcnow().timestamp()))
+        supplier_id_input = request.form.get('supplier_id', type=int)
         
-        try:
-            supplier_id_input = int(request.form.get('supplier_id'))
-        except (ValueError, TypeError):
-            flash("خطأ في بيانات المورد: يجب إدخال معرف رقمي صحيح.", "danger")
-            return redirect(url_for('orders.add_new_order'))
-        
-        if not Supplier.query.get(supplier_id_input):
-            flash("خطأ: المتجر غير موجود في النظام.", "danger")
+        supplier = Supplier.query.get(supplier_id_input)
+        if not supplier:
+            flash("خطأ: المتجر غير موجود.", "danger")
             return redirect(url_for('orders.add_new_order'))
         
         new_order = Order(
@@ -54,10 +50,12 @@ def add_new_order():
         )
         db.session.add(new_order)
         
+        # ربط البيانات المالية
         new_financial = OrderFinancial(
             order_id=order_id,
             supplier_id=supplier_id_input,
             total_paid=float(request.form.get('total_price', 0)),
+            total_paid_raw=float(request.form.get('total_price', 0)), # تأكد من مطابقة اسم الحقل
             currency='SAR'
         )
         db.session.add(new_financial)
@@ -73,9 +71,9 @@ def add_new_order():
 def complete_order(order_id):
     admin_required()
     if OrderService.complete_order_and_settle(order_id):
-        flash("تمت تسوية الطلب بنجاح.", "success")
+        flash("تمت تسوية الطلب وتحويل الأرباح بنجاح.", "success")
     else:
-        flash("فشل في تسوية الطلب.", "danger")
+        flash("فشل التسوية: ربما تم تسوية الطلب مسبقاً.", "danger")
     return redirect(url_for('orders.view_order', order_id=order_id))
 
 @orders_bp.route('/view-order/<string:order_id>') 
@@ -84,14 +82,5 @@ def view_order(order_id):
     admin_required()
     order, financial = OrderService.get_order_details(order_id)
     if not order:
-        return "الطلب غير موجود", 404
-        
+        abort(404)
     return render_template('admin/order_details.html', order=order, financial=financial)
-
-@orders_bp.route('/sync-all', methods=['POST'])
-@login_required
-def sync_all():
-    admin_required()
-    SyncEngine.run_sync()
-    flash("تمت عملية المزامنة بنجاح.", "success")
-    return redirect(url_for('orders.dashboard'))
