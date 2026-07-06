@@ -1,11 +1,12 @@
 # coding: utf-8
-# 📂 apps/suppliers_orders/registry.py
+# 📂 apps/supplier_wallet/registry.py
 
-from apps.suppliers_orders.routes import suppliers_orders_bp
+from apps.supplier_wallet.routes import supplier_wallet_bp
 
+# يجب تغيير الاسم هنا إلى 'register_module' ليتعرف عليها المصنع تلقائياً
 def register_module(app):
-    """
-    تسجيل موديول طلبات المورد تلقائياً عبر المصنع.
-    """
-    app.register_blueprint(suppliers_orders_bp, url_prefix='/suppliers_orders')
-    print("✅ [Registry] تم تسجيل موديول 'طلبات المورد' بنجاح.")
+    """
+    دالة موحدة لتسجيل الموديول، يتوقع المصنع هذا الاسم.
+    """
+    app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
+    print("✅ [Registry] تم تسجيل موديول 'محفظة المورد' بنجاح.")
