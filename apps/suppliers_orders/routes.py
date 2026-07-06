@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/suppliers_orders/routes.py
 
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, abort, session
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.financials_db import OrderFinancial
@@ -15,6 +15,10 @@ suppliers_orders_bp = Blueprint('suppliers_orders', __name__, template_folder='t
 @login_required
 def dashboard():
     """لوحة تحكم طلبات المورد (Pagination + Financials + Auto-Sync)"""
+    # حماية: التأكد من أن المستخدم الحالي هو مورد
+    if session.get('user_type') != 'supplier':
+        abort(403)
+
     page = request.args.get('page', 1, type=int)
     
     # استعلام ذكي لجلب البيانات المالية مع الطلبات المرتبطة بها
