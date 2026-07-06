@@ -1,22 +1,19 @@
 # coding: utf-8
-from .routes import suppliers_bp
+# 📂 apps/suppliers_auth_portal/registry.py
 
-# 1. إعدادات الموديول (مطابقة للنظام الجديد)
-MODULE_NAME = "بوابة الموردين"
-MODULE_ICON = "fas fa-lock"
-SHOW_IN_SUPPLIER = False # لن يظهر في القائمة الجانبية
-
-LINKS = {
-    "تسجيل الدخول": "suppliers_auth.login"
-}
+from apps.suppliers_auth_portal.routes import suppliers_bp
 
 def register_module(app):
     """
-    تسجيل موديول Auth الموحد
+    تسجيل موديول بوابة الموردين (Auth Portal) في النظام
     """
     try:
-        # توحيد المسار ليطابق ما يوجد في __init__.py
+        # نقوم بتسجيل الـ Blueprint مع url_prefix='/supplier'
+        # هذا يعني أن صفحة الدخول ستكون متاحة على: /supplier/login
         app.register_blueprint(suppliers_bp, url_prefix='/supplier')
-        print("✅ [Registry]: تم تسجيل بوابة المورد بنجاح على المسار /supplier")
+        
+        print("✅ [Registry]: تم تسجيل موديول 'suppliers_auth_portal' بنجاح.")
+        print("🔗 بوابة الدخول متاحة على المسار: /supplier/login")
+        
     except Exception as e:
-        print(f"🚨 [Registry Error]: {e}")
+        print(f"❌ [Registry Error]: فشل تسجيل موديول 'suppliers_auth_portal': {e}")
