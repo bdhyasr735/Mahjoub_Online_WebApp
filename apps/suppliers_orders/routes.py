@@ -1,11 +1,17 @@
 # coding: utf-8
 # 📂 apps/suppliers_orders/routes.py
 
+import os
 from flask import Blueprint, render_template, abort, session
 from flask_login import login_required, current_user
 
-# تعريف الـ Blueprint
+# تعريف الـ Blueprint مع تحديد مجلد القوالب المحلي
 suppliers_orders_bp = Blueprint('suppliers_orders', __name__, template_folder='templates')
+
+# إضافة مسار قوالب الداشبورد إلى قائمة بحث القوالب في هذا الـ Blueprint
+# هذا يحل مشكلة TemplateNotFound: suppliers/base.html
+base_templates_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../suppliers_dashboard/templates'))
+suppliers_orders_bp.jinja_loader.searchpath.append(base_templates_path)
 
 @suppliers_orders_bp.route('/index', methods=['GET'])
 @login_required
@@ -27,7 +33,7 @@ def index():
     # جلب الطلبات الخاصة بالمورد مرتبة من الأحدث للأقدم
     orders = Order.query.filter_by(supplier_id=s_id).order_by(Order.id.desc()).all()
     
-    # جلب الطلبات المنفصلة منطقياً للتبويبات (إن لزم الأمر)
+    # جلب الطلبات المنفصلة منطقياً للتبويبات
     pending_orders = [o for o in orders if o.status == 'pending']
     completed_orders = [o for o in orders if o.status == 'completed']
     
