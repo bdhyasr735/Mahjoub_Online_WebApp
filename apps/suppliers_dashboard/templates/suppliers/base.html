@@ -31,7 +31,7 @@
         </div>
 
         <nav class="nav-menu">
-            <!-- روابط المورد الحصرية -->
+            <!-- روابط المورد - يتم التحكم بها عبر context_processor في routes.py -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if module.links %}
