@@ -4,6 +4,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort
 from flask_login import login_required
 from datetime import datetime
+from sqlalchemy import func  # تم إضافة الاستيراد المطلوب للإحصائيات[cite: 9]
 from apps.extensions import db
 from apps.models.orders_db import Order
 from apps.models.financials_db import OrderFinancial
@@ -21,16 +22,37 @@ def admin_required():
 @login_required
 def dashboard():
     admin_required()
-    # جلب آخر 20 طلباً لعرضها في لوحة تحكم الإدارة
-    recent_orders = Order.query.order_by(Order.id.desc()).limit(20).all()
-    return render_template('admin/orders_dashboard.html', orders=recent_orders)
+    
+    # 1. حساب الإحصائيات لعرضها في البطاقات العلوية[cite: 5]
+    total_sales = db.session.query(func.sum(OrderFinancial.total_paid)).scalar() or 0
+    completed_count = Order.query.filter_by(status='completed').count()
+    cancelled_count = Order.query.filter_by(status='cancelled').count()
+    
+    stats = {
+        'total_sales': total_sales,
+        'completed': completed_count,
+        'cancelled': cancelled_count
+    }
+    
+    # 2. إعداد الترقيم وجلب البيانات المترابطة[cite: 2]
+    page = request.args.get('page', 1, type=int)
+    
+    # جلب الطلبات والبيانات المالية معاً ليتوافق مع حلقة التكرار في _table.html[cite: 2, 9]
+    pagination = db.session.query(Order, OrderFinancial)\
+        .outerjoin(OrderFinancial, Order.id == OrderFinancial.order_id)\
+        .order_by(Order.id.desc())\
+        .paginate(page=page, per_page=20)
+    
+    # 3. تمرير المتغيرات المطلوبة للقالب[cite: 5]
+    return render_template('admin/orders_dashboard.html', 
+                           pagination=pagination, 
+                           stats=stats)
 
 @orders_bp.route('/add-order', methods=['GET', 'POST'])
 @login_required
 def add_new_order():
     admin_required()
     if request.method == 'POST':
-        # استخدام معرف فريد
         order_id = str(int(datetime.utcnow().timestamp()))
         supplier_id_input = request.form.get('supplier_id', type=int)
         
@@ -50,12 +72,11 @@ def add_new_order():
         )
         db.session.add(new_order)
         
-        # ربط البيانات المالية
         new_financial = OrderFinancial(
             order_id=order_id,
             supplier_id=supplier_id_input,
             total_paid=float(request.form.get('total_price', 0)),
-            total_paid_raw=float(request.form.get('total_price', 0)), # تأكد من مطابقة اسم الحقل
+            total_paid_raw=float(request.form.get('total_price', 0)),
             currency='SAR'
         )
         db.session.add(new_financial)
