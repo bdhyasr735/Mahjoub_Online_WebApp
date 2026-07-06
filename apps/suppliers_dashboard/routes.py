@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, abort, session, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from apps.models.supplier_db import Supplier, db
-from apps.models.order_db import Order  # استيراد موديل الطلبات
+from apps.models.orders_db import Order  # استيراد من الاسم الصحيح للملف
 
 # تعريف الـ Blueprint
 suppliers_dashboard_bp = Blueprint('suppliers_dashboard', __name__, template_folder='templates')
@@ -16,8 +16,7 @@ def dashboard():
         
     supplier = Supplier.query.get(current_user.id)
     
-    # حساب الطلبات المعلقة عبر الاستعلام المباشر من موديل الطلبات
-    # تأكد أن حقل الربط هو supplier_id، عدله إذا كان مختلفاً في موديل الطلب لديك
+    # حساب الطلبات المعلقة عبر الاستعلام المباشر
     pending_orders_count = Order.query.filter_by(
         supplier_id=supplier.id, 
         status='pending'
