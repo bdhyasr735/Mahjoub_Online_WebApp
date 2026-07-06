@@ -8,8 +8,14 @@ from apps.models.financials_db import OrderFinancial
 from apps.api.sync_engine import SyncEngine 
 from sqlalchemy.orm import joinedload
 
-# اسم البلوبرينت فريد لمنع تكرار التسجيل في الـ Auto-Discovery
-suppliers_orders_bp = Blueprint('supplier_orders_module', __name__, template_folder='templates')
+# تم تغيير الاسم إلى 'supplier_orders_module_unique' وإضافة url_prefix='/suppliers' 
+# لمنع أي تداخل مع نظام الـ Auto-Discovery أو موديولات أخرى
+suppliers_orders_bp = Blueprint(
+    'supplier_orders_module_unique', 
+    __name__, 
+    template_folder='templates',
+    url_prefix='/suppliers'
+)
 
 @suppliers_orders_bp.route('/dashboard')
 @login_required
