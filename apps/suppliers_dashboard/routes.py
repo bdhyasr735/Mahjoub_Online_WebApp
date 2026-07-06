@@ -51,3 +51,17 @@ def settings():
         return redirect(url_for('suppliers_dashboard.settings'))
         
     return render_template('suppliers/settings.html', supplier=supplier)
+
+@suppliers_dashboard_bp.route('/withdraw', methods=['GET', 'POST'])
+@login_required
+def withdraw():
+    """
+    صفحة السحب المالي للمورد.
+    """
+    if session.get('user_type') != 'supplier':
+        abort(403)
+        
+    supplier = Supplier.query.get(current_user.id)
+    
+    # منطق السحب سيتم إضافته هنا لاحقاً
+    return render_template('suppliers/withdraw.html', supplier=supplier)
