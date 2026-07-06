@@ -23,11 +23,11 @@ def admin_required():
 def dashboard():
     admin_required()
     
-    # التحقق من وجود الروابط لتجنب أخطاء Jinja2 في القالب
+    # التحقق من وجود الروابط لتجنب أخطاء Jinja2
     can_add_order = 'orders.add_new_order' in current_app.view_functions
     can_sync = 'orders.sync_all' in current_app.view_functions
     
-    # 1. حساب الإحصائيات (استخدام العمود الخام لتجنب خطأ التشفير)[cite: 5, 9]
+    # 1. حساب الإحصائيات (استخدام العمود الخام لتجنب خطأ التشفير)
     total_sales = db.session.query(func.sum(OrderFinancial.total_paid_raw)).scalar() or 0
     completed_count = Order.query.filter_by(status='completed').count()
     cancelled_count = Order.query.filter_by(status='cancelled').count()
@@ -38,7 +38,7 @@ def dashboard():
         'cancelled': cancelled_count
     }
     
-    # 2. إعداد الترقيم وجلب البيانات المترابطة[cite: 2]
+    # 2. إعداد الترقيم وجلب البيانات المترابطة
     page = request.args.get('page', 1, type=int)
     
     pagination = db.session.query(Order, OrderFinancial)\
@@ -46,7 +46,6 @@ def dashboard():
         .order_by(Order.id.desc())\
         .paginate(page=page, per_page=20)
     
-    # 3. تمرير المتغيرات للقالب
     return render_template('admin/orders_dashboard.html', 
                            pagination=pagination, 
                            stats=stats,
@@ -58,14 +57,17 @@ def dashboard():
 def add_new_order():
     admin_required()
     if request.method == 'POST':
+        # استخدام معرف فريد للطلب يعتمد على التوقيت الحالي
         order_id = str(int(datetime.utcnow().timestamp()))
         supplier_id_input = request.form.get('supplier_id', type=int)
         
+        # التأكد من صحة المورد
         supplier = Supplier.query.get(supplier_id_input)
         if not supplier:
             flash("خطأ: المتجر غير موجود.", "danger")
             return redirect(url_for('orders.add_new_order'))
         
+        # حفظ الطلب في النظام
         new_order = Order(
             id=order_id,
             order_id_display=f"MHJ-{datetime.utcnow().strftime('%Y%m%d%H%M')}",
@@ -77,6 +79,7 @@ def add_new_order():
         )
         db.session.add(new_order)
         
+        # حفظ البيانات المالية المرتبطة
         new_financial = OrderFinancial(
             order_id=order_id,
             supplier_id=supplier_id_input,
@@ -87,10 +90,10 @@ def add_new_order():
         db.session.add(new_financial)
         
         db.session.commit()
-        flash("تم إضافة الطلب بنجاح.", "success")
+        flash("تم إضافة الطلب وتسجيله في النظام بنجاح.", "success")
         return redirect(url_for('orders.dashboard'))
     
-    # جلب قائمة الموردين لعرضها في القائمة المنسدلة[cite: 5]
+    # جلب قائمة الموردين لتظهر في القائمة المنسدلة في القالب
     suppliers = Supplier.query.all()
     return render_template('admin/add_order.html', suppliers=suppliers)
 
@@ -98,6 +101,7 @@ def add_new_order():
 @login_required
 def complete_order(order_id):
     admin_required()
+    # استخدام خدمة التسوية لضمان تحديث الأرصدة تلقائياً في المحفظة
     if OrderService.complete_order_and_settle(order_id):
         flash("تمت تسوية الطلب وتحويل الأرباح بنجاح.", "success")
     else:
