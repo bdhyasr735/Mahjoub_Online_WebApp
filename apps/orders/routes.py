@@ -16,7 +16,11 @@ from sqlalchemy import func
 # تم تغيير اسم الـ Blueprint إلى 'suppliers_orders' ليتطابق مع الـ Endpoint الذي يبحث عنه النظام
 orders_bp = Blueprint('suppliers_orders', __name__, template_folder='templates')
 
-# ... (دالة dashboard تبقى كما هي) ...
+@orders_bp.route('/dashboard')
+@login_required
+def dashboard():
+    # تأكد من وجود دالة dashboard لعرض الطلبات
+    return render_template('admin/orders_dashboard.html')
 
 @orders_bp.route('/add-order', methods=['GET', 'POST'])
 @login_required
@@ -79,5 +83,3 @@ def view_order(order_id):
         return "الطلب غير موجود", 404
         
     return render_template('admin/order_details.html', order=order, financial=financial)
-
-# ... (باقي الدوال تبقى كما هي) ...
