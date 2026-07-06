@@ -1,10 +1,10 @@
 # coding: utf-8
 # 📂 apps/orders/routes.py
 
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort, current_app
 from flask_login import login_required
 from datetime import datetime
-from sqlalchemy import func  # تم إضافة الاستيراد المطلوب للإحصائيات
+from sqlalchemy import func
 from apps.extensions import db
 from apps.models.orders_db import Order
 from apps.models.financials_db import OrderFinancial
@@ -23,8 +23,11 @@ def admin_required():
 def dashboard():
     admin_required()
     
-    # 1. حساب الإحصائيات لعرضها في البطاقات العلوية[cite: 5]
-    # تم التصحيح: استخدام total_paid_raw بدلاً من total_paid لتجنب خطأ التشفير[cite: 5, 9]
+    # التحقق من وجود الروابط لتجنب أخطاء Jinja2 في القالب
+    can_add_order = 'orders.add_new_order' in current_app.view_functions
+    can_sync = 'orders.sync_all' in current_app.view_functions
+    
+    # 1. حساب الإحصائيات (استخدام العمود الخام لتجنب خطأ التشفير)[cite: 5, 9]
     total_sales = db.session.query(func.sum(OrderFinancial.total_paid_raw)).scalar() or 0
     completed_count = Order.query.filter_by(status='completed').count()
     cancelled_count = Order.query.filter_by(status='cancelled').count()
@@ -38,16 +41,17 @@ def dashboard():
     # 2. إعداد الترقيم وجلب البيانات المترابطة[cite: 2]
     page = request.args.get('page', 1, type=int)
     
-    # جلب الطلبات والبيانات المالية معاً ليتوافق مع حلقة التكرار في _table.html[cite: 2, 9]
     pagination = db.session.query(Order, OrderFinancial)\
         .outerjoin(OrderFinancial, Order.id == OrderFinancial.order_id)\
         .order_by(Order.id.desc())\
         .paginate(page=page, per_page=20)
     
-    # 3. تمرير المتغيرات المطلوبة للقالب[cite: 5]
+    # 3. تمرير المتغيرات للقالب[cite: 5]
     return render_template('admin/orders_dashboard.html', 
                            pagination=pagination, 
-                           stats=stats)
+                           stats=stats,
+                           can_add_order=can_add_order,
+                           can_sync=can_sync)
 
 @orders_bp.route('/add-order', methods=['GET', 'POST'])
 @login_required
