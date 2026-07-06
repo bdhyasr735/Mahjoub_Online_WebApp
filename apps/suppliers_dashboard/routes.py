@@ -8,8 +8,8 @@ from apps.extensions import db
 from apps.models.orders_db import Order 
 from apps.models.supplier_db import Supplier
 
-# تعريف الـ Blueprint
-dashboard_bp = Blueprint('suppliers_dashboard', __name__, template_folder='templates')
+# تم تعديل اسم الـ Blueprint واسم المتغير ليتوافق مع النظام الديناميكي
+suppliers_dashboard_bp = Blueprint('suppliers_dashboard', __name__, template_folder='templates')
 
 def full_access_required():
     """التحقق من صلاحيات الوصول للمورد"""
@@ -19,13 +19,12 @@ def full_access_required():
         return
     abort(403)
 
-@dashboard_bp.route('/dashboard', methods=['GET'])
+@suppliers_dashboard_bp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
-    """لوحة التحكم الرئيسية للمورد مع تحميل استباقي (Eager Loading) للمحفظة"""
+    """لوحة التحكم الرئيسية للمورد"""
     user_type = session.get('user_type')
     
-    # تحديد معرف المورد بناءً على نوع الجلسة
     if user_type == 'supplier':
         s_id = getattr(current_user, 'id', None)
     elif user_type == 'staff':
@@ -36,7 +35,6 @@ def dashboard():
     if not s_id:
         abort(403, description="لا يمكن تحديد هوية المورد.")
 
-    # جلب البيانات مع المحفظة في استعلام واحد لسرعة الأداء
     supplier = Supplier.query.options(joinedload(Supplier.wallet)).get(s_id)
     
     pending_orders_count = Order.query.filter_by(
@@ -48,14 +46,14 @@ def dashboard():
                            current_user=supplier, 
                            pending_orders_count=pending_orders_count)
 
-@dashboard_bp.route('/withdraw', methods=['GET', 'POST'])
+@suppliers_dashboard_bp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdraw():
     full_access_required() 
     flash("سيتم تفعيل خدمة السحب قريباً، يرجى التواصل مع الإدارة.", "info")
     return redirect(url_for('suppliers_dashboard.dashboard'))
 
-@dashboard_bp.route('/settings', methods=['GET'])
+@suppliers_dashboard_bp.route('/settings', methods=['GET'])
 @login_required
 def settings():
     full_access_required() 
@@ -73,7 +71,7 @@ def settings():
         
     return render_template('suppliers/settings.html', current_user=supplier_data)
 
-@dashboard_bp.route('/settings/update', methods=['POST'])
+@suppliers_dashboard_bp.route('/settings/update', methods=['POST'])
 @login_required
 def update_settings():
     full_access_required()
@@ -95,7 +93,7 @@ def update_settings():
     flash("تم تحديث البيانات بنجاح!", "success")
     return redirect(url_for('suppliers_dashboard.settings'))
 
-@dashboard_bp.route('/settings/update-password', methods=['POST'])
+@suppliers_dashboard_bp.route('/settings/update-password', methods=['POST'])
 @login_required
 def update_password():
     full_access_required()
