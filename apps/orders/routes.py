@@ -4,7 +4,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort
 from flask_login import login_required
 from datetime import datetime
-from sqlalchemy import func  # تم إضافة الاستيراد المطلوب للإحصائيات[cite: 9]
+from sqlalchemy import func  # تم إضافة الاستيراد المطلوب للإحصائيات
 from apps.extensions import db
 from apps.models.orders_db import Order
 from apps.models.financials_db import OrderFinancial
@@ -24,7 +24,8 @@ def dashboard():
     admin_required()
     
     # 1. حساب الإحصائيات لعرضها في البطاقات العلوية[cite: 5]
-    total_sales = db.session.query(func.sum(OrderFinancial.total_paid)).scalar() or 0
+    # تم التصحيح: استخدام total_paid_raw بدلاً من total_paid لتجنب خطأ التشفير[cite: 5, 9]
+    total_sales = db.session.query(func.sum(OrderFinancial.total_paid_raw)).scalar() or 0
     completed_count = Order.query.filter_by(status='completed').count()
     cancelled_count = Order.query.filter_by(status='cancelled').count()
     
