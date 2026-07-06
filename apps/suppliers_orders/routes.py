@@ -1,20 +1,18 @@
 # coding: utf-8
 # 📂 apps/suppliers_orders/routes.py
 
-from flask import Blueprint, render_template, request, jsonify, abort, session, url_for
+from flask import Blueprint, render_template, request, jsonify, abort, session
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.financials_db import OrderFinancial
 from apps.api.sync_engine import SyncEngine 
 from sqlalchemy.orm import joinedload
 
-# تم تغيير الاسم إلى 'supplier_orders_module_unique' وإضافة url_prefix='/suppliers' 
-# لمنع أي تداخل مع نظام الـ Auto-Discovery أو موديولات أخرى
+# تعريف البلوبرينت بدون url_prefix هنا
 suppliers_orders_bp = Blueprint(
     'supplier_orders_module_unique', 
     __name__, 
-    template_folder='templates',
-    url_prefix='/suppliers'
+    template_folder='templates'
 )
 
 @suppliers_orders_bp.route('/dashboard')
