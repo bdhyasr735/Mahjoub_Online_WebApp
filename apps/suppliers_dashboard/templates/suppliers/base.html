@@ -31,10 +31,15 @@
         </div>
 
         <nav class="nav-menu">
-            <!-- روابط المورد - يتم التحكم بها عبر context_processor في routes.py -->
+            <!-- رابط ثابت للرئيسية -->
+            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
+                <i class="fas fa-home me-3"></i> <span>الرئيسية</span>
+            </a>
+
+            <!-- روابط الموديولات الأخرى -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
-                    {% if module.links %}
+                    {% if key != 'suppliers_dashboard' and module.links %}
                         {% set first_link = module.links.values()|list|first %}
                         <a href="{{ url_for(first_link) }}" class="nav-link {% if request.endpoint == first_link %}active{% endif %}">
                             <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> <span>{{ module.display_name }}</span>
