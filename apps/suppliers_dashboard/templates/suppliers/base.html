@@ -31,13 +31,17 @@
         </div>
 
         <nav class="nav-menu">
-            <!-- الروابط الديناميكية -->
+            <!-- الروابط الديناميكية الآمنة -->
             {% if registered_modules %}
                 {% for key, module in registered_modules.items() %}
-                    {% if module.get('show_in_supplier', False) %}
-                        <a href="{{ url_for(module.links.values()|first) }}" class="nav-link {% if request.endpoint == module.links.values()|first %}active{% endif %}">
-                            <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> <span>{{ module.display_name }}</span>
-                        </a>
+                    {% if module.get('show_in_supplier', True) and module.links %}
+                        {% set link_values = module.links.values()|list %}
+                        {% if link_values %}
+                            {% set first_link = link_values[0] %}
+                            <a href="{{ url_for(first_link) }}" class="nav-link {% if request.endpoint == first_link %}active{% endif %}">
+                                <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> <span>{{ module.display_name }}</span>
+                            </a>
+                        {% endif %}
                     {% endif %}
                 {% endfor %}
             {% endif %}
