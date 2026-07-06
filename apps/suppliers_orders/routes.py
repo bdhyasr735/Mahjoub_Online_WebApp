@@ -29,6 +29,7 @@ def dashboard():
                         .paginate(page=page, per_page=20)
     
     # التحقق من طلب AJAX لتحديث الجدول فقط
+    # تأكد من أن مسار البارتشل هنا يشير لمجلد الموردين الجديد
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/_supplier_table.html', pagination=pagination)
         
