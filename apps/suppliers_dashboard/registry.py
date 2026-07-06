@@ -1,28 +1,21 @@
 # coding: utf-8
 # 📂 apps/suppliers_dashboard/registry.py
 
-from apps.suppliers_dashboard.routes import suppliers_dashboard_bp
+# تأكد أنك تستورد الاسم الجديد الذي عرفناه في routes.py
+from apps.suppliers_dashboard.routes import suppliers_dashboard_bp 
 
-# 1. إعدادات الموديول للظهور
 MODULE_NAME = "لوحة التحكم"
 MODULE_ICON = "fas fa-tachometer-alt"
-
-# 2. تفعيل الظهور في القائمة الجانبية للمورد
 SHOW_IN_SUPPLIER = True
 
-# 3. الروابط (تم توحيدها لتطابق الـ Blueprint والـ View في routes.py)
 LINKS = {
-    "الرئيسية": "suppliers_dashboard.dashboard",
-    "الإعدادات": "suppliers_dashboard.settings"
+    "الرئيسية": "suppliers_dashboard.dashboard"
 }
 
 def register_module(app):
-    """
-    تسجيل موديول لوحة تحكم المورد في النظام
-    """
     try:
-        # تسجيل الـ Blueprint باستخدام الاسم الموحد
+        # تأكد من استخدام المتغير الجديد
         app.register_blueprint(suppliers_dashboard_bp, url_prefix='/supplier')
         print("✅ [Registry]: تم تسجيل موديول 'suppliers_dashboard' بنجاح.")
     except Exception as e:
-        print(f"❌ [Registry Error]: فشل تسجيل موديول 'suppliers_dashboard': {e}")
+        print(f"❌ [Registry Error]: {e}")
