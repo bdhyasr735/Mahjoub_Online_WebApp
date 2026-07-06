@@ -9,21 +9,22 @@
 {% set profile = store.supplier_profile %}
 
 <div class="container-fluid py-4">
-    <!-- (باقي كود التنبيهات كما هو) -->
-
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-dark">إعدادات المتجر المتقدمة</h3>
             <p class="text-muted">إدارة بيانات حسابك الشخصي وهويتك التجارية.</p>
         </div>
-        <!-- ... -->
     </div>
 
     <form action="{{ url_for('suppliers_dashboard.update_settings') }}" method="POST">
+        <!-- إضافة الـ CSRF Token ضروري جداً للأمان -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
         <div class="row g-4">
+            <!-- الجزء الأول: بيانات الحساب الرسمية (غير قابلة للتعديل) -->
             <div class="col-lg-6">
                 <div class="card shadow-sm border-0 p-4 h-100">
-                    <h5 class="mb-4 fw-bold card-header-custom pb-2"><i class="fas fa-user-shield me-2"></i> بيانات الحساب الرسمية</h5>
+                    <h5 class="mb-4 fw-bold" style="color: var(--royal-purple); border-bottom: 2px solid var(--mahjoub-gold);"><i class="fas fa-user-shield me-2"></i> بيانات الحساب الرسمية</h5>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -36,7 +37,6 @@
                         </div>
                     </div>
 
-                    <!-- استبدل current_user بـ store في الحقول التالية -->
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label text-muted">الرتبة</label>
@@ -50,26 +50,32 @@
                 </div>
             </div>
 
+            <!-- الجزء الثاني: بيانات الملف الشخصي (قابلة للتعديل) -->
             <div class="col-lg-6">
                 <div class="card shadow-sm border-0 p-4 h-100">
-                    <h5 class="mb-4 fw-bold card-header-custom pb-2"><i class="fas fa-address-card me-2"></i> بيانات الملف الشخصي</h5>
+                    <h5 class="mb-4 fw-bold" style="color: var(--royal-purple); border-bottom: 2px solid var(--mahjoub-gold);"><i class="fas fa-address-card me-2"></i> بيانات الملف الشخصي</h5>
                     
-                    <!-- استخدام متغير profile الذي عرفناه في الأعلى -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-muted">اسم المالك</label>
-                            <input type="text" name="owner_name" class="form-control" value="{{ profile.owner_name or '' }}">
+                            <input type="text" name="owner_name" class="form-control" value="{{ profile.owner_name or '' }}" placeholder="أدخل اسم المالك">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label text-muted">البريد الإلكتروني</label>
-                            <input type="email" name="email" class="form-control" value="{{ profile.email or '' }}">
+                            <input type="email" name="email" class="form-control" value="{{ profile.email or '' }}" placeholder="example@mail.com">
                         </div>
                     </div>
-                    <!-- (أكمل باقي الحقول بنفس الطريقة باستخدام profile.attribute) -->
-                    <!-- ... -->
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted">العنوان التفصيلي</label>
+                        <textarea name="address" class="form-control" rows="2">{{ profile.address or '' }}</textarea>
+                    </div>
+
+                    <div class="text-end mt-3">
+                        <button type="submit" class="btn px-4" style="background: var(--royal-purple); color: white;">حفظ التغييرات</button>
+                    </div>
                 </div>
             </div>
-            <!-- ... -->
         </div>
     </form>
 </div>
