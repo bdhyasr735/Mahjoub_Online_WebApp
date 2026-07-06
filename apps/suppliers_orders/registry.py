@@ -1,30 +1,21 @@
 # coding: utf-8
-# 📂 apps/suppliers_dashboard/registry.py
+from apps.suppliers_orders.routes import suppliers_orders_bp
 
-from apps.suppliers_dashboard.routes import suppliers_dashboard_bp 
-
-# 1. إعدادات الموديول للظهور
-MODULE_NAME = "لوحة التحكم"
-MODULE_ICON = "fas fa-tachometer-alt"
-
-# 2. تفعيل الظهور في القائمة الجانبية للمورد
-SHOW_IN_SUPPLIER = True
-
-# 3. الروابط: تم توحيدها لتطابق الـ Blueprint في routes.py
+# البيانات المطلوبة لنظام التسجيل التلقائي
+MODULE_NAME = "طلبات الزبائن"
+MODULE_ICON = "fas fa-shopping-cart"
+SHOW_IN_SUPPLIER = True  # ليظهر في لوحة المورد
 LINKS = {
-    "الرئيسية": "suppliers_dashboard.dashboard",
-    "الإعدادات": "suppliers_dashboard.settings"
+    'جميع الطلبات': 'suppliers_orders.list_orders',
+    'طلبات معلقة': 'suppliers_orders.pending_orders'
 }
 
 def register_module(app):
     """
-    تسجيل موديول لوحة تحكم المورد في النظام
+    تسجيل موديول طلبات الزبائن مع الحماية من التسجيل المتكرر.
     """
-    try:
-        # تسجيل الـ Blueprint باستخدام الاسم الموحد
-        # ملاحظة: الروابط معرفة داخل الـ routes بـ /dashboard و /settings
-        # لذا سيكون الوصول إليها عبر /supplier/dashboard
-        app.register_blueprint(suppliers_dashboard_bp, url_prefix='/supplier')
-        print("✅ [Registry]: تم تسجيل موديول 'suppliers_dashboard' بنجاح.")
-    except Exception as e:
-        print(f"❌ [Registry Error]: فشل تسجيل موديول 'suppliers_dashboard': {e}")
+    if 'suppliers_orders' not in app.blueprints:
+        app.register_blueprint(suppliers_orders_bp, url_prefix='/supplier/orders')
+        print("✅ [Registry]: تم تسجيل موديول 'suppliers_orders' بنجاح.")
+    else:
+        print("⚠️ [Registry]: موديول 'suppliers_orders' مسجل مسبقاً، تم التخطي.")
