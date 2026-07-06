@@ -8,9 +8,9 @@ from apps.models.financials_db import OrderFinancial
 from apps.api.sync_engine import SyncEngine 
 from sqlalchemy.orm import joinedload
 
-# تعريف البلوبرينت بدون url_prefix هنا
+# تم تغيير الاسم ليكون فريداً تماماً ولتجنب التضارب مع موديول الإدارة (orders)
 suppliers_orders_bp = Blueprint(
-    'supplier_orders_module_unique', 
+    'suppliers_orders_portal', 
     __name__, 
     template_folder='templates'
 )
@@ -19,6 +19,7 @@ suppliers_orders_bp = Blueprint(
 @login_required
 def dashboard():
     """لوحة تحكم طلبات المورد"""
+    # التأكد من أن المستخدم هو مورد فقط
     if session.get('user_type') != 'supplier':
         abort(403)
 
