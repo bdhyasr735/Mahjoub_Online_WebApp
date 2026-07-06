@@ -5,11 +5,10 @@ import os
 from flask import Blueprint, render_template, abort, session
 from flask_login import login_required, current_user
 
-# تعريف الـ Blueprint مع تحديد مجلد القوالب المحلي
+# تعريف الـ Blueprint
 suppliers_orders_bp = Blueprint('suppliers_orders', __name__, template_folder='templates')
 
-# إضافة مسار قوالب الداشبورد إلى قائمة بحث القوالب في هذا الـ Blueprint
-# هذا يحل مشكلة TemplateNotFound: suppliers/base.html
+# إضافة مسار قوالب الداشبورد لتجنب خطأ عدم وجود base.html
 base_templates_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../suppliers_dashboard/templates'))
 suppliers_orders_bp.jinja_loader.searchpath.append(base_templates_path)
 
@@ -17,27 +16,25 @@ suppliers_orders_bp.jinja_loader.searchpath.append(base_templates_path)
 @login_required
 def index():
     """
-    نافذة واحدة شاملة تعرض طلبات المورد (المعلقة والمكتملة).
+    نافذة شاملة تعرض طلبات المورد.
     """
-    # استيراد النماذج داخل الدالة لتجنب أي تعارض في الاستيراد (Circular Import)
     from apps.models.orders_db import Order
     
-    # التحقق من نوع المستخدم وصلاحيته
     user_type = session.get('user_type')
-    # تحديد معرف المورد بناءً على نوع المستخدم
+    # تأمين معرف المورد
     s_id = current_user.id if user_type == 'supplier' else getattr(current_user, 'supplier_id', None)
     
     if not s_id:
         abort(403)
 
-    # جلب الطلبات الخاصة بالمورد مرتبة من الأحدث للأقدم
+    # جلب الطلبات
     orders = Order.query.filter_by(supplier_id=s_id).order_by(Order.id.desc()).all()
     
-    # جلب الطلبات المنفصلة منطقياً للتبويبات
     pending_orders = [o for o in orders if o.status == 'pending']
     completed_orders = [o for o in orders if o.status == 'completed']
     
-    return render_template('suppliers/orders.html', 
+    # تم تغيير المسار ليتناسب مع الملف الفعلي الموجود لديك في المجلد
+    return render_template('admin/suppliers_orders_dashboard.html', 
                            orders=orders,
                            pending_orders=pending_orders,
                            completed_orders=completed_orders)
@@ -49,11 +46,11 @@ def order_details(order_id):
     
     order = Order.query.get_or_404(order_id)
     
-    # التحقق من صلاحية الوصول للطلب
     user_type = session.get('user_type')
     s_id = current_user.id if user_type == 'supplier' else getattr(current_user, 'supplier_id', None)
     
     if order.supplier_id != s_id:
         abort(403)
         
-    return render_template('suppliers/order_details.html', order=order)
+    # ملاحظة: إذا كان لديك قالب لتفاصيل الطلب في مجلد admin، قم بتحديث هذا المسار أيضاً
+    return render_template('admin/order_details.html', order=order)
