@@ -1,18 +1,27 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/registry.py
 
-from .routes import supplier_wallet_bp
+from apps.supplier_wallet.routes import supplier_wallet_bp
 
-# متغيرات يتوقعها نظام Auto-Discovery في __init__.py
-MODULE_NAME = "المحفظة المالية"
+# 1. إعدادات الموديول للظهور
+MODULE_NAME = "محفظة المورد"
 MODULE_ICON = "fas fa-wallet"
+
+# 2. هذا المتغير هو الذي يجعله يظهر في قائمة المورد الجانبية (نظام العزل)
+SHOW_IN_SUPPLIER = True
+
+# 3. الروابط (تأكد أن اسم الـ blueprint هو 'supplier_wallet' واسم الدالة 'index')
 LINKS = {
-    "كشف الحساب": "supplier_wallet.view_my_wallet"
+    "محفظتي": "supplier_wallet.index"
 }
 
 def register_module(app):
+    """
+    تسجيل الموديول في النظام
+    """
     try:
-        app.register_blueprint(supplier_wallet_bp, url_prefix='/suppliers/wallet')
-        print("✅ [Registry]: تم تسجيل موديول 'supplier_wallet' بنجاح.")
+        # تسجيل الـ Blueprint الخاص بمحفظة المورد
+        app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
+        print("✅ [Registry]: تم تسجيل موديول 'محفظة المورد' بنجاح.")
     except Exception as e:
-        print(f"🚨 [Registry Error]: {e}")
+        print(f"❌ [Registry Error]: فشل تسجيل موديول 'supplier_wallet': {e}")
