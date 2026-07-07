@@ -57,6 +57,14 @@ class Order(db.Model):
     marketer = db.relationship('Marketer', back_populates='orders')
     financials = db.relationship('OrderFinancial', back_populates='order', uselist=False, cascade="all, delete-orphan")
 
+    # --- جسر البيانات المالية للقوالب ---
+    @property
+    def amount(self):
+        """تسمح للقالب بالوصول للمبلغ المالي مباشرة عبر order.amount"""
+        if self.financials:
+            return self.financials.total_paid
+        return 0.0
+
     # --- منطق التشفير الاحترافي ---
     @property
     def customer_name(self):
