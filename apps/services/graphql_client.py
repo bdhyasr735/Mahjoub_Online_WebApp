@@ -1,4 +1,6 @@
 # coding: utf-8
+# 📂 apps/services/graphql_client.py - النسخة النهائية المتوافقة مع نظام الاستعلامات الخاص
+
 import requests
 import logging
 from config import Config
@@ -6,51 +8,45 @@ from config import Config
 logger = logging.getLogger(__name__)
 
 class QomrahGraphQLClient:
+    """عميل متخصص لجلب بيانات الطلبات من منصة قمرة عبر محرك الاستعلامات الخاص."""
+
     @staticmethod
     def _get_headers():
+        """تحضير الترويسات الأمنية المطلوبة."""
         return {
             "Authorization": f"Bearer {Config.QUMRA_API_KEY}",
             "Content-Type": "application/json",
-            "x-apollo-operation-name": "GetOrders",
             "apollo-require-preflight": "true"
         }
 
     @staticmethod
-    def fetch_orders(headers=None):
-        current_headers = headers if headers is not None else QomrahGraphQLClient._get_headers()
+    def fetch_orders():
+        """جلب بيانات الطلبات باستخدام صيغة QUERY orders."""
         
-        # تم تعديل الحقول بناءً على رسالة الخطأ من السيرفر
-        query = """
-        query GetOrders {
-          findAllOrders { 
-            data {
-              _id
-              totalPrice
-              status {
-                # السيرفر اشتكى من name، جربنا تغييرها إلى ما هو شائع في Apollo أو تركها فارغة إذا لم نعرف
-                # لكن بناءً على الخطأ، السيرفر لا يعرف name هنا. 
-                # سنحاول جلب الحقل الأساسي فقط حالياً:
-              }
-              createdAt
-              items {
-                productData { # السيرفر اقترح productData
-                  name
-                }
-                quantity
-                price
-                # السيرفر اشتكى من sku، سنحذفه حالياً حتى نتأكد من وجوده في الـ Schema
-              }
-            }
-          }
-        }
-        """
+        # استعلام لجلب آخر الطلبات (يمكنك تعديله حسب حاجتك)
+        # هذا الاستعلام يطلب تفاصيل الطلب والحالة بناءً على قائمة الحقول التي حصلنا عليها
+        query_string = "QUERY orders METRICS count() AS total_orders, sum(total) AS revenue GROUP BY orderId, status, createdAt SORT createdAt DESC LIMIT 50"
         
         try:
-            payload = {'query': query, 'operationName': 'GetOrders'}
-            response = requests.post(Config.QUMRA_API_URL, json=payload, headers=current_headers, timeout=15)
+            # نرسل الاستعلام في جسم الطلب (Payload)
+            # نستخدم المفتاح 'query' لأن النظام يتوقع نص الاستعلام هنا
+            payload = {'query': query_string}
+            
+            response = requests.post(
+                Config.QUMRA_API_URL, 
+                json=payload, 
+                headers=QomrahGraphQLClient._get_headers(),
+                timeout=15
+            )
+            
             response.raise_for_status()
-            result = response.json()
-            return result.get('data', {}).get('findAllOrders', {}).get('data', [])
+            # إرجاع البيانات المستلمة
+            return response.json()
+            
+        except requests.exceptions.HTTPError as http_err:
+            logger.error(f"❌ خطأ HTTP أثناء الاتصال بـ Qomrah API: {http_err}")
+            logger.error(f"Response Content: {response.text}")
+            return []
         except Exception as e:
-            logger.error(f"❌ خطأ في الاتصال: {e}")
+            logger.error(f"❌ خطأ غير متوقع: {e}")
             return []
