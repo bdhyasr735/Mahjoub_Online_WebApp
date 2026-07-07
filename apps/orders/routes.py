@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/orders/routes.py - النسخة النهائية المعدلة
+# 📂 apps/orders/routes.py - النسخة النهائية والمحكمة
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort, current_app
 from flask_login import login_required
@@ -31,8 +31,8 @@ def dashboard():
     can_add_order = 'orders.add_new_order' in current_app.view_functions
     can_sync = 'orders.sync_all' in current_app.view_functions
     
-    # إحصائيات اللوحة - تم التعديل لاستخدام total_paid لضمان التوافق
-    total_sales = db.session.query(func.sum(OrderFinancial.total_paid)).scalar() or 0
+    # إحصائيات اللوحة: استخدام total_paid_raw للجمع الحسابي في قاعدة البيانات
+    total_sales = db.session.query(func.sum(OrderFinancial.total_paid_raw)).scalar() or 0
     completed_count = Order.query.filter_by(status='completed').count()
     cancelled_count = Order.query.filter_by(status='cancelled').count()
     
@@ -76,6 +76,7 @@ def add_new_order():
     admin_required()
     if request.method == 'POST':
         try:
+            # توليد معرف طلب فريد للمدخلات اليدوية
             order_id = str(int(datetime.utcnow().timestamp()))
             supplier_id = request.form.get('supplier_id', type=int)
             total_price = float(request.form.get('total_price', 0))
@@ -90,6 +91,7 @@ def add_new_order():
             )
             db.session.add(new_order)
             
+            # تسجيل البيانات المالية الأولية (الموديل سيقوم بتشفيرها تلقائياً)
             new_financial = OrderFinancial(
                 order_id=order_id,
                 supplier_id=supplier_id,
