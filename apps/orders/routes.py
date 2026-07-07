@@ -10,7 +10,7 @@ from apps.models.orders_db import Order
 from apps.models.financials_db import OrderFinancial
 from apps.models.supplier_db import Supplier
 from apps.orders.services import OrderService
-from apps.api.sync_engine import SyncEngine # إضافة استيراد المحرك
+from apps.api.sync_engine import SyncEngine 
 
 orders_bp = Blueprint('orders', __name__, template_folder='templates')
 
@@ -51,11 +51,18 @@ def dashboard():
 @orders_bp.route('/sync-all', methods=['POST'])
 @login_required
 def sync_all():
-    """المسار المفقود الذي كان يسبب خطأ 405"""
+    """المسار المسؤول عن تشغيل المزامنة اليدوية مع قمرة"""
     admin_required()
-    # استدعاء محرك المزامنة (تأكد أن دالة المزامنة لديك مهيأة لجلب البيانات)
-    # مثلاً: SyncEngine.run_manual_sync()
-    flash("بدأت عملية المزامنة اليدوية، يرجى الانتظار...", "info")
+    
+    # تنفيذ المزامنة اليدوية
+    # تأكد من أن هذه الدالة موجودة في SyncEngine وتقوم بجلب الطلبات
+    sync_result = SyncEngine.run_manual_sync() 
+    
+    if sync_result:
+        flash("تمت عملية المزامنة بنجاح وجلب الطلبات الجديدة.", "success")
+    else:
+        flash("حدث خطأ أثناء المزامنة، يرجى مراجعة سجلات الأخطاء.", "danger")
+        
     return redirect(url_for('orders.dashboard'))
 
 @orders_bp.route('/add-order', methods=['GET', 'POST'])
