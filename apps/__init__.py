@@ -17,7 +17,7 @@ from apps.api.qomrah_webhook import qomrah_bp
 # تهيئة الأدوات
 csrf = CSRFProtect()
 talisman = Talisman()
-# إعداد Limiter مع تحديد التخزين في الذاكرة لتجنب التحذيرات
+# إعداد Limiter مع تحديد التخزين في الذاكرة لتجنب التحذيرات في بيئات مثل Render
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"], storage_uri="memory://")
 
 ADMIN_MODULES = {}
@@ -27,7 +27,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
 
-    # تفعيل CORS للسماح بالاتصال الخارجي (Apollo/GraphQL)
+    # تفعيل CORS للسماح بالاتصال الخارجي
     CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
     # 1. تهيئة الإضافات الأساسية
@@ -62,7 +62,6 @@ def create_app():
         app.register_blueprint(graphql_bp)
         csrf.exempt(graphql_bp)
     except ImportError:
-        # في حال لم يتم تسجيل الموديول بعد أو لم يوجد، لا نقوم بإيقاف التطبيق
         pass
 
     # 4. تسجيل الموديولات الديناميكي (Registry)
