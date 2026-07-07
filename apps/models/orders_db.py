@@ -18,7 +18,7 @@ class Order(db.Model):
     """موديل الطلبات: المحرك التشغيلي الذي يربط العميل بالمورد والمسوق."""
     __tablename__ = 'orders'
 
-    # [فهرسة متقدمة]: للبحث السريع
+    # [فهرسة متقدمة]: للبحث السريع (Indices)
     __table_args__ = (
         db.Index('idx_ord_supplier_id', 'supplier_id'),
         db.Index('idx_ord_marketer_id', 'marketer_id'),
@@ -33,19 +33,19 @@ class Order(db.Model):
     id = db.Column(db.String(100), primary_key=True)
     order_id_display = db.Column(db.String(50), nullable=True)
     
-    # الربط السيادي
+    # الربط السيادي (Foreign Keys)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
     
     tracking_tag = db.Column(db.String(100), nullable=True)
     order_reference = db.Column(db.String(100), unique=True, nullable=True)
     
-    # بيانات ظاهرة
+    # بيانات ظاهرة (غير مشفرة للاستعلامات السريعة)
     total_price = db.Column(db.Numeric(18, 2), default=0.00)
     items_count = db.Column(db.Integer, default=0)
     status = db.Column(db.String(30), default='pending')
     
-    # [تشفير حساس]
+    # [تشفير حساس] - بيانات العميل محمية
     _customer_name = db.Column(db.Text)
     _customer_phone = db.Column(db.Text)
     _customer_address = db.Column(db.Text)
@@ -53,7 +53,7 @@ class Order(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقات
+    # العلاقات (Relationships)
     supplier = db.relationship('Supplier', back_populates='orders')
     marketer = db.relationship('Marketer', back_populates='orders')
     financials = db.relationship('OrderFinancial', back_populates='order', uselist=False, cascade="all, delete-orphan")
@@ -62,22 +62,19 @@ class Order(db.Model):
     @property
     def amount(self):
         """تسمح للقالب بالوصول للمبلغ المالي مباشرة عبر order.amount"""
-        if self.financials:
-            return self.financials.total_paid
-        return 0.0
+        return self.financials.total_paid if self.financials else 0.0
 
     def get_amount_in_currency(self, currency_code):
-        """دالة للحصول على المبلغ بعملة المورد بناءً على سعر الصرف"""
-        base_amount = self.amount
+        """تحويل المبلغ لعملة المورد باستخدام سعر الصرف الحالي"""
         rate = ExchangeRate.get_rate(currency_code)
-        return base_amount * rate
+        return self.amount * rate
 
-    # --- منطق التشفير الاحترافي ---
+    # --- منطق التشفير الاحترافي (Encrypted Properties) ---
     @property
     def customer_name(self):
         try:
             return cipher.decrypt(self._customer_name.encode()).decode() if self._customer_name else "غير معروف"
-        except: return "خطأ في التشفير"
+        except Exception: return "خطأ في التشفير"
 
     @customer_name.setter
     def customer_name(self, value):
@@ -87,7 +84,7 @@ class Order(db.Model):
     def customer_phone(self):
         try:
             return cipher.decrypt(self._customer_phone.encode()).decode() if self._customer_phone else None
-        except: return None
+        except Exception: return None
 
     @customer_phone.setter
     def customer_phone(self, value):
@@ -97,7 +94,7 @@ class Order(db.Model):
     def customer_address(self):
         try:
             return cipher.decrypt(self._customer_address.encode()).decode() if self._customer_address else None
-        except: return None
+        except Exception: return None
 
     @customer_address.setter
     def customer_address(self, value):
