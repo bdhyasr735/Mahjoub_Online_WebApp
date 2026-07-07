@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/services/graphql_client.py - النسخة المصححة للاتصال بـ GraphQL
+# 📂 apps/services/graphql_client.py - النسخة النهائية المتوافقة مع Qomrah Schema
 
 import requests
 import logging
@@ -19,18 +19,19 @@ class QomrahGraphQLClient:
 
     @staticmethod
     def fetch_orders(limit=20, offset=0):
-        """جلب قائمة الطلبات باستخدام استعلام GraphQL قياسي."""
+        """جلب قائمة الطلبات باستخدام الدالة الصحيحة findAllOrders."""
         
-        # استعلام GraphQL الصحيح (يجب مراجعة أسماء الحقول في Sandbox الخاص بك)
         query = """
         query GetOrders($limit: Int, $offset: Int) {
-            orders(limit: $limit, offset: $offset) {
-                id
-                customer_name
-                total_price
-                status
-                created_at
+          findAllOrders(limit: $limit, offset: $offset) {
+            data {
+              id
+              customer_name
+              total_price
+              status
+              created_at
             }
+          }
         }
         """
         variables = {"limit": limit, "offset": offset}
@@ -45,25 +46,25 @@ class QomrahGraphQLClient:
             response.raise_for_status()
             result = response.json()
             
-            # استخراج البيانات من الهيكل القياسي للرد
-            return result.get('data', {}).get('orders', [])
+            # استخراج البيانات من المسار الصحيح: data -> findAllOrders -> data
+            return result.get('data', {}).get('findAllOrders', {}).get('data', [])
             
-        except requests.exceptions.RequestException as e:
-            logger.error(f"❌ خطأ في الاتصال بـ GraphQL: {e}")
+        except Exception as e:
+            logger.error(f"❌ خطأ أثناء جلب الطلبات: {e}")
             return []
 
     @staticmethod
     def get_order_details(order_id):
-        """جلب تفاصيل طلب محدد عبر GraphQL."""
+        """جلب تفاصيل طلب محدد باستخدام الدالة الصحيحة findOrderById."""
         
         query = """
         query GetOrder($id: ID!) {
-            order(id: $id) {
-                id
-                customer_name
-                total_price
-                status
-            }
+          findOrderById(id: $id) {
+            id
+            customer_name
+            total_price
+            status
+          }
         }
         """
         variables = {"id": order_id}
@@ -78,8 +79,9 @@ class QomrahGraphQLClient:
             response.raise_for_status()
             result = response.json()
             
-            return result.get('data', {}).get('order')
+            # استخراج البيانات من المسار: data -> findOrderById
+            return result.get('data', {}).get('findOrderById')
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             logger.error(f"❌ خطأ في جلب تفاصيل الطلب {order_id}: {e}")
             return None
