@@ -1,14 +1,12 @@
 # coding: utf-8
-# 📂 apps/api/webhooks.py - معالج الويب هوك السيادي (النسخة النهائية والمحكمة)
+# 📂 apps/api/webhooks.py - معالج الويب هوك المطور للعمل مع SyncEngine
 
 import hmac
 import hashlib
 import logging
 from flask import Blueprint, request, jsonify
 from config import Config 
-from apps.extensions import db
-# تم تحديث الاستيراد ليطابق الموديل الجديد Order
-from apps.models.orders_db import Order
+from apps.api.sync_engine import SyncEngine
 
 # إعداد السجلات
 logger = logging.getLogger(__name__)
@@ -17,7 +15,7 @@ webhooks_bp = Blueprint('webhooks', __name__)
 @webhooks_bp.route('/webhooks', methods=['POST'])
 def handle_qumra_webhook():
     """
-    معالج الويب هوك: التحقق من التوقيع ثم معالجة بيانات الطلب.
+    معالج الويب هوك: التحقق من التوقيع ثم تمرير البيانات لمحرك المزامنة.
     """
     
     # 1. التحقق من التوقيع (الأمن أولاً)
@@ -40,35 +38,26 @@ def handle_qumra_webhook():
         return jsonify({"error": "No JSON body"}), 400
 
     event = data.get('event')
-    order_data = data.get('data', {})
-    logger.info(f"✅ استلام حدث: {event} | البيانات: {order_data.get('id')}")
+    # في حال كان الـ Webhook يرسل البيانات داخل 'data' أو بشكل مباشر
+    order_data = data.get('data', data) 
+    
+    logger.info(f"✅ استلام حدث: {event} | معالجة الطلب: {order_data.get('id')}")
 
-    # 3. معالجة وحفظ الطلب باستخدام الموديل Order المحدث
+    # 3. تمرير المعالجة للمحرك السيادي (SyncEngine)
+    # هذا يغنينا عن كتابة كود الحفظ والمالية هنا، ويجعل المحرك هو المسؤول الوحيد
     if event in ['order/created', 'order/updated', 'cart/created']:
-        order_id = str(order_data.get('id') or order_data.get('_id', ''))
-        
-        if order_id:
-            try:
-                # البحث عن الطلب الموجود أو إنشاء جديد
-                order = Order.query.get(order_id) or Order(id=order_id)
+        try:
+            success = SyncEngine.process_financials(order_data)
+            
+            if success:
+                logger.info(f"💾 تم معالجة الطلب {order_data.get('id')} بنجاح عبر SyncEngine.")
+                return jsonify({"status": "success"}), 200
+            else:
+                logger.error(f"❌ فشل معالجة الطلب {order_data.get('id')} في المحرك.")
+                return jsonify({"error": "Processing failed"}), 500
                 
-                # تحديث المعلومات الأساسية
-                order.status = order_data.get('status', 'pending')
-                
-                # استخراج السعر بأمان
-                total_data = order_data.get('total')
-                if isinstance(total_data, dict):
-                    order.total_price = float(total_data.get('amount', 0.0))
-                else:
-                    order.total_price = float(order_data.get('total', 0.0))
+        except Exception as e:
+            logger.error(f"❌ خطأ غير متوقع أثناء معالجة الويب هوك: {str(e)}")
+            return jsonify({"error": "Internal server error"}), 500
 
-                db.session.add(order)
-                db.session.commit()
-                logger.info(f"💾 تم حفظ الطلب {order_id} في قاعدة البيانات بنجاح.")
-                
-            except Exception as e:
-                db.session.rollback()
-                logger.error(f"❌ فشل حفظ الطلب {order_id}: {str(e)}")
-                return jsonify({"error": "Database error"}), 500
-
-    return jsonify({"status": "success"}), 200
+    return jsonify({"status": "ignored", "message": "Event not handled"}), 200
