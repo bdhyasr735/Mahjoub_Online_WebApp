@@ -3,13 +3,15 @@
 
 import os
 import importlib
-from flask import Flask, session, redirect, url_for
+from flask import Flask, redirect
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+
 from apps.extensions import db, login_manager, migrate
 from apps.utils.time_utils import format_full_timestamp
+from apps.api.qomrah_webhook import qomrah_bp  # استيراد الـ Webhook
 
 # تهيئة الأدوات
 csrf = CSRFProtect()
@@ -22,15 +24,15 @@ SUPPLIER_MODULES = {}
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
-    
-    # تهيئة الإضافات
+
+    # 1. تهيئة الإضافات الأساسية
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
-    
-    # Talisman - إعدادات الأمان
+
+    # 2. إعدادات الأمان (Talisman)
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
@@ -39,21 +41,20 @@ def create_app():
             'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net"],
             'img-src': ["'self'", "data:", "*"]
         },
-        force_https=False 
+        force_https=False
     )
 
     app.jinja_env.filters['full_time'] = format_full_timestamp
     login_manager.login_view = 'suppliers_auth.login'
-    
-    # [تعديل] استثناء مسارات الـ API من الحماية الصارمة للـ CSRF
-    from apps.api.qomrah_webhook import qomrah_bp
-    app.register_blueprint(qomrah_bp)
-    csrf.exempt(qomrah_bp) # استثناء الويب هوك من CSRF لأنه قادم من جهة خارجية (قمرة)
 
-    # تسجيل الموديولات (الديناميكي)
-    apps_dir = app.root_path 
+    # 3. تسجيل الـ Webhook (يُستثنى من CSRF لأنه قادم من طرف خارجي)
+    app.register_blueprint(qomrah_bp)
+    csrf.exempt(qomrah_bp)
+
+    # 4. تسجيل الموديولات الديناميكي (Registry)
+    apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api']
-    
+
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
@@ -64,18 +65,32 @@ def create_app():
                         module = importlib.import_module(f"apps.{item}.registry")
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
-                            # ... (بقية منطق تسجيل الموديلات)
+                            mod_data = {
+                                "display_name": getattr(module, 'MODULE_NAME', item.capitalize()),
+                                "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
+                                "links": getattr(module, 'LINKS', {}),
+                            }
+                            if getattr(module, 'SHOW_IN_SUPPLIER', False):
+                                SUPPLIER_MODULES[item] = mod_data
+                            else:
+                                ADMIN_MODULES[item] = mod_data
                     except Exception as e:
-                        print(f"❌ خطأ في تسجيل {item}: {e}")
+                        print(f"❌ خطأ في تسجيل الموديول {item}: {e}")
 
+    # 5. المسارات الأساسية
     @app.route('/')
     def index():
         return redirect('/supplier/login')
 
     @app.context_processor
     def inject_vars():
-        return dict(csrf_token=generate_csrf, registered_modules=ADMIN_MODULES, supplier_modules=SUPPLIER_MODULES)
+        return dict(
+            csrf_token=generate_csrf,
+            registered_modules=ADMIN_MODULES,
+            supplier_modules=SUPPLIER_MODULES
+        )
 
+    # 6. إعداد قاعدة البيانات والمسؤول الأول
     with app.app_context():
         db.create_all()
         from apps.models.admin_db import AdminUser
@@ -84,5 +99,5 @@ def create_app():
             owner.set_password('123')
             db.session.add(owner)
             db.session.commit()
-    
+
     return app
