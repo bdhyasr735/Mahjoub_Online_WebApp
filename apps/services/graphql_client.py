@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/services/graphql_client.py - النسخة النهائية المحدثة
+# 📂 apps/services/graphql_client.py - النسخة النهائية المحدثة والمحكمة
 
 import requests
 import logging
@@ -12,7 +12,7 @@ class QomrahGraphQLClient:
 
     @staticmethod
     def _get_headers():
-        """تحضير الترويسات الأمنية لتجاوز CSRF."""
+        """تحضير الترويسات الأمنية لتجاوز CSRF ومتطلبات Apollo."""
         return {
             "Authorization": f"Bearer {Config.QUMRA_API_KEY}",
             "Content-Type": "application/json",
@@ -22,11 +22,12 @@ class QomrahGraphQLClient:
 
     @staticmethod
     def fetch_orders(headers=None):
-        """جلب قائمة الطلبات. تم إضافة headers كمعامل اختياري لحل الخطأ."""
+        """جلب قائمة الطلبات مع معالجة الترويسات المطلوبة."""
         
         # استخدام الترويسات الممررة أو الافتراضية
         current_headers = headers if headers is not None else QomrahGraphQLClient._get_headers()
         
+        # الـ Query المحدث ليتطابق مع هيكلية البيانات المطلوبة
         query = """
         query GetOrders {
           findAllOrders { 
@@ -49,17 +50,31 @@ class QomrahGraphQLClient:
         """
         
         try:
+            # تنفيذ الطلب مع إضافة 'operationName' صراحة في الـ json payload لتطابق الترويسة
+            payload = {
+                'query': query,
+                'operationName': 'GetOrders'
+            }
+            
             response = requests.post(
                 Config.QUMRA_API_URL, 
-                json={'query': query},
+                json=payload,
                 headers=current_headers,
                 timeout=15
             )
+            
+            # التحقق من نجاح الطلب
             response.raise_for_status()
             result = response.json()
             
-            return result.get('data', {}).get('findAllOrders', {}).get('data', [])
+            # استخراج البيانات بدقة
+            data = result.get('data', {}).get('findAllOrders', {}).get('data', [])
+            return data
             
+        except requests.exceptions.HTTPError as http_err:
+            logger.error(f"❌ خطأ HTTP أثناء الاتصال بـ GraphQL: {http_err}")
+            logger.error(f"Response Content: {response.text}")
+            return []
         except Exception as e:
-            logger.error(f"❌ خطأ في الاتصال بـ GraphQL: {e}")
+            logger.error(f"❌ خطأ غير متوقع في الاتصال بـ GraphQL: {e}")
             return []
