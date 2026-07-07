@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from cryptography.fernet import Fernet
 from apps.extensions import db
+from apps.models.exchange_db import ExchangeRate
 
 # تهيئة آمنة لمفتاح التشفير
 def get_cipher():
@@ -64,6 +65,12 @@ class Order(db.Model):
         if self.financials:
             return self.financials.total_paid
         return 0.0
+
+    def get_amount_in_currency(self, currency_code):
+        """دالة للحصول على المبلغ بعملة المورد بناءً على سعر الصرف"""
+        base_amount = self.amount
+        rate = ExchangeRate.get_rate(currency_code)
+        return base_amount * rate
 
     # --- منطق التشفير الاحترافي ---
     @property
