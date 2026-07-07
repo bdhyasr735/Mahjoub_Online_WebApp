@@ -5,7 +5,8 @@
             <th>العميل</th>
             <th>المتجر/المورد</th>
             <th>الحالة</th>
-            <th>التسوية</th> <th>الإجمالي</th>
+            <th>التسوية</th>
+            <th>الإجمالي</th>
             <th>الإجراءات</th>
         </tr>
     </thead>
@@ -13,16 +14,20 @@
         {% for order, financial in pagination.items %}
         <tr>
             <td><span class="badge bg-secondary">{{ order.order_id_display }}</span></td>
+            
             <td>{{ order.customer_name }}</td>
+            
             <td>
                 <div class="fw-bold">{{ order.supplier.trade_name if order.supplier else 'غير محدد' }}</div>
                 <small class="text-muted">{{ order.store_name or 'المتجر الرئيسي' }}</small>
             </td>
+            
             <td>
-                <span class="badge {{ 'bg-success' if order.status == 'completed' else 'bg-warning' }}">
+                <span class="badge {{ 'bg-success' if order.status == 'completed' else ('bg-danger' if order.status == 'cancelled' else 'bg-warning') }}">
                     {{ order.status }}
                 </span>
             </td>
+            
             <td>
                 {% if financial %}
                     <span class="badge {{ 'bg-success' if financial.settlement_status == 'settled' else 'bg-info' }}">
@@ -32,15 +37,7 @@
                     <span class="text-muted small">لا يوجد</span>
                 {% endif %}
             </td>
-            <td>{{ "{:,.2f}".format(financial.total_paid if financial else 0) }}</td>
+            
             <td>
-                <a href="{{ url_for('orders.view_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-eye"></i>
-                </a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-{% include 'admin/partials/_pagination.html' %}
+                {{ "{:,.2f}".format(financial.total_paid if financial else 0) }} 
+                <small class="text-muted">
