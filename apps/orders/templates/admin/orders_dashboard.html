@@ -51,7 +51,7 @@
             <div class="card p-3 shadow-sm border-start border-success border-4 h-100">
                 <h6 class="text-muted small fw-bold text-uppercase">إجمالي المبيعات</h6>
                 <h3 class="fw-bold text-success mb-0">
-                    {% if stats and stats.total_sales is not none %}
+                    {% if stats and stats.total_sales is defined %}
                         {{ "{:,.2f}".format(stats.total_sales) }}
                     {% else %}
                         0.00
