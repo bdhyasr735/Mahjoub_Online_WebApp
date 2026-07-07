@@ -17,7 +17,7 @@ from apps.api.qomrah_webhook import qomrah_bp
 # تهيئة الأدوات
 csrf = CSRFProtect()
 talisman = Talisman()
-# إعداد Limiter مع تحديد التخزين في الذاكرة لتجنب التحذيرات في بيئات مثل Render
+# إعداد Limiter مع تحديد التخزين في الذاكرة لتجنب التحذيرات في بيئات الإنتاج مثل Render
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"], storage_uri="memory://")
 
 ADMIN_MODULES = {}
