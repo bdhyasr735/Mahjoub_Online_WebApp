@@ -25,7 +25,6 @@
 </style>
 
 <div class="container-fluid py-4">
-    <!-- الرأس والإجراءات -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-royal-purple"><i class="fas fa-shopping-bag me-2"></i>طلبات المتجر</h3>
@@ -33,13 +32,13 @@
         </div>
         
         <div class="d-flex gap-2">
-            <!-- استخدام المتغيرات الممررة من الـ route لضمان عدم وجود أخطاء -->
             <a href="{{ url_for('orders.add_new_order') if can_add_order else '#' }}" 
                class="btn btn-primary shadow-sm" style="background-color: var(--royal-purple); border-color: var(--royal-purple);">
                 <i class="fas fa-plus me-2"></i>طلب جديد
             </a>
             
             <form action="{{ url_for('orders.sync_all') if can_sync else '#' }}" method="POST" class="m-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-royal-back shadow-sm">
                     <i class="fas fa-sync-alt me-2"></i>مزامنة يدوي
                 </button>
@@ -47,7 +46,6 @@
         </div>
     </div>
 
-    <!-- بطاقات الإحصائيات -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card p-3 shadow-sm border-start border-success border-4 h-100">
@@ -76,14 +74,12 @@
         </div>
     </div>
 
-    <!-- الفلاتر -->
     <div class="card mb-4 shadow-sm border-royal">
         <div class="card-body py-3">
             {% include 'admin/partials/_filters.html' %}
         </div>
     </div>
 
-    <!-- جدول الطلبات -->
     <div class="card shadow-sm border-0">
         <div id="tableContainer" class="table-responsive">
             {% include 'admin/partials/_table.html' %}
