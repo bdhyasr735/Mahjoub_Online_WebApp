@@ -1,12 +1,14 @@
 # coding: utf-8
-# 📂 apps/extensions.py
+# 📂 apps/extensions.py - إعداد الإضافات المركزية
 
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from sqlalchemy import MetaData
+from flask import session
 
-# تعريف الـ Naming Convention لمنع تعارض الأسماء
+# تعريف الـ Naming Convention لمنع تعارض الأسماء في قاعدة البيانات
+# هذا يسهل جداً على Alembic إدارة التغييرات في الجداول
 metadata = MetaData(
     naming_convention={
         "ix": "ix_%(column_0_label)s",
@@ -21,14 +23,10 @@ db = SQLAlchemy(metadata=metadata)
 migrate = Migrate()
 login_manager = LoginManager()
 
-# ملاحظة: تم إزالة registered_modules من هنا 
-# لأن العزل التام يقتضي عدم وجود قائمة مركزية مشتركة.
-
 @login_manager.user_loader
 def load_user(user_id):
     """
-    دالة موحدة لتحميل المستخدمين.
-    ملاحظة: تأكد من تمرير نوع المستخدم في الـ Session لزيادة دقة البحث.
+    دالة موحدة لتحميل المستخدمين بناءً على نوعهم في الجلسة.
     """
     from apps.models.admin_db import AdminUser
     from apps.models.supplier_db import Supplier
@@ -37,21 +35,20 @@ def load_user(user_id):
     
     try:
         uid = int(user_id)
-        # التحقق من نوع المستخدم من الجلسة أولاً لتسريع الوصول (أمان إضافي)
-        from flask import session
         user_type = session.get('user_type')
         
+        # البحث بناءً على النوع المحدّد في الجلسة (الأكثر كفاءة وأماناً)
         if user_type == 'admin': return db.session.get(AdminUser, uid)
         if user_type == 'supplier': return db.session.get(Supplier, uid)
         if user_type == 'staff': return db.session.get(SupplierStaff, uid)
         if user_type == 'marketer': return db.session.get(Marketer, uid)
         
-        # البحث الشامل في حال عدم وجود Session
-        return db.session.get(Supplier, uid) or \
-               db.session.get(SupplierStaff, uid) or \
-               db.session.get(Marketer, uid) or \
-               db.session.get(AdminUser, uid)
-               
+        # البحث الشامل في حال عدم وجود Session (للاستعادة أو الحالات الاستثنائية)
+        return (db.session.get(Supplier, uid) or 
+                db.session.get(SupplierStaff, uid) or 
+                db.session.get(Marketer, uid) or 
+                db.session.get(AdminUser, uid))
+                
     except (ValueError, TypeError, Exception):
         return None
 
