@@ -9,15 +9,14 @@ from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS 
+import config
 
 from apps.extensions import db, login_manager, migrate
-from apps.utils.time_utils import format_full_timestamp
 from apps.api.qomrah_webhook import qomrah_bp 
 
 # تهيئة الأدوات
 csrf = CSRFProtect()
 talisman = Talisman()
-# إعداد Limiter مع تحديد التخزين في الذاكرة لتجنب التحذيرات في بيئات الإنتاج مثل Render
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"], storage_uri="memory://")
 
 ADMIN_MODULES = {}
@@ -26,18 +25,21 @@ SUPPLIER_MODULES = {}
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
+    
+    # التحقق من الإعدادات الحساسة عند التشغيل
+    config.Config.validate_config()
 
-    # تفعيل CORS للسماح بالاتصال الخارجي
+    # تفعيل CORS
     CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-    # 1. تهيئة الإضافات الأساسية
+    # 1. تهيئة الإضافات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
 
-    # 2. إعدادات الأمان (Talisman)
+    # 2. إعدادات الأمان
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
@@ -49,14 +51,12 @@ def create_app():
         force_https=False
     )
 
-    app.jinja_env.filters['full_time'] = format_full_timestamp
     login_manager.login_view = 'suppliers_auth.login'
 
-    # 3. تسجيل الـ Webhook والـ GraphQL (استثناء من CSRF)
+    # 3. تسجيل الـ Blueprints الأساسية
     app.register_blueprint(qomrah_bp)
     csrf.exempt(qomrah_bp)
     
-    # استثناء مسار GraphQL من CSRF
     try:
         from apps.admin.graphql_routes import graphql_bp 
         app.register_blueprint(graphql_bp)
@@ -64,7 +64,7 @@ def create_app():
     except ImportError:
         pass
 
-    # 4. تسجيل الموديولات الديناميكي (Registry)
+    # 4. تسجيل الموديولات الديناميكي
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api']
 
@@ -88,7 +88,7 @@ def create_app():
                             else:
                                 ADMIN_MODULES[item] = mod_data
                     except Exception as e:
-                        print(f"❌ خطأ في تسجيل الموديول {item}: {e}")
+                        print(f"❌ [Registry]: خطأ في تسجيل موديول {item}: {e}")
 
     # 5. المسارات الأساسية
     @app.route('/')
@@ -103,7 +103,7 @@ def create_app():
             supplier_modules=SUPPLIER_MODULES
         )
 
-    # 6. إعداد قاعدة البيانات والمسؤول الأول
+    # 6. إعداد البيئة الأولية
     with app.app_context():
         db.create_all()
         from apps.models.admin_db import AdminUser
