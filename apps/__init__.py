@@ -8,16 +8,17 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_cors import CORS  # إضافة استيراد CORS
+from flask_cors import CORS 
 
 from apps.extensions import db, login_manager, migrate
 from apps.utils.time_utils import format_full_timestamp
-from apps.api.qomrah_webhook import qomrah_bp  # استيراد الـ Webhook
+from apps.api.qomrah_webhook import qomrah_bp 
 
 # تهيئة الأدوات
 csrf = CSRFProtect()
 talisman = Talisman()
-limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+# إضافة storage_uri لتجنب تحذير الذاكرة في الإنتاج
+limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"], storage_uri="memory://")
 
 ADMIN_MODULES = {}
 SUPPLIER_MODULES = {}
@@ -26,7 +27,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
 
-    # تفعيل CORS للسماح بالاتصال الخارجي (Apollo/GraphQL)
+    # تفعيل CORS
     CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
     # 1. تهيئة الإضافات الأساسية
@@ -55,8 +56,14 @@ def create_app():
     app.register_blueprint(qomrah_bp)
     csrf.exempt(qomrah_bp)
     
-    # [تعديل] استثناء مسار GraphQL من CSRF - تأكد من إضافة مسار الـ Blueprint الخاص بك هنا
-    # csrf.exempt('admin.graphql_bp') 
+    # استثناء الـ GraphQL من حماية CSRF لحل مشكلة Apollo Sandbox
+    # تأكد من استيراد البلوبرينت الخاص بك هنا، استبدل 'admin.graphql_bp' بمسار الاستيراد الفعلي إذا لزم الأمر
+    try:
+        from apps.admin.graphql_routes import graphql_bp 
+        app.register_blueprint(graphql_bp)
+        csrf.exempt(graphql_bp)
+    except ImportError:
+        pass # تجاهل إذا لم يتم تسجيل الموديول بعد
 
     # 4. تسجيل الموديولات الديناميكي (Registry)
     apps_dir = app.root_path
