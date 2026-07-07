@@ -9,6 +9,7 @@ from apps.models.wallet_db import WalletTransaction, SupplierWallet
 from apps.models.sync_log import SyncLog 
 from apps.models.financials_db import OrderFinancial
 from apps.models.order_items_db import OrderItem
+from apps.models.supplier_db import Supplier
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +33,25 @@ class SyncEngine:
     def run_manual_sync():
         """الدالة التي يستدعيها النظام للبدء بالمزامنة"""
         logger.info("بدء المزامنة اليدوية للطلبات...")
-        # ضع كود الاتصال بـ API قمرة هنا لاحقاً
+        # كود الاتصال بـ API قمرة يوضع هنا
         return True
 
     @staticmethod
     def process_financials(order_data):
-        """معالجة مالية شاملة للطلب"""
+        """معالجة مالية شاملة للطلب مع ضمان تحديد المورد"""
         order_id = str(order_data.get('id'))
-        supplier_id = order_data.get('supplier_id')
         
+        # محاولة تحديد المورد: إما مباشرة أو عبر الـ tracking_tag
+        supplier_id = order_data.get('supplier_id')
+        if not supplier_id:
+            tracking_tag = order_data.get('tracking_tag')
+            supplier = Supplier.query.filter_by(store_tag=tracking_tag).first() # تأكد أن الحقل في موديل Supplier هو store_tag
+            if supplier:
+                supplier_id = supplier.id
+            else:
+                logger.error(f"❌ تعذر تحديد المورد للطلب {order_id} (Tracking Tag: {tracking_tag})")
+                return False
+
         try:
             total_price = Decimal(str(order_data.get('total_price', 0)))
         except InvalidOperation:
@@ -88,7 +99,6 @@ class SyncEngine:
             if not financial_record:
                 financial_record = OrderFinancial(order_id=order_id, supplier_id=supplier_id)
             
-            # استخدام Properties لضمان التشفير الصحيح
             financial_record.currency = product_currency
             financial_record.total_paid = float(total_price)
             financial_record.mahjoub_commission = float(total_price * Decimal('0.20'))
