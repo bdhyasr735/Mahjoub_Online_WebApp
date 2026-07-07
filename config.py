@@ -19,7 +19,7 @@ class Config:
     STORE_BASE_URL = os.environ.get('STORE_BASE_URL', 'https://mahjoub.online')
     
     # 🔒 إعدادات الحماية الأمنية للـ Cookies
-    IS_PRODUCTION = os.environ.get('ENV') == 'production'
+    IS_PRODUCTION = os.environ.get('ENV', 'production') == 'production'
     SESSION_COOKIE_SECURE = IS_PRODUCTION 
     REMEMBER_COOKIE_SECURE = IS_PRODUCTION
     SESSION_COOKIE_HTTPONLY = True
@@ -68,4 +68,5 @@ class Config:
             required = ['SECRET_KEY', 'ENCRYPTION_KEY', 'WEBHOOK_SECRET', 'QUMRA_API_KEY']
             for var in required:
                 if not getattr(cls, var):
-                    raise EnvironmentError(f"المتغير الحساس {var} مفقود في بيئة الإنتاج!")
+                    raise EnvironmentError(f"❌ المتغير الحساس {var} مفقود في بيئة الإنتاج!")
+        return True
