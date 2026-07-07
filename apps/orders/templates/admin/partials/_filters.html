@@ -1,7 +1,6 @@
-<!-- 📂 apps/orders/templates/admin/partials/_filters.html -->
-<form id="filterForm" class="row g-3 align-items-end" onsubmit="event.preventDefault(); updateTable('{{ url_for('orders.dashboard') }}?' + $(this).serialize());">
+<form id="filterForm" class="row g-3 align-items-end" 
+      onsubmit="event.preventDefault(); updateTable('{{ url_for('orders.dashboard') }}?' + $(this).serialize());">
     
-    <!-- خانة البحث النصي -->
     <div class="col-md-5">
         <label class="form-label text-royal-purple fw-bold small">بحث سريع</label>
         <div class="input-group">
@@ -12,7 +11,6 @@
         </div>
     </div>
 
-    <!-- فلتر الحالة -->
     <div class="col-md-4">
         <label class="form-label text-royal-purple fw-bold small">حالة الطلب</label>
         <select name="status" class="form-select">
@@ -23,17 +21,18 @@
         </select>
     </div>
 
-    <!-- زر التصفية -->
     <div class="col-md-3">
-        <button type="submit" class="btn btn-royal-purple w-100 text-white shadow-sm">
+        <button type="submit" class="btn text-white w-100 shadow-sm" style="background-color: #2e003e;">
             <i class="fas fa-filter me-1"></i> تطبيق الفلتر
         </button>
     </div>
 </form>
 
 <script>
-    // تفعيل البحث المباشر عند تغيير الحالة
-    $('select[name="status"]').on('change', function() {
-        $('#filterForm').submit();
+    // تفعيل البحث التلقائي عند تغيير الحالة لتحسين تجربة المستخدم
+    $(document).ready(function() {
+        $('select[name="status"]').on('change', function() {
+            $('#filterForm').submit();
+        });
     });
 </script>
