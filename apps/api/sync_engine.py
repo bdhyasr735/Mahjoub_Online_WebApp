@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - محرك المزامنة المحاسبي (النسخة النهائية)
+# 📂 apps/api/sync_engine.py
 
 import logging
 from decimal import Decimal, InvalidOperation
@@ -30,9 +30,9 @@ class SyncEngine:
 
     @staticmethod
     def run_manual_sync():
-        """الدالة التي يطلبها النظام - تم إضافتها لحل الخطأ"""
-        logger.info("بدء المزامنة اليدوية...")
-        # ضع هنا كود جلب الطلبات من API قمرة لاحقاً
+        """الدالة التي يستدعيها النظام للبدء بالمزامنة"""
+        logger.info("بدء المزامنة اليدوية للطلبات...")
+        # ضع كود الاتصال بـ API قمرة هنا لاحقاً
         return True
 
     @staticmethod
@@ -88,6 +88,7 @@ class SyncEngine:
             if not financial_record:
                 financial_record = OrderFinancial(order_id=order_id, supplier_id=supplier_id)
             
+            # استخدام Properties لضمان التشفير الصحيح
             financial_record.currency = product_currency
             financial_record.total_paid = float(total_price)
             financial_record.mahjoub_commission = float(total_price * Decimal('0.20'))
@@ -96,9 +97,11 @@ class SyncEngine:
             
             db.session.add(financial_record)
             db.session.commit()
+            SyncEngine._log_to_db(order_id, supplier_id, 'financial_sync', 'success')
             return True
 
         except Exception as e:
             db.session.rollback()
-            logger.error(f"❌ خطأ حرج: {e}")
+            SyncEngine._log_to_db(order_id, supplier_id, 'financial_sync', 'failed', error=str(e))
+            logger.error(f"❌ خطأ حرج في معالجة الطلب {order_id}: {e}")
             return False
