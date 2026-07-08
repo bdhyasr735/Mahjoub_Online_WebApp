@@ -1,21 +1,15 @@
-# coding: utf-8
 # 📂 apps/admin_permissions/registry.py
 
-from .routes import admin_permissions_bp
-
-# إعدادات الموديول للظهور في القائمة الجانبية
 MODULE_NAME = "إدارة الصلاحيات"
-MODULE_ICON = "fas fa-shield-alt"
+MODULE_ICON = "fas fa-user-shield"
 
-# الروابط التي ستظهر في القائمة المنسدلة
+# الروابط التي ستظهر في الشريط الجانبي
 LINKS = {
-    'قائمة الأدوار': 'admin_permissions.roles_list',
-    'إسناد الصلاحيات': 'admin_permissions.assign_permissions'
+    "قائمة الصلاحيات": "admin_permissions.roles_list",
+    "إسناد الصلاحيات": "admin_permissions.assign_permissions"
 }
 
-# تحديد هل يظهر للمورد أم للمدير فقط
-SHOW_IN_SUPPLIER = False
-
 def register_module(app):
-    """تسجيل الـ Blueprint الخاص بالموديول في التطبيق."""
-    app.register_blueprint(admin_permissions_bp)
+    # لا داعي للقيام بـ register_blueprint هنا إذا كان يتم في مكان آخر،
+    # يكفي هذا الملف ليقوم "الماسح الضوئي" للنظام بالتعرف على الموديول.
+    print("✅ [Registry]: تم تسجيل موديول 'إدارة الصلاحيات' بنجاح.")
