@@ -5,8 +5,7 @@ import os
 from datetime import datetime
 from cryptography.fernet import Fernet
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event, update, Table, MetaData, Column, Integer, String
+from sqlalchemy import event, update
 from apps.extensions import db
 
 class Supplier(db.Model, UserMixin):
@@ -23,14 +22,13 @@ class Supplier(db.Model, UserMixin):
         {'extend_existing': True}
     )
 
-    # المعرف رقمي ليطابق قيود Foreign Keys في PostgreSQL
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     supplier_code = db.Column(db.String(50), unique=True, nullable=True)
     owner_name = db.Column(db.String(150), nullable=True) 
     trade_name = db.Column(db.String(150), nullable=True)
     
-    # التشفير
+    # التشفير السيادي
     _phone_enc = db.Column(db.String(255), nullable=False) 
     search_phone = db.Column(db.String(20))
     
@@ -47,11 +45,9 @@ class Supplier(db.Model, UserMixin):
     financials = db.relationship('OrderFinancial', back_populates='supplier', cascade="all, delete-orphan")
     staff_members = db.relationship('SupplierStaff', back_populates='supplier', cascade="all, delete-orphan")
 
-    # نظام التشفير
     @staticmethod
     def _get_key():
-        key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
-        return key.encode()
+        return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
 
     @property
     def phone(self):
@@ -66,54 +62,19 @@ class Supplier(db.Model, UserMixin):
             self.search_phone = str(value)[-9:]
 
     def set_password(self, password):
+        from werkzeug.security import generate_password_hash
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
     def check_password(self, password):
+        from werkzeug.security import check_password_hash
         return check_password_hash(self.password_hash, password)
 
-# --- المحرك التلقائي ---
+# --- المحرك التلقائي المصغر (فقط لتوليد الكود) ---
 @event.listens_for(Supplier, 'after_insert')
 def receive_after_insert(mapper, connection, target):
-    # 1. تحديث الكود البصري
+    # نكتفي هنا فقط بتوليد الكود البصري، أما إنشاء المحفظة والموظف 
+    # فيجب أن يتم في الـ Route لضمان عدم حدوث IntegrityError
     new_code = f"MAH-SUP963{target.id}"
     connection.execute(
         update(Supplier).where(Supplier.id == target.id).values(supplier_code=new_code)
-    )
-    
-    metadata = MetaData()
-    
-    # 2. إنشاء المحفظة (الآن supplier_id من نوع Integer)
-    wallets_table = Table('supplier_wallets', metadata, 
-                          Column('id', Integer, primary_key=True),
-                          Column('wallet_code', String(50)),
-                          Column('supplier_id', Integer), 
-                          autoload_with=connection)
-    
-    connection.execute(
-        wallets_table.insert().values(
-            wallet_code=f"MAH-WEL963{target.id}",
-            supplier_id=target.id # تمرير كـ Integer
-        )
-    )
-
-    # 3. إنشاء المالك (الآن supplier_id من نوع Integer)
-    staff_table = Table('supplier_staff', metadata,
-                        Column('id', Integer, primary_key=True),
-                        Column('supplier_id', Integer),
-                        Column('username', String(100)),
-                        Column('phone', String(20)),
-                        Column('password_hash', String(255)),
-                        Column('role', String(50)),
-                        autoload_with=connection)
-    
-    default_pw = generate_password_hash("Admin123!", method='pbkdf2:sha256')
-    
-    connection.execute(
-        staff_table.insert().values(
-            supplier_id=target.id, # تمرير كـ Integer
-            username=target.username,
-            phone=target.phone, 
-            password_hash=default_pw,
-            role='owner' 
-        )
     )
