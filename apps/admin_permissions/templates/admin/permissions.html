@@ -2,7 +2,6 @@
 
 {% block content %}
 <style>
-    /* التنسيق الملكي */
     .btn-royal { background-color: #4b0082; color: #fff; border: 1px solid #d4af37; }
     .btn-royal:hover { background-color: #2e004d; color: #d4af37; }
     .card { border: 1px solid #d4af37; background-color: #fcfcfc; }
@@ -52,6 +51,7 @@
                         <tr>
                             <th>الموظف</th>
                             <th>الدور</th>
+                            {% if type_filter == 'supplier' %}<th>المورد التابع له</th>{% endif %}
                             <th>تاريخ الانضمام</th>
                             <th>الحالة</th>
                             <th>الإجراءات</th>
@@ -65,6 +65,16 @@
                                 <small class="text-muted">{{ member.phone }}</small>
                             </td>
                             <td><span class="badge" style="background-color: #d4af37; color: #000;">{{ member.role }}</span></td>
+                            {% if type_filter == 'supplier' %}
+                            <td>
+                                {% if member.supplier %}
+                                    <div class="fw-bold text-royal">{{ member.supplier.trade_name }}</div>
+                                    <small class="text-secondary">{{ member.supplier.supplier_code }}</small>
+                                {% else %}
+                                    <span class="text-muted">غير مرتبط</span>
+                                {% endif %}
+                            </td>
+                            {% endif %}
                             <td class="text-secondary">{{ member.created_at.strftime('%Y-%m-%d') }}</td>
                             <td>
                                 {% if member.is_active %}
@@ -89,18 +99,7 @@
                     </tbody>
                 </table>
             </div>
-
-            <nav class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2) %}
-                        {% if page_num %}
-                            <li class="page-item {{ 'active' if page_num == pagination.page }}">
-                                <a class="page-link" href="{{ url_for('admin_permissions.roles_list', page=page_num, type=type_filter, q=request.args.get('q', '')) }}">{{ page_num }}</a>
-                            </li>
-                        {% endif %}
-                    {% endfor %}
-                </ul>
-            </nav>
+            <nav class="mt-4"><ul class="pagination justify-content-center">{% for page_num in pagination.iter_pages(left_edge=2, right_edge=2) %}{% if page_num %}<li class="page-item {{ 'active' if page_num == pagination.page }}"><a class="page-link" href="{{ url_for('admin_permissions.roles_list', page=page_num, type=type_filter, q=request.args.get('q', '')) }}">{{ page_num }}</a></li>{% endif %}{% endfor %}</ul></nav>
         </div>
     </div>
 </div>
@@ -108,6 +107,7 @@
 <div class="modal fade" id="addStaffModal" tabindex="-1">
     <div class="modal-dialog">
         <form class="modal-content gold-border" method="POST" action="{{ url_for('admin_permissions.assign_permissions') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="modal-header bg-light text-royal"><h5>إضافة موظف جديد</h5></div>
             <div class="modal-body">
                 <input type="text" name="username" class="form-control mb-3" placeholder="اسم المستخدم" required>
