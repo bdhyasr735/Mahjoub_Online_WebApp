@@ -17,8 +17,8 @@
                 </div>
                 <div class="col-md-4">
                     <select name="type" class="form-select">
-                        <option value="admin">إدارة مركزية</option>
-                        <option value="supplier">موظفي الشركاء</option>
+                        <option value="admin" {% if type_filter == 'admin' %}selected{% endif %}>إدارة مركزية</option>
+                        <option value="supplier" {% if type_filter == 'supplier' %}selected{% endif %}>موظفي الشركاء</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -81,7 +81,7 @@
                     {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2) %}
                         {% if page_num %}
                             <li class="page-item {{ 'active' if page_num == pagination.page }}">
-                                <a class="page-link" href="{{ url_for('admin_permissions.roles_list', page=page_num) }}">{{ page_num }}</a>
+                                <a class="page-link" href="{{ url_for('admin_permissions.roles_list', page=page_num, type=type_filter) }}">{{ page_num }}</a>
                             </li>
                         {% endif %}
                     {% endfor %}
@@ -98,8 +98,13 @@
             <div class="modal-body">
                 <input type="text" name="username" class="form-control mb-3" placeholder="اسم المستخدم" required>
                 <input type="email" name="email" class="form-control mb-3" placeholder="البريد الإلكتروني" required>
+                <select name="type" class="form-select mb-3">
+                    <option value="admin">إدارة مركزية</option>
+                    <option value="supplier">موظف شريك</option>
+                </select>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
                 <button type="submit" class="btn btn-primary">حفظ البيانات</button>
             </div>
         </form>
