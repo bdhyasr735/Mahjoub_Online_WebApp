@@ -42,15 +42,14 @@
             </a>
             
             {% if registered_modules %}
-                {# القائمة البيضاء: استبدلنا خزينة الموردين بـ orders #}
-                {% set allowed_modules = ['admin_suppliers_list', 'orders', 'admin_financial_control'] %}
+                {# القائمة البيضاء: تمت إضافة admin_permissions #}
+                {% set allowed_modules = ['admin_suppliers_list', 'orders', 'admin_financial_control', 'admin_permissions'] %}
                 
                 {% for key, module in registered_modules.items() %}
                     {% if key in allowed_modules %}
                         <div class="nav-item">
                             <div class="nav-link" onclick="toggleSub(this)">
                                 <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
-                                <!-- يعرض الاسم المعرف في ملف registry.py -->
                                 <span>{{ module.display_name }}</span> 
                                 <i class="fas fa-chevron-down ms-auto"></i>
                             </div>
