@@ -7,7 +7,8 @@ import secrets
 import string
 
 from apps.extensions import db
-from apps.models.admin_db import AdminStaff  # تأكد من المسار الصحيح للموديل
+# تم تعديل المسار هنا ليطابق اسم الملف الفعلي لديك
+from apps.models.admin_staff_db import AdminStaff 
 
 # تعريف الـ Blueprint
 admin_permissions_bp = Blueprint(
