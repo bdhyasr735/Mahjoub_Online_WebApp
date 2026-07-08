@@ -1,0 +1,1 @@
+apps/admin_platform_treasury/registry.py
