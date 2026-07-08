@@ -1,90 +1,59 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
 <style>
     .btn-royal { background-color: #4b0082; color: #fff; border: 1px solid #d4af37; }
-    .btn-royal:hover { background-color: #2e004d; color: #d4af37; }
     .card { border: 1px solid #d4af37; background-color: #fcfcfc; }
     .table thead { background-color: #4b0082 !important; color: #fff; }
     .text-royal { color: #4b0082; }
-    .gold-border { border-color: #d4af37; }
     .phone-status { position: absolute; left: 15px; top: 10px; font-size: 1.2rem; }
+    .copy-btn { cursor: pointer; color: #4b0082; }
 </style>
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-2">
-                <i class="fas fa-arrow-right me-1"></i> رجوع
-            </a>
+            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-2"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
             <h4 class="text-royal fw-bold"><i class="fas fa-user-shield me-2"></i> إدارة صلاحيات النظام</h4>
         </div>
-        <button class="btn btn-royal" data-bs-toggle="modal" data-bs-target="#addStaffModal">
-            <i class="fas fa-plus-circle me-1"></i> إضافة موظف جديد
-        </button>
+        <button class="btn btn-royal" data-bs-toggle="modal" data-bs-target="#addStaffModal"><i class="fas fa-plus-circle me-1"></i> إضافة موظف جديد</button>
     </div>
 
-    <div class="card shadow-sm gold-border">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-royal">
-                        <tr><th>#</th><th>الموظف</th><th>الدور</th>{% if type_filter == 'supplier' %}<th>المورد</th>{% endif %}<th>تاريخ الانضمام</th><th>الحالة</th><th>الإجراءات</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for member in staff %}
-                        <tr>
-                            <td>{{ loop.index + (pagination.page - 1) * 10 }}</td>
-                            <td><div class="fw-bold">{{ member.username }}</div><small class="text-muted">{{ member.phone }}</small></td>
-                            <td><span class="badge" style="background-color: #d4af37; color: #000;">{{ member.role }}</span></td>
-                            {% if type_filter == 'supplier' %}<td>{% if member.supplier %}<div class="fw-bold text-royal">{{ member.supplier.trade_name }}</div><small class="text-secondary fw-bold">كود: {{ member.supplier.supplier_code }}</small>{% else %}<span class="text-muted">غير مرتبط</span>{% endif %}</td>{% endif %}
-                            <td class="text-secondary">{{ member.created_at.strftime('%Y-%m-%d') }}</td>
-                            <td>{% if member.is_active %}<span class="text-success"><i class="fas fa-check-circle"></i> نشط</span>{% else %}<span class="text-danger"><i class="fas fa-times-circle"></i> موقوف</span>{% endif %}</td>
-                            <td>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">خيارات</button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="{{ url_for('admin_permissions.reset_password', id=member.id, type=type_filter) }}"><i class="fas fa-key text-warning me-2"></i> كلمة مرور جديدة</a></li>
-                                        <li><a class="dropdown-item" href="{{ url_for('admin_permissions.toggle_status', id=member.id, type=type_filter) }}"><i class="fas fa-power-off text-danger me-2"></i> {{ 'إيقاف الحساب' if member.is_active else 'تفعيل الحساب' }}</a></li>
-                                    </ul>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="addStaffModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form id="addStaffForm" action="{{ url_for('admin_permissions.assign_permissions') }}" class="modal-content gold-border">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="modal-header bg-light text-royal"><h5>إضافة موظف جديد</h5></div>
-            <div class="modal-body">
-                <div class="position-relative mb-3">
-                    <input type="text" name="username" id="usernameInput" class="form-control" placeholder="اسم المستخدم" required oninput="checkAll()">
-                    <span id="userStatus" class="phone-status"></span>
-                </div>
-                <div class="position-relative mb-3">
-                    <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="رقم الهاتف (00967...)" required oninput="checkAll()">
-                    <span id="phoneStatus" class="phone-status"></span>
-                </div>
-                <select name="type" id="staffTypeSelect" class="form-select mb-3" onchange="toggleSupplierField(this.value); checkAll()">
-                    <option value="admin">إدارة مركزية</option>
-                    <option value="supplier">موظف شريك</option>
-                </select>
-                <select name="supplier_id" id="supplierField" class="form-control mb-3" style="display:none;">
-                    {% for sup in suppliers %}<option value="{{ sup.id }}">{{ sup.trade_name }} - ({{ sup.supplier_code }})</option>{% endfor %}
-                </select>
-            </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button><button type="submit" id="submitBtn" class="btn btn-royal" disabled>حفظ البيانات</button></div>
-        </form>
+    <div class="card shadow-sm p-3">
+        <table class="table table-hover align-middle" id="staffTable">
+            <thead class="table-royal">
+                <tr><th>#</th><th>الموظف</th><th>الدور</th>{% if type_filter == 'supplier' %}<th>المورد (الكود)</th>{% endif %}<th>الحالة</th><th>الإجراءات</th></tr>
+            </thead>
+            <tbody>
+                {% for member in staff %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><div class="fw-bold">{{ member.username }}</div><small class="text-muted">{{ member.phone }}</small></td>
+                    <td><span class="badge" style="background-color: #d4af37; color: #000;">{{ member.role }}</span></td>
+                    {% if type_filter == 'supplier' %}
+                    <td>
+                        {% if member.supplier %}
+                        <div class="fw-bold text-royal">{{ member.supplier.trade_name }}</div>
+                        <small class="text-secondary fw-bold">كود: {{ member.supplier.supplier_code }}</small>
+                        {% else %}<span class="text-muted">غير مرتبط</span>{% endif %}
+                    </td>
+                    {% endif %}
+                    <td>{% if member.is_active %}<span class="text-success"><i class="fas fa-check-circle"></i> نشط</span>{% else %}<span class="text-danger"><i class="fas fa-times-circle"></i> موقوف</span>{% endif %}</td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">خيارات</button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('admin_permissions.reset_password', id=member.id, type=type_filter) }}"><i class="fas fa-key text-warning me-2"></i> كلمة مرور جديدة</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -93,68 +62,52 @@
         <div class="modal-content">
             <div class="modal-header bg-success text-white"><h5>تم التعميد بنجاح</h5></div>
             <div class="modal-body text-center">
-                <p>مرحباً ياشريكنا تم اعتماد موظف لديكم بنجاح في منصة محجوب أونلاين | سوقك الذكي</p>
-                <div class="bg-light p-3 border rounded text-start" id="credentialBox">
+                <div class="bg-light p-3 border rounded text-start" id="credBox">
+                    <p>اسم المتجر: <strong id="resStore"></strong></p>
+                    <p>كود المتجر: <strong id="resCode"></strong></p>
+                    <hr>
                     <p>اسم المستخدم: <strong id="resUser"></strong></p>
                     <p>كلمة المرور: <strong id="resPass" class="text-royal"></strong></p>
                 </div>
-                <p class="text-danger mt-3">تنبيه: يرجى تغيير كلمة المرور من لوحة الإعدادات.</p>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-royal" onclick="window.location.reload()">إغلاق وتحديث</button></div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-royal" onclick="copyText()">نسخ البيانات <i class="fas fa-copy"></i></button>
+                <button type="button" class="btn btn-royal" onclick="window.location.reload()">تم</button>
+            </div>
         </div>
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
 <script>
-    const element = document.getElementById('supplierField');
-    const choices = new Choices(element, { searchEnabled: true });
-    const submitBtn = document.getElementById('submitBtn');
+    $(document).ready(function() {
+        $('#staffTable').DataTable({
+            "pageLength": 10,
+            "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" }
+        });
+    });
 
-    function toggleSupplierField(val) {
-        const container = document.querySelector('.choices');
-        if(container) container.style.display = (val === 'supplier') ? 'block' : 'none';
+    function copyText() {
+        const text = document.getElementById('credBox').innerText;
+        navigator.clipboard.writeText(text).then(() => alert("تم نسخ البيانات!"));
     }
 
-    async function checkAll() {
-        const user = document.getElementById('usernameInput').value;
-        const phone = document.getElementById('phoneInput').value;
-        const type = document.getElementById('staffTypeSelect').value;
-        
-        if (user.length < 3 || phone.length < 9) {
-            submitBtn.disabled = true;
-            return;
-        }
-
-        const [uRes, pRes] = await Promise.all([
-            fetch(`/admin/permissions/check-user?username=${user}`).then(r=>r.json()),
-            fetch(`/admin/permissions/check-phone?phone=${phone}&type=${type}`).then(r=>r.json())
-        ]);
-        
-        document.getElementById('userStatus').innerHTML = (uRes.available) ? '✅' : '❌';
-        document.getElementById('phoneStatus').innerHTML = (pRes.available) ? '✅' : '❌';
-        submitBtn.disabled = !(uRes.available && pRes.available);
-    }
-
+    // إضافة منطق الـ Submit لتعبئة مودال النجاح
     document.getElementById('addStaffForm').onsubmit = async (e) => {
         e.preventDefault();
-        const res = await fetch(e.target.action, { 
-            method: 'POST', 
-            body: new FormData(e.target) 
-        });
+        const res = await fetch(e.target.action, { method: 'POST', body: new FormData(e.target) });
         const data = await res.json();
-        
         if(data.success) {
             document.getElementById('resUser').innerText = data.username;
             document.getElementById('resPass').innerText = data.password;
-            
-            // إغلاق المودال الحالي وإظهار مودال النجاح
-            const modalEl = document.getElementById('addStaffModal');
-            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            modal.hide();
-            
+            document.getElementById('resStore').innerText = data.trade_name;
+            document.getElementById('resCode').innerText = data.supplier_code;
+            bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
             new bootstrap.Modal(document.getElementById('successModal')).show();
-        } else {
-            alert(data.message || "حدث خطأ أثناء المعالجة");
         }
     };
 </script>
