@@ -26,10 +26,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
-    # التحقق من الإعدادات الحساسة عند التشغيل
     config.Config.validate_config()
-
-    # تفعيل CORS
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
 
     # 1. تهيئة الإضافات
@@ -57,13 +54,6 @@ def create_app():
     app.register_blueprint(qomrah_bp)
     csrf.exempt(qomrah_bp)
     
-    try:
-        from apps.admin.graphql_routes import graphql_bp 
-        app.register_blueprint(graphql_bp)
-        csrf.exempt(graphql_bp)
-    except ImportError:
-        pass
-
     # 4. تسجيل الموديولات الديناميكي
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api']
@@ -103,11 +93,14 @@ def create_app():
             supplier_modules=SUPPLIER_MODULES
         )
 
-    # 6. إعداد البيئة الأولية (إنشاء المستخدم المالك)
+    # 6. إعداد البيئة (إنشاء الجداول والمستخدم المالك)
     with app.app_context():
+        # إنشاء الجداول تلقائياً (حل جذري لمشكلة UndefinedTable أثناء التطوير)
+        db.create_all() 
+        print("✅ [Database]: تم إنشاء/تحديث الجداول بنجاح.")
+
         try:
             from apps.models.admin_db import AdminUser
-            # التحقق من وجود المستخدم قبل الإضافة
             if not AdminUser.query.filter_by(username='علي محجوب').first():
                 owner = AdminUser(username='علي محجوب', role='Owner')
                 owner.set_password('123')
@@ -115,7 +108,6 @@ def create_app():
                 db.session.commit()
                 print("✅ [Setup]: تم إنشاء المستخدم المالك بنجاح.")
         except Exception as e:
-            # هذا الجزء يُنفذ إذا لم تكن الجداول موجودة بعد، لذا لا نوقف السيرفر
-            print(f"ℹ️ [Setup]: تخطي إضافة المستخدم المالك (الجداول قد لا تكون جاهزة بعد): {e}")
+            print(f"ℹ️ [Setup]: تعذر إنشاء المستخدم المالك: {e}")
 
     return app
