@@ -9,7 +9,6 @@ import string
 from apps.extensions import db
 from apps.models.admin_staff_db import AdminStaff
 from apps.models.supplier_staff_db import SupplierStaff
-# تم التصحيح هنا: استخدام اسم الملف الفعلي supplier_db
 from apps.models.supplier_db import Supplier 
 
 admin_permissions_bp = Blueprint('admin_permissions', __name__, template_folder='templates')
@@ -40,7 +39,7 @@ def roles_list():
     if search:
         query = query.filter(model.username.contains(search) | model.phone.contains(search))
         
-    # الترقيم الصفحي (10 عناصر لكل صفحة)
+    # الترقيم الصفحي
     pagination = query.order_by(model.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
     
     # جلب الموردين للقائمة المنسدلة
@@ -55,6 +54,10 @@ def roles_list():
 @admin_permissions_bp.route('/admin/permissions/assign', methods=['POST'])
 @login_required
 def assign_permissions():
+    """
+    ملاحظة: هذا المسار يتطلب وجود CSRF Token في الفورم (HTML)
+    بسبب استخدام Flask-WTF أو CSRFProtect في إعدادات التطبيق.
+    """
     if not is_admin(): return redirect(url_for('admin_dashboard.dashboard'))
     
     username = request.form.get('username')
