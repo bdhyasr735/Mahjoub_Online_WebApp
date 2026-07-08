@@ -12,6 +12,7 @@
     .pagination .page-item.active .page-link { background-color: #4b0082; border-color: #4b0082; color: #fff; }
     .text-royal { color: #4b0082; }
     .gold-border { border-color: #d4af37; }
+    .phone-status { position: absolute; left: 15px; top: 10px; font-size: 1.2rem; }
 </style>
 
 <div class="container-fluid py-4">
@@ -111,16 +112,22 @@
 
 <div class="modal fade" id="addStaffModal" tabindex="-1">
     <div class="modal-dialog">
-        <form class="modal-content gold-border" method="POST" action="{{ url_for('admin_permissions.assign_permissions') }}">
+        <form id="addStaffForm" class="modal-content gold-border" method="POST" action="{{ url_for('admin_permissions.assign_permissions') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="modal-header bg-light text-royal"><h5>إضافة موظف جديد</h5></div>
             <div class="modal-body">
                 <input type="text" name="username" class="form-control mb-3" placeholder="اسم المستخدم" required>
-                <input type="tel" name="phone" class="form-control mb-3" placeholder="رقم الهاتف (00967...)" required>
-                <select name="type" id="staffTypeSelect" class="form-select mb-3" onchange="toggleSupplierField(this.value)">
+                
+                <div class="position-relative mb-3">
+                    <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="رقم الهاتف (00967...)" required oninput="validatePhone()">
+                    <span id="phoneStatus" class="phone-status"></span>
+                </div>
+
+                <select name="type" id="staffTypeSelect" class="form-select mb-3" onchange="toggleSupplierField(this.value); validatePhone()">
                     <option value="admin">إدارة مركزية</option>
                     <option value="supplier">موظف شريك</option>
                 </select>
+                
                 <select name="supplier_id" id="supplierField" class="form-control mb-3" style="display:none;">
                     <option value="">-- ابحث عن المورد (الاسم أو الكود) --</option>
                     {% for sup in suppliers %}
@@ -130,16 +137,16 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="submit" class="btn btn-royal">حفظ البيانات</button>
+                <button type="submit" id="submitBtn" class="btn btn-royal">حفظ البيانات</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-    // تفعيل البحث الذكي في القائمة
     const element = document.getElementById('supplierField');
     const choices = new Choices(element, { searchEnabled: true, itemSelectText: 'اضغط للاختيار' });
+    const submitBtn = document.getElementById('submitBtn');
 
     function toggleSupplierField(val) {
         const fieldContainer = document.querySelector('.choices');
@@ -149,6 +156,29 @@
         } else {
             fieldContainer.style.display = 'none';
             element.required = false;
+        }
+    }
+
+    async function validatePhone() {
+        const phone = document.getElementById('phoneInput').value;
+        const type = document.getElementById('staffTypeSelect').value;
+        const statusSpan = document.getElementById('phoneStatus');
+        
+        if(phone.length < 9) {
+            statusSpan.innerHTML = '';
+            submitBtn.disabled = false;
+            return;
+        }
+
+        const response = await fetch(`/admin/permissions/check-phone?phone=${phone}&type=${type}`);
+        const data = await response.json();
+
+        if(data.available) {
+            statusSpan.innerHTML = '✅';
+            submitBtn.disabled = false;
+        } else {
+            statusSpan.innerHTML = '❌';
+            submitBtn.disabled = true;
         }
     }
 </script>
