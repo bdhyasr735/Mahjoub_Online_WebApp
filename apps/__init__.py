@@ -26,7 +26,10 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
+    # التحقق من الإعدادات الحساسة عند التشغيل
     config.Config.validate_config()
+
+    # تفعيل CORS لدعم التواصل مع Apollo Sandbox وواجهات النظام
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
 
     # 1. تهيئة الإضافات
@@ -54,6 +57,13 @@ def create_app():
     app.register_blueprint(qomrah_bp)
     csrf.exempt(qomrah_bp)
     
+    try:
+        from apps.admin.graphql_routes import graphql_bp 
+        app.register_blueprint(graphql_bp)
+        csrf.exempt(graphql_bp) 
+    except ImportError:
+        pass
+
     # 4. تسجيل الموديولات الديناميكي
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api']
@@ -93,11 +103,13 @@ def create_app():
             supplier_modules=SUPPLIER_MODULES
         )
 
-    # 6. إعداد البيئة (إنشاء الجداول والمستخدم المالك)
+    # 6. إعداد البيئة الأولية (بشكل آمن لتجنب أخطاء التكرار)
     with app.app_context():
-        # إنشاء الجداول تلقائياً (حل جذري لمشكلة UndefinedTable أثناء التطوير)
-        db.create_all() 
-        print("✅ [Database]: تم إنشاء/تحديث الجداول بنجاح.")
+        try:
+            db.create_all()
+        except Exception as e:
+            # نتجاهل الأخطاء الناتجة عن وجود الجداول مسبقاً (DuplicateTable)
+            print(f"ℹ️ [Setup]: تخطي إنشاء الجداول (قد تكون موجودة): {e}")
 
         try:
             from apps.models.admin_db import AdminUser
@@ -108,6 +120,6 @@ def create_app():
                 db.session.commit()
                 print("✅ [Setup]: تم إنشاء المستخدم المالك بنجاح.")
         except Exception as e:
-            print(f"ℹ️ [Setup]: تعذر إنشاء المستخدم المالك: {e}")
+            print(f"ℹ️ [Setup]: تعذر إضافة المستخدم المالك: {e}")
 
     return app
