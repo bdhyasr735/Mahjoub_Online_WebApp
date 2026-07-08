@@ -3,21 +3,18 @@
 
 """
 مركز التحكم في الموديلات (Model Registry)
-تم ترتيب الاستيراد لضمان تحميل الموديلات الأم قبل التابعة 
-لتجنب أخطاء الاعتمادات الدائرية (Circular Imports).
+تم تنظيم الاستيراد لضمان تحميل الموديلات بشكل متسلسل ومنع حدوث الاعتمادات الدائرية.
 """
 
-# استيراد قاعدة البيانات لتكون متاحة عبر apps.models لأي موديول
 from apps.extensions import db
 
-# 1. الموديلات الأساسية
-# تم تعديل الاسم إلى supplier_db ليتوافق مع هيكلية المجلد الحالية
-from .supplier_db import Supplier        
+# 1. الموديلات الأساسية (يتم استيرادها أولاً لأنها لا تعتمد على غيرها)
+from .supplier_db import Supplier
 from .admin_db import AdminUser
 from .marketer_db import Marketer
 from .exchange_db import ExchangeRate
 
-# 2. الموديلات التابعة
+# 2. الموديلات التابعة (تعتمد غالباً على الموديلات الأساسية)
 from .admin_staff_db import AdminStaff
 from .supplier_profile_db import SupplierProfile
 from .supplier_staff_db import SupplierStaff
@@ -28,6 +25,7 @@ from .order_items_db import OrderItem
 from .sync_log import SyncLog
 
 # 3. القائمة المصدرة (Export Registry)
+# تأكد أن جميع الكلاسات معرفة ومستوردة أعلاه لتجنب خطأ ImportError
 __all__ = [
     'db',
     'AdminStaff',
