@@ -1,27 +1,14 @@
-# apps/registry.py
+# apps/admin_permissions/registry.py
+from flask import Blueprint
+from .routes import admin_permissions_bp
 
-# ... (الموديولات السابقة)
-
-registered_modules = {
-    # ... (الموديولات الأخرى الموجودة سابقاً)
-
-    # إضافة موديول الصلاحيات
-    'permissions': {
-        'display_name': 'إدارة الصلاحيات',
-        'icon': 'fas fa-shield-alt',
-        'links': {
-            'قائمة الأدوار': 'admin_permissions.roles_list',
-            'إسناد الصلاحيات': 'admin_permissions.assign_permissions'
-        }
-    },
-
-    # إضافة موديول العملات والصرف
-    'exchange_management': {
-        'display_name': 'الرقابة المالية والصرف',
-        'icon': 'fas fa-money-bill-wave',
-        'links': {
-            'أسعار الصرف': 'admin_exchange.rates',
-            'سجل العمليات': 'admin_exchange.transactions'
-        }
-    }
+MODULE_NAME = "إدارة الصلاحيات"
+MODULE_ICON = "fas fa-shield-alt"
+LINKS = {
+    'قائمة الأدوار': 'admin_permissions.roles_list',
+    'إسناد الصلاحيات': 'admin_permissions.assign_permissions'
 }
+SHOW_IN_SUPPLIER = False
+
+def register_module(app):
+    app.register_blueprint(admin_permissions_bp)
