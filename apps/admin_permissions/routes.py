@@ -3,7 +3,8 @@
 
 from flask import Blueprint, render_template, flash, redirect, url_for
 from flask_login import login_required, current_user
-# قمنا بتعديل الاستيراد ليعتمد على الموديلات الموجودة فعلياً
+
+# استيراد الموارد المطلوبة من المصادر المركزية
 from apps.extensions import db
 from apps.models import AdminStaff 
 
@@ -14,9 +15,9 @@ admin_permissions_bp = Blueprint(
     template_folder='templates'
 )
 
-# دالة للتحقق من صلاحية المدير
+# دالة مساعدة للتحقق من الصلاحيات السيادية
 def is_admin():
-    # التحقق من أن المستخدم مسجل وله صلاحية الإدارة (admin أو Owner)
+    """التحقق من أن المستخدم مسجل وله صلاحية الإدارة (admin أو Owner)."""
     return current_user.is_authenticated and (getattr(current_user, 'role', '') in ['admin', 'Owner'])
 
 @admin_permissions_bp.route('/admin/permissions/roles', methods=['GET'])
@@ -27,9 +28,14 @@ def roles_list():
         flash("عذراً، غير مصرح لك بالدخول إلى هذه الصفحة.", "danger")
         return redirect(url_for('admin_dashboard.dashboard'))
     
-    # جلب جميع الموظفين الإداريين لعرض أدوارهم
+    # جلب جميع الموظفين الإداريين لعرض أدوارهم من جدول AdminStaff
     staff_members = AdminStaff.query.all()
-    return render_template('admin/permissions.html', staff=staff_members, active_tab='roles')
+    
+    return render_template(
+        'admin/permissions.html', 
+        staff=staff_members, 
+        active_tab='roles'
+    )
 
 @admin_permissions_bp.route('/admin/permissions/assign', methods=['GET', 'POST'])
 @login_required
@@ -39,5 +45,5 @@ def assign_permissions():
         flash("عذراً، غير مصرح لك بالدخول إلى هذه الصفحة.", "danger")
         return redirect(url_for('admin_dashboard.dashboard'))
     
-    # منطق الإسناد سيتم بناؤه هنا بناءً على الـ staff_members
+    # منطق الإسناد سيتم بناؤه هنا لاحقاً بناءً على هيكلية الـ AdminStaff
     return render_template('admin/permissions.html', active_tab='assign')
