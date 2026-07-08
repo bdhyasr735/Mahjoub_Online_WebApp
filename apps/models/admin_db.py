@@ -9,13 +9,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from apps.extensions import db
 
 class AdminUser(db.Model, UserMixin):
-    """موديل إدارة النظام: مع تشفير متقدم للبيانات الحساسة وفهرسة استعلامات سريعة."""
+    """موديل إدارة النظام: مع تشفير سيادي وفهرسة أداء متقدمة."""
     __tablename__ = 'admin_users'
     
-    # [فهرسة الأداء]: تحسين سرعة الاستعلامات الأساسية
+    # [فهرسة الأداء]: تحسين سرعة الاستعلامات والبحث
     __table_args__ = (
         db.Index('idx_adm_username', 'username'),
         db.Index('idx_adm_role', 'role'),
+        db.Index('idx_adm_phone', 'search_phone'), # فهرس للبحث السريع بالهاتف
         db.Index('idx_adm_created', 'created_at'),
         {'extend_existing': True}
     )
@@ -25,24 +26,25 @@ class AdminUser(db.Model, UserMixin):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     
-    # 2. معلومات الحساب - [نظام تشفير AES-256]
+    # 2. معلومات الحساب - [نظام تشفير AES-256 السيادي]
     role = db.Column(db.String(20), default='Owner')
-    _phone_enc = db.Column(db.String(255), nullable=True) # رقم هاتف مشفر
+    _phone_enc = db.Column(db.String(255), nullable=True) # التشفير السيادي للهاتف
+    search_phone = db.Column(db.String(20)) # للبحث السريع (آخر 9 أرقام)
     
     # 3. التدقيق الزمني
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
 
-    # --- نظام التشفير الاحترافي (AES) ---
+    # --- نظام التشفير الاحترافي (Fernet / AES-256) ---
     @staticmethod
     def _get_key():
-        """استرجاع مفتاح التشفير من متغيرات البيئة لضمان الخصوصية."""
-        key = os.environ.get('ENCRYPTION_KEY')
-        return key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
+        """استرجاع المفتاح السيادي من متغيرات البيئة."""
+        key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
+        return key.encode()
 
     @property
     def phone(self):
-        """فك تشفير رقم الهاتف عند العرض."""
+        """فك التشفير عند العرض."""
         if not self._phone_enc: return None
         try:
             return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
@@ -51,9 +53,10 @@ class AdminUser(db.Model, UserMixin):
 
     @phone.setter
     def phone(self, value):
-        """تشفير رقم الهاتف قبل التخزين في قاعدة البيانات."""
+        """تشفير الهاتف قبل التخزين مع الاحتفاظ بـ search_phone للبحث."""
         if value:
             self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
+            self.search_phone = str(value)[-9:] # لتسريع الاستعلامات
 
     # --- نظام تأمين كلمة المرور (PBKDF2) ---
     def set_password(self, password):
