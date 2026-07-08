@@ -40,20 +40,17 @@
             <a href="{{ url_for('admin_dashboard.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard.dashboard' }}">
                 <i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span>
             </a>
-
-            {# القائمة المحدثة للصلاحيات والصرف #}
-            <div class="nav-link" style="color: var(--mahjoub-gold); font-weight: bold; font-size: 0.8rem; cursor: default;">
-                <i class="fas fa-shield-alt me-2"></i> الإدارة والعمليات
-            </div>
-
+            
             {% if registered_modules %}
-                {% set allowed_modules = ['admin_suppliers_list', 'orders', 'admin_financial_control', 'permissions', 'exchange_management'] %}
+                {# القائمة البيضاء: استبدلنا خزينة الموردين بـ orders #}
+                {% set allowed_modules = ['admin_suppliers_list', 'orders', 'admin_financial_control'] %}
                 
                 {% for key, module in registered_modules.items() %}
                     {% if key in allowed_modules %}
                         <div class="nav-item">
                             <div class="nav-link" onclick="toggleSub(this)">
                                 <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
+                                <!-- يعرض الاسم المعرف في ملف registry.py -->
                                 <span>{{ module.display_name }}</span> 
                                 <i class="fas fa-chevron-down ms-auto"></i>
                             </div>
