@@ -23,7 +23,7 @@ class SupplierWallet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     wallet_code = db.Column(db.String(50), unique=True, nullable=False)
     
-    # الربط الرقمي الصحيح
+    # الربط الرقمي الصحيح مع المورد
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
     
     # أرصدة العملات
@@ -33,7 +33,7 @@ class SupplierWallet(db.Model):
     balance_pending = db.Column(db.Numeric(18, 2), default=0.00)    
     total_withdrawn = db.Column(db.Numeric(18, 2), default=0.00)    
     
-    # [تشفير حساس] - تفاصيل البنك محمية
+    # [تشفير حساس] - تفاصيل البنك محمية بـ Fernet
     _bank_details_enc = db.Column(db.String(500), nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
