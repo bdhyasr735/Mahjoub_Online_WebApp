@@ -49,8 +49,7 @@
                                 </button>
                                 <ul class="dropdown-menu shadow">
                                     <li>
-                                        <a class="dropdown-item" href="#" 
-                                           onclick="resetPassword('{{ member.id }}', '{{ type_filter }}', '{{ member.username }}')">
+                                        <a class="dropdown-item" href="#" onclick="handleResetPassword('{{ member.id }}', '{{ type_filter }}', '{{ member.username }}')">
                                             <i class="fas fa-key text-warning me-2"></i> كلمة مرور جديدة
                                         </a>
                                     </li>
@@ -70,3 +69,36 @@
         </div>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    // تفعيل DataTables للبحث والترقيم
+    if (!$.fn.DataTable.isDataTable('#staffTable')) {
+        $('#staffTable').DataTable({
+            "language": {
+                "search": "بحث:",
+                "paginate": { "next": "التالي", "previous": "السابق" },
+                "info": "عرض _START_ إلى _END_ من أصل _TOTAL_ مدخل"
+            }
+        });
+    }
+});
+
+// دالة إعادة التعيين مع نافذة منبثقة للنتيجة
+async function handleResetPassword(id, type, username) {
+    if (!confirm(`تنبيه: سيتم تغيير كلمة المرور للموظف: ${username}. هل أنت متأكد؟`)) return;
+
+    try {
+        const response = await fetch(`/admin/permissions/reset-password/${id}/${type}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`تم تغيير كلمة المرور بنجاح!\nالموظف: ${data.username}\nكلمة المرور الجديدة: ${data.new_password}`);
+        } else {
+            alert('حدث خطأ أثناء إعادة التعيين: ' + data.message);
+        }
+    } catch (err) {
+        alert('فشل الاتصال بالخادم.');
+    }
+}
+</script>
