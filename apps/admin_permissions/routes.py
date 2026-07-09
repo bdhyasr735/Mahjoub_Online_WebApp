@@ -5,6 +5,8 @@ from flask import Blueprint, render_template, redirect, url_for, request, jsonif
 from flask_login import login_required, current_user
 import secrets
 import string
+import os
+from cryptography.fernet import Fernet
 
 from apps.extensions import db
 from apps.models.admin_staff_db import AdminStaff
@@ -61,7 +63,7 @@ def roles_list():
                            type_filter=staff_type, 
                            suppliers=Supplier.query.all())
 
-# --- إضافة موظف جديد (نسخة محسنة) ---
+# --- إضافة موظف جديد (النسخة الحديدية المضادة للانهيار) ---
 @admin_permissions_bp.route('/admin/permissions/assign', methods=['POST'])
 @login_required
 def assign_permissions():
@@ -81,15 +83,25 @@ def assign_permissions():
         if staff_type == 'admin':
             new_staff = AdminStaff(username=username, role='worker')
             supplier_info = {'trade_name': 'إدارة مركزية', 'supplier_code': 'SYSTEM'}
+            # الإدارة المركزية تعتمد على الـ Setter التلقائي للتشفير
+            new_staff.phone = phone
         else:
             supplier = Supplier.query.get_or_404(int(supplier_id))
             new_staff = SupplierStaff(username=username, role='worker', supplier_id=supplier.id)
             supplier_info = {'trade_name': supplier.trade_name, 'supplier_code': supplier.supplier_code}
+            
+            # للموردين: نقوم بحقن القيمة العادية وتشفير القيمة السيادية يدوياً لكسر الـ NullViolation
+            new_staff.phone = phone
+            
+            # جلب مفتاح التشفير المتوافق مع النظام الخاص بك
+            enc_key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
+            new_staff._phone_enc = Fernet(enc_key.encode()).encrypt(str(phone).encode()).decode()
+            
+            # تحديث حقل البحث السريع إذا كان مدعوماً في جدول الموردين
+            if hasattr(new_staff, 'search_phone'):
+                new_staff.search_phone = str(phone)[-9:]
         
-        # الاعتماد الكلي على Setter الموديل للقيام بالتشفير وتعبئة الحقول
-        # هذا السطر سيقوم بتحديث _phone_enc و search_phone تلقائياً
-        new_staff.phone = phone
-        
+        # تشفير كلمة المرور وحفظ الحساب
         new_staff.set_password(password)
         
         db.session.add(new_staff)
