@@ -9,6 +9,7 @@ from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS 
+from sqlalchemy import inspect
 import config
 
 from apps.extensions import db, login_manager, migrate
@@ -26,13 +27,10 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
-    # التحقق من الإعدادات الحساسة عند التشغيل
+    # 1. التحقق من الإعدادات وتهيئة الإضافات
     config.Config.validate_config()
-
-    # تفعيل CORS لدعم التواصل مع Apollo Sandbox وواجهات النظام
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
 
-    # 1. تهيئة الإضافات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -103,16 +101,20 @@ def create_app():
             supplier_modules=SUPPLIER_MODULES
         )
 
-    # 6. إعداد البيئة الأولية (بشكل آمن لتجنب أخطاء التكرار)
+    # 6. إعداد البيئة (بشكل آمن لتجنب خطأ NameError و DuplicateTable)
     with app.app_context():
+        # استيراد الموديلات
+        from apps.models.admin_db import AdminUser
+        
+        # إنشاء الجداول بمرونة
         try:
             db.create_all()
-        except Exception as e:
-            # نتجاهل الأخطاء الناتجة عن وجود الجداول مسبقاً (DuplicateTable)
-            print(f"ℹ️ [Setup]: تخطي إنشاء الجداول (قد تكون موجودة): {e}")
+        except Exception:
+            pass # تجاهل خطأ التكرار
 
+        # إضافة المستخدم المالك بأمان
         try:
-            from apps.models.admin_db import AdminUser
+            db.session.rollback()
             if not AdminUser.query.filter_by(username='علي محجوب').first():
                 owner = AdminUser(username='علي محجوب', role='Owner')
                 owner.set_password('123')
@@ -120,6 +122,7 @@ def create_app():
                 db.session.commit()
                 print("✅ [Setup]: تم إنشاء المستخدم المالك بنجاح.")
         except Exception as e:
-            print(f"ℹ️ [Setup]: تعذر إضافة المستخدم المالك: {e}")
+            db.session.rollback()
+            print(f"ℹ️ [Setup]: ملاحظة: لم يتم إضافة المستخدم المالك: {e}")
 
     return app
