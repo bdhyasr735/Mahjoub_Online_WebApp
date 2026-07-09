@@ -26,7 +26,7 @@ class SupplierStaff(db.Model, UserMixin):
     
     # التشفير السيادي للهاتف
     _phone_enc = db.Column(db.String(255), nullable=False) 
-    search_phone = db.Column(db.String(20)) # تم تغيير الاسم لـ search_phone لتجنب التضارب مع property
+    search_phone = db.Column(db.String(20)) # عمود الفهرس للبحث السريع
     
     email = db.Column(db.String(150), nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -34,13 +34,14 @@ class SupplierStaff(db.Model, UserMixin):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # 3. العلاقات: تم كسر الحلقة التكرارية بإزالة back_populates
-    # الاعتماد على الـ backref الموجود في Supplier يكفي للربط
-    supplier = db.relationship('Supplier')
+    # 3. العلاقات: تم ربطها باستخدام back_populates للتوافق التام مع Supplier
+    # هذا التعديل ينهي نهائياً مشكلة الـ Circular Imports
+    supplier = db.relationship('Supplier', back_populates='staff_members')
 
     # 4. التشفير (Fernet AES-256)
     @staticmethod
     def _get_key():
+        # استخدام مفتاح البيئة أو المفتاح الافتراضي المخصص
         return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
 
     @property
