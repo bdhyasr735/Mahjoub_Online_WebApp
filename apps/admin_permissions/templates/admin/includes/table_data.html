@@ -125,14 +125,16 @@
 
 <script>
 $(document).ready(function() {
+    // تدمير الجدول القديم إذا وجد قبل إعادة تهيئته (لتجنب التعارض)
     if ($.fn.DataTable.isDataTable('#staffTable')) {
         $('#staffTable').DataTable().destroy();
     }
+    
     $('#staffTable').DataTable({
         "pageLength": 10,
-        "searching": true,    // تأكيد تفعيل البحث
-        "paging": true,       // تأكيد تفعيل التقليب
-        "ordering": true,     // تأكيد تفعيل الترتيب
+        "searching": true,
+        "paging": true,
+        "ordering": true,
         "language": {
             "search": "بحث:",
             "lengthMenu": "عرض _MENU_ سجل",
