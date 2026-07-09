@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
-<div class="modal fade" id="addStaffModal" tabindex="-1">
+<div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <form id="addStaffForm" action="{{ url_for('admin_permissions.assign_permissions') }}" class="modal-content gold-border">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -49,6 +49,7 @@
 </div>
 
 <script>
+    // تهيئة Choices.js
     const supplierSelect = document.getElementById('supplierField');
     const choices = new Choices(supplierSelect, { searchEnabled: true, itemSelectText: '' });
 
@@ -56,6 +57,7 @@
         document.getElementById('supplierContainer').style.display = (val === 'supplier') ? 'block' : 'none';
     }
 
+    // التحقق اللحظي
     async function checkAll() {
         const username = document.getElementById('usernameInput').value;
         const phone = document.getElementById('phoneInput').value;
@@ -63,46 +65,65 @@
         const submitBtn = document.getElementById('submitBtn');
         const phoneStatus = document.getElementById('phoneStatus');
 
-        // 1. التحقق من نمط الرقم (9 أرقام ويبدأ بـ 7)
-        const isPhoneValid = /^[7]\d{8}$/.test(phone);
-        
-        if (!isPhoneValid) {
+        if (!/^[7]\d{8}$/.test(phone)) {
             phoneStatus.innerHTML = '⚠️';
             submitBtn.disabled = true;
             return;
         }
 
-        // 2. التحقق من السيرفر (اسم المستخدم + الرقم)
         const [userRes, phoneRes] = await Promise.all([
             fetch(`/admin/permissions/check-user?username=${username}`),
             fetch(`/admin/permissions/check-phone?phone=${phone}&type=${type}`)
         ]);
 
-        const userStatus = await userRes.json();
+        const uStatus = await userRes.json();
         const pStatus = await phoneRes.json();
 
-        document.getElementById('userStatus').innerHTML = userStatus.available ? '✅' : '❌';
+        document.getElementById('userStatus').innerHTML = uStatus.available ? '✅' : '❌';
         phoneStatus.innerHTML = pStatus.available ? '✅' : '❌';
 
-        submitBtn.disabled = !(userStatus.available && pStatus.available);
+        submitBtn.disabled = !(uStatus.available && pStatus.available);
     }
 
-    // إرسال النموذج
-    document.getElementById('addStaffForm').onsubmit = async (e) => {
+    // إرسال النموذج (التعامل مع الـ DOM بشكل صحيح)
+    document.getElementById('addStaffForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const formData = new FormData(e.target);
-        const res = await fetch(e.target.action, { method: 'POST', body: formData });
-        const data = await res.json();
         
-        if(data.success) {
-            // تحديث مودال النجاح
-            $('#successUsername').text(data.username);
-            $('#successPassword').text(data.password);
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+
+        try {
+            const res = await fetch(this.action, { 
+                method: 'POST', 
+                body: new FormData(this) 
+            });
+            const data = await res.json();
             
-            bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
-            $('#modalSuccess').modal('show');
-        } else {
-            alert(data.message);
+            if(data.success) {
+                // إغلاق المودال الحالي
+                const modalEl = document.getElementById('addStaffModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                // تحديث بيانات مودال النجاح
+                document.getElementById('successUsername').innerText = data.username;
+                document.getElementById('successPassword').innerText = data.password;
+
+                // إظهار مودال النجاح (استخدام الطريقة المباشرة لـ Bootstrap)
+                const successModal = new bootstrap.Modal(document.getElementById('modalSuccess'));
+                successModal.show();
+                
+                this.reset(); // تصفير الفورم
+            } else {
+                alert('خطأ: ' + data.message);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('حدث خطأ أثناء الاتصال بالسيرفر');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'حفظ البيانات';
         }
-    };
+    });
 </script>
