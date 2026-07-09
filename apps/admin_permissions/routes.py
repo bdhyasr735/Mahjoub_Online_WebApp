@@ -98,17 +98,19 @@ def assign_permissions():
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)})
 
-# --- إدارة الحسابات (محدثة لتعمل مع AJAX) ---
+# --- إدارة الحسابات (تعمل مع AJAX) ---
 @admin_permissions_bp.route('/admin/permissions/reset-password/<int:id>/<type>', methods=['GET'])
 @login_required
 def reset_password(id, type):
     if not is_admin(): return jsonify({'success': False, 'message': 'غير مصرح'})
     model = AdminStaff if type == 'admin' else SupplierStaff
     user = model.query.get_or_404(id)
+    
     new_pass = generate_random_password()
     user.set_password(new_pass)
     db.session.commit()
-    # إرجاع كلمة المرور للـ JS ليتم عرضها في المودال
+    
+    # إرجاع استجابة JSON للتعامل معها في المودال دون تحديث الصفحة
     return jsonify({'success': True, 'username': user.username, 'new_password': new_pass})
 
 @admin_permissions_bp.route('/admin/permissions/toggle-status/<int:id>/<type>', methods=['GET'])
