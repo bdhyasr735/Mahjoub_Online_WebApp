@@ -1,12 +1,77 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
 <div class="modal fade" id="addStaffModal" tabindex="-1">
     <div class="modal-dialog">
-        <form id="addStaffForm" class="modal-content">
-            <div class="modal-header"><h5>إضافة موظف</h5></div>
-            <div class="modal-body">
-                <input type="text" name="username" class="form-control mb-2" placeholder="اسم المستخدم">
-                <input type="tel" name="phone" class="form-control" placeholder="رقم الهاتف">
+        <form id="addStaffForm" action="{{ url_for('admin_permissions.assign_permissions') }}" class="modal-content gold-border">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-header bg-light text-royal">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> إضافة موظف جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-footer"><button type="submit" class="btn btn-royal">حفظ</button></div>
+            <div class="modal-body">
+                <div class="mb-3 position-relative">
+                    <label class="form-label fw-bold">اسم المستخدم</label>
+                    <input type="text" name="username" id="usernameInput" class="form-control" placeholder="يجب أن يكون فريداً" required oninput="checkAll()">
+                    <span id="userStatus" class="position-absolute" style="left: 15px; top: 35px;"></span>
+                </div>
+
+                <div class="mb-3 position-relative">
+                    <label class="form-label fw-bold">رقم الهاتف</label>
+                    <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="00967..." required oninput="checkAll()">
+                    <span id="phoneStatus" class="position-absolute" style="left: 15px; top: 35px;"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">نوع الصلاحية</label>
+                    <select name="type" id="staffTypeSelect" class="form-select" onchange="toggleSupplierField(this.value); checkAll()">
+                        <option value="admin">إدارة مركزية</option>
+                        <option value="supplier">موظف شريك</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="supplierContainer" style="display:none;">
+                    <label class="form-label fw-bold">اختر المتجر/المورد</label>
+                    <select name="supplier_id" id="supplierField" class="form-select">
+                        {% for sup in suppliers %}
+                        <option value="{{ sup.id }}">{{ sup.trade_name }} - ({{ sup.supplier_code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" id="submitBtn" class="btn btn-royal" disabled>حفظ البيانات</button>
+            </div>
         </form>
     </div>
 </div>
+
+<script>
+    // تهيئة Choices.js
+    const supplierSelect = document.getElementById('supplierField');
+    const choices = new Choices(supplierSelect, { searchEnabled: true, itemSelectText: '' });
+
+    function toggleSupplierField(val) {
+        document.getElementById('supplierContainer').style.display = (val === 'supplier') ? 'block' : 'none';
+    }
+
+    // منطق التحقق والارسال موجود في الملف الرئيسي لضمان العزل
+    document.getElementById('addStaffForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const res = await fetch(e.target.action, { method: 'POST', body: formData });
+        const data = await res.json();
+        
+        if(data.success) {
+            document.getElementById('resUser').innerText = data.username;
+            document.getElementById('resPass').innerText = data.password;
+            document.getElementById('resStore').innerText = data.trade_name;
+            
+            bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
+            new bootstrap.Modal(document.getElementById('successModal')).show();
+        } else {
+            alert(data.message);
+        }
+    };
+</script>
