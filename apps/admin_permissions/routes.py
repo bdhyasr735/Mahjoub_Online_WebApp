@@ -14,13 +14,15 @@ from apps.models.supplier_db import Supplier
 admin_permissions_bp = Blueprint('admin_permissions', __name__, template_folder='templates')
 
 def is_admin():
+    """التحقق من صلاحيات المدير"""
     return current_user.is_authenticated and (getattr(current_user, 'role', '') in ['admin', 'Owner'])
 
 def generate_random_password(length=12):
+    """توليد كلمة مرور قوية وعشوائية"""
     chars = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(secrets.choice(chars) for _ in range(length))
 
-# --- التحقق اللحظي ---
+# --- [API] التحقق اللحظي ---
 @admin_permissions_bp.route('/admin/permissions/check-user', methods=['GET'])
 @login_required
 def check_user():
@@ -47,15 +49,15 @@ def check_phone():
 def roles_list():
     if not is_admin(): return redirect(url_for('admin_dashboard.dashboard'))
     
-    page = request.args.get('page', 1, type=int)
+    # تحديد نوع الموظفين المطلوب عرضهم
     staff_type = request.args.get('type', 'admin')
-    
     model = AdminStaff if staff_type == 'admin' else SupplierStaff
-    pagination = model.query.order_by(model.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
+    
+    # جلب البيانات (سنعتمد على DataTables للتقسيم والبحث في الفرونت إند)
+    staff_list = model.query.order_by(model.created_at.desc()).all()
     
     return render_template('admin/permissions.html', 
-                           staff=pagination.items, 
-                           pagination=pagination, 
+                           staff=staff_list, 
                            type_filter=staff_type, 
                            suppliers=Supplier.query.all())
 
@@ -72,21 +74,22 @@ def assign_permissions():
     
     password = generate_random_password()
     
-    if staff_type == 'admin':
-        new_staff = AdminStaff(username=username, role='worker')
-        supplier_info = {'trade_name': 'إدارة مركزية', 'supplier_code': 'ADMIN-SYS'}
-    else:
-        supplier = Supplier.query.get_or_404(int(supplier_id))
-        new_staff = SupplierStaff(username=username, role='worker', supplier_id=supplier.id)
-        supplier_info = {'trade_name': supplier.trade_name, 'supplier_code': supplier.supplier_code}
-    
-    new_staff.phone = phone
-    new_staff.search_phone = phone[-9:]
-    new_staff.set_password(password)
-    
-    db.session.add(new_staff)
     try:
+        if staff_type == 'admin':
+            new_staff = AdminStaff(username=username, role='worker')
+            supplier_info = {'trade_name': 'إدارة مركزية', 'supplier_code': 'SYSTEM'}
+        else:
+            supplier = Supplier.query.get_or_404(int(supplier_id))
+            new_staff = SupplierStaff(username=username, role='worker', supplier_id=supplier.id)
+            supplier_info = {'trade_name': supplier.trade_name, 'supplier_code': supplier.supplier_code}
+        
+        new_staff.phone = phone
+        new_staff.search_phone = phone[-9:]
+        new_staff.set_password(password)
+        
+        db.session.add(new_staff)
         db.session.commit()
+        
         return jsonify({
             'success': True, 
             'username': username, 
@@ -94,9 +97,9 @@ def assign_permissions():
             'trade_name': supplier_info['trade_name'],
             'supplier_code': supplier_info['supplier_code']
         })
-    except Exception:
+    except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': 'خطأ في قاعدة البيانات'})
+        return jsonify({'success': False, 'message': str(e)})
 
 # --- إدارة الحسابات ---
 @admin_permissions_bp.route('/admin/permissions/reset-password/<int:id>/<type>')
