@@ -95,6 +95,17 @@
 </div>
 
 <script>
+    // الدالة المسؤولة عن عرض المودال وتعبئة البيانات
+    function showSuccessModal(username, password, storeName, storeCode) {
+        document.getElementById('resUser').innerText = username;
+        document.getElementById('resPass').innerText = password;
+        document.getElementById('resStore').innerText = storeName;
+        document.getElementById('resCode').innerText = storeCode;
+        
+        const modal = new bootstrap.Modal(document.getElementById('successModal'));
+        modal.show();
+    }
+
     function copyCredentials(buttonElement) {
         const store = document.getElementById('resStore').innerText;
         const code = document.getElementById('resCode').innerText;
@@ -102,13 +113,13 @@
         const pass = document.getElementById('resPass').innerText;
         
         const textToCopy = `🔐 بيانات حساب الموظف (منصة محجوب أونلاين):\n` +
-                           `----------------------------------\n` +
-                           `🏪 المتجر / الجهة: ${store}\n` +
-                           `🎫 كود المتجر: ${code}\n` +
-                           `👤 اسم المستخدم: ${user}\n` +
-                           `🔑 كلمة المرور المؤقتة: ${pass}\n` +
-                           `----------------------------------\n` +
-                           `⚠️ تنبيه: يرجى تغيير كلمة المرور من لوحة التحكم لحماية الحساب.`;
+                            `----------------------------------\n` +
+                            `🏪 المتجر / الجهة: ${store}\n` +
+                            `🎫 كود المتجر: ${code}\n` +
+                            `👤 اسم المستخدم: ${user}\n` +
+                            `🔑 كلمة المرور المؤقتة: ${pass}\n` +
+                            `----------------------------------\n` +
+                            `⚠️ تنبيه: يرجى تغيير كلمة المرور من لوحة التحكم لحماية الحساب.`;
 
         navigator.clipboard.writeText(textToCopy).then(() => {
             const originalHTML = buttonElement.innerHTML;
