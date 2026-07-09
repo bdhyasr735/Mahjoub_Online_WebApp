@@ -42,12 +42,14 @@ class Supplier(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
 
-    # العلاقات (مع cascade لحماية البيانات عند الحذف)
+    # العلاقات: تم تعديل staff_members لكسر الحلقة التكرارية باستخدام backref و lazy='select'
     supplier_profile = db.relationship('SupplierProfile', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
     wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, cascade="all, delete-orphan")
     orders = db.relationship('Order', back_populates='supplier', cascade="all, delete-orphan")
     financials = db.relationship('OrderFinancial', back_populates='supplier', cascade="all, delete-orphan")
-    staff_members = db.relationship('SupplierStaff', back_populates='supplier', cascade="all, delete-orphan")
+    
+    # كسر الحلقة: استخدام backref بدلاً من back_populates في الطرفين يمنع Recursion Depth
+    staff_members = db.relationship('SupplierStaff', backref='supplier', lazy='select', cascade="all, delete-orphan")
 
     # --- نظام التشفير ---
     @staticmethod
