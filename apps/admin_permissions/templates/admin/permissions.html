@@ -113,7 +113,6 @@
             type: 'GET',
             success: function(response) {
                 if (response.success) {
-                    // هنا يتم استدعاء الدالة الموحدة الموجودة داخل modal_success.html
                     showSuccessModal(response.username, response.new_password, response.store_name, response.store_code);
                 } else {
                     alert('خطأ: ' + (response.message || 'فشل التحديث'));
@@ -130,7 +129,12 @@
             $('#staffTable').DataTable({
                 "pageLength": 10,
                 "responsive": true,
-                "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" }
+                "paging": true,         // تفعيل خاصية التقليب بين الصفحات
+                "searching": true,      // تفعيل شريط البحث الذكي
+                "ordering": true,       // تفعيل الترتيب عند النقر على رؤوس الأعمدة
+                "language": { 
+                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" 
+                }
             });
         }
     });
