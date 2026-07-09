@@ -27,13 +27,15 @@ login_manager = LoginManager()
 def load_user(user_id):
     """
     دالة موحدة لتحميل المستخدمين بناءً على نوعهم في الجلسة.
+    تستخدم الاستيراد المحلي (Local Import) لمنع الحلقات المفرغة.
     """
-    from apps.models.admin_db import AdminUser
-    from apps.models.supplier_db import Supplier
-    from apps.models.supplier_staff_db import SupplierStaff
-    from apps.models.marketer_db import Marketer
-    
     try:
+        # استيراد محلي لتجنب الـ Circular Import
+        from apps.models.admin_db import AdminUser
+        from apps.models.supplier_db import Supplier
+        from apps.models.supplier_staff_db import SupplierStaff
+        from apps.models.marketer_db import Marketer
+        
         uid = int(user_id)
         user_type = session.get('user_type')
         
@@ -52,6 +54,7 @@ def load_user(user_id):
     except (ValueError, TypeError, Exception):
         return None
 
+# إعدادات تسجيل الدخول
 login_manager.login_view = 'auth_portal.login'
 login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى لوحة التحكم."
 login_manager.login_message_category = "info"
