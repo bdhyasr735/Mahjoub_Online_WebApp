@@ -25,58 +25,64 @@
 {% include 'admin/includes/modal_add_staff.html' %}
 {% include 'admin/includes/modal_success.html' %}
 
+<div class="modal fade" id="confirmResetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تأكيد إعادة التعيين</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                تنبيه: سيتم تغيير كلمة المرور للموظف: <span id="confirmUsername" class="fw-bold"></span>. هل أنت متأكد؟
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-warning" id="btnConfirmReset">تأكيد التغيير</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-    // دالة إعادة تعيين كلمة المرور (AJAX)
-    function resetPassword(staffId, staffType, username) {
-        if (!confirm('تنبيه: سيتم تغيير كلمة المرور للموظف: ' + username + '. هل أنت متأكد؟')) return;
+    // تخزين متغيرات الموظف مؤقتاً
+    let currentStaff = {};
 
+    function resetPassword(staffId, staffType, username) {
+        currentStaff = {staffId, staffType, username};
+        $('#confirmUsername').text(username);
+        $('#confirmResetModal').modal('show');
+    }
+
+    $('#btnConfirmReset').click(function() {
+        $('#confirmResetModal').modal('hide');
         $.ajax({
-            url: `/admin/permissions/reset-password/${staffId}/${staffType}`,
+            url: `/admin/permissions/reset-password/${currentStaff.staffId}/${currentStaff.staffType}`,
             type: 'GET',
             success: function(response) {
                 if (response.success) {
-                    // عرض المودال بكلمة المرور الجديدة
                     showSuccessModal(response.username, response.new_password);
                 } else {
                     alert('خطأ: ' + response.message);
                 }
-            },
-            error: function() {
-                alert('حدث خطأ في الاتصال بالخادم');
             }
         });
-    }
+    });
 
-    // دالة إظهار مودال النجاح
     function showSuccessModal(username, password) {
         $('#successUsername').text(username);
         $('#successPassword').text(password);
         $('#modalSuccess').modal('show');
     }
 
-    // دالة نسخ النص
-    function copyToClipboard() {
-        var text = $('#successPassword').text();
-        navigator.clipboard.writeText(text).then(function() {
-            alert('تم نسخ كلمة المرور بنجاح!');
-        });
-    }
-
     $(document).ready(function() {
-        // تهيئة الجدول - تأكد من أن ID الجدول يطابق table_data.html
-        if ($('#staffTable').length) {
-            $('#staffTable').DataTable({
-                "pageLength": 10,
-                "responsive": true,
-                "language": { 
-                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" 
-                }
-            });
-        }
+        $('#staffTable').DataTable({
+            "pageLength": 10,
+            "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" }
+        });
     });
 </script>
 {% endblock %}
