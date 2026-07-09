@@ -53,7 +53,7 @@ def roles_list():
     staff_type = request.args.get('type', 'admin')
     model = AdminStaff if staff_type == 'admin' else SupplierStaff
     
-    # جلب البيانات (سنعتمد على DataTables للتقسيم والبحث في الفرونت إند)
+    # جلب البيانات
     staff_list = model.query.order_by(model.created_at.desc()).all()
     
     return render_template('admin/permissions.html', 
