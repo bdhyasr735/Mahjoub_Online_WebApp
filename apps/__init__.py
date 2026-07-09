@@ -39,13 +39,13 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
 
-    # 2. إعدادات الأمان
+    # 2. إعدادات الأمان (تم تحديث CSP للسماح بـ DataTables)
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
-            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
+            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdn.datatables.net"],
             'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
-            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net"],
+            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdn.datatables.net"],
             'img-src': ["'self'", "data:", "*"]
         },
         force_https=False
@@ -103,12 +103,11 @@ def create_app():
             supplier_modules=SUPPLIER_MODULES
         )
 
-    # 6. إعداد البيئة الأولية (بشكل آمن لتجنب أخطاء التكرار)
+    # 6. إعداد البيئة الأولية
     with app.app_context():
         try:
             db.create_all()
         except Exception as e:
-            # نتجاهل الأخطاء الناتجة عن وجود الجداول مسبقاً (DuplicateTable)
             print(f"ℹ️ [Setup]: تخطي إنشاء الجداول (قد تكون موجودة): {e}")
 
         try:
