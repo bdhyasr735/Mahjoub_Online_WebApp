@@ -90,6 +90,7 @@ def assign_permissions():
         db.session.add(new_staff)
         db.session.commit()
         
+        # إرجاع كافة البيانات المطلوبة للمودال
         return jsonify({
             'success': True, 
             'username': username, 
