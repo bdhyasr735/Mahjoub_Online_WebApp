@@ -57,14 +57,12 @@
         document.getElementById('supplierContainer').style.display = (val === 'supplier') ? 'block' : 'none';
     }
 
-    // تقنية Debounce لتأخير طلبات التحقق
     let debounceTimer;
     function debounceCheck() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(checkAll, 500);
     }
 
-    // التحقق اللحظي
     async function checkAll() {
         const username = document.getElementById('usernameInput').value;
         const phone = document.getElementById('phoneInput').value;
@@ -96,7 +94,6 @@
         }
     }
 
-    // إرسال النموذج
     document.getElementById('addStaffForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
@@ -109,9 +106,16 @@
             
             if(data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
+                
                 // تحديث مودال النجاح
                 document.getElementById('successUsername').innerText = data.username;
                 document.getElementById('successPassword').innerText = data.password;
+                
+                // إضافة ميزة النسخ للحافظة مباشرة
+                navigator.clipboard.writeText(`المستخدم: ${data.username} - كلمة المرور: ${data.password}`).then(() => {
+                    console.log("تم نسخ البيانات تلقائياً");
+                });
+
                 new bootstrap.Modal(document.getElementById('modalSuccess')).show();
                 this.reset();
             } else {
