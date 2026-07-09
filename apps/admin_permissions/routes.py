@@ -87,6 +87,7 @@ def assign_permissions():
 
         new_staff.phone = phone
         new_staff._phone_enc = fernet.encrypt(str(phone).encode()).decode()
+        
         if hasattr(new_staff, 'search_phone'):
             new_staff.search_phone = str(phone)[-9:]
             
@@ -109,7 +110,7 @@ def assign_permissions():
         db.session.rollback()
         return jsonify({'success': False, 'message': f"خطأ غير متوقع: {str(e)}"})
 
-# --- إدارة الحسابات (مع إرسال بيانات المتجر) ---
+# --- إدارة الحسابات (إعادة تعيين كلمة المرور) ---
 @admin_permissions_bp.route('/admin/permissions/reset-password/<int:id>/<type>', methods=['GET'])
 @login_required
 def reset_password(id, type):
@@ -118,7 +119,7 @@ def reset_password(id, type):
     model = AdminStaff if type == 'admin' else SupplierStaff
     user = model.query.get_or_404(id)
     
-    # جلب بيانات المتجر
+    # جلب بيانات المتجر لإرسالها للواجهة
     if type == 'admin':
         store_name = 'إدارة مركزية'
         store_code = 'SYSTEM'
@@ -138,6 +139,7 @@ def reset_password(id, type):
         'store_code': store_code
     })
 
+# --- تغيير حالة الحساب ---
 @admin_permissions_bp.route('/admin/permissions/toggle-status/<int:id>/<type>', methods=['GET'])
 @login_required
 def toggle_status(id, type):
