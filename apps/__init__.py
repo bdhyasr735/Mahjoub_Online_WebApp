@@ -9,6 +9,7 @@ from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS 
+from sqlalchemy import text
 import config
 
 from apps.extensions import db, login_manager, migrate
@@ -26,10 +27,8 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
-    # التحقق من الإعدادات الحساسة عند التشغيل
     config.Config.validate_config()
 
-    # تفعيل CORS لدعم التواصل مع Apollo Sandbox وواجهات النظام
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
 
     # 1. تهيئة الإضافات
@@ -103,14 +102,28 @@ def create_app():
             supplier_modules=SUPPLIER_MODULES
         )
 
-    # 6. إعداد البيئة الأولية (بشكل آمن لتجنب أخطاء التكرار)
+    # 6. إعداد البيئة (التنظيف بالقوة الضاربة أو الإنشاء الطبيعي)
     with app.app_context():
+        # [تنظيف اختياري]
+        if os.environ.get('FORCE_DB_RESET') == 'true':
+            try:
+                print("🧨 [Force Reset]: جاري مسح الجداول والفهارس القديمة بالكامل...")
+                db.session.execute(text("DROP SCHEMA public CASCADE;"))
+                db.session.execute(text("CREATE SCHEMA public;"))
+                db.session.commit()
+                print("✅ [Force Reset]: تم تنظيف قاعدة البيانات!")
+            except Exception as e:
+                db.session.rollback()
+                print(f"❌ [Force Reset]: فشل التنظيف: {e}")
+
+        # [بناء الجداول]
         try:
             db.create_all()
+            print("✅ [Setup]: تم التحقق من الجداول.")
         except Exception as e:
-            # نتجاهل الأخطاء الناتجة عن وجود الجداول مسبقاً (DuplicateTable)
-            print(f"ℹ️ [Setup]: تخطي إنشاء الجداول (قد تكون موجودة): {e}")
+            print(f"ℹ️ [Setup]: خطأ أثناء الإنشاء: {e}")
 
+        # [إضافة المستخدم المالك]
         try:
             from apps.models.admin_db import AdminUser
             if not AdminUser.query.filter_by(username='علي محجوب').first():
@@ -120,6 +133,7 @@ def create_app():
                 db.session.commit()
                 print("✅ [Setup]: تم إنشاء المستخدم المالك بنجاح.")
         except Exception as e:
+            db.session.rollback()
             print(f"ℹ️ [Setup]: تعذر إضافة المستخدم المالك: {e}")
 
     return app
