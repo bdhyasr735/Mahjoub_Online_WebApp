@@ -11,6 +11,14 @@ from apps.extensions import db
 class SupplierStaff(db.Model, UserMixin):
     __tablename__ = 'supplier_staff'
     
+    # [فهرسة متقدمة]: لضمان سرعة البحث عن الموظفين
+    __table_args__ = (
+        db.Index('idx_staff_username', 'username'),
+        db.Index('idx_staff_phone', 'search_phone'),
+        db.Index('idx_staff_active', 'is_active'),
+        {'extend_existing': True}
+    )
+    
     # 1. الأعمدة
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
@@ -18,7 +26,7 @@ class SupplierStaff(db.Model, UserMixin):
     
     # التشفير السيادي للهاتف
     _phone_enc = db.Column(db.String(255), nullable=False) 
-    phone = db.Column(db.String(20), nullable=False) # هذا الحقل سيحوي الرقم للبحث (آخر 9 أرقام)
+    search_phone = db.Column(db.String(20)) # تم تغيير الاسم لـ search_phone لتجنب التضارب مع property
     
     email = db.Column(db.String(150), nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -26,32 +34,29 @@ class SupplierStaff(db.Model, UserMixin):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # 2. إعدادات الجدول
-    __table_args__ = {'extend_existing': True}
-
-    # 3. العلاقات
-    supplier = db.relationship('Supplier', back_populates='staff_members')
+    # 3. العلاقات: تم كسر الحلقة التكرارية بإزالة back_populates
+    # الاعتماد على الـ backref الموجود في Supplier يكفي للربط
+    supplier = db.relationship('Supplier')
 
     # 4. التشفير (Fernet AES-256)
     @staticmethod
     def _get_key():
-        key = os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
-        return key.encode()
+        return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
 
     @property
     def phone(self):
-        """الخاصية التي تعيد الرقم الصريح عند الاستدعاء member.phone"""
+        """الخاصية التي تعيد الرقم الصريح عند الاستدعاء staff.phone"""
         try:
             return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
         except: 
-            return "---" # إرجاع نص افتراضي عند فشل التشفير لتجنب تعطل الجدول
+            return "---"
 
     @phone.setter
     def phone(self, value):
         """عند تعيين القيمة يتم التشفير وحفظ الفهرس للبحث"""
         if value:
             self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
-            self.phone = str(value)[-9:] # تحديث عمود البحث
+            self.search_phone = str(value)[-9:] # تخزين آخر 9 أرقام في عمود الفهرس
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
