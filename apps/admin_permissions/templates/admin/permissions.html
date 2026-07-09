@@ -1,114 +1,18 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-
-<style>
-    .btn-royal { background-color: #4b0082; color: #fff; border: 1px solid #d4af37; }
-    .card { border: 1px solid #d4af37; background-color: #fcfcfc; }
-    .table thead { background-color: #4b0082 !important; color: #fff; }
-    .text-royal { color: #4b0082; }
-    .phone-status { position: absolute; left: 15px; top: 10px; font-size: 1.2rem; }
-    .copy-btn { cursor: pointer; color: #4b0082; }
-</style>
-
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-2"><i class="fas fa-arrow-right me-1"></i> رجوع</a>
-            <h4 class="text-royal fw-bold"><i class="fas fa-user-shield me-2"></i> إدارة صلاحيات النظام</h4>
-        </div>
-        <button class="btn btn-royal" data-bs-toggle="modal" data-bs-target="#addStaffModal"><i class="fas fa-plus-circle me-1"></i> إضافة موظف جديد</button>
+        <h4 class="text-royal fw-bold"><i class="fas fa-user-shield me-2"></i> إدارة صلاحيات النظام</h4>
+        <button class="btn btn-royal" data-bs-toggle="modal" data-bs-target="#addStaffModal">إضافة موظف جديد</button>
     </div>
 
-    <div class="card shadow-sm p-3">
-        <table class="table table-hover align-middle" id="staffTable">
-            <thead class="table-royal">
-                <tr><th>#</th><th>الموظف</th><th>الدور</th>{% if type_filter == 'supplier' %}<th>المورد (الكود)</th>{% endif %}<th>الحالة</th><th>الإجراءات</th></tr>
-            </thead>
-            <tbody>
-                {% for member in staff %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td><div class="fw-bold">{{ member.username }}</div><small class="text-muted">{{ member.phone }}</small></td>
-                    <td><span class="badge" style="background-color: #d4af37; color: #000;">{{ member.role }}</span></td>
-                    {% if type_filter == 'supplier' %}
-                    <td>
-                        {% if member.supplier %}
-                        <div class="fw-bold text-royal">{{ member.supplier.trade_name }}</div>
-                        <small class="text-secondary fw-bold">كود: {{ member.supplier.supplier_code }}</small>
-                        {% else %}<span class="text-muted">غير مرتبط</span>{% endif %}
-                    </td>
-                    {% endif %}
-                    <td>{% if member.is_active %}<span class="text-success"><i class="fas fa-check-circle"></i> نشط</span>{% else %}<span class="text-danger"><i class="fas fa-times-circle"></i> موقوف</span>{% endif %}</td>
-                    <td>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">خيارات</button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('admin_permissions.reset_password', id=member.id, type=type_filter) }}"><i class="fas fa-key text-warning me-2"></i> كلمة مرور جديدة</a></li>
-                            </ul>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    {# استدعاء الجدول #}
+    {% include 'admin/includes/table_data.html' %}
 </div>
 
-<div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white"><h5>تم التعميد بنجاح</h5></div>
-            <div class="modal-body text-center">
-                <div class="bg-light p-3 border rounded text-start" id="credBox">
-                    <p>اسم المتجر: <strong id="resStore"></strong></p>
-                    <p>كود المتجر: <strong id="resCode"></strong></p>
-                    <hr>
-                    <p>اسم المستخدم: <strong id="resUser"></strong></p>
-                    <p>كلمة المرور: <strong id="resPass" class="text-royal"></strong></p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline-royal" onclick="copyText()">نسخ البيانات <i class="fas fa-copy"></i></button>
-                <button type="button" class="btn btn-royal" onclick="window.location.reload()">تم</button>
-            </div>
-        </div>
-    </div>
-</div>
+{# استدعاء المودالات #}
+{% include 'admin/includes/modal_add_staff.html' %}
+{% include 'admin/includes/modal_success.html' %}
 
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-
-<script>
-    $(document).ready(function() {
-        $('#staffTable').DataTable({
-            "pageLength": 10,
-            "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" }
-        });
-    });
-
-    function copyText() {
-        const text = document.getElementById('credBox').innerText;
-        navigator.clipboard.writeText(text).then(() => alert("تم نسخ البيانات!"));
-    }
-
-    // إضافة منطق الـ Submit لتعبئة مودال النجاح
-    document.getElementById('addStaffForm').onsubmit = async (e) => {
-        e.preventDefault();
-        const res = await fetch(e.target.action, { method: 'POST', body: new FormData(e.target) });
-        const data = await res.json();
-        if(data.success) {
-            document.getElementById('resUser').innerText = data.username;
-            document.getElementById('resPass').innerText = data.password;
-            document.getElementById('resStore').innerText = data.trade_name;
-            document.getElementById('resCode').innerText = data.supplier_code;
-            bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
-            new bootstrap.Modal(document.getElementById('successModal')).show();
-        }
-    };
-</script>
 {% endblock %}
