@@ -1,36 +1,123 @@
-<script>
-// نستخدم تأخير بسيط لضمان أن جميع ملفات DataTable تم تحميلها بالكامل
-setTimeout(function() {
-    $(document).ready(function() {
-        // التحقق من وجود الجدول وأن المكتبة متاحة
-        if ($('#staffTable').length && $.fn.DataTable) {
-            
-            // تدمير أي نسخة سابقة لضمان عدم حدوث تكرار
-            if ($.fn.DataTable.isDataTable('#staffTable')) {
-                $('#staffTable').DataTable().destroy();
-            }
-            
-            // تهيئة الجدول
-            $('#staffTable').DataTable({
-                "pageLength": 10,
-                "searching": true,
-                "paging": true,
-                "ordering": true,
-                "language": {
-                    "search": "بحث:",
-                    "lengthMenu": "عرض _MENU_ سجل",
-                    "info": "عرض _START_ إلى _END_ من _TOTAL_ سجل",
-                    "paginate": { 
-                        "next": "التالي", 
-                        "previous": "السابق" 
-                    }
-                },
-                "initComplete": function(settings, json) {
-                    // هذا الجزء يضمن إظهار العناصر إذا كانت مخفية لأي سبب تنسيقي
-                    $('.dataTables_wrapper').find('.dataTables_filter, .dataTables_paginate').show();
-                }
-            });
-        }
-    });
-}, 500); // تأخير نصف ثانية لضمان تحميل كل شيء
-</script>
+<style>
+    /* التنسيق الملكي الفاخر للجدول */
+    .table-royal-header {
+        background: linear-gradient(135deg, #491269 0%, #210433 100%) !important;
+    }
+    
+    .table-royal-header th {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        text-align: center;
+        border-bottom: 2px solid #ffffff !important;
+        padding: 12px !important;
+    }
+
+    .gold-border {
+        border: 1px solid #d4af37 !important;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .btn-royal-sm {
+        background: linear-gradient(135deg, #491269 0%, #210433 100%) !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    .btn-royal-sm:hover {
+        background: linear-gradient(135deg, #210433 0%, #09010e 100%) !important;
+        color: #e2d5f0 !important;
+    }
+
+    .text-royal { color: #491269 !important; }
+    .text-purple-dark { color: #210433 !important; }
+</style>
+
+<div class="card shadow-sm gold-border">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="staffTable">
+                <thead class="table-royal-header">
+                    <tr>
+                        <th style="width: 60px;">#</th>
+                        <th>الموظف</th>
+                        <th>الدور</th>
+                        <th>تاريخ الإنشاء</th>
+                        {% if type_filter == 'supplier' %}
+                        <th>معلومات المتجر</th>
+                        {% endif %}
+                        <th>الحالة</th>
+                        <th style="width: 100px;">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in staff %}
+                    <tr>
+                        <td class="text-center fw-bold text-secondary">{{ loop.index }}</td>
+                        <td>
+                            <div class="fw-bold text-dark mb-1">{{ member.username }}</div>
+                            <small class="text-muted d-block">
+                                <i class="fas fa-phone-alt text-royal me-1"></i> {{ member.phone }}
+                            </small>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-semibold">{{ member.role }}</span>
+                        </td>
+                        <td class="text-center">
+                            <small class="text-muted">
+                                {{ member.created_at.strftime('%Y-%m-%d') if member.created_at else '---' }}<br>
+                                <span class="fw-bold">{{ member.created_at.strftime('%H:%M') if member.created_at else '' }}</span>
+                            </small>
+                        </td>
+                        {% if type_filter == 'supplier' %}
+                        <td>
+                            {% if member.supplier %}
+                            <div class="fw-bold text-dark">{{ member.supplier.trade_name }}</div>
+                            <small class="text-purple-dark fw-bold">كود: {{ member.supplier.supplier_code }}</small>
+                            {% else %}
+                            <span class="text-muted small"><i class="fas fa-times-circle"></i> غير مرتبط</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="text-center">
+                            {% if member.is_active %}
+                            <span class="badge bg-success-subtle text-success px-2 py-1.5 rounded">
+                                <i class="fas fa-check-circle me-1"></i> نشط
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger-subtle text-danger px-2 py-1.5 rounded">
+                                <i class="fas fa-times-circle me-1"></i> موقوف
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-royal-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                    <li>
+                                        <a class="dropdown-item py-2" href="#" onclick="resetPassword('{{ member.id }}', '{{ type_filter }}', '{{ member.username }}')">
+                                            <i class="fas fa-key text-warning me-2"></i> كلمة مرور جديدة
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li>
+                                        <a class="dropdown-item py-2" href="{{ url_for('admin_permissions.toggle_status', id=member.id, staff_type=type_filter) }}">
+                                            {% if member.is_active %}
+                                            <i class="fas fa-user-slash text-danger me-2"></i> إيقاف الحساب
+                                            {% else %}
+                                            <i class="fas fa-user-check text-success me-2"></i> تفعيل الحساب
+                                            {% endif %}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
