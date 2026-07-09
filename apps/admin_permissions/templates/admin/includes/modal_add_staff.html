@@ -3,7 +3,7 @@
 
 <div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <form id="addStaffForm" action="{{ url_for('admin_permissions.assign_permissions') }}" class="modal-content gold-border">
+        <form id="addStaffForm" class="modal-content gold-border">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="modal-header bg-light text-royal">
                 <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> إضافة موظف جديد</h5>
@@ -20,7 +20,6 @@
                     <label class="form-label fw-bold">رقم الهاتف</label>
                     <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="7xxxxxxxx" maxlength="9" required oninput="debounceCheck()">
                     <span id="phoneStatus" class="position-absolute" style="left: 15px; top: 35px;"></span>
-                    <small id="phoneHelper" class="text-muted">يجب أن يبدأ بـ 7 ويتكون من 9 أرقام</small>
                 </div>
 
                 <div class="mb-3">
@@ -87,13 +86,13 @@
 
             userStatus.innerHTML = uStatus.available ? '✅' : '❌';
             phoneStatus.innerHTML = pStatus.available ? '✅' : '❌';
-
             submitBtn.disabled = !(uStatus.available && pStatus.available);
         } catch (err) {
             console.error("خطأ في التحقق:", err);
         }
     }
 
+    // إرسال البيانات
     document.getElementById('addStaffForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
@@ -101,28 +100,26 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
         try {
-            const res = await fetch(this.action, { method: 'POST', body: new FormData(this) });
+            const res = await fetch("{{ url_for('admin_permissions.assign_permissions') }}", { 
+                method: 'POST', 
+                body: new FormData(this) 
+            });
             const data = await res.json();
             
             if(data.success) {
+                // إخفاء المودال
                 bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
                 
-                // تحديث مودال النجاح
-                document.getElementById('successUsername').innerText = data.username;
-                document.getElementById('successPassword').innerText = data.password;
+                // استخدام الدالة الموحدة المكتوبة في permissions.html
+                // نمرر البيانات التي يحتاجها المودال (اسم المتجر وكوده موجودان في الـ response)
+                showSuccessModal(data.username, data.new_password, data.trade_name, data.supplier_code);
                 
-                // إضافة ميزة النسخ للحافظة مباشرة
-                navigator.clipboard.writeText(`المستخدم: ${data.username} - كلمة المرور: ${data.password}`).then(() => {
-                    console.log("تم نسخ البيانات تلقائياً");
-                });
-
-                new bootstrap.Modal(document.getElementById('modalSuccess')).show();
                 this.reset();
             } else {
                 alert('خطأ: ' + data.message);
             }
         } catch (err) {
-            alert('حدث خطأ في الاتصال بالسيرفر');
+            alert('حدث خطأ في الاتصال بالسيرفر، تأكد من الشبكة.');
         } finally {
             btn.disabled = false;
             btn.innerHTML = 'حفظ البيانات';
