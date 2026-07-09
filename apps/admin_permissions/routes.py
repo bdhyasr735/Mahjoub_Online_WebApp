@@ -54,7 +54,7 @@ def roles_list():
     staff_list = model.query.order_by(model.created_at.desc()).all()
     return render_template('admin/permissions.html', staff=staff_list, type_filter=staff_type, suppliers=Supplier.query.all())
 
-# --- إضافة موظف جديد (مع حماية ضد الإرسال المكرر) ---
+# --- إضافة موظف جديد ---
 @admin_permissions_bp.route('/admin/permissions/assign', methods=['POST'])
 @login_required
 def assign_permissions():
@@ -65,14 +65,12 @@ def assign_permissions():
     staff_type = request.form.get('type')
     supplier_id = request.form.get('supplier_id')
     
-    # 1. التحقق المبدئي
     if not phone or len(phone) != 9 or not phone.startswith('7'):
         return jsonify({'success': False, 'message': 'بيانات الهاتف غير صالحة'})
     
-    # 2. التحقق من وجود المستخدم مسبقاً (Double check)
     model = AdminStaff if staff_type == 'admin' else SupplierStaff
     if model.query.filter_by(username=username).first() or model.query.filter_by(phone=phone).first():
-        return jsonify({'success': False, 'message': 'الموظف موجود مسبقاً في النظام'})
+        return jsonify({'success': False, 'message': 'الموظف موجود مسبقاً'})
 
     try:
         password = generate_random_password()
@@ -89,12 +87,10 @@ def assign_permissions():
 
         new_staff.phone = phone
         new_staff._phone_enc = fernet.encrypt(str(phone).encode()).decode()
-        
         if hasattr(new_staff, 'search_phone'):
             new_staff.search_phone = str(phone)[-9:]
             
         new_staff.set_password(password)
-        
         db.session.add(new_staff)
         db.session.commit()
         
@@ -102,8 +98,8 @@ def assign_permissions():
             'success': True, 
             'username': username, 
             'new_password': password,
-            'trade_name': supplier_info['trade_name'],
-            'supplier_code': supplier_info['supplier_code']
+            'store_name': supplier_info['trade_name'],
+            'store_code': supplier_info['supplier_code']
         })
         
     except IntegrityError:
@@ -113,17 +109,34 @@ def assign_permissions():
         db.session.rollback()
         return jsonify({'success': False, 'message': f"خطأ غير متوقع: {str(e)}"})
 
-# --- إدارة الحسابات ---
+# --- إدارة الحسابات (مع إرسال بيانات المتجر) ---
 @admin_permissions_bp.route('/admin/permissions/reset-password/<int:id>/<type>', methods=['GET'])
 @login_required
 def reset_password(id, type):
     if not is_admin(): return jsonify({'success': False, 'message': 'غير مصرح'})
+    
     model = AdminStaff if type == 'admin' else SupplierStaff
     user = model.query.get_or_404(id)
+    
+    # جلب بيانات المتجر
+    if type == 'admin':
+        store_name = 'إدارة مركزية'
+        store_code = 'SYSTEM'
+    else:
+        store_name = user.supplier.trade_name if user.supplier else 'غير محدد'
+        store_code = user.supplier.supplier_code if user.supplier else '---'
+    
     new_pass = generate_random_password()
     user.set_password(new_pass)
     db.session.commit()
-    return jsonify({'success': True, 'username': user.username, 'new_password': new_pass})
+    
+    return jsonify({
+        'success': True, 
+        'username': user.username, 
+        'new_password': new_pass,
+        'store_name': store_name,
+        'store_code': store_code
+    })
 
 @admin_permissions_bp.route('/admin/permissions/toggle-status/<int:id>/<type>', methods=['GET'])
 @login_required
