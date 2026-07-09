@@ -26,10 +26,10 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
     
-    # التحقق من الإعدادات الحساسة عند التشغيل
+    # التحقق من الإعدادات الحساسة
     config.Config.validate_config()
 
-    # تفعيل CORS لدعم التواصل مع Apollo Sandbox وواجهات النظام
+    # تفعيل CORS
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
 
     # 1. تهيئة الإضافات
@@ -53,7 +53,7 @@ def create_app():
 
     login_manager.login_view = 'suppliers_auth.login'
 
-    # 3. تسجيل الـ Blueprints الأساسية
+    # 3. تسجيل الـ Blueprints
     app.register_blueprint(qomrah_bp)
     csrf.exempt(qomrah_bp)
     
@@ -103,28 +103,32 @@ def create_app():
             supplier_modules=SUPPLIER_MODULES
         )
 
-    # 6. إعداد البيئة الأولية وزرع المالك
+    # 6. إعداد البيئة الأولية وزرع المالك (علي محجوب)
     with app.app_context():
+        # إنشاء الجداول أولاً
         try:
             db.create_all()
         except Exception as e:
-            print(f"ℹ️ [Setup]: ملاحظة أثناء إنشاء الجداول: {e}")
+            print(f"⚠️ [Setup]: تنبيه أثناء إنشاء الجداول: {e}")
 
+        # زرع المالك في جدول الإدارة حصراً
         try:
             from apps.models.admin_db import AdminUser
-            # محاولة البحث عن المالك أو إنشاؤه
+            
             owner = AdminUser.query.filter_by(username='علي محجوب').first()
             if not owner:
                 owner = AdminUser(username='علي محجوب', role='Owner')
                 db.session.add(owner)
-                print("✅ [Setup]: تم إنشاء المستخدم المالك لأول مرة.")
+                db.session.flush() # لإعطاء ID قبل تعيين كلمة المرور إن لزم الأمر
+                print("✅ [Setup]: تم إنشاء المستخدم المالك 'علي محجوب'.")
             
-            # تحديث كلمة المرور لضمان الوصول
+            # تحديث كلمة المرور لضمان القدرة على الدخول
             owner.set_password('123')
             db.session.commit()
-            print("🔐 [Setup]: تم تأمين حساب المالك (كلمة المرور: 123).")
+            print("🔐 [Setup]: تم تأمين حساب المالك (علي محجوب) بكلمة المرور: 123.")
+            
         except Exception as e:
             db.session.rollback()
-            print(f"❌ [Setup]: فشل زرع المستخدم المالك: {e}")
+            print(f"❌ [Setup]: فشل زرع المستخدم المالك في جدول الإدارة: {e}")
 
     return app
