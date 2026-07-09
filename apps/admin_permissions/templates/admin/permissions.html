@@ -3,6 +3,31 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
+<style>
+    /* التنسيق الملكي الفاخر للأزرار (بنفسجي ملكي داكن مميل للأسود في الأطراف) */
+    .btn-royal {
+        background: linear-gradient(135deg, #491269 0%, #210433 70%, #09010e 100%) !important;
+        border: 1px solid #05000a !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .btn-royal:hover, .btn-royal:focus {
+        background: linear-gradient(135deg, #320b49 0%, #12011d 70%, #000000 100%) !important;
+        border-color: #000000 !important;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55) !important;
+        color: #ffffff !important;
+        transform: translateY(-1px);
+    }
+    
+    /* لمسة جمالية لنصوص العناوين الملكية */
+    .text-royal {
+        color: #210433 !important;
+    }
+</style>
+
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -59,7 +84,7 @@
 <script>
     let currentStaff = {};
 
-    // دالة النسخ للحافظة (يمكن استخدامها في modal_success)
+    // دالة النسخ للحافظة 
     function copyToClipboard(elementId) {
         const text = document.getElementById(elementId).innerText;
         navigator.clipboard.writeText(text).then(() => {
@@ -98,12 +123,11 @@
     }
 
     $(document).ready(function() {
-        // تهيئة الجدول مع تفعيل البحث والتقليب
         if ($('#staffTable').length) {
             $('#staffTable').DataTable({
                 "pageLength": 10,
                 "responsive": true,
-                "searching": true, // تفعيل شريط البحث
+                "searching": true,
                 "language": { 
                     "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" 
                 }
