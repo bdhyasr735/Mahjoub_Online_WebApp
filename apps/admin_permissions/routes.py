@@ -28,6 +28,7 @@ def generate_random_password(length=12):
 def check_user():
     username = request.args.get('username', '')
     if len(username) < 3: return jsonify({'available': False})
+    # البحث في الجدولين للتأكد من عدم التكرار
     exists = AdminStaff.query.filter_by(username=username).first() or \
              SupplierStaff.query.filter_by(username=username).first()
     return jsonify({'available': exists is None})
@@ -38,9 +39,8 @@ def check_phone():
     phone = request.args.get('phone', '')
     staff_type = request.args.get('type', 'admin')
     
-    # منطق التحقق: 9 أرقام تبدأ بـ 7
     if len(phone) != 9 or not phone.startswith('7'):
-        return jsonify({'available': False, 'message': 'يجب أن يبدأ الرقم بـ 7 وأن يتكون من 9 أرقام'})
+        return jsonify({'available': False, 'message': 'رقم غير صالح'})
     
     model = AdminStaff if staff_type == 'admin' else SupplierStaff
     exists = model.query.filter_by(phone=phone).first()
@@ -73,9 +73,8 @@ def assign_permissions():
     staff_type = request.form.get('type')
     supplier_id = request.form.get('supplier_id')
     
-    # التحقق النهائي من الرقم في السيرفر
     if len(phone) != 9 or not phone.startswith('7'):
-        return jsonify({'success': False, 'message': 'رقم الهاتف غير صالح، يجب أن يبدأ بـ 7 ويتكون من 9 أرقام'})
+        return jsonify({'success': False, 'message': 'رقم الهاتف يجب أن يبدأ بـ 7 ويتكون من 9 أرقام'})
     
     password = generate_random_password()
     
@@ -88,7 +87,12 @@ def assign_permissions():
             new_staff = SupplierStaff(username=username, role='worker', supplier_id=supplier.id)
             supplier_info = {'trade_name': supplier.trade_name, 'supplier_code': supplier.supplier_code}
         
-        new_staff.phone = phone 
+        # تعبئة الحقول الأساسية
+        new_staff.phone = phone
+        # حل مشكلة NotNullViolation: تعبئة الحقل المشفر
+        if hasattr(new_staff, '_phone_enc'):
+            new_staff._phone_enc = phone 
+            
         new_staff.set_password(password)
         
         db.session.add(new_staff)
@@ -103,9 +107,9 @@ def assign_permissions():
         })
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({'success': False, 'message': f"خطأ في الحفظ: {str(e)}"})
 
-# --- إدارة الحسابات (تعمل مع AJAX) ---
+# --- إدارة الحسابات ---
 @admin_permissions_bp.route('/admin/permissions/reset-password/<int:id>/<type>', methods=['GET'])
 @login_required
 def reset_password(id, type):
