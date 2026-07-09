@@ -11,11 +11,11 @@ from apps.extensions import db
 class SupplierStaff(db.Model, UserMixin):
     __tablename__ = 'supplier_staff'
     
-    # [فهرسة متقدمة]: لضمان سرعة البحث عن الموظفين
+    # [فهرسة متقدمة]: تم تعديل الأسماء لتكون فريدة ولضمان سرعة البحث وعدم التعارض
     __table_args__ = (
-        db.Index('idx_staff_username', 'username'),
-        db.Index('idx_staff_phone', 'search_phone'),
-        db.Index('idx_staff_active', 'is_active'),
+        db.Index('idx_sup_staff_username', 'username'),
+        db.Index('idx_sup_staff_phone', 'search_phone'),
+        db.Index('idx_sup_staff_active', 'is_active'),
         {'extend_existing': True}
     )
     
