@@ -28,10 +28,13 @@
         color: #8a6d3b !important;
     }
 
-    /* تنسيق رأس الجدول الملكي */
-    .table-royal-header {
+    /* تنسيق رأس الجدول الملكي - تم تعديل لون الخط للأبيض للوضوح */
+    .table thead.table-royal-header th {
         background: linear-gradient(135deg, #491269 0%, #210433 100%) !important;
         color: #ffffff !important;
+        text-align: center;
+        border-bottom: 2px solid #ffffff !important;
+        padding: 12px !important;
     }
 </style>
 
@@ -110,7 +113,6 @@
             type: 'GET',
             success: function(response) {
                 if (response.success) {
-                    // تمرير بيانات المتجر المستلمة من السيرفر
                     showSuccessModal(response.username, response.new_password, response.store_name, response.store_code);
                 } else {
                     alert('خطأ: ' + (response.message || 'فشل التحديث'));
@@ -122,7 +124,6 @@
         });
     });
 
-    // دالة عرض بيانات النجاح مع دعم المتجر
     function showSuccessModal(username, password, storeName = 'إدارة مركزية', storeCode = 'SYSTEM') {
         $('#resStore').text(storeName);
         $('#resCode').text(storeCode);
