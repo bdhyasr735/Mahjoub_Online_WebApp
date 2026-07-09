@@ -8,13 +8,13 @@
 
 from apps.extensions import db
 
-# 1. الموديلات الأساسية (يتم استيرادها أولاً لأنها لا تعتمد على غيرها)
+# 1. الموديلات الأساسية (التي لا تعتمد على علاقات مع موديلات أخرى)
 from .supplier_db import Supplier
 from .admin_db import AdminUser
 from .marketer_db import Marketer
 from .exchange_db import ExchangeRate
 
-# 2. الموديلات التابعة (تعتمد غالباً على الموديلات الأساسية)
+# 2. الموديلات التابعة (التي تحتوي على ForeignKeys أو علاقات)
 from .admin_staff_db import AdminStaff
 from .supplier_profile_db import SupplierProfile
 from .supplier_staff_db import SupplierStaff
