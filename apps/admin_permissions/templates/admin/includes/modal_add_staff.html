@@ -50,7 +50,7 @@
 <script>
     // تهيئة Choices.js
     const supplierSelect = document.getElementById('supplierField');
-    const choices = new Choices(supplierSelect, { searchEnabled: true, itemSelectText: '' });
+    const choices = new Choices(supplierSelect, { searchEnabled: true, itemSelectText: '', shouldSort: false });
 
     function toggleSupplierField(val) {
         document.getElementById('supplierContainer').style.display = (val === 'supplier') ? 'block' : 'none';
@@ -92,7 +92,6 @@
         }
     }
 
-    // إرسال البيانات
     document.getElementById('addStaffForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
@@ -103,21 +102,16 @@
             const res = await fetch("{{ url_for('admin_permissions.assign_permissions') }}", { 
                 method: 'POST', 
                 body: new FormData(this),
-                headers: {
-                    "X-CSRFToken": document.querySelector('input[name="csrf_token"]').value
-                }
+                headers: { "X-CSRFToken": document.querySelector('input[name="csrf_token"]').value }
             });
             const data = await res.json();
             
             if(data.success) {
-                // إخفاء المودال
-                bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
-                
-                // التعديل هنا: استخدام المتغيرات المطابقة للـ Python (store_name / store_code)
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addStaffModal'));
+                modal.hide();
                 showSuccessModal(data.username, data.new_password, data.store_name, data.store_code);
-                
                 this.reset();
-                choices.setChoiceByValue('');
+                choices.removeActiveItems(); // إعادة ضبط الاختيارات
             } else {
                 alert('خطأ: ' + data.message);
             }
