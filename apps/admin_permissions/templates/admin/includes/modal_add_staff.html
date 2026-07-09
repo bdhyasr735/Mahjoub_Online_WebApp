@@ -12,20 +12,20 @@
             <div class="modal-body">
                 <div class="mb-3 position-relative">
                     <label class="form-label fw-bold">اسم المستخدم</label>
-                    <input type="text" name="username" id="usernameInput" class="form-control" placeholder="يجب أن يكون فريداً" required oninput="checkAll()">
+                    <input type="text" name="username" id="usernameInput" class="form-control" placeholder="يجب أن يكون فريداً" required oninput="debounceCheck()">
                     <span id="userStatus" class="position-absolute" style="left: 15px; top: 35px;"></span>
                 </div>
 
                 <div class="mb-3 position-relative">
                     <label class="form-label fw-bold">رقم الهاتف</label>
-                    <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="7xxxxxxxx" maxlength="9" required oninput="checkAll()">
+                    <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="7xxxxxxxx" maxlength="9" required oninput="debounceCheck()">
                     <span id="phoneStatus" class="position-absolute" style="left: 15px; top: 35px;"></span>
                     <small id="phoneHelper" class="text-muted">يجب أن يبدأ بـ 7 ويتكون من 9 أرقام</small>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold">نوع الصلاحية</label>
-                    <select name="type" id="staffTypeSelect" class="form-select" onchange="toggleSupplierField(this.value); checkAll()">
+                    <select name="type" id="staffTypeSelect" class="form-select" onchange="toggleSupplierField(this.value); debounceCheck()">
                         <option value="admin">إدارة مركزية</option>
                         <option value="supplier">موظف شريك</option>
                     </select>
@@ -57,70 +57,68 @@
         document.getElementById('supplierContainer').style.display = (val === 'supplier') ? 'block' : 'none';
     }
 
+    // تقنية Debounce لتأخير طلبات التحقق
+    let debounceTimer;
+    function debounceCheck() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(checkAll, 500);
+    }
+
     // التحقق اللحظي
     async function checkAll() {
         const username = document.getElementById('usernameInput').value;
         const phone = document.getElementById('phoneInput').value;
         const type = document.getElementById('staffTypeSelect').value;
         const submitBtn = document.getElementById('submitBtn');
+        const userStatus = document.getElementById('userStatus');
         const phoneStatus = document.getElementById('phoneStatus');
 
-        if (!/^[7]\d{8}$/.test(phone)) {
-            phoneStatus.innerHTML = '⚠️';
+        if (username.length < 3 || !/^[7]\d{8}$/.test(phone)) {
             submitBtn.disabled = true;
             return;
         }
 
-        const [userRes, phoneRes] = await Promise.all([
-            fetch(`/admin/permissions/check-user?username=${username}`),
-            fetch(`/admin/permissions/check-phone?phone=${phone}&type=${type}`)
-        ]);
+        try {
+            const [userRes, phoneRes] = await Promise.all([
+                fetch(`/admin/permissions/check-user?username=${encodeURIComponent(username)}`),
+                fetch(`/admin/permissions/check-phone?phone=${phone}&type=${type}`)
+            ]);
 
-        const uStatus = await userRes.json();
-        const pStatus = await phoneRes.json();
+            const uStatus = await userRes.json();
+            const pStatus = await phoneRes.json();
 
-        document.getElementById('userStatus').innerHTML = uStatus.available ? '✅' : '❌';
-        phoneStatus.innerHTML = pStatus.available ? '✅' : '❌';
+            userStatus.innerHTML = uStatus.available ? '✅' : '❌';
+            phoneStatus.innerHTML = pStatus.available ? '✅' : '❌';
 
-        submitBtn.disabled = !(uStatus.available && pStatus.available);
+            submitBtn.disabled = !(uStatus.available && pStatus.available);
+        } catch (err) {
+            console.error("خطأ في التحقق:", err);
+        }
     }
 
-    // إرسال النموذج (التعامل مع الـ DOM بشكل صحيح)
+    // إرسال النموذج
     document.getElementById('addStaffForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
         try {
-            const res = await fetch(this.action, { 
-                method: 'POST', 
-                body: new FormData(this) 
-            });
+            const res = await fetch(this.action, { method: 'POST', body: new FormData(this) });
             const data = await res.json();
             
             if(data.success) {
-                // إغلاق المودال الحالي
-                const modalEl = document.getElementById('addStaffModal');
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                modal.hide();
-
-                // تحديث بيانات مودال النجاح
+                bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
+                // تحديث مودال النجاح
                 document.getElementById('successUsername').innerText = data.username;
                 document.getElementById('successPassword').innerText = data.password;
-
-                // إظهار مودال النجاح (استخدام الطريقة المباشرة لـ Bootstrap)
-                const successModal = new bootstrap.Modal(document.getElementById('modalSuccess'));
-                successModal.show();
-                
-                this.reset(); // تصفير الفورم
+                new bootstrap.Modal(document.getElementById('modalSuccess')).show();
+                this.reset();
             } else {
                 alert('خطأ: ' + data.message);
             }
         } catch (err) {
-            console.error(err);
-            alert('حدث خطأ أثناء الاتصال بالسيرفر');
+            alert('حدث خطأ في الاتصال بالسيرفر');
         } finally {
             btn.disabled = false;
             btn.innerHTML = 'حفظ البيانات';
