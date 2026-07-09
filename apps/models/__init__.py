@@ -8,13 +8,13 @@
 
 from apps.extensions import db
 
-# 1. الموديلات الأساسية (التي تمثل الجداول المستقلة ولا تعتمد على غيرها)
+# 1. الموديلات الأساسية (التي لا تعتمد على علاقات خارجية مع موديلات أخرى)
 from .supplier_db import Supplier
 from .admin_db import AdminUser
 from .marketer_db import Marketer
 from .exchange_db import ExchangeRate
 
-# 2. الموديلات التابعة (التي تعتمد على الـ Foreign Keys للموديلات الأساسية)
+# 2. الموديلات التابعة (التي تحتوي على ForeignKeys وترتبط بالموديلات الأساسية)
 from .admin_staff_db import AdminStaff
 from .supplier_profile_db import SupplierProfile
 from .supplier_staff_db import SupplierStaff
@@ -25,7 +25,7 @@ from .order_items_db import OrderItem
 from .sync_log import SyncLog
 
 # 3. القائمة المصدرة (Export Registry)
-# جميع الكلاسات المسجلة هنا ستكون متاحة عند استدعاء `from apps.models import ...`
+# تأكد أن جميع الكلاسات معرفة ومستوردة أعلاه لتجنب خطأ ImportError
 __all__ = [
     'db',
     'AdminStaff',
