@@ -1,20 +1,71 @@
-<div class="card shadow-sm">
+<div class="card shadow-sm gold-border">
     <div class="card-body">
-        <table class="table table-hover" id="staffTable">
-            <thead>
-                <tr><th>#</th><th>الموظف</th><th>الدور</th><th>الحالة</th><th>الإجراءات</th></tr>
-            </thead>
-            <tbody>
-                {% for member in staff %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td><strong>{{ member.username }}</strong><br><small>{{ member.phone }}</small></td>
-                    <td><span class="badge bg-warning">{{ member.role }}</span></td>
-                    <td>{{ 'نشط' if member.is_active else 'موقوف' }}</td>
-                    <td><button class="btn btn-sm btn-outline-dark">خيارات</button></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="staffTable">
+                <thead class="table-royal">
+                    <tr>
+                        <th class="text-center">#</th>
+                        <th>الموظف</th>
+                        <th class="text-center">الدور</th>
+                        {% if type_filter == 'supplier' %}
+                        <th>معلومات المتجر</th>
+                        {% endif %}
+                        <th class="text-center">الحالة</th>
+                        <th class="text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in staff %}
+                    <tr>
+                        <td class="text-center">{{ loop.index }}</td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ member.username }}</div>
+                            <small class="text-muted"><i class="fas fa-phone-alt me-1"></i>{{ member.phone }}</small>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill">{{ member.role }}</span>
+                        </td>
+                        {% if type_filter == 'supplier' %}
+                        <td>
+                            {% if member.supplier %}
+                            <div class="fw-bold text-royal">{{ member.supplier.trade_name }}</div>
+                            <small class="text-secondary fw-bold">كود: {{ member.supplier.supplier_code }}</small>
+                            {% else %}
+                            <span class="text-muted"><i class="fas fa-times-circle"></i> غير مرتبط</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="text-center">
+                            {% if member.is_active %}
+                            <span class="text-success"><i class="fas fa-check-circle"></i> نشط</span>
+                            {% else %}
+                            <span class="text-danger"><i class="fas fa-times-circle"></i> موقوف</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                                <ul class="dropdown-menu shadow">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('admin_permissions.reset_password', id=member.id, type=type_filter) }}">
+                                            <i class="fas fa-key text-warning me-2"></i> كلمة مرور جديدة
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('admin_permissions.toggle_status', id=member.id, type=type_filter) }}">
+                                            <i class="fas fa-power-off {{ 'text-danger' if member.is_active else 'text-success' }} me-2"></i>
+                                            {{ 'إيقاف الحساب' if member.is_active else 'تفعيل الحساب' }}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
