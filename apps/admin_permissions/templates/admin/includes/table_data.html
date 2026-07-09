@@ -1,18 +1,19 @@
 <style>
-    /* لمسة ملكية فاخرة خاصة بالجدول وأزرار التحكم */
+    /* التنسيق الملكي الفاخر للجدول */
     .table-royal-header {
-        background: linear-gradient(135deg, #491269 0%, #210433 70%, #09010e 100%) !important;
-        color: #ffffff !important;
+        background: linear-gradient(135deg, #491269 0%, #210433 100%) !important;
     }
     
     .table-royal-header th {
-        color: #ffffff !important;
+        color: #ffffff !important; /* لون النص أبيض */
         font-weight: 600 !important;
-        border-bottom: 2px solid #05000a !important;
+        text-align: center;
+        border-bottom: 2px solid #ffffff !important;
+        padding: 12px !important;
     }
 
     .gold-border {
-        border: 1px solid #d4af37 !important; /* إطار ذهبي ناعم يحيط بالبطاقة */
+        border: 1px solid #d4af37 !important;
         border-radius: 8px;
         overflow: hidden;
     }
@@ -21,52 +22,37 @@
         background: linear-gradient(135deg, #491269 0%, #210433 100%) !important;
         color: white !important;
         border: none !important;
-        transition: all 0.3s ease;
     }
 
     .btn-royal-sm:hover {
         background: linear-gradient(135deg, #210433 0%, #09010e 100%) !important;
         color: #e2d5f0 !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
-    /* تعريف الألوان الملكية للنصوص داخل الجدول */
-    .text-royal {
-        color: #491269 !important;
-    }
-    .text-purple-dark {
-        color: #210433 !important;
-    }
+    .text-royal { color: #491269 !important; }
+    .text-purple-dark { color: #210433 !important; }
 
-    /* تنسيق الحقول الخاصة بأدوات البحث والصفحات لتبدو احترافية */
-    .dataTables_length select, .dataTables_filter input {
-        border: 1px solid #ced4da !important;
-        border-radius: 6px !important;
-        padding: 4px 8px !important;
-    }
-    
     .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background: linear-gradient(135deg, #491269 0%, #210433 100%) !important;
+        background: #491269 !important;
         color: white !important;
         border-radius: 4px;
-        border: none !important;
     }
 </style>
 
 <div class="card shadow-sm gold-border">
-    <div class="card-body">
+    <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" id="staffTable">
                 <thead class="table-royal-header">
                     <tr>
-                        <th class="text-center" style="width: 60px;">#</th>
+                        <th style="width: 60px;">#</th>
                         <th>الموظف</th>
-                        <th class="text-center">الدور</th>
+                        <th>الدور</th>
                         {% if type_filter == 'supplier' %}
                         <th>معلومات المتجر</th>
                         {% endif %}
-                        <th class="text-center">الحالة</th>
-                        <th class="text-center" style="width: 100px;">الإجراءات</th>
+                        <th>الحالة</th>
+                        <th style="width: 100px;">الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -105,8 +91,8 @@
                         </td>
                         <td class="text-center">
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-royal-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-cog"></i> التحكم
+                                <button class="btn btn-sm btn-royal-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                                     <li>
@@ -114,9 +100,7 @@
                                             <i class="fas fa-key text-warning me-2"></i> كلمة مرور جديدة
                                         </a>
                                     </li>
-                                    <li>
-                                        <hr class="dropdown-divider my-1">
-                                    </li>
+                                    <li><hr class="dropdown-divider my-1"></li>
                                     <li>
                                         <a class="dropdown-item py-2" href="{{ url_for('admin_permissions.toggle_status', id=member.id, type=type_filter) }}">
                                             {% if member.is_active %}
@@ -139,29 +123,16 @@
 
 <script>
 $(document).ready(function() {
-    // تفعيل وتحديث الـ DataTable لتعمل كل 10 أسطر وبشكل معرب بالكامل
     if ($.fn.DataTable.isDataTable('#staffTable')) {
         $('#staffTable').DataTable().destroy();
     }
-    
     $('#staffTable').DataTable({
         "pageLength": 10,
-        "lengthMenu": [5, 10, 25, 50],
-        "searching": true,
-        "ordering": true,
-        "info": true,
-        "paging": true,
         "language": {
-            "search": "البحث السريع:",
-            "lengthMenu": "عرض _MENU_ موظفين لكل صفحة",
-            "info": "عرض من _START_ إلى _END_ (إجمالي الموظفين: _TOTAL_)",
-            "infoEmpty": "لا توجد سجلات لعرضها",
-            "emptyTable": "الجدول فارغ حالياً",
-            "zeroRecords": "لم يتم العثور على نتائج مطابقة للبحث",
-            "paginate": {
-                "next": "التالي &larr;",
-                "previous": "&rarr; السابق"
-            }
+            "search": "بحث:",
+            "lengthMenu": "عرض _MENU_ سجل",
+            "info": "عرض _START_ إلى _END_ من _TOTAL_ سجل",
+            "paginate": { "next": "التالي", "previous": "السابق" }
         }
     });
 });
