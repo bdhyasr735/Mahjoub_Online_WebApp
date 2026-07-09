@@ -38,9 +38,9 @@ def create_app():
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
-            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdn.datatables.net"],
+            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
             'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
-            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jquery.com", "https://cdn.jsdelivr.net", "https://cdn.datatables.net"],
+            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net"],
             'img-src': ["'self'", "data:", "*"]
         },
         force_https=False
@@ -57,9 +57,10 @@ def create_app():
     except ImportError:
         pass
 
-    # تسجيل الموديولات
+    # تسجيل الموديولات الديناميكي
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api']
+
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
@@ -70,6 +71,15 @@ def create_app():
                         module = importlib.import_module(f"apps.{item}.registry")
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
+                            mod_data = {
+                                "display_name": getattr(module, 'MODULE_NAME', item.capitalize()),
+                                "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
+                                "links": getattr(module, 'LINKS', {}),
+                            }
+                            if getattr(module, 'SHOW_IN_SUPPLIER', False):
+                                SUPPLIER_MODULES[item] = mod_data
+                            else:
+                                ADMIN_MODULES[item] = mod_data
                     except Exception as e:
                         print(f"❌ [Registry]: خطأ في تسجيل موديول {item}: {e}")
 
@@ -79,34 +89,35 @@ def create_app():
 
     @app.context_processor
     def inject_vars():
-        return dict(csrf_token=generate_csrf)
+        return dict(
+            csrf_token=generate_csrf,
+            registered_modules=ADMIN_MODULES,
+            supplier_modules=SUPPLIER_MODULES
+        )
 
     # 6. إعداد البيئة الأولية
     with app.app_context():
-        # هام: تأكد من استيراد كل الموديلات ليتعرف عليها SQLAlchemy قبل create_all
+        # استيراد كافة الموديلات لضمان تسجيلها قبل الإنشاء
+        from apps.models import (
+            Supplier, AdminUser, Marketer, ExchangeRate, AdminStaff, 
+            SupplierProfile, SupplierStaff, SupplierWallet, WalletTransaction,
+            OrderFinancial, Order, OrderItem, SyncLog
+        )
+        
         try:
-            from apps.models import (
-                Supplier, AdminUser, Marketer, ExchangeRate, AdminStaff, 
-                SupplierProfile, SupplierStaff, SupplierWallet, WalletTransaction,
-                OrderFinancial, Order, OrderItem, SyncLog
-            )
-            print("✅ [Setup]: تم تحميل الموديلات بنجاح.")
-            
             db.create_all()
-            print("✅ [Setup]: تم إنشاء الجداول بنجاح.")
-            
-            # زرع المالك
-            owner = AdminUser.query.filter_by(username='علي محجوب').first()
-            if not owner:
+        except Exception as e:
+            print(f"ℹ️ [Setup]: تنبيه أثناء إنشاء الجداول: {e}")
+
+        try:
+            if not AdminUser.query.filter_by(username='علي محجوب').first():
                 owner = AdminUser(username='علي محجوب', role='Owner')
-                db.session.add(owner)
-                db.session.flush()
                 owner.set_password('123')
+                db.session.add(owner)
                 db.session.commit()
-                print("✅ [Setup]: تم إنشاء المستخدم المالك.")
-            
+                print("✅ [Setup]: تم إنشاء المستخدم المالك بنجاح.")
         except Exception as e:
             db.session.rollback()
-            print(f"❌ [Setup]: خطأ أثناء التهيئة: {e}")
+            print(f"ℹ️ [Setup]: تعذر إضافة المستخدم المالك: {e}")
 
     return app
