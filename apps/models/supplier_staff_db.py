@@ -34,14 +34,17 @@ class SupplierStaff(db.Model, UserMixin):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # 3. العلاقات: تم ربطها باستخدام back_populates للتوافق التام مع Supplier
-    # هذا التعديل ينهي نهائياً مشكلة الـ Circular Imports
-    supplier = db.relationship('Supplier', back_populates='staff_members')
+    # 3. العلاقات: استخدام lazy='select' هو التحميل الكسول الافتراضي (Lazy Loading)
+    # يتم جلب بيانات المورد فقط عند الوصول إليها برمجياً.
+    supplier = db.relationship(
+        'Supplier', 
+        back_populates='staff_members',
+        lazy='select' 
+    )
 
     # 4. التشفير (Fernet AES-256)
     @staticmethod
     def _get_key():
-        # استخدام مفتاح البيئة أو المفتاح الافتراضي المخصص
         return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
 
     @property
