@@ -19,7 +19,12 @@
     </div>
 
     {% include 'admin/includes/filters_and_cards.html' %}
-    {% include 'admin/includes/table_data.html' %}
+    
+    <div class="row">
+        <div class="col-12">
+            {% include 'admin/includes/table_data.html' %}
+        </div>
+    </div>
 </div>
 
 {% include 'admin/includes/modal_add_staff.html' %}
@@ -48,7 +53,6 @@
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-    // تخزين متغيرات الموظف مؤقتاً
     let currentStaff = {};
 
     function resetPassword(staffId, staffType, username) {
@@ -78,11 +82,17 @@
         $('#modalSuccess').modal('show');
     }
 
+    // تفعيل الجدول مع خيارات البحث والترجمة
     $(document).ready(function() {
-        $('#staffTable').DataTable({
-            "pageLength": 10,
-            "language": { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" }
-        });
+        if ($('#staffTable').length) {
+            $('#staffTable').DataTable({
+                "pageLength": 10,
+                "responsive": true,
+                "language": { 
+                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" 
+                }
+            });
+        }
     });
 </script>
 {% endblock %}
