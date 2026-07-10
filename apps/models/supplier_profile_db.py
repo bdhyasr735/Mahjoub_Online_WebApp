@@ -19,6 +19,7 @@ class SupplierProfile(db.Model):
     )
     
     id = db.Column(db.Integer, primary_key=True)
+    # التأكد من وجود unique=True لضمان علاقة One-to-One
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
     
     trade_name = db.Column(db.String(150))
@@ -31,11 +32,11 @@ class SupplierProfile(db.Model):
     governorate = db.Column(db.String(100))
     city = db.Column(db.String(100))
     
-    # [التحميل الكسول]: استخدام 'select' يضمن عدم جلب المورد إلا عند استدعائه
+    # [التحميل المتصل]: استخدام 'joined' يضمن جلب بيانات المورد في نفس الاستعلام
     supplier = db.relationship(
         'Supplier', 
         back_populates='supplier_profile',
-        lazy='select' 
+        lazy='joined' 
     )
 
     # --- نظام التشفير (AES-256) ---
