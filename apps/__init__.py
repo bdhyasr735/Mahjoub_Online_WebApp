@@ -8,12 +8,12 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_cors import CORS
+from flask_cors import CORS 
 from sqlalchemy import text
 import config
 
 from apps.extensions import db, login_manager, migrate
-from apps.api.qomrah_webhook import qomrah_bp
+from apps.api.qomrah_webhook import qomrah_bp 
 
 # تهيئة الأدوات
 csrf = CSRFProtect()
@@ -26,41 +26,64 @@ SUPPLIER_MODULES = {}
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
+    
     config.Config.validate_config()
 
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
 
+    # 1. تهيئة الإضافات
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
 
+    # [تعديل هام]: تحديث محمل المستخدم ليشمل AdminUser كأولوية
     @login_manager.user_loader
     def load_user(user_id):
         from apps.models.admin_db import AdminUser
-        from apps.models.admin_staff_db import AdminStaff
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
-        return AdminUser.query.get(int(user_id)) or AdminStaff.query.get(int(user_id)) or \
-               Supplier.query.get(int(user_id)) or SupplierStaff.query.get(int(user_id))
+        
+        # 1. البحث في المديرين (المالك) أولاً
+        admin = AdminUser.query.get(int(user_id))
+        if admin: return admin
+        
+        # 2. البحث في الموردين
+        supplier = Supplier.query.get(int(user_id))
+        if supplier: return supplier
+        
+        # 3. البحث في الموظفين
+        return SupplierStaff.query.get(int(user_id))
 
-    talisman.init_app(app, content_security_policy={'default-src': ["'self'"], 'img-src': ["'self'", "data:", "*"]}, force_https=False)
+    # 2. إعدادات الأمان
+    talisman.init_app(app, 
+        content_security_policy={
+            'default-src': ["'self'"],
+            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
+            'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net"],
+            'img-src': ["'self'", "data:", "*"]
+        },
+        force_https=False
+    )
+
     login_manager.login_view = 'suppliers_auth.login'
 
+    # 3. تسجيل الـ Blueprints الأساسية
     app.register_blueprint(qomrah_bp)
     csrf.exempt(qomrah_bp)
     
     try:
-        from apps.admin.graphql_routes import graphql_bp
+        from apps.admin.graphql_routes import graphql_bp 
         app.register_blueprint(graphql_bp)
-        csrf.exempt(graphql_bp)
-    except ImportError: pass
+        csrf.exempt(graphql_bp) 
+    except ImportError:
+        pass
 
-    # 4. تسجيل الموديولات الديناميكي (تلقائي بالكامل)
+    # 4. تسجيل الموديولات الديناميكي
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin', 'auth']
-    temp_admin_modules = []
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -70,37 +93,52 @@ def create_app():
                 if os.path.exists(registry_file):
                     try:
                         module = importlib.import_module(f"apps.{item}.registry")
-                        if getattr(module, 'HIDDEN', False): continue
-                        
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
-                            
-                            # اشتقاق ذكي: إذا لم تتوفر البيانات في registry، يتم توليدها من اسم المجلد
                             mod_data = {
-                                "display_name": getattr(module, 'MODULE_NAME', item.replace('_', ' ').capitalize()),
-                                "icon": getattr(module, 'MODULE_ICON', 'fas fa-folder'),
+                                "display_name": getattr(module, 'MODULE_NAME', item.capitalize()),
+                                "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
                                 "links": getattr(module, 'LINKS', {}),
-                                "order": getattr(module, 'ORDER', 999)
                             }
-                            
                             if getattr(module, 'SHOW_IN_SUPPLIER', False):
                                 SUPPLIER_MODULES[item] = mod_data
                             else:
-                                temp_admin_modules.append(mod_data)
+                                ADMIN_MODULES[item] = mod_data
                     except Exception as e:
-                        print(f"❌ [Registry]: خطأ في الموديول {item}: {e}")
+                        print(f"❌ [Registry]: خطأ في تسجيل موديول {item}: {e}")
 
-    for mod in sorted(temp_admin_modules, key=lambda x: x['order']):
-        ADMIN_MODULES[mod['display_name']] = mod
-
+    # 5. المسارات الأساسية
     @app.route('/')
-    def index(): return redirect('/supplier/login')
+    def index():
+        return redirect('/supplier/login')
 
     @app.context_processor
     def inject_vars():
-        return dict(csrf_token=generate_csrf, registered_modules=ADMIN_MODULES, supplier_modules=SUPPLIER_MODULES)
+        return dict(
+            csrf_token=generate_csrf,
+            registered_modules=ADMIN_MODULES,
+            supplier_modules=SUPPLIER_MODULES
+        )
 
+    # 6. إعداد البيئة
     with app.app_context():
-        db.create_all()
-        # (إعداد المالك الافتراضي يبقى كما هو)
+        try:
+            db.create_all()
+            print("✅ [Setup]: تم التحقق من الجداول.")
+        except Exception as e:
+            print(f"ℹ️ [Setup]: خطأ أثناء الإنشاء: {e}")
+
+        # [إضافة المستخدم المالك]
+        try:
+            from apps.models.admin_db import AdminUser
+            if not AdminUser.query.filter_by(username='علي محجوب').first():
+                owner = AdminUser(username='علي محجوب', role='Owner')
+                owner.set_password('123')
+                db.session.add(owner)
+                db.session.commit()
+                print("✅ [Setup]: تم إنشاء المستخدم المالك بنجاح.")
+        except Exception as e:
+            db.session.rollback()
+            print(f"ℹ️ [Setup]: تعذر إضافة المستخدم المالك: {e}")
+
     return app
