@@ -7,9 +7,9 @@ from apps.suppliers_permissions.routes import suppliers_permissions_bp
 MODULE_NAME = "إدارة الصلاحيات"
 MODULE_ICON = "fa-user-shield"
 
-# ✨ الإصلاح هنا: تحويل LINKS إلى Dictionary لتتوافق مع دالة ()module.links.values في ملف base.html
+# ✨ الإصلاح الجوهري: جعل المفتاح هو الـ Endpoint والقيمة هي تفاصيل الرابط ليتوافق مع السطر 44 في base.html
 LINKS = {
-    "permissions_home": {
+    "suppliers_permissions.permissions": {
         "title": "صلاحيات الموظفين",
         "url": "/permissions",
         "icon": "fa-users-cog"
