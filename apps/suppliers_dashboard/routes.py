@@ -13,13 +13,16 @@ suppliers_dashboard_bp = Blueprint('suppliers_dashboard', __name__, template_fol
 @login_required
 def dashboard():
     """
-    لوحة تحكم المورد: تعرض الرصيد والإحصائيات.
+    لوحة تحكم المورد والموظف: تعرض الرصيد والإحصائيات.
     """
-    if session.get('user_type') != 'supplier':
+    # تصحيح المنطق للسماح للموظف والمورد بالدخول
+    user_type = session.get('user_type')
+    if user_type not in ['supplier', 'staff']:
         abort(403)
         
-    # جلب بيانات المورد الحالية
-    supplier = Supplier.query.get(current_user.id)
+    # جلب معرف المورد بناءً على نوع المستخدم
+    supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+    supplier = Supplier.query.get(supplier_id)
     
     # حساب الطلبات المعلقة (pending)
     pending_orders_count = Order.query.filter_by(
@@ -27,8 +30,6 @@ def dashboard():
         status='pending'
     ).count()
     
-    # تم تمرير supplier الذي يحتوي على علاقة المحفظة (wallet) 
-    # ليتمكن dashboard.html من الوصول إلى balance_yer, balance_usd, إلخ.
     return render_template('suppliers/dashboard.html', 
                            supplier=supplier, 
                            pending_orders_count=pending_orders_count)
@@ -36,10 +37,12 @@ def dashboard():
 @suppliers_dashboard_bp.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    if session.get('user_type') != 'supplier':
+    user_type = session.get('user_type')
+    if user_type not in ['supplier', 'staff']:
         abort(403)
         
-    supplier = Supplier.query.get(current_user.id)
+    supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+    supplier = Supplier.query.get(supplier_id)
     
     # معالجة تحديث البيانات
     if request.method == 'POST':
@@ -65,9 +68,11 @@ def withdraw():
     """
     صفحة السحب المالي للمورد.
     """
-    if session.get('user_type') != 'supplier':
+    user_type = session.get('user_type')
+    if user_type not in ['supplier', 'staff']:
         abort(403)
         
-    supplier = Supplier.query.get(current_user.id)
+    supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+    supplier = Supplier.query.get(supplier_id)
     
     return render_template('suppliers/withdraw.html', supplier=supplier)
