@@ -44,10 +44,8 @@ def create_app():
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
         
-        # معرفة نوع المستخدم الحالي من الجلسة لمنع تداخل أرقام الـ ID
         user_type = session.get('user_type')
         
-        # التوجيه الصارم والمباشر للجدول المستهدف
         if user_type == 'admin':
             return db.session.get(AdminUser, int(user_id))
         elif user_type == 'supplier':
@@ -55,7 +53,6 @@ def create_app():
         elif user_type == 'staff':
             return db.session.get(SupplierStaff, int(user_id))
             
-        # خطة بديلة (Fallback) للتعامل الذكي في حال غياب متغيّر الجلسة مؤقتاً
         admin = db.session.get(AdminUser, int(user_id))
         if admin: return admin
         
@@ -89,7 +86,7 @@ def create_app():
     except ImportError:
         pass
 
-    # 4. تسجيل الموديولات الديناميكي (مع الفلترة الذكية)
+    # 4. تسجيل الموديولات الديناميكي
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin', 'auth']
 
@@ -104,7 +101,6 @@ def create_app():
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
                             
-                            # إضافة للموديولات المعروضة فقط إذا كان لديها روابط (LINKS)
                             module_links = getattr(module, 'LINKS', {})
                             if module_links:
                                 mod_data = {
@@ -126,10 +122,23 @@ def create_app():
 
     @app.context_processor
     def inject_vars():
+        """
+        دالة محمية لتنظيف الموديولات قبل عرضها في اللوحة.
+        تمنع الانهيار إذا كان هناك موديول بتنسيق خاطئ.
+        """
+        safe_supplier_modules = {}
+        for key, mod in SUPPLIER_MODULES.items():
+            try:
+                # التحقق من أن الروابط هي قاموس صالح
+                if isinstance(mod.get('links'), dict):
+                    safe_supplier_modules[key] = mod
+            except:
+                continue
+                
         return dict(
             csrf_token=generate_csrf,
             registered_modules=ADMIN_MODULES,
-            supplier_modules=SUPPLIER_MODULES
+            supplier_modules=safe_supplier_modules
         )
 
     # 6. إعداد البيئة وقاعدة البيانات
