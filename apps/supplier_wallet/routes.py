@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/supplier_wallet/routes.py
+# 📂 apps/suppliers_wallet/routes.py
 
 from flask import Blueprint, render_template, abort, request, session
 from flask_login import login_required, current_user
@@ -14,14 +14,20 @@ supplier_wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='tem
 @supplier_wallet_bp.route('/my-wallet', methods=['GET'])
 @login_required
 def view_my_wallet():
-    # 1. تحديد الـ s_id بمرونة
+    # 1. تحديد الـ s_id بمرونة وأمان كامل للمورد وموظفيه
     user_type = session.get('user_type')
+    
     if user_type == 'supplier':
         s_id = current_user.id
+    elif user_type == 'staff':
+        # جلب المعرف الحقيقي للمورد التابع له الموظف تلقائياً بدون تصفح يدوي
+        s_id = getattr(current_user, 'supplier_id', None)
     else:
+        # إتاحة جلب المعرف عبر الرابط للإدارة أو الحالات الخاصة الأخرى
         s_id = request.args.get('supplier_id')
-        if not s_id:
-            abort(400, description="يجب تحديد معرف المورد (supplier_id) لعرض المحفظة.")
+        
+    if not s_id:
+        abort(400, description="يجب تحديد معرف المورد (supplier_id) لعرض المحفظة.")
     
     # 2. جلب محفظة المتجر
     wallet = SupplierWallet.query.filter_by(supplier_id=s_id).first()
