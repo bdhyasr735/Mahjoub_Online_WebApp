@@ -52,11 +52,26 @@ class Order(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقات (Relationships) مع استخدام lazy='joined' لضمان سرعة عرض تفاصيل الطلب
+    # العلاقات (Relationships)
+    # استخدام lazy='joined' يضمن جلب البيانات المرتبطة في استعلام واحد (SQL Join)
     supplier = db.relationship('Supplier', back_populates='orders', lazy='joined')
     marketer = db.relationship('Marketer', back_populates='orders', lazy='joined')
-    items = db.relationship('OrderItem', back_populates='order', cascade="all, delete-orphan", lazy='joined')
-    financials = db.relationship('OrderFinancial', back_populates='order', uselist=False, cascade="all, delete-orphan", lazy='joined')
+    
+    # تأكد أن 'items' تستخدم back_populates='order' لتطابق OrderItem.order
+    items = db.relationship(
+        'OrderItem', 
+        back_populates='order', 
+        cascade="all, delete-orphan", 
+        lazy='joined'
+    )
+    
+    financials = db.relationship(
+        'OrderFinancial', 
+        back_populates='order', 
+        uselist=False, 
+        cascade="all, delete-orphan", 
+        lazy='joined'
+    )
 
     # --- جسر البيانات المالية ---
     @property
