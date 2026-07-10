@@ -11,11 +11,13 @@ from apps.extensions import db
 class SupplierStaff(db.Model, UserMixin):
     __tablename__ = 'supplier_staff'
     
-    # [فهرسة متقدمة]: تم تعديل الأسماء لتكون فريدة ولضمان سرعة البحث وعدم التعارض
+    # [فهرسة متقدمة]: فهرسة الحقول الأكثر استخداماً في البحث والفلترة
     __table_args__ = (
         db.Index('idx_sup_staff_username', 'username'),
         db.Index('idx_sup_staff_phone', 'search_phone'),
         db.Index('idx_sup_staff_active', 'is_active'),
+        # فهرس فريد مركب لمنع تكرار الموظف لنفس المورد
+        db.Index('idx_unique_staff_in_supplier', 'supplier_id', 'username', unique=True),
         {'extend_existing': True}
     )
     
@@ -24,9 +26,9 @@ class SupplierStaff(db.Model, UserMixin):
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     username = db.Column(db.String(100), nullable=False)
     
-    # التشفير السيادي للهاتف
+    # [التشفير السيادي]: الهاتف مشفر وله فهرس للبحث
     _phone_enc = db.Column(db.String(255), nullable=False) 
-    search_phone = db.Column(db.String(20)) # عمود الفهرس للبحث السريع
+    search_phone = db.Column(db.String(20)) 
     
     email = db.Column(db.String(150), nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -34,12 +36,12 @@ class SupplierStaff(db.Model, UserMixin):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # 3. العلاقات: استخدام lazy='select' هو التحميل الكسول الافتراضي (Lazy Loading)
-    # يتم جلب بيانات المورد فقط عند الوصول إليها برمجياً.
+    # 3. العلاقات: استخدمنا lazy='joined' لأن الموظف يحتاج دائماً لبيانات المورد التابع له
+    # هذا يقلل عدد الاستعلامات ويحسن أداء لوحة التحكم بشكل ملحوظ
     supplier = db.relationship(
         'Supplier', 
         back_populates='staff_members',
-        lazy='select' 
+        lazy='joined' 
     )
 
     # 4. التشفير (Fernet AES-256)
@@ -49,18 +51,18 @@ class SupplierStaff(db.Model, UserMixin):
 
     @property
     def phone(self):
-        """الخاصية التي تعيد الرقم الصريح عند الاستدعاء staff.phone"""
+        """فك تشفير الهاتف عند الاستدعاء"""
         try:
             return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
         except: 
-            return "---"
+            return None
 
     @phone.setter
     def phone(self, value):
-        """عند تعيين القيمة يتم التشفير وحفظ الفهرس للبحث"""
+        """تشفير الهاتف وتحديث فهرس البحث"""
         if value:
             self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
-            self.search_phone = str(value)[-9:] # تخزين آخر 9 أرقام في عمود الفهرس
+            self.search_phone = str(value)[-9:] 
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
