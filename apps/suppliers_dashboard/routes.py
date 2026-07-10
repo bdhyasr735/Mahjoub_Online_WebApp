@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, abort, session, request, flash, re
 from flask_login import login_required, current_user
 from apps.models.supplier_db import Supplier, db
 from apps.models.orders_db import Order
+from apps.models.wallet_db import Wallet  # تم إضافة هذا الاستيراد
 
 # تم تعريف الـ Blueprint
 suppliers_dashboard_bp = Blueprint('suppliers_dashboard', __name__, template_folder='templates')
@@ -24,9 +25,13 @@ def dashboard():
     supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
     supplier = Supplier.query.get(supplier_id)
     
-    # في حال لم يتم العثور على المورد (خطأ في البيانات)
+    # في حال لم يتم العثور على المورد
     if not supplier:
         abort(404)
+        
+    # ضمان جلب المحفظة إذا لم تكن محملة تلقائياً في كائن المورد
+    if not hasattr(supplier, 'wallet') or supplier.wallet is None:
+        supplier.wallet = Wallet.query.filter_by(supplier_id=supplier.id).first()
     
     # حساب الطلبات المعلقة (pending)
     pending_orders_count = Order.query.filter_by(
@@ -34,7 +39,6 @@ def dashboard():
         status='pending'
     ).count()
     
-    # تمرير supplier للقالب (الذي سيتم استخدامه في dashboard.html)
     return render_template('suppliers/dashboard.html', 
                            supplier=supplier, 
                            pending_orders_count=pending_orders_count)
@@ -85,5 +89,9 @@ def withdraw():
     
     if not supplier:
         abort(404)
+        
+    # ضمان جلب المحفظة
+    if not hasattr(supplier, 'wallet') or supplier.wallet is None:
+        supplier.wallet = Wallet.query.filter_by(supplier_id=supplier.id).first()
     
     return render_template('suppliers/withdraw.html', supplier=supplier)
