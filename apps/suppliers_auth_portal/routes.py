@@ -72,3 +72,7 @@ def login():
 @suppliers_bp.route('/logout')
 @login_required
 def logout():
+    """تسجيل خروج المستخدم ومسح الجلسة بالكامل."""
+    session.clear()
+    logout_user()
+    return redirect(url_for('suppliers_auth.login'))
