@@ -34,13 +34,6 @@
         border-bottom: 2px solid #ffffff !important;
         padding: 12px !important;
     }
-
-    /* إجبار عناصر DataTable على الظهور */
-    .dataTables_wrapper .dataTables_filter, 
-    .dataTables_wrapper .dataTables_paginate {
-        display: block !important;
-        visibility: visible !important;
-    }
 </style>
 
 <div class="container-fluid py-4" style="direction: rtl;">
@@ -110,17 +103,25 @@
     $('#btnConfirmReset').click(function() {
         const confirmBtn = $(this);
         confirmBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> جاري المعالجة...');
-        $('#confirmResetModal').modal('hide');
         
         $.ajax({
             url: `/admin/permissions/reset-password/${currentStaff.staffId}/${currentStaff.staffType}`,
             type: 'GET',
+            // إرسال توكن الحماية لمنع خطأ 403 Forbidden
+            headers: {
+                "X-CSRFToken": "{{ csrf_token() }}"
+            },
             success: function(response) {
+                $('#confirmResetModal').modal('hide');
                 if (response.success) {
                     showSuccessModal(response.username, response.new_password, response.store_name, response.store_code);
                 } else {
                     alert('خطأ: ' + (response.message || 'فشل التحديث'));
                 }
+            },
+            error: function(xhr) {
+                console.error("خطأ تقني:", xhr.responseText);
+                alert('فشل الاتصال بالسيرفر. تأكد من صلاحياتك.');
             },
             complete: function() {
                 confirmBtn.prop('disabled', false).html('<i class="fas fa-key me-1"></i> تأكيد التغيير الآن');
@@ -129,22 +130,12 @@
     });
 
     $(document).ready(function() {
-        // تهيئة مباشرة للجدول مع ترجمة داخلية لضمان العمل
         $('#staffTable').DataTable({
             "destroy": true,
             "pageLength": 10,
-            "responsive": true,
-            "paging": true,
-            "searching": true,
-            "ordering": true,
             "language": {
                 "search": "بحث:",
-                "lengthMenu": "عرض _MENU_ سجل",
-                "info": "عرض _START_ إلى _END_ من أصل _TOTAL_ سجل",
-                "paginate": {
-                    "next": "التالي",
-                    "previous": "السابق"
-                },
+                "paginate": {"next": "التالي", "previous": "السابق"},
                 "emptyTable": "لا توجد بيانات متاحة"
             }
         });
