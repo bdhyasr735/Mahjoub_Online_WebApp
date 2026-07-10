@@ -38,7 +38,7 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
 
-    # [تحديث هام]: محمل المستخدم يدعم المالك، موظفي الإدارة، الموردين، وموظفي الموردين
+    # محمل المستخدم
     @login_manager.user_loader
     def load_user(user_id):
         from apps.models.admin_db import AdminUser
@@ -46,20 +46,9 @@ def create_app():
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
         
-        # 1. البحث في جدول المالك
-        user = AdminUser.query.get(int(user_id))
-        if user: return user
-        
-        # 2. البحث في جدول موظفي الإدارة
-        user = AdminStaff.query.get(int(user_id))
-        if user: return user
-        
-        # 3. البحث في جدول الموردين
-        user = Supplier.query.get(int(user_id))
-        if user: return user
-        
-        # 4. البحث في جدول موظفي الموردين
-        return SupplierStaff.query.get(int(user_id))
+        user = AdminUser.query.get(int(user_id)) or AdminStaff.query.get(int(user_id)) or \
+               Supplier.query.get(int(user_id)) or SupplierStaff.query.get(int(user_id))
+        return user
 
     # 2. إعدادات الأمان
     talisman.init_app(app, 
@@ -88,7 +77,7 @@ def create_app():
 
     # 4. تسجيل الموديولات الديناميكي
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin', 'auth']
 
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -100,9 +89,10 @@ def create_app():
                         module = importlib.import_module(f"apps.{item}.registry")
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
+                            # النظام الآن يأخذ الاسم من MODULE_NAME داخل registry الخاص بالموديول مباشرة
                             mod_data = {
                                 "display_name": getattr(module, 'MODULE_NAME', item.capitalize()),
-                                "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
+                                "icon": getattr(module, 'MODULE_ICON', 'fas fa-folder'),
                                 "links": getattr(module, 'LINKS', {}),
                             }
                             if getattr(module, 'SHOW_IN_SUPPLIER', False):
@@ -110,7 +100,7 @@ def create_app():
                             else:
                                 ADMIN_MODULES[item] = mod_data
                     except Exception as e:
-                        print(f"❌ [Registry]: خطأ في تسجيل موديول {item}: {e}")
+                        print(f"❌ [Registry]: خطأ في تسجيل {item}: {e}")
 
     # 5. المسارات الأساسية
     @app.route('/')
@@ -127,23 +117,12 @@ def create_app():
 
     # 6. إعداد البيئة
     with app.app_context():
-        try:
-            db.create_all()
-            print("✅ [Setup]: تم التحقق من الجداول.")
-        except Exception as e:
-            print(f"ℹ️ [Setup]: خطأ أثناء الإنشاء (قد يكون بسبب تكرار): {e}")
-
-        # إضافة المستخدم المالك (الافتراضي)
-        try:
-            from apps.models.admin_db import AdminUser
-            if not AdminUser.query.filter_by(username='علي محجوب').first():
-                owner = AdminUser(username='علي محجوب', role='Owner')
-                owner.set_password('123')
-                db.session.add(owner)
-                db.session.commit()
-                print("✅ [Setup]: تم إنشاء المستخدم المالك بنجاح.")
-        except Exception as e:
-            db.session.rollback()
-            print(f"ℹ️ [Setup]: تعذر إضافة المستخدم المالك: {e}")
+        db.create_all()
+        from apps.models.admin_db import AdminUser
+        if not AdminUser.query.filter_by(username='علي محجوب').first():
+            owner = AdminUser(username='علي محجوب', role='Owner')
+            owner.set_password('123')
+            db.session.add(owner)
+            db.session.commit()
 
     return app
