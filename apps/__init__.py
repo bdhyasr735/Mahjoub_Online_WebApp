@@ -38,17 +38,22 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
 
-    # [إضافة هامة]: تعريف كيفية تحميل المستخدم من الـ Session لدعم نظام الدخول المزدوج
+    # [تعديل هام]: تحديث محمل المستخدم ليشمل AdminUser كأولوية
     @login_manager.user_loader
     def load_user(user_id):
+        from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
         
-        # محاولة البحث أولاً في الموردين
-        user = Supplier.query.get(int(user_id))
-        if user:
-            return user
-        # إذا لم يوجد، نبحث في الموظفين
+        # 1. البحث في المديرين (المالك) أولاً
+        admin = AdminUser.query.get(int(user_id))
+        if admin: return admin
+        
+        # 2. البحث في الموردين
+        supplier = Supplier.query.get(int(user_id))
+        if supplier: return supplier
+        
+        # 3. البحث في الموظفين
         return SupplierStaff.query.get(int(user_id))
 
     # 2. إعدادات الأمان
@@ -117,7 +122,6 @@ def create_app():
 
     # 6. إعداد البيئة
     with app.app_context():
-        # [بناء الجداول]
         try:
             db.create_all()
             print("✅ [Setup]: تم التحقق من الجداول.")
