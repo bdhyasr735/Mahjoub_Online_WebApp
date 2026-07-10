@@ -47,10 +47,10 @@ class OrderFinancial(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     settled_at = db.Column(db.DateTime, nullable=True)
 
-    # العلاقات
-    order = db.relationship('Order', back_populates='financials')
-    supplier = db.relationship('Supplier', back_populates='financials')
-    transaction = db.relationship('WalletTransaction', backref='order_financials')
+    # [التحميل المتصل]: استخدام joined لضمان جلب بيانات Order و Supplier فوراً
+    order = db.relationship('Order', back_populates='financials', lazy='joined')
+    supplier = db.relationship('Supplier', back_populates='financials', lazy='joined')
+    transaction = db.relationship('WalletTransaction', backref='order_financials', lazy='joined')
 
     # --- منطق التشفير السيادي ---
     @staticmethod
