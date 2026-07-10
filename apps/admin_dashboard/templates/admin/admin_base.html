@@ -6,27 +6,29 @@
     <title>{% block title %}القيادة المركزية | MAHJOUB{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <style>
         :root { --royal-purple: #1a0b2e; --deep-black: #08020d; --mahjoub-gold: #D4AF37; --sidebar-width: 280px; }
         body { font-family: 'Cairo', sans-serif; background-color: #f4f7f6; margin: 0; }
+        
+        /* Sidebar Styling */
         .sidebar { width: var(--sidebar-width); background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); height: 100vh; position: fixed; right: 0; top: 0; z-index: 1050; transition: all 0.3s; box-shadow: 2px 0 10px rgba(0,0,0,0.3); overflow-y: auto; }
         .logo-container { padding: 30px 10px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.3); }
         .sidebar-logo { width: 70px; filter: brightness(0) invert(1); }
         .brand-text { color: var(--mahjoub-gold); font-size: 0.9rem; margin-top: 10px; display: block; }
+        
         .nav-menu { padding: 20px 15px; }
         .nav-link { display: flex; align-items: center; padding: 12px 15px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: 10px; transition: 0.3s; cursor: pointer; }
         .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.2); color: var(--mahjoub-gold); }
+        
         .dropdown-content { display: none; list-style: none; padding-right: 35px; border-right: 2px solid var(--mahjoub-gold); margin: 5px 0; }
         .dropdown-content a { color: rgba(255,255,255,0.8); display: block; padding: 8px 10px; font-size: 0.9rem; border-radius: 5px; text-decoration: none; }
         .dropdown-content a:hover { background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold); }
-        .fa-chevron-down { transition: transform 0.3s ease; }
+        
         .main-wrapper { margin-right: var(--sidebar-width); transition: 0.3s; }
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .menu-toggle { display: none; background: none; border: none; font-size: 1.5rem; color: var(--royal-purple); }
-        .notification-modal { display: block; background: rgba(0,0,0,0.6); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; }
-        @media (max-width: 992px) { .sidebar { right: -280px; } .sidebar.active { right: 0; } .main-wrapper { margin-right: 0; } .menu-toggle { display: block !important; } }
+        
+        @media (max-width: 992px) { .sidebar { right: -280px; } .sidebar.active { right: 0; } .main-wrapper { margin-right: 0; } }
     </style>
 </head>
 <body>
@@ -42,23 +44,19 @@
             </a>
             
             {% if registered_modules %}
-                {% set allowed_modules = ['admin_suppliers_list', 'orders', 'admin_financial_control', 'admin_permissions'] %}
-                
                 {% for key, module in registered_modules.items() %}
-                    {% if key in allowed_modules %}
-                        <div class="nav-item">
-                            <div class="nav-link" onclick="toggleSub(this)">
-                                <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
-                                <span>{{ module.display_name }}</span> 
-                                <i class="fas fa-chevron-down ms-auto"></i>
-                            </div>
-                            <ul class="dropdown-content">
-                                {% for label, endpoint in module.links.items() %}
-                                    <li><a href="{{ url_for(endpoint) }}"><i class="fas fa-circle me-2" style="font-size: 8px;"></i> {{ label }}</a></li>
-                                {% endfor %}
-                            </ul>
+                    <div class="nav-item">
+                        <div class="nav-link" onclick="toggleSub(this)">
+                            <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
+                            <span>{{ module.display_name }}</span> 
+                            <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
                         </div>
-                    {% endif %}
+                        <ul class="dropdown-content">
+                            {% for label, endpoint in module.links.items() %}
+                                <li><a href="{{ url_for(endpoint) }}"><i class="fas fa-circle me-2" style="font-size: 6px;"></i> {{ label }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 {% endfor %}
             {% endif %}
             
@@ -71,45 +69,21 @@
 
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
-            <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <button class="btn btn-outline-dark d-lg-none" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
             <div class="d-flex align-items-center gap-3 ms-auto">
-                <div class="user-identity fw-bold d-none d-md-block">{{ current_user.username if current_user.is_authenticated else 'المسؤول' }}</div>
-                <div class="badge bg-warning text-dark">بيئة التحكم السيادية</div>
+                <span class="badge bg-warning text-dark px-3 py-2">بيئة التحكم السيادية</span>
             </div>
         </header>
         <section class="p-4">{% block content %}{% endblock %}</section>
     </main>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-            <div class="notification-modal">
-                <div class="d-flex justify-content-center align-items-center h-100">
-                    <div class="card shadow-lg border-0" style="width: 350px;">
-                        <div class="card-header bg-{{ 'success' if category == 'success' else 'danger' }} text-white text-center fw-bold">
-                            {{ 'تم التنفيذ' if category == 'success' else 'تنبيه نظام' }}
-                        </div>
-                        <div class="card-body text-center py-4">
-                            <p class="fs-5">{{ message }}</p>
-                            <button class="btn btn-dark mt-3 px-4" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">موافق</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
-    <!-- إضافة jQuery هنا -->
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function toggleSub(el) {
             let drop = el.nextElementSibling;
             if(!drop) return;
-            let isVisible = drop.style.display === "block";
-            drop.style.display = isVisible ? "none" : "block";
-            el.querySelector('.fa-chevron-down').style.transform = isVisible ? "rotate(0deg)" : "rotate(180deg)";
+            drop.style.display = (drop.style.display === "block") ? "none" : "block";
+            el.querySelector('.fa-chevron-down').style.transform = (drop.style.display === "block") ? "rotate(180deg)" : "rotate(0deg)";
         }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
     </script>
