@@ -20,19 +20,21 @@ def login():
         # تحديد المسار الهدف
         dashboard_url = '/supplier/dashboard' 
         try:
-            # هذا هو السطر الحيوي للتوافق مع الـ Registry
             dashboard_url = url_for('suppliers_dashboard.dashboard')
         except Exception as e:
             print(f"⚠️ [Login Warning]: فشل استدعاء url_for لـ suppliers_dashboard: {e}")
 
-        # 1. محاولة البحث في المورد الرئيسي
+        # 1. محاولة البحث في المورد الرئيسي (الشريك)
         user = Supplier.query.filter(
             (Supplier.search_phone == username) | (Supplier.username == username)
         ).first()
         
         if user and user.check_password(password):
+            session.clear()  # تنظيف الجلسة قبل تسجيل دخول جديد
             session['user_type'] = 'supplier'
+            session.permanent = True
             login_user(user, remember=True)
+            session.modified = True
             return jsonify({"status": "success", "redirect": dashboard_url})
 
         # 2. البحث في جدول الموظفين
@@ -41,8 +43,15 @@ def login():
         ).first()
 
         if staff and staff.check_password(password):
+            # فحص إضافي لحالة الحساب قبل السماح بالدخول
+            if not getattr(staff, 'is_active', True):
+                return jsonify({"status": "error", "message": "حسابك معطل، يرجى مراجعة الشريك"}), 403
+            
+            session.clear()  # تنظيف الجلسة قبل تسجيل دخول الموظف
             session['user_type'] = 'staff'
+            session.permanent = True
             login_user(staff, remember=True)
+            session.modified = True # إجبار Flask على حفظ بيانات الجلسة
             return jsonify({"status": "success", "redirect": dashboard_url})
 
         return jsonify({"status": "error", "message": "بيانات الدخول غير صحيحة"}), 401
@@ -54,8 +63,6 @@ def login():
 @suppliers_bp.route('/logout')
 @login_required
 def logout():
-    session.pop('user_type', None)
+    session.clear()  # مسح كامل للجلسة عند الخروج
     logout_user()
-    session.clear()
-    flash("تم تسجيل الخروج بنجاح.", "success")
     return redirect(url_for('suppliers_auth.login'))
