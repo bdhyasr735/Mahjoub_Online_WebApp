@@ -3,9 +3,9 @@
 
 from flask import Blueprint, render_template, abort, session, request, flash, redirect, url_for
 from flask_login import login_required, current_user
-from apps.models.supplier_db import Supplier, db
-from apps.models.orders_db import Order
-from apps.models.wallet_db import Wallet  # تم إضافة هذا الاستيراد
+
+# التعديل الجوهري هنا: استيراد الموديلات من المركز مباشرة وتصحيح اسم المحفظة
+from apps.models import db, Supplier, Order, SupplierWallet
 
 # تم تعريف الـ Blueprint
 suppliers_dashboard_bp = Blueprint('suppliers_dashboard', __name__, template_folder='templates')
@@ -29,9 +29,9 @@ def dashboard():
     if not supplier:
         abort(404)
         
-    # ضمان جلب المحفظة إذا لم تكن محملة تلقائياً في كائن المورد
+    # استخدام الاسم الصحيح (SupplierWallet)
     if not hasattr(supplier, 'wallet') or supplier.wallet is None:
-        supplier.wallet = Wallet.query.filter_by(supplier_id=supplier.id).first()
+        supplier.wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
     
     # حساب الطلبات المعلقة (pending)
     pending_orders_count = Order.query.filter_by(
@@ -90,8 +90,8 @@ def withdraw():
     if not supplier:
         abort(404)
         
-    # ضمان جلب المحفظة
+    # استخدام الاسم الصحيح (SupplierWallet)
     if not hasattr(supplier, 'wallet') or supplier.wallet is None:
-        supplier.wallet = Wallet.query.filter_by(supplier_id=supplier.id).first()
+        supplier.wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
     
     return render_template('suppliers/withdraw.html', supplier=supplier)
