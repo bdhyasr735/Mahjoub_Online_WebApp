@@ -4,36 +4,41 @@
 from flask import Blueprint, render_template, abort, session, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 
-# التعديل الجوهري هنا: استيراد الموديلات من المركز مباشرة وتصحيح اسم المحفظة
+# استيراد الموديلات من المركز مباشرة مع تصحيح المسميات
 from apps.models import db, Supplier, Order, SupplierWallet
 
-# تم تعريف الـ Blueprint
+# تعريف الـ Blueprint
 suppliers_dashboard_bp = Blueprint('suppliers_dashboard', __name__, template_folder='templates')
 
 @suppliers_dashboard_bp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
     """
-    لوحة تحكم المورد والموظف: تعرض الرصيد والإحصائيات.
+    لوحة تحكم المورد والموظف: تعرض الرصيد والإحصائيات بآمان وموثوقية عالية.
     """
-    # التحقق من صلاحية الوصول
+    # 1. التحقق من صلاحية الوصول من الجلسة
     user_type = session.get('user_type')
     if user_type not in ['supplier', 'staff']:
         abort(403)
         
-    # جلب معرف المورد بناءً على نوع المستخدم
+    # 2. جلب معرف المورد بناءً على نوع المستخدم (موظف أم مالك المورد)
     supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
-    supplier = Supplier.query.get(supplier_id)
     
-    # في حال لم يتم العثور على المورد
+    # 3. استخدام db.session.get الآمن لمنع تعليق الطلب (Internal Server Error 500)
+    supplier = db.session.get(Supplier, supplier_id)
+    
     if not supplier:
         abort(404)
         
-    # استخدام الاسم الصحيح (SupplierWallet)
-    if not hasattr(supplier, 'wallet') or supplier.wallet is None:
-        supplier.wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+    # 4. جلب محفظة المورد بشكل منفصل وآمن لإسنادها لكائن العرض
+    wallet = db.session.execute(
+        db.select(SupplierWallet).filter_by(supplier_id=supplier.id)
+    ).scalar_one_or_none()
     
-    # حساب الطلبات المعلقة (pending)
+    # إسناد المحفظة يدوياً لضمان قراءتها في قالب الجينجا (HTML)
+    supplier.wallet = wallet
+    
+    # 5. حساب الطلبات المعلقة (pending) الخاصة بالمورد
     pending_orders_count = Order.query.filter_by(
         supplier_id=supplier.id, 
         status='pending'
@@ -51,17 +56,18 @@ def settings():
         abort(403)
         
     supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
-    supplier = Supplier.query.get(supplier_id)
+    supplier = db.session.get(Supplier, supplier_id)
     
     if not supplier:
         abort(404)
     
-    # معالجة تحديث البيانات
+    # معالجة تحديث البيانات عند تقديم النموذج
     if request.method == 'POST':
         profile = supplier.supplier_profile
-        profile.owner_name = request.form.get('owner_name')
-        profile.email = request.form.get('email')
-        profile.address = request.form.get('address')
+        if profile:
+            profile.owner_name = request.form.get('owner_name')
+            profile.email = request.form.get('email')
+            profile.address = request.form.get('address')
         
         try:
             db.session.commit()
@@ -78,20 +84,23 @@ def settings():
 @login_required
 def withdraw():
     """
-    صفحة السحب المالي للمورد.
+    صفحة السحب المالي للمورد والموظف المصرح له.
     """
     user_type = session.get('user_type')
     if user_type not in ['supplier', 'staff']:
         abort(403)
         
     supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
-    supplier = Supplier.query.get(supplier_id)
+    supplier = db.session.get(Supplier, supplier_id)
     
     if not supplier:
         abort(404)
         
-    # استخدام الاسم الصحيح (SupplierWallet)
-    if not hasattr(supplier, 'wallet') or supplier.wallet is None:
-        supplier.wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+    # جلب المحفظة بشكل آمن ومنفصل ومقاوم للأخطاء الصامتة
+    wallet = db.session.execute(
+        db.select(SupplierWallet).filter_by(supplier_id=supplier.id)
+    ).scalar_one_or_none()
+    
+    supplier.wallet = wallet
     
     return render_template('suppliers/withdraw.html', supplier=supplier)
