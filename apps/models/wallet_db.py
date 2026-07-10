@@ -37,8 +37,9 @@ class SupplierWallet(db.Model):
     _bank_details_enc = db.Column(db.String(500), nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    supplier = db.relationship('Supplier', back_populates='wallet')
-    transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan")
+    # استخدام lazy='joined' لضمان جلب بيانات المورد دائماً عند الوصول للمحفظة
+    supplier = db.relationship('Supplier', back_populates='wallet', lazy='joined')
+    transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan", lazy='select')
 
     @staticmethod
     def _get_key():
@@ -63,7 +64,6 @@ class WalletTransaction(db.Model):
     """سجل الحركات المالية الموحد."""
     __tablename__ = 'wallet_transactions'
     
-    # [فهرسة الأداء]: للبحث في سجلات العمليات
     __table_args__ = (
         db.Index('idx_trans_wallet', 'wallet_id'),
         db.Index('idx_trans_date', 'created_at'),
@@ -76,7 +76,7 @@ class WalletTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     wallet_id = db.Column(db.Integer, db.ForeignKey('supplier_wallets.id'), nullable=False)
     owner_type = db.Column(db.String(20), default='supplier') 
-    owner_id = db.Column(db.Integer, nullable=False) # معرف المورد الرقمي
+    owner_id = db.Column(db.Integer, nullable=False)
     
     trans_type = db.Column(db.String(20), nullable=False) 
     source_type = db.Column(db.String(20), default='manual')
@@ -86,24 +86,20 @@ class WalletTransaction(db.Model):
     balance_after = db.Column(db.Numeric(18, 2), nullable=False)
     description = db.Column(db.String(255))
     reference_number = db.Column(db.String(50)) 
-    related_order_id = db.Column(db.String(50), nullable=True) # معرف الطلب النصي
+    related_order_id = db.Column(db.String(50), nullable=True)
     voucher_number = db.Column(db.String(20), unique=True, nullable=True) 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.Integer, nullable=True)
 
-    wallet = db.relationship('SupplierWallet', back_populates='transactions')
+    wallet = db.relationship('SupplierWallet', back_populates='transactions', lazy='joined')
 
-# --- مشغل الأحداث (Event Listener) للتسوية التلقائية ---
+# --- مشغل الأحداث للتسوية التلقائية ---
 @event.listens_for(WalletTransaction, 'before_insert')
 def set_voucher_number(mapper, connection, target):
-    """توليد رقم القسيمة وتحديث رصيد المحفظة تلقائياً عند إضافة حركة."""
     if not target.voucher_number:
-        # توليد رقم تسلسلي فريد
-        last_trans = connection.execute(
-            select(func.max(WalletTransaction.voucher_number))
-        ).scalar()
-        
+        # توليد رقم تسلسلي فريد بأداء عالٍ
         last_num = 12327
+        last_trans = connection.execute(select(func.max(WalletTransaction.voucher_number))).scalar()
         if last_trans and '-' in last_trans:
             try: last_num = int(last_trans.split('-')[-1])
             except: pass
@@ -111,21 +107,19 @@ def set_voucher_number(mapper, connection, target):
 
     # حساب وتحديث رصيد المحفظة
     if target.balance_before is None or target.balance_after is None:
-        wallet = connection.execute(
-            select(SupplierWallet).filter_by(id=target.wallet_id)
-        ).scalar_one_or_none()
-        
-        if wallet:
+        wallet_query = connection.execute(select(SupplierWallet).filter_by(id=target.wallet_id)).scalar_one_or_none()
+        if wallet_query:
             amount_dec = Decimal(str(target.amount or 0))
             attr = f'balance_{target.currency.lower()}'
-            current = Decimal(str(getattr(wallet, attr, 0) or 0))
-            
+            current = Decimal(str(getattr(wallet_query, attr, 0) or 0))
             target.balance_before = current
             
-            # تحديد نوع الحركة وتأثيرها على الرصيد
             if target.trans_type in ['credit', 'adjustment_credit', 'sale_revenue']:
                 target.balance_after = current + amount_dec
             else:
                 target.balance_after = current - amount_dec
             
-            setattr(wallet, attr, target.balance_after)
+            # تحديث مباشر للرصيد في جدول المحفظة
+            connection.execute(
+                db.update(SupplierWallet).where(SupplierWallet.id == target.wallet_id).values({attr: target.balance_after})
+            )
