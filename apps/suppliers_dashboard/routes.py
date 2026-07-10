@@ -28,7 +28,7 @@ def check_supplier_access():
 @login_required
 def dashboard():
     """
-    لوحة تحكم المورد والموظف الأساسية (Dashboard).
+    لوحة تحكم المورد والموظف الأساسية (Dashboard) - نسخة مصححة لخطأ 500.
     """
     if not check_supplier_access():
         flash("يرجى تسجيل الدخول بحساب المورد للوصول إلى لوحة التحكم.", "warning")
@@ -50,9 +50,10 @@ def dashboard():
         flash("لم يتم العثور على بيانات المورد الخاصة بك.", "danger")
         return redirect('/supplier/login')
         
+    # ✨ الإصلاح الجذري: تم إضافة .unique() لإنهاء مشكلة الاستعلام المتداخل في الـ Logs وحل خطأ 500
     wallet = db.session.execute(
         db.select(SupplierWallet).filter_by(supplier_id=supplier.id)
-    ).scalar_one_or_none()
+    ).unique().scalar_one_or_none()
     
     supplier.wallet = wallet
     
@@ -109,9 +110,10 @@ def withdraw():
     if not supplier:
         abort(404)
         
+    # ✨ تطبيق إصلاح .unique() هنا أيضاً لضمان استقرار صفحة السحب ومنع تعطلها مستقبلاً
     wallet = db.session.execute(
         db.select(SupplierWallet).filter_by(supplier_id=supplier.id)
-    ).scalar_one_or_none()
+    ).unique().scalar_one_or_none()
     
     supplier.wallet = wallet
     
