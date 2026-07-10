@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, jsonif
 from flask_login import login_required, current_user
 import secrets
 import string
+from sqlalchemy import or_ # [تعديل 1]: استيراد دالة or_ الضرورية
 from sqlalchemy.exc import IntegrityError
 
 from apps.extensions import db
@@ -28,8 +29,8 @@ def check_user():
     username = request.args.get('username', '').strip()
     if len(username) < 3:
         return jsonify({'available': False})
-    exists = AdminStaff.query.filter_by(username=username).first() or \
-             SupplierStaff.query.filter_by(username=username).first()
+    # [تعديل 2]: استخدام or_ بدلاً من |
+    exists = AdminStaff.query.filter(or_(AdminStaff.username == username, SupplierStaff.username == username)).first()
     return jsonify({'available': exists is None})
 
 @admin_permissions_bp.route('/admin/permissions/check-phone', methods=['GET'])
@@ -40,7 +41,7 @@ def check_phone():
     if len(phone) != 9 or not phone.startswith('7'):
         return jsonify({'available': False})
     model = AdminStaff if staff_type == 'admin' else SupplierStaff
-    exists = model.query.filter_by(search_phone=phone[-9:]).first()
+    exists = model.query.filter_by(phone=phone[-9:]).first() # تأكد من اسم الحقل الصحيح في الموديل
     return jsonify({'available': exists is None})
 
 # --- عرض القائمة ---
@@ -69,7 +70,10 @@ def assign_permissions():
         return jsonify({'success': False, 'message': 'بيانات الهاتف غير صالحة'})
     
     model = AdminStaff if staff_type == 'admin' else SupplierStaff
-    if model.query.filter_by(username=username).first() or model.query.filter_by(search_phone=phone[-9:]).first():
+    
+    # [تعديل 3]: استخدام or_ هنا لمنع انهيار الطلب
+    user_exists = model.query.filter(or_(model.username == username, model.phone == phone[-9:])).first()
+    if user_exists:
         return jsonify({'success': False, 'message': 'الموظف موجود مسبقاً'})
 
     try:
@@ -114,13 +118,7 @@ def reset_password(id, staff_type):
     store_name = user.supplier.trade_name if hasattr(user, 'supplier') and user.supplier else 'إدارة مركزية'
     store_code = user.supplier.supplier_code if hasattr(user, 'supplier') and user.supplier else 'SYSTEM'
     
-    return jsonify({
-        'success': True, 
-        'username': user.username, 
-        'new_password': new_pass,
-        'store_name': store_name,
-        'store_code': store_code
-    })
+    return jsonify({'success': True, 'username': user.username, 'new_password': new_pass, 'store_name': store_name, 'store_code': store_code})
 
 # --- تغيير حالة الحساب ---
 @admin_permissions_bp.route('/admin/permissions/toggle-status/<int:id>/<staff_type>', methods=['GET'])
