@@ -12,7 +12,7 @@ class SupplierWallet(db.Model):
     """محفظة الموردين: الأرصدة والبيانات المشفرة."""
     __tablename__ = 'supplier_wallets'
 
-    # [فهرسة الأداء]: للوصول السريع للأرصدة
+    # [فهرسة الأداء]: للوصول السريع للأرصدة في العمليات المالية
     __table_args__ = (
         db.Index('idx_wall_code', 'wallet_code'),
         db.Index('idx_wall_supplier_id', 'supplier_id'),
@@ -23,10 +23,10 @@ class SupplierWallet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     wallet_code = db.Column(db.String(50), unique=True, nullable=False)
     
-    # الربط الرقمي الصحيح مع المورد
+    # الربط الرقمي مع المورد
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
     
-    # أرصدة العملات
+    # أرصدة العملات (بدون تشفير لسرعة الحسابات)
     balance_yer = db.Column(db.Numeric(18, 2), default=0.00) 
     balance_usd = db.Column(db.Numeric(18, 2), default=0.00) 
     balance_sar = db.Column(db.Numeric(18, 2), default=0.00) 
@@ -37,9 +37,9 @@ class SupplierWallet(db.Model):
     _bank_details_enc = db.Column(db.String(500), nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # استخدام lazy='joined' لضمان جلب بيانات المورد دائماً عند الوصول للمحفظة
+    # [التحميل المتصل]: استخدام joined لضمان جلب بيانات المورد فوراً
     supplier = db.relationship('Supplier', back_populates='wallet', lazy='joined')
-    transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan", lazy='select')
+    transactions = db.relationship('WalletTransaction', back_populates='wallet', cascade="all, delete-orphan", lazy='joined')
 
     @staticmethod
     def _get_key():
@@ -91,13 +91,13 @@ class WalletTransaction(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.Integer, nullable=True)
 
+    # [التحميل المتصل]: لضمان عرض تفاصيل المحفظة مع المعاملة فوراً
     wallet = db.relationship('SupplierWallet', back_populates='transactions', lazy='joined')
 
 # --- مشغل الأحداث للتسوية التلقائية ---
 @event.listens_for(WalletTransaction, 'before_insert')
 def set_voucher_number(mapper, connection, target):
     if not target.voucher_number:
-        # توليد رقم تسلسلي فريد بأداء عالٍ
         last_num = 12327
         last_trans = connection.execute(select(func.max(WalletTransaction.voucher_number))).scalar()
         if last_trans and '-' in last_trans:
@@ -105,7 +105,6 @@ def set_voucher_number(mapper, connection, target):
             except: pass
         target.voucher_number = f"MJ-2026-{last_num + 1:07d}"
 
-    # حساب وتحديث رصيد المحفظة
     if target.balance_before is None or target.balance_after is None:
         wallet_query = connection.execute(select(SupplierWallet).filter_by(id=target.wallet_id)).scalar_one_or_none()
         if wallet_query:
@@ -119,7 +118,6 @@ def set_voucher_number(mapper, connection, target):
             else:
                 target.balance_after = current - amount_dec
             
-            # تحديث مباشر للرصيد في جدول المحفظة
             connection.execute(
                 db.update(SupplierWallet).where(SupplierWallet.id == target.wallet_id).values({attr: target.balance_after})
             )
