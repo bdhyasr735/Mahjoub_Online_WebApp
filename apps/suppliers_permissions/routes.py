@@ -28,6 +28,8 @@ def check_supplier_owner_access():
         
     return True
 
+# ✨ تحسين: دعم المسار الرئيسي والفرعي معاً لمنع أي خطأ تتبع برابط القائمة الجانبية
+@suppliers_permissions_bp.route('/', methods=['GET', 'POST'])
 @suppliers_permissions_bp.route('/permissions', methods=['GET', 'POST'])
 @login_required
 def permissions():
@@ -43,7 +45,7 @@ def permissions():
     supplier = db.session.get(Supplier, supplier_id)
     
     if not supplier:
-        flash("لم يتم العثور على بيانات المورد الخاصة بك.", "danger")
+        flash("لم يكن العثور على بيانات المورد الخاصة بك.", "danger")
         return redirect('/supplier/login')
 
     # 2. معالجة طلب إضافة موظف جديد (POST)
