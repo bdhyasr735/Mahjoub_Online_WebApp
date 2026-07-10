@@ -3,7 +3,7 @@
 
 import os
 import importlib
-from flask import Flask, redirect
+from flask import Flask, redirect, session
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
 from flask_limiter import Limiter
@@ -43,11 +43,26 @@ def create_app():
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
-        admin = AdminUser.query.get(int(user_id))
+        
+        # معرفة نوع المستخدم الحالي من الجلسة لمنع تداخل أرقام الـ ID
+        user_type = session.get('user_type')
+        
+        # التوجيه الصارم والمباشر للجدول المستهدف
+        if user_type == 'admin':
+            return db.session.get(AdminUser, int(user_id))
+        elif user_type == 'supplier':
+            return db.session.get(Supplier, int(user_id))
+        elif user_type == 'staff':
+            return db.session.get(SupplierStaff, int(user_id))
+            
+        # خطة بديلة (Fallback) للتعامل الذكي في حال غياب متغيّر الجلسة مؤقتاً
+        admin = db.session.get(AdminUser, int(user_id))
         if admin: return admin
-        supplier = Supplier.query.get(int(user_id))
+        
+        supplier = db.session.get(Supplier, int(user_id))
         if supplier: return supplier
-        return SupplierStaff.query.get(int(user_id))
+        
+        return db.session.get(SupplierStaff, int(user_id))
 
     # 2. إعدادات الأمان
     talisman.init_app(app, 
@@ -89,7 +104,7 @@ def create_app():
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
                             
-                            # الشرط الجديد: إضافة للموديولات المعروضة فقط إذا كان لديها روابط (LINKS)
+                            # إضافة للموديولات المعروضة فقط إذا كان لديها روابط (LINKS)
                             module_links = getattr(module, 'LINKS', {})
                             if module_links:
                                 mod_data = {
@@ -117,7 +132,7 @@ def create_app():
             supplier_modules=SUPPLIER_MODULES
         )
 
-    # 6. إعداد البيئة
+    # 6. إعداد البيئة وقاعدة البيانات
     with app.app_context():
         try:
             db.create_all()
