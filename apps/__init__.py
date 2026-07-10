@@ -38,6 +38,19 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
 
+    # [إضافة هامة]: تعريف كيفية تحميل المستخدم من الـ Session لدعم نظام الدخول المزدوج
+    @login_manager.user_loader
+    def load_user(user_id):
+        from apps.models.supplier_db import Supplier
+        from apps.models.supplier_staff_db import SupplierStaff
+        
+        # محاولة البحث أولاً في الموردين
+        user = Supplier.query.get(int(user_id))
+        if user:
+            return user
+        # إذا لم يوجد، نبحث في الموظفين
+        return SupplierStaff.query.get(int(user_id))
+
     # 2. إعدادات الأمان
     talisman.init_app(app, 
         content_security_policy={
@@ -102,20 +115,8 @@ def create_app():
             supplier_modules=SUPPLIER_MODULES
         )
 
-    # 6. إعداد البيئة (التنظيف بالقوة الضاربة أو الإنشاء الطبيعي)
+    # 6. إعداد البيئة
     with app.app_context():
-        # [تنظيف اختياري]
-        if os.environ.get('FORCE_DB_RESET') == 'true':
-            try:
-                print("🧨 [Force Reset]: جاري مسح الجداول والفهارس القديمة بالكامل...")
-                db.session.execute(text("DROP SCHEMA public CASCADE;"))
-                db.session.execute(text("CREATE SCHEMA public;"))
-                db.session.commit()
-                print("✅ [Force Reset]: تم تنظيف قاعدة البيانات!")
-            except Exception as e:
-                db.session.rollback()
-                print(f"❌ [Force Reset]: فشل التنظيف: {e}")
-
         # [بناء الجداول]
         try:
             db.create_all()
