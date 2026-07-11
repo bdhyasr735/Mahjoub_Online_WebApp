@@ -41,7 +41,7 @@ def login():
         target_user = None
         found_as = None
 
-        # 2. البحث الصارم في الجدول المحدد
+        # 2. البحث الحازم (Strict Search) لمنع التداخل بين المورد والموظف
         if user_type == 'supplier':
             target_user = Supplier.query.filter(or_(Supplier.search_phone == username, Supplier.username == username)).first()
             if target_user: found_as = 'supplier'
@@ -49,22 +49,12 @@ def login():
             target_user = SupplierStaff.query.filter(or_(SupplierStaff.search_phone == username, SupplierStaff.username == username)).first()
             if target_user: found_as = 'staff'
 
-        # 3. البحث المرن البديل في حال عدم المطابقة الفورية
-        if not target_user:
-            target_user = Supplier.query.filter(or_(Supplier.search_phone == username, Supplier.username == username)).first()
-            if target_user:
-                found_as = 'supplier'
-            else:
-                target_user = SupplierStaff.query.filter(or_(SupplierStaff.search_phone == username, SupplierStaff.username == username)).first()
-                if target_user:
-                    found_as = 'staff'
-
-        # 4. إذا لم يتم العثور على الحساب
+        # 3. إذا لم يتم العثور على الحساب
         if not target_user:
             msg = "المستخدم غير مسجل في المنصة اللامركزية"
             return jsonify({"status": "error", "message": msg}), 404 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 5. التحقق من كلمة المرور
+        # 4. التحقق من كلمة المرور
         if not target_user.check_password(password):
             attempts = session.get('login_attempts', 0) + 1
             session['login_attempts'] = attempts
@@ -75,20 +65,19 @@ def login():
             msg = "كلمة المرور غير صحيحة"
             return jsonify({"status": "error", "message": msg}), 401 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 6. التحقق من التفعيل
+        # 5. التحقق من التفعيل (مع الرسالة المخصصة للموظف)
         if hasattr(target_user, 'is_active') and not target_user.is_active:
-            # تم تخصيص الرسالة للموظف كما طلبت
             if found_as == 'staff':
                 msg = "تم إيقاف المستخدم من قبل المتجر، يرجى مراجعة المتجر الأساسي."
             else:
                 msg = "الحساب غير مفعل حالياً."
             return jsonify({"status": "error", "message": msg}), 403 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 7. تسجيل الدخول وتثبيت الجلسة بشكل نهائي
+        # 6. تسجيل الدخول وتثبيت الجلسة بشكل نهائي
         session.pop('login_attempts', None)
         session.pop('block_until', None)
         
-        # تثبيت النوع الفعلي لمنع التداخل والدوران
+        # تثبيت النوع الفعلي لمنع التداخل
         session['user_type'] = found_as
         
         # عمل تسجيل دخول رسمي في Flask-Login
