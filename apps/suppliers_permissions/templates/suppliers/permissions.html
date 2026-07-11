@@ -1,105 +1,19 @@
 {% extends 'suppliers/base.html' %}
 
-{% block title %}لوحة تحكم المورد | {{ supplier.trade_name if supplier else 'غير متاح' }}{% endblock %}
-
 {% block content %}
 <div class="container-fluid py-4" style="direction: rtl; text-align: right; color: #fff;">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <button onclick="window.history.back()" class="btn btn-outline-secondary btn-sm mb-2" style="border: none; color: #fff;">
-                <i class="fa fa-arrow-right ms-1"></i> رجوع للخلف
-            </button>
-            <h2 class="fw-bold" style="color: #e5c158;">👥 إدارة صلاحيات الموظفين</h2>
+            <button onclick="window.history.back()" class="btn btn-outline-secondary btn-sm"><i class="fa fa-arrow-right"></i> رجوع</button>
+            <h2 class="fw-bold text-gold">👥 إدارة صلاحيات الموظفين</h2>
         </div>
-        <button class="btn btn-gold px-4 py-2" data-bs-toggle="modal" data-bs-target="#addStaffModal">
-            <i class="fa fa-user-plus me-2"></i> إضافة موظف جديد
-        </button>
+        <button class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#addStaffModal"><i class="fa fa-user-plus"></i> إضافة موظف</button>
     </div>
 
-    <div class="card-custom p-4">
-        <div class="table-responsive">
-            <table class="table table-custom align-middle">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>اسم المستخدم</th>
-                        <th>رقم الهاتف</th>
-                        <th>تاريخ الإنشاء</th>
-                        <th>المحفظة</th>
-                        <th>الطلبات</th>
-                        <th>الإعدادات</th>
-                        <th>الحالة</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for staff in staff_list %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td class="fw-bold" style="color: #bb86fc;">{{ staff.username }}</td>
-                        <td>{{ staff.search_phone }}</td>
-                        <td>{{ staff.created_at.strftime('%Y-%m-%d') if staff.created_at else '---' }}</td>
-                        <td><span class="badge {% if staff.can_view_wallet %}bg-success-custom{% else %}bg-danger-custom{% endif %}">{{ 'مسموح' if staff.can_view_wallet else 'ممنوع' }}</span></td>
-                        <td><span class="badge {% if staff.can_manage_orders %}bg-success-custom{% else %}bg-danger-custom{% endif %}">{{ 'مسموح' if staff.can_manage_orders else 'ممنوع' }}</span></td>
-                        <td><span class="badge {% if staff.can_manage_settings %}bg-success-custom{% else %}bg-danger-custom{% endif %}">{{ 'مسموح' if staff.can_manage_settings else 'ممنوع' }}</span></td>
-                        <td><span class="badge {% if staff.is_active %}bg-success{% else %}bg-secondary{% endif %}">{{ 'نشط' if staff.is_active else 'معطل' }}</span></td>
-                        <td>
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-outline-warning"><i class="fa fa-edit"></i></button>
-                                <button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+    {% include 'suppliers/includes/_staff_table.html' %}
 </div>
 
-<div class="modal fade" id="staffCredentialsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content modal-custom">
-            <div class="modal-header border-0 text-center"><h5 class="modal-title text-success w-100">تم إنشاء الموظف بنجاح</h5></div>
-            <div class="modal-body text-center">
-                <p>بيانات الدخول (احتفظ بها):</p>
-                <div class="p-3 my-3" style="background: #15131f; border-radius: 8px;">
-                    <p class="mb-0">اسم المستخدم: <strong id="newUsername" style="color:#bb86fc"></strong></p>
-                    <p class="mb-0 mt-2">كلمة المرور: <strong id="newPassword" style="color:#e5c158"></strong></p>
-                </div>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-gold w-100" onclick="copyCreds()">نسخ البيانات</button>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'suppliers/includes/_add_staff_modal.html' %}
+{% include 'suppliers/includes/_credentials_modal.html' %}
 
-<script>
-    // وظيفة نسخ البيانات
-    function copyCreds() {
-        const text = "المستخدم: " + document.getElementById('newUsername').innerText + "\nكلمة المرور: " + document.getElementById('newPassword').innerText;
-        navigator.clipboard.writeText(text);
-        alert("تم النسخ للحافظة!");
-    }
-
-    // إظهار المودال تلقائياً في حال وجود موظف جديد
-    {% if new_staff %}
-    document.addEventListener("DOMContentLoaded", function() {
-        document.getElementById('newUsername').innerText = "{{ new_staff.username }}";
-        document.getElementById('newPassword').innerText = "{{ new_staff.raw_password }}";
-        new bootstrap.Modal(document.getElementById('staffCredentialsModal')).show();
-    });
-    {% endif %}
-</script>
-
-<style>
-    .text-gold { color: #e5c158; }
-    .card-custom { background: #1e1b29; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; }
-    .table-custom { color: #d1cfe2; }
-    .modal-custom { background: #181522; border: 1px solid #4a2874; border-radius: 16px; }
-    .bg-success-custom { background-color: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
-    .bg-danger-custom { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
-</style>
 {% endblock %}
