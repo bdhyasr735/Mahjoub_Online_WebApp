@@ -1,46 +1,75 @@
-<div class="card-custom p-4">
-    <div class="table-responsive">
-        <table class="table table-custom align-middle">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>اسم المستخدم</th>
-                    <th>رقم الهاتف</th>
-                    <th>التاريخ والوقت</th>
-                    <th>الحالة</th>
-                    <th>الإجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for staff in staff_list %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td class="fw-bold" style="color: #bb86fc;">{{ staff.username }}</td>
-                    <td>{{ staff.search_phone }}</td>
-                    <td class="text-muted small">{{ staff.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
-                    <td>
-                        <span class="badge {{ 'bg-success' if staff.is_active else 'bg-secondary' }}">
-                            {{ 'نشط' if staff.is_active else 'معطل' }}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="btn-group">
-                            <form action="{{ url_for('suppliers_permissions.staff_action', staff_id=staff.id, action='toggle_status') }}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-info" title="تغيير الحالة">
+<div class="card shadow-sm border-0 rounded-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="p-3">#</th>
+                        <th>اسم المستخدم</th>
+                        <th>رقم الهاتف</th>
+                        <th>التاريخ والوقت</th>
+                        <th>الحالة</th>
+                        <th class="text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="staff-table-body">
+                    {% for staff in staff_list %}
+                    <tr id="staff-row-{{ staff.id }}">
+                        <td class="p-3">{{ loop.index }}</td>
+                        <td class="fw-bold" style="color: #5b4cd1;">{{ staff.username }}</td>
+                        <td>{{ staff.search_phone }}</td>
+                        <td class="text-muted small">{{ staff.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if staff.is_active else 'bg-dark' }}" id="status-badge-{{ staff.id }}">
+                                {{ 'نشط' if staff.is_active else 'معطل' }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                <button onclick="performAction('{{ staff.id }}', 'toggle_status')" 
+                                        class="btn btn-sm btn-outline-primary" title="تغيير الحالة">
                                     <i class="fa fa-power-off"></i>
                                 </button>
-                            </form>
-                            
-                            <form action="{{ url_for('suppliers_permissions.staff_action', staff_id=staff.id, action='reset_password') }}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-warning" title="إعادة تعيين كلمة المرور">
+                                
+                                <button onclick="performAction('{{ staff.id }}', 'reset_password')" 
+                                        class="btn btn-sm btn-outline-warning" title="إعادة تعيين كلمة المرور">
                                     <i class="fa fa-key"></i>
                                 </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+<script>
+async function performAction(staffId, action) {
+    // التأكيد قبل إعادة تعيين كلمة المرور
+    if (action === 'reset_password') {
+        const confirmed = confirm('هل أنت متأكد من إعادة تعيين كلمة المرور لهذا الموظف؟');
+        if (!confirmed) return;
+    }
+
+    // إرسال الطلب للسيرفر باستخدام AJAX
+    const response = await fetch(`/supplier/action/${staffId}/${action}`, { 
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token() }}' } 
+    });
+    const data = await response.json();
+
+    if (data.success) {
+        if (action === 'toggle_status') {
+            // تحديث شارة الحالة (Badge) فورياً
+            const badge = document.getElementById(`status-badge-${staffId}`);
+            badge.innerText = data.is_active ? 'نشط' : 'معطل';
+            badge.className = `badge ${data.is_active ? 'bg-success' : 'bg-dark'}`;
+        } else if (action === 'reset_password') {
+            // عرض كلمة المرور الجديدة
+            alert('تم إعادة تعيين كلمة المرور بنجاح.\nكلمة المرور الجديدة هي: ' + data.new_password);
+        }
+    }
+}
+</script>
