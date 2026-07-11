@@ -1,1 +1,23 @@
-
+<div class="card-custom p-4">
+    <table class="table table-custom align-middle">
+        <thead>
+            <tr>
+                <th>#</th><th>اسم المستخدم</th><th>رقم الهاتف</th><th>التاريخ والوقت</th><th>الصلاحيات</th><th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for staff in staff_list %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td class="fw-bold" style="color: #bb86fc;">{{ staff.username }}</td>
+                <td>{{ staff.search_phone }}</td>
+                <td class="text-muted small">{{ staff.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                <td><span class="badge {{ 'bg-success-custom' if staff.can_manage_orders else 'bg-danger-custom' }}">طلبات</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-warning"><i class="fa fa-edit"></i></button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
