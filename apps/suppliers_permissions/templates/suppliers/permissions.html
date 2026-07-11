@@ -1,26 +1,25 @@
 {% extends 'suppliers/base.html' %}
 
 {% block content %}
-<div class="container py-5" style="direction: rtl; text-align: right;">
-    
-    <div class="mb-4">
-        <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm" style="border-radius: 10px;">
-            <i class="fa fa-arrow-right"></i> رجوع
-        </a>
-    </div>
+<style>
+    /* التدرج اللوني الملكي */
+    .royal-gradient { background: linear-gradient(135deg, #4b0082 0%, #000000 100%) !important; color: white !important; }
+    .card { border-radius: 20px !important; }
+    .btn-royal { background: linear-gradient(135deg, #4b0082 0%, #000000 100%); color: white; border-radius: 10px; }
+</style>
 
+<div class="container py-5" style="direction: rtl; text-align: right;">
     <div class="d-flex justify-content-between align-items-center mb-5">
         <div>
-            <h2 class="fw-bold mb-1" style="color: #333;">إدارة صلاحيات الموظفين</h2>
-            <p class="text-muted">تحكم في صلاحيات الوصول الخاصة بفريق عملك.</p>
+            <h2 class="fw-bold mb-1">إدارة صلاحيات الموظفين</h2>
+            <p class="text-muted">تحكم في فريق عملك بتنسيق ملكي احترافي.</p>
         </div>
-        <button class="btn shadow-sm px-4 py-2" data-bs-toggle="modal" data-bs-target="#addStaffModal" 
-                style="background-color: #5b4cd1; color: white; border: 2px solid #2d1b4e; border-radius: 10px;">
+        <button class="btn royal-gradient shadow-sm px-4 py-2" data-bs-toggle="modal" data-bs-target="#addStaffModal">
             <i class="fa fa-plus-circle me-2"></i> إضافة موظف جديد
         </button>
     </div>
 
-    <div class="card shadow-sm border-0 rounded-4">
+    <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -28,33 +27,23 @@
                         <tr>
                             <th class="p-3">#</th>
                             <th>اسم المستخدم</th>
-                            <th>رقم الهاتف</th>
-                            <th>تاريخ الإنشاء</th>
                             <th>الحالة</th>
                             <th class="text-center">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for staff in staff_list %}
-                        <tr>
-                            <td class="p-3 text-muted">{{ loop.index }}</td>
-                            <td class="fw-bold" style="color: #5b4cd1;">{{ staff.username }}</td>
-                            <td>{{ staff.search_phone }}</td>
-                            <td>{{ staff.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                        <tr id="staff-row-{{ staff.id }}">
+                            <td class="p-3">{{ loop.index }}</td>
+                            <td class="fw-bold">{{ staff.username }}</td>
                             <td>
-                                <span class="badge {{ 'bg-success' if staff.is_active else 'bg-secondary' }}">
+                                <span class="badge {{ 'bg-success' if staff.is_active else 'bg-dark' }}" id="status-badge-{{ staff.id }}">
                                     {{ 'نشط' if staff.is_active else 'معطل' }}
                                 </span>
                             </td>
                             <td class="text-center">
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-outline-info" title="تعديل" style="border-color: #5b4cd1; color: #5b4cd1;">
-                                        <i class="fa fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" title="حذف">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </div>
+                                <button onclick="performAction('{{ staff.id }}', 'toggle_status')" class="btn btn-sm btn-outline-primary"><i class="fa fa-power-off"></i></button>
+                                <button onclick="performAction('{{ staff.id }}', 'reset_password')" class="btn btn-sm btn-outline-warning"><i class="fa fa-key"></i></button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -65,26 +54,24 @@
     </div>
 </div>
 
-<div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background-color: #5b4cd1; color: white;">
-                <h5 class="modal-title">إضافة موظف جديد</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="{{ url_for('suppliers_permissions.permissions') }}">
-                <div class="modal-body">
-                    <input type="text" name="username" class="form-control mb-3" placeholder="اسم المستخدم" required>
-                    <input type="text" name="phone" class="form-control mb-3" placeholder="رقم الهاتف" required>
-                    <input type="password" name="password" class="form-control" placeholder="كلمة المرور" required>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn text-white" style="background-color: #2d1b4e;">حفظ الموظف</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+{% include 'suppliers/includes/_add_staff_modal.html' %}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+async function performAction(staffId, action) {
+    if (action === 'reset_password' && !confirm('هل أنت متأكد من إعادة تعيين كلمة المرور؟')) return;
+
+    const response = await fetch(`/supplier/action/${staffId}/${action}`, { method: 'POST' });
+    const data = await response.json();
+
+    if (data.success) {
+        if (action === 'toggle_status') {
+            const badge = document.getElementById(`status-badge-${staffId}`);
+            badge.innerText = data.is_active ? 'نشط' : 'معطل';
+            badge.className = `badge ${data.is_active ? 'bg-success' : 'bg-dark'}`;
+        } else if (action === 'reset_password') {
+            alert('تم إعادة تعيين كلمة المرور بنجاح، الجديدة هي: ' + data.new_password);
+        }
+    }
+}
+</script>
 {% endblock %}
