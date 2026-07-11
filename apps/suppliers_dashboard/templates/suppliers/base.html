@@ -41,16 +41,9 @@
                 {% for key, module in supplier_modules.items() %}
                     {% if key != 'suppliers_dashboard' and module.links is mapping %}
                         {% for endpoint, link_title in module.links.items() %}
-                            {# نظام حماية الروابط لمنع انهيار النظام #}
-                            {% set safe_url = '#' %}
-                            {% try %}
-                                {% set safe_url = url_for(endpoint) %}
-                            {% except %}
-                                {# في حال وجود خطأ في اسم المسار، سيتم تجاهل الرابط تلقائياً #}
-                            {% endtry %}
-                            
-                            {% if safe_url != '#' %}
-                                <a href="{{ safe_url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
+                            {# التحقق الآمن: عرض الرابط فقط إذا كان المسار مسجلاً فعلياً في النظام #}
+                            {% if endpoint in url_map._rules_by_endpoint %}
+                                <a href="{{ url_for(endpoint) }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                                     <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> <span>{{ link_title }}</span>
                                 </a>
                             {% endif %}
