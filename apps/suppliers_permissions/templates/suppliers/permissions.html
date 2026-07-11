@@ -8,7 +8,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
         <div>
             <button onclick="window.history.back()" class="btn btn-outline-secondary btn-sm mb-2" style="border: none; color: #fff;">
-                <i class="fa fa-arrow-right ms-1"></i> رجوع
+                <i class="fa fa-arrow-right ms-1"></i> رجوع للخلف
             </button>
             <h2 class="fw-bold" style="color: #e5c158;">👥 إدارة صلاحيات الموظفين</h2>
         </div>
@@ -17,20 +17,7 @@
         </button>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card-custom p-3 d-flex align-items-center">
-                <div class="icon-box bg-purple-light text-purple me-3"><i class="fa fa-users fa-2x"></i></div>
-                <div>
-                    <span class="text-muted d-block">إجمالي الموظفين</span>
-                    <h3 class="fw-bold mb-0 text-white">{{ staff_list|length }}</h3>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="card-custom p-4">
-        <h5 class="fw-bold mb-3 text-white"><i class="fa fa-list me-2"></i> موظفي الشريك</h5>
         <div class="table-responsive">
             <table class="table table-custom align-middle">
                 <thead>
@@ -58,18 +45,9 @@
                         <td><span class="badge {% if staff.can_manage_settings %}bg-success-custom{% else %}bg-danger-custom{% endif %}">{{ 'مسموح' if staff.can_manage_settings else 'ممنوع' }}</span></td>
                         <td><span class="badge {% if staff.is_active %}bg-success{% else %}bg-secondary{% endif %}">{{ 'نشط' if staff.is_active else 'معطل' }}</span></td>
                         <td>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-light dropdown-toggle" data-bs-toggle="dropdown"><i class="fa fa-cog"></i></button>
-                                <ul class="dropdown-menu dropdown-menu-dark">
-                                    <li><a class="dropdown-item" href="#"><i class="fa fa-edit me-2"></i> تعديل</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="fa fa-key me-2"></i> كلمة مرور جديدة</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item {% if staff.is_active %}text-warning{% else %}text-success{% endif %}" href="#">
-                                        <i class="fa {% if staff.is_active %}fa-pause-circle{% else %}fa-play-circle{% endif %} me-2"></i> 
-                                        {{ 'إيقاف الحساب' if staff.is_active else 'تفعيل الحساب' }}</a>
-                                    </li>
-                                    <li><a class="dropdown-item text-danger" href="#"><i class="fa fa-trash me-2"></i> حذف</a></li>
-                                </ul>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-warning"><i class="fa fa-edit"></i></button>
+                                <button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -80,66 +58,48 @@
     </div>
 </div>
 
-<div class="modal fade" id="addStaffModal" data-bs-backdrop="static" tabindex="-1">
+<div class="modal fade" id="staffCredentialsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content modal-custom">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-purple-light"><i class="fa fa-user-shield me-2"></i> إضافة موظف جديد</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header border-0 text-center"><h5 class="modal-title text-success w-100">تم إنشاء الموظف بنجاح</h5></div>
+            <div class="modal-body text-center">
+                <p>بيانات الدخول (احتفظ بها):</p>
+                <div class="p-3 my-3" style="background: #15131f; border-radius: 8px;">
+                    <p class="mb-0">اسم المستخدم: <strong id="newUsername" style="color:#bb86fc"></strong></p>
+                    <p class="mb-0 mt-2">كلمة المرور: <strong id="newPassword" style="color:#e5c158"></strong></p>
+                </div>
             </div>
-            <form action="" method="POST" class="p-3">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="mb-3">
-                    <label class="form-label text-white">اسم المستخدم <span class="text-danger">*</span></label>
-                    <input type="text" name="username" class="form-control input-custom" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label text-white">رقم الهاتف <span class="text-danger">*</span></label>
-                    <input type="text" name="phone" class="form-control input-custom" required>
-                </div>
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-gold px-4">حفظ الموظف</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="staffCredentialsModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content modal-custom">
-            <div class="modal-body text-center p-4">
-                <h5 class="text-success mb-4">تم إنشاء الموظف بنجاح</h5>
-                <div class="p-3 mb-3" style="background: #15131f; border-radius: 8px;">
-                    <p class="mb-1">اسم المستخدم: <strong id="newUsername" style="color:#bb86fc"></strong></p>
-                    <p class="mb-0">كلمة المرور: <strong id="newPassword" style="color:#e5c158"></strong></p>
-                </div>
-                <button class="btn btn-gold w-100" onclick="copyCreds()">نسخ البيانات</button>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-gold w-100" onclick="copyCreds()">نسخ البيانات</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-function copyCreds() {
-    const text = "المستخدم: " + document.getElementById('newUsername').innerText + "\nكلمة المرور: " + document.getElementById('newPassword').innerText;
-    navigator.clipboard.writeText(text);
-    alert("تم النسخ!");
-}
-{% if new_staff %}
+    // وظيفة نسخ البيانات
+    function copyCreds() {
+        const text = "المستخدم: " + document.getElementById('newUsername').innerText + "\nكلمة المرور: " + document.getElementById('newPassword').innerText;
+        navigator.clipboard.writeText(text);
+        alert("تم النسخ للحافظة!");
+    }
+
+    // إظهار المودال تلقائياً في حال وجود موظف جديد
+    {% if new_staff %}
     document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('newUsername').innerText = "{{ new_staff.username }}";
         document.getElementById('newPassword').innerText = "{{ new_staff.raw_password }}";
         new bootstrap.Modal(document.getElementById('staffCredentialsModal')).show();
     });
-{% endif %}
+    {% endif %}
 </script>
 
 <style>
-    /* التنسيقات السابقة الخاصة بك */
-    .dropdown-menu-dark { background-color: #1e1b29; border: 1px solid #4a2874; }
-    .dropdown-item { color: #d1cfe2; }
-    .dropdown-item:hover { background-color: #4a2874; color: #fff; }
+    .text-gold { color: #e5c158; }
+    .card-custom { background: #1e1b29; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; }
+    .table-custom { color: #d1cfe2; }
+    .modal-custom { background: #181522; border: 1px solid #4a2874; border-radius: 16px; }
+    .bg-success-custom { background-color: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
+    .bg-danger-custom { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
 </style>
 {% endblock %}
