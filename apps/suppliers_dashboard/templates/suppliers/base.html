@@ -19,6 +19,8 @@
         .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.2); color: var(--mahjoub-gold); }
         .main-wrapper { margin-right: var(--sidebar-width); transition: var(--transition); min-height: 100vh; }
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        /* تحسين مظهر رسائل الـ Flash */
+        .flash-messages { position: fixed; top: 80px; left: 20px; z-index: 2000; width: 350px; }
         @media (max-width: 992px) { .sidebar { right: calc(-1 * var(--sidebar-width)); } .sidebar.active { right: 0; } .main-wrapper { margin-right: 0; } }
     </style>
 </head>
@@ -31,17 +33,14 @@
                 {{ current_user.trade_name if session.get('user_type') == 'supplier' else (current_user.supplier.trade_name if current_user.supplier else 'بوابة المورد') }}
             </h6>
         </div>
-
         <nav class="nav-menu">
             <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
                 <i class="fas fa-home me-3"></i> <span>الرئيسية</span>
             </a>
-
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if key != 'suppliers_dashboard' and module.links is mapping %}
                         {% for endpoint, link_title in module.links.items() %}
-                            {# التحقق الآمن: عرض الرابط فقط إذا كان المسار مسجلاً فعلياً في النظام #}
                             {% if endpoint in url_map._rules_by_endpoint %}
                                 <a href="{{ url_for(endpoint) }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
                                     <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> <span>{{ link_title }}</span>
@@ -51,7 +50,6 @@
                     {% endif %}
                 {% endfor %}
             {% endif %}
-
             <hr class="text-white my-3">
             <a href="{{ url_for('suppliers_auth.logout') }}" id="logout-btn" class="nav-link text-danger">
                 <i class="fas fa-sign-out-alt me-3"></i> <span>تسجيل الخروج</span>
@@ -65,6 +63,19 @@
             <div class="badge p-2" style="background-color: var(--mahjoub-gold); color: #000;">بوابة المورد</div>
         </header>
 
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
         <section class="p-3 p-md-4">
             {% block content %}{% endblock %}
         </section>
@@ -72,6 +83,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // السكريبتات الخاصة بك كما هي
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.querySelector('.d-lg-none');
