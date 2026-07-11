@@ -1,26 +1,14 @@
-# coding: utf-8
 # 📂 apps/suppliers_permissions/registry.py
 
-from apps.suppliers_permissions.routes import suppliers_permissions_bp
+# ... الكود السابق ...
 
-# إعدادات تعريف الموديول للنظام الديناميكي
-MODULE_NAME = "إدارة الصلاحيات"
-MODULE_ICON = "fa-user-shield"
-
-# ✨ الإصلاح الجوهري: جعل المفتاح هو الـ Endpoint والقيمة هي تفاصيل الرابط ليتوافق مع السطر 44 في base.html
+# اجعل القيمة هي عنوان الرابط فقط ليقرأها النظام كـ string
 LINKS = {
-    "suppliers_permissions.permissions": {
-        "title": "صلاحيات الموظفين",
-        "url": "/permissions",
-        "icon": "fa-users-cog"
-    }
+    "suppliers_permissions.permissions": "صلاحيات الموظفين"
 }
 
-# تفعيل ظهور هذا الموديول داخل لوحة الموردين
-SHOW_IN_SUPPLIER = True
+# ملاحظة: إذا كنت تريد تخصيص الأيقونة لكل رابط، 
+# يجب تحديث loop العرض في base.html، ولكن للآن استخدم MODULE_ICON:
+MODULE_ICON = "fas fa-users-cog" 
 
-def register_module(app):
-    """
-    دالة تسجيل الموديول المربوطة بمحرك النظام التلقائي
-    """
-    app.register_blueprint(suppliers_permissions_bp, url_prefix='/supplier')
+# ... بقية الكود ...
