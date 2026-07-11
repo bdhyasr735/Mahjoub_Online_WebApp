@@ -37,7 +37,7 @@
                     <div>
                         <span class="badge bg-dark border border-gold me-2">{{ wallet.wallet_code if wallet else '---' }}</span>
                         
-                        {# رابط سحب آمن: يتم التحقق من وجود المسار في url_map قبل استخدامه #}
+                        {# رابط سحب آمن: يتم التحقق من وجود المسار في url_map قبل استخدامه لمنع انهيار الصفحة #}
                         {% set withdraw_url = url_for('suppliers_dashboard.withdraw') if 'suppliers_dashboard.withdraw' in url_map._rules_by_endpoint else '#' %}
                         
                         <a href="{{ withdraw_url }}" class="btn btn-withdraw btn-sm">
