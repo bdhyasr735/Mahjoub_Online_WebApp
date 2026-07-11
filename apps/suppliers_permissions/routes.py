@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/suppliers_permissions/routes.py
 
-from flask import Blueprint, render_template, redirect, url_for, request, flash, session
+from flask import Blueprint, render_template, redirect, url_for, request, flash, session, jsonify
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.supplier_db import Supplier
@@ -35,6 +35,10 @@ def permissions():
         phone = request.form.get('phone', '').strip()
         password = request.form.get('password', '')
         
+        # إضافة الصلاحيات من الـ form
+        can_view_wallet = 'can_view_wallet' in request.form
+        can_manage_orders = 'can_manage_orders' in request.form
+        
         if username and phone and password:
             if SupplierStaff.query.filter((SupplierStaff.username == username) | (SupplierStaff.search_phone == phone)).first():
                 flash("اسم المستخدم أو رقم الهاتف مسجل مسبقاً في النظام.", "danger")
@@ -43,7 +47,9 @@ def permissions():
                     supplier_id=supplier.id,
                     username=username,
                     search_phone=phone,
-                    is_active=True
+                    is_active=True,
+                    can_view_wallet=can_view_wallet,
+                    can_manage_orders=can_manage_orders
                 )
                 new_staff.set_password(password)
                 new_staff.raw_password = password 
@@ -61,6 +67,24 @@ def permissions():
         staff_list=staff_list, 
         new_staff=new_staff_data
     )
+
+# --- المسار الجديد للتحقق اللحظي ---
+@suppliers_permissions_bp.route('/check-availability', methods=['POST'])
+@login_required
+def check_availability():
+    """التحقق اللحظي من توفر اسم المستخدم أو رقم الهاتف"""
+    data = request.get_json()
+    field = data.get('field')  # 'username' أو 'phone'
+    value = data.get('value')
+    
+    if field == 'username':
+        exists = SupplierStaff.query.filter_by(username=value).first()
+    elif field == 'phone':
+        exists = SupplierStaff.query.filter_by(search_phone=value).first()
+    else:
+        return jsonify({"available": False}), 400
+        
+    return jsonify({"available": not exists})
 
 @suppliers_permissions_bp.route('/action/<int:staff_id>/<action>', methods=['POST'])
 @login_required
