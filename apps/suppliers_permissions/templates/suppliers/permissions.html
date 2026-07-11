@@ -2,11 +2,16 @@
 
 {% block content %}
 <style>
-    /* التدرج اللوني الملكي */
     .royal-gradient { background: linear-gradient(135deg, #4b0082 0%, #000000 100%) !important; color: white !important; }
-    .card { border-radius: 20px !important; }
-    .btn-royal { background: linear-gradient(135deg, #4b0082 0%, #000000 100%); color: white; border-radius: 10px; }
+    .card { border-radius: 20px !important; transition: transform 0.3s; }
+    .btn-action { transition: all 0.2s; }
+    .btn-action:hover { transform: scale(1.1); }
+    /* تأثير خفيف عند تحديث الحالة */
+    .fade-in { animation: fadeIn 0.5s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="container py-5" style="direction: rtl; text-align: right;">
     <div class="d-flex justify-content-between align-items-center mb-5">
@@ -31,7 +36,7 @@
                             <th class="text-center">الإجراءات</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="staff-table-body">
                         {% for staff in staff_list %}
                         <tr id="staff-row-{{ staff.id }}">
                             <td class="p-3">{{ loop.index }}</td>
@@ -42,8 +47,8 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <button onclick="performAction('{{ staff.id }}', 'toggle_status')" class="btn btn-sm btn-outline-primary"><i class="fa fa-power-off"></i></button>
-                                <button onclick="performAction('{{ staff.id }}', 'reset_password')" class="btn btn-sm btn-outline-warning"><i class="fa fa-key"></i></button>
+                                <button onclick="performAction('{{ staff.id }}', 'toggle_status')" class="btn btn-sm btn-outline-primary btn-action"><i class="fa fa-power-off"></i></button>
+                                <button onclick="performAction('{{ staff.id }}', 'reset_password')" class="btn btn-sm btn-outline-warning btn-action"><i class="fa fa-key"></i></button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -58,7 +63,19 @@
 
 <script>
 async function performAction(staffId, action) {
-    if (action === 'reset_password' && !confirm('هل أنت متأكد من إعادة تعيين كلمة المرور؟')) return;
+    // استخدام SweetAlert2 بدلاً من confirm/alert
+    if (action === 'reset_password') {
+        const result = await Swal.fire({
+            title: 'إعادة تعيين كلمة المرور؟',
+            text: "سيتم إنشاء كلمة مرور جديدة تلقائياً",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#4b0082',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'نعم، قم بالتعيين'
+        });
+        if (!result.isConfirmed) return;
+    }
 
     const response = await fetch(`/supplier/action/${staffId}/${action}`, { method: 'POST' });
     const data = await response.json();
@@ -67,9 +84,16 @@ async function performAction(staffId, action) {
         if (action === 'toggle_status') {
             const badge = document.getElementById(`status-badge-${staffId}`);
             badge.innerText = data.is_active ? 'نشط' : 'معطل';
-            badge.className = `badge ${data.is_active ? 'bg-success' : 'bg-dark'}`;
+            badge.className = `badge fade-in ${data.is_active ? 'bg-success' : 'bg-dark'}`;
+            
+            Swal.fire({ icon: 'success', title: 'تم تحديث الحالة', timer: 1500, showConfirmButton: false });
         } else if (action === 'reset_password') {
-            alert('تم إعادة تعيين كلمة المرور بنجاح، الجديدة هي: ' + data.new_password);
+            Swal.fire({
+                title: 'تم تغيير كلمة المرور!',
+                html: `كلمة المرور الجديدة: <br><strong style="font-size: 1.5rem; color: #4b0082;">${data.new_password}</strong>`,
+                icon: 'success',
+                confirmButtonText: 'حسناً'
+            });
         }
     }
 }
