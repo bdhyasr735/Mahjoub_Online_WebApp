@@ -1,20 +1,67 @@
 {% extends 'suppliers/base.html' %}
 
-{% block title %}إدارة الموظفين{% endblock %}
-
 {% block content %}
-<div class="container-fluid py-4" style="direction: rtl; text-align: right; color: #fff;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container py-5" style="direction: rtl; text-align: right;">
+    
+    <div class="d-flex justify-content-between align-items-center mb-5">
         <div>
-            <button onclick="window.history.back()" class="btn btn-outline-secondary btn-sm mb-2"><i class="fa fa-arrow-right"></i> رجوع</button>
-            <h2 class="fw-bold" style="color: #e5c158;">👥 إدارة صلاحيات الموظفين</h2>
+            <h2 class="fw-bold mb-1" style="color: #333;">إدارة صلاحيات الموظفين</h2>
+            <p class="text-muted">تحكم في صلاحيات الوصول الخاصة بفريق عملك.</p>
         </div>
-        <button class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#addStaffModal"><i class="fa fa-user-plus"></i> إضافة موظف</button>
+        <button class="btn btn-primary shadow-sm px-4 py-2" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+            <i class="fa fa-plus-circle me-2"></i> إضافة موظف جديد
+        </button>
     </div>
 
-    {% include 'suppliers/includes/_staff_table.html' %}
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="p-3">#</th>
+                            <th>اسم المستخدم</th>
+                            <th>رقم الهاتف</th>
+                            <th>تاريخ الإنشاء</th>
+                            <th>الحالة</th>
+                            <th class="text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for staff in staff_list %}
+                        <tr>
+                            <td class="p-3 text-muted">{{ loop.index }}</td>
+                            <td class="fw-bold text-primary">{{ staff.username }}</td>
+                            <td>{{ staff.search_phone }}</td>
+                            <td>{{ staff.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                            <td>
+                                <span class="badge {{ 'bg-success' if staff.is_active else 'bg-secondary' }}">
+                                    {{ 'نشط' if staff.is_active else 'معطل' }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-info" title="تعديل">
+                                        <i class="fa fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" title="حذف">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
-{% include 'suppliers/includes/_add_staff_modal.html' %}
-{% include 'suppliers/includes/_credentials_modal.html' %}
+<style>
+    .rounded-4 { border-radius: 1rem !important; }
+    .table thead th { border-top: none; color: #666; font-size: 0.9rem; }
+    .btn-primary { background-color: #6c5ce7; border-color: #6c5ce7; }
+    .btn-primary:hover { background-color: #5b4cd1; }
+</style>
 {% endblock %}
