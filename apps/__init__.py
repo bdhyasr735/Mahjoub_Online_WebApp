@@ -110,15 +110,15 @@ def create_app():
     @app.context_processor
     def inject_vars():
         """
-        دالة ذكية: تتحقق من وجود الروابط في التطبيق قبل عرضها.
-        أي رابط غير موجود في الـ url_map سيتم حذفه تلقائياً لمنع الانهيار.
+        حقن البيانات للمدير والمورد مع التحقق من وجود المسارات فعلياً لمنع الانهيار.
         """
+        # توليد مجموعة (Set) للمسارات المتاحة لسرعة البحث
         available_endpoints = {rule.endpoint for rule in app.url_map.iter_rules()}
         safe_supplier_modules = {}
 
         for key, mod in SUPPLIER_MODULES.items():
             links = mod.get('links', {})
-            # فلترة الروابط: الاحتفاظ فقط بالمسارات التي لها دالة route مسجلة
+            # فلترة الروابط: الاحتفاظ فقط بالمسارات التي لها دالة route مسجلة في الـ url_map
             valid_links = {ep: title for ep, title in links.items() if ep in available_endpoints}
             
             if valid_links:
@@ -129,7 +129,8 @@ def create_app():
         return dict(
             csrf_token=generate_csrf,
             registered_modules=ADMIN_MODULES,
-            supplier_modules=safe_supplier_modules
+            supplier_modules=safe_supplier_modules,
+            url_map=app.url_map # تمرير خريطة المسارات للقوالب للتحقق الديناميكي
         )
 
     # 6. إعداد البيئة وقاعدة البيانات
