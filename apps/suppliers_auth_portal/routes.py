@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/suppliers_auth_portal/routes.py
 
-from flask import Blueprint, render_template, request, jsonify, session, url_for, redirect, flash
+from flask import Blueprint, render_template, request, jsonify, session, url_for, redirect
 from flask_login import login_user, logout_user, login_required
 from sqlalchemy import or_
 from datetime import datetime, timedelta
@@ -20,16 +20,19 @@ def login():
         return render_template('suppliers_auth_portal/login.html')
 
     try:
-        # دعم قراءة البيانات سواء أرسلت عن طريق JSON أو عن طريق Form Submission عادي
+        # مسح الجلسة السابقة لضمان عدم وجود تداخل (إجراء وقائي)
+        session.clear()
+
+        # دعم قراءة البيانات (JSON أو Form)
         if request.is_json:
             data = request.get_json() or {}
             username = data.get('username', '').strip()
-            password = data.get('password', '') # لا تستخدم strip هنا إذا كنت تريد كلمة مرور تبدأ بمسافة، ولكن عادةً نستخدمها
+            password = data.get('password', '')
             user_type = data.get('type')
         else:
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '')
-            user_type = request.form.get('type') # 'supplier' أو 'staff'
+            user_type = request.form.get('type')
 
         # 1. التحقق من الحظر
         block_until = session.get('block_until')
@@ -41,7 +44,7 @@ def login():
         target_user = None
         found_as = None
 
-        # 2. البحث الحازم (Strict Search) لمنع التداخل بين المورد والموظف
+        # 2. البحث الحازم (Strict Search)
         if user_type == 'supplier':
             target_user = Supplier.query.filter(or_(Supplier.search_phone == username, Supplier.username == username)).first()
             if target_user: found_as = 'supplier'
@@ -49,16 +52,13 @@ def login():
             target_user = SupplierStaff.query.filter(or_(SupplierStaff.search_phone == username, SupplierStaff.username == username)).first()
             if target_user: found_as = 'staff'
 
-        # 3. إذا لم يتم العثور على الحساب
+        # 3. التحقق من وجود المستخدم
         if not target_user:
-            msg = "المستخدم غير مسجل في المنصة اللامركزية"
+            msg = "المستخدم غير مسجل في المنصة"
             return jsonify({"status": "error", "message": msg}), 404 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 4. التحقق من كلمة المرور (مع إضافة strip() للتنظيف)
+        # 4. التحقق من كلمة المرور
         if not target_user.check_password(password.strip()):
-            # [تنبيه]: إذا فشل الدخول هنا، فالمشكلة حتماً في اختلاف في كلمة المرور (مسافة إضافية أو حالة أحرف)
-            print(f"DEBUG: Login failed for {username}. Hash in DB: {getattr(target_user, 'password_hash', 'None')}")
-            
             attempts = session.get('login_attempts', 0) + 1
             session['login_attempts'] = attempts
             if attempts >= 5:
@@ -70,17 +70,11 @@ def login():
 
         # 5. التحقق من التفعيل
         if hasattr(target_user, 'is_active') and not target_user.is_active:
-            if found_as == 'staff':
-                msg = "تم إيقاف المستخدم من قبل المتجر، يرجى مراجعة المتجر الأساسي."
-            else:
-                msg = "الحساب غير مفعل حالياً."
+            msg = "الحساب غير مفعل حالياً."
             return jsonify({"status": "error", "message": msg}), 403 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
 
         # 6. تسجيل الدخول وتثبيت الجلسة
-        session.pop('login_attempts', None)
-        session.pop('block_until', None)
         session['user_type'] = found_as
-        
         login_user(target_user, remember=True)
         
         redirect_url = url_for('suppliers_dashboard.dashboard')
