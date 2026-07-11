@@ -77,7 +77,11 @@ def login():
 
         # 6. التحقق من التفعيل
         if hasattr(target_user, 'is_active') and not target_user.is_active:
-            msg = "الحساب غير مفعل حالياً"
+            # تم تخصيص الرسالة للموظف كما طلبت
+            if found_as == 'staff':
+                msg = "تم إيقاف المستخدم من قبل المتجر، يرجى مراجعة المتجر الأساسي."
+            else:
+                msg = "الحساب غير مفعل حالياً."
             return jsonify({"status": "error", "message": msg}), 403 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
 
         # 7. تسجيل الدخول وتثبيت الجلسة بشكل نهائي
