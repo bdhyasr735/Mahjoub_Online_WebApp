@@ -37,13 +37,8 @@
                     <div>
                         <span class="badge bg-dark border border-gold me-2">{{ wallet.wallet_code if wallet else '---' }}</span>
                         
-                        {# حماية رابط السحب #}
-                        {% set withdraw_url = '#' %}
-                        {% try %}
-                            {% set withdraw_url = url_for('suppliers_dashboard.withdraw') %}
-                        {% except %}
-                            {# المسار غير موجود، يبقى الرابط '#' #}
-                        {% endtry %}
+                        {# رابط سحب آمن: يتم التحقق من وجود المسار في url_map قبل استخدامه #}
+                        {% set withdraw_url = url_for('suppliers_dashboard.withdraw') if 'suppliers_dashboard.withdraw' in url_map._rules_by_endpoint else '#' %}
                         
                         <a href="{{ withdraw_url }}" class="btn btn-withdraw btn-sm">
                             <i class="fas fa-hand-holding-usd me-1"></i> سحب
@@ -58,4 +53,34 @@
                     </div>
                     <div class="col border-end border-light border-opacity-25">
                         <div class="balance-label">الدولار</div>
-                        <div class="balance-val">{{ "{:,.2f}".format(wallet.balance_usd|float) if wallet else '
+                        <div class="balance-val">{{ "{:,.2f}".format(wallet.balance_usd|float) if wallet else '0.00' }}</div>
+                    </div>
+                    <div class="col border-end border-light border-opacity-25">
+                        <div class="balance-label">السعودي</div>
+                        <div class="balance-val">{{ "{:,.2f}".format(wallet.balance_sar|float) if wallet else '0.00' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card dynamic-card white-glass-card p-4 shadow-sm h-100 d-flex flex-column justify-content-center">
+                <div class="stat-card-icon mb-3"><i class="fas fa-box-open fa-2x"></i></div>
+                <h6 class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">طلبات قيد التنفيذ</h6>
+                <h2 class="fw-bold mt-2 mb-0">{{ pending_orders_count | default(0) }}</h2>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card dynamic-card white-glass-card p-4 shadow-sm h-100 d-flex flex-column justify-content-center">
+                <div class="stat-card-icon mb-3 text-warning"><i class="fas fa-clock fa-2x"></i></div>
+                <h6 class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">رصيد معلق</h6>
+                <h2 class="fw-bold mt-2 mb-0">
+                    {{ "{:,.2f}".format(wallet.balance_pending|float) if (wallet and wallet.balance_pending) else '0.00' }} 
+                    <span class="fs-6 text-muted fw-normal">ر.س</span>
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
