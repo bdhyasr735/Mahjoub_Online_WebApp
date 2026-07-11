@@ -47,7 +47,7 @@ def check_availability():
     field = data.get('field')  # 'username' أو 'phone'
     value = data.get('value')
     
-    # 🌟 تم التعديل هنا: البحث في كامل جدول الموظفين لضمان عدم تكرار البيانات على مستوى النظام
+    # البحث في كامل جدول الموظفين لضمان عدم تكرار البيانات على مستوى النظام
     if field == 'username':
         exists = SupplierStaff.query.filter_by(username=value).first()
     elif field == 'phone':
@@ -69,7 +69,7 @@ def add_staff():
     username = request.form.get('username')
     phone = request.form.get('phone')
     
-    # تحقق إضافي في الباك-إند للأمان (Double Validation)
+    # تحقق إضافي في الباك-إند للأمان
     if SupplierStaff.query.filter_by(username=username).first():
         return jsonify({"success": False, "message": "اسم المستخدم مسجل مسبقاً"}), 400
     if SupplierStaff.query.filter_by(search_phone=str(phone)[-9:]).first():
@@ -107,6 +107,7 @@ def staff_action(staff_id, action):
     if action == 'toggle_status':
         staff.is_active = not staff.is_active
         db.session.commit()
+        # تعيد القيمة الحالية لـ is_active ليقوم الفرونت-إند بتحديث الشارة (Badge) بناءً عليها
         return jsonify({"success": True, "is_active": staff.is_active})
     
     elif action == 'reset_password':
