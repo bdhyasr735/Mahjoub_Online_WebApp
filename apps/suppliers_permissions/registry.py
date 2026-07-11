@@ -1,14 +1,16 @@
 # 📂 apps/suppliers_permissions/registry.py
 
-# ... الكود السابق ...
+from apps.suppliers_permissions.routes import suppliers_permissions_bp
 
-# اجعل القيمة هي عنوان الرابط فقط ليقرأها النظام كـ string
+MODULE_NAME = "إدارة الصلاحيات"
+MODULE_ICON = "fas fa-users-cog" # تأكد من إضافة fas لتعمل الأيقونة
+
+# الصيغة الصحيحة: { 'endpoint_name': 'الاسم الذي سيظهر للمستخدم' }
 LINKS = {
     "suppliers_permissions.permissions": "صلاحيات الموظفين"
 }
 
-# ملاحظة: إذا كنت تريد تخصيص الأيقونة لكل رابط، 
-# يجب تحديث loop العرض في base.html، ولكن للآن استخدم MODULE_ICON:
-MODULE_ICON = "fas fa-users-cog" 
+SHOW_IN_SUPPLIER = True
 
-# ... بقية الكود ...
+def register_module(app):
+    app.register_blueprint(suppliers_permissions_bp, url_prefix='/supplier')
