@@ -9,14 +9,15 @@ from apps.api.sync_engine import SyncEngine
 from datetime import datetime, timedelta
 from sqlalchemy import func
 
-# تم تحديد اسم الـ Blueprint بوضوح ليتطابق مع الـ registry
+# تم تعريف الـ Blueprint باسم فريد لضمان عدم التعارض
 supplier_wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates')
 
 @supplier_wallet_bp.route('/my-wallet', methods=['GET'])
 @login_required
 def view_my_wallet():
-    # 1. تحديد الـ s_id
+    # 1. تحديد الـ s_id بمرونة وأمان
     user_type = session.get('user_type')
+    s_id = None
     
     if user_type == 'supplier':
         s_id = current_user.id
@@ -26,10 +27,14 @@ def view_my_wallet():
         s_id = request.args.get('supplier_id')
         
     if not s_id:
-        abort(400, description="يجب تحديد معرف المورد (supplier_id) لعرض المحفظة.")
+        abort(400, description="يجب تحديد معرف المورد لعرض المحفظة.")
     
-    # 2. جلب محفظة المتجر
-    wallet = SupplierWallet.query.filter_by(supplier_id=s_id).first()
+    # 2. جلب محفظة المورد (استخدام try-except للتعامل مع أخطاء قواعد البيانات)
+    try:
+        wallet = SupplierWallet.query.filter_by(supplier_id=int(s_id)).first()
+    except ValueError:
+        abort(400, description="معرف المورد غير صالح.")
+        
     if not wallet:
         abort(404, description="لم يتم العثور على محفظة مرتبطة بهذا المورد.")
 
@@ -41,12 +46,13 @@ def view_my_wallet():
     query = WalletTransaction.query.filter_by(wallet_id=wallet.id, currency=currency)
 
     # 4. الفلترة الزمنية
+    now = datetime.utcnow()
     if filter_type == 'day':
-        query = query.filter(WalletTransaction.created_at >= datetime.utcnow().date())
+        query = query.filter(WalletTransaction.created_at >= now.date())
     elif filter_type == 'week':
-        query = query.filter(WalletTransaction.created_at >= (datetime.utcnow() - timedelta(days=7)))
+        query = query.filter(WalletTransaction.created_at >= (now - timedelta(days=7)))
     elif filter_type == 'month':
-        query = query.filter(WalletTransaction.created_at >= (datetime.utcnow() - timedelta(days=30)))
+        query = query.filter(WalletTransaction.created_at >= (now - timedelta(days=30)))
     
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -72,12 +78,12 @@ def view_my_wallet():
     
     total_credit = stats.total_credit or 0
     total_debit = stats.total_debit or 0
-    calculated_balance = total_credit - total_debit
-
-    # منطق التدقيق
+    
+    # منطق التدقيق للمدير فقط
     wallet_imbalance = None
     if getattr(current_user, 'is_admin', False):
-        if abs(float(wallet.balance) - float(calculated_balance)) > 0.01:
+        calculated_balance = total_credit - total_debit
+        if abs(float(wallet.balance or 0) - float(calculated_balance)) > 0.01:
             wallet_imbalance = calculated_balance
 
     # 7. الترقيم
@@ -90,7 +96,7 @@ def view_my_wallet():
                         .offset((page - 1) * per_page)\
                         .limit(per_page).all()
 
-    # 8. استجابة (مع دعم التحديث الديناميكي)
+    # 8. استجابة (مع دعم الـ AJAX)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('supplier_wallet/_table_partial.html', 
                                transactions=transactions, 
