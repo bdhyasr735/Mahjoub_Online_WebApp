@@ -9,6 +9,7 @@ from apps.api.sync_engine import SyncEngine
 from datetime import datetime, timedelta
 from sqlalchemy import func
 
+# تأكد من أن اسم الـ Blueprint هنا هو 'supplier_wallet'
 supplier_wallet_bp = Blueprint('supplier_wallet', __name__, template_folder='templates')
 
 @supplier_wallet_bp.route('/my-wallet', methods=['GET'])
@@ -20,10 +21,8 @@ def view_my_wallet():
     if user_type == 'supplier':
         s_id = current_user.id
     elif user_type == 'staff':
-        # جلب المعرف الحقيقي للمورد التابع له الموظف تلقائياً بدون تصفح يدوي
         s_id = getattr(current_user, 'supplier_id', None)
     else:
-        # إتاحة جلب المعرف عبر الرابط للإدارة أو الحالات الخاصة الأخرى
         s_id = request.args.get('supplier_id')
         
     if not s_id:
@@ -75,7 +74,7 @@ def view_my_wallet():
     total_debit = stats.total_debit or 0
     calculated_balance = total_credit - total_debit
 
-    # منطق التدقيق (Audit Logic) للمدير فقط
+    # منطق التدقيق للمدير فقط
     wallet_imbalance = None
     if getattr(current_user, 'is_admin', False):
         if abs(float(wallet.balance) - float(calculated_balance)) > 0.01:
