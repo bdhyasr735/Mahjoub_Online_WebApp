@@ -10,7 +10,7 @@ from apps.api.sync_engine import SyncEngine
 from datetime import datetime, timedelta
 from sqlalchemy import func
 
-# تعريف الـ Blueprint مع تحديد مسار القوالب لضمان الاستقلالية
+# تعريف الـ Blueprint
 supplier_wallet_bp = Blueprint(
     'supplier_wallet', 
     __name__, 
@@ -20,7 +20,7 @@ supplier_wallet_bp = Blueprint(
 @supplier_wallet_bp.route('/my-wallet', methods=['GET'])
 @login_required
 def view_my_wallet():
-    # 1. تحديد الـ s_id بمرونة وأمان
+    # 1. تحديد الـ s_id
     user_type = session.get('user_type')
     s_id = None
     
@@ -84,7 +84,7 @@ def view_my_wallet():
     total_credit = stats.total_credit or 0
     total_debit = stats.total_debit or 0
     
-    # منطق التدقيق للمدير فقط
+    # منطق التدقيق
     wallet_imbalance = None
     if getattr(current_user, 'is_admin', False):
         calculated_balance = total_credit - total_debit
@@ -101,9 +101,9 @@ def view_my_wallet():
                         .offset((page - 1) * per_page)\
                         .limit(per_page).all()
 
-    # 8. استجابة (مع دعم الـ AJAX)
-    # ملاحظة: تأكد أن ملفات القوالب موجودة داخل مجلد 'templates' الخاص بالموديول
+    # 8. استجابة (باستخدام المسار الصحيح للقوالب)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # تأكد أن اسم الملف داخل مجلد templates يطابق هذا الاسم
         return render_template('_table_partial.html', 
                                transactions=transactions, 
                                total_debit=total_debit, 
