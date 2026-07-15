@@ -23,6 +23,7 @@ from .wallet_db import SupplierWallet, WalletTransaction
 from .financials_db import OrderFinancial
 from .orders_db import Order
 from .order_items_db import OrderItem
+from .product_db import Product  # الموديل الجديد المربوط بالمورد
 from .sync_log import SyncLog
 
 # القائمة المصدرة (Export Registry)
@@ -36,6 +37,7 @@ __all__ = [
     'Order',
     'OrderItem',
     'OrderFinancial',
+    'Product',  # تمت الإضافة
     'Supplier',
     'SupplierProfile',
     'SupplierStaff',
