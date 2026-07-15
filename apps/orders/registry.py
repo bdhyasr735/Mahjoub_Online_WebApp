@@ -1,34 +1,19 @@
-{% extends "admin/base.html" %}
+# 📂 apps/orders/registry.py
+from apps.orders.routes import orders_bp
 
-{% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>إضافة منتج جديد</h3>
-        <a href="{{ url_for('admin_product.manage_products') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-right"></i> إلغاء
-        </a>
-    </div>
+MODULE_NAME = "الطلبات"
+MODULE_ICON = "fa-shopping-cart"
 
-    <div class="card shadow-sm border-0" style="border-top: 4px solid var(--mahjoub-gold);">
-        <div class="card-body">
-            <form method="POST">
-                <div class="mb-3">
-                    <label class="form-label">اسم المنتج</label>
-                    <input type="text" class="form-control" name="title" required>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">السعر</label>
-                        <input type="number" class="form-control" name="price" step="0.01" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">الكمية</label>
-                        <input type="number" class="form-control" name="quantity" required>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-mahjoub-gold w-100">حفظ المنتج</button>
-            </form>
-        </div>
-    </div>
-</div>
-{% endblock %}
+# التصحيح: يجب أن يتطابق الـ endpoint تماماً مع اسم البلوبرينت المسجل في routes.py
+# وبما أنك سجلت البلوبرينت باسم 'orders' في routes.py، يجب أن يكون الـ endpoint هو 'orders.dashboard'
+LINKS = {
+    "قائمة الطلبات": "orders.dashboard"
+}
+
+def register_module(app):
+    try:
+        # تأكد أن الـ url_prefix متوافق مع ما يتوقعه التطبيق
+        app.register_blueprint(orders_bp, url_prefix='/orders')
+        print("✅ [Registry]: تم تسجيل موديول 'Orders' بنجاح تحت المسار /orders.")
+    except Exception as e:
+        print(f"❌ [Registry Error]: فشل تسجيل موديول 'Orders': {e}")
