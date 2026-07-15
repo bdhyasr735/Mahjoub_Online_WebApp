@@ -3,7 +3,6 @@
 
 import secrets
 import logging
-from datetime import datetime
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from flask_login import login_required
 from apps.extensions import db
@@ -55,21 +54,16 @@ def add_supplier_or_staff():
             )
             new_supplier.set_password(temp_password)
             db.session.add(new_supplier)
-            
-            # [سر الحل]: flush() لتوليد الـ ID فوراً في قاعدة البيانات قبل الحفظ النهائي
             db.session.flush() 
 
-            # 2. إنشاء المحفظة يدوياً الآن بعد الحصول على ID المورد
+            # 2. إنشاء المحفظة
             new_wallet = SupplierWallet(
                 wallet_code=f"MAH-WEL963{new_supplier.id}", 
                 supplier_id=new_supplier.id
             )
             db.session.add(new_wallet)
-
-            # 3. الحفظ النهائي لكل شيء
             db.session.commit()
             
-            # حفظ البيانات في الجلسة لعرضها في صفحة النجاح
             session['new_user_data'] = {
                 'trade_name': trade_name,
                 'username': username,
