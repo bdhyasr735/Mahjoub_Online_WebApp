@@ -51,7 +51,7 @@
                         <ul class="dropdown-content">
                             {% for endpoint, label in module.links.items() %}
                                 <li>
-                                    <a href="{{ url_for(endpoint) if endpoint in config.get('PREFERRED_URL_ENDPOINTS', []) else '#' }}">
+                                    <a href="{{ url_for(endpoint) if endpoint else '#' }}">
                                         <i class="fas fa-circle me-2" style="font-size: 6px;"></i> {{ label }}
                                     </a>
                                 </li>
