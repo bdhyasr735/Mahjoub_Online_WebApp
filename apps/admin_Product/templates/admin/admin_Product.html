@@ -17,7 +17,7 @@
         </a>
         
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syncModal">
+            <button type="button" class="btn btn-primary" onclick="syncProducts()">
                 <i class="fas fa-sync-alt"></i> مزامنة المنتجات
             </button>
             
@@ -65,5 +65,31 @@
 </div>
 
 {% include 'admin/includes/_table_products.html' %}
+
+<script>
+    function syncProducts() {
+        // إرسال طلب المزامنة مع تضمين الـ CSRF Token
+        fetch("{{ url_for('admin_product.sync_products') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}' // هذا يمنع خطأ 400
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('خطأ: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ أثناء الاتصال بالسيرفر');
+        });
+    }
+</script>
 
 {% endblock %}
