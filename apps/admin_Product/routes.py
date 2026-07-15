@@ -1,6 +1,6 @@
 # 📂 apps/admin_Product/routes.py
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from flask_login import login_required
 from apps.models.product_db import Product
 
@@ -30,14 +30,19 @@ def manage_products():
         pagination=pagination
     )
 
-# --- المسار الذي كان يسبب الانهيار ---
-@admin_product_bp.route('/add', methods=['GET'])
+@admin_product_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_product():
-    """عرض صفحة إضافة منتج جديد"""
-    # إذا لم تكن قد أنشأت ملف admin_add_product.html بعد، 
-    # يمكنك توجيهها لـ manage_products مؤقتاً لتجنب الخطأ
-    return render_template('admin/admin_add_product.html')
+    """
+    مسار آمن لإضافة منتج:
+    في حال لم تكن صفحة admin_add_product.html جاهزة بعد، 
+    سيعيد النظام توجيه المستخدم للقائمة بدلاً من الانهيار.
+    """
+    try:
+        return render_template('admin/admin_add_product.html')
+    except Exception:
+        # في حال عدم وجود الملف، يتم تحويل الطلب للقائمة الرئيسية بأمان
+        return redirect(url_for('admin_product.manage_products'))
 
 @admin_product_bp.route('/sync', methods=['POST'])
 @login_required
