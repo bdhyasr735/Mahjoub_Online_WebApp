@@ -1,1 +1,49 @@
+<style>
+    .modal-header-mahjoub {
+        background-color: var(--royal-purple);
+        color: var(--mahjoub-gold);
+        border-bottom: 2px solid var(--mahjoub-gold);
+    }
+    .progress-bar-mahjoub {
+        background-color: var(--mahjoub-gold) !important;
+    }
+</style>
 
+<div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header modal-header-mahjoub">
+                <h5 class="modal-title" id="syncModalLabel"><i class="fas fa-sync-alt me-2"></i> مزامنة المنتجات - قمرة كلاود</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="text-muted">هل تود البدء بسحب أحدث المنتجات والأسعار من متجرك على منصة قمرة؟</p>
+                
+                <div id="sync-progress-area" class="d-none mt-3">
+                    <div class="progress" style="height: 20px;">
+                        <div id="sync-bar" class="progress-bar progress-bar-striped progress-bar-animated progress-bar-mahjoub" 
+                             role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p id="sync-status" class="mt-2 small text-primary fw-bold">جاري الاتصال بالخادم...</p>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-mahjoub-gold" id="startSyncBtn" onclick="startProductSync()">بدء المزامنة الآن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function startProductSync() {
+        const btn = document.getElementById('startSyncBtn');
+        const progressArea = document.getElementById('sync-progress-area');
+        
+        btn.disabled = true;
+        progressArea.classList.remove('d-none');
+        
+        // هنا سيتم استدعاء الـ Fetch API للـ registry.py الخاص بك
+        console.log("تم بدء عملية المزامنة...");
+    }
+</script>
