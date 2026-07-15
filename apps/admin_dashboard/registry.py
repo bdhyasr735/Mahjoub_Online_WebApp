@@ -1,17 +1,19 @@
 # 📂 apps/admin_dashboard/registry.py
 
-from .routes import admin_dashboard
+# يجب التأكد من استيراد الاسم الصحيح الذي عرفناه في routes.py
+from .routes import admin_dashboard_bp 
 
 MODULE_NAME = "لوحة التحكم"
 MODULE_ICON = "fas fa-tachometer-alt"
 
-# التعديل الصحيح:
-# المفتاح (Key) هو المسار البرمجي، والقيمة (Value) هي النص العربي
 LINKS = {
-    "admin_dashboard.dashboard": "الإحصائيات"
+    "admin_dashboard_bp.dashboard": "الإحصائيات"
 }
 
 def register_module(app):
-    if admin_dashboard:
-        app.register_blueprint(admin_dashboard, url_prefix='/admin')
-        print(f"✅ [Registry]: تم تسجيل موديول 'admin_dashboard' بنجاح على المسار (/admin).")
+    try:
+        # استخدام الاسم الجديد هنا أيضاً
+        app.register_blueprint(admin_dashboard_bp, url_prefix='/admin')
+        print("✅ [Registry]: تم تسجيل موديول 'admin_dashboard_bp' بنجاح.")
+    except Exception as e:
+        print(f"❌ [Registry Error]: فشل تسجيل موديول الإحصائيات: {e}")
