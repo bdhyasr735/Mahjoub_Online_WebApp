@@ -15,7 +15,12 @@
         <a href="{{ url_for('admin_dashboard.dashboard') }}" class="btn btn-outline-dark">
             <i class="fas fa-arrow-right"></i> رجوع
         </a>
+        
         <div class="d-flex gap-2">
+            <button id="syncBtn" class="btn btn-primary" onclick="syncProducts()">
+                <i class="fas fa-sync-alt"></i> مزامنة المنتجات
+            </button>
+            
             <input type="text" class="form-control" placeholder="بحث عن منتج...">
             <button class="btn btn-outline-secondary"><i class="fas fa-filter"></i> فلتر</button>
             <a href="{{ url_for('admin_product.add_product') }}" class="btn btn-mahjoub-gold">
@@ -58,4 +63,33 @@
         </ul>
     </nav>
 </div>
+
+<script>
+    function syncProducts() {
+        const btn = document.getElementById('syncBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
+
+        fetch("{{ url_for('admin_product.sync_products') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                location.reload(); // إعادة تحميل الصفحة لتحديث البيانات
+            } else {
+                alert('خطأ: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('حدث خطأ في الاتصال بالسيرفر');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i> مزامنة المنتجات';
+        });
+    }
+</script>
 {% endblock %}
