@@ -23,14 +23,15 @@ class Product(db.Model):
     title = db.Column(db.String(255), nullable=False)
     sku = db.Column(db.String(100), nullable=True)
     
-    # [تشفير اختياري]: لو أردت تشفير سعر التكلفة الخاص بالمورد
+    # [تشفير]: سعر التكلفة الخاص بالمورد
     _cost_price_enc = db.Column(db.String(255), nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_sync = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقة
-    supplier = db.relationship('Supplier', backref='products', lazy='joined')
+    # العلاقة: تم تغيير lazy='joined' إلى 'select' لمنع خطأ الربط (JOIN) في Postgres
+    # عند الحاجة لجلب المورد، يمكنك القيام بذلك يدوياً أو عبر db.joinedload(Product.supplier) في استعلام معين
+    supplier = db.relationship('Supplier', backref='products', lazy='select')
 
     # --- نظام التشفير (نفس مفتاح Supplier) ---
     @staticmethod
