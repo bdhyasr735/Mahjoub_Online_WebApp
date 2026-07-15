@@ -4,6 +4,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect # تم إضافة هذا الاستيراد
 from sqlalchemy import MetaData
 from sqlalchemy.orm import joinedload
 from flask import session
@@ -22,6 +23,7 @@ metadata = MetaData(
 db = SQLAlchemy(metadata=metadata)
 migrate = Migrate()
 login_manager = LoginManager()
+csrf = CSRFProtect() # تعريف الـ csrf هنا ليتم استخدامه في __init__.py
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -56,7 +58,6 @@ def load_user(user_id):
         return None
 
 # إعدادات تسجيل الدخول
-# تأكد أن هذا المسار يطابق الـ Blueprint الذي يستخدمه الموظفون للـ login
 login_manager.login_view = 'suppliers_auth.login'
 login_manager.login_message = "يرجى تسجيل الدخول للوصول إلى لوحة التحكم."
 login_manager.login_message_category = "info"
