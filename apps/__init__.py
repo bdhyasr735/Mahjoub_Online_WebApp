@@ -1,4 +1,3 @@
-# 📂 apps/__init__.py
 import os
 import importlib
 import logging
@@ -42,7 +41,7 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
 
-    # 2. تحميل المستخدم (تم نقله هنا للترتيب)
+    # 2. تحميل المستخدم
     @login_manager.user_loader
     def load_user(user_id):
         from apps.models.admin_db import AdminUser
@@ -79,7 +78,7 @@ def create_app():
     except ImportError:
         pass
 
-    # 5. تسجيل الموديولات الديناميكي (كما هو عندك تماماً)
+    # 5. تسجيل الموديولات الديناميكي
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin', 'auth']
     if os.path.exists(apps_dir):
@@ -92,7 +91,7 @@ def create_app():
                         module = importlib.import_module(f"apps.{item}.registry")
                         if hasattr(module, 'register_module'):
                             module.register_module(app)
-                            # هنا نضمن أن الموديول يُسجل بشكل صحيح
+                            # تسجيل البيانات في القواميس للعرض في الواجهة
                             module_links = getattr(module, 'LINKS', {})
                             if module_links:
                                 mod_data = {
@@ -114,7 +113,6 @@ def create_app():
 
     @app.context_processor
     def inject_vars():
-        # إضافة الـ csrf_token بشكل دائم ليكون متاحاً في كل القوالب
         return dict(
             csrf_token=generate_csrf,
             registered_modules=ADMIN_MODULES,
