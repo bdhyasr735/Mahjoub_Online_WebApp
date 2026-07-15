@@ -17,7 +17,7 @@
         </a>
         
         <div class="d-flex gap-2">
-            <button id="syncBtn" class="btn btn-primary" onclick="syncProducts()">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syncModal">
                 <i class="fas fa-sync-alt"></i> مزامنة المنتجات
             </button>
             
@@ -64,32 +64,6 @@
     </nav>
 </div>
 
-<script>
-    function syncProducts() {
-        const btn = document.getElementById('syncBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
+{% include 'admin/includes/_table_products.html' %}
 
-        fetch("{{ url_for('admin_product.sync_products') }}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(data.message);
-                location.reload(); // إعادة تحميل الصفحة لتحديث البيانات
-            } else {
-                alert('خطأ: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('حدث خطأ في الاتصال بالسيرفر');
-        })
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-sync-alt"></i> مزامنة المنتجات';
-        });
-    }
-</script>
 {% endblock %}
