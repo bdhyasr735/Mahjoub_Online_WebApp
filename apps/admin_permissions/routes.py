@@ -6,36 +6,24 @@ from flask_login import login_required, current_user
 import secrets
 import string
 from sqlalchemy import or_
-from sqlalchemy.exc import IntegrityError
-
 from apps.extensions import db
 from apps.models.admin_staff_db import AdminStaff
 from apps.models.supplier_staff_db import SupplierStaff
 from apps.models.supplier_db import Supplier
 
-admin_permissions_bp = Blueprint('admin_permissions', __name__, template_folder='templates')
+# تعديل اسم الـ Blueprint ليتوافق مع المعايير (admin_permissions_bp)
+admin_permissions_bp = Blueprint('admin_permissions_bp', __name__, template_folder='templates')
 
 def is_admin():
-    # --- كود التصحيح (Debug) ---
     if not current_user.is_authenticated:
-        print("DEBUG: [AUTH] المستخدم غير مسجل دخول")
         return False
-    
     user_role = getattr(current_user, 'role', 'NO_ROLE_FIELD')
-    print(f"DEBUG: [AUTH] المستخدم: {current_user.username}, الدور الحالي: {user_role}")
-    
-    if user_role in ['admin', 'Owner']:
-        return True
-    
-    print(f"DEBUG: [AUTH] رفض الدخول للمستخدم {current_user.username} بسبب الدور: {user_role}")
-    return False
-    # --------------------------
+    return user_role in ['admin', 'Owner']
 
 def generate_random_password(length=12):
     chars = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(secrets.choice(chars) for _ in range(length))
 
-# --- بقية المسارات ---
 @admin_permissions_bp.route('/admin/permissions/check-user', methods=['GET'])
 @login_required
 def check_user():
@@ -58,7 +46,8 @@ def check_phone():
 @login_required
 def roles_list():
     if not is_admin():
-        return redirect(url_for('admin_dashboard.dashboard'))
+        # توجيه صحيح للـ Blueprint المحدث
+        return redirect(url_for('admin_dashboard_bp.dashboard'))
     staff_type = request.args.get('type', 'admin')
     model = AdminStaff if staff_type == 'admin' else SupplierStaff
     staff_list = model.query.order_by(model.created_at.desc()).all()
@@ -116,9 +105,9 @@ def reset_password(id, staff_type):
 @admin_permissions_bp.route('/admin/permissions/toggle-status/<int:id>/<staff_type>', methods=['GET'])
 @login_required
 def toggle_status(id, staff_type):
-    if not is_admin(): return redirect(url_for('admin_permissions.roles_list', type=staff_type))
+    if not is_admin(): return redirect(url_for('admin_permissions_bp.roles_list', type=staff_type))
     model = AdminStaff if staff_type == 'admin' else SupplierStaff
     user = model.query.get_or_404(id)
     user.is_active = not user.is_active
     db.session.commit()
-    return redirect(url_for('admin_permissions.roles_list', type=staff_type))
+    return redirect(url_for('admin_permissions_bp.roles_list', type=staff_type))
