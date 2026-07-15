@@ -15,29 +15,32 @@ admin_product_bp = Blueprint(
 @login_required
 def manage_products():
     """عرض قائمة المنتجات بنظام الصفحات (Pagination)"""
-    
-    # إعدادات التقليب: 10 منتجات في كل صفحة
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
-    # جلب المنتجات (يمكنك إضافة منطق الفلترة هنا لاحقاً)
     pagination = Product.query.order_by(Product.created_at.desc()).paginate(
         page=page, 
         per_page=per_page, 
         error_out=False
     )
     
-    products = pagination.items
-    
     return render_template(
         'admin/admin_Product.html', 
-        products=products,
+        products=pagination.items,
         pagination=pagination
     )
+
+# --- المسار الذي كان يسبب الانهيار ---
+@admin_product_bp.route('/add', methods=['GET'])
+@login_required
+def add_product():
+    """عرض صفحة إضافة منتج جديد"""
+    # إذا لم تكن قد أنشأت ملف admin_add_product.html بعد، 
+    # يمكنك توجيهها لـ manage_products مؤقتاً لتجنب الخطأ
+    return render_template('admin/admin_add_product.html')
 
 @admin_product_bp.route('/sync', methods=['POST'])
 @login_required
 def sync_products():
-    """مسار خاص ببدء المزامنة (سيتم ربطه بـ registry)"""
-    # هنا سيتم استدعاء وظيفة المزامنة لاحقاً
+    """مسار خاص ببدء المزامنة"""
     return jsonify({"status": "success", "message": "بدء عملية المزامنة..."})
