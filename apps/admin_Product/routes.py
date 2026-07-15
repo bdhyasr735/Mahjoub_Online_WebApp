@@ -5,7 +5,7 @@ from flask_login import login_required
 from sqlalchemy.orm import lazyload
 from apps.models.product_db import Product
 from apps.extensions import db
-# تم تعديل الاستيراد هنا ليتناسب مع الكلاس
+# استيراد الكلاس الموحد للاتصال بـ قمرة
 from apps.services.graphql_client import QomrahGraphQLClient
 
 # تعريف البلوبرينت
@@ -45,35 +45,41 @@ def add_product():
 @admin_product_bp.route('/sync', methods=['POST'])
 @login_required
 def sync_products():
-    """مسار المزامنة الفعلي الذي يستخدم كلاس QomrahGraphQLClient"""
+    """مسار المزامنة الفعلي الذي يتصل بـ قمرة عبر الكلاس QomrahGraphQLClient"""
     try:
-        # 1. جلب المنتجات باستخدام الكلاس (بافتراض إضافة دالة fetch_products للكلاس)
-        # ملاحظة: تأكد أنك أضفت دالة fetch_products داخل كلاس QomrahGraphQLClient في ملف graphql_client.py
+        # 1. جلب المنتجات من قمرة باستخدام الكلاس
+        # تأكد أن الكلاس QomrahGraphQLClient يحتوي على دالة fetch_products
         products_data = QomrahGraphQLClient.fetch_products()
         
+        if not products_data:
+            return jsonify({"status": "error", "message": "لم يتم العثور على منتجات في قمرة"})
+
         # 2. تحديث قاعدة البيانات
         for item in products_data:
-            # البحث عن المنتج بـ qid
-            product = Product.query.filter_by(qid=str(item['_id'])).first()
+            # البحث عن المنتج بـ qid (المعرف القادم من قمرة)
+            product = Product.query.filter_by(qid=str(item.get('_id'))).first()
             
             if not product:
                 # إنشاء منتج جديد
                 new_product = Product(
-                    qid=str(item['_id']),
-                    title=item['title'],
-                    supplier_id=1, 
-                    sku=item.get('sku')
+                    qid=str(item.get('_id')),
+                    title=item.get('title', 'منتج غير معرف'),
+                    supplier_id=1, # المورد الافتراضي
+                    sku=item.get('sku', 'N/A')
                 )
-                new_product.cost_price = item.get('price') 
+                new_product.cost_price = item.get('price', 0) 
                 db.session.add(new_product)
             else:
                 # تحديث البيانات الموجودة
-                product.title = item['title']
-                product.cost_price = item.get('price')
+                product.title = item.get('title', product.title)
+                product.cost_price = item.get('price', product.cost_price)
         
         db.session.commit()
         return jsonify({"status": "success", "message": f"تمت مزامنة {len(products_data)} منتج بنجاح!"})
         
     except Exception as e:
         db.session.rollback()
+        # تسجيل الخطأ لسهولة التتبع
+        import logging
+        logging.error(f"Error during sync: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
