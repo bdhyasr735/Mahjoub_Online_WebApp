@@ -3,73 +3,54 @@ import os
 import logging
 import urllib3
 from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-# إيقاف تحذيرات SSL لضمان استقرار الاتصال بـ API قمرة
+# إيقاف تحذيرات SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class QomrahGraphQLClient:
     BASE_URL = "https://api.qomrah.com/graphql"
     
     @staticmethod
-    def _get_headers(extra_headers=None):
+    def _get_session():
+        """إنشاء جلسة مع استراتيجية إعادة محاولة ذكية للأخطاء المؤقتة"""
+        session = requests.Session()
+        # محاولة إعادة الاتصال عند حدوث أخطاء خادم (5xx)
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("https://", adapter)
+        return session
+
+    @staticmethod
+    def execute_query(query, variables=None):
+        """دالة عامة لتنفيذ أي استعلام GraphQL"""
         api_key = os.environ.get('QUMRA_API_KEY')
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-            "Accept": "application/json",
-            "Connection": "keep-alive"
+            "Content-Type": "application/json"
         }
-        if extra_headers:
-            headers.update(extra_headers)
-        return headers
-
-    @staticmethod
-    def fetch_products(headers=None):
-        # الاستعلام المتوافق مع الـ Schema المكتشفة: findAllProducts
-        query = """
-        query { 
-          findAllProducts(page: 1, limit: 100) { 
-            items { 
-              _id 
-              title 
-              price 
-              sku 
-            }
-          } 
-        }
-        """
         
-        session = requests.Session()
-        session.mount("https://", HTTPAdapter(max_retries=3))
-        
+        session = QomrahGraphQLClient._get_session()
         try:
-            final_headers = QomrahGraphQLClient._get_headers(extra_headers=headers)
-            
             response = session.post(
                 QomrahGraphQLClient.BASE_URL,
-                json={'query': query},
-                headers=final_headers,
+                json={'query': query, 'variables': variables},
+                headers=headers,
                 verify=False,
-                timeout=20
+                timeout=30
             )
+            response.raise_for_status()
+            result = response.json()
             
-            if response.status_code == 200:
-                result = response.json()
-                # التحقق من وجود أخطاء في استجابة GraphQL نفسها (GraphQL Errors)
-                if 'errors' in result:
-                    logging.error(f"أخطاء في استعلام GraphQL: {result['errors']}")
-                    return []
-                
-                data = result.get('data', {}).get('findAllProducts', {})
-                return data.get('items', [])
+            if 'errors' in result:
+                logging.error(f"GraphQL Errors: {result['errors']}")
+                return None
+            return result.get('data')
             
-            else:
-                # تسجيل تفاصيل الخطأ لتشخيص الـ 502
-                logging.error(f"فشل الاتصال - كود الحالة: {response.status_code}")
-                logging.error(f"محتوى الخطأ: {response.text[:500]}")
-                return []
-                
         except Exception as e:
-            logging.error(f"استثناء أثناء المزامنة: {str(e)}")
-            return []
+            logging.error(f"خطأ أثناء الاتصال بـ GraphQL: {str(e)}")
+            return None
