@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/admin_Product/routes.py
+# 📂 apps/admin_Product/routes.py - نسخة معدلة مع الترويسات الأمنية
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from flask_login import login_required
@@ -44,13 +44,10 @@ def add_product():
     """معالجة إضافة منتج جديد يدوياً"""
     if request.method == 'POST':
         try:
-            # استلام البيانات
             title = request.form.get('title')
             cost_price = request.form.get('cost_price')
-            quantity = request.form.get('quantity')
             sku = request.form.get('sku')
 
-            # إنشاء كائن المنتج (التشفير يتم تلقائياً في setter الموديل)
             new_product = Product(
                 qid=f"manual_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
                 title=title,
@@ -58,10 +55,7 @@ def add_product():
                 sku=sku or "N/A"
             )
             
-            # إسناد القيم (تفعيل الـ setter الخاص بـ cost_price)
             new_product.cost_price = float(cost_price) if cost_price else 0
-            # في حال أضفت حقل الكمية للموديل لاحقاً، يتم إسناده هنا:
-            # new_product.quantity = int(quantity) if quantity else 0
             
             db.session.add(new_product)
             db.session.commit()
@@ -79,11 +73,19 @@ def add_product():
 @login_required
 @csrf.exempt 
 def sync_products():
-    """مسار المزامنة الفعلي مع منصة قمرة"""
+    """مسار المزامنة الفعلي مع منصة قمرة مع إضافة الترويسات الأمنية"""
     try:
         logging.info("بدء عملية المزامنة...")
         
-        products_data = QomrahGraphQLClient.fetch_products()
+        # الترويسات الأمنية لتجاوز فحص Apollo
+        headers = {
+            'Content-Type': 'application/json',
+            'x-apollo-operation-name': 'SyncOperation',
+            'apollo-require-preflight': 'true'
+        }
+        
+        # استدعاء العميل مع تمرير الترويسات المحدثة
+        products_data = QomrahGraphQLClient.fetch_products(headers=headers)
         
         if not products_data:
             return jsonify({"status": "error", "message": "لم يتم العثور على منتجات في قمرة"})
