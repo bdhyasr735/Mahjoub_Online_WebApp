@@ -5,13 +5,13 @@ import hashlib
 import hmac
 import logging
 from flask import Blueprint, request, jsonify
-from apps.api.sync_engine import SyncEngine
+from apps.api.product_sync_engine import ProductSyncEngine
 from apps.services.graphql_client import QomrahGraphQLClient
 from config import Config
 
 logger = logging.getLogger(__name__)
 
-# تعريف الـ Blueprint ليتم تسجيله في __init__.py
+# تعريف الـ Blueprint
 qomrah_bp = Blueprint('qomrah_webhook', __name__)
 
 def verify_signature(payload, signature):
@@ -47,8 +47,10 @@ def handle_qomrah_webhook():
         if not full_order_data:
             return jsonify({"status": "error", "message": "Order not found in Qumra"}), 404
 
-        # 3. تمرير البيانات لمحرك المزامنة (SyncEngine)
-        success = SyncEngine.process_financials(full_order_data)
+        # 3. تمرير البيانات لمحرك المزامنة الجديد
+        # ملاحظة: تأكد أن الدالة process_financials موجودة في ProductSyncEngine 
+        # أو استخدم process_products إذا كانت هي المناسبة
+        success = ProductSyncEngine.process_financials(full_order_data)
         
         if success:
             return jsonify({"status": "success", "order_id": order_id}), 200
