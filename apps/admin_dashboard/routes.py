@@ -7,7 +7,7 @@ from apps.extensions import db
 from apps.models import Supplier, SupplierWallet, WalletTransaction
 from sqlalchemy import func
 
-# 1. تعريف الـ Blueprint بالاسم المحدث
+# 1. تعريف الـ Blueprint بالاسم الموحد لضمان توافقه مع النظام
 admin_dashboard_bp = Blueprint(
     'admin_dashboard_bp', 
     __name__, 
@@ -51,7 +51,7 @@ def dashboard():
         print(f"❌ [Dashboard Error]: {str(e)}")
         flash("حدث خطأ أثناء تحميل بيانات لوحة التحكم، يرجى المحاولة لاحقاً.", "danger")
         
-        # إرجاع القيم الافتراضية في حال فشل الاستعلام لمنع انهيار الصفحة
+        # إرجاع القيم الافتراضية لمنع انهيار الصفحة
         return render_template('admin/dashboard.html', 
                                total_suppliers=0, 
                                total_balance_sar=0.0, 
