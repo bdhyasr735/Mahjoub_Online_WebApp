@@ -11,14 +11,12 @@
 </style>
 
 <div class="container-fluid py-4" dir="rtl">
-    <!-- زر العودة -->
     <div class="mb-4">
-        <a href="{{ url_for('admin_dashboard.dashboard') }}" class="text-decoration-none" style="color: #2d144d; font-weight: 500;">
+        <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="text-decoration-none" style="color: #2d144d; font-weight: 500;">
             <i class="bi bi-arrow-right-short" style="font-size: 1.5rem; vertical-align: middle;"></i> العودة للوحة التحكم
         </a>
     </div>
 
-    <!-- البطاقات الأربع للملخص -->
     <div class="row mb-4">
         <div class="col-md-3"><div class="stat-card text-center"><p>عدد المحافظ</p><h3>{{ pagination.total }}</h3></div></div>
         <div class="col-md-3"><div class="stat-card text-center"><p>إجمالي رصيد SAR</p><h3>{{ "{:,.2f}".format(stats.total_sar or 0) }}</h3></div></div>
@@ -26,14 +24,12 @@
         <div class="col-md-3"><div class="stat-card text-center"><p>إجمالي رصيد USD</p><h3>{{ "{:,.2f}".format(stats.total_usd or 0) }}</h3></div></div>
     </div>
 
-    <!-- شريط البحث -->
     <div class="card mb-4 card-royal border-0 shadow-sm">
         <div class="card-body">
             <input type="text" id="walletSearch" class="form-control" placeholder="ابحث في جميع الصفحات عن مورد أو رمز محفظة...">
         </div>
     </div>
 
-    <!-- جدول المحافظ -->
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -54,7 +50,6 @@
             </table>
         </div>
         
-        <!-- منطقة الترقيم الديناميكي -->
         <div class="card-footer d-flex justify-content-center" id="paginationControls">
             <nav>
                 <ul class="pagination" id="paginationList">
