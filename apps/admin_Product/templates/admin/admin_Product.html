@@ -17,7 +17,7 @@
         </button>
         
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syncModal">
+            <button type="button" id="sync-btn" class="btn btn-primary" onclick="startSync()">
                 <i class="fas fa-sync-alt"></i> مزامنة المنتجات
             </button>
             
@@ -64,38 +64,58 @@
     </nav>
 </div>
 
-{% include 'admin/includes/_sync_modal.html' %}
-
 <script>
-    function startSync() {
+    async function startSync() {
         const btn = document.getElementById('sync-btn');
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الجلب من قمرة...';
 
-        fetch("{{ url_for('admin_product_bp.sync_products') }}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': "{{ csrf_token() }}"
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(data.message);
+        try {
+            // 1. جلب البيانات من قمرة مباشرة من المتصفح (تجاوز حظر السيرفر)
+            const response = await fetch("https://api.qomrah.com/graphql", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer {{ os.environ.get("QUMRA_API_KEY") }}' 
+                },
+                body: JSON.stringify({
+                    query: "query { findAllProducts(page: 1, limit: 100) { items { _id title price sku } } }"
+                })
+            });
+
+            const result = await response.json();
+            const products = result.data?.findAllProducts?.items;
+
+            if (!products) throw new Error("لم يتم العثور على منتجات في الاستجابة");
+
+            // 2. إرسال البيانات للسيرفر الخاص بنا ليتم حفظها في قاعدة البيانات
+            btn.innerHTML = '<i class="fas fa-save fa-spin"></i> جاري الحفظ في القاعدة...';
+            
+            const saveResponse = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({ products: products })
+            });
+
+            const saveResult = await saveResponse.json();
+            
+            if (saveResult.status === 'success') {
+                alert(saveResult.message);
                 location.reload();
             } else {
-                alert('خطأ: ' + data.message);
+                throw new Error(saveResult.message);
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('حدث خطأ في الاتصال بالخادم');
-        })
-        .finally(() => {
+
+        } catch (err) {
+            console.error('Error:', err);
+            alert('حدث خطأ أثناء المزامنة: ' + err.message);
+        } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-sync-alt"></i> مزامنة المنتجات';
-        });
+        }
     }
 </script>
 
