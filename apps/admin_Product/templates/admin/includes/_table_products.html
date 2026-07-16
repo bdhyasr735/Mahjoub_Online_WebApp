@@ -10,10 +10,11 @@
         
         progressBar.style.width = '30%';
         statusText.innerText = "جاري الجلب عبر السيرفر...";
+        statusText.className = "mt-2 small text-muted";
         
         try {
-            // التعديل الجوهري: الاتصال بسيرفرك وليس بقمرة مباشرة
-            const response = await fetch("/admin/products/proxy-sync", {
+            // استخدام url_for للروابط بدلاً من المسارات الثابتة
+            const proxyResponse = await fetch("{{ url_for('admin_product_bp.proxy_sync') }}", {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -21,7 +22,9 @@
                 }
             });
 
-            const result = await response.json();
+            if (!proxyResponse.ok) throw new Error("فشل الاتصال بخدمة المزامنة");
+
+            const result = await proxyResponse.json();
             const products = result.data?.findAllProducts?.items;
             
             if (!products) throw new Error("لا توجد منتجات أو خطأ في الاتصال");
@@ -29,7 +32,7 @@
             progressBar.style.width = '60%';
             statusText.innerText = "جاري الحفظ في قاعدة البيانات...";
 
-            const saveResponse = await fetch("/admin/products/save-sync", {
+            const saveResponse = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -39,13 +42,14 @@
             });
 
             const saveResult = await saveResponse.json();
-            if (saveResult.status === 'success') {
+            
+            if (saveResponse.ok && saveResult.status === 'success') {
                 progressBar.style.width = '100%';
                 statusText.innerText = "تمت المزامنة بنجاح!";
                 statusText.className = "mt-2 small text-success fw-bold";
                 setTimeout(() => { location.reload(); }, 1500);
             } else {
-                throw new Error(saveResult.message);
+                throw new Error(saveResult.message || "فشل عملية الحفظ");
             }
         } catch (error) {
             console.error("Sync Error:", error);
