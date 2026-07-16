@@ -11,7 +11,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS 
 from flask_login import current_user
-from werkzeug.routing import BuildError # استيراد ضروري للحماية
+from werkzeug.routing import BuildError
 import config
 
 from apps.extensions import db, login_manager, migrate
@@ -84,7 +84,8 @@ def create_app():
 
     # تسجيل الموديولات
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin', 'auth']
+    # إزالة المجلدات الحاوية للموديولات الفعلية من قائمة الاستبعاد
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api']
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
@@ -119,22 +120,25 @@ def create_app():
 
     @app.context_processor
     def inject_vars():
-        # دالة آمنة لبناء الروابط تمنع انهيار القالب في حال وجود Endpoint خطأ
-        def safe_url_for(endpoint):
+        # دالة ذكية تصحح الروابط تلقائياً
+        def safe_url_for(endpoint, **values):
             try:
-                return url_for(endpoint)
+                return url_for(endpoint, **values)
             except BuildError:
+                # محاولة تصحيح تلقائي بإضافة _bp إذا فشل المسار
+                if not endpoint.endswith('_bp'):
+                    try:
+                        return url_for(f"{endpoint}_bp", **values)
+                    except BuildError:
+                        pass
                 print(f"⚠️ [Routing Alert]: لا يمكن بناء الرابط للـ Endpoint '{endpoint}'")
-                return '#'
-            except Exception as e:
                 return '#'
         
         return dict(
             csrf_token=generate_csrf,
             registered_modules=ADMIN_MODULES,
             supplier_modules=SUPPLIER_MODULES,
-            url_map=app.url_map,
-            safe_url_for=safe_url_for # إضافة الدالة للقوالب
+            safe_url_for=safe_url_for 
         )
 
     return app
