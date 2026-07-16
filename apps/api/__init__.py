@@ -4,19 +4,19 @@
 """
 مركز خدمات الـ API.
 يتم هنا تجميع الـ Blueprints والمحركات الأساسية لتسهيل الاستيراد.
-يضمن هذا الهيكل سهولة الوصول للخدمات وتوحيد حالة المحرك (Singleton).
 """
 
+# تأكد من أن ملف webhooks.py لا يستورد SyncEngine القديم (قم بتعديله كما ناقشنا سابقاً)
 from .webhooks import webhooks_bp
-from .sync_engine import SyncEngine
+# استيراد المحرك المحدث
+from .product_sync_engine import ProductSyncEngine
 
 # إنشاء نسخة واحدة (Singleton) من محرك المزامنة
-# يتم استخدامه في كامل التطبيق لتوحيد منطق العمليات وسجلات النظام
-engine = SyncEngine()
+engine = ProductSyncEngine()
 
-# تحديد ما يتم تصديره عند الاستيراد، لضمان نظافة مساحة الأسماء
+# تحديث ما يتم تصديره
 __all__ = [
     'webhooks_bp',
-    'SyncEngine',
+    'ProductSyncEngine',
     'engine'
 ]
