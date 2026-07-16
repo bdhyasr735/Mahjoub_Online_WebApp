@@ -1,32 +1,37 @@
+# coding: utf-8
 # 📂 apps/admin_dashboard/routes.py
 
 from flask import Blueprint, render_template, flash
-from flask_login import login_required, current_user
+from flask_login import login_required
 from apps.extensions import db
 from apps.models import Supplier, SupplierWallet, WalletTransaction
 from sqlalchemy import func
 
-# 1. تعديل اسم الـ Blueprint ليصبح admin_dashboard_bp
+# 1. تعريف الـ Blueprint بالاسم المحدث
 admin_dashboard_bp = Blueprint(
     'admin_dashboard_bp', 
     __name__, 
     template_folder='templates'
 )
 
-# 2. تعديل اسم الدالة المرتبطة بالـ Blueprint
+# 2. مسار لوحة التحكم
 @admin_dashboard_bp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
-    # ... (باقي كود الدالة كما هو تماماً) ...
+    """عرض لوحة تحكم النظام الرئيسية مع الأرصدة المجمعة والبيانات الحية."""
+    
     try:
+        # جلب إجمالي الأرصدة من المحافظ باستخدام دوال التجميع
         totals = db.session.query(
             func.sum(SupplierWallet.balance_sar).label('total_sar'),
             func.sum(SupplierWallet.balance_yer).label('total_yer'),
             func.sum(SupplierWallet.balance_usd).label('total_usd')
         ).first()
         
+        # جلب عدد الموردين المتاحين
         supplier_count = db.session.query(func.count(Supplier.id)).scalar()
         
+        # جلب آخر 10 معاملات مالية
         recent_transactions = WalletTransaction.query.order_by(
             WalletTransaction.created_at.desc()
         ).limit(10).all()
@@ -42,8 +47,11 @@ def dashboard():
         return render_template('admin/dashboard.html', **context)
 
     except Exception as e:
+        # تسجيل الخطأ في السجلات وإعلام المسؤول عبر الواجهة
         print(f"❌ [Dashboard Error]: {str(e)}")
-        flash("حدث خطأ أثناء تحميل بيانات لوحة التحكم.", "danger")
+        flash("حدث خطأ أثناء تحميل بيانات لوحة التحكم، يرجى المحاولة لاحقاً.", "danger")
+        
+        # إرجاع القيم الافتراضية في حال فشل الاستعلام لمنع انهيار الصفحة
         return render_template('admin/dashboard.html', 
                                total_suppliers=0, 
                                total_balance_sar=0.0, 
