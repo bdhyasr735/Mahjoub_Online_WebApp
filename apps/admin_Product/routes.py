@@ -1,6 +1,7 @@
 # coding: utf-8
 # 📂 apps/admin_Product/routes.py
 
+import os # تأكد من استيراد os هنا
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from flask_login import login_required
 from sqlalchemy.orm import lazyload
@@ -31,10 +32,12 @@ def manage_products():
             error_out=False
         )
     
+    # هنا قمنا بتمرير مفتاح الـ API للقالب لحل الخطأ
     return render_template(
         'admin/admin_Product.html', 
         products=pagination.items,
-        pagination=pagination
+        pagination=pagination,
+        QUMRA_API_KEY=os.environ.get("QUMRA_API_KEY")
     )
 
 @admin_product_bp.route('/add', methods=['GET', 'POST'])
@@ -71,9 +74,9 @@ def add_product():
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync():
-    """مسار جديد يستقبل البيانات من المتصفح مباشرة ويحفظها في قاعدة البيانات"""
+    """مسار يستقبل البيانات من المتصفح مباشرة ويحفظها في قاعدة البيانات"""
     try:
-        data = request.json  # البيانات القادمة من المتصفح عبر fetch
+        data = request.json
         products_data = data.get('products', [])
         
         if not products_data:
@@ -81,7 +84,7 @@ def save_sync():
 
         count = 0
         for item in products_data:
-            # البحث عن المنتج باستخدام qid (المعرف القادم من قمرة)
+            # البحث عن المنتج باستخدام qid
             product = Product.query.filter_by(qid=str(item.get('_id'))).first()
             
             if not product:
