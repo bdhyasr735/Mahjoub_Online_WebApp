@@ -1,51 +1,35 @@
 # coding: utf-8
-# 📂 apps/api/sync_engine.py - نسخة نهائية مع تصحيح الترويسات الأمنية ومنطق معالجة الأخطاء
+# 📂 apps/api/sync_engine.py - نسخة محدثة لاستقبال البيانات من المتصفح
 
 import logging
 from decimal import Decimal, InvalidOperation
 from apps.extensions import db
 from apps.models.orders_db import Order
-from apps.models.sync_log import SyncLog 
 from apps.models.financials_db import OrderFinancial
 from apps.models.order_items_db import OrderItem
 from apps.models.supplier_db import Supplier
-from apps.services.graphql_client import QomrahGraphQLClient
 
 logger = logging.getLogger(__name__)
 
 class SyncEngine:
     
     @staticmethod
-    def run_manual_sync():
-        """تشغيل المزامنة مع إضافة الترويسات الأمنية ومعالجة قوية لأخطاء الشبكة"""
-        logger.info("بدء المزامنة اليدوية للطلبات...")
-        
-        # الترويسات الأمنية المطلوبة
-        headers = {
-            'Content-Type': 'application/json',
-            'x-apollo-operation-name': 'SyncOperation',
-            'apollo-require-preflight': 'true'
-        }
-        
-        # محاولة جلب البيانات مع معالجة استباقية لأي فشل في الاتصال
-        try:
-            orders = QomrahGraphQLClient.fetch_orders(headers=headers)
-        except Exception as e:
-            logger.critical(f"❌ فشل كارثي في الاتصال بـ قمرة: {e}")
-            return False
-        
-        # التحقق من وجود بيانات
-        if not orders:
-            logger.warning("⚠️ لم يتم جلب أي بيانات. قد يكون السيرفر محظوراً أو لا توجد طلبات جديدة.")
-            return False
+    def process_incoming_orders(orders_data):
+        """
+        دالة جديدة لاستقبال البيانات القادمة من المتصفح ومعالجتها.
+        لم تعد هذه الدالة تتصل بـ QomrahGraphQLClient مباشرة.
+        """
+        if not orders_data:
+            logger.warning("⚠️ لم يتم استلام أي بيانات للمزامنة.")
+            return 0
             
         total_synced = 0
-        for order_data in orders:
+        for order_data in orders_data:
             if SyncEngine.process_financials(order_data):
                 total_synced += 1
                 
-        logger.info(f"✅ انتهت المزامنة بنجاح. إجمالي الطلبات المحدثة: {total_synced}")
-        return True
+        logger.info(f"✅ تمت المعالجة بنجاح. إجمالي الطلبات المحدثة: {total_synced}")
+        return total_synced
 
     @staticmethod
     def process_financials(order_data):
