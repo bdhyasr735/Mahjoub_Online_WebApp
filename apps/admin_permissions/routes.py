@@ -1,114 +1,117 @@
 # coding: utf-8
-# 📂 apps/admin_permissions/routes.py
+# 📂 apps/admin_Product/routes.py - النسخة النهائية المحدثة
 
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify
-from flask_login import login_required, current_user
-import secrets
-import string
-from sqlalchemy import or_
-from apps.extensions import db
-from apps.models.admin_staff_db import AdminStaff
-from apps.models.supplier_staff_db import SupplierStaff
-from apps.models.supplier_db import Supplier
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask_login import login_required
+from sqlalchemy.orm import lazyload
+from datetime import datetime
+from apps.models.product_db import Product
+from apps.extensions import db, csrf
+from apps.services.graphql_client import QomrahGraphQLClient
+import logging
 
-# إنشاء الـ Blueprint مع تحديد اسم الـ Endpoint ليتوافق مع القوالب
-admin_permissions_bp = Blueprint('admin_permissions_bp', __name__, template_folder='templates')
+# تعريف البلوبرنت
+admin_product_bp = Blueprint(
+    'admin_product_bp', 
+    __name__, 
+    template_folder='templates'
+)
 
-def is_admin():
-    if not current_user.is_authenticated:
-        return False
-    user_role = getattr(current_user, 'role', None)
-    return user_role in ['admin', 'Owner']
-
-def generate_random_password(length=12):
-    chars = string.ascii_letters + string.digits + "!@#$%^&*"
-    return ''.join(secrets.choice(chars) for _ in range(length))
-
-# --- المسارات ---
-
-@admin_permissions_bp.route('/check-user', methods=['GET'])
+@admin_product_bp.route('/', methods=['GET'])
 @login_required
-def check_user():
-    username = request.args.get('username', '').strip()
-    if len(username) < 3: return jsonify({'available': False})
-    exists = AdminStaff.query.filter(or_(AdminStaff.username == username, SupplierStaff.username == username)).first()
-    return jsonify({'available': exists is None})
-
-@admin_permissions_bp.route('/check-phone', methods=['GET'])
-@login_required
-def check_phone():
-    phone = request.args.get('phone', '').strip()
-    staff_type = request.args.get('type', 'admin')
-    if len(phone) != 9 or not phone.startswith('7'): return jsonify({'available': False})
-    model = AdminStaff if staff_type == 'admin' else SupplierStaff
-    exists = model.query.filter_by(phone=phone).first()
-    return jsonify({'available': exists is None})
-
-@admin_permissions_bp.route('/roles', methods=['GET'])
-@login_required
-def roles_list():
-    if not is_admin():
-        return redirect(url_for('admin_dashboard_bp.dashboard'))
-    staff_type = request.args.get('type', 'admin')
-    model = AdminStaff if staff_type == 'admin' else SupplierStaff
-    staff_list = model.query.order_by(model.created_at.desc()).all()
-    return render_template('admin/permissions.html', staff=staff_list, type_filter=staff_type, suppliers=Supplier.query.all())
-
-@admin_permissions_bp.route('/assign', methods=['POST'])
-@login_required
-def assign_permissions():
-    if not is_admin(): return jsonify({'success': False, 'message': 'غير مصرح'})
+def manage_products():
+    """عرض قائمة المنتجات بنظام الصفحات"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
     
-    username = request.form.get('username', '').strip()
-    phone = request.form.get('phone', '').strip()
-    staff_type = request.form.get('type')
-    supplier_id = request.form.get('supplier_id')
+    pagination = Product.query.options(lazyload(Product.supplier))\
+        .order_by(Product.created_at.desc())\
+        .paginate(
+            page=page, 
+            per_page=per_page, 
+            error_out=False
+        )
     
-    model = AdminStaff if staff_type == 'admin' else SupplierStaff
-    if model.query.filter(or_(model.username == username, model.phone == phone)).first():
-        return jsonify({'success': False, 'message': 'الموظف موجود مسبقاً'})
+    return render_template(
+        'admin/admin_Product.html', 
+        products=pagination.items,
+        pagination=pagination
+    )
 
+@admin_product_bp.route('/add', methods=['GET', 'POST'])
+@login_required
+def add_product():
+    """معالجة إضافة منتج جديد يدوياً"""
+    if request.method == 'POST':
+        try:
+            title = request.form.get('title')
+            cost_price = request.form.get('cost_price')
+            sku = request.form.get('sku')
+
+            new_product = Product(
+                qid=f"manual_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+                title=title,
+                supplier_id=1, 
+                sku=sku or "N/A"
+            )
+            
+            new_product.cost_price = float(cost_price) if cost_price else 0
+            
+            db.session.add(new_product)
+            db.session.commit()
+            
+            return redirect(url_for('admin_product_bp.manage_products'))
+            
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"خطأ أثناء إضافة المنتج يدوياً: {str(e)}")
+            return "حدث خطأ أثناء حفظ البيانات", 500
+
+    return render_template('admin/admin_add_product.html')
+
+@admin_product_bp.route('/sync', methods=['POST'])
+@login_required
+@csrf.exempt 
+def sync_products():
+    """مسار المزامنة الفعلي مع منصة قمرة مع إضافة الترويسات الأمنية"""
     try:
-        password = generate_random_password()
-        if staff_type == 'admin':
-            new_staff = AdminStaff(username=username, role='worker', phone=phone)
-            s_name, s_code = 'إدارة مركزية', 'SYSTEM'
-        else:
-            supplier = Supplier.query.get_or_404(int(supplier_id))
-            new_staff = SupplierStaff(username=username, role='worker', phone=phone, supplier_id=supplier.id)
-            s_name, s_code = supplier.trade_name, supplier.supplier_code
+        logging.info("بدء عملية المزامنة...")
+        
+        # الترويسات الأمنية لتجاوز فحص Apollo
+        headers = {
+            'Content-Type': 'application/json',
+            'x-apollo-operation-name': 'SyncOperation',
+            'apollo-require-preflight': 'true'
+        }
+        
+        # استدعاء العميل مع تمرير الترويسات المحدثة
+        products_data = QomrahGraphQLClient.fetch_products(headers=headers)
+        
+        if not products_data:
+            return jsonify({"status": "error", "message": "لم يتم العثور على منتجات في قمرة"})
 
-        new_staff.set_password(password)
-        db.session.add(new_staff)
+        for item in products_data:
+            product = Product.query.filter_by(qid=str(item.get('_id'))).first()
+            
+            if not product:
+                # إنشاء منتج جديد مع ضبط المورد يدوياً كـ 1
+                new_product = Product(
+                    qid=str(item.get('_id')),
+                    title=item.get('title', 'منتج غير معرف'),
+                    supplier_id=1, 
+                    sku=item.get('sku', 'N/A')
+                )
+                new_product.cost_price = item.get('price', 0) 
+                db.session.add(new_product)
+            else:
+                product.title = item.get('title', product.title)
+                product.cost_price = item.get('price', product.cost_price)
+        
         db.session.commit()
-        return jsonify({'success': True, 'username': username, 'new_password': password, 'store_name': s_name, 'store_code': s_code})
+        logging.info(f"تمت مزامنة {len(products_data)} منتج بنجاح.")
+        return jsonify({"status": "success", "message": f"تمت مزامنة {len(products_data)} منتج بنجاح!"})
+        
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)})
-
-@admin_permissions_bp.route('/reset-password/<int:id>/<staff_type>', methods=['GET'])
-@login_required
-def reset_password(id, staff_type):
-    if not is_admin(): return jsonify({'success': False, 'message': 'غير مصرح'})
-    
-    model = AdminStaff if staff_type == 'admin' else SupplierStaff
-    user = model.query.get_or_404(id)
-    new_pass = generate_random_password()
-    user.set_password(new_pass)
-    db.session.commit()
-    
-    # استخراج بيانات المتجر بأمان
-    s_name = user.supplier.trade_name if hasattr(user, 'supplier') and user.supplier else 'إدارة مركزية'
-    s_code = user.supplier.supplier_code if hasattr(user, 'supplier') and user.supplier else 'SYSTEM'
-    
-    return jsonify({'success': True, 'username': user.username, 'new_password': new_pass, 'store_name': s_name, 'store_code': s_code})
-
-@admin_permissions_bp.route('/toggle-status/<int:id>/<staff_type>', methods=['GET'])
-@login_required
-def toggle_status(id, staff_type):
-    if not is_admin(): return redirect(url_for('admin_permissions_bp.roles_list', type=staff_type))
-    model = AdminStaff if staff_type == 'admin' else SupplierStaff
-    user = model.query.get_or_404(id)
-    user.is_active = not user.is_active
-    db.session.commit()
-    return redirect(url_for('admin_permissions_bp.roles_list', type=staff_type))
+        logging.error(f"خطأ أثناء المزامنة: {str(e)}")
+        return jsonify({"status": "error", "message": "حدث خطأ داخلي أثناء المزامنة"}), 500
