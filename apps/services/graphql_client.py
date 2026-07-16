@@ -32,18 +32,18 @@ class QomrahGraphQLClient:
 
     @staticmethod
     def execute_query(query, variables=None):
-        """تنفيذ استعلام GraphQL وإرجاع البيانات مع تسجيل تفصيلي للأخطاء."""
+        """تنفيذ استعلام GraphQL وإرجاع البيانات الخام."""
         api_key = os.environ.get('QUMRA_API_KEY')
         
         if not api_key:
-            logging.error("❌ مفتاح API (QUMRA_API_KEY) غير موجود في إعدادات البيئة")
+            logging.error("❌ مفتاح API (QUMRA_API_KEY) مفقود")
             return None
 
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (Compatible; Qomrah-Sync-Engine/1.0)"
+            "User-Agent": "Mozilla/5.0 (Qomrah-Sync-Engine/1.0)"
         }
         
         session = QomrahGraphQLClient._get_session()
@@ -56,24 +56,21 @@ class QomrahGraphQLClient:
                 timeout=30
             )
             
-            # تسجيل الحالة إذا كان هناك خطأ (مثل 400 Bad Request)
+            # تسجيل أخطاء البروتوكول (400, 401, 500)
             if response.status_code != 200:
-                logging.error(f"❌ GraphQL Server returned status {response.status_code}")
-                logging.error(f"❌ Response details: {response.text}") # هذا السطر هو مفتاح الحل
+                logging.error(f"❌ GraphQL Status {response.status_code}: {response.text}")
                 return None
             
             result = response.json()
             
-            # معالجة أخطاء GraphQL البرمجية
+            # تسجيل أخطاء الـ GraphQL (التي تأتي داخل الـ JSON)
             if 'errors' in result:
-                logging.error(f"❌ GraphQL API Logic Errors: {result['errors']}")
+                logging.error(f"❌ GraphQL Logic Error: {result['errors']}")
                 return None
-                
+            
+            # نرجع الـ result بالكامل ليتمكن الـ route من استخراج الـ data بسهولة
             return result.get('data')
             
-        except requests.exceptions.RequestException as e:
-            logging.error(f"❌ خطأ في الاتصال الشبكي بـ {QomrahGraphQLClient.BASE_URL}: {str(e)}")
-            return None
         except Exception as e:
-            logging.error(f"❌ خطأ غير متوقع في معالجة البيانات: {str(e)}")
+            logging.error(f"❌ خطأ غير متوقع في الاتصال: {str(e)}")
             return None
