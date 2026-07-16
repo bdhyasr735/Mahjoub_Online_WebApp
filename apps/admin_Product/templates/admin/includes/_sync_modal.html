@@ -1,8 +1,8 @@
-<div class="modal fade" id="syncModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">مزامنة المنتجات</h5>
+                <h5 class="modal-title" id="syncModalLabel">مزامنة المنتجات</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -12,7 +12,9 @@
                     </div>
                     <p id="sync-status" class="text-center small text-muted">جاري البدء...</p>
                 </div>
-                <p id="sync-info">سيتم جلب المنتجات وتحديث قاعدة البيانات المحلية. هل أنت متأكد؟</p>
+                <div id="sync-info">
+                    <p>سيتم جلب المنتجات وتحديث قاعدة البيانات المحلية. هل أنت متأكد؟</p>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
@@ -28,9 +30,13 @@
         const progressArea = document.getElementById('sync-progress-area');
         const progressBar = document.getElementById('sync-bar');
         const statusText = document.getElementById('sync-status');
+        const infoArea = document.getElementById('sync-info');
         
+        // إعادة تعيين الواجهة
         btn.disabled = true;
+        infoArea.classList.add('d-none');
         progressArea.classList.remove('d-none');
+        
         progressBar.style.width = '30%';
         statusText.innerText = "جاري الجلب عبر السيرفر...";
         
@@ -49,9 +55,9 @@
             const result = await response.json();
             const products = result.data?.findAllProducts?.items;
 
-            if (!products || products.length === 0) throw new Error("لم يتم العثور على منتجات");
+            if (!products || products.length === 0) throw new Error("لم يتم العثور على منتجات في المصدر");
 
-            // 2. تحديث شريط التقدم
+            // 2. تحديث شريط التقدم للحفظ
             progressBar.style.width = '60%';
             statusText.innerText = `تم جلب ${products.length} منتج، جاري الحفظ...`;
 
@@ -70,18 +76,21 @@
             if (saveResponse.ok && saveResult.status === 'success') {
                 progressBar.style.width = '100%';
                 statusText.innerText = "تمت المزامنة بنجاح!";
-                alert(saveResult.message);
-                location.reload();
+                statusText.classList.add('text-success');
+                
+                // تحديث الصفحة بعد ثانية لإظهار التغييرات
+                setTimeout(() => { location.reload(); }, 1000);
             } else {
-                throw new Error(saveResult.message);
+                throw new Error(saveResult.message || "فشل عملية حفظ البيانات");
             }
             
         } catch (err) {
-            console.error(err);
+            console.error("Sync Error:", err);
             statusText.innerText = "حدث خطأ: " + err.message;
             statusText.classList.add('text-danger');
-            alert('خطأ: ' + err.message);
-        } finally {
+            alert('خطأ أثناء المزامنة: ' + err.message);
+            
+            // إظهار المعلومات مرة أخرى للسماح بإعادة المحاولة
             btn.disabled = false;
         }
     }
