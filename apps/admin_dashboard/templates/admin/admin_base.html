@@ -36,7 +36,7 @@
             <span class="brand-text">محجوب أونلاين | سوقك الذكي</span>
         </div>
         <nav class="nav-menu">
-            <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard_bp.dashboard' }}">
+            <a href="{{ safe_url_for('admin_dashboard_bp.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard_bp.dashboard' }}">
                 <i class="fas fa-chart-line me-3"></i> <span>الإحصائيات</span>
             </a>
             
@@ -46,12 +46,12 @@
                         <div class="nav-link" onclick="toggleSub(this)">
                             <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
                             <span>{{ module.display_name }}</span> 
-                            <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
+                            <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem; transition: 0.3s;"></i>
                         </div>
                         <ul class="dropdown-content">
                             {% for endpoint, label in module.links.items() %}
                                 <li>
-                                    <a href="{{ url_for(endpoint) if endpoint else '#' }}">
+                                    <a href="{{ safe_url_for(endpoint) }}">
                                         <i class="fas fa-circle me-2" style="font-size: 6px;"></i> {{ label }}
                                     </a>
                                 </li>
@@ -62,7 +62,7 @@
             {% endif %}
             
             <hr class="text-white my-3">
-            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link text-danger">
+            <a href="{{ safe_url_for('auth_portal.logout') }}" class="nav-link text-danger">
                 <i class="fas fa-sign-out-alt me-3"></i> <span>خروج آمن</span>
             </a>
         </nav>
