@@ -69,7 +69,7 @@ def save_sync():
 
         count = 0
         for item in products_data:
-            qid = str(item.get('qid')) # تم تغيير _id إلى qid
+            qid = str(item.get('qid')) # المعرف الفريد للمنتج
             product = Product.query.filter_by(qid=qid).first()
             
             # استخراج القيم من الحقول المتداخلة
@@ -82,6 +82,7 @@ def save_sync():
                 price = 0.0
 
             if not product:
+                # بفضل تعديل الموديل ليصبح supplier_id قابل للـ NULL، لن يحدث خطأ هنا
                 new_product = Product(
                     qid=qid,
                     title=item.get('title', 'منتج غير معرف'),
