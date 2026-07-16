@@ -12,36 +12,41 @@ class ProductSyncEngine:
     @staticmethod
     def process_products(products_data):
         """معالجة وتحديث قائمة المنتجات المجلوبة من قمرة."""
-        if not products_data:
+        if not products_data or not isinstance(products_data, list):
+            logger.warning("❌ لم يتم استقبال بيانات صالحة للمزامنة.")
             return 0
             
         synced_count = 0
         for item in products_data:
             try:
+                # استخدام _id القادم من Apollo GraphQL
                 qid = str(item.get('_id'))
                 product = Product.query.filter_by(qid=qid).first()
                 
-                # تحديث أو إنشاء المنتج
+                # إنشاء إذا لم يوجد
                 if not product:
                     product = Product(qid=qid)
                     db.session.add(product)
                 
-                # تحديث الحقول الأساسية
+                # تحديث الحقول المعتمدة (تأكد من مطابقة أسماء الحقول في الـ GraphQL والـ Model)
                 product.title = item.get('title', 'منتج غير معرف')
                 product.sku = item.get('sku', 'N/A')
-                product.cost_price = float(item.get('price', 0))
+                
+                # معالجة آمنة للسعر
+                try:
+                    product.cost_price = float(item.get('price', 0))
+                except (ValueError, TypeError):
+                    product.cost_price = 0.0
                 
                 synced_count += 1
             except Exception as e:
-                logger.error(f"❌ خطأ في معالجة المنتج {item.get('_id')}: {e}")
+                logger.error(f"❌ خطأ في معالجة المنتج {item.get('_id', 'unknown')}: {e}")
                 continue
         
-        db.session.commit()
-        return synced_count
-
-    @staticmethod
-    def process_financials(data):
-        """دالة إضافية لمعالجة العمليات المالية (لضمان توافق الـ Webhook)"""
-        # إذا كانت نفس منطق معالجة المنتجات، يمكنك استدعاء الدالة السابقة
-        # أو إضافة المنطق الخاص بالعمليات المالية هنا
-        return True # استبدل هذه القيمة بالمنطق المطلوب
+        try:
+            db.session.commit()
+            return synced_count
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ فشل عملية حفظ البيانات في قاعدة البيانات: {e}")
+            return 0
