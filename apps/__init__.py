@@ -38,6 +38,23 @@ def create_app():
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
 
     db.init_app(app)
+    
+    # --- التعديل المطلوب: بناء الجداول تلقائياً ---
+    with app.app_context():
+        # استيراد الموديلات الأساسية ليتعرف عليها SQLAlchemy
+        from apps.models.admin_db import AdminUser
+        from apps.models.supplier_db import Supplier
+        from apps.models.supplier_staff_db import SupplierStaff
+        from apps.models.product_db import Product
+        # استيراد موديل المحفظة الذي يسبب خطأ UndefinedTable
+        try:
+            from apps.models.wallet_db import SupplierWallet 
+        except ImportError:
+            pass
+        
+        db.create_all()
+    # ---------------------------------------------
+
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
