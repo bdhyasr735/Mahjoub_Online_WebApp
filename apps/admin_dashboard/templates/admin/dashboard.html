@@ -61,10 +61,23 @@
                         <tbody>
                             {% for tx in recent_transactions %}
                             <tr>
-                                <td><code>#{{ tx.voucher_number or tx.id }}</code></td>
-                                <td class="fw-bold">{{ "{:,.2f}".format(tx.amount | float) }} {{ tx.currency }}</td>
-                                <td><span class="badge bg-light text-dark">{{ tx.trans_type }}</span></td>
-                                <td>{{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '---' }}</td>
+                                <td><code>#{{ tx.voucher_number or tx.id or '---' }}</code></td>
+                                <td class="fw-bold">
+                                    {{ "{:,.2f}".format(tx.amount | float if tx.amount else 0) }} 
+                                    {{ tx.currency or '---' }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">
+                                        {{ tx.trans_type | replace('_', ' ') | title if tx.trans_type else 'غير محدد' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if tx.created_at and tx.created_at is not string %}
+                                        {{ tx.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        ---
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% else %}
                             <tr>
