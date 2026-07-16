@@ -3,12 +3,9 @@
 
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
-from sqlalchemy.orm import lazyload
 from apps.models.product_db import Product
 from apps.extensions import db
 from apps.services.graphql_client import QomrahGraphQLClient
-# ملاحظة: إذا أردت استخدام المحرك الموحد مستقبلاً، يمكنك إلغاء تعليق السطر التالي:
-# from apps.api.product_sync_engine import ProductSyncEngine
 
 # تعريف البلوبرنت الخاص بإدارة المنتجات
 admin_product_bp = Blueprint(
@@ -39,17 +36,23 @@ def proxy_sync():
     query = """
     query { 
         findAllProducts(page: 1, limit: 100) { 
-            items { _id title price sku } 
+            items { 
+                _id 
+                title 
+                price 
+                sku 
+            } 
         } 
     }
     """
     
+    # تنفيذ الاستعلام عبر الكلاس الموحد
     data = QomrahGraphQLClient.execute_query(query)
     
     if data is None:
         return jsonify({
             "status": "error", 
-            "message": "فشل الاتصال بخدمة المزامنة."
+            "message": "فشل الاتصال بخدمة المزامنة. تأكد من إعدادات الاتصال."
         }), 500
         
     return jsonify({"status": "success", "data": data})
@@ -67,6 +70,7 @@ def save_sync():
 
         count = 0
         for item in products_data:
+            # التأكد من هوية المنتج الفريدة (qid)
             qid = str(item.get('_id'))
             product = Product.query.filter_by(qid=qid).first()
             
@@ -95,7 +99,7 @@ def save_sync():
         db.session.commit()
         return jsonify({
             "status": "success", 
-            "message": f"تمت المعالجة. إضافة {count} منتج جديد وتحديث الباقي."
+            "message": f"تمت المعالجة: إضافة {count} منتج جديد وتحديث المنتجات الحالية."
         })
         
     except Exception as e:
