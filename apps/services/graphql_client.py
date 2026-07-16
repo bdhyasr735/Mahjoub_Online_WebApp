@@ -19,20 +19,31 @@ class QomrahGraphQLClient:
             "Accept": "application/json",
             "Connection": "keep-alive"
         }
-        # دمج الترويسات الإضافية (مثل X-Apollo-Operation-Name) إذا وُجدت
         if extra_headers:
             headers.update(extra_headers)
         return headers
 
     @staticmethod
-    def fetch_products(headers=None): # إضافة headers هنا لحل مشكلة unexpected keyword argument
-        query = "query { findAllProducts { _id title price sku } }"
+    def fetch_products(headers=None):
+        # تم تحديث الاستعلام ليتوافق مع هيكلية Schema المذكورة
+        # نفترض أن findAllProducts تعيد كائناً يحتوي على قائمة المنتجات داخل حقل مثل 'items' أو 'nodes'
+        query = """
+        query { 
+          findAllProducts(page: 1, limit: 100) { 
+            items { 
+              _id 
+              title 
+              price 
+              sku 
+            }
+          } 
+        }
+        """
         
         session = requests.Session()
         session.mount("https://", HTTPAdapter(max_retries=3))
         
         try:
-            # استخدام الترويسات الممررة من الـ route مع الترويسات الأساسية
             final_headers = QomrahGraphQLClient._get_headers(extra_headers=headers)
             
             response = session.post(
@@ -42,8 +53,11 @@ class QomrahGraphQLClient:
                 verify=False,
                 timeout=20
             )
+            
             if response.status_code == 200:
-                return response.json().get('data', {}).get('findAllProducts', [])
+                data = response.json().get('data', {}).get('findAllProducts', {})
+                # استخراج البيانات من 'items' بناءً على المخطط
+                return data.get('items', [])
             else:
                 logging.error(f"خطأ HTTP: {response.status_code} - {response.text}")
                 return []
