@@ -9,6 +9,7 @@ from sqlalchemy.orm import lazyload
 from apps.models.product_db import Product
 from apps.extensions import db
 
+# تعريف البلوبرنت الخاص بإدارة المنتجات
 admin_product_bp = Blueprint(
     'admin_product_bp', 
     __name__, 
@@ -18,6 +19,7 @@ admin_product_bp = Blueprint(
 @admin_product_bp.route('/', methods=['GET'])
 @login_required
 def manage_products():
+    """عرض قائمة المنتجات مع نظام التصفح"""
     page = request.args.get('page', 1, type=int)
     per_page = 10
     pagination = Product.query.options(lazyload(Product.supplier))\
@@ -33,7 +35,7 @@ def manage_products():
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    """الوكيل (Proxy) لجلب البيانات من قمرة بشكل آمن"""
+    """الوكيل (Proxy) لجلب البيانات من قمرة بشكل آمن ومخفي عن المتصفح"""
     api_key = os.environ.get('QUMRA_API_KEY')
     
     if not api_key:
@@ -60,11 +62,12 @@ def proxy_sync():
         return jsonify(response.json())
         
     except Exception as e:
-        return jsonify({"status": "error", "message": f"فشل الاتصال: {str(e)}"}), 500
+        return jsonify({"status": "error", "message": f"فشل الاتصال بـ قمرة: {str(e)}"}), 500
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync():
+    """حفظ البيانات المجلوبة في قاعدة البيانات المحلية"""
     try:
         data = request.json
         products_data = data.get('products', [])
@@ -85,6 +88,7 @@ def save_sync():
                 price = 0.0
 
             if not product:
+                # إنشاء منتج جديد
                 new_product = Product(
                     qid=qid,
                     title=item.get('title', 'منتج غير معرف'),
@@ -95,12 +99,16 @@ def save_sync():
                 db.session.add(new_product)
                 count += 1
             else:
+                # تحديث بيانات المنتج الموجود
                 product.title = item.get('title', product.title)
                 product.cost_price = price
         
         db.session.commit()
-        return jsonify({"status": "success", "message": f"تمت معالجة {len(products_data)} منتج، وتم حفظ {count} جديد."})
+        return jsonify({
+            "status": "success", 
+            "message": f"تمت معالجة {len(products_data)} منتج، وتم إضافة {count} منتج جديد."
+        })
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({"status": "error", "message": f"خطأ في حفظ البيانات: {str(e)}"}), 500
