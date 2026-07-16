@@ -3,7 +3,7 @@
 
 from apps.admin_exchange.routes import admin_exchange_bp
 
-MODULE_NAME = "أسعار الصرف"
+MODULE_NAME = "العملات والصرف"
 MODULE_ICON = "fas fa-exchange-alt"
 
 # تم تصحيح اسم المسار هنا ليتطابق مع الدالة 'manage_rates' في ملف routes.py
