@@ -49,7 +49,7 @@ def proxy_sync():
     if data is None:
         return jsonify({
             "status": "error", 
-            "message": "فشل الاتصال بخدمة محجوب للمزامنة. تحقق من الـ Logs."
+            "message": "فشل الاتصال بخدمة المزامنة. تحقق من الـ Logs."
         }), 500
         
     return jsonify({"status": "success", "data": data})
@@ -60,19 +60,18 @@ def save_sync():
     """حفظ البيانات المجلوبة في قاعدة البيانات المحلية"""
     try:
         data = request.json
-        # الوصول للبيانات داخل هيكل استجابة GraphQL
-        products_data = data.get('products', []) # تأكد من أن الـ key المرسل من الـ JS هو 'products'
+        products_data = data.get('products', [])
         
         if not products_data:
             return jsonify({"status": "error", "message": "لا توجد منتجات للمزامنة"})
 
         count = 0
         for item in products_data:
-            # التأكد من تحويل القيم بشكل آمن
+            # التأكد من هوية المنتج الفريدة
             qid = str(item.get('_id'))
             product = Product.query.filter_by(qid=qid).first()
             
-            # محاولة تحويل السعر لـ float مع معالجة الأخطاء
+            # معالجة آمنة للسعر
             try:
                 price = float(item.get('price', 0))
             except (ValueError, TypeError):
@@ -83,7 +82,7 @@ def save_sync():
                 new_product = Product(
                     qid=qid,
                     title=item.get('title', 'منتج غير معرف'),
-                    supplier_id=1,
+                    supplier_id=1, # تأكد من أن هذا الـ ID موجود فعلياً
                     sku=item.get('sku', 'N/A'),
                     cost_price=price
                 )
