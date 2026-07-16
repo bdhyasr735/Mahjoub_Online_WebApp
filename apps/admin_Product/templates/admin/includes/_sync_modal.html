@@ -13,7 +13,7 @@
                     <p id="sync-status" class="text-center small text-muted">جاري البدء...</p>
                 </div>
                 <div id="sync-info">
-                    <p>سيتم جلب المنتجات وتحديث قاعدة البيانات المحلية. هل أنت متأكد؟</p>
+                    <p>سيتم جلب المنتجات من "محجوب" وتحديث قاعدة البيانات المحلية. هل أنت متأكد؟</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -37,11 +37,11 @@
         infoArea.classList.add('d-none');
         progressArea.classList.remove('d-none');
         
+        // 1. جلب البيانات من السيرفر المحلي (Proxy)
         progressBar.style.width = '30%';
         statusText.innerText = "جاري الجلب عبر السيرفر...";
         
         try {
-            // 1. الجلب عبر الوكيل المحلي (Proxy)
             const response = await fetch("{{ url_for('admin_product_bp.proxy_sync') }}", {
                 method: 'POST',
                 headers: { 
@@ -50,20 +50,20 @@
                 }
             });
 
-            if (!response.ok) throw new Error("فشل الاتصال بالخادم المحلي");
+            if (!response.ok) throw new Error("فشل الاتصال بالسيرفر المحلي (Proxy)");
 
             const result = await response.json();
-            
-            // التعديل هنا: البيانات تأتي مباشرة في result.data بعد تعديلاتنا في routes.py
             const products = result.data;
 
-            if (!products || products.length === 0) throw new Error("لم يتم العثور على منتجات في المصدر");
+            if (!products || !Array.isArray(products) || products.length === 0) {
+                throw new Error("لم يتم العثور على منتجات في المصدر");
+            }
 
-            // 2. تحديث شريط التقدم للحفظ
+            // 2. تحديث الواجهة لبدء الحفظ
             progressBar.style.width = '60%';
-            statusText.innerText = `تم جلب ${products.length} منتج، جاري الحفظ...`;
+            statusText.innerText = `تم جلب ${products.length} منتج، جاري الحفظ في قاعدة البيانات...`;
 
-            // 3. الحفظ في قاعدة البيانات المحلية
+            // 3. إرسال البيانات للحفظ
             const saveResponse = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
                 method: 'POST',
                 headers: {
@@ -83,7 +83,7 @@
                 // تحديث الصفحة بعد ثانية لإظهار التغييرات
                 setTimeout(() => { location.reload(); }, 1000);
             } else {
-                throw new Error(saveResult.message || "فشل عملية حفظ البيانات");
+                throw new Error(saveResult.message || "فشل عملية حفظ البيانات في قاعدة البيانات");
             }
             
         } catch (err) {
