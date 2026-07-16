@@ -33,26 +33,27 @@ def manage_products():
 @login_required
 def proxy_sync():
     """الوكيل (Proxy) لجلب البيانات من قمرة عبر GraphQL"""
+    
+    # بناءً على الخطأ، الـ API لا يقبل (page, limit) ولا يعرف الـ items
+    # تم تعديل الاستعلام ليكون أبسط. إذا فشل هذا، سنحتاج لاستخدام الاستعلام الاستكشافي.
     query = """
     query { 
-        findAllProducts(page: 1, limit: 100) { 
-            items { 
-                _id 
-                title 
-                price 
-                sku 
-            } 
+        findAllProducts { 
+            _id 
+            title 
+            price 
+            sku 
         } 
     }
     """
     
-    # تنفيذ الاستعلام عبر الكلاس الموحد
+    # تنفيذ الاستعلام
     data = QomrahGraphQLClient.execute_query(query)
     
     if data is None:
         return jsonify({
             "status": "error", 
-            "message": "فشل الاتصال بخدمة المزامنة. تأكد من إعدادات الاتصال."
+            "message": "فشل الاتصال بخدمة المزامنة. راجع سجلات الأخطاء لمعرفة هيكل البيانات الصحيح."
         }), 500
         
     return jsonify({"status": "success", "data": data})
@@ -63,6 +64,7 @@ def save_sync():
     """حفظ البيانات المجلوبة في قاعدة البيانات المحلية"""
     try:
         data = request.json
+        # لاحظ: بناءً على الرد، قد تحتاج لتعديل المفتاح هنا إذا كان الـ API يرجع البيانات بشكل مختلف
         products_data = data.get('products', [])
         
         if not products_data:
@@ -70,18 +72,15 @@ def save_sync():
 
         count = 0
         for item in products_data:
-            # التأكد من هوية المنتج الفريدة (qid)
             qid = str(item.get('_id'))
             product = Product.query.filter_by(qid=qid).first()
             
-            # معالجة آمنة للسعر
             try:
                 price = float(item.get('price', 0))
             except (ValueError, TypeError):
                 price = 0.0
 
             if not product:
-                # إنشاء منتج جديد
                 new_product = Product(
                     qid=qid,
                     title=item.get('title', 'منتج غير معرف'),
@@ -91,7 +90,6 @@ def save_sync():
                 db.session.add(new_product)
                 count += 1
             else:
-                # تحديث بيانات المنتج الموجود
                 product.title = item.get('title', product.title)
                 product.cost_price = price
                 product.sku = item.get('sku', product.sku)
