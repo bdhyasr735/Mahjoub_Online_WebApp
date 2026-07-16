@@ -1,38 +1,20 @@
-<form id="filterForm" class="row g-3 align-items-end" 
-      onsubmit="event.preventDefault(); updateTable('{{ url_for('orders.dashboard') }}?' + $(this).serialize());">
-    
-    <div class="col-md-5">
-        <label class="form-label text-royal-purple fw-bold small">بحث سريع</label>
-        <div class="input-group">
-            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-            <input type="text" name="q" class="form-control border-start-0" 
-                   placeholder="رقم الطلب أو اسم العميل..." 
-                   value="{{ request.args.get('q', '') }}">
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <label class="form-label text-royal-purple fw-bold small">حالة الطلب</label>
-        <select name="status" class="form-select">
-            <option value="">جميع الحالات</option>
-            <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتمل</option>
-            <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>معلق</option>
-            <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>ملغي</option>
-        </select>
-    </div>
-
-    <div class="col-md-3">
-        <button type="submit" class="btn text-white w-100 shadow-sm" style="background-color: #2e003e;">
-            <i class="fas fa-filter me-1"></i> تطبيق الفلتر
-        </button>
-    </div>
-</form>
-
-<script>
-    // تفعيل البحث التلقائي عند تغيير الحالة لتحسين تجربة المستخدم
-    $(document).ready(function() {
-        $('select[name="status"]').on('change', function() {
-            $('#filterForm').submit();
-        });
-    });
-</script>
+<nav class="mt-4" aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
+                    <a class="page-link" href="#" 
+                       onclick="updateTable('{{ safe_url_for('orders.dashboard', 
+                           page=page_num, 
+                           q=request.args.get('q', ''), 
+                           status=request.args.get('status', ''),
+                           supplier_id=request.args.get('supplier_id', '')) }}'); return false;">
+                        {{ page_num }}
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</nav>
