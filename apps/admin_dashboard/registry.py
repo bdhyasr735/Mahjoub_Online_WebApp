@@ -10,10 +10,8 @@ LINKS = {
 
 def register_module(app):
     try:
+        # تسجيل الموديول باستخدام الاسم الصحيح والموحد
         app.register_blueprint(admin_dashboard_bp, url_prefix='/admin')
-        
-        # التعديل الذكي لإصلاح الـ BuildError في القوالب دون تعديلها:
-        app.blueprints['admin_dashboard'] = admin_dashboard_bp
         
         print("✅ [Registry]: تم تسجيل موديول 'admin_dashboard_bp' بنجاح.")
     except Exception as e:
