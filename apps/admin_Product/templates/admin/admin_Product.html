@@ -27,21 +27,28 @@
     async function startSync() {
         const btn = document.getElementById('sync-btn');
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الجلب عبر السيرفر...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاتصال بخدمة محجوب...';
 
         try {
-            // الاتصال بالوكيل المحلي
+            // 1. جلب البيانات عبر البروكسي المحلي
             const response = await fetch("{{ url_for('admin_product_bp.proxy_sync') }}", {
                 method: 'POST',
                 headers: { 'X-CSRFToken': "{{ csrf_token() }}" }
             });
 
+            if (!response.ok) throw new Error("فشل الاتصال بالخادم. يرجى التحقق من حالة النظام.");
+
             const result = await response.json();
+            
+            // التأكد من وجود البيانات في المسار المتوقع من استجابة GraphQL
             const products = result.data?.findAllProducts?.items;
 
-            if (!products) throw new Error("فشل جلب البيانات من قمرة");
+            if (!products || products.length === 0) {
+                throw new Error("لم يتم العثور على منتجات لجلبها.");
+            }
 
-            btn.innerHTML = '<i class="fas fa-save fa-spin"></i> جاري الحفظ...';
+            // 2. إرسال البيانات للحفظ في القاعدة المحلية
+            btn.innerHTML = '<i class="fas fa-save fa-spin"></i> جاري التحديث في قاعدة البيانات...';
             
             const saveResponse = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
                 method: 'POST',
@@ -53,14 +60,16 @@
             });
 
             const saveResult = await saveResponse.json();
-            if (saveResult.status === 'success') {
+            
+            if (saveResponse.ok && saveResult.status === 'success') {
                 alert(saveResult.message);
-                location.reload();
+                location.reload(); // تحديث الصفحة لرؤية البيانات الجديدة
             } else {
-                throw new Error(saveResult.message);
+                throw new Error(saveResult.message || "حدث خطأ أثناء الحفظ.");
             }
         } catch (err) {
-            alert('حدث خطأ: ' + err.message);
+            console.error("Sync Error:", err);
+            alert('خطأ في المزامنة: ' + err.message);
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-sync-alt"></i> مزامنة المنتجات';
