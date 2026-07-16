@@ -4,6 +4,7 @@ import logging
 import urllib3
 from requests.adapters import HTTPAdapter
 
+# إيقاف تحذيرات SSL لضمان استقرار الاتصال بـ API قمرة
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class QomrahGraphQLClient:
@@ -25,8 +26,7 @@ class QomrahGraphQLClient:
 
     @staticmethod
     def fetch_products(headers=None):
-        # تم تحديث الاستعلام ليتوافق مع هيكلية Schema المذكورة
-        # نفترض أن findAllProducts تعيد كائناً يحتوي على قائمة المنتجات داخل حقل مثل 'items' أو 'nodes'
+        # الاستعلام المتوافق مع الـ Schema المكتشفة: findAllProducts
         query = """
         query { 
           findAllProducts(page: 1, limit: 100) { 
@@ -55,12 +55,21 @@ class QomrahGraphQLClient:
             )
             
             if response.status_code == 200:
-                data = response.json().get('data', {}).get('findAllProducts', {})
-                # استخراج البيانات من 'items' بناءً على المخطط
+                result = response.json()
+                # التحقق من وجود أخطاء في استجابة GraphQL نفسها (GraphQL Errors)
+                if 'errors' in result:
+                    logging.error(f"أخطاء في استعلام GraphQL: {result['errors']}")
+                    return []
+                
+                data = result.get('data', {}).get('findAllProducts', {})
                 return data.get('items', [])
+            
             else:
-                logging.error(f"خطأ HTTP: {response.status_code} - {response.text}")
+                # تسجيل تفاصيل الخطأ لتشخيص الـ 502
+                logging.error(f"فشل الاتصال - كود الحالة: {response.status_code}")
+                logging.error(f"محتوى الخطأ: {response.text[:500]}")
                 return []
+                
         except Exception as e:
-            logging.error(f"فشل الاتصال: {str(e)}")
+            logging.error(f"استثناء أثناء المزامنة: {str(e)}")
             return []
