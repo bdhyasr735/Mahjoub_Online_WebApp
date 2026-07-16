@@ -1,3 +1,4 @@
+# coding: utf-8
 # 📂 apps/models/product_db.py
 
 import os
@@ -10,13 +11,16 @@ class Product(db.Model):
     __tablename__ = 'products'
     
     __table_args__ = (
-        db.Index('idx_prod_supplier_qid', 'supplier_id', 'qid', unique=True),
+        # تم إزالة supplier_id من الـ Index الفريد ليصبح qid هو المعرف الأساسي للمزامنة
+        db.Index('idx_prod_qid', 'qid', unique=True),
         db.Index('idx_prod_sku', 'sku'),
         {'extend_existing': True}
     )
     
     id = db.Column(db.Integer, primary_key=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    
+    # التعديل: جعل الحقل قابلاً للقيم الفارغة nullable=True لتجنب خطأ NotNullViolation
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     
     # المعرف القادم من قمرة (qid)
     qid = db.Column(db.String(100), nullable=False)
@@ -29,11 +33,10 @@ class Product(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_sync = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقة: تم تغيير lazy='joined' إلى 'select' لمنع خطأ الربط (JOIN) في Postgres
-    # عند الحاجة لجلب المورد، يمكنك القيام بذلك يدوياً أو عبر db.joinedload(Product.supplier) في استعلام معين
+    # العلاقة
     supplier = db.relationship('Supplier', backref='products', lazy='select')
 
-    # --- نظام التشفير (نفس مفتاح Supplier) ---
+    # --- نظام التشفير ---
     @staticmethod
     def _get_key():
         key = os.environ.get('ENCRYPTION_KEY')
