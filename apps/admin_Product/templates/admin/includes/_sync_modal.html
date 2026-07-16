@@ -44,7 +44,6 @@
         const progressBar = document.getElementById('sync-bar');
         const statusText = document.getElementById('sync-status');
         
-        // التحقق من وجود العناصر لتجنب أخطاء JavaScript
         if (!btn || !progressArea || !progressBar || !statusText) return;
         
         btn.disabled = true;
@@ -53,7 +52,6 @@
         statusText.innerText = "جاري الاتصال بـ قمرة...";
         statusText.className = "mt-2 small text-primary fw-bold";
 
-        // الاتصال بـ backend مع إرسال CSRF Token المصحح للمسار الجديد
         fetch("{{ url_for('admin_product_bp.sync_products') }}", {
             method: 'POST',
             headers: { 
@@ -61,8 +59,12 @@
                 'X-CSRFToken': '{{ csrf_token() }}' 
             }
         })
-        .then(response => {
-            if (!response.ok) throw new Error('فشل في الاتصال بالسيرفر');
+        .then(async response => {
+            if (!response.ok) {
+                // محاولة قراءة رسالة الخطأ من السيرفر إذا وجدت
+                const errorData = await response.json().catch(() => ({ message: 'خطأ في الاتصال' }));
+                throw new Error(errorData.message || 'فشل الاتصال: ' + response.status);
+            }
             return response.json();
         })
         .then(data => {
@@ -70,8 +72,6 @@
                 progressBar.style.width = '100%';
                 statusText.innerText = data.message;
                 statusText.className = "mt-2 small text-success fw-bold";
-                
-                // إعادة تحميل الصفحة بعد ثانية لرؤية النتائج
                 setTimeout(() => { location.reload(); }, 1500);
             } else {
                 statusText.innerText = "خطأ: " + (data.message || 'حدث خطأ غير معروف');
@@ -80,7 +80,8 @@
         })
         .catch(error => {
             console.error("Sync Error:", error);
-            statusText.innerText = "تعذر الاتصال بالخادم.";
+            // إظهار الخطأ الحقيقي للمستخدم
+            statusText.innerText = "خطأ: " + error.message;
             statusText.className = "mt-2 small text-danger fw-bold";
         })
         .finally(() => {
