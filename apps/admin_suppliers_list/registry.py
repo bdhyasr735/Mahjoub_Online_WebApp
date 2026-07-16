@@ -1,23 +1,20 @@
 # 📂 apps/admin_suppliers_list/registry.py
 
-# استيراد البلوبرينتات من ملف الـ routes الخاص بالموديول
-# تأكد أن routes.py في هذا المجلد يحتوي على هذه التعريفات
-from .routes import suppliers_bp, admin_suppliers_add_bp
+# استورد فقط ما هو موجود فعلياً في ملف routes.py
+from .routes import suppliers_bp 
 
 MODULE_NAME = "إدارة الموردين"
-MODULE_ICON = "fas fa-users"  # استخدمت أيقونة FontAwesome لتتوافق مع بقية النظام
+MODULE_ICON = "fas fa-users"
 
 LINKS = {
     "suppliers_bp.list_suppliers": "قائمة الشركاء",
-    "admin_suppliers_add_bp.add_supplier_or_staff": "تعميد شريك جديد"
+    "suppliers_bp.add_supplier_or_staff": "تعميد شريك جديد" # تأكد أن الدالة موجودة بهذا الاسم في routes.py
 }
 
 def register_module(app):
     try:
-        # تسجيل جميع البلوبرينتات المتعلقة بهذا الموديول
+        # تسجيل بلوبرينت واحد فقط
         app.register_blueprint(suppliers_bp, url_prefix='/admin/suppliers')
-        app.register_blueprint(admin_suppliers_add_bp, url_prefix='/admin/suppliers_add')
-        
-        print("✅ [Registry]: تم تسجيل موديول 'إدارة الموردين' (مع بلوبرينتات الإضافة) بنجاح.")
+        print("✅ [Registry]: تم تسجيل موديول الموردين بنجاح.")
     except Exception as e:
         print(f"❌ [Registry Error]: فشل تسجيل موديول الموردين: {e}")
