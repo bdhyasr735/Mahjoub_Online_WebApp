@@ -1,17 +1,15 @@
-# 📂 apps/admin_platform_treasury/registry.py
+from .routes import admin_dashboard_bp 
 
-from .routes import treasury_bp # تأكد من الاستيراد الصحيح
-
-MODULE_NAME = "الرقابة المالية"
-MODULE_ICON = "fas fa-wallet"
+MODULE_NAME = "لوحة التحكم"
+MODULE_ICON = "fas fa-tachometer-alt"
 
 LINKS = {
-    "treasury_bp.dashboard": "لوحة الخزينة"  # يجب أن يطابق اسم الـ Blueprint المعرف في routes.py
+    "admin_dashboard_bp.dashboard": "الإحصائيات"
 }
 
 def register_module(app):
     try:
-        app.register_blueprint(treasury_bp, url_prefix='/treasury')
-        print("✅ [Registry]: تم تسجيل موديول 'treasury_bp' بنجاح.")
+        app.register_blueprint(admin_dashboard_bp, url_prefix='/admin')
+        print("✅ [Registry]: تم تسجيل موديول 'admin_dashboard_bp' بنجاح.")
     except Exception as e:
-        print(f"❌ [Registry Error]: فشل تسجيل موديول الخزينة: {e}")
+        print(f"❌ [Registry Error]: فشل تسجيل موديول الإحصائيات: {e}")
