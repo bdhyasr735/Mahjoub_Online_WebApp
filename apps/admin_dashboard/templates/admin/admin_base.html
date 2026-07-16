@@ -20,9 +20,9 @@
         .nav-menu { padding: 20px 15px; }
         .nav-link { display: flex; align-items: center; padding: 12px 15px; color: rgba(255,255,255,0.7); text-decoration: none; border-radius: 10px; transition: 0.3s; cursor: pointer; }
         .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.2); color: var(--mahjoub-gold); }
-        .dropdown-content { display: none; list-style: none; padding-right: 35px; border-right: 2px solid var(--mahjoub-gold); margin: 5px 0; }
-        .dropdown-content a { color: rgba(255,255,255,0.8); display: block; padding: 8px 10px; font-size: 0.9rem; border-radius: 5px; text-decoration: none; }
-        .dropdown-content a:hover { background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold); }
+        .dropdown-content { display: none; list-style: none; padding-right: 25px; margin: 5px 0; }
+        .dropdown-content a { color: rgba(255,255,255,0.8); display: block; padding: 8px 10px; font-size: 0.9rem; text-decoration: none; border-radius: 5px; }
+        .dropdown-content a:hover { color: var(--mahjoub-gold); background: rgba(255,255,255,0.05); }
         .main-wrapper { margin-right: var(--sidebar-width); transition: 0.3s; }
         .top-navbar { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         @media (max-width: 992px) { .sidebar { right: -280px; } .sidebar.active { right: 0; } .main-wrapper { margin-right: 0; } }
@@ -41,18 +41,20 @@
             </a>
             
             {% if registered_modules %}
-                {% for key, module in registered_modules.items() %}
-                    <div class="nav-item">
-                        <div class="nav-link" onclick="toggleSub(this)">
-                            <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
-                            <span>{{ module.display_name }}</span> 
-                            <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem; transition: 0.3s;"></i>
+                {% for mod_name, module in registered_modules.items() %}
+                    <div class="nav-item mt-2">
+                        <div class="nav-link" onclick="toggleSub(this)" style="justify-content: space-between;">
+                            <div>
+                                <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
+                                <span>{{ mod_name }}</span>
+                            </div>
+                            <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
                         </div>
                         <ul class="dropdown-content">
                             {% for endpoint, label in module.links.items() %}
                                 <li>
-                                    <a href="{{ safe_url_for(endpoint) }}">
-                                        <i class="fas fa-circle me-2" style="font-size: 6px;"></i> {{ label }}
+                                    <a href="{{ safe_url_for(endpoint) }}" class="{{ 'text-warning' if request.endpoint == endpoint }}">
+                                        <i class="fas fa-angle-left me-2"></i> {{ label }}
                                     </a>
                                 </li>
                             {% endfor %}
