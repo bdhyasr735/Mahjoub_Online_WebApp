@@ -46,12 +46,14 @@
         
         if (!btn || !progressArea || !progressBar || !statusText) return;
         
+        // تفعيل حالة الانتظار
         btn.disabled = true;
         progressArea.classList.remove('d-none');
         progressBar.style.width = '30%';
         statusText.innerText = "جاري الاتصال بـ قمرة...";
         statusText.className = "mt-2 small text-primary fw-bold";
 
+        // إرسال طلب المزامنة
         fetch("{{ url_for('admin_product_bp.sync_products') }}", {
             method: 'POST',
             headers: { 
@@ -60,27 +62,26 @@
             }
         })
         .then(async response => {
+            const data = await response.json();
             if (!response.ok) {
-                // محاولة قراءة رسالة الخطأ من السيرفر إذا وجدت
-                const errorData = await response.json().catch(() => ({ message: 'خطأ في الاتصال' }));
-                throw new Error(errorData.message || 'فشل الاتصال: ' + response.status);
+                throw new Error(data.message || 'فشل الاتصال بالسيرفر');
             }
-            return response.json();
+            return data;
         })
         .then(data => {
             if (data.status === 'success') {
                 progressBar.style.width = '100%';
                 statusText.innerText = data.message;
                 statusText.className = "mt-2 small text-success fw-bold";
-                setTimeout(() => { location.reload(); }, 1500);
+                // إعادة تحميل الصفحة بعد ثانية لعرض التحديثات
+                setTimeout(() => { location.reload(); }, 1000);
             } else {
-                statusText.innerText = "خطأ: " + (data.message || 'حدث خطأ غير معروف');
+                statusText.innerText = "خطأ: " + (data.message || 'حدث خطأ غير متوقع');
                 statusText.className = "mt-2 small text-danger fw-bold";
             }
         })
         .catch(error => {
             console.error("Sync Error:", error);
-            // إظهار الخطأ الحقيقي للمستخدم
             statusText.innerText = "خطأ: " + error.message;
             statusText.className = "mt-2 small text-danger fw-bold";
         })
