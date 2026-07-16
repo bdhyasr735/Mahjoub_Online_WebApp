@@ -20,7 +20,6 @@ def manage_rates():
     user_role = getattr(current_user, 'role', None)
     if not (getattr(current_user, 'is_admin', False) or user_role == 'Owner'):
         flash("غير مصرح لك بالوصول لهذه الصفحة.", "danger")
-        # تم التصحيح: توجيه صحيح للـ Blueprint المحدث
         return redirect(url_for('admin_dashboard_bp.dashboard'))
 
     # معالجة إضافة أو تحديث سعر الصرف
