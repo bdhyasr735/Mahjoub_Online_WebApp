@@ -15,14 +15,27 @@ logger = logging.getLogger(__name__)
 # تعريف البلوبرنت
 wallet_bp = Blueprint('wallet_app', __name__, template_folder='templates')
 
-# 1. مسار خاص بالموردين (لحل مشكلة /supplier/wallet/my-wallet)
+# دالة مركزية لتحديث الرصيد (لضمان سلامة العمليات المالية)
+def update_wallet_balance(wallet, amount, trans_type, currency):
+    """تحديث رصيد المحفظة بناءً على نوع العملية."""
+    if trans_type == 'credit': # إيداع (زيادة الرصيد)
+        if currency == 'SAR': wallet.balance_sar += amount
+        elif currency == 'YER': wallet.balance_yer += amount
+        elif currency == 'USD': wallet.balance_usd += amount
+    elif trans_type == 'debit': # سحب (إنقاص الرصيد)
+        if currency == 'SAR': wallet.balance_sar -= amount
+        elif currency == 'YER': wallet.balance_yer -= amount
+        elif currency == 'USD': wallet.balance_usd -= amount
+    
+    wallet.updated_at = func.now()
+    return wallet
+
+# 1. مسار خاص بالموردين
 @wallet_bp.route('/my-wallet', methods=['GET'])
 @login_required
 def my_wallet():
-    """عرض محفظة المورد الحالي."""
     if session.get('user_type') != 'supplier':
         abort(403)
-        
     wallet = SupplierWallet.query.filter_by(supplier_id=current_user.id).first()
     return render_template('suppliers/my_wallet.html', wallet=wallet)
 
@@ -30,10 +43,8 @@ def my_wallet():
 @wallet_bp.route('/admin/dashboard', methods=['GET'])
 @login_required
 def dashboard():
-    # تأكد أن هذا الجزء مخصص للمدراء فقط إذا لزم الأمر
     search = request.args.get('search', '')
     page = request.args.get('page', 1, type=int)
-    
     query = SupplierWallet.query.join(Supplier, SupplierWallet.supplier_id == Supplier.id)
     
     if search:
@@ -53,12 +64,7 @@ def dashboard():
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('admin/partials/wallet_table_body.html', wallets=pagination.items)
         
-    return render_template(
-        'admin/wallet_app.html', 
-        wallets=pagination.items, 
-        stats=stats,
-        pagination=pagination
-    )
+    return render_template('admin/wallet_app.html', wallets=pagination.items, stats=stats, pagination=pagination)
 
 @wallet_bp.route('/admin/manage/<int:supplier_id>', methods=['GET'])
 @login_required
@@ -88,6 +94,10 @@ def add_transaction(supplier_id):
             flash("يجب أن يكون المبلغ أكبر من صفر.", "danger")
             return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
 
+        # 1. تحديث الرصيد باستخدام الدالة المركزية
+        wallet = update_wallet_balance(wallet, amount, trans_type, currency)
+        
+        # 2. تسجيل العملية
         new_trans = WalletTransaction(
             wallet_id=wallet.id,
             amount=amount,
@@ -101,13 +111,14 @@ def add_transaction(supplier_id):
         )
         
         db.session.add(new_trans)
+        db.session.add(wallet)
         db.session.commit()
         
-        flash(f"تم تسجيل العملية بنجاح.", "success")
+        flash("تم تسجيل العملية وتحديث الرصيد بنجاح.", "success")
         
     except Exception as e:
         db.session.rollback()
         logger.error(f"Financial Error: {e}")
-        flash(f"حدث خطأ داخلي.", "danger")
+        flash("حدث خطأ أثناء تنفيذ العملية المالية.", "danger")
 
     return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
