@@ -11,7 +11,7 @@ class ProductSyncEngine:
 
     @staticmethod
     def process_products(products_data):
-        """معالجة وتحديث قائمة المنتجات المجلوبة من قمرة (بما في ذلك الحقول المتداخلة)."""
+        """معالجة وتحديث قائمة المنتجات المجلوبة من قمرة."""
         if not products_data or not isinstance(products_data, list):
             logger.warning("❌ لم يتم استقبال بيانات صالحة للمزامنة.")
             return 0
@@ -31,7 +31,7 @@ class ProductSyncEngine:
                 # تحديث الحقول المباشرة
                 product.title = item.get('title', 'منتج غير معرف')
                 
-                # استخراج البيانات المتداخلة (Nested Data)
+                # استخراج البيانات من الحقول المتداخلة (Nested Fields)
                 pricing = item.get('pricing', {}) or {}
                 identification = item.get('identification', {}) or {}
                 
