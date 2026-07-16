@@ -2,12 +2,12 @@
 # 📂 apps/admin_Product/routes.py
 
 import os
-import requests
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
 from sqlalchemy.orm import lazyload
 from apps.models.product_db import Product
 from apps.extensions import db
+from apps.services.graphql_client import QomrahGraphQLClient
 
 # تعريف البلوبرنت الخاص بإدارة المنتجات
 admin_product_bp = Blueprint(
@@ -35,34 +35,22 @@ def manage_products():
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    """الوكيل (Proxy) لجلب البيانات من قمرة بشكل آمن ومخفي عن المتصفح"""
-    api_key = os.environ.get('QUMRA_API_KEY')
-    
-    if not api_key:
-        return jsonify({"status": "error", "message": "API Key غير متاح في إعدادات السيرفر"}), 500
-
-    query = "query { findAllProducts(page: 1, limit: 100) { items { _id title price sku } } }"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+    """الوكيل (Proxy) لجلب البيانات من قمرة باستخدام الكلاس الموحد"""
+    query = """
+    query { 
+        findAllProducts(page: 1, limit: 100) { 
+            items { _id title price sku } 
+        } 
     }
+    """
     
-    try:
-        response = requests.post(
-            "https://api.qomrah.com/graphql", 
-            json={'query': query}, 
-            headers=headers, 
-            timeout=45
-        )
+    # استخدام الخدمة الموحدة للاتصال بـ GraphQL
+    data = QomrahGraphQLClient.execute_query(query)
+    
+    if data is None:
+        return jsonify({"status": "error", "message": "فشل الاتصال بـ قمرة. تحقق من الـ Logs."}), 500
         
-        # التأكد من نجاح الاتصال بـ قمرة
-        if response.status_code != 200:
-            return jsonify({"status": "error", "message": f"خطأ من قمرة: {response.status_code}"}), response.status_code
-            
-        return jsonify(response.json())
-        
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"فشل الاتصال بـ قمرة: {str(e)}"}), 500
+    return jsonify({"status": "success", "data": data})
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
@@ -70,6 +58,7 @@ def save_sync():
     """حفظ البيانات المجلوبة في قاعدة البيانات المحلية"""
     try:
         data = request.json
+        # الوصول للبيانات داخل هيكل استجابة GraphQL
         products_data = data.get('products', [])
         
         if not products_data:
