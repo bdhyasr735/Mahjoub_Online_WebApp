@@ -4,7 +4,8 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort
 from flask_login import login_required, current_user
 
-# تعريف الـ Blueprint
+# تعريف الـ Blueprint باسم 'orders'
+# يجب أن يتطابق هذا الاسم مع ما هو موجود في registry.py (الروابط)
 orders_bp = Blueprint('orders', __name__, template_folder='templates')
 
 @orders_bp.route('/dashboard')
@@ -19,7 +20,7 @@ def dashboard():
     # جلب البيانات مع الباجينيشن
     pagination = Order.query.outerjoin(OrderFinancial).paginate(page=page, per_page=20)
     
-    # حساب الإحصائيات (يمكنك نقل هذا لمنطق خدمي لاحقاً)
+    # حساب الإحصائيات
     stats = {
         'total_sales': db.session.query(db.func.sum(OrderFinancial.total_paid)).scalar() or 0,
         'completed': Order.query.filter_by(status='completed').count(),
@@ -42,7 +43,6 @@ def add_new_order():
     from apps.models.orders_db import Order
     
     if request.method == 'POST':
-        # منطق إضافة الطلب
         try:
             new_order = Order(
                 customer_name=request.form.get('customer_name'),
@@ -54,6 +54,7 @@ def add_new_order():
             db.session.add(new_order)
             db.session.commit()
             flash("تم إضافة الطلب بنجاح", "success")
+            # الربط هنا باسم الـ Blueprint المعتمد 'orders'
             return redirect(url_for('orders.dashboard'))
         except Exception as e:
             db.session.rollback()
