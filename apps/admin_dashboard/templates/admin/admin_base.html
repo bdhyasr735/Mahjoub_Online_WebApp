@@ -46,9 +46,8 @@
                         <div class="nav-link" onclick="toggleSub(this)" style="justify-content: space-between;">
                             <div>
                                 <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> 
-                                <span>{{ mod_name }}</span>
-                            </div>
-                            <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
+                                <span>{{ module.display_name }}</span> </div>
+                            <i class="fas fa-chevron-down" style="font-size: 0.7rem; transition: 0.3s;"></i>
                         </div>
                         <ul class="dropdown-content">
                             {% for endpoint, label in module.links.items() %}
