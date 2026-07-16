@@ -17,13 +17,13 @@
         </button>
         
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-primary" onclick="syncProducts()">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syncModal">
                 <i class="fas fa-sync-alt"></i> مزامنة المنتجات
             </button>
             
             <input type="text" class="form-control" placeholder="بحث عن منتج...">
             <button class="btn btn-outline-secondary"><i class="fas fa-filter"></i> فلتر</button>
-            <a href="{{ url_for('admin_product.add_product') }}" class="btn btn-mahjoub-gold">
+            <a href="{{ url_for('admin_product_bp.add_product') }}" class="btn btn-mahjoub-gold">
                 <i class="fas fa-plus"></i> إضافة منتج
             </a>
         </div>
@@ -52,43 +52,18 @@
     <nav class="mt-4">
         <ul class="pagination justify-content-center">
             <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('admin_product.manage_products', page=pagination.prev_num) if pagination.has_prev else '#' }}">السابق</a>
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.prev_num) if pagination.has_prev else '#' }}">السابق</a>
             </li>
             <li class="page-item active">
                 <span class="page-link">{{ pagination.page }}</span>
             </li>
             <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('admin_product.manage_products', page=pagination.next_num) if pagination.has_next else '#' }}">التالي</a>
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.next_num) if pagination.has_next else '#' }}">التالي</a>
             </li>
         </ul>
     </nav>
 </div>
 
-{% include 'admin/includes/_table_products.html' %}
-
-<script>
-    function syncProducts() {
-        fetch("{{ url_for('admin_product.sync_products') }}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert('خطأ: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('حدث خطأ أثناء الاتصال بالسيرفر');
-        });
-    }
-</script>
+{% include 'admin/includes/_sync_modal.html' %}
 
 {% endblock %}
