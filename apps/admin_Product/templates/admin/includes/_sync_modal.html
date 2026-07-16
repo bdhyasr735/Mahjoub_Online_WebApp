@@ -1,92 +1,62 @@
-<style>
-    .modal-header-mahjoub {
-        background-color: var(--royal-purple);
-        color: var(--mahjoub-gold);
-        border-bottom: 2px solid var(--mahjoub-gold);
-    }
-    .progress-bar-mahjoub {
-        background-color: var(--mahjoub-gold) !important;
-    }
-</style>
-
-<div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg border-0">
-            <div class="modal-header modal-header-mahjoub">
-                <h5 class="modal-title" id="syncModalLabel">
-                    <i class="fas fa-sync-alt me-2"></i> مزامنة المنتجات - قمرة كلاود
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center py-4">
-                <p class="text-muted">هل تود البدء بسحب أحدث المنتجات والأسعار من متجرك على منصة قمرة؟</p>
-                
-                <div id="sync-progress-area" class="d-none mt-3">
-                    <div class="progress" style="height: 20px;">
-                        <div id="sync-bar" class="progress-bar progress-bar-striped progress-bar-animated progress-bar-mahjoub" 
-                             role="progressbar" style="width: 0%"></div>
-                    </div>
-                    <p id="sync-status" class="mt-2 small text-primary fw-bold">جاري الاتصال بالخادم...</p>
-                </div>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn btn-mahjoub-gold" id="startSyncBtn" onclick="startProductSync()">بدء المزامنة الآن</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-    function startProductSync() {
+    async function startProductSync() {
         const btn = document.getElementById('startSyncBtn');
         const progressArea = document.getElementById('sync-progress-area');
         const progressBar = document.getElementById('sync-bar');
         const statusText = document.getElementById('sync-status');
         
-        if (!btn || !progressArea || !progressBar || !statusText) return;
-        
-        // تفعيل حالة الانتظار
         btn.disabled = true;
         progressArea.classList.remove('d-none');
         progressBar.style.width = '30%';
-        statusText.innerText = "جاري الاتصال بـ قمرة...";
-        statusText.className = "mt-2 small text-primary fw-bold";
+        statusText.innerText = "جاري الجلب من قمرة...";
+        
+        try {
+            // 1. الجلب من قمرة مباشرة
+            const response = await fetch("https://api.qomrah.com/graphql", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer {{ config.QUMRA_API_KEY }}'
+                },
+                body: JSON.stringify({
+                    query: "query { findAllProducts(page: 1, limit: 100) { items { _id title price sku } } }"
+                })
+            });
 
-        // إرسال طلب المزامنة
-        fetch("{{ url_for('admin_product_bp.sync_products') }}", {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}' 
-            }
-        })
-        .then(async response => {
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'فشل الاتصال بالسيرفر');
-            }
-            return data;
-        })
-        .then(data => {
-            if (data.status === 'success') {
+            const result = await response.json();
+            const products = result.data?.findAllProducts?.items;
+            
+            if (!products) throw new Error("لم يتم جلب المنتجات");
+
+            // 2. إرسال البيانات للسيرفر للحفظ
+            progressBar.style.width = '60%';
+            statusText.innerText = "جاري الحفظ في قاعدة البيانات...";
+
+            const saveResponse = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ products: products })
+            });
+
+            const saveResult = await saveResponse.json();
+
+            if (saveResult.status === 'success') {
                 progressBar.style.width = '100%';
-                statusText.innerText = data.message;
+                statusText.innerText = saveResult.message;
                 statusText.className = "mt-2 small text-success fw-bold";
-                // إعادة تحميل الصفحة بعد ثانية لعرض التحديثات
-                setTimeout(() => { location.reload(); }, 1000);
+                setTimeout(() => { location.reload(); }, 1500);
             } else {
-                statusText.innerText = "خطأ: " + (data.message || 'حدث خطأ غير متوقع');
-                statusText.className = "mt-2 small text-danger fw-bold";
+                throw new Error(saveResult.message);
             }
-        })
-        .catch(error => {
+
+        } catch (error) {
             console.error("Sync Error:", error);
             statusText.innerText = "خطأ: " + error.message;
             statusText.className = "mt-2 small text-danger fw-bold";
-        })
-        .finally(() => {
             btn.disabled = false;
-        });
+        }
     }
 </script>
