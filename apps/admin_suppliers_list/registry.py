@@ -1,10 +1,12 @@
 # 📂 apps/admin_suppliers_list/registry.py
 
-MODULE_NAME = "إدارة الموردين"
-MODULE_ICON = "bi-people-fill" 
+# استيراد البلوبرينتات من ملف الـ routes الخاص بالموديول
+# تأكد أن routes.py في هذا المجلد يحتوي على هذه التعريفات
+from .routes import suppliers_bp, admin_suppliers_add_bp
 
-# التصحيح: يجب أن يكون الـ endpoint (المسار البرمجي) هو المفتاح (Key)
-# والاسم الظاهر هو القيمة (Value)
+MODULE_NAME = "إدارة الموردين"
+MODULE_ICON = "fas fa-users"  # استخدمت أيقونة FontAwesome لتتوافق مع بقية النظام
+
 LINKS = {
     "suppliers_bp.list_suppliers": "قائمة الشركاء",
     "admin_suppliers_add_bp.add_supplier_or_staff": "تعميد شريك جديد"
@@ -12,9 +14,10 @@ LINKS = {
 
 def register_module(app):
     try:
-        from .routes import suppliers_bp
-        # تأكد من استيراد وتسجيل البلوبرينتات الأخرى إذا كانت مستخدمة
+        # تسجيل جميع البلوبرينتات المتعلقة بهذا الموديول
         app.register_blueprint(suppliers_bp, url_prefix='/admin/suppliers')
-        print("✅ [Registry]: تم تسجيل موديول الموردين بنجاح.")
+        app.register_blueprint(admin_suppliers_add_bp, url_prefix='/admin/suppliers_add')
+        
+        print("✅ [Registry]: تم تسجيل موديول 'إدارة الموردين' (مع بلوبرينتات الإضافة) بنجاح.")
     except Exception as e:
         print(f"❌ [Registry Error]: فشل تسجيل موديول الموردين: {e}")
