@@ -53,8 +53,8 @@
         statusText.innerText = "جاري الاتصال بـ قمرة...";
         statusText.className = "mt-2 small text-primary fw-bold";
 
-        // الاتصال بـ backend مع إرسال CSRF Token
-        fetch("{{ url_for('admin_product.sync_products') }}", {
+        // الاتصال بـ backend مع إرسال CSRF Token المصحح للمسار الجديد
+        fetch("{{ url_for('admin_product_bp.sync_products') }}", {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
