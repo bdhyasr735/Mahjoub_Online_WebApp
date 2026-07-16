@@ -1,3 +1,4 @@
+# coding: utf-8
 # 📂 apps/admin_Product/routes.py
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
@@ -8,9 +9,9 @@ from apps.extensions import db, csrf
 from apps.services.graphql_client import QomrahGraphQLClient
 import logging
 
-# تعريف البلوبرينت
+# تم تعديل الاسم إلى admin_product_bp ليتوافق مع المعايير
 admin_product_bp = Blueprint(
-    'admin_product', 
+    'admin_product_bp', 
     __name__, 
     template_folder='templates'
 )
@@ -39,40 +40,35 @@ def manage_products():
 @admin_product_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_product():
-    """مسار آمن يعرض قائمة المنتجات"""
-    return redirect(url_for('admin_product.manage_products'))
+    """إعادة توجيه آمنة باستخدام اسم البلوبرينت المحدث"""
+    return redirect(url_for('admin_product_bp.manage_products'))
 
 @admin_product_bp.route('/sync', methods=['POST'])
 @login_required
-@csrf.exempt # هذا السطر يعفي هذا المسار من التحقق من CSRF للسماح بمرور طلب الـ fetch
+@csrf.exempt 
 def sync_products():
-    """مسار المزامنة الفعلي الذي يتصل بـ قمرة عبر الكلاس QomrahGraphQLClient"""
+    """مسار المزامنة الفعلي مع قمرة"""
     try:
         logging.info("بدء عملية المزامنة...")
         
-        # 1. جلب المنتجات من قمرة
         products_data = QomrahGraphQLClient.fetch_products()
         
         if not products_data:
             return jsonify({"status": "error", "message": "لم يتم العثور على منتجات في قمرة"})
 
-        # 2. تحديث قاعدة البيانات
         for item in products_data:
-            # البحث عن المنتج بـ qid (المعرف القادم من قمرة)
             product = Product.query.filter_by(qid=str(item.get('_id'))).first()
             
             if not product:
-                # إنشاء منتج جديد
                 new_product = Product(
                     qid=str(item.get('_id')),
                     title=item.get('title', 'منتج غير معرف'),
-                    supplier_id=1, # المورد الافتراضي
+                    supplier_id=1,
                     sku=item.get('sku', 'N/A')
                 )
                 new_product.cost_price = item.get('price', 0) 
                 db.session.add(new_product)
             else:
-                # تحديث البيانات الموجودة
                 product.title = item.get('title', product.title)
                 product.cost_price = item.get('price', product.cost_price)
         
@@ -82,6 +78,5 @@ def sync_products():
         
     except Exception as e:
         db.session.rollback()
-        # تسجيل الخطأ لسهولة التتبع في سجلات السيرفر
         logging.error(f"خطأ أثناء المزامنة: {str(e)}")
         return jsonify({"status": "error", "message": "حدث خطأ داخلي أثناء المزامنة"}), 500
