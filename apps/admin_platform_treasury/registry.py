@@ -1,15 +1,15 @@
-from .routes import admin_dashboard_bp 
+from .routes import treasury_bp
 
-MODULE_NAME = "لوحة التحكم"
-MODULE_ICON = "fas fa-tachometer-alt"
+MODULE_NAME = "الرقابة المالية"
+MODULE_ICON = "fas fa-wallet"
 
 LINKS = {
-    "admin_dashboard_bp.dashboard": "الإحصائيات"
+    "treasury_bp.dashboard": "لوحة الخزينة"
 }
 
 def register_module(app):
     try:
-        app.register_blueprint(admin_dashboard_bp, url_prefix='/admin')
-        print("✅ [Registry]: تم تسجيل موديول 'admin_dashboard_bp' بنجاح.")
+        app.register_blueprint(treasury_bp, url_prefix='/treasury')
+        print("✅ [Registry]: تم تسجيل موديول 'treasury_bp' بنجاح.")
     except Exception as e:
-        print(f"❌ [Registry Error]: فشل تسجيل موديول الإحصائيات: {e}")
+        print(f"❌ [Registry Error]: فشل تسجيل موديول الخزينة: {e}")
