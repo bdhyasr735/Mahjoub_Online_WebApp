@@ -13,20 +13,16 @@
                     <th>م</th>
                     <th>اسم المنتج</th>
                     <th>السعر</th>
-                    <th>الحالة</th>
+                    <th>SKU</th>
                 </tr>
             </thead>
             <tbody>
                 {% for product in products %}
                 <tr>
                     <td>{{ loop.index }}</td>
-                    <td>{{ product.name }}</td>
-                    <td>{{ product.price }}</td>
-                    <td>
-                        <span class="badge {{ 'bg-success' if product.is_active else 'bg-secondary' }}">
-                            {{ 'نشط' if product.is_active else 'غير نشط' }}
-                        </span>
-                    </td>
+                    <td>{{ product.title }}</td>
+                    <td>{{ product.cost_price }} ر.س</td>
+                    <td><span class="badge bg-light text-dark border">{{ product.sku }}</span></td>
                 </tr>
                 {% else %}
                 <tr>
@@ -47,7 +43,6 @@
         const progressBar = document.getElementById('sync-bar');
         const statusText = document.getElementById('sync-status');
         
-        // تعطيل الزر ومنع إغلاق المودال أثناء المعالجة
         btn.disabled = true;
         progressArea.classList.remove('d-none');
         
@@ -56,7 +51,6 @@
         statusText.className = "mt-2 small text-muted text-center";
         
         try {
-            // 1. طلب الجلب من الـ Proxy
             const proxyResponse = await fetch("{{ url_for('admin_product_bp.proxy_sync') }}", {
                 method: 'POST',
                 headers: { 
@@ -68,15 +62,14 @@
             if (!proxyResponse.ok) throw new Error("فشل الاتصال بخدمة المزامنة");
 
             const result = await proxyResponse.json();
-            const products = result.data?.findAllProducts?.items;
+            // تصحيح: البيانات تأتي مباشرة من result.data بناءً على التعديل في routes.py
+            const products = result.data;
             
             if (!products || products.length === 0) throw new Error("لا توجد منتجات أو خطأ في الاتصال");
 
-            // 2. تحديث الواجهة لبدء الحفظ
             progressBar.style.width = '60%';
             statusText.innerText = `تم جلب ${products.length} منتج، جاري الحفظ...`;
 
-            // 3. طلب الحفظ في قاعدة البيانات
             const saveResponse = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
                 method: 'POST',
                 headers: { 
@@ -92,7 +85,6 @@
                 progressBar.style.width = '100%';
                 statusText.innerText = "تمت المزامنة بنجاح!";
                 statusText.className = "mt-2 small text-success fw-bold text-center";
-                // تحديث الصفحة بعد نجاح العملية
                 setTimeout(() => { location.reload(); }, 1500);
             } else {
                 throw new Error(saveResult.message || "فشل عملية الحفظ");
