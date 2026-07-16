@@ -84,8 +84,7 @@ def create_app():
 
     # تسجيل الموديولات
     apps_dir = app.root_path
-    # إزالة المجلدات الحاوية للموديولات الفعلية من قائمة الاستبعاد
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin']
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
@@ -110,14 +109,6 @@ def create_app():
                     except Exception as e:
                         print(f"❌ [Registry]: خطأ في تسجيل موديول {item}: {e}")
 
-    @app.route('/')
-    def index():
-        if current_user.is_authenticated:
-            if session.get('user_type') in ['admin', 'staff']:
-                return redirect(url_for('admin_dashboard_bp.dashboard'))
-            return redirect(url_for('suppliers_dashboard.dashboard'))
-        return redirect('/supplier/login')
-
     @app.context_processor
     def inject_vars():
         # دالة ذكية تصحح الروابط تلقائياً
@@ -125,14 +116,13 @@ def create_app():
             try:
                 return url_for(endpoint, **values)
             except BuildError:
-                # محاولة تصحيح تلقائي بإضافة _bp إذا فشل المسار
-                if not endpoint.endswith('_bp'):
-                    try:
-                        return url_for(f"{endpoint}_bp", **values)
-                    except BuildError:
-                        pass
-                print(f"⚠️ [Routing Alert]: لا يمكن بناء الرابط للـ Endpoint '{endpoint}'")
-                return '#'
+                # محاولة تصحيح ذكية: إذا فشل، جرب إضافة أو إزالة _bp
+                alt_endpoint = f"{endpoint}_bp" if not endpoint.endswith('_bp') else endpoint.replace('_bp', '')
+                try:
+                    return url_for(alt_endpoint, **values)
+                except BuildError:
+                    print(f"⚠️ [Routing Alert]: لا يمكن بناء الرابط للـ Endpoint '{endpoint}' أو '{alt_endpoint}'")
+                    return '#'
         
         return dict(
             csrf_token=generate_csrf,
