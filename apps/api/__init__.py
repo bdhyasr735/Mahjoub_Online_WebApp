@@ -3,7 +3,7 @@
 
 from .product_sync_engine import ProductSyncEngine
 
-# إنشاء نسخة من المحرك
+# إنشاء نسخة من المحرك لاستخدامها عند الحاجة
 engine = ProductSyncEngine()
 
 __all__ = [
