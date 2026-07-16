@@ -1,32 +1,12 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
-<style>
-    :root { --royal-purple: #1a0b2e; --deep-black: #08020d; --mahjoub-gold: #D4AF37; }
-    .btn-mahjoub-gold { background-color: var(--mahjoub-gold); color: #000; font-weight: bold; }
-    .btn-mahjoub-gold:hover { background-color: #b8962d; color: #fff; }
-    .card { border-top: 4px solid var(--mahjoub-gold) !important; background: #fff; }
-    .page-item.active .page-link { background-color: var(--royal-purple); border-color: var(--royal-purple); }
-    .page-link { color: var(--royal-purple); }
-</style>
-
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <button onclick="history.back()" class="btn btn-outline-dark">
-            <i class="fas fa-arrow-right"></i> رجوع
+        <button onclick="history.back()" class="btn btn-outline-dark"><i class="fas fa-arrow-right"></i> رجوع</button>
+        <button type="button" id="sync-btn" class="btn btn-primary" onclick="startSync()">
+            <i class="fas fa-sync-alt"></i> مزامنة المنتجات
         </button>
-        
-        <div class="d-flex gap-2">
-            <button type="button" id="sync-btn" class="btn btn-primary" onclick="startSync()">
-                <i class="fas fa-sync-alt"></i> مزامنة المنتجات
-            </button>
-            
-            <input type="text" class="form-control" placeholder="بحث عن منتج...">
-            <button class="btn btn-outline-secondary"><i class="fas fa-filter"></i> فلتر</button>
-            <a href="{{ url_for('admin_product_bp.add_product') }}" class="btn btn-mahjoub-gold">
-                <i class="fas fa-plus"></i> إضافة منتج
-            </a>
-        </div>
     </div>
 
     <div class="row row-cols-1 row-cols-md-5 g-3">
@@ -34,34 +14,13 @@
         <div class="col">
             <div class="card h-100 shadow-sm">
                 <div class="card-body p-3">
-                    <h6 class="card-title fw-bold text-truncate" style="color: var(--royal-purple);">{{ product.title }}</h6>
-                    <p class="text-muted small mb-1">السعر: <strong>{{ product.cost_price }}</strong></p>
-                    <p class="mb-0" style="color: var(--mahjoub-gold); font-weight: 800; font-size: 0.9rem;">
-                        الكمية: {{ product.quantity }}
-                    </p>
+                    <h6 class="card-title fw-bold text-truncate">{{ product.title }}</h6>
+                    <p class="text-muted small">السعر: {{ product.cost_price }}</p>
                 </div>
             </div>
         </div>
-        {% else %}
-        <div class="col-12 text-center py-5">
-            <p class="text-muted">لا توجد منتجات حالياً.</p>
-        </div>
         {% endfor %}
     </div>
-
-    <nav class="mt-4">
-        <ul class="pagination justify-content-center">
-            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.prev_num) if pagination.has_prev else '#' }}">السابق</a>
-            </li>
-            <li class="page-item active">
-                <span class="page-link">{{ pagination.page }}</span>
-            </li>
-            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.next_num) if pagination.has_next else '#' }}">التالي</a>
-            </li>
-        </ul>
-    </nav>
 </div>
 
 <script>
@@ -71,22 +30,18 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الجلب عبر السيرفر...';
 
         try {
-            // 1. طلب البيانات من الوكيل المحلي (Proxy) لتجاوز CORS
+            // الاتصال بالوكيل المحلي
             const response = await fetch("{{ url_for('admin_product_bp.proxy_sync') }}", {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': "{{ csrf_token() }}" 
-                }
+                headers: { 'X-CSRFToken': "{{ csrf_token() }}" }
             });
 
             const result = await response.json();
             const products = result.data?.findAllProducts?.items;
 
-            if (!products) throw new Error("لم يتم العثور على منتجات (قد يكون هناك حظر IP على السيرفر)");
+            if (!products) throw new Error("فشل جلب البيانات من قمرة");
 
-            // 2. إرسال البيانات للسيرفر ليتم حفظها في قاعدة البيانات
-            btn.innerHTML = '<i class="fas fa-save fa-spin"></i> جاري الحفظ في القاعدة...';
+            btn.innerHTML = '<i class="fas fa-save fa-spin"></i> جاري الحفظ...';
             
             const saveResponse = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
                 method: 'POST',
@@ -98,17 +53,14 @@
             });
 
             const saveResult = await saveResponse.json();
-            
             if (saveResult.status === 'success') {
                 alert(saveResult.message);
                 location.reload();
             } else {
                 throw new Error(saveResult.message);
             }
-
         } catch (err) {
-            console.error('Error:', err);
-            alert('حدث خطأ أثناء المزامنة: ' + err.message);
+            alert('حدث خطأ: ' + err.message);
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-sync-alt"></i> مزامنة المنتجات';
