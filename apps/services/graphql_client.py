@@ -20,6 +20,7 @@ class QomrahGraphQLClient:
     
     @staticmethod
     def _get_session():
+        """إعداد الجلسة مع استراتيجية إعادة المحاولة عند حدوث أخطاء"""
         session = requests.Session()
         retry_strategy = Retry(
             total=3,
@@ -32,9 +33,10 @@ class QomrahGraphQLClient:
 
     @staticmethod
     def execute_query(query, variables=None):
-        """تنفيذ استعلام GraphQL وإرجاع البيانات الخام."""
+        """تنفيذ استعلام GraphQL وإرجاع البيانات الخام"""
         api_key = os.environ.get('QUMRA_API_KEY')
         
+        # التحقق من وجود مفتاح الـ API
         if not api_key:
             logging.error("❌ مفتاح API (QUMRA_API_KEY) مفقود")
             return None
@@ -68,9 +70,10 @@ class QomrahGraphQLClient:
                 logging.error(f"❌ GraphQL Logic Error: {result['errors']}")
                 return None
             
-            # نرجع الـ result بالكامل ليتمكن الـ route من استخراج الـ data بسهولة
+            # إرجاع الـ data ليتمكن الـ route من استخراج النتائج بسهولة
             return result.get('data')
             
         except Exception as e:
+            # معالجة الأخطاء غير المتوقعة في الاتصال
             logging.error(f"❌ خطأ غير متوقع في الاتصال: {str(e)}")
             return None
