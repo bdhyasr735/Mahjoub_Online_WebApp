@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/admin_Product/routes.py
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required
 from apps.models.product_db import Product
 from apps.extensions import db
@@ -15,6 +15,25 @@ def manage_products():
     page = request.args.get('page', 1, type=int)
     pagination = Product.query.order_by(Product.created_at.desc()).paginate(page=page, per_page=12, error_out=False)
     return render_template('admin/admin_Product.html', products=pagination.items, pagination=pagination)
+
+# --- مسار صفحة التعديل الجديد ---
+@admin_product_bp.route('/product/edit/<int:product_id>', methods=['GET', 'POST'])
+@login_required
+def edit_product(product_id):
+    product = Product.query.get_or_404(product_id)
+    
+    if request.method == 'POST':
+        product.title = request.form.get('title', product.title)
+        product.quantity = request.form.get('quantity', product.quantity)
+        product.cost_price = request.form.get('cost_price', product.cost_price)
+        product.sku = request.form.get('sku', product.sku)
+        product.weight_val = request.form.get('weight_val', product.weight_val)
+        
+        db.session.commit()
+        flash('تم تحديث بيانات المنتج بنجاح', 'success')
+        return redirect(url_for('admin_product_bp.manage_products'))
+        
+    return render_template('admin/edit_product.html', product=product)
 
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
@@ -45,7 +64,6 @@ def proxy_sync():
 def save_sync():
     try:
         payload = request.json
-        # استقبال البيانات مباشرة من مفتاح 'products' المرسل من المودال
         products_data = payload.get('products', []) 
         
         if not products_data:
@@ -55,28 +73,23 @@ def save_sync():
             qid = str(item.get('qid'))
             if not qid: continue
             
-            # البحث عن المنتج لتحديثه أو إنشاء واحد جديد
             product = Product.query.filter_by(qid=qid).first()
             if not product:
                 product = Product(qid=qid)
-                db.session.add(product) # إضافة الجديد للجلسة
+                db.session.add(product)
             
-            # تحديث الحقول
             product.title = item.get('title') or "بدون عنوان"
             product.quantity = item.get('quantity', 0)
             product.sku = item.get('identification', {}).get('sku') if item.get('identification') else None
             product.cost_price = item.get('pricing', {}).get('price') or 0.0
             
-            # معالجة الصور
             images = item.get('images', [])
             product.image_url = images[0].get('fileUrl') if isinstance(images, list) and images else None
             
-            # معالجة الوزن
             weight_info = item.get('weight', {}) or {}
             product.weight_val = weight_info.get('weight')
             product.weight_unit = weight_info.get('unit')
             
-        # تنفيذ عملية الحفظ دفعة واحدة
         db.session.commit()
         return jsonify({"status": "success", "message": f"تمت مزامنة {len(products_data)} منتج بنجاح"})
         
