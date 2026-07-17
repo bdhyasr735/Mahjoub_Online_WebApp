@@ -10,7 +10,6 @@
     .text-custom { color: var(--dark-purple); }
     .product-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
     .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important; }
-    .loading { opacity: 0.5; pointer-events: none; }
 </style>
 
 <div class="container-fluid" id="mainContainer">
@@ -49,25 +48,25 @@
             </a>
         </div>
         {% else %}
-        <div class="col-12 text-center py-5">
+        <div class="col-12 text-center py-5" id="noResults">
             <p class="text-muted">لا توجد نتائج مطابقة للبحث.</p>
         </div>
         {% endfor %}
     </div>
 
-    <!-- ترقيم الصفحات مع تمرير معامل البحث -->
-    <nav aria-label="Page navigation" class="mt-5">
+    <!-- ترقيم الصفحات -->
+    <nav aria-label="Page navigation" class="mt-5" id="paginationNav">
         <ul class="pagination justify-content-center">
             <li class="page-item {% if not pagination.has_prev() %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.prev_num(), search=request.args.get('search', '')) }}">«</a>
+                <a class="page-link" href="?page={{ pagination.prev_num() }}&search={{ request.args.get('search', '') }}">«</a>
             </li>
             {% for page_num in range(max(1, pagination.page - 2), min(pagination.pages + 1, pagination.page + 3)) %}
                 <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=page_num, search=request.args.get('search', '')) }}">{{ page_num }}</a>
+                    <a class="page-link" href="?page={{ page_num }}&search={{ request.args.get('search', '') }}">{{ page_num }}</a>
                 </li>
             {% endfor %}
             <li class="page-item {% if not pagination.has_next() %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.next_num(), search=request.args.get('search', '')) }}">»</a>
+                <a class="page-link" href="?page={{ pagination.next_num() }}&search={{ request.args.get('search', '') }}">»</a>
             </li>
         </ul>
     </nav>
@@ -76,20 +75,18 @@
 <script>
     let timeout = null;
     const searchInput = document.getElementById('searchInput');
-    const container = document.getElementById('mainContainer');
 
+    // إيقاف إعادة تحميل الصفحة بالكامل عند البحث
     searchInput.addEventListener('input', function() {
         clearTimeout(timeout);
-        
-        // إظهار حالة التحميل
-        if(searchInput.value.length > 0) {
-            container.classList.add('loading');
-        }
-
         timeout = setTimeout(() => {
             const searchTerm = searchInput.value.trim();
-            window.location.href = `{{ url_for('admin_product_bp.manage_products') }}?search=${encodeURIComponent(searchTerm)}`;
-        }, 600);
+            // تحديث رابط الـ URL بدون وميض (إعادة تحميل فقط عند الضرورة)
+            const url = new URL(window.location.href);
+            url.searchParams.set('search', searchTerm);
+            url.searchParams.set('page', 1); // العودة للصفحة الأولى عند البحث
+            window.location.href = url.toString();
+        }, 500); // تأخير نصف ثانية لضمان كتابة الكلمة
     });
 
     // الحفاظ على التركيز في خانة البحث
