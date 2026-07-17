@@ -1,13 +1,14 @@
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
         <h5 class="mb-0 fw-bold">قائمة المنتجات (تفصيلية)</h5>
-        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#syncModal">
+        <!-- زر المزامنة -->
+        <button type="button" class="btn btn-sm btn-custom" data-bs-toggle="modal" data-bs-target="#syncModal">
             <i class="fas fa-sync-alt"></i> مزامنة المنتجات
         </button>
     </div>
     
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0" id="productTable">
             <thead class="table-light">
                 <tr>
                     <th style="width: 50px;">الصورة</th>
@@ -18,14 +19,14 @@
                     <th>SKU</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="productTableBody">
                 {% for product in products %}
-                <tr>
+                <tr class="product-row">
                     <td>
                         <img src="{{ product.image_url or '/static/images/default.png' }}" 
                              class="rounded" style="width: 40px; height: 40px; object-fit: cover;" alt="img">
                     </td>
-                    <td class="fw-semibold text-dark">{{ product.title }}</td>
+                    <td class="fw-semibold text-dark product-name">{{ product.title }}</td>
                     <td>
                         <span class="badge {{ 'bg-success' if (product.quantity or 0) > 0 else 'bg-danger' }}">
                             {{ product.quantity or 0 }}
@@ -48,3 +49,24 @@
 </div>
 
 {% include 'admin/includes/_sync_modal.html' %}
+
+<!-- سكربت البحث اللحظي المخصص للجدول -->
+<script>
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        let filter = this.value.toUpperCase();
+        let tableBody = document.getElementById('productTableBody');
+        let rows = tableBody.getElementsByClassName('product-row');
+        
+        for (let i = 0; i < rows.length; i++) {
+            let nameCell = rows[i].querySelector('.product-name');
+            if (nameCell) {
+                let txtValue = nameCell.textContent || nameCell.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+    });
+</script>
