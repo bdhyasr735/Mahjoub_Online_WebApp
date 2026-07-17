@@ -1,0 +1,74 @@
+{% extends "admin/admin_base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- عنوان الصفحة وزر الرجوع -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>تعديل المنتج: {{ product.title }}</h3>
+        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right"></i> رجوع للقائمة
+        </a>
+    </div>
+
+    <!-- عرض رسائل الفلاش في حال وجودها -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- نموذج تعديل البيانات -->
+    <form method="POST" class="bg-white p-4 rounded shadow-sm border">
+        <div class="row">
+            <!-- صورة المنتج -->
+            <div class="col-md-4 text-center">
+                <div class="border rounded p-2 mb-3 bg-light">
+                    <img src="{{ product.image_url or '/static/images/default.png' }}" class="img-fluid rounded" alt="{{ product.title }}">
+                </div>
+                <div class="alert alert-info small"><strong>QID:</strong> {{ product.qid }}</div>
+            </div>
+            
+            <!-- حقول البيانات -->
+            <div class="col-md-8">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">اسم المنتج</label>
+                    <input type="text" name="title" class="form-control" value="{{ product.title }}" required>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">السعر (ر.س)</label>
+                        <input type="number" step="0.01" name="cost_price" class="form-control" value="{{ product.cost_price }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">الكمية</label>
+                        <input type="number" name="quantity" class="form-control" value="{{ product.quantity }}" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">SKU</label>
+                        <input type="text" name="sku" class="form-control" value="{{ product.sku or '' }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">الوزن</label>
+                        <div class="input-group">
+                            <input type="text" name="weight_val" class="form-control" value="{{ product.weight_val or '' }}">
+                            <span class="input-group-text">{{ product.weight_unit or 'جم' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-save"></i> حفظ التغييرات في قمرة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
