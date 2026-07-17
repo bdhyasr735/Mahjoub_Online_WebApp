@@ -15,54 +15,66 @@ admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='temp
 def inject_utils():
     return dict(max=max, min=min)
 
+# كلاس مخصص للتعامل مع نظام الـ Cursors (pageInfo)
 class PaginationMock:
-    def __init__(self, p):
-        # تأكد من مطابقة أسماء الحقول التي يعيدها الـ API (قد تكون edges/node أو data/pagination)
-        self.page = p.get('currentPage', 1)
-        self.pages = p.get('totalPages', 1)
-        self.total = p.get('totalItems', 0)
-    def has_prev(self): return self.page > 1
-    def has_next(self): return self.page < self.pages
-    def prev_num(self): return self.page - 1
-    def next_num(self): return self.page + 1
+    def __init__(self, page_info):
+        self.has_next_page = page_info.get('hasNextPage', False)
+        self.has_prev_page = page_info.get('hasPreviousPage', False)
+    def has_prev(self): return self.has_prev_page
+    def has_next(self): return self.has_next_page
+    def prev_num(self): return 0 # سنعتمد على منطق Cursor في الـ API
+    def next_num(self): return 0
 
 @admin_product_bp.route('/', methods=['GET'])
 @login_required
 def manage_products():
-    page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '').strip()
     
-    # بناء الاستعلام حسب توجيه الشركة: query و first/limit كوسطاء مباشرة
+    # الاستعلام الجديد بناءً على Schema الشركة
     query = """
-    query Data($query: String, $page: Int, $limit: Int) {
-      findAllProducts(query: $query, page: $page, limit: $limit) {
-        data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
-        pagination { totalPages, currentPage, totalItems }
+    query SearchProducts($query: String, $first: Int) {
+      findAllProducts(query: $query, first: $first, sortKey: TITLE, reverse: false) {
+        edges {
+          node {
+            id
+            title
+            totalInventory
+            priceRangeV2 { minVariantPrice { amount } }
+            featuredImage { url }
+            variants(first: 1) { edges { node { sku } } }
+          }
+        }
+        pageInfo { hasNextPage, hasPreviousPage }
       }
     }
     """
     
-    # تمرير المتغيرات كما طلبت الشركة (بدون input)
-    variables = {
-        "query": search if search else None,
-        "page": page,
-        "limit": 10
-    }
+    variables = {"query": search if search else "", "first": 10}
     
     try:
         result = QomrahGraphQLClient.execute_query(query, variables=variables)
-        logger.info(f"GraphQL Query executed with search: {search}")
+        data = result.get('findAllProducts', {}) if result else {}
     except Exception as e:
         logger.error(f"GraphQL Error: {e}")
-        result = {}
+        data = {}
     
-    data = result.get('findAllProducts', {}) if result else {}
-    products = data.get('data', [])
-    pag_info = data.get('pagination', {"totalPages": 1, "currentPage": 1, "totalItems": 0})
+    # تحويل بيانات GraphQL (edges/node) إلى قائمة بسيطة (products)
+    edges = data.get('edges', [])
+    products = []
+    for edge in edges:
+        node = edge.get('node', {})
+        # مواءمة الأسماء مع القالب الحالي
+        products.append({
+            "qid": node.get('id'),
+            "title": node.get('title'),
+            "quantity": node.get('totalInventory', 0),
+            "pricing": {"price": node.get('priceRangeV2', {}).get('minVariantPrice', {}).get('amount', 0)},
+            "images": [{"fileUrl": node.get('featuredImage', {}).get('url')}],
+            "identification": {"sku": node.get('variants', {}).get('edges', [{}])[0].get('node', {}).get('sku', '---')}
+        })
     
-    return render_template('admin/admin_Product.html', 
-                           products=products, 
-                           pagination=PaginationMock(pag_info))
+    pag_info = data.get('pageInfo', {})
+    return render_template('admin/admin_Product.html', products=products, pagination=PaginationMock(pag_info))
 
 @admin_product_bp.route('/add', methods=['GET'])
 @login_required
@@ -73,25 +85,32 @@ def add_product():
 @login_required
 def proxy_sync():
     try:
-        # المزامنة تستخدم نفس الدالة بدون وسيط query
+        # استعلام المزامنة متوافق مع الـ Schema الجديد
         query = """
         query {
-          findAllProducts(limit: 100) {
-            data { 
-                qid, title, quantity, 
-                pricing { price }, 
-                identification { sku }, 
-                weight { weight, unit }, 
-                images { fileUrl } 
+          findAllProducts(first: 100, sortKey: TITLE, reverse: false) {
+            edges {
+              node { id, title, totalInventory, priceRangeV2 { minVariantPrice { amount } }, featuredImage { url }, variants(first: 1) { edges { node { sku } } } }
             }
           }
         }
         """
         result = QomrahGraphQLClient.execute_query(query)
-        if not result or 'findAllProducts' not in result:
-            return jsonify({"status": "error", "message": "فشل الاتصال بـ قمرة"}), 500
+        edges = result.get('findAllProducts', {}).get('edges', []) if result else []
         
-        products_data = result['findAllProducts'].get('data', [])
+        # تجهيز البيانات للمزامنة
+        products_data = []
+        for edge in edges:
+            node = edge.get('node', {})
+            products_data.append({
+                "qid": node.get('id'),
+                "title": node.get('title'),
+                "quantity": node.get('totalInventory'),
+                "pricing": {"price": node.get('priceRangeV2', {}).get('minVariantPrice', {}).get('amount')},
+                "images": [{"fileUrl": node.get('featuredImage', {}).get('url')}],
+                "identification": {"sku": node.get('variants', {}).get('edges', [{}])[0].get('node', {}).get('sku')}
+            })
+            
         count = ProductSyncEngine.process_products(products_data)
         return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح: تم تحديث {count} منتج."})
     except Exception as e:
