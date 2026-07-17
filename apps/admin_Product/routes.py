@@ -5,15 +5,12 @@ import logging
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
 from apps.services.graphql_client import QomrahGraphQLClient
-# تم التعديل هنا ليتطابق مع اسم الملف الفعلي sync_engine.py
 from apps.api.sync_engine import ProductSyncEngine
 
-# إعداد الـ Logger
 logger = logging.getLogger(__name__)
 
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
-# إضافة الدوال المفقودة في قوالب Jinja2
 @admin_product_bp.app_context_processor
 def inject_utils():
     return dict(max=max, min=min)
@@ -32,18 +29,31 @@ class PaginationMock:
 @login_required
 def manage_products():
     page = request.args.get('page', 1, type=int)
-    search = request.args.get('search', '') # استلام نص البحث
+    search = request.args.get('search', '')
     
-    query = """
-    query Data($input: GetAllProductsInput) {
-      findAllProducts(input: $input) {
-        data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
-        pagination { totalPages, currentPage, totalItems }
-      }
-    }
-    """
-    # تمرير قيمة البحث للـ GraphQL (تأكد أن الـ API يدعم خاصية search في input)
-    variables = {"input": {"page": page, "limit": 10, "search": search}}
+    # اختيار الدالة بناءً على وجود نص بحث
+    if search:
+        query = """
+        query Search($query: String!, $page: Int) {
+          searchProducts(query: $query, page: $page, limit: 10) {
+            data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
+            pagination { totalPages, currentPage, totalItems }
+          }
+        }
+        """
+        variables = {"query": search, "page": page}
+        data_key = 'searchProducts'
+    else:
+        query = """
+        query Data($input: GetAllProductsInput) {
+          findAllProducts(input: $input) {
+            data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
+            pagination { totalPages, currentPage, totalItems }
+          }
+        }
+        """
+        variables = {"input": {"page": page, "limit": 10}}
+        data_key = 'findAllProducts'
     
     try:
         result = QomrahGraphQLClient.execute_query(query, variables=variables)
@@ -51,7 +61,7 @@ def manage_products():
         logger.error(f"GraphQL Error: {e}")
         result = {}
     
-    data = result.get('findAllProducts', {}) if result else {}
+    data = result.get(data_key, {}) if result else {}
     products = data.get('data', [])
     pag_info = data.get('pagination', {"totalPages": 1, "currentPage": 1, "totalItems": 0})
     
@@ -82,13 +92,11 @@ def proxy_sync():
         }
         """
         result = QomrahGraphQLClient.execute_query(query)
-        
         if not result or 'findAllProducts' not in result:
             return jsonify({"status": "error", "message": "فشل الاتصال بـ قمرة"}), 500
         
         products_data = result['findAllProducts'].get('data', [])
         count = ProductSyncEngine.process_products(products_data)
-        
         return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح: تم تحديث {count} منتج."})
     except Exception as e:
         logger.error(f"Sync Error: {e}")
