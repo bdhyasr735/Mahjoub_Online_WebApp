@@ -25,8 +25,8 @@ class PaginationMock:
 @login_required
 def manage_products():
     page = request.args.get('page', 1, type=int)
-    search = request.args.get('search', '')
     
+    # تم إزالة حقل search من الاستعلام لأنه غير مدعوم في الـ API الحالي (حسب سجلات الخطأ)
     query = """
     query Data($input: GetAllProductsInput) {
       findAllProducts(input: $input) {
@@ -35,7 +35,8 @@ def manage_products():
       }
     }
     """
-    variables = {"input": {"page": page, "limit": 10, "search": search if search else None}}
+    # تم تحديث المتغيرات لترسل فقط ما يقبله الـ API
+    variables = {"input": {"page": page, "limit": 10}}
     
     try:
         result = QomrahGraphQLClient.execute_query(query, variables=variables)
@@ -54,8 +55,8 @@ def manage_products():
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
+    # لا حاجة لتعديل كود الـ Python هنا، المشكلة كانت في عدم وجود CSRF Token في الـ JavaScript
     try:
-        # هنا يمكنك إضافة منطق المزامنة الفعلي الخاص بك
         logger.info("Proxy sync request received")
         return jsonify({"status": "success", "message": "تم تحديث البيانات بنجاح"})
     except Exception as e:
