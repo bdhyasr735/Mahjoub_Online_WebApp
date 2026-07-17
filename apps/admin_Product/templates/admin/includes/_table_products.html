@@ -1,7 +1,8 @@
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
         <h5 class="mb-0 fw-bold">قائمة المنتجات (تفصيلية)</h5>
-        <button type="button" class="btn btn-sm btn-custom" onclick="syncProducts()">
+        <!-- تم تغيير الدالة لتطابق منطق المودال -->
+        <button type="button" class="btn btn-sm btn-custom" data-bs-toggle="modal" data-bs-target="#syncModal">
             <i class="fas fa-sync-alt"></i> تحديث البيانات
         </button>
     </div>
@@ -19,27 +20,10 @@
                 </tr>
             </thead>
             <tbody id="productTableBody">
-                {% for product in products %}
-                <tr class="product-row">
-                    <td>
-                        <img src="{{ product.images[0].fileUrl if product.images and product.images|length > 0 else '/static/images/default.png' }}" 
-                             class="rounded" style="width: 40px; height: 40px; object-fit: cover;" alt="img">
-                    </td>
-                    <td class="fw-semibold text-dark product-name">{{ product.title }}</td>
-                    <td>
-                        <span class="badge {{ 'bg-success' if (product.quantity or 0) > 0 else 'bg-danger' }}">
-                            {{ product.quantity or 0 }}
-                        </span>
-                    </td>
-                    <td class="text-primary fw-bold">{{ product.pricing.price or 0 }} ر.س</td>
-                    <td class="text-muted small">---</td>
-                    <td><span class="badge bg-light text-dark border product-sku">{{ product.identification.sku or '---' }}</span></td>
-                </tr>
-                {% else %}
+                <!-- سيتم ملء هذا الجسم عبر JavaScript -->
                 <tr id="emptyRow">
                     <td colspan="6" class="text-center py-4 text-muted">جاري تحميل البيانات...</td>
                 </tr>
-                {% endfor %}
             </tbody>
         </table>
     </div>
@@ -48,31 +32,51 @@
 {% include 'admin/includes/_sync_modal.html' %}
 
 <script>
-    // سكربت البحث اللحظي المطور
+    // جلب المنتجات وتعبئة الجدول
+    async function loadTableProducts() {
+        try {
+            const response = await fetch('/admin/api/get-products');
+            const data = await response.json();
+            const tbody = document.getElementById('productTableBody');
+            
+            tbody.innerHTML = ''; // تفريغ الجدول
+            
+            if (data.products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">لا توجد منتجات.</td></tr>';
+                return;
+            }
+
+            data.products.forEach(product => {
+                const img = product.images.length > 0 ? product.images[0].fileUrl : '/static/images/default.png';
+                const row = `
+                <tr class="product-row">
+                    <td><img src="${img}" class="rounded" style="width: 40px; height: 40px; object-fit: cover;" alt="img"></td>
+                    <td class="fw-semibold text-dark product-name">${product.title}</td>
+                    <td><span class="badge ${product.quantity > 0 ? 'bg-success' : 'bg-danger'}">${product.quantity || 0}</span></td>
+                    <td class="text-primary fw-bold">${product.pricing.price || 0} ر.س</td>
+                    <td class="text-muted small">---</td>
+                    <td><span class="badge bg-light text-dark border product-sku">${product.identification.sku || '---'}</span></td>
+                </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        } catch (e) {
+            document.getElementById('productTableBody').innerHTML = '<tr><td colspan="6" class="text-center text-danger">خطأ في تحميل البيانات.</td></tr>';
+        }
+    }
+
+    // تشغيل التحميل عند فتح الصفحة
+    document.addEventListener('DOMContentLoaded', loadTableProducts);
+
+    // البحث اللحظي
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('keyup', function() {
             let filter = this.value.toUpperCase();
-            let rows = document.getElementsByClassName('product-row');
-            
-            for (let i = 0; i < rows.length; i++) {
-                let nameCell = rows[i].querySelector('.product-name');
-                let skuCell = rows[i].querySelector('.product-sku');
-                
-                let txtValue = (nameCell.textContent || nameCell.innerText) + " " + (skuCell ? skuCell.innerText : "");
-                rows[i].style.display = (txtValue.toUpperCase().indexOf(filter) > -1) ? "" : "none";
-            }
-        });
-    }
-
-    // دالة تحديث البيانات (تستدعي المسار الخلفي)
-    function syncProducts() {
-        alert("بدأت عملية المزامنة في الخلفية...");
-        fetch('/admin/proxy-sync', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data.message);
-                location.reload(); // إعادة تحميل الصفحة لتحديث البيانات
+            document.querySelectorAll('.product-row').forEach(row => {
+                let name = row.querySelector('.product-name').innerText.toUpperCase();
+                let sku = row.querySelector('.product-sku').innerText.toUpperCase();
+                row.style.display = (name.indexOf(filter) > -1 || sku.indexOf(filter) > -1) ? "" : "none";
             });
+        });
     }
 </script>
