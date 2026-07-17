@@ -29,7 +29,6 @@
         const btn = document.getElementById('startSyncBtn');
         const progressBar = document.getElementById('sync-bar');
         const statusText = document.getElementById('sync-status');
-        const grid = document.getElementById('productGrid');
         
         btn.disabled = true;
         document.getElementById('sync-info').classList.add('d-none');
@@ -39,7 +38,6 @@
         statusText.innerText = "جاري الاتصال بالسيرفر لبدء المزامنة...";
 
         try {
-            // التعديل هنا: المسار الصحيح المعتمد على url_prefix='/admin/products'
             const response = await fetch('/admin/products/proxy-sync', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -52,12 +50,13 @@
             setTimeout(() => {
                 const modalElement = document.getElementById('syncModal');
                 const modal = bootstrap.Modal.getInstance(modalElement);
-                modal.hide();
+                if (modal) modal.hide();
                 
-                // إعادة تحميل المنتجات لعرض أي تغييرات جديدة
-                if (grid) {
-                    grid.innerHTML = '<div class="col-12 text-center py-5" id="loadingIndicator"><div class="spinner-border text-custom" role="status"></div><p class="mt-2">جاري التحديث...</p></div>';
-                    loadProducts(); 
+                // التعديل: استدعاء الدالة المتاحة في الصفحة (سواء كانت للشبكة أو للجدول)
+                if (typeof loadProducts === 'function') {
+                    loadProducts();
+                } else if (typeof loadTableProducts === 'function') {
+                    loadTableProducts();
                 }
                 
                 // إعادة ضبط المودال
@@ -65,10 +64,10 @@
                 document.getElementById('sync-info').classList.remove('d-none');
                 document.getElementById('sync-progress-area').classList.add('d-none');
                 progressBar.style.width = '0%';
-            }, 1500);
+            }, 1000);
             
         } catch (err) {
-            statusText.innerHTML = `<span class="text-danger">خطأ في التحديث: فشل الاتصال بالسيرفر.</span>`;
+            statusText.innerHTML = `<span class="text-danger">خطأ: فشل الاتصال بالسيرفر.</span>`;
             btn.disabled = false;
         }
     }
