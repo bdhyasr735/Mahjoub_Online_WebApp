@@ -7,78 +7,57 @@
     </div>
     
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" id="productTable">
+        <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
                     <th style="width: 50px;">الصورة</th>
                     <th>اسم المنتج</th>
                     <th>الكمية</th>
                     <th>السعر</th>
-                    <th>المورد</th>
                     <th>SKU</th>
                 </tr>
             </thead>
-            <tbody id="productTableBody">
-                <tr id="emptyRow">
-                    <td colspan="6" class="text-center py-4 text-muted">جاري تحميل البيانات...</td>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>
+                        <img src="{{ product.images[0].fileUrl if product.images and product.images|length > 0 else '/static/images/default.png' }}" 
+                             class="rounded" style="width: 40px; height: 40px; object-fit: cover;">
+                    </td>
+                    <td class="fw-semibold text-dark">{{ product.title }}</td>
+                    <td>
+                        <span class="badge {{ 'bg-success' if product.quantity > 0 else 'bg-danger' }}">
+                            {{ product.quantity or 0 }}
+                        </span>
+                    </td>
+                    <td class="text-primary fw-bold">{{ product.pricing.price or 0 }} ر.س</td>
+                    <td><span class="badge bg-light text-dark border">{{ product.identification.sku or '---' }}</span></td>
                 </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">لا توجد منتجات لعرضها.</td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
-    <!-- الترقيم -->
+
+    <!-- الترقيم المعتمد على الـ PaginationMock في الـ routes.py -->
     <div class="card-footer bg-white">
-        <nav><ul class="pagination justify-content-center mb-0" id="tablePagination"></ul></nav>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {{ 'disabled' if not pagination.has_prev() }}">
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.prev_num()) }}">السابق</a>
+                </li>
+                <li class="page-item active">
+                    <span class="page-link">{{ pagination.page }} من {{ pagination.pages }}</span>
+                </li>
+                <li class="page-item {{ 'disabled' if not pagination.has_next() }}">
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.next_num()) }}">التالي</a>
+                </li>
+            </ul>
+        </nav>
     </div>
 </div>
 
 {% include 'admin/includes/_sync_modal.html' %}
-
-<script>
-    let currentTablePage = 1;
-
-    async function loadTableProducts(page = 1) {
-        currentTablePage = page;
-        const tbody = document.getElementById('productTableBody');
-        
-        try {
-            // التعديل: استخدام المسار الصحيح المعتمد على registry.py
-            const response = await fetch(`/admin/products/get-products?page=${page}`);
-            const data = await response.json();
-            
-            tbody.innerHTML = ''; 
-            
-            if (!data.products || data.products.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">لا توجد منتجات.</td></tr>';
-                return;
-            }
-
-            data.products.forEach(product => {
-                const img = (product.images && product.images.length > 0) ? product.images[0].fileUrl : '/static/images/default.png';
-                const row = `
-                <tr class="product-row">
-                    <td><img src="${img}" class="rounded" style="width: 40px; height: 40px; object-fit: cover;"></td>
-                    <td class="fw-semibold text-dark product-name">${product.title}</td>
-                    <td><span class="badge ${product.quantity > 0 ? 'bg-success' : 'bg-danger'}">${product.quantity || 0}</span></td>
-                    <td class="text-primary fw-bold">${product.pricing.price || 0} ر.س</td>
-                    <td class="text-muted small">---</td>
-                    <td><span class="badge bg-light text-dark border product-sku">${product.identification.sku || '---'}</span></td>
-                </tr>`;
-                tbody.insertAdjacentHTML('beforeend', row);
-            });
-            renderTablePagination(data.pages);
-        } catch (e) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">خطأ في تحميل البيانات.</td></tr>';
-        }
-    }
-
-    function renderTablePagination(totalPages) {
-        const pag = document.getElementById('tablePagination');
-        pag.innerHTML = `
-            <li class="page-item ${currentTablePage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); loadTableProducts(${currentTablePage - 1})">السابق</a></li>
-            <li class="page-item active"><a class="page-link">${currentTablePage} من ${totalPages}</a></li>
-            <li class="page-item ${currentTablePage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); loadTableProducts(${currentTablePage + 1})">التالي</a></li>
-        `;
-    }
-
-    document.addEventListener('DOMContentLoaded', () => loadTableProducts(1));
-</script>
