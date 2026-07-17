@@ -21,7 +21,7 @@
         </button>
     </div>
 
-    <!-- شبكة المنتجات (فارغة عند التحميل) -->
+    <!-- شبكة المنتجات -->
     <div class="row row-cols-1 row-cols-md-5 g-4" id="productGrid">
         <div class="col-12 text-center py-5" id="loadingIndicator">
             <div class="spinner-border text-custom" role="status"></div>
@@ -31,18 +31,18 @@
 </div>
 
 <script>
-    // جلب المنتجات عند تحميل الصفحة (خلفية)
+    // جلب المنتجات عند تحميل الصفحة
     async function loadProducts() {
         try {
-            // تم تعديل الرابط ليتطابق مع routes.py (المسار هو /admin/get-products)
-            const response = await fetch('/admin/get-products');
+            // التعديل هنا: المسار الصحيح المعتمد على url_prefix='/admin/products'
+            const response = await fetch('/admin/products/get-products');
             const data = await response.json();
             const grid = document.getElementById('productGrid');
             const loading = document.getElementById('loadingIndicator');
             
             if (loading) loading.remove();
             
-            if (data.products.length === 0) {
+            if (!data.products || data.products.length === 0) {
                 grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">لا توجد منتجات.</div>';
                 return;
             }
