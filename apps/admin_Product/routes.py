@@ -11,14 +11,17 @@ admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='temp
 @admin_product_bp.route('/', methods=['GET'])
 @login_required
 def manage_products():
-    # استلام معايير البحث والصفحة من الرابط
+    """تحميل صفحة المنتجات بهيكل فارغ أولاً لضمان السرعة القصوى"""
+    return render_template('admin/admin_Product.html')
+
+@admin_product_bp.route('/api/get-products', methods=['GET'])
+@login_required
+def get_products_api():
+    """مسار API لجلب البيانات في الخلفية، لن يسبب بطء النظام"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '').lower()
-    
-    # تحديد 10 بطاقات في الصفحة (2 صف × 5 بطاقات)
     per_page = 10
     
-    # 1. الاستعلام المفتوح لجلب كل المنتجات من "قمرة"
     query = """
     query Data {
       findAllProducts(input: { limit: 99999 }) {
@@ -30,48 +33,27 @@ def manage_products():
     }
     """
     
-    # 2. تنفيذ الطلب
     result = QomrahGraphQLClient.execute_query(query)
     all_products = result.get('data', {}).get('findAllProducts', {}).get('data', []) if result else []
     
-    # 3. الفلترة المحلية (للبحث عن اسم المنتج أو الـ SKU)
+    # الفلترة
     if search:
         all_products = [p for p in all_products if search in p.get('title', '').lower() or 
                         (p.get('identification') and p['identification'].get('sku') and search in p['identification']['sku'].lower())]
     
-    # 4. الترقيم اليدوي
+    # الترقيم
     total = len(all_products)
     start = (page - 1) * per_page
     end = start + per_page
     paginated_products = all_products[start:end]
     
-    # 5. كائن الترقيم المخصص
-    class Pagination:
-        def __init__(self, page, per_page, total):
-            self.page = page
-            self.per_page = per_page
-            self.total = total
-            self.pages = math.ceil(total / per_page) if total > 0 else 1
-        def has_next(self): return self.page < self.pages
-        def has_prev(self): return self.page > 1
-        def next_num(self): return self.page + 1
-        def prev_num(self): return self.page - 1
-
-    pagination = Pagination(page, per_page, total)
-    
-    return render_template('admin/admin_Product.html', 
-                           products=paginated_products, 
-                           pagination=pagination,
-                           search=search)
+    return jsonify({
+        "products": paginated_products,
+        "total": total,
+        "pages": math.ceil(total / per_page) if total > 0 else 1
+    })
 
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    # هذا المسار مخصص لعمليات التحديث المستقبلية
     return jsonify({"status": "success", "message": "تم تحديث البيانات من المصدر"})
-
-@admin_product_bp.route('/save-sync', methods=['POST'])
-@login_required
-def save_sync():
-    # مسار احتياطي لعمليات الحفظ (لا يوجد حفظ حالياً)
-    return jsonify({"status": "success", "message": "تم التخطي: لا يوجد حفظ في قاعدة البيانات"})
