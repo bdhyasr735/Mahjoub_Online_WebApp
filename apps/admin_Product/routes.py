@@ -19,7 +19,7 @@ def manage_products():
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    # الاستعلام المحدث ليشمل كافة الحقول المطلوبة للبطاقات
+    # تم تصحيح الحقل من costPrice إلى price بناءً على رسالة الخطأ
     query = """
     query Data($input: GetAllProductsInput) {
       findAllProducts(input: $input) {
@@ -27,7 +27,7 @@ def proxy_sync():
           qid
           title
           quantity
-          pricing { costPrice }
+          pricing { price }
           images { fileUrl }
           weight { weight unit }
           identification { sku }
@@ -44,6 +44,7 @@ def proxy_sync():
 @login_required
 def save_sync():
     try:
+        # استخراج البيانات بنفس الهيكل المعتمد
         products_data = request.json.get('data', {}).get('findAllProducts', {}).get('data', [])
         
         for item in products_data:
@@ -54,9 +55,11 @@ def save_sync():
             product.title = item.get('title')
             product.quantity = item.get('quantity', 0)
             product.sku = item.get('identification', {}).get('sku')
-            product.cost_price = item.get('pricing', {}).get('costPrice', 0.0)
             
-            # تحديث البيانات المضافة (الصور والوزن)
+            # تم تصحيح المفتاح هنا أيضاً ليطابق الاستعلام الجديد (price)
+            product.cost_price = item.get('pricing', {}).get('price', 0.0)
+            
+            # تحديث البيانات المضافة
             images = item.get('images', [])
             product.image_url = images[0].get('fileUrl') if images else None
             
@@ -67,7 +70,7 @@ def save_sync():
             db.session.add(product)
             
         db.session.commit()
-        return jsonify({"status": "success", "message": "تمت مزامنة المنتجات وتحديث البيانات التفصيلية بنجاح"})
+        return jsonify({"status": "success", "message": "تمت مزامنة المنتجات وتحديث البيانات بنجاح"})
         
     except Exception as e:
         db.session.rollback()
