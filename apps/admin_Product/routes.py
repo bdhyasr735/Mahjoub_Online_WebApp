@@ -29,19 +29,20 @@ class PaginationMock:
 @login_required
 def manage_products():
     page = request.args.get('page', 1, type=int)
-    search = request.args.get('search', '')
+    search = request.args.get('search', '').strip() # استخدام strip لإزالة أي مسافات زائدة
     
     # اختيار الدالة بناءً على وجود نص بحث
     if search:
+        # تغيير المتغير إلى 'keyword' لضمان عدم تضاربه مع الكلمة المحجوزة query
         query = """
-        query Search($query: String!, $page: Int) {
-          searchProducts(query: $query, page: $page, limit: 10) {
+        query Search($keyword: String!, $page: Int) {
+          searchProducts(query: $keyword, page: $page, limit: 10) {
             data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
             pagination { totalPages, currentPage, totalItems }
           }
         }
         """
-        variables = {"query": search, "page": page}
+        variables = {"keyword": search, "page": page}
         data_key = 'searchProducts'
     else:
         query = """
@@ -57,6 +58,10 @@ def manage_products():
     
     try:
         result = QomrahGraphQLClient.execute_query(query, variables=variables)
+        
+        # طباعة النتيجة في الـ Terminal لتكشف لك ما يرسله السيرفر فعلياً
+        logger.info(f"GraphQL Response: {result}")
+        
     except Exception as e:
         logger.error(f"GraphQL Error: {e}")
         result = {}
