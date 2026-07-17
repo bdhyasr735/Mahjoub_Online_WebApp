@@ -1,12 +1,10 @@
 # coding: utf-8
 # 📂 apps/admin_Product/routes.py
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
+from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
-from apps.models.product_db import Product
-from apps.extensions import db
 from apps.services.graphql_client import QomrahGraphQLClient
-from sqlalchemy import or_
+import math
 
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
@@ -14,86 +12,62 @@ admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='temp
 @login_required
 def manage_products():
     page = request.args.get('page', 1, type=int)
-    search = request.args.get('search', '', type=str)
+    search = request.args.get('search', '').lower()
+    per_page = 20
     
-    # استعلام القاعدة محلياً
-    query = Product.query
+    # 1. الاستعلام المفتوح لجلب كل المنتجات (بما فيها الجديدة)
+    query = """
+    query Data {
+      findAllProducts(input: { limit: 99999 }) {
+        data {
+          qid, title, quantity, pricing { price }, 
+          images { fileUrl }, identification { sku }
+        }
+      }
+    }
+    """
+    
+    # 2. تنفيذ الطلب (سيجلب أحدث نسخة دائماً من قمرة)
+    result = QomrahGraphQLClient.execute_query(query)
+    all_products = result.get('data', {}).get('findAllProducts', {}).get('data', []) if result else []
+    
+    # 3. الفلترة المحلية (إذا كان هناك بحث)
     if search:
-        query = query.filter(or_(Product.title.contains(search), Product.sku.contains(search)))
-        
-    # الترقيم يعمل الآن بكفاءة بناءً على العدد الفعلي للمنتجات في قاعدة البيانات بعد المزامنة
-    pagination = query.order_by(Product.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
+        all_products = [p for p in all_products if search in p.get('title', '').lower() or 
+                        (p.get('identification') and search in p['identification'].get('sku', '').lower())]
+    
+    # 4. الترقيم اليدوي
+    total = len(all_products)
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_products = all_products[start:end]
+    
+    # 5. كائن الترقيم
+    class Pagination:
+        def __init__(self, page, per_page, total):
+            self.page = page
+            self.per_page = per_page
+            self.total = total
+            self.pages = math.ceil(total / per_page) if total > 0 else 1
+        def has_next(self): return self.page < self.pages
+        def has_prev(self): return self.page > 1
+        def next_num(self): return self.page + 1
+        def prev_num(self): return self.page - 1
+
+    pagination = Pagination(page, per_page, total)
     
     return render_template('admin/admin_Product.html', 
-                           products=pagination.items, 
-                           pagination=pagination, 
+                           products=paginated_products, 
+                           pagination=pagination,
                            search=search)
 
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    # سحب كافة المنتجات دفعة واحدة (limit: 5000)
-    query = """
-    query Data {
-      findAllProducts(input: { limit: 5000 }) {
-        data {
-          qid
-          title
-          quantity
-          pricing { price }
-          images { fileUrl }
-          weight { weight unit }
-          identification { sku }
-        }
-      }
-    }
-    """
-    data = QomrahGraphQLClient.execute_query(query)
-    if not data or 'data' not in data:
-        return jsonify({"status": "error", "message": "فشل الاتصال بخدمة المزامنة"}), 500
-    
-    return jsonify({"status": "success", "data": data})
+    # هذا المسار أصبح لا يحتاج لعمل شيء لأن الصفحة الرئيسية تجلب كل شيء تلقائياً
+    return jsonify({"status": "success", "message": "تم التحديث"})
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync():
-    try:
-        payload = request.json
-        products_data = payload.get('products', []) 
-        
-        if not products_data:
-            return jsonify({"status": "error", "message": "لا توجد منتجات لحفظها"}), 400
-        
-        for item in products_data:
-            qid = str(item.get('qid'))
-            if not qid: continue
-            
-            product = Product.query.filter_by(qid=qid).first()
-            if not product:
-                product = Product(qid=qid)
-                db.session.add(product)
-            
-            product.title = item.get('title') or "بدون عنوان"
-            product.quantity = item.get('quantity', 0)
-            product.sku = item.get('identification', {}).get('sku') if item.get('identification') else None
-            product.cost_price = item.get('pricing', {}).get('price') or 0.0
-            
-            images = item.get('images', [])
-            product.image_url = images[0].get('fileUrl') if isinstance(images, list) and images else None
-            
-            weight_info = item.get('weight', {}) or {}
-            product.weight_val = weight_info.get('weight')
-            product.weight_unit = weight_info.get('unit')
-            
-        db.session.commit()
-        return jsonify({"status": "success", "message": f"تمت مزامنة {len(products_data)} منتج"})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-# دالة التعديل (يتم استدعاؤها في حال وجودها)
-@admin_product_bp.route('/edit/<int:product_id>', methods=['GET', 'POST'])
-@login_required
-def edit_product(product_id):
-    # كود التعديل الخاص بك هنا
-    pass
+    return jsonify({"status": "success", "message": "لا يوجد حفظ في قاعدة البيانات"})
