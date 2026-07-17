@@ -27,6 +27,7 @@ class PaginationMock:
 def manage_products():
     page = request.args.get('page', 1, type=int)
     
+    # استعلام جلب المنتجات (نستخدم limit: 10 ليتناسب مع الترقيم)
     query = """
     query Data($input: GetAllProductsInput) {
       findAllProducts(input: $input) {
@@ -55,12 +56,12 @@ def manage_products():
 @login_required
 def proxy_sync():
     try:
-        logger.info("بدء عملية المزامنة مع قمرة...")
+        logger.info("بدء عملية المزامنة الخلفية مع قمرة...")
         
-        # 1. جلب البيانات من قمرة (نسحب 50 منتجاً كمثال للبدء)
+        # جلب البيانات من قمرة (تم رفع الليمت لضمان شمولية التحديث)
         query = """
         query {
-          findAllProducts(input: {page: 1, limit: 50}) {
+          findAllProducts(input: {page: 1, limit: 100}) {
             data { 
                 qid, title, quantity, 
                 pricing { price }, 
@@ -74,16 +75,18 @@ def proxy_sync():
         result = QomrahGraphQLClient.execute_query(query)
         
         if not result or 'findAllProducts' not in result:
+            logger.error("فشل الاتصال بـ قمرة أثناء المزامنة")
             return jsonify({"status": "error", "message": "فشل الاتصال بـ قمرة"}), 500
         
-        # 2. معالجة وحفظ البيانات في قاعدة بياناتك
+        # معالجة وحفظ البيانات في قاعدة البيانات باستخدام المحرك
         products_data = result['findAllProducts'].get('data', [])
         count = ProductSyncEngine.process_products(products_data)
         
+        logger.info(f"تمت المزامنة بنجاح: تم معالجة {count} منتج.")
         return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح: تم تحديث {count} منتج."})
         
     except Exception as e:
-        logger.error(f"Sync Error: {e}")
+        logger.error(f"Sync Error in proxy_sync: {e}")
         return jsonify({"status": "error", "message": "حدث خطأ أثناء معالجة البيانات"}), 500
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
