@@ -16,21 +16,51 @@ def manage_products():
     pagination = Product.query.order_by(Product.created_at.desc()).paginate(page=page, per_page=12, error_out=False)
     return render_template('admin/admin_Product.html', products=pagination.items, pagination=pagination)
 
-# --- مسار صفحة التعديل الجديد ---
+# --- مسار صفحة التعديل مع ربط قمرة ---
 @admin_product_bp.route('/product/edit/<int:product_id>', methods=['GET', 'POST'])
 @login_required
 def edit_product(product_id):
     product = Product.query.get_or_404(product_id)
     
     if request.method == 'POST':
+        # 1. تحديث القيم في قاعدة البيانات المحلية
         product.title = request.form.get('title', product.title)
         product.quantity = request.form.get('quantity', product.quantity)
         product.cost_price = request.form.get('cost_price', product.cost_price)
         product.sku = request.form.get('sku', product.sku)
         product.weight_val = request.form.get('weight_val', product.weight_val)
         
-        db.session.commit()
-        flash('تم تحديث بيانات المنتج بنجاح', 'success')
+        # 2. إرسال التعديلات إلى قمرة (Mutation)
+        mutation = """
+        mutation UpdateProduct($id: ID!, $input: UpdateProductInput!) {
+            updateProduct(id: $id, input: $input) {
+                success
+                message
+            }
+        }
+        """
+        variables = {
+            "id": product.qid,
+            "input": {
+                "title": product.title,
+                "quantity": int(product.quantity),
+                "price": float(product.cost_price),
+                "sku": product.sku
+            }
+        }
+        
+        try:
+            # افتراض أن execute_query هي الدالة المستخدمة في QomrahGraphQLClient
+            response = QomrahGraphQLClient.execute_query(mutation, variables=variables)
+            
+            if response and response.get('data', {}).get('updateProduct', {}).get('success'):
+                db.session.commit()
+                flash('تم تحديث بيانات المنتج في المتجر (قمرة) ومحلياً بنجاح', 'success')
+            else:
+                flash('تم التحديث محلياً، ولكن فشل الربط مع منصة قمرة', 'warning')
+        except Exception as e:
+            flash(f'خطأ أثناء الاتصال بقمرة: {str(e)}', 'danger')
+            
         return redirect(url_for('admin_product_bp.manage_products'))
         
     return render_template('admin/edit_product.html', product=product)
