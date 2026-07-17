@@ -41,7 +41,8 @@
             // جلب الـ CSRF Token من الميتا تاغ في الصفحة
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             
-            const response = await fetch('/admin/products/proxy-sync', { 
+            // استخدام url_for لتوليد الرابط الصحيح برمجياً
+            const response = await fetch("{{ url_for('admin_product_bp.proxy_sync') }}", { 
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
