@@ -17,6 +17,7 @@ def inject_utils():
 
 class PaginationMock:
     def __init__(self, p):
+        # تأكد من مطابقة أسماء الحقول التي يعيدها الـ API (قد تكون edges/node أو data/pagination)
         self.page = p.get('currentPage', 1)
         self.pages = p.get('totalPages', 1)
         self.total = p.get('totalItems', 0)
@@ -31,38 +32,31 @@ def manage_products():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '').strip()
     
-    # استخدام منطق البحث الجديد بناءً على تعليمات الشركة
-    if search:
-        query = """
-        query Search($input: SearchProductsInput!) {
-          searchProducts(input: $input) {
-            data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
-            pagination { totalPages, currentPage, totalItems }
-          }
-        }
-        """
-        variables = {"input": {"query": search, "page": page, "limit": 10}}
-        data_key = 'searchProducts'
-    else:
-        query = """
-        query Data($input: GetAllProductsInput) {
-          findAllProducts(input: $input) {
-            data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
-            pagination { totalPages, currentPage, totalItems }
-          }
-        }
-        """
-        variables = {"input": {"page": page, "limit": 10}}
-        data_key = 'findAllProducts'
+    # بناء الاستعلام حسب توجيه الشركة: query و first/limit كوسطاء مباشرة
+    query = """
+    query Data($query: String, $page: Int, $limit: Int) {
+      findAllProducts(query: $query, page: $page, limit: $limit) {
+        data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
+        pagination { totalPages, currentPage, totalItems }
+      }
+    }
+    """
+    
+    # تمرير المتغيرات كما طلبت الشركة (بدون input)
+    variables = {
+        "query": search if search else None,
+        "page": page,
+        "limit": 10
+    }
     
     try:
         result = QomrahGraphQLClient.execute_query(query, variables=variables)
-        logger.info(f"GraphQL Query executed: {data_key}")
+        logger.info(f"GraphQL Query executed with search: {search}")
     except Exception as e:
         logger.error(f"GraphQL Error: {e}")
         result = {}
     
-    data = result.get(data_key, {}) if result else {}
+    data = result.get('findAllProducts', {}) if result else {}
     products = data.get('data', [])
     pag_info = data.get('pagination', {"totalPages": 1, "currentPage": 1, "totalItems": 0})
     
@@ -79,9 +73,10 @@ def add_product():
 @login_required
 def proxy_sync():
     try:
+        # المزامنة تستخدم نفس الدالة بدون وسيط query
         query = """
         query {
-          findAllProducts(input: {page: 1, limit: 100}) {
+          findAllProducts(limit: 100) {
             data { 
                 qid, title, quantity, 
                 pricing { price }, 
