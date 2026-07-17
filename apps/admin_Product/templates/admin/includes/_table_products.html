@@ -1,9 +1,8 @@
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
         <h5 class="mb-0 fw-bold">قائمة المنتجات (تفصيلية)</h5>
-        <!-- زر المزامنة -->
         <button type="button" class="btn btn-sm btn-custom" data-bs-toggle="modal" data-bs-target="#syncModal">
-            <i class="fas fa-sync-alt"></i> مزامنة المنتجات
+            <i class="fas fa-sync-alt"></i> تحديث البيانات
         </button>
     </div>
     
@@ -23,7 +22,8 @@
                 {% for product in products %}
                 <tr class="product-row">
                     <td>
-                        <img src="{{ product.image_url or '/static/images/default.png' }}" 
+                        <!-- الوصول للصورة: product.images هو قائمة -->
+                        <img src="{{ product.images[0].fileUrl if product.images and product.images|length > 0 else '/static/images/default.png' }}" 
                              class="rounded" style="width: 40px; height: 40px; object-fit: cover;" alt="img">
                     </td>
                     <td class="fw-semibold text-dark product-name">{{ product.title }}</td>
@@ -32,11 +32,14 @@
                             {{ product.quantity or 0 }}
                         </span>
                     </td>
-                    <td class="text-primary fw-bold">{{ product.cost_price or 0 }} ر.س</td>
+                    <!-- الوصول للسعر: داخل كائن pricing -->
+                    <td class="text-primary fw-bold">{{ product.pricing.price or 0 }} ر.س</td>
                     <td class="text-muted small">
-                        {{ product.supplier.name if product.supplier else '---' }}
+                        <!-- ملاحظة: API قمرة غالباً لا يعيد المورد في هذا الاستعلام، وضعنا افتراضي -->
+                        {{ product.supplier_name or '---' }}
                     </td>
-                    <td><span class="badge bg-light text-dark border">{{ product.sku }}</span></td>
+                    <!-- الوصول للـ SKU: داخل كائن identification -->
+                    <td><span class="badge bg-light text-dark border">{{ product.identification.sku or '---' }}</span></td>
                 </tr>
                 {% else %}
                 <tr>
@@ -50,23 +53,19 @@
 
 {% include 'admin/includes/_sync_modal.html' %}
 
-<!-- سكربت البحث اللحظي المخصص للجدول -->
 <script>
+    // سكربت البحث اللحظي
     document.getElementById('searchInput').addEventListener('keyup', function() {
         let filter = this.value.toUpperCase();
-        let tableBody = document.getElementById('productTableBody');
-        let rows = tableBody.getElementsByClassName('product-row');
+        let rows = document.getElementsByClassName('product-row');
         
         for (let i = 0; i < rows.length; i++) {
             let nameCell = rows[i].querySelector('.product-name');
-            if (nameCell) {
-                let txtValue = nameCell.textContent || nameCell.innerText;
-                if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                    rows[i].style.display = "";
-                } else {
-                    rows[i].style.display = "none";
-                }
-            }
+            let skuCell = rows[i].querySelector('.badge.border'); // البحث أيضاً في SKU
+            
+            let txtValue = (nameCell.textContent || nameCell.innerText) + " " + (skuCell.textContent || skuCell.innerText);
+            
+            rows[i].style.display = (txtValue.toUpperCase().indexOf(filter) > -1) ? "" : "none";
         }
     });
 </script>
