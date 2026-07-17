@@ -1,13 +1,16 @@
 # coding: utf-8
 # 📂 apps/admin_Product/routes.py
 
+import logging
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
 from apps.services.graphql_client import QomrahGraphQLClient
 
+# إعداد الـ Logger لمراقبة الأخطاء في Render Logs
+logger = logging.getLogger(__name__)
+
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
-# كلاس مساعد لمحاكاة كائن الترقيم الذي يتوقعه القالب
 class PaginationMock:
     def __init__(self, p):
         self.page = p.get('currentPage', 1)
@@ -32,9 +35,13 @@ def manage_products():
       }
     }
     """
-    
     variables = {"input": {"page": page, "limit": 10, "search": search if search else None}}
-    result = QomrahGraphQLClient.execute_query(query, variables=variables)
+    
+    try:
+        result = QomrahGraphQLClient.execute_query(query, variables=variables)
+    except Exception as e:
+        logger.error(f"GraphQL Error: {e}")
+        result = {}
     
     data = result.get('findAllProducts', {}) if result else {}
     products = data.get('data', [])
@@ -44,16 +51,16 @@ def manage_products():
                            products=products, 
                            pagination=PaginationMock(pag_info))
 
-@admin_product_bp.route('/get-products', methods=['GET'])
-@login_required
-def get_products_api():
-    # أبقينا هذا المسار للاستخدام في حال احتجت تحديث جزء من الصفحة عبر AJAX لاحقاً
-    return jsonify({"message": "Use the main route for data rendering"})
-
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    return jsonify({"status": "success", "message": "تم تحديث البيانات من المصدر"})
+    try:
+        # هنا يمكنك إضافة منطق المزامنة الفعلي الخاص بك
+        logger.info("Proxy sync request received")
+        return jsonify({"status": "success", "message": "تم تحديث البيانات بنجاح"})
+    except Exception as e:
+        logger.error(f"Sync Error: {e}")
+        return jsonify({"status": "error", "message": "فشل الاتصال بالسيرفر الداخلي"}), 500
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
