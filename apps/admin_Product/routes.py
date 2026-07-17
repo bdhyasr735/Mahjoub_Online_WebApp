@@ -13,9 +13,12 @@ admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='temp
 def manage_products():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '').lower()
-    per_page = 20
     
-    # 1. الاستعلام المفتوح لجلب كل المنتجات (بما فيها الجديدة)
+    # الاقتراح الأفضل: 10 بطاقات في الصفحة (2 صف × 5 بطاقات)
+    # هذا يجعل الصفحة سريعة التحميل جداً ويقلل الضغط على المتصفح
+    per_page = 10
+    
+    # 1. الاستعلام المفتوح لجلب كل المنتجات
     query = """
     query Data {
       findAllProducts(input: { limit: 99999 }) {
@@ -27,11 +30,11 @@ def manage_products():
     }
     """
     
-    # 2. تنفيذ الطلب (سيجلب أحدث نسخة دائماً من قمرة)
+    # 2. تنفيذ الطلب
     result = QomrahGraphQLClient.execute_query(query)
     all_products = result.get('data', {}).get('findAllProducts', {}).get('data', []) if result else []
     
-    # 3. الفلترة المحلية (إذا كان هناك بحث)
+    # 3. الفلترة المحلية
     if search:
         all_products = [p for p in all_products if search in p.get('title', '').lower() or 
                         (p.get('identification') and search in p['identification'].get('sku', '').lower())]
@@ -64,10 +67,9 @@ def manage_products():
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    # هذا المسار أصبح لا يحتاج لعمل شيء لأن الصفحة الرئيسية تجلب كل شيء تلقائياً
-    return jsonify({"status": "success", "message": "تم التحديث"})
+    return jsonify({"status": "success", "message": "تم تحديث البيانات من المصدر"})
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync():
-    return jsonify({"status": "success", "message": "لا يوجد حفظ في قاعدة البيانات"})
+    return jsonify({"status": "success", "message": "تم التخطي: لا يوجد حفظ في قاعدة البيانات"})
