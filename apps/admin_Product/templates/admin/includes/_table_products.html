@@ -1,7 +1,15 @@
+<style>
+    :root { --dark-purple: #2d0b36; }
+    .table-hover tbody tr:hover { background-color: rgba(45, 11, 54, 0.05); cursor: pointer; }
+    .text-custom { color: var(--dark-purple); }
+    .page-link { color: var(--dark-purple); }
+    .page-item.active .page-link { background-color: var(--dark-purple); border-color: var(--dark-purple); color: white; }
+</style>
+
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
         <h5 class="mb-0 fw-bold">قائمة المنتجات (تفصيلية)</h5>
-        <button type="button" class="btn btn-sm btn-custom" data-bs-toggle="modal" data-bs-target="#syncModal">
+        <button type="button" class="btn btn-sm btn-custom" data-bs-toggle="modal" data-bs-target="#syncModal" style="background-color: var(--dark-purple); color: white;">
             <i class="fas fa-sync-alt"></i> تحديث البيانات
         </button>
     </div>
@@ -19,7 +27,8 @@
             </thead>
             <tbody>
                 {% for product in products %}
-                <tr>
+                <!-- عند الضغط على أي مكان في الصف يتم التوجه لصفحة إضافة منتج -->
+                <tr onclick="window.location.href='{{ url_for('admin_product_bp.add_product') }}';">
                     <td>
                         <img src="{{ product.images[0].fileUrl if product.images and product.images|length > 0 else '/static/images/default.png' }}" 
                              class="rounded" style="width: 40px; height: 40px; object-fit: cover;">
@@ -30,7 +39,7 @@
                             {{ product.quantity or 0 }}
                         </span>
                     </td>
-                    <td class="text-primary fw-bold">{{ product.pricing.price or 0 }} ر.س</td>
+                    <td class="text-custom fw-bold">{{ product.pricing.price or 0 }} ر.س</td>
                     <td><span class="badge bg-light text-dark border">{{ product.identification.sku or '---' }}</span></td>
                 </tr>
                 {% else %}
@@ -42,18 +51,18 @@
         </table>
     </div>
 
-    <!-- الترقيم المعتمد على الـ PaginationMock في الـ routes.py -->
-    <div class="card-footer bg-white">
+    <!-- الترقيم المطور -->
+    <div class="card-footer bg-white py-3">
         <nav aria-label="Page navigation">
             <ul class="pagination justify-content-center mb-0">
                 <li class="page-item {{ 'disabled' if not pagination.has_prev() }}">
-                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.prev_num()) }}">السابق</a>
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.prev_num()) }}">«</a>
                 </li>
                 <li class="page-item active">
-                    <span class="page-link">{{ pagination.page }} من {{ pagination.pages }}</span>
+                    <span class="page-link">{{ pagination.page }}</span>
                 </li>
                 <li class="page-item {{ 'disabled' if not pagination.has_next() }}">
-                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.next_num()) }}">التالي</a>
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.next_num()) }}">»</a>
                 </li>
             </ul>
         </nav>
