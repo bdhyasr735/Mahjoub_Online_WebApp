@@ -37,14 +37,20 @@ def proxy_sync():
     data = QomrahGraphQLClient.execute_query(query)
     if not data:
         return jsonify({"status": "error", "message": "فشل الاتصال بخدمة المزامنة"}), 500
+    
+    # نرسل الـ data مباشرة كما تعودنا
     return jsonify({"status": "success", "data": data})
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync():
     try:
+        # هنا الـ payload القادم من الـ fetch في الفرونت إيند يجب أن يحتوي على المفتاح 'data'
         payload = request.json
         products_data = payload.get('data', {}).get('findAllProducts', {}).get('data', [])
+        
+        if not products_data:
+            return jsonify({"status": "error", "message": "لا توجد بيانات للمزامنة"}), 400
         
         for item in products_data:
             qid = str(item.get('qid'))
@@ -52,11 +58,10 @@ def save_sync():
             
             product = Product.query.filter_by(qid=qid).first()
             if not product:
-                # التأكد من وجود title قبل الإنشاء لتجنب NotNullViolation
                 product = Product(qid=qid, title=item.get('title') or "بدون عنوان")
             
             product.title = item.get('title') or product.title
-            product.quantity = item.get('quantity') or 0
+            product.quantity = item.get('quantity', 0)
             product.sku = item.get('identification', {}).get('sku')
             product.cost_price = item.get('pricing', {}).get('price') or 0.0
             
@@ -70,10 +75,9 @@ def save_sync():
             db.session.add(product)
             
         db.session.commit()
-        return jsonify({"status": "success", "message": "تمت المزامنة بنجاح"})
+        return jsonify({"status": "success", "message": f"تمت مزامنة {len(products_data)} منتج بنجاح"})
         
     except Exception as e:
         db.session.rollback()
-        # طباعة الخطأ الحقيقي في الـ Logs
         print(f"DEBUG SYNC ERROR: {str(e)}") 
         return jsonify({"status": "error", "message": str(e)}), 500
