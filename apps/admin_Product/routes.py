@@ -7,101 +7,68 @@ from apps.models.product_db import Product
 from apps.extensions import db
 from apps.services.graphql_client import QomrahGraphQLClient
 
-admin_product_bp = Blueprint(
-    'admin_product_bp', 
-    __name__, 
-    template_folder='templates'
-)
+admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
 @admin_product_bp.route('/', methods=['GET'])
 @login_required
 def manage_products():
     page = request.args.get('page', 1, type=int)
-    per_page = 10
-    pagination = Product.query.order_by(Product.created_at.desc())\
-        .paginate(page=page, per_page=per_page, error_out=False)
-    
-    return render_template(
-        'admin/admin_Product.html', 
-        products=pagination.items,
-        pagination=pagination
-    )
+    pagination = Product.query.order_by(Product.created_at.desc()).paginate(page=page, per_page=12, error_out=False)
+    return render_template('admin/admin_Product.html', products=pagination.items, pagination=pagination)
 
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    """الوكيل لجلب المنتجات باستخدام الحقول الصحيحة والمتداخلة"""
-    
-    # الاستعلام المحدث بناءً على Schema الـ API
+    # الاستعلام المحدث ليشمل كافة الحقول المطلوبة للبطاقات
     query = """
-    query { 
-        findAllProducts(input: {}) { 
-            data { 
-                qid 
-                title 
-                pricing { price } 
-                identification { sku } 
-            } 
-        } 
+    query Data($input: GetAllProductsInput) {
+      findAllProducts(input: $input) {
+        data {
+          qid
+          title
+          quantity
+          pricing { costPrice }
+          images { fileUrl }
+          weight { weight unit }
+          identification { sku }
+        }
+      }
     }
     """
-    
     data = QomrahGraphQLClient.execute_query(query)
-    
-    if data is None or 'findAllProducts' not in data:
-        return jsonify({
-            "status": "error", 
-            "message": "فشل جلب البيانات من المصدر."
-        }), 500
-        
-    return jsonify({"status": "success", "data": data['findAllProducts']['data']})
+    if not data:
+        return jsonify({"status": "error", "message": "فشل الاتصال بخدمة المزامنة"}), 500
+    return jsonify({"status": "success", "data": data})
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync():
-    """حفظ البيانات المجلوبة مع مراعاة الحقول المتداخلة"""
     try:
-        data = request.json
-        products_data = data.get('products', [])
+        products_data = request.json.get('data', {}).get('findAllProducts', {}).get('data', [])
         
-        if not products_data:
-            return jsonify({"status": "error", "message": "لا توجد منتجات للمزامنة"})
-
-        count = 0
         for item in products_data:
-            qid = str(item.get('qid')) # المعرف الفريد للمنتج
-            product = Product.query.filter_by(qid=qid).first()
+            qid = str(item.get('qid'))
+            product = Product.query.filter_by(qid=qid).first() or Product(qid=qid)
             
-            # استخراج القيم من الحقول المتداخلة
-            pricing = item.get('pricing', {}) or {}
-            identification = item.get('identification', {}) or {}
+            # تحديث البيانات الأساسية
+            product.title = item.get('title')
+            product.quantity = item.get('quantity', 0)
+            product.sku = item.get('identification', {}).get('sku')
+            product.cost_price = item.get('pricing', {}).get('costPrice', 0.0)
             
-            try:
-                price = float(pricing.get('price', 0))
-            except (ValueError, TypeError):
-                price = 0.0
-
-            if not product:
-                # بفضل تعديل الموديل ليصبح supplier_id قابل للـ NULL، لن يحدث خطأ هنا
-                new_product = Product(
-                    qid=qid,
-                    title=item.get('title', 'منتج غير معرف'),
-                    sku=identification.get('sku', 'N/A'),
-                    cost_price=price
-                )
-                db.session.add(new_product)
-                count += 1
-            else:
-                product.title = item.get('title', product.title)
-                product.cost_price = price
-                product.sku = identification.get('sku', product.sku)
-        
+            # تحديث البيانات المضافة (الصور والوزن)
+            images = item.get('images', [])
+            product.image_url = images[0].get('fileUrl') if images else None
+            
+            weight_info = item.get('weight', {})
+            product.weight_val = weight_info.get('weight')
+            product.weight_unit = weight_info.get('unit')
+            
+            db.session.add(product)
+            
         db.session.commit()
-        return jsonify({
-            "status": "success", 
-            "message": f"تمت المزامنة بنجاح: تمت معالجة {len(products_data)} منتج."
-        })
+        return jsonify({"status": "success", "message": "تمت مزامنة المنتجات وتحديث البيانات التفصيلية بنجاح"})
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": f"خطأ في الحفظ: {str(e)}"}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
