@@ -39,8 +39,8 @@
         statusText.innerText = "جاري الاتصال بالسيرفر لبدء المزامنة...";
 
         try {
-            // طلب حقيقي للمسار /admin/proxy-sync
-            const response = await fetch('/admin/proxy-sync', { 
+            // التعديل هنا: المسار الصحيح المعتمد على url_prefix='/admin/products'
+            const response = await fetch('/admin/products/proxy-sync', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -55,8 +55,10 @@
                 modal.hide();
                 
                 // إعادة تحميل المنتجات لعرض أي تغييرات جديدة
-                grid.innerHTML = '<div class="col-12 text-center py-5" id="loadingIndicator"><div class="spinner-border text-custom" role="status"></div><p class="mt-2">جاري التحديث...</p></div>';
-                loadProducts(); 
+                if (grid) {
+                    grid.innerHTML = '<div class="col-12 text-center py-5" id="loadingIndicator"><div class="spinner-border text-custom" role="status"></div><p class="mt-2">جاري التحديث...</p></div>';
+                    loadProducts(); 
+                }
                 
                 // إعادة ضبط المودال
                 btn.disabled = false;
