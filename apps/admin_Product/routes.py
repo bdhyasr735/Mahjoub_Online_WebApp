@@ -5,6 +5,7 @@ import logging
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
 from apps.services.graphql_client import QomrahGraphQLClient
+from apps.api.product_sync_engine import ProductSyncEngine
 
 # إعداد الـ Logger لمراقبة الأخطاء في Render Logs
 logger = logging.getLogger(__name__)
@@ -26,7 +27,6 @@ class PaginationMock:
 def manage_products():
     page = request.args.get('page', 1, type=int)
     
-    # تم إزالة حقل search من الاستعلام لأنه غير مدعوم في الـ API الحالي (حسب سجلات الخطأ)
     query = """
     query Data($input: GetAllProductsInput) {
       findAllProducts(input: $input) {
@@ -35,7 +35,6 @@ def manage_products():
       }
     }
     """
-    # تم تحديث المتغيرات لترسل فقط ما يقبله الـ API
     variables = {"input": {"page": page, "limit": 10}}
     
     try:
@@ -55,13 +54,37 @@ def manage_products():
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    # لا حاجة لتعديل كود الـ Python هنا، المشكلة كانت في عدم وجود CSRF Token في الـ JavaScript
     try:
-        logger.info("Proxy sync request received")
-        return jsonify({"status": "success", "message": "تم تحديث البيانات بنجاح"})
+        logger.info("بدء عملية المزامنة مع قمرة...")
+        
+        # 1. جلب البيانات من قمرة (نسحب 50 منتجاً كمثال للبدء)
+        query = """
+        query {
+          findAllProducts(input: {page: 1, limit: 50}) {
+            data { 
+                qid, title, quantity, 
+                pricing { price }, 
+                identification { sku }, 
+                weight { weight, unit }, 
+                images { fileUrl } 
+            }
+          }
+        }
+        """
+        result = QomrahGraphQLClient.execute_query(query)
+        
+        if not result or 'findAllProducts' not in result:
+            return jsonify({"status": "error", "message": "فشل الاتصال بـ قمرة"}), 500
+        
+        # 2. معالجة وحفظ البيانات في قاعدة بياناتك
+        products_data = result['findAllProducts'].get('data', [])
+        count = ProductSyncEngine.process_products(products_data)
+        
+        return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح: تم تحديث {count} منتج."})
+        
     except Exception as e:
         logger.error(f"Sync Error: {e}")
-        return jsonify({"status": "error", "message": "فشل الاتصال بالسيرفر الداخلي"}), 500
+        return jsonify({"status": "error", "message": "حدث خطأ أثناء معالجة البيانات"}), 500
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
