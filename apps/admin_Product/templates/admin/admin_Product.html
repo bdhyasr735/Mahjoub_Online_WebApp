@@ -8,7 +8,6 @@
     .page-item.active .page-link { background-color: var(--dark-purple); border-color: var(--dark-purple); color: white; }
     .page-link { color: var(--dark-purple); }
     .text-custom { color: var(--dark-purple); }
-    /* تحسين البطاقة */
     .product-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
     .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important; }
 </style>
@@ -17,8 +16,11 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <button onclick="history.back()" class="btn btn-outline-dark"><i class="fas fa-arrow-right"></i> رجوع</button>
         
-        <form id="searchForm" class="d-flex flex-grow-1 mx-3">
-            <input type="text" id="searchInput" class="form-control" placeholder="ابحث باسم المنتج...">
+        <!-- تعديل الفورم ليكون بحثاً حقيقياً يرسل للمتصفح -->
+        <form action="{{ url_for('admin_product_bp.manage_products') }}" method="GET" class="d-flex flex-grow-1 mx-3">
+            <input type="text" name="search" id="searchInput" class="form-control" 
+                   placeholder="ابحث باسم المنتج..." value="{{ request.args.get('search', '') }}">
+            <button type="submit" class="btn btn-outline-secondary ms-2">بحث</button>
         </form>
 
         <button type="button" class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#syncModal">
@@ -30,7 +32,6 @@
     <div class="row row-cols-1 row-cols-md-5 g-3" id="productGrid">
         {% for product in products %}
         <div class="col product-item">
-            <!-- تم تصحيح الرابط ليتوافق مع route الإضافة الجديد -->
             <a href="{{ url_for('admin_product_bp.add_product') }}" class="text-decoration-none">
                 <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden product-card">
                     <div class="bg-light text-center" style="height: 150px; overflow: hidden;">
@@ -50,39 +51,21 @@
         {% endfor %}
     </div>
 
-    <!-- نظام ترقيم الصفحات الاحترافي -->
+    <!-- نظام ترقيم الصفحات (معدل ليدعم البحث) -->
     <nav aria-label="Page navigation" class="mt-5">
         <ul class="pagination justify-content-center">
-            <!-- السهم السابق -->
             <li class="page-item {% if not pagination.has_prev() %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.prev_num()) }}">«</a>
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.prev_num(), search=request.args.get('search', '')) }}">«</a>
             </li>
-            
-            <!-- إظهار نطاق الصفحات (الحالية +/- 2) -->
             {% for page_num in range(max(1, pagination.page - 2), min(pagination.pages + 1, pagination.page + 3)) %}
                 <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=page_num) }}">{{ page_num }}</a>
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=page_num, search=request.args.get('search', '')) }}">{{ page_num }}</a>
                 </li>
             {% endfor %}
-
-            <!-- السهم التالي -->
             <li class="page-item {% if not pagination.has_next() %}disabled{% endif %}">
-                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.next_num()) }}">»</a>
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.next_num(), search=request.args.get('search', '')) }}">»</a>
             </li>
         </ul>
     </nav>
 </div>
-
-<script>
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        let filter = this.value.toUpperCase();
-        let products = document.getElementsByClassName('product-item');
-        for (let i = 0; i < products.length; i++) {
-            let title = products[i].querySelector('.card-title').innerText.toUpperCase();
-            products[i].style.display = (title.indexOf(filter) > -1) ? "" : "none";
-        }
-    });
-</script>
-
-{% include 'admin/includes/_sync_modal.html' %}
 {% endblock %}
