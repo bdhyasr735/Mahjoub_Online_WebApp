@@ -5,7 +5,8 @@ import logging
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
 from apps.services.graphql_client import QomrahGraphQLClient
-from apps.api.product_sync_engine import ProductSyncEngine
+# تم التعديل هنا ليتطابق مع اسم الملف الفعلي sync_engine.py
+from apps.api.sync_engine import ProductSyncEngine
 
 # إعداد الـ Logger
 logger = logging.getLogger(__name__)
@@ -60,7 +61,6 @@ def add_product():
 @login_required
 def proxy_sync():
     try:
-        # جلب البيانات من المصدر الخارجي
         query = """
         query {
           findAllProducts(input: {page: 1, limit: 100}) {
@@ -79,7 +79,6 @@ def proxy_sync():
         if not result or 'findAllProducts' not in result:
             return jsonify({"status": "error", "message": "فشل الاتصال بـ قمرة"}), 500
         
-        # معالجة وحفظ البيانات عبر المحرك
         products_data = result['findAllProducts'].get('data', [])
         count = ProductSyncEngine.process_products(products_data)
         
