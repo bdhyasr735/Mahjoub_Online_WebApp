@@ -13,7 +13,7 @@
                     <p id="sync-status" class="text-center small text-muted">جاري البدء...</p>
                 </div>
                 <div id="sync-info">
-                    <p>سيتم جلب المنتجات من "محجوب" وتحديث قاعدة البيانات المحلية. هل أنت متأكد؟</p>
+                    <p>سيتم جلب البيانات المحدثة من قمرة وتحديث قاعدة بيانات "محجوب".</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -32,16 +32,15 @@
         const statusText = document.getElementById('sync-status');
         const infoArea = document.getElementById('sync-info');
         
-        // إعادة تعيين الواجهة
         btn.disabled = true;
         infoArea.classList.add('d-none');
         progressArea.classList.remove('d-none');
         
-        // 1. جلب البيانات من السيرفر المحلي (Proxy)
         progressBar.style.width = '30%';
-        statusText.innerText = "جاري الجلب عبر السيرفر...";
+        statusText.innerText = "جاري الاتصال بالسيرفر وجلب البيانات...";
         
         try {
+            // 1. جلب البيانات من الـ Proxy
             const response = await fetch("{{ url_for('admin_product_bp.proxy_sync') }}", {
                 method: 'POST',
                 headers: { 
@@ -50,27 +49,27 @@
                 }
             });
 
-            if (!response.ok) throw new Error("فشل الاتصال بالسيرفر المحلي (Proxy)");
+            if (!response.ok) throw new Error("فشل الاتصال بخدمة المزامنة");
 
             const result = await response.json();
-            const products = result.data;
+            // بما أن الـ proxy_sync سيعيد هيكل الـ GraphQL
+            const products = result.data?.findAllProducts?.data;
 
-            if (!products || !Array.isArray(products) || products.length === 0) {
+            if (!products || products.length === 0) {
                 throw new Error("لم يتم العثور على منتجات في المصدر");
             }
 
-            // 2. تحديث الواجهة لبدء الحفظ
             progressBar.style.width = '60%';
-            statusText.innerText = `تم جلب ${products.length} منتج، جاري الحفظ في قاعدة البيانات...`;
+            statusText.innerText = `تم جلب ${products.length} منتج، جاري المعالجة والحفظ...`;
 
-            // 3. إرسال البيانات للحفظ
+            // 2. إرسال البيانات للمعالجة (تطابق الهيكل الذي أعددناه في save_sync)
             const saveResponse = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': "{{ csrf_token() }}"
                 },
-                body: JSON.stringify({ products: products })
+                body: JSON.stringify({ data: { findAllProducts: { data: products } } })
             });
 
             const saveResult = await saveResponse.json();
@@ -79,16 +78,13 @@
                 progressBar.style.width = '100%';
                 statusText.innerText = "تمت المزامنة بنجاح!";
                 statusText.classList.add('text-success');
-                
-                // تحديث الصفحة بعد ثانية لإظهار التغييرات
                 setTimeout(() => { location.reload(); }, 1000);
             } else {
-                throw new Error(saveResult.message || "فشل عملية حفظ البيانات في قاعدة البيانات");
+                throw new Error(saveResult.message || "فشل حفظ البيانات");
             }
             
         } catch (err) {
-            console.error("Sync Error:", err);
-            statusText.innerText = "حدث خطأ: " + err.message;
+            statusText.innerText = "خطأ: " + err.message;
             statusText.classList.add('text-danger');
             btn.disabled = false;
         }
