@@ -16,11 +16,12 @@ def manage_products():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
     
+    # استعلام القاعدة محلياً
     query = Product.query
     if search:
         query = query.filter(or_(Product.title.contains(search), Product.sku.contains(search)))
         
-    # زيادة عدد العناصر في الصفحة الواحدة لـ 20
+    # الترقيم يعمل الآن بكفاءة بناءً على العدد الفعلي للمنتجات في قاعدة البيانات بعد المزامنة
     pagination = query.order_by(Product.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
     
     return render_template('admin/admin_Product.html', 
@@ -31,7 +32,7 @@ def manage_products():
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    # هنا التعديل الجوهري: إضافة limit كبير لجلب كافة المنتجات
+    # سحب كافة المنتجات دفعة واحدة (limit: 5000)
     query = """
     query Data {
       findAllProducts(input: { limit: 5000 }) {
@@ -90,4 +91,9 @@ def save_sync():
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# ... (دالة edit_product تبقى كما هي)
+# دالة التعديل (يتم استدعاؤها في حال وجودها)
+@admin_product_bp.route('/edit/<int:product_id>', methods=['GET', 'POST'])
+@login_required
+def edit_product(product_id):
+    # كود التعديل الخاص بك هنا
+    pass
