@@ -6,6 +6,7 @@ from flask_login import login_required
 from apps.models.product_db import Product
 from apps.extensions import db
 from apps.services.graphql_client import QomrahGraphQLClient
+from sqlalchemy import or_
 
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
@@ -13,8 +14,19 @@ admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='temp
 @login_required
 def manage_products():
     page = request.args.get('page', 1, type=int)
-    pagination = Product.query.order_by(Product.created_at.desc()).paginate(page=page, per_page=12, error_out=False)
-    return render_template('admin/admin_Product.html', products=pagination.items, pagination=pagination)
+    search = request.args.get('search', '', type=str)
+    
+    # بناء الاستعلام (فلترة بالاسم أو الـ SKU)
+    query = Product.query
+    if search:
+        query = query.filter(or_(Product.title.contains(search), Product.sku.contains(search)))
+        
+    pagination = query.order_by(Product.created_at.desc()).paginate(page=page, per_page=12, error_out=False)
+    
+    return render_template('admin/admin_Product.html', 
+                           products=pagination.items, 
+                           pagination=pagination, 
+                           search=search)
 
 # --- مسار صفحة التعديل مع ربط قمرة ---
 @admin_product_bp.route('/product/edit/<int:product_id>', methods=['GET', 'POST'])
@@ -23,14 +35,12 @@ def edit_product(product_id):
     product = Product.query.get_or_404(product_id)
     
     if request.method == 'POST':
-        # 1. تحديث القيم في قاعدة البيانات المحلية
         product.title = request.form.get('title', product.title)
         product.quantity = request.form.get('quantity', product.quantity)
         product.cost_price = request.form.get('cost_price', product.cost_price)
         product.sku = request.form.get('sku', product.sku)
         product.weight_val = request.form.get('weight_val', product.weight_val)
         
-        # 2. إرسال التعديلات إلى قمرة (Mutation)
         mutation = """
         mutation UpdateProduct($id: ID!, $input: UpdateProductInput!) {
             updateProduct(id: $id, input: $input) {
@@ -50,9 +60,7 @@ def edit_product(product_id):
         }
         
         try:
-            # افتراض أن execute_query هي الدالة المستخدمة في QomrahGraphQLClient
             response = QomrahGraphQLClient.execute_query(mutation, variables=variables)
-            
             if response and response.get('data', {}).get('updateProduct', {}).get('success'):
                 db.session.commit()
                 flash('تم تحديث بيانات المنتج في المتجر (قمرة) ومحلياً بنجاح', 'success')
