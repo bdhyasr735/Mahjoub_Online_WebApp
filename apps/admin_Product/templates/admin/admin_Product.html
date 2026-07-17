@@ -30,7 +30,7 @@
     <div class="row row-cols-1 row-cols-md-5 g-3" id="productGrid">
         {% for product in products %}
         <div class="col product-item">
-            <!-- تحويل البطاقة لرابط -->
+            <!-- تم تصحيح الرابط ليتوافق مع route الإضافة الجديد -->
             <a href="{{ url_for('admin_product_bp.add_product') }}" class="text-decoration-none">
                 <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden product-card">
                     <div class="bg-light text-center" style="height: 150px; overflow: hidden;">
