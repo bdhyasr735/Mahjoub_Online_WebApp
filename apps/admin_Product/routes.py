@@ -31,27 +31,33 @@ def manage_products():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '').strip()
     
-    query = """
-    query Data($input: GetAllProductsInput) {
-      findAllProducts(input: $input) {
-        data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
-        pagination { totalPages, currentPage, totalItems }
-      }
-    }
-    """
-    
-    # بناء الـ input ديناميكياً
-    input_data = {"page": page, "limit": 10}
+    # استخدام منطق البحث الجديد بناءً على تعليمات الشركة
     if search:
-        input_data["search"] = search
-        
-    variables = {"input": input_data}
-    data_key = 'findAllProducts'
+        query = """
+        query Search($input: SearchProductsInput!) {
+          searchProducts(input: $input) {
+            data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
+            pagination { totalPages, currentPage, totalItems }
+          }
+        }
+        """
+        variables = {"input": {"query": search, "page": page, "limit": 10}}
+        data_key = 'searchProducts'
+    else:
+        query = """
+        query Data($input: GetAllProductsInput) {
+          findAllProducts(input: $input) {
+            data { qid, title, quantity, pricing { price }, images { fileUrl }, identification { sku } }
+            pagination { totalPages, currentPage, totalItems }
+          }
+        }
+        """
+        variables = {"input": {"page": page, "limit": 10}}
+        data_key = 'findAllProducts'
     
     try:
         result = QomrahGraphQLClient.execute_query(query, variables=variables)
-        # تتبع الرد في الـ Logs لاكتشاف هل الفلترة تعمل أم لا
-        logger.info(f"GraphQL Response for search '{search}': {result}")
+        logger.info(f"GraphQL Query executed: {data_key}")
     except Exception as e:
         logger.error(f"GraphQL Error: {e}")
         result = {}
