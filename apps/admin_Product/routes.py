@@ -3,12 +3,14 @@
 
 from flask import render_template, request, flash
 from flask_login import login_required
+# الاستيراد من registry للوصول للـ Blueprint المعرّف هناك
 from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
 import logging
 
 logger = logging.getLogger(__name__)
 
+# استعلام جلب المنتجات
 GET_ALL_PRODUCTS_QUERY = """
 query Data($input: GetAllProductsInput) {
   findAllProducts(input: $input) {
@@ -30,7 +32,7 @@ def manage_products():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('title', '').strip()
     
-    # تحسين: نرسل قيم فارغة للـ title إذا لم يكن هناك بحث لضمان جلب القائمة كاملة
+    # تحسين: إذا لم يوجد نص بحث، نرسل None لجلب القائمة كاملة من السيرفر
     variables = {
         "input": {
             "page": page,
@@ -47,11 +49,11 @@ def manage_products():
         
         if response and 'findAllProducts' in response:
             result = response['findAllProducts']
-            # جلب البيانات مباشرة من السيرفر
+            # جلب البيانات من السيرفر
             products = result.get('data', []) or []
             pagination = result.get('pagination', {"currentPage": page, "totalPages": 1})
             
-            # إذا كان هناك بحث، نطبق الفلترة على النتائج القادمة من السيرفر
+            # فلترة محلية إضافية إذا لزم الأمر
             if search:
                 products = [
                     p for p in products 
