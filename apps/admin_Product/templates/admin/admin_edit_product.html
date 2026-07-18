@@ -63,7 +63,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // معاينة الصورة المختارة
     function handleImage(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
@@ -72,27 +71,35 @@
         }
     }
 
-    // إرسال البيانات للسيرفر
     document.getElementById('editProductForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        // التعديل: تجميع البيانات بشكل صحيح يتضمن الـ qid
         const payload = {
+            qid: document.getElementById('qid').value,
             title: document.getElementById('title').value,
-            price: document.getElementById('price').value,
-            quantity: document.getElementById('quantity').value,
-            // سيتم إضافة المنطق الخاص برفع الصورة لاحقاً هنا
+            price: parseFloat(document.getElementById('price').value),
+            quantity: parseInt(document.getElementById('quantity').value)
         };
 
-        const response = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            Swal.fire('تم التحديث!', 'تم تعديل بيانات المنتج بنجاح.', 'success').then(() => {
-                window.location.href = "{{ url_for('admin_product_bp.manage_products') }}";
+        try {
+            const response = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
+
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                Swal.fire('تم التحديث!', 'تم تعديل بيانات المنتج بنجاح.', 'success').then(() => {
+                    window.location.href = "{{ url_for('admin_product_bp.manage_products') }}";
+                });
+            } else {
+                Swal.fire('خطأ!', result.message || 'حدث خطأ غير متوقع', 'error');
+            }
+        } catch (err) {
+            Swal.fire('خطأ!', 'فشل الاتصال بالسيرفر.', 'error');
         }
     });
 </script>
