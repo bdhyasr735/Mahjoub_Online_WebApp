@@ -24,7 +24,8 @@ query GetProduct($qid: ID!) {
 }
 """
 
-@admin_product_bp.route('/edit/<qid>', methods=['GET'])
+# تم تغيير <qid> إلى <path:qid> لحل مشكلة الرموز الخاصة في الرابط
+@admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
     """
@@ -32,6 +33,7 @@ def edit_product(qid):
     """
     try:
         # 1. جلب البيانات من قمرة
+        # الـ qid يصل هنا كاملاً ومحفوظاً برموزه
         response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, variables={"qid": qid})
         result = response.get('data', {}) if response else {}
         product = result.get('findProductByQid')
@@ -73,7 +75,7 @@ def update_product():
     """
     
     try:
-        # إرسال البيانات المجمعة بما فيها الـ supplier_id للميوتيشن
+        # إرسال البيانات المجمعة للميوتيشن
         response = QomrahGraphQLClient.execute_query(mutation, variables={"input": data}) or {}
         result = response.get('data', {}).get('updateProduct', {})
         
