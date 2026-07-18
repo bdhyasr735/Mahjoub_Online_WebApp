@@ -1,7 +1,8 @@
+# apps/admin_Product/routes_edit.py
+
 # coding: utf-8
 from flask import render_template, request, jsonify
 from flask_login import login_required
-# التعديل هنا: الاستيراد الصحيح ليتوافق مع وجود الـ Blueprint في ملف routes.py
 from .routes import admin_product_bp 
 from apps.services.graphql_client import QomrahGraphQLClient
 import logging
@@ -34,9 +35,9 @@ def edit_product(qid):
     """
     
     try:
-        # تنفيذ الاستعلام لجلب بيانات المنتج الحالي
-        result = QomrahGraphQLClient.execute_query(query, variables={"qid": qid})
-        product = result.get('findProductByQid') if result else None
+        # تنفيذ الاستعلام لجلب بيانات المنتج الحالي من "قمرة"
+        result = QomrahGraphQLClient.execute_query(query, variables={"qid": qid}) or {}
+        product = result.get('findProductByQid')
         
         if not product:
             logger.error(f"Product not found: {qid}")
@@ -58,7 +59,14 @@ def update_product():
     if not data or 'qid' not in data:
         return jsonify({"status": "error", "message": "بيانات غير مكتملة"}), 400
         
-    # هنا يتم إعداد الـ Mutation الخاص بالتعديل في "قمرة"
-    # QomrahGraphQLClient.execute_query(mutation, variables={...})
-    
-    return jsonify({"status": "success", "message": "تم تحديث المنتج بنجاح"})
+    try:
+        # ملاحظة: قم بتعريف الـ Mutation الخاص بك هنا وفقاً لمتطلبات "قمرة"
+        # mutation = "mutation UpdateProduct($input: UpdateProductInput!) { ... }"
+        # QomrahGraphQLClient.execute_query(mutation, variables={"input": data})
+        
+        logger.info(f"Updating product {data['qid']} with data: {data}")
+        return jsonify({"status": "success", "message": "تم تحديث المنتج بنجاح"})
+        
+    except Exception as e:
+        logger.error(f"Error updating product {data.get('qid')}: {e}")
+        return jsonify({"status": "error", "message": "فشل التحديث في النظام"}), 500
