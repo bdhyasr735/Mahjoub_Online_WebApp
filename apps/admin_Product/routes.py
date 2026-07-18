@@ -3,14 +3,12 @@
 
 from flask import render_template, request, flash
 from flask_login import login_required
-# الاستيراد من registry للوصول للـ Blueprint المعرّف هناك
 from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
 import logging
 
 logger = logging.getLogger(__name__)
 
-# استعلام جلب المنتجات (نقلناه هنا ليكون قريباً من المسار)
 GET_ALL_PRODUCTS_QUERY = """
 query Data($input: GetAllProductsInput) {
   findAllProducts(input: $input) {
@@ -32,6 +30,7 @@ def manage_products():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('title', '').strip()
     
+    # تحسين: نرسل قيم فارغة للـ title إذا لم يكن هناك بحث لضمان جلب القائمة كاملة
     variables = {
         "input": {
             "page": page,
@@ -48,23 +47,21 @@ def manage_products():
         
         if response and 'findAllProducts' in response:
             result = response['findAllProducts']
-            all_products = result.get('data', []) or []
+            # جلب البيانات مباشرة من السيرفر
+            products = result.get('data', []) or []
+            pagination = result.get('pagination', {"currentPage": page, "totalPages": 1})
             
+            # إذا كان هناك بحث، نطبق الفلترة على النتائج القادمة من السيرفر
             if search:
                 products = [
-                    p for p in all_products 
+                    p for p in products 
                     if p.get('title') and search.lower() in str(p.get('title')).lower()
                 ]
-                pagination = {"currentPage": 1, "totalPages": 1}
-            else:
-                products = all_products
-                pagination = result.get('pagination', {"currentPage": page, "totalPages": 1})
                 
     except Exception as e:
-        logger.error(f"❌ خطأ في موديول المنتجات أثناء الفلترة: {e}")
-        flash("حدث خطأ أثناء معالجة البيانات.")
+        logger.error(f"❌ خطأ أثناء جلب البيانات: {e}")
+        flash("حدث خطأ أثناء تحميل قائمة المنتجات.")
 
-    # تم التصحيح هنا: admin_Product.html بحرف P كبيرة
     return render_template(
         'admin/admin_Product.html',
         products=products,
