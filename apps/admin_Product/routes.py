@@ -15,7 +15,7 @@ def manage_products():
     search = request.args.get('search', '').strip()
     
     # 2. استعلام GraphQL
-    # تم تعديل المدخل ليكون 'title' بناءً على الـ Schema
+    # نستخدم حقل 'title' للبحث ليتوافق مع Schema
     query = """
     query Data($input: GetAllProductsInput) {
       findAllProducts(input: $input) {
@@ -30,7 +30,7 @@ def manage_products():
     }
     """
     
-    # تصحيح مفتاح البحث ليتطابق مع حقل 'title' في GetAllProductsInput
+    # تصحيح مفتاح البحث ليكون 'title' بدلاً من 'search'
     variables = {
         "input": {
             "page": page, 
