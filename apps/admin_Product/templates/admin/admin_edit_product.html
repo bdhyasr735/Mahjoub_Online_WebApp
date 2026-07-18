@@ -10,6 +10,7 @@
     .image-upload-box { border: 2px dashed #ddd; padding: 20px; text-align: center; border-radius: 10px; cursor: pointer; transition: 0.3s; }
     .image-upload-box:hover { border-color: var(--dark-purple); }
     #imagePreview { max-height: 200px; border-radius: 10px; margin-top: 15px; border: 2px solid #eee; }
+    .form-select:focus { border-color: var(--dark-purple); box-shadow: 0 0 0 0.25rem rgba(45, 11, 54, 0.25); }
 </style>
 
 <div class="container-fluid py-4">
@@ -22,15 +23,16 @@
         <div class="col-md-8">
             <div class="card shadow-sm border-0 rounded-4 p-4">
                 <form id="editProductForm">
-                    <!-- حقل مخفي لتمرير الـ QID -->
                     <input type="hidden" id="qid" value="{{ product.qid }}">
                     
                     <div class="row">
+                        <!-- اسم المنتج -->
                         <div class="col-md-12 mb-3">
                             <label class="form-label fw-bold small">اسم المنتج</label>
                             <input type="text" id="title" class="form-control" value="{{ product.title }}" required>
                         </div>
 
+                        <!-- السعر والكمية -->
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold small">السعر</label>
                             <input type="number" id="price" step="0.01" class="form-control" value="{{ product.pricing.price if product.pricing else 0 }}" required>
@@ -40,6 +42,20 @@
                             <input type="number" id="quantity" class="form-control" value="{{ product.quantity or 0 }}" required>
                         </div>
 
+                        <!-- اختيار المورد -->
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold small text-custom">المورد المرتبط</label>
+                            <select id="supplier_id" class="form-select border-primary" required>
+                                <option value="">اختر المورد...</option>
+                                {% for supplier in suppliers %}
+                                    <option value="{{ supplier.id }}" {% if product.supplier_id|string == supplier.id|string %}selected{% endif %}>
+                                        {{ supplier.full_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- رفع الصورة -->
                         <div class="col-md-12 mb-4">
                             <label class="form-label fw-bold small">صورة المنتج</label>
                             <div class="image-upload-box" onclick="document.getElementById('fileInput').click()">
@@ -79,11 +95,11 @@
             qid: document.getElementById('qid').value,
             title: document.getElementById('title').value,
             price: parseFloat(document.getElementById('price').value),
-            quantity: parseInt(document.getElementById('quantity').value)
+            quantity: parseInt(document.getElementById('quantity').value),
+            supplier_id: document.getElementById('supplier_id').value
         };
 
         try {
-            // يتم التحديث عبر المسار الموحد المربوط بـ admin_product_bp
             const response = await fetch("{{ url_for('admin_product_bp.update_product') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
