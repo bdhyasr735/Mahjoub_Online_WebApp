@@ -15,7 +15,7 @@ def manage_products():
     search = request.args.get('search', '').strip()
     
     # 2. استعلام GraphQL
-    # نستخدم 'keyword' كمدخل للبحث. إذا لم يعمل، سنغيره بناءً على سجلات الخطأ.
+    # تم تعديل المدخل ليكون 'title' بدلاً من 'keyword' بناءً على الـ Schema
     query = """
     query Data($input: GetAllProductsInput) {
       findAllProducts(input: $input) {
@@ -30,11 +30,12 @@ def manage_products():
     }
     """
     
+    # تصحيح مفتاح البحث ليتطابق مع حقل 'title' في GetAllProductsInput
     variables = {
         "input": {
             "page": page, 
             "limit": 100,
-            "keyword": search if search else None
+            "title": search if search else None
         }
     }
     
@@ -50,7 +51,7 @@ def manage_products():
     products = data_payload.get('data', [])
     pag_info = data_payload.get('pagination', {"totalPages": 1, "currentPage": 1, "totalItems": 0})
     
-    # كلاس بسيط لتسهيل التعامل مع الترقيم في القالب (Template)
+    # كلاس بسيط لتسهيل التعامل مع الترقيم في القالب
     class Pagination:
         def __init__(self, p):
             self.currentPage = p.get('currentPage', 1)
