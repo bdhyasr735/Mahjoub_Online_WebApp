@@ -22,7 +22,8 @@
         </form>
 
         <button type="button" class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#syncModal">
-            <i class="fas fa-sync-alt"></i> مزامنة ({{ pagination.total }})
+            <!-- استخدام شرط بسيط لتجنب خطأ الـ total في حال كان الكائن يختلف -->
+            <i class="fas fa-sync-alt"></i> مزامنة ({{ pagination.total if pagination.total is defined else '0' }})
         </button>
     </div>
 
@@ -30,22 +31,29 @@
     <div class="row row-cols-1 row-cols-md-5 g-3" id="productGrid">
         {% for product in products %}
         <div class="col product-item">
-            <!-- تم تحديث الرابط ليوجه لصفحة التعديل الخاصة بالمنتج -->
             <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}" class="text-decoration-none">
                 <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden product-card">
                     <div class="bg-light text-center" style="height: 150px; overflow: hidden;">
+                        <!-- التأكد من هيكلة البيانات لتعمل مع الـ API والقاعدة المحلية -->
                         <img src="{{ product.images[0].fileUrl if product.images and product.images|length > 0 else '/static/images/default.png' }}" 
-                             class="w-100 h-100" style="object-fit: cover;" alt="{{ product.title }}">
+                              class="w-100 h-100" style="object-fit: cover;" alt="{{ product.title }}">
                     </div>
                     <div class="card-body p-2">
                         <h6 class="card-title fw-bold text-truncate" title="{{ product.title }}">{{ product.title }}</h6>
                         <div class="d-flex justify-content-between small text-muted">
                             <span>الكمية: {{ product.quantity or 0 }}</span>
-                            <span class="text-custom fw-bold">{{ product.pricing.price or 0 }} ر.س</span>
+                            <!-- التحقق من مكان وجود السعر في هيكل البيانات -->
+                            <span class="text-custom fw-bold">
+                                {{ product.pricing.price if product.pricing and product.pricing.price else (product.price or 0) }} ر.س
+                            </span>
                         </div>
                     </div>
                 </div>
             </a>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <p class="text-muted">لا توجد منتجات لعرضها.</p>
         </div>
         {% endfor %}
     </div>
@@ -71,7 +79,6 @@
 </div>
 
 <script>
-    // عند الضغط على Enter في مربع البحث يتم إرسال الطلب للسيرفر
     document.getElementById('searchInput').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             this.form.submit();
