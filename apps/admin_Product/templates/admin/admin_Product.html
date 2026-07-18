@@ -33,8 +33,8 @@
     <!-- إحصائيات -->
     {% if pagination %}
     <div class="text-center mb-4 text-muted">
-        إجمالي المنتجات: <strong>{{ pagination.total }}</strong> | 
-        الصفحة <strong>{{ pagination.page }}</strong> من <strong>{{ pagination.pages }}</strong>
+        إجمالي المنتجات: <strong>{{ pagination.totalItems }}</strong> | 
+        الصفحة <strong>{{ pagination.currentPage }}</strong> من <strong>{{ pagination.totalPages }}</strong>
     </div>
     {% endif %}
 
@@ -49,7 +49,6 @@
                     <div class="card-body">
                         <h6 class="card-title fw-bold text-dark mb-3" style="height: 2.5em; overflow: hidden;">{{ product.title }}</h6>
                         <div class="d-flex justify-content-between align-items-center">
-                            {# عرض السعر والعملة ديناميكياً من بيانات المنتج #}
                             <span class="badge bg-dark">
                                 {{ product.pricing.price }} {{ product.pricing.currency | default('ر.س') }}
                             </span>
@@ -68,6 +67,26 @@
         {% endfor %}
     </div>
 
+    <!-- الترقيم الاحترافي -->
+    {% if pagination and pagination.totalPages > 1 %}
+    <nav aria-label="Page navigation" class="mt-5">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {{ 'disabled' if pagination.currentPage <= 1 }}">
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage-1, search=search) }}">السابق</a>
+            </li>
+            
+            {% for p in range(1, pagination.totalPages + 1) %}
+            <li class="page-item {{ 'active' if p == pagination.currentPage }}">
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=p, search=search) }}">{{ p }}</a>
+            </li>
+            {% endfor %}
+
+            <li class="page-item {{ 'disabled' if pagination.currentPage >= pagination.totalPages }}">
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage+1, search=search) }}">التالي</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 
 <script>
