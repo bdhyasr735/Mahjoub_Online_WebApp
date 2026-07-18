@@ -1,56 +1,54 @@
 # coding: utf-8
-from flask import render_template, request, jsonify
-from flask_login import login_required
-from . import admin_product_bp 
-from apps.services.graphql_client import QomrahGraphQLClient
 import logging
+from flask import Blueprint, render_template, request
+from flask_login import login_required
+from apps.services.graphql_client import QomrahGraphQLClient
+
+# تعريف الـ Blueprint في ملف الـ routes لضمان توفره للـ registry وللملفات الأخرى
+admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
 logger = logging.getLogger(__name__)
 
-@admin_product_bp.route('/add', methods=['GET', 'POST'])
+@admin_product_bp.route('/', methods=['GET'])
 @login_required
-def add_product():
+def manage_products():
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    
+    query = """
+    query Data($input: GetAllProductsInput) {
+      findAllProducts(input: $input) {
+        data { qid, title, quantity, pricing { price }, images { fileUrl } }
+        pagination { totalPages, currentPage, totalItems }
+      }
+    }
     """
-    عرض صفحة إضافة منتج جديد ومعالجة بيانات الفورم.
-    """
-    if request.method == 'GET':
-        return render_template('admin/admin_add_product.html', product=None)
+    variables = {"input": {"page": page, "limit": 20, "search": search} if search else {"page": page, "limit": 20}}
+    
+    try:
+        result = QomrahGraphQLClient.execute_query(query, variables=variables) or {}
+    except Exception as e:
+        logger.error(f"GraphQL Error: {e}")
+        result = {}
 
-    if request.method == 'POST':
-        try:
-            data = request.get_json()
-            title = data.get('title')
-            price = data.get('price')
-            quantity = data.get('quantity')
-            sku = data.get('sku')
+    data = result.get('findAllProducts', {})
+    products = data.get('data', [])
+    pag_info = data.get('pagination', {"totalPages": 1, "currentPage": 1, "totalItems": 0})
+    
+    class ProPagination:
+        def __init__(self, p):
+            self.page = p['currentPage']
+            self.pages = p['totalPages']
+            self.total = p['totalItems']
+            self.has_prev = lambda: self.page > 1
+            self.has_next = lambda: self.page < self.pages
+            self.prev_num = lambda: self.page - 1
+            self.next_num = lambda: self.page + 1
             
-            # التحقق الأساسي
-            if not title or not price:
-                return jsonify({'status': 'error', 'message': 'يرجى تعبئة الحقول المطلوبة'}), 400
-            
-            # تنفيذ الـ Mutation الخاص بإنشاء منتج في قمرة
-            mutation = """
-            mutation CreateProduct($input: CreateProductInput!) {
-                createProduct(input: $input) { qid }
-            }
-            """
-            variables = {
-                "input": {
-                    "title": title,
-                    "price": float(price),
-                    "quantity": int(quantity),
-                    "sku": sku
-                }
-            }
-            
-            # QomrahGraphQLClient.execute_query(mutation, variables=variables)
-            
-            logger.info(f"تم إضافة منتج جديد: {title}")
-            return jsonify({'status': 'success', 'message': 'تم إضافة المنتج بنجاح'}), 200
-            
-        except Exception as e:
-            logger.error(f"Error adding product: {e}")
-            return jsonify({'status': 'error', 'message': str(e)}), 500
+    return render_template('admin/admin_Product.html', 
+                           products=products, 
+                           pagination=ProPagination(pag_info),
+                           search=search)
 
-# ملاحظة: تم إزالة save_sync من هنا لأنه موجود في routes_sync.py 
-# للحفاظ على مبدأ فصل المهام (Separation of Concerns).
+# استيراد الملفات الفرعية في نهاية الملف لتسجيل الراوترات الخاصة بها في نفس الـ Blueprint
+from . import routes_add, routes_edit, routes_sync
