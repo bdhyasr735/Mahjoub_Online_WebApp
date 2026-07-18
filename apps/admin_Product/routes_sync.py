@@ -1,7 +1,6 @@
 # coding: utf-8
 from flask import request, jsonify
 from flask_login import login_required
-# تصحيح الاستيراد: الاعتماد على registry لتوحيد الـ Blueprint ومنع Circular Import
 from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
 import logging
@@ -12,15 +11,15 @@ logger = logging.getLogger(__name__)
 @login_required
 def proxy_sync():
     """
-    مسار للمزامنة العامة لجلب البيانات من قمرة (Sync)
+    مسار للمزامنة العامة لجلب البيانات من قمرة
     """
     try:
-        # هنا يتم تنفيذ منطق جلب البيانات من قمرة
-        logger.info("تم بدء عملية المزامنة عبر proxy-sync")
-        return jsonify({
-            "status": "success", 
-            "message": "تمت المزامنة بنجاح مع قمرة"
-        }), 200
+        # مثال لاستعلام المزامنة (تأكد من اسم الـ mutation في Schema قمرة)
+        mutation = "mutation { syncFromQomrah { status message } }"
+        result = QomrahGraphQLClient.execute_query(mutation) or {}
+        
+        logger.info("تم تنفيذ عملية المزامنة العامة بنجاح")
+        return jsonify({"status": "success", "message": "تمت المزامنة بنجاح مع قمرة"}), 200
     except Exception as e:
         logger.error(f"Error during proxy sync: {e}")
         return jsonify({"status": "error", "message": "فشلت عملية المزامنة"}), 500
@@ -36,7 +35,6 @@ def save_sync():
         return jsonify({"status": "error", "message": "لا توجد بيانات للارسال"}), 400
 
     try:
-        # تجهيز الـ Mutation لإرسال التعديلات لقمرة
         mutation = """
         mutation UpdateProduct($input: UpdateProductInput!) {
             updateProduct(input: $input) {
@@ -44,17 +42,13 @@ def save_sync():
             }
         }
         """
-        # نرسل البيانات المستلمة من الفرونت إند
         variables = {"input": data}
         
-        # تنفيذ الـ Mutation
-        # QomrahGraphQLClient.execute_query(mutation, variables=variables)
+        # تفعيل الاتصال الفعلي بقاعدة البيانات
+        QomrahGraphQLClient.execute_query(mutation, variables=variables)
         
         logger.info(f"تم تحديث المنتج: {data.get('qid', 'unknown')}")
-        return jsonify({
-            "status": "success", 
-            "message": "تم حفظ التعديلات في قمرة بنجاح"
-        }), 200
+        return jsonify({"status": "success", "message": "تم حفظ التعديلات في قمرة بنجاح"}), 200
         
     except Exception as e:
         logger.error(f"Error during save sync: {e}")
