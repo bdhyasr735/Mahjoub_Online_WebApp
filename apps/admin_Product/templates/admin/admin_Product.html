@@ -23,8 +23,9 @@
     <!-- الرأس: عنوان مع زر رجوع -->
     <div class="row align-items-center mb-4">
         <div class="col-md-4">
-            <a href="{{ url_for('admin_bp.dashboard') }}" class="btn-back d-block mb-2">
-                <i class="fas fa-arrow-right me-1"></i> العودة للوحة التحكم
+            <!-- تم تعديل الرابط ليتوافق مع اسم الـ Blueprint وتعديل النص إلى "رجوع" -->
+            <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="btn-back d-block mb-2">
+                <i class="fas fa-arrow-right me-1"></i> رجوع
             </a>
             <h3 class="fw-bold mb-0 text-dark">
                 <i class="fas fa-boxes text-muted me-2"></i> إدارة المنتجات
@@ -33,7 +34,6 @@
         
         <div class="col-md-4 search-wrapper">
             <i class="fas fa-search"></i>
-            <!-- النموذج يرسل 'search' ليتم استقباله في الـ route باسم 'search' -->
             <form action="{{ url_for('admin_product_bp.manage_products') }}" method="GET" id="searchForm">
                 <input type="text" name="search" id="searchInput" class="form-control shadow-sm" 
                        placeholder="ابحث عن منتج بالاسم..." value="{{ search }}">
@@ -78,7 +78,7 @@
         {% endfor %}
     </div>
 
-    <!-- الترقيم: تم تحديث الرابط لضمان تمرير قيمة 'search' الحالية -->
+    <!-- الترقيم -->
     {% if pagination and pagination.totalPages > 1 %}
     <nav class="mt-5">
         <ul class="pagination justify-content-center">
