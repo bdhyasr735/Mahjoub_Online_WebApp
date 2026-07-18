@@ -6,11 +6,22 @@ from flask_login import login_required
 # ✅ الاستيراد الآمن المباشر من الـ registry لمنع التعارض الدائري
 from .registry import admin_product_bp 
 from apps.services.graphql_client import QomrahGraphQLClient
-# 🚀 استيراد الاستعلام المركزي الخاص بجلب تفاصيل المنتج
-from apps.services.graphql_queries import FIND_PRODUCT_BY_QID
 import logging
 
 logger = logging.getLogger(__name__)
+
+# 🚀 تم تعريف الاستعلام هنا مباشرة لتجنب أي خطأ في استيراد ملفات غير موجودة
+FIND_PRODUCT_QUERY = """
+query GetProduct($qid: ID!) {
+  findProductByQid(qid: $qid) {
+    qid
+    title
+    quantity
+    pricing { price }
+    images { fileUrl }
+  }
+}
+"""
 
 @admin_product_bp.route('/edit/<qid>', methods=['GET'])
 @login_required
@@ -19,8 +30,8 @@ def edit_product(qid):
     راوتر لجلب بيانات المنتج وعرض صفحة التعديل.
     """
     try:
-        # 🚀 استخدام الاستعلام المستورد مركزياً بدلاً من النص الطويل القديم
-        result = QomrahGraphQLClient.execute_query(FIND_PRODUCT_BY_QID, variables={"qid": qid}) or {}
+        # 🚀 استخدام الاستعلام المعرف محلياً
+        result = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, variables={"qid": qid}) or {}
         product = result.get('findProductByQid')
         
         if not product:
