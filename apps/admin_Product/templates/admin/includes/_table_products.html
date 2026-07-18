@@ -39,8 +39,9 @@
                             {{ product.quantity or 0 }}
                         </span>
                     </td>
+                    <!-- تم إزالة "ر.س" ليعتمد العرض على السعر القادم من السيرفر فقط -->
                     <td class="text-custom fw-bold">
-                        {{ product.pricing.price if product.pricing and product.pricing.price else (product.price or 0) }} ر.س
+                        {{ product.pricing.price if product.pricing and product.pricing.price else (product.price or 0) }}
                     </td>
                     <td>
                         <span class="badge bg-light text-dark border">
@@ -50,14 +51,14 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">لا توجد منتجات لعرضها.</td>
+                    <td colspan="5" class="text-center py-4 text-muted">لا توجد منتجات مطابقة للبحث الحالي.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <!-- ترقيم الصفحات المحدث -->
+    <!-- ترقيم الصفحات -->
     {% if pagination and pagination.totalPages > 1 %}
     <div class="card-footer bg-white py-3">
         <nav aria-label="Page navigation">
