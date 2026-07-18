@@ -1,1 +1,99 @@
-apps/admin_Product/templates/admin/admin_add_product.html
+{% extends "admin/admin_base.html" %}
+
+{% block content %}
+<style>
+    :root { --dark-purple: #2d0b36; }
+    .btn-custom { background-color: var(--dark-purple); color: #fff; border: none; }
+    .btn-custom:hover { background-color: #1a0620; color: #eee; }
+    .text-custom { color: var(--dark-purple); }
+    .image-upload-box { border: 2px dashed #ddd; padding: 20px; text-align: center; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+    .image-upload-box:hover { border-color: var(--dark-purple); }
+    #imagePreview { max-height: 200px; border-radius: 10px; margin-top: 15px; border: 2px solid #eee; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <button onclick="history.back()" class="btn btn-outline-dark"><i class="fas fa-arrow-right"></i> رجوع</button>
+        <h4 class="m-0 text-custom fw-bold">تعديل بيانات المنتج</h4>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-4 p-4">
+                <form id="editProductForm">
+                    <!-- حقل مخفي لتمرير الـ QID -->
+                    <input type="hidden" id="qid" value="{{ product.qid }}">
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold small">اسم المنتج</label>
+                            <input type="text" id="title" class="form-control" value="{{ product.title }}" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small">السعر (ر.س)</label>
+                            <input type="number" id="price" step="0.01" class="form-control" value="{{ product.pricing.price if product.pricing else 0 }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small">الكمية</label>
+                            <input type="number" id="quantity" class="form-control" value="{{ product.quantity or 0 }}" required>
+                        </div>
+
+                        <div class="col-md-12 mb-4">
+                            <label class="form-label fw-bold small">تغيير صورة المنتج</label>
+                            <div class="image-upload-box" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-camera fa-2x text-muted"></i>
+                                <p class="mt-2 mb-0">اضغط لالتقاط صورة جديدة أو اختيار ملف</p>
+                                <input type="file" id="fileInput" class="d-none" accept="image/*" capture="environment" onchange="handleImage(this)">
+                            </div>
+                            <div id="previewArea" class="text-center mt-3">
+                                <img id="imagePreview" src="{{ product.images[0].fileUrl if product.images else '/static/images/default.png' }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-custom btn-lg">حفظ التعديلات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // معاينة الصورة المختارة
+    function handleImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => document.getElementById('imagePreview').src = e.target.result;
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // إرسال البيانات للسيرفر
+    document.getElementById('editProductForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const payload = {
+            title: document.getElementById('title').value,
+            price: document.getElementById('price').value,
+            quantity: document.getElementById('quantity').value,
+            // سيتم إضافة المنطق الخاص برفع الصورة لاحقاً هنا
+        };
+
+        const response = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            Swal.fire('تم التحديث!', 'تم تعديل بيانات المنتج بنجاح.', 'success').then(() => {
+                window.location.href = "{{ url_for('admin_product_bp.manage_products') }}";
+            });
+        }
+    });
+</script>
+{% endblock %}
