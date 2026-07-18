@@ -5,25 +5,27 @@
     :root { --dark-purple: #2d0b36; --accent-gold: #c5a059; }
     .btn-custom { background-color: var(--dark-purple); color: #fff; border: none; }
     .btn-custom:hover { background-color: #4a1558; color: #fff; }
+    .btn-back { color: var(--dark-purple); text-decoration: none; font-weight: 500; transition: 0.3s; }
+    .btn-back:hover { color: #000; padding-right: 5px; }
     
-    /* تحسين البطاقات */
     .product-card { transition: all 0.3s ease; text-decoration: none; display: block; }
     .product-card:hover { transform: translateY(-8px); }
     .card { border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
     
-    /* البحث */
     .search-wrapper { position: relative; }
     .search-wrapper i { position: absolute; left: 15px; top: 12px; color: #999; }
     #searchInput { padding-left: 40px; border-radius: 25px; }
     
-    /* شارات الحالة */
     .badge-qty { font-size: 0.75rem; padding: 5px 10px; border-radius: 20px; }
 </style>
 
 <div class="container-fluid py-4">
-    <!-- الرأس: عنوان أنيق مع أدوات التحكم -->
+    <!-- الرأس: عنوان مع زر رجوع -->
     <div class="row align-items-center mb-4">
         <div class="col-md-4">
+            <a href="{{ url_for('admin_bp.dashboard') }}" class="btn-back d-block mb-2">
+                <i class="fas fa-arrow-right me-1"></i> العودة للوحة التحكم
+            </a>
             <h3 class="fw-bold mb-0 text-dark">
                 <i class="fas fa-boxes text-muted me-2"></i> إدارة المنتجات
             </h3>
@@ -58,7 +60,6 @@
                     <div class="card-body">
                         <h6 class="fw-bold mb-2 text-truncate">{{ product.title }}</h6>
                         <div class="d-flex justify-content-between align-items-center mt-2">
-                            <!-- تم حذف "ر.س" ليعتمد العرض على قيمة السعر القادمة من السيرفر -->
                             <span class="text-primary fw-bold">{{ product.pricing.price }}</span>
                             <span class="badge {{ 'bg-success' if product.quantity > 0 else 'bg-danger' }} badge-qty">
                                 {{ product.quantity }} متوفر
@@ -76,7 +77,7 @@
         {% endfor %}
     </div>
 
-    <!-- الترقيم الاحترافي -->
+    <!-- الترقيم -->
     {% if pagination and pagination.totalPages > 1 %}
     <nav class="mt-5">
         <ul class="pagination justify-content-center">
