@@ -1,7 +1,8 @@
 # coding: utf-8
 from flask import request, jsonify
 from flask_login import login_required
-from .routes import admin_product_bp
+# التعديل هنا: الاستيراد من . لتجنب التداخل البرمجي
+from . import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
 import logging
 
@@ -15,8 +16,6 @@ def proxy_sync():
     """
     try:
         # هنا يتم تنفيذ منطق جلب البيانات من قمرة
-        # مثال: result = QomrahGraphQLClient.execute_query(sync_query)
-        
         logger.info("تم بدء عملية المزامنة عبر proxy-sync")
         return jsonify({
             "status": "success", 
