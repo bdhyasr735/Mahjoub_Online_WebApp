@@ -1,6 +1,6 @@
 # coding: utf-8
 import logging
-from flask import render_template, request
+from flask import render_template, request, jsonify
 from flask_login import login_required
 from apps.services.graphql_client import QomrahGraphQLClient
 from .registry import admin_product_bp
@@ -22,7 +22,6 @@ def manage_products():
     }
     """
     
-    # دمج البحث في المتغيرات بشكل مباشر وأكثر أماناً
     variables = {
         "input": {
             "page": page, 
@@ -41,7 +40,6 @@ def manage_products():
     products = data.get('data', [])
     pag_info = data.get('pagination', {"totalPages": 1, "currentPage": 1, "totalItems": 0})
     
-    # تحسين فئة الترقيم لتسهيل الاستخدام
     class ProPagination:
         def __init__(self, p):
             self.currentPage = p.get('currentPage', 1)
@@ -56,3 +54,38 @@ def manage_products():
                            products=products, 
                            pagination=ProPagination(pag_info),
                            search=search)
+
+@admin_product_bp.route('/edit/<qid>', methods=['GET'])
+@login_required
+def edit_product(qid):
+    # جلب تفاصيل منتج واحد باستخدام الـ qid
+    query = """
+    query GetProduct($qid: String!) {
+      getProduct(qid: $qid) {
+        qid, title, quantity, pricing { price }, images { fileUrl }
+      }
+    }
+    """
+    result = QomrahGraphQLClient.execute_query(query, variables={"qid": qid}) or {}
+    product = result.get('getProduct', {})
+    return render_template('admin/admin_edit_product.html', product=product)
+
+@admin_product_bp.route('/update_product', methods=['POST'])
+@login_required
+def update_product():
+    data = request.json
+    # استدعاء GraphQL للتحديث
+    query = """
+    mutation UpdateProduct($input: UpdateProductInput!) {
+      updateProduct(input: $input) {
+        status, message
+      }
+    }
+    """
+    try:
+        # تأكد من مطابقة مدخلات الـ mutation في السيرفر
+        result = QomrahGraphQLClient.execute_query(query, variables={"input": data})
+        return jsonify(result.get('updateProduct', {"status": "success", "message": "تم التحديث"}))
+    except Exception as e:
+        logger.error(f"Update Error: {e}")
+        return jsonify({"status": "error", "message": "فشل الاتصال بالسيرفر"})
