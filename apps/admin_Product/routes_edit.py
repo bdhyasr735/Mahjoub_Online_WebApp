@@ -5,7 +5,7 @@ from flask import render_template, request, jsonify
 from flask_login import login_required
 from .registry import admin_product_bp 
 from apps.services.graphql_client import QomrahGraphQLClient
-from apps.models.supplier_db import Supplier  # تم التصحيح: اسم الملف هو supplier_db
+from apps.models.supplier_db import Supplier 
 import logging
 
 logger = logging.getLogger(__name__)
@@ -32,15 +32,15 @@ def edit_product(qid):
     """
     try:
         # 1. جلب البيانات من قمرة
-        result = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, variables={"qid": qid})
+        response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, variables={"qid": qid})
+        result = response.get('data', {}) if response else {}
+        product = result.get('findProductByQid')
         
         # 2. التحقق من وجود البيانات
-        if not result or 'data' not in result or not result['data'].get('findProductByQid'):
-            logger.error(f"❌ المنتج غير موجود أو خطأ في الاستعلام لـ {qid}: {result}")
+        if not product:
+            logger.error(f"❌ المنتج غير موجود أو خطأ في الاستعلام لـ {qid}")
             return "المنتج غير موجود في قاعدة بيانات قمرة", 404
             
-        product = result['data']['findProductByQid']
-        
         # 3. جلب قائمة الموردين من قاعدة بياناتنا المحلية للربط
         suppliers = Supplier.query.all()
         
@@ -74,14 +74,14 @@ def update_product():
     
     try:
         # إرسال البيانات المجمعة بما فيها الـ supplier_id للميوتيشن
-        result = QomrahGraphQLClient.execute_query(mutation, variables={"input": data}) or {}
-        response_data = result.get('data', {}).get('updateProduct', {})
+        response = QomrahGraphQLClient.execute_query(mutation, variables={"input": data}) or {}
+        result = response.get('data', {}).get('updateProduct', {})
         
-        if response_data.get('status') == 'success':
+        if result.get('status') == 'success':
             logger.info(f"✅ تم تحديث المنتج {data['qid']} بنجاح")
             return jsonify({"status": "success", "message": "تم التحديث بنجاح"})
         else:
-            return jsonify({"status": "error", "message": response_data.get('message', 'فشل التحديث')})
+            return jsonify({"status": "error", "message": result.get('message', 'فشل التحديث')})
         
     except Exception as e:
         logger.error(f"❌ خطأ أثناء تحديث المنتج {data.get('qid')}: {e}")
