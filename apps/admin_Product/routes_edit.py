@@ -1,7 +1,8 @@
 # coding: utf-8
 from flask import render_template, request, jsonify
 from flask_login import login_required
-from .routes import admin_product_bp
+# التعديل هنا: الاستيراد من . بدلاً من .routes
+from . import admin_product_bp 
 from apps.services.graphql_client import QomrahGraphQLClient
 import logging
 
@@ -54,11 +55,10 @@ def update_product():
     راوتر لاستقبال تحديثات المنتج (يتم استدعاؤه عبر AJAX من صفحة التعديل).
     """
     data = request.get_json()
-    qid = data.get('qid')
-    
+    if not data or 'qid' not in data:
+        return jsonify({"status": "error", "message": "بيانات غير مكتملة"}), 400
+        
     # هنا يتم إعداد الـ Mutation الخاص بالتعديل في "قمرة"
-    # مثال توضيحي للمنطق:
-    # mutation = "..."
     # QomrahGraphQLClient.execute_query(mutation, variables={...})
     
     return jsonify({"status": "success", "message": "تم تحديث المنتج بنجاح"})
