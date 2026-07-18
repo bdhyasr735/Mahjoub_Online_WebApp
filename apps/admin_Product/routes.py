@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
 from apps.services.graphql_client import QomrahGraphQLClient
 from apps.api.sync_engine import ProductSyncEngine
+from apps.models.product_db import Product  # استيراد الموديل لجلب البيانات
 
 logger = logging.getLogger(__name__)
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
@@ -28,7 +29,7 @@ class PaginationMock:
 @login_required
 def manage_products():
     page = request.args.get('page', 1, type=int)
-    search = request.args.get('search', '') # دعم البحث
+    search = request.args.get('search', '')
     
     query = """
     query Data($input: GetAllProductsInput) {
@@ -38,7 +39,6 @@ def manage_products():
       }
     }
     """
-    # تمرير قيمة البحث للـ API
     variables = {"input": {"page": page, "limit": 20, "search": search}}
     
     try:
@@ -60,9 +60,7 @@ def manage_products():
 def proxy_sync():
     total_synced = 0
     page = 1
-    
     try:
-        # حلقة تكرار لجلب كل الصفحات حتى تنتهي البيانات
         while True:
             query = """
             query Data($input: GetAllProductsInput) {
@@ -73,19 +71,13 @@ def proxy_sync():
             }
             """
             result = QomrahGraphQLClient.execute_query(query, variables={"input": {"page": page, "limit": 50}})
-            
             if not result or 'findAllProducts' not in result: break
-            
             products_data = result['findAllProducts'].get('data', [])
             if not products_data: break
-            
             total_synced += ProductSyncEngine.process_products(products_data)
-            
-            # التحقق هل توجد صفحات أخرى
             if not result['findAllProducts'].get('pagination', {}).get('hasNextPage'):
                 break
             page += 1
-            
         return jsonify({"status": "success", "message": f"تمت المزامنة بنجاح: تم تحديث {total_synced} منتج."})
     except Exception as e:
         logger.error(f"Sync Error: {e}")
@@ -94,7 +86,15 @@ def proxy_sync():
 @admin_product_bp.route('/add', methods=['GET'])
 @login_required
 def add_product():
-    return render_template('admin/admin_add_product.html')
+    return render_template('admin/admin_add_product.html', product=None)
+
+# المسار الجديد لفتح صفحة التعديل
+@admin_product_bp.route('/edit/<qid>', methods=['GET'])
+@login_required
+def edit_product(qid):
+    # جلب المنتج من قاعدة بياناتك المحلية
+    product = Product.query.filter_by(qid=qid).first()
+    return render_template('admin/admin_add_product.html', product=product)
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
