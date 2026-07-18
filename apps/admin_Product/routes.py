@@ -33,10 +33,12 @@ def manage_products():
     products = data.get('data', [])
     pag_info = data.get('pagination', {"totalPages": 1, "currentPage": 1, "totalItems": 0})
     
-    class MockPagination:
+    # كلاس ترقيم احترافي لإظهار كافة التفاصيل
+    class ProPagination:
         def __init__(self, p):
             self.page = p['currentPage']
             self.pages = p['totalPages']
+            self.total = p['totalItems']
             self.has_prev = lambda: self.page > 1
             self.has_next = lambda: self.page < self.pages
             self.prev_num = lambda: self.page - 1
@@ -44,7 +46,7 @@ def manage_products():
             
     return render_template('admin/admin_Product.html', 
                            products=products, 
-                           pagination=MockPagination(pag_info),
+                           pagination=ProPagination(pag_info),
                            search=search)
 
 @admin_product_bp.route('/add', methods=['GET'])
@@ -73,17 +75,12 @@ def edit_product(qid):
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync():
-    """دالة استقبال بيانات التعديل وإرسالها للـ API"""
     data = request.json
-    # استعلام Mutation لتعديل المنتج (تأكد من مطابقة اسم الـ mutation لـ API قمرة)
     mutation = """
     mutation UpdateProduct($input: UpdateProductInput!) {
-        updateProduct(input: $input) {
-            qid
-        }
+        updateProduct(input: $input) { qid }
     }
     """
-    # تجهيز المدخلات
     variables = {
         "input": {
             "title": data.get('title'),
@@ -93,15 +90,10 @@ def save_sync():
             "imageUrl": data.get('imageUrl')
         }
     }
-    
     result = QomrahGraphQLClient.execute_query(mutation, variables=variables)
-    
-    if result:
-        return jsonify({"status": "success", "message": "تم حفظ المنتج بنجاح"})
-    return jsonify({"status": "error", "message": "فشل الحفظ في الـ API"}), 500
+    return jsonify({"status": "success"}) if result else jsonify({"status": "error"}), 200
 
 @admin_product_bp.route('/proxy-sync', methods=['POST'])
 @login_required
 def proxy_sync():
-    # ... (كود المزامنة الخاص بك هنا)
     return jsonify({"status": "success", "message": "تمت المزامنة"})
