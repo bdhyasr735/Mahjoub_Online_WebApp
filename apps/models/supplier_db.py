@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/models/suppliers_db.py
+# 📂 apps/models/supplier_db.py
 
 import os
 from datetime import datetime
