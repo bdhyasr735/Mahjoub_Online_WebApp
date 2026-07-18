@@ -45,12 +45,14 @@ def manage_products():
     
     try:
         response = QomrahGraphQLClient.execute_query(GET_ALL_PRODUCTS_QUERY, variables)
-        if response and 'findAllProducts' in response:
-            result = response.get('findAllProducts', {})
+        
+        # التأكد من هيكلية الاستجابة من قمرة
+        if response and 'data' in response and 'findAllProducts' in response['data']:
+            result = response['data']['findAllProducts']
             products = result.get('data') if result.get('data') is not None else []
             pagination = result.get('pagination') or {"currentPage": page, "totalPages": 1}
             
-            # فلترة إضافية محلية في حال لزم الأمر
+            # فلترة إضافية محلية في حال لزم الأمر لضمان تطابق النتائج مع البحث
             if search:
                 products = [
                     p for p in products 
