@@ -53,6 +53,7 @@
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
             {% for product in products %}
             <div class="col">
+                <!-- الرابط الآن يمرر الـ qid الخام والذي سيلتقطه المسار الجديد بنجاح -->
                 <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}" class="product-card">
                     <div class="card h-100 border-0">
                         <img src="{{ product.images[0].fileUrl if product.images else '/static/images/default.png' }}" 
@@ -60,7 +61,6 @@
                         <div class="card-body">
                             <h6 class="fw-bold mb-2 text-truncate">{{ product.title }}</h6>
                             <div class="d-flex justify-content-between align-items-center mt-2">
-                                <!-- تم إضافة ر.س هنا -->
                                 <span class="text-primary fw-bold">{{ product.pricing.price }} ر.س</span>
                                 <span class="badge {{ 'bg-success' if product.quantity > 0 else 'bg-danger' }} badge-qty">
                                     {{ product.quantity }} متوفر
