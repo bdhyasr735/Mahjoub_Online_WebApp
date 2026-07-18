@@ -15,7 +15,6 @@ def manage_products():
     search = request.args.get('search', '').strip()
     
     # 2. استعلام GraphQL
-    # نستخدم حقل 'title' للبحث ليتوافق مع Schema
     query = """
     query Data($input: GetAllProductsInput) {
       findAllProducts(input: $input) {
@@ -30,7 +29,7 @@ def manage_products():
     }
     """
     
-    # تصحيح مفتاح البحث ليكون 'title' بدلاً من 'search'
+    # تصحيح مفتاح البحث ليكون 'title'
     variables = {
         "input": {
             "page": page, 
@@ -39,7 +38,9 @@ def manage_products():
         }
     }
     
-    # 3. تنفيذ الاستعلام
+    # 3. تنفيذ الاستعلام مع تتبع المتغيرات في السجلات
+    logger.info(f"DEBUG: Variables sent to GraphQL: {variables}")
+    
     try:
         result = QomrahGraphQLClient.execute_query(query, variables=variables) or {}
     except Exception as e:
@@ -51,7 +52,6 @@ def manage_products():
     products = data_payload.get('data', [])
     pag_info = data_payload.get('pagination', {"totalPages": 1, "currentPage": 1, "totalItems": 0})
     
-    # كلاس بسيط لتسهيل التعامل مع الترقيم في القالب
     class Pagination:
         def __init__(self, p):
             self.currentPage = p.get('currentPage', 1)
