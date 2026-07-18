@@ -8,7 +8,7 @@ import urllib3
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-# تعطيل تحذيرات الـ SSL
+# تعطيل تحذيرات الـ SSL لتجنب إزعاج الـ Logs عند استخدام verify=False
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # إنشاء جلسة واحدة ثابتة تُستخدم طوال عمر التطبيق لتسريع الاتصالات
@@ -20,6 +20,7 @@ _retry_strategy = Retry(
 )
 _adapter = HTTPAdapter(max_retries=_retry_strategy)
 _session.mount("https://", _adapter)
+_session.mount("http://", _adapter) # تمت إضافتها تحسباً لأي تحويل داخلي
 
 class QomrahGraphQLClient:
     """
@@ -66,6 +67,9 @@ class QomrahGraphQLClient:
             
             return result.get('data')
             
+        except requests.exceptions.RequestException as req_err:
+            logging.error(f"❌ خطأ في الشبكة أو الاتصال: {str(req_err)}")
+            return None
         except Exception as e:
-            logging.error(f"❌ خطأ غير متوقع في الاتصال: {str(e)}")
+            logging.error(f"❌ خطأ غير متوقع: {str(e)}")
             return None
