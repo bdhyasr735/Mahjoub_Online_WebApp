@@ -3,6 +3,7 @@
 
 from flask import request, jsonify
 from flask_login import login_required
+# ✅ الاستيراد الصحيح المباشر من الـ registry لكسر التعارض الدائري نهائياً
 from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
 import logging
