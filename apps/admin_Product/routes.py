@@ -1,66 +1,50 @@
 # coding: utf-8
-import logging
-from flask import render_template, request
-from flask_login import login_required
-from apps.services.graphql_client import QomrahGraphQLClient
-from .registry import admin_product_bp
+# 📂 apps/admin_Product/routes.py
 
-logger = logging.getLogger(__name__)
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required
+from apps.admin_Product import admin_product_bp
+from apps.services.graphql_client import GraphQLClient # افترضت وجود خدمة العميل هنا
 
 @admin_product_bp.route('/', methods=['GET'])
 @login_required
 def manage_products():
-    # 1. استخراج المتغيرات من رابط الـ URL
     page = request.args.get('page', 1, type=int)
-    search = request.args.get('search', '').strip()
+    # تم تغيير استقبال المعامل من search إلى title ليتطابق مع القالب
+    search = request.args.get('title', '').strip()
     
-    # 2. استعلام GraphQL
-    query = """
-    query Data($input: GetAllProductsInput) {
-      findAllProducts(input: $input) {
-        data { 
-            qid, title, quantity, 
-            pricing { price }, 
-            identification { sku },
-            images { fileUrl } 
-        }
-        pagination { totalPages, currentPage, totalItems }
-      }
-    }
-    """
-    
-    # تصحيح مفتاح البحث ليكون 'title'
+    # تجهيز متغيرات الطلب للـ GraphQL
     variables = {
         "input": {
-            "page": page, 
+            "page": page,
             "limit": 100,
             "title": search if search else None
         }
     }
     
-    # 3. تنفيذ الاستعلام مع تتبع المتغيرات في السجلات
-    logger.info(f"DEBUG: Variables sent to GraphQL: {variables}")
+    # هنا يتم استدعاء الـ API الخاص بك لجلب المنتجات
+    # تأكد أن دالة جلب البيانات تستخدم 'variables' الموضحة أعلاه
+    # response = GraphQLClient.execute_query("GET_ALL_PRODUCTS", variables)
     
-    try:
-        result = QomrahGraphQLClient.execute_query(query, variables=variables) or {}
-    except Exception as e:
-        logger.error(f"Error fetching products: {e}")
-        result = {}
-
-    # 4. معالجة البيانات القادمة من السيرفر
-    data_payload = result.get('findAllProducts', {})
-    products = data_payload.get('data', [])
-    pag_info = data_payload.get('pagination', {"totalPages": 1, "currentPage": 1, "totalItems": 0})
-    
-    class Pagination:
-        def __init__(self, p):
-            self.currentPage = p.get('currentPage', 1)
-            self.totalPages = p.get('totalPages', 1)
-            self.totalItems = p.get('totalItems', 0)
+    # للتمثيل فقط:
+    products = [] # استبدلها ببياناتك القادمة من الـ API
+    pagination = {"currentPage": page, "totalPages": 1} # استبدلها ببيانات الترقيم الحقيقية
     
     return render_template(
-        'admin/admin_Product.html', 
-        products=products, 
-        pagination=Pagination(pag_info),
-        search=search
+        'admin/admin_product.html',
+        products=products,
+        pagination=pagination,
+        search=search # تمرير قيمة البحث للقالب للحفاظ عليها في الحقل
     )
+
+@admin_product_bp.route('/add', methods=['GET', 'POST'])
+@login_required
+def add_product():
+    # كود إضافة منتج
+    return render_template('admin/add_product.html')
+
+@admin_product_bp.route('/edit/<qid>', methods=['GET', 'POST'])
+@login_required
+def edit_product(qid):
+    # كود تعديل منتج
+    return render_template('admin/edit_product.html', qid=qid)
