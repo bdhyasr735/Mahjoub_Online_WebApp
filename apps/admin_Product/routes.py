@@ -2,7 +2,7 @@
 import logging
 from flask import render_template, request
 from flask_login import login_required
-from . import admin_product_bp
+from . import admin_product_bp  # هذا سيتم استيراده الآن من __init__.py بنجاح
 from apps.services.graphql_client import QomrahGraphQLClient
 
 logger = logging.getLogger(__name__)
@@ -48,5 +48,5 @@ def manage_products():
                            pagination=ProPagination(pag_info),
                            search=search)
 
-# استيراد الملفات الأخرى في نهاية الملف لتفعيل الراوترات
-from . import routes_add, routes_edit, routes_sync
+# تم حذف الاستيراد من هنا (from . import routes_add...) 
+# لأن الاستيراد يتم الآن بشكل تلقائي ومركزي داخل __init__.py
