@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request
 from flask_login import login_required
 from apps.services.graphql_client import QomrahGraphQLClient
 
-# تعريف الـ Blueprint هنا هو الحل الوحيد بما أن __init__.py فارغ
+# تعريف الـ Blueprint
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
 logger = logging.getLogger(__name__)
@@ -51,4 +51,5 @@ def manage_products():
                            search=search)
 
 # استيراد الملفات الأخرى هنا لربطها بالـ Blueprint المعرف أعلاه
+# هذا يضمن أن جميع الراوترات في الملفات الفرعية ستتم إضافتها لهذا الـ Blueprint
 from . import routes_add, routes_edit, routes_sync
