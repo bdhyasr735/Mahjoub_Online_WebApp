@@ -57,7 +57,8 @@
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
             {% for product in products %}
             <div class="col">
-                <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}" class="product-card">
+                <!-- تم إضافة |urlencode للتعامل مع الرموز الخاصة في الـ qid -->
+                <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid|urlencode) }}" class="product-card">
                     <div class="card h-100 border-0">
                         <img src="{{ product.images[0].fileUrl if product.images else '/static/images/default.png' }}" 
                              class="card-img-top" style="height: 180px; object-fit: cover; border-top-left-radius: 12px; border-top-right-radius: 12px;">
