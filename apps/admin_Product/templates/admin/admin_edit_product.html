@@ -1,3 +1,4 @@
+<!-- apps/admin_Product/templates/admin/admin_edit_product.html -->
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
@@ -31,7 +32,7 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold small">السعر (ر.س)</label>
+                            <label class="form-label fw-bold small">السعر</label>
                             <input type="number" id="price" step="0.01" class="form-control" value="{{ product.pricing.price if product.pricing else 0 }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -40,11 +41,11 @@
                         </div>
 
                         <div class="col-md-12 mb-4">
-                            <label class="form-label fw-bold small">تغيير صورة المنتج</label>
+                            <label class="form-label fw-bold small">صورة المنتج</label>
                             <div class="image-upload-box" onclick="document.getElementById('fileInput').click()">
                                 <i class="fas fa-camera fa-2x text-muted"></i>
-                                <p class="mt-2 mb-0">اضغط لالتقاط صورة جديدة أو اختيار ملف</p>
-                                <input type="file" id="fileInput" class="d-none" accept="image/*" capture="environment" onchange="handleImage(this)">
+                                <p class="mt-2 mb-0">اضغط لاختيار صورة جديدة</p>
+                                <input type="file" id="fileInput" class="d-none" accept="image/*" onchange="handleImage(this)">
                             </div>
                             <div id="previewArea" class="text-center mt-3">
                                 <img id="imagePreview" src="{{ product.images[0].fileUrl if product.images else '/static/images/default.png' }}">
@@ -74,7 +75,6 @@
     document.getElementById('editProductForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // التعديل: تجميع البيانات بشكل صحيح يتضمن الـ qid
         const payload = {
             qid: document.getElementById('qid').value,
             title: document.getElementById('title').value,
@@ -83,7 +83,8 @@
         };
 
         try {
-            const response = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
+            // تأكد أن هذا الرابط هو نفسه المسمى في routes_edit.py
+            const response = await fetch("{{ url_for('admin_product_bp.update_product') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
