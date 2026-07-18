@@ -1,39 +1,78 @@
-# coding: utf-8
-from flask import request, jsonify
-from flask_login import login_required
-from apps.services.graphql_client import QomrahGraphQLClient
-from .registry import admin_product_bp
-import logging
+<!-- apps/admin_Product/templates/admin/includes/_sync_modal.html -->
+<div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="syncModalLabel">تحديث قائمة المنتجات</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="sync-progress-area" class="d-none">
+                    <div class="progress mb-3">
+                        <div id="sync-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p id="sync-status" class="text-center small">جاري التحديث...</p>
+                </div>
+                <div id="sync-info">
+                    <p>سيتم جلب أحدث المنتجات مباشرة من "قمرة". هل تريد تحديث القائمة الآن؟</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" id="startSyncBtn" class="btn btn-primary" onclick="startProductSync()">تحديث البيانات الآن</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-logger = logging.getLogger(__name__)
+<script>
+    async function startProductSync() {
+        const btn = document.getElementById('startSyncBtn');
+        const progressBar = document.getElementById('sync-bar');
+        const statusText = document.getElementById('sync-status');
+        
+        btn.disabled = true;
+        document.getElementById('sync-info').classList.add('d-none');
+        document.getElementById('sync-progress-area').classList.remove('d-none');
+        
+        progressBar.style.width = '30%';
+        statusText.innerText = "جاري الاتصال بالسيرفر لبدء المزامنة...";
 
-@admin_product_bp.route('/proxy-sync', methods=['POST'])
-@login_required
-def proxy_sync():
-    """
-    راوتر لاستقبال طلب المزامنة من الـ Modal
-    """
-    try:
-        # هنا يتم استدعاء الـ Query أو Mutation الخاص بالمزامنة في قمرة
-        # يمكنك استبدال هذا الاستعلام بما يتناسب مع نظام قمرة لديك
-        sync_query = """
-        mutation SyncProducts {
-            syncProductsFromQomrah {
-                status
-                message
-            }
-        }
-        """
-        
-        # تنفيذ عملية المزامنة
-        result = QomrahGraphQLClient.execute_query(sync_query) or {}
-        response = result.get('syncProductsFromQomrah', {})
-        
-        if response.get('status') == 'success':
-            return jsonify({"status": "success", "message": "تم تحديث البيانات بنجاح"})
-        else:
-            return jsonify({"status": "error", "message": response.get('message', 'فشل التحديث')}), 400
-            
-    except Exception as e:
-        logger.error(f"Sync Error: {e}")
-        return jsonify({"status": "error", "message": "حدث خطأ أثناء الاتصال بالسيرفر"}), 500
+        try {
+            // جلب الـ CSRF Token من الميتا تاغ
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = metaTag ? metaTag.getAttribute('content') : '';
+            
+            // الطلب موجه الآن إلى route الخاص بالمزامنة في routes_sync.py
+            const response = await fetch("{{ url_for('admin_product_bp.proxy_sync') }}", { 
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({message: 'خطأ غير معروف أثناء المزامنة'}));
+                throw new Error(errorData.message);
+            }
+            
+            const data = await response.json();
+            
+            progressBar.style.width = '100%';
+            statusText.innerHTML = `<span class="text-success">${data.message}</span>`;
+            
+            // إخفاء المودال وإعادة تحميل الصفحة بعد النجاح
+            setTimeout(() => {
+                const modalElement = document.getElementById('syncModal');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) modal.hide();
+                window.location.reload(); 
+            }, 1500);
+            
+        } catch (err) {
+            statusText.innerHTML = `<span class="text-danger">خطأ: ${err.message}</span>`;
+            btn.disabled = false;
+        }
+    }
+</script>
