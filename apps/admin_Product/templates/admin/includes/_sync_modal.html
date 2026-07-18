@@ -38,11 +38,11 @@
         statusText.innerText = "جاري الاتصال بالسيرفر لبدء المزامنة...";
 
         try {
-            // جلب الـ CSRF Token من الميتا تاغ مع معالجة احترازية
+            // جلب الـ CSRF Token من الميتا تاغ
             const metaTag = document.querySelector('meta[name="csrf-token"]');
             const csrfToken = metaTag ? metaTag.getAttribute('content') : '';
             
-            // طلب المزامنة
+            // الطلب موجه الآن إلى route الخاص بالمزامنة في routes_sync.py
             const response = await fetch("{{ url_for('admin_product_bp.proxy_sync') }}", { 
                 method: 'POST',
                 headers: { 
@@ -51,7 +51,6 @@
                 }
             });
 
-            // قراءة رسالة الخطأ من السيرفر في حال فشل الطلب
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({message: 'خطأ غير معروف أثناء المزامنة'}));
                 throw new Error(errorData.message);
