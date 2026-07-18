@@ -1,9 +1,12 @@
 # coding: utf-8
+# 📂 apps/admin_Product/routes.py
+
 from flask import render_template, request, flash
 from flask_login import login_required
 from apps.admin_Product import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
 
+# استعلام جلب المنتجات من واجهة قمرة
 GET_ALL_PRODUCTS_QUERY = """
 query Data($input: GetAllProductsInput) {
   findAllProducts(input: $input) {
@@ -23,13 +26,13 @@ query Data($input: GetAllProductsInput) {
 @login_required
 def manage_products():
     page = request.args.get('page', 1, type=int)
-    # استخدام .get للحصول على القيمة وضمان عدم ضياعها
     search = request.args.get('title', '').strip()
     
+    # رفع حد الجلب لـ 100 منتج لضمان كفاءة الفلترة النصية المحلية لـ (title)
     variables = {
         "input": {
             "page": page,
-            "limit": 20,
+            "limit": 100,
             "title": search if search else None
         }
     }
@@ -39,13 +42,26 @@ def manage_products():
     
     try:
         response = QomrahGraphQLClient.execute_query(GET_ALL_PRODUCTS_QUERY, variables)
+        
         if response and 'findAllProducts' in response:
             result = response['findAllProducts']
-            products = result.get('data', [])
-            pagination = result.get('pagination', {"currentPage": page, "totalPages": 1})
+            all_products = result.get('data', []) or []
+            
+            # محاكاة لعملية الفلترة النصية المتقدمة CONTAINS يدوياً في بايثون
+            if search:
+                products = [
+                    p for p in all_products 
+                    if p.get('title') and search.lower() in str(p.get('title')).lower()
+                ]
+                # عند البحث المحلي نثبت الترقيم في صفحة واحدة للمخرجات المفلترة
+                pagination = {"currentPage": 1, "totalPages": 1}
+            else:
+                products = all_products
+                pagination = result.get('pagination', {"currentPage": page, "totalPages": 1})
+                
     except Exception as e:
-        print(f"Error: {e}")
-        flash("حدث خطأ أثناء جلب البيانات.")
+        print(f"❌ خطأ في موديول المنتجات: {e}")
+        flash("حدث خطأ أثناء معالجة أو جلب البيانات.")
 
     return render_template(
         'admin/admin_product.html',
