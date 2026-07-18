@@ -64,8 +64,9 @@ def manage_products():
         logger.error(f"❌ خطأ في موديول المنتجات أثناء الفلترة: {e}")
         flash("حدث خطأ أثناء معالجة البيانات.")
 
+    # تم التصحيح هنا: admin_Product.html بحرف P كبيرة
     return render_template(
-        'admin/admin_product.html',
+        'admin/admin_Product.html',
         products=products,
         pagination=pagination,
         search=search
