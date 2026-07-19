@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """عرض صفحة تعديل المنتج مع جلب البيانات المدعومة فقط"""
+    """عرض صفحة تعديل المنتج مع جلب البيانات من قمرة والبيانات المحلية للموردين"""
     
-    # تم إزالة title و sku من الـ variants لأنها غير معرفة في Schema قمرة
+    # الاستعلام لجلب تفاصيل المنتج (تم التأكد من مطابقة الحقول للـ Schema)
     product_query = """
     query GetProductDetail($qid: String!) { 
         findProductByQid(qid: $qid) { 
@@ -52,6 +52,7 @@ def edit_product(qid):
     }
     """
     
+    # الاستعلام لجلب المجموعات المتاحة في المتجر
     collections_query = """
     query GetAllCollections {
         findAllCollections(input: { limit: 100 }) {
@@ -64,22 +65,26 @@ def edit_product(qid):
     """
 
     try:
+        # جلب البيانات من منصة قمرة
         prod_response = QomrahGraphQLClient.execute_query(product_query, {"qid": qid})
         col_response = QomrahGraphQLClient.execute_query(collections_query)
         
+        # التحقق من وجود المنتج
         if not prod_response or 'data' not in prod_response or not prod_response['data'].get('findProductByQid', {}).get('data'):
             flash("❌ تعذر جلب بيانات المنتج من منصة قمرة.")
             return redirect(url_for('admin_product_bp.manage_products'))
             
         product = prod_response['data']['findProductByQid']['data']
         
-        # تحويل المجموعات لتناسب القالب
+        # تجهيز المجموعات لتناسب القالب
         product['collection_ids'] = [c['qid'] for c in product.get('collections', []) if c]
         
+        # تجهيز المجموعات المتاحة
         all_collections = []
         if col_response and 'data' in col_response and col_response['data'].get('findAllCollections'):
             all_collections = col_response['data']['findAllCollections'].get('data', [])
 
+        # جلب بيانات الموردين محلياً من قاعدة البيانات
         suppliers = []
         mapping_data = {"selected_supplier_id": None}
         
@@ -92,6 +97,7 @@ def edit_product(qid):
             except Exception as db_err:
                 logger.error(f"⚠️ خطأ أثناء جلب الموردين: {db_err}")
 
+        # عرض الصفحة
         return render_template(
             'admin/admin_edit_product.html', 
             product=product, 
