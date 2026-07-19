@@ -3,26 +3,53 @@
 
 {% block content %}
 <style>
-    /* هوية بنفجسية تميل للسواد */
+    /* هوية بنفسجية ملكية تميل للسواد */
     :root {
         --deep-purple-dark: #2d1b4e;
         --border-dark: #1a0f2e;
+        --royal-black: #050505;
     }
+
+    body {
+        background-color: #f8f9fa;
+    }
+
     .header-gradient {
-        background: linear-gradient(135deg, var(--deep-purple-dark), #000000);
-        color: white;
-        padding: 20px;
+        background: linear-gradient(135deg, var(--deep-purple-dark), var(--royal-black));
+        color: #ffffff;
+        padding: 25px;
         border-radius: 12px;
         margin-bottom: 25px;
+        border-bottom: 4px solid var(--deep-purple-dark);
+        box-shadow: 0 4px 15px rgba(45, 27, 78, 0.3);
     }
+
+    .card {
+        border: 1px solid rgba(45, 27, 78, 0.1);
+        border-radius: 10px;
+    }
+
     .btn-custom-purple {
         background-color: var(--deep-purple-dark);
         color: white;
-        border: none;
+        border: 2px solid var(--border-dark);
+        transition: all 0.3s ease;
     }
+
     .btn-custom-purple:hover {
-        background-color: #3d2568;
-        color: white;
+        background-color: #000000;
+        border-color: var(--deep-purple-dark);
+        color: #e0e0e0;
+    }
+
+    .form-control, .form-select {
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+    }
+
+    .form-control:focus {
+        border-color: var(--deep-purple-dark);
+        box-shadow: 0 0 0 0.2rem rgba(45, 27, 78, 0.25);
     }
 </style>
 
@@ -30,11 +57,11 @@
     <!-- الرأس الاحترافي -->
     <div class="header-gradient shadow-lg d-flex justify-content-between align-items-center">
         <div>
-            <h4 class="fw-bold mb-1">{{ product.title or 'منتج جديد' }}</h4>
+            <h4 class="fw-bold mb-1">{{ product.title or 'منتج غير محدد' }}</h4>
             <span class="badge bg-light text-dark">{{ product.status or 'Draft' }}</span>
         </div>
         <a href="{{ url_for('admin_product_bp.manage_products') }}" 
-           class="btn btn-outline-light px-4">العودة للمنتجات</a>
+           class="btn btn-outline-light px-4">العودة للقائمة</a>
     </div>
     
     <form id="editProductForm" onsubmit="saveProduct(event)">
@@ -45,11 +72,11 @@
             <div class="col-lg-8">
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="mb-3 text-muted">البيانات الأساسية</h5>
+                        <h5 class="mb-3" style="color: var(--deep-purple-dark);">البيانات الأساسية</h5>
                         <div class="row">
                             <div class="col-md-6 mb-3"><label>اسم المنتج</label><input type="text" class="form-control" id="title" value="{{ product.title or '' }}"></div>
                             <div class="col-md-6 mb-3"><label>الرابط (Slug)</label><input type="text" class="form-control" id="slug" value="{{ product.slug or '' }}"></div>
-                            <div class="col-md-6 mb-3"><label>المورد</label>
+                            <div class="col-md-12 mb-3"><label>المورد</label>
                                 <select class="form-select" id="supplier_id">
                                     <option value="">-- اختر مورد --</option>
                                     {% for s in suppliers %}
@@ -64,7 +91,7 @@
                 <!-- 2. التسعير والمخزون -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="mb-3 text-muted">التسعير والمخزون</h5>
+                        <h5 class="mb-3" style="color: var(--deep-purple-dark);">التسعير والمخزون</h5>
                         <div class="row">
                             <div class="col-md-4 mb-3"><label>السعر</label><input type="number" class="form-control" id="price" value="{{ product.pricing.price if product.pricing else 0 }}"></div>
                             <div class="col-md-4 mb-3"><label>الكمية</label><input type="number" class="form-control" id="quantity" value="{{ product.quantity or 0 }}"></div>
@@ -78,7 +105,7 @@
             <div class="col-lg-4">
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="mb-3 text-muted">صور المنتج</h5>
+                        <h5 class="mb-3" style="color: var(--deep-purple-dark);">صور المنتج</h5>
                         <div class="row g-2">
                             {% for img in product.images or [] %}
                                 <div class="col-6"><img src="{{ img.fileUrl }}" class="img-thumbnail w-100"></div>
@@ -89,7 +116,7 @@
                 
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <h5 class="mb-3 text-muted">ملاحظات إدارية (خاص)</h5>
+                        <h5 class="mb-3" style="color: var(--deep-purple-dark);">ملاحظات إدارية (خاص)</h5>
                         <textarea class="form-control" id="internal_notes" rows="3">{{ mapping.internal_notes or '' }}</textarea>
                     </div>
                 </div>
@@ -101,4 +128,12 @@
         </button>
     </form>
 </div>
+
+<script>
+    function saveProduct(event) {
+        event.preventDefault();
+        // هنا سيأتي لاحقاً منطق الـ Fetch لربط الـ Save-Sync
+        alert("جاري حفظ البيانات...");
+    }
+</script>
 {% endblock %}
