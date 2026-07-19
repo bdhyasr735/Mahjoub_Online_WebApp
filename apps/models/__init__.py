@@ -23,11 +23,11 @@ from .wallet_db import SupplierWallet, WalletTransaction
 from .financials_db import OrderFinancial
 from .orders_db import Order
 from .order_items_db import OrderItem
-from .product_db import Product  # الموديل الجديد المربوط بالمورد
+from .product_db import Product 
+from .product_supplier_map import ProductSupplierMapping  # الموديل الجديد للربط
 from .sync_log import SyncLog
 
 # القائمة المصدرة (Export Registry)
-# استخدام __all__ يضمن سهولة الوصول للموديلات عند الاستيراد من الحزمة مباشرة
 __all__ = [
     'db',
     'AdminStaff',
@@ -37,7 +37,8 @@ __all__ = [
     'Order',
     'OrderItem',
     'OrderFinancial',
-    'Product',  # تمت الإضافة
+    'Product',
+    'ProductSupplierMapping',  # تمت الإضافة
     'Supplier',
     'SupplierProfile',
     'SupplierStaff',
