@@ -5,6 +5,8 @@ from flask import request, jsonify
 from flask_login import login_required
 from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
+from apps.models import db
+from apps.models.product_supplier_map import ProductSupplierMapping
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,16 +15,25 @@ logger = logging.getLogger(__name__)
 @login_required
 def save_sync():
     """
-    مسار لحفظ بيانات منتج محدد وإرسال التحديثات إلى منصة قمرة
+    حفظ بيانات المنتج وتحديثها في قمرة وقاعدة البيانات المحلية
     """
     data = request.get_json()
     
-    # 1. التحقق الأساسي من وجود البيانات
     if not data or 'qid' not in data:
-        return jsonify({"status": "error", "message": "بيانات غير صالحة: معرف المنتج مفقود"}), 400
+        return jsonify({"status": "error", "message": "معرف المنتج مفقود"}), 400
 
     try:
-        # 2. بناء الـ Mutation لتحديث بيانات المنتج
+        # 1. تحديث الربط في قاعدة البيانات المحلية (MySQL)
+        if 'supplier_id' in data:
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=data['qid']).first()
+            if mapping:
+                mapping.supplier_id = data['supplier_id']
+            else:
+                new_mapping = ProductSupplierMapping(product_qid=data['qid'], supplier_id=data['supplier_id'])
+                db.session.add(new_mapping)
+            db.session.commit()
+
+        # 2. بناء الـ Mutation المحدث (شامل لكافة الحقول)
         mutation = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfoInput!) {
             updateProductInfo(id: $id, input: $input) {
@@ -32,41 +43,33 @@ def save_sync():
         }
         """
         
-        # 3. تجهيز المدخلات (تأكد من مطابقة أسماء الحقول لما يقبله الـ Schema في قمرة)
-        # نقوم بتحويل البيانات لأنواعها الصحيحة قبل الإرسال
+        # 3. تجهيز المدخلات (تأكد من مطابقة Schema قمرة)
         variables = {
             "id": str(data['qid']),
             "input": {
                 "title": str(data.get('title', '')),
-                "quantity": int(data.get('quantity', 0))
-                # إذا كنت تريد إضافة دعم السعر لاحقاً، أضف السطر التالي:
-                # "price": float(data.get('price', 0.0))
+                "slug": str(data.get('slug', '')),
+                "quantity": int(data.get('quantity', 0)),
+                "pricing": {
+                    "price": float(data.get('price', 0)),
+                    "costPrice": float(data.get('costPrice', 0))
+                },
+                "identification": {
+                    "sku": str(data.get('sku', ''))
+                }
             }
         }
         
-        # 4. تنفيذ الاستعلام عبر عميل GraphQL
+        # 4. تنفيذ التحديث في قمرة
         response = QomrahGraphQLClient.execute_query(mutation, variables=variables)
         
-        # 5. معالجة الاستجابة
-        if not response:
-            logger.error(f"❌ استجابة فارغة من قمرة عند محاولة تحديث المنتج: {data['qid']}")
-            return jsonify({"status": "error", "message": "لا يوجد اتصال بخادم قمرة"}), 503
-
-        if 'errors' in response:
-            error_msg = response.get('errors', 'خطأ غير محدد')
-            logger.error(f"❌ خطأ من قمرة أثناء تحديث المنتج {data['qid']}: {error_msg}")
-            return jsonify({"status": "error", "message": "فشلت عملية التحديث في قمرة"}), 400
+        if not response or 'errors' in response:
+            logger.error(f"❌ فشل تحديث قمرة لـ {data['qid']}: {response.get('errors')}")
+            return jsonify({"status": "error", "message": "تم تحديث البيانات المحلية فقط، فشل التحديث في قمرة"}), 500
         
-        logger.info(f"✅ تم تحديث المنتج بنجاح في قمرة: {data.get('qid')}")
-        return jsonify({
-            "status": "success", 
-            "message": "تم تحديث البيانات بنجاح في قمرة"
-        }), 200
-        
-    except ValueError as ve:
-        logger.error(f"❌ خطأ في تنسيق البيانات للمنتج {data.get('qid')}: {str(ve)}")
-        return jsonify({"status": "error", "message": "بيانات المنتج غير صحيحة"}), 400
+        return jsonify({"status": "success", "message": "تم الحفظ بنجاح في النظامين"}), 200
         
     except Exception as e:
-        logger.error(f"❌ خطأ داخلي أثناء الحفظ في المنتج {data.get('qid')}: {str(e)}")
-        return jsonify({"status": "error", "message": "حدث خطأ داخلي غير متوقع"}), 500
+        db.session.rollback()
+        logger.error(f"❌ خطأ تقني أثناء الحفظ: {str(e)}")
+        return jsonify({"status": "error", "message": "حدث خطأ داخلي"}), 500
