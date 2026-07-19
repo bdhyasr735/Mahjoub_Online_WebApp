@@ -1,3 +1,4 @@
+<!-- 📂 apps/admin_Product/templates/admin/admin_Product.html -->
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
@@ -8,17 +9,14 @@
     .btn-back { color: var(--dark-purple); text-decoration: none; font-weight: 500; transition: 0.3s; }
     .btn-back:hover { color: #000; padding-right: 5px; }
     
-    /* تحسين البطاقات لتكون تفاعلية */
     .product-card { transition: all 0.3s ease; text-decoration: none; display: block; cursor: pointer; }
     .product-card:hover { transform: translateY(-8px); }
     .product-card:hover .card { border: 2px solid var(--dark-purple) !important; box-shadow: 0 8px 20px rgba(45,11,54,0.15) !important; }
     
     .card { border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: 0.3s; }
-    
     .search-wrapper { position: relative; }
     .search-wrapper i { position: absolute; left: 15px; top: 12px; color: #999; }
     #searchInput { padding-left: 40px; border-radius: 25px; border: 1px solid #ddd; }
-    
     .badge-qty { font-size: 0.75rem; padding: 5px 10px; border-radius: 20px; }
     .text-primary { color: var(--dark-purple) !important; }
 </style>
@@ -52,22 +50,21 @@
         </div>
     </div>
 
-    <!-- حاوية النتائج -->
     <div id="results-container">
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
             {% for product in products %}
             <div class="col">
-                <!-- تم إضافة |urlencode للتعامل مع الرموز الخاصة في الـ qid -->
-                <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid|urlencode) }}" class="product-card">
+                <!-- استخدام فلتر safe أو توفير qid كـ String لتجنب أخطاء الترميز -->
+                <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}" class="product-card">
                     <div class="card h-100 border-0">
                         <img src="{{ product.images[0].fileUrl if product.images else '/static/images/default.png' }}" 
                              class="card-img-top" style="height: 180px; object-fit: cover; border-top-left-radius: 12px; border-top-right-radius: 12px;">
                         <div class="card-body">
                             <h6 class="fw-bold mb-2 text-truncate">{{ product.title }}</h6>
                             <div class="d-flex justify-content-between align-items-center mt-2">
-                                <span class="text-primary fw-bold">{{ product.pricing.price }} ر.س</span>
-                                <span class="badge {{ 'bg-success' if product.quantity > 0 else 'bg-danger' }} badge-qty">
-                                    {{ product.quantity }} متوفر
+                                <span class="text-primary fw-bold">{{ product.pricing.price if product.pricing else 0 }} ر.س</span>
+                                <span class="badge {{ 'bg-success' if product.quantity|int > 0 else 'bg-danger' }} badge-qty">
+                                    {{ product.quantity or 0 }} متوفر
                                 </span>
                             </div>
                         </div>
@@ -82,14 +79,17 @@
             {% endfor %}
         </div>
 
-        <!-- الترقيم -->
         {% if pagination and pagination.totalPages > 1 %}
         <nav class="mt-5">
             <ul class="pagination justify-content-center">
                 <li class="page-item {{ 'disabled' if pagination.currentPage <= 1 }}">
                     <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage-1, title=search) }}">السابق</a>
                 </li>
-                <li class="page-item active shadow-sm"><span class="page-link" style="background-color: var(--dark-purple); border-color: var(--dark-purple);">{{ pagination.currentPage }} / {{ pagination.totalPages }}</span></li>
+                <li class="page-item active shadow-sm">
+                    <span class="page-link" style="background-color: var(--dark-purple); border-color: var(--dark-purple);">
+                        {{ pagination.currentPage }} / {{ pagination.totalPages }}
+                    </span>
+                </li>
                 <li class="page-item {{ 'disabled' if pagination.currentPage >= pagination.totalPages }}">
                     <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage+1, title=search) }}">التالي</a>
                 </li>
@@ -100,12 +100,10 @@
 </div>
 
 <script>
+    // نظام البحث الحي
     let timeout = null;
     const searchInput = document.getElementById('searchInput');
-    const searchForm = document.getElementById('searchForm');
     const resultsContainer = document.getElementById('results-container');
-
-    searchForm.addEventListener('submit', (e) => { e.preventDefault(); });
 
     searchInput.addEventListener('keyup', () => {
         clearTimeout(timeout);
