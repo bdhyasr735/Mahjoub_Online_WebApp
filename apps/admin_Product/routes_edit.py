@@ -19,24 +19,29 @@ logger = logging.getLogger(__name__)
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """عرض صفحة تعديل المنتج باستخدام findProductByQid"""
+    """عرض صفحة تعديل المنتج باستخدام الهيكلية المحدثة"""
     
-    # استخدام المسمى الصحيح للـ API: findProductByQid
+    # الاستعلام المحدث ليتوافق مع وجود كائن 'data' في الرد
     product_query = """
-    query GetProductDetail($qid: ID!) { 
+    query GetProductDetail($qid: String!) { 
         findProductByQid(qid: $qid) { 
-            qid
-            title
-            slug
-            description
-            variants {
-                title
-                price
-                quantity
-                sku
-            }
-            collections {
+            data {
                 qid
+                title
+                slug
+                description
+                pricing {
+                    price
+                    currency
+                }
+                identification {
+                    sku
+                    barcode
+                }
+                quantity
+                collections {
+                    qid
+                }
             }
         } 
     }
@@ -54,15 +59,17 @@ def edit_product(qid):
     """
 
     try:
+        # تنفيذ الاستعلام مع تمرير qid كـ String
         prod_response = QomrahGraphQLClient.execute_query(product_query, {"qid": qid})
         col_response = QomrahGraphQLClient.execute_query(collections_query)
         
-        # التأكد من استجابة findProductByQid
-        if not prod_response or 'data' not in prod_response or not prod_response['data'].get('findProductByQid'):
+        # التأكد من المسار الصحيح في الاستجابة (findProductByQid -> data)
+        if not prod_response or 'data' not in prod_response or not prod_response['data'].get('findProductByQid', {}).get('data'):
             flash("❌ تعذر جلب بيانات المنتج من منصة قمرة.")
             return redirect(url_for('admin_product_bp.manage_products'))
             
-        product = prod_response['data']['findProductByQid']
+        # الوصول المباشر للبيانات المطلوبة داخل كائن 'data'
+        product = prod_response['data']['findProductByQid']['data']
         
         # تحويل المجموعات لتناسب القالب
         product['collection_ids'] = [c['qid'] for c in product.get('collections', []) if c]
