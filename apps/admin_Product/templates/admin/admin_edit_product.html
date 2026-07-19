@@ -6,12 +6,16 @@
     :root { 
         --deep-purple: #1a0033; /* لون الهوية الأساسي */
         --royal-accent: #4b0082; 
-        --light-bg: #f4f4f7;
     }
     .header-gradient { background: var(--deep-purple); color: white; padding: 25px; border-radius: 12px; }
     .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .btn-custom-purple { background: var(--deep-purple); color: white; border: none; transition: 0.3s; }
     .btn-custom-purple:hover { background: var(--royal-accent); color: white; }
+    
+    /* تنسيق المحرر وشريط الأدوات */
+    .toolbar-container { background: #f8f9fa; border: 1px solid #ddd; border-bottom: none; padding: 10px; border-radius: 8px 8px 0 0; }
+    #editor-description { min-height: 200px; border: 1px solid #ddd; border-radius: 0 0 8px 8px; padding: 15px; background: white; }
+    
     .img-card { border: 2px dashed #ddd; border-radius: 8px; padding: 5px; transition: 0.3s; }
     .img-card:hover { border-color: var(--royal-accent); }
 </style>
@@ -36,7 +40,19 @@
                     <div class="row">
                         <div class="col-md-6 mb-3"><label>اسم المنتج</label><input type="text" class="form-control" id="title" value="{{ product.title or '' }}"></div>
                         <div class="col-md-6 mb-3"><label>الرابط (Slug)</label><input type="text" class="form-control" id="slug" value="{{ product.slug or '' }}"></div>
-                        <div class="col-md-12 mb-3"><label>وصف المنتج</label><textarea class="form-control" id="description" rows="5">{{ product.description or '' }}</textarea></div>
+                        
+                        <!-- شريط الأدوات ومحرر الوصف -->
+                        <div class="col-md-12 mb-3">
+                            <label>وصف المنتج</label>
+                            <div class="toolbar-container">
+                                <!-- أزرار الأدوات هنا -->
+                                <button type="button" class="btn btn-sm btn-light border" onclick="execCmd('bold')"><b>B</b></button>
+                                <button type="button" class="btn btn-sm btn-light border" onclick="execCmd('italic')"><i>I</i></button>
+                                <button type="button" class="btn btn-sm btn-light border" onclick="execCmd('insertUnorderedList')">• List</button>
+                                <button type="button" class="btn btn-sm btn-light border" onclick="execCmd('createLink')">🔗 Link</button>
+                            </div>
+                            <div id="editor-description" contenteditable="true" class="form-control">{{ product.description | safe }}</div>
+                        </div>
                     </div>
                 </div>
 
@@ -54,6 +70,16 @@
 
             <!-- الجانب الأيمن -->
             <div class="col-lg-4">
+                <!-- المجموعات -->
+                <div class="card mb-4 p-4">
+                    <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">المجموعات</h5>
+                    <select class="form-select" id="collections" multiple size="4">
+                        {% for col in all_collections %}
+                        <option value="{{ col.id }}">{{ col.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
                 <!-- الصور -->
                 <div class="card mb-4 p-4">
                     <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">صور المنتج</h5>
@@ -69,25 +95,27 @@
                     </div>
                 </div>
                 
-                <!-- الإعدادات الإدارية -->
+                <!-- الحالة والمورد -->
                 <div class="card mb-4 p-4">
-                    <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">حالة المنتج والمورد</h5>
+                    <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">الإعدادات الإدارية</h5>
                     <select class="form-select mb-3" id="status">
-                        <option value="active" {% if product.status == 'active' %}selected{% endif %}>نشط</option>
-                        <option value="draft" {% if product.status == 'draft' %}selected{% endif %}>مسودة</option>
-                    </select>
-                    <select class="form-select" id="supplier_id">
-                        {% for s in suppliers %}
-                        <option value="{{ s.id }}" {% if mapping.selected_supplier_id == s.id %}selected{% endif %}>{{ s.trade_name }}</option>
-                        {% endfor %}
+                        <option value="active">نشط</option>
+                        <option value="draft">مسودة</option>
                     </select>
                 </div>
             </div>
         </div>
         
-        <button type="submit" id="saveBtn" class="btn btn-custom-purple btn-lg w-100 shadow-lg mb-5">
-            <i class="fas fa-save me-2"></i>حفظ كافة التعديلات
-        </button>
+        <button type="submit" class="btn btn-custom-purple btn-lg w-100 shadow-lg mb-5">حفظ كافة التعديلات</button>
     </form>
 </div>
+
+<script>
+    function execCmd(command) { document.execCommand(command, false, null); }
+    function saveProduct(e) {
+        e.preventDefault();
+        const description = document.getElementById('editor-description').innerHTML;
+        // هنا يتم جمع البيانات وإرسالها...
+    }
+</script>
 {% endblock %}
