@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# استعلام جلب المنتج المحدث ليشمل كافة الحقول الاحترافية
+# استعلام جلب المنتج المحدث ليشمل حقل description
 FIND_PRODUCT_QUERY = """
 query GetProduct($qid: String!) {
   findProductByQid(qid: $qid) {
@@ -21,6 +21,7 @@ query GetProduct($qid: String!) {
     data {
       qid
       title
+      description
       slug
       status
       quantity
@@ -58,17 +59,17 @@ def edit_product(qid):
     mapping_data_empty = {"selected_supplier_id": None, "internal_notes": ""}
     
     try:
-        # 1. جلب الموردين المتاحين (مع اسم تجاري ومعرف)
+        # 1. جلب الموردين المتاحين
         suppliers = Supplier.query.filter_by(status='active').all()
         
-        # 2. استحضار البيانات المحلية للمنتج (المورد والملاحظات)
+        # 2. استحضار البيانات المحلية للمنتج
         mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
         mapping_data = {
             "selected_supplier_id": mapping.supplier_id if mapping else None,
             "internal_notes": mapping.internal_notes if mapping else ""
         }
 
-        # 3. استحضار البيانات من قمرة باستخدام الاستعلام الجديد
+        # 3. استحضار البيانات من قمرة
         response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, {"qid": clean_qid})
         
         if not response or 'data' not in response:
