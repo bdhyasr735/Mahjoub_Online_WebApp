@@ -1,4 +1,3 @@
-<!-- 📂 apps/admin_Product/templates/admin/admin_edit_product.html -->
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
@@ -35,11 +34,14 @@
                     <div class="d-flex flex-wrap gap-3 mb-3" id="imagesContainer">
                         {% for img in product.images %}
                         <div class="position-relative">
-                            <img src="{{ img.fileUrl }}" class="img-preview">
+                            <img src="{{ img.fileUrl }}" class="img-preview" data-url="{{ img.fileUrl }}">
+                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0" onclick="this.parentElement.remove()">x</button>
                         </div>
                         {% endfor %}
                     </div>
-                    <input type="file" id="imageInput" class="form-control" accept="image/*" onchange="uploadImage(this)">
+                    <label class="btn btn-outline-secondary">
+                        اختر صوراً للرفع <input type="file" hidden accept="image/*" onchange="uploadImage(this)">
+                    </label>
                 </div>
 
                 <!-- البيانات الأساسية -->
@@ -50,10 +52,6 @@
                         <div class="col-md-6 mb-3"><label>الرابط (Slug)</label><input type="text" class="form-control" id="slug" value="{{ product.slug or '' }}"></div>
                         <div class="col-md-12 mb-3">
                             <label>وصف المنتج</label>
-                            <div class="toolbar-container">
-                                <button type="button" class="btn btn-sm btn-light border" onclick="execCmd('bold')"><b>B</b></button>
-                                <button type="button" class="btn btn-sm btn-light border" onclick="execCmd('italic')"><i>I</i></button>
-                            </div>
                             <div id="editor-description" contenteditable="true" class="form-control">{{ product.description | safe }}</div>
                         </div>
                     </div>
@@ -61,18 +59,22 @@
 
                 <!-- جدول المتغيرات -->
                 <div class="card mb-4 p-4">
-                    <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">المتغيرات (Variants)</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0" style="color: var(--deep-purple); font-weight: bold;">المتغيرات (Variants)</h5>
+                        <button type="button" class="btn btn-sm btn-success" onclick="addVariantRow()">+ إضافة متغير</button>
+                    </div>
                     <table class="table table-bordered">
                         <thead class="table-light">
-                            <tr><th>الاسم</th><th>السعر</th><th>الكمية</th><th>SKU</th></tr>
+                            <tr><th>الاسم</th><th>السعر</th><th>الكمية</th><th>SKU</th><th></th></tr>
                         </thead>
                         <tbody id="variantsTableBody">
                             {% for v in product.variants %}
-                            <tr class="variant-row" data-qid="{{ v.qid }}">
+                            <tr class="variant-row">
                                 <td><input type="text" class="form-control v-title" value="{{ v.title }}"></td>
                                 <td><input type="number" class="form-control v-price" value="{{ v.price }}"></td>
                                 <td><input type="number" class="form-control v-quantity" value="{{ v.quantity }}"></td>
                                 <td><input type="text" class="form-control v-sku" value="{{ v.sku }}"></td>
+                                <td><button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">حذف</button></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -81,7 +83,7 @@
             </div>
 
             <div class="col-lg-4">
-                <!-- المورد والمجموعات -->
+                <!-- المورد -->
                 <div class="card mb-4 p-4">
                     <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">المورد المسؤول</h5>
                     <select class="form-select" id="supplier-select">
@@ -91,12 +93,12 @@
                         {% endfor %}
                     </select>
                 </div>
-
+                <!-- المجموعات -->
                 <div class="card mb-4 p-4">
                     <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">المجموعات</h5>
                     <select class="form-select" id="collections-select" multiple>
                         {% for col in all_collections %}
-                        <option value="{{ col.qid }}">{{ col.title }}</option>
+                        <option value="{{ col.qid }}" {% if col.qid in product.collection_ids %}selected{% endif %}>{{ col.title }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -108,30 +110,56 @@
 
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        new Choices(document.getElementById('collections-select'), { removeItemButton: true });
+    document.addEventListener('DOMContentLoaded', () => { 
         new Choices(document.getElementById('supplier-select'));
+        new Choices(document.getElementById('collections-select'), { removeItemButton: true });
     });
 
-    // دالة رفع الصور
+    function addVariantRow() {
+        const row = document.createElement('tr');
+        row.className = 'variant-row';
+        row.innerHTML = `<td><input type="text" class="form-control v-title"></td><td><input type="number" class="form-control v-price" value="0"></td><td><input type="number" class="form-control v-quantity" value="0"></td><td><input type="text" class="form-control v-sku"></td><td><button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">حذف</button></td>`;
+        document.getElementById('variantsTableBody').appendChild(row);
+    }
+
     async function uploadImage(input) {
-        if (!input.files || !input.files[0]) return;
+        if (!input.files[0]) return;
         const formData = new FormData();
         formData.append('image', input.files[0]);
         formData.append('qid', document.getElementById('qid').value);
-
         const res = await fetch('/admin/products/upload-image', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.status === 'success') {
-            location.reload(); // تحديث الصفحة لرؤية الصورة
-        } else {
-            alert("فشل رفع الصورة");
-        }
+        if ((await res.json()).status === 'success') location.reload();
+        else alert("فشل رفع الصورة");
     }
 
     async function saveProduct(e) {
         e.preventDefault();
-        // ... (كود الحفظ كما هو)
+        // تجميع المجموعات المختارة
+        const collections = Array.from(document.getElementById('collections-select').selectedOptions).map(opt => opt.value);
+
+        const payload = {
+            qid: document.getElementById('qid').value,
+            title: document.getElementById('title').value,
+            slug: document.getElementById('slug').value,
+            description: document.getElementById('editor-description').innerHTML,
+            supplier_id: document.getElementById('supplier-select').value,
+            collection_ids: collections,
+            images: Array.from(document.querySelectorAll('.img-preview')).map(img => ({ fileUrl: img.src })),
+            variants: Array.from(document.querySelectorAll('.variant-row')).map(row => ({
+                title: row.querySelector('.v-title').value,
+                price: parseFloat(row.querySelector('.v-price').value),
+                quantity: parseInt(row.querySelector('.v-quantity').value),
+                sku: row.querySelector('.v-sku').value
+            }))
+        };
+
+        const res = await fetch('/admin/products/save-sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        alert(result.message);
     }
 </script>
 {% endblock %}
