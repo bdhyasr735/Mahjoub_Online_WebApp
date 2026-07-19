@@ -40,7 +40,7 @@ def save_sync():
         
         db.session.commit()
 
-        # 2. بناء الـ Mutation (تم توسيع حقول الـ input لتشمل كافة الأسعار المستخرجة)
+        # 2. بناء الـ Mutation (تم إضافة status وتعديل المدخلات)
         mutation = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfoInput!) {
             updateProductInfo(id: $id, input: $input) {
@@ -50,18 +50,18 @@ def save_sync():
         }
         """
         
-        # 3. تجهيز المدخلات الشاملة
+        # 3. تجهيز المدخلات الشاملة (تأكد من مطابقة أسماء الحقول لـ Input Type الخاص بك)
         variables = {
             "id": str(data['qid']),
             "input": {
                 "title": str(data.get('title', '')),
                 "slug": str(data.get('slug', '')),
+                "status": str(data.get('status', 'draft')),
                 "quantity": int(data.get('quantity', 0)),
                 "pricing": {
                     "price": float(data.get('price', 0)),
                     "compareAtPrice": float(data.get('compareAtPrice', 0)),
-                    "originalPrice": float(data.get('originalPrice', 0)),
-                    "discount": float(data.get('discount', 0))
+                    "originalPrice": float(data.get('originalPrice', 0))
                 },
                 "identification": {
                     "sku": str(data.get('sku', ''))
@@ -72,19 +72,15 @@ def save_sync():
         # 4. تنفيذ التحديث
         response = QomrahGraphQLClient.execute_query(mutation, variables=variables)
         
-        # 5. معالجة الأخطاء التفصيلية (للعلم: هذا الجزء سيكشف لنا الحقل المرفوض بالضبط)
+        # 5. معالجة الأخطاء
         if response and 'errors' in response:
             error_details = response.get('errors')
             logger.error(f"❌ فشل تحديث قمرة لـ {data['qid']}: {error_details}")
-            # إرجاع الخطأ الحقيقي للمتصفح لمعرفته فوراً
-            return jsonify({
-                "status": "error", 
-                "message": f"خطأ من قمرة: {error_details}"
-            }), 500
+            return jsonify({"status": "error", "message": "حدث خطأ أثناء التواصل مع قمرة"}), 500
         
         return jsonify({"status": "success", "message": "تم حفظ كافة التعديلات بنجاح"}), 200
         
     except Exception as e:
         db.session.rollback()
         logger.error(f"❌ خطأ تقني للـ qid {data.get('qid')}: {str(e)}")
-        return jsonify({"status": "error", "message": "حدث خطأ داخلي"}), 500
+        return jsonify({"status": "error", "message": "حدث خطأ داخلي أثناء المعالجة"}), 500
