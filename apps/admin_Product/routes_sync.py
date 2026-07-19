@@ -26,7 +26,7 @@ def save_sync():
         return jsonify({"status": "error", "message": "المعرف الفريد QID مفقود"}), 400
 
     # 1. صياغة الـ Mutation المحدثة
-    # نستخدم String بدلاً من ID ليتوافق مع النوع الذي استقبلناه في GET
+    # نستخدم نفس الهيكلية التي تطلبها المنصة في التحديث
     mutation = """
     mutation UpdateProduct($qid: String!, $input: UpdateProductInput!) {
         updateProduct(qid: $qid, input: $input) {
@@ -36,7 +36,7 @@ def save_sync():
     }
     """
     
-    # بناء المتغيرات بناءً على هيكلية البيانات المطلوبة
+    # تحضير المتغيرات - ملاحظة: نرسل نفس الهيكل الذي نجلبه في GET
     variables = {
         "qid": qid,
         "input": {
@@ -44,7 +44,7 @@ def save_sync():
             "slug": data.get('slug'),
             "description": data.get('description'),
             "collectionIds": data.get('collection_ids', []),
-            "variants": data.get('variants', [])
+            "variants": data.get('variants', []) # يتم إرسالها كما تم استقبالها من JS
         }
     }
     
@@ -62,13 +62,13 @@ def save_sync():
         if HAS_DB:
             try:
                 mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-                if supplier_id: # إذا تم اختيار مورد
+                if supplier_id: 
                     if mapping:
                         mapping.supplier_id = supplier_id
                     else:
                         new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
                         db.session.add(new_mapping)
-                else: # إذا تم حذف المورد
+                else: 
                     if mapping:
                         db.session.delete(mapping)
                 
