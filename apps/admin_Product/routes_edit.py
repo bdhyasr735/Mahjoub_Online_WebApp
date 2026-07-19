@@ -51,14 +51,17 @@ def edit_product(qid):
         flash("معرف المنتج مفقود.")
         return redirect(url_for('admin_product_bp.manage_products'))
 
+    # فك الترميز المزدوج للـ qid
     clean_qid = unquote(unquote(qid))
     
     try:
-        # 1. جلب المورد المرتبط
+        # 1. جلب المورد المرتبط بهذا المنتج من قاعدة بياناتنا
         mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
+        
+        # 2. جلب جميع الموردين النشطين للقائمة المنسدلة في الواجهة
         suppliers = Supplier.query.filter_by(status='active').all()
 
-        # 2. إرسال الاستعلام الشامل لقمرة
+        # 3. إرسال الاستعلام الشامل لقمرة لجلب بيانات المنتج
         variables = {"qid": clean_qid}
         response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, variables)
         
@@ -72,6 +75,7 @@ def edit_product(qid):
         
         if result.get('success'):
             product = result.get('data', {})
+            # إرسال البيانات كاملة للـ Template
             return render_template(
                 'admin/admin_edit_product.html', 
                 product=product,
