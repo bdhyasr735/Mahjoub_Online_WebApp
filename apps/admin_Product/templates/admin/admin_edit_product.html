@@ -2,40 +2,48 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
+<style>
+    :root { --royal-purple: #4b0082; --dark-edge: #1a0033; }
+    .header-gradient { background: linear-gradient(135deg, var(--royal-purple), var(--dark-edge)); color: white; padding: 25px; border-radius: 12px; }
+    .btn-custom-purple { background: var(--royal-purple); color: white; border: none; }
+    .btn-custom-purple:hover { background: var(--dark-edge); color: white; }
+    .form-control:disabled { background-color: #f8f9fa; border: 1px solid #dee2e6; }
+</style>
+
 <div class="container py-4">
-    <div class="header-gradient shadow-lg d-flex justify-content-between align-items-center">
+    <div class="header-gradient shadow-lg d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-1">{{ product.title or 'منتج غير محدد' }}</h4>
-            <span class="badge bg-light text-dark">{{ product.status or 'draft' }}</span>
+            <h4 class="fw-bold mb-1">{{ product.title or 'تفاصيل المنتج' }}</h4>
+            <small>المعرف الفريد (QID): {{ product.qid }}</small>
         </div>
-        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-outline-light px-4">العودة للقائمة</a>
+        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-outline-light">العودة للقائمة</a>
     </div>
     
     <form id="editProductForm" onsubmit="saveProduct(event)">
         <input type="hidden" id="qid" value="{{ product.qid }}">
 
         <div class="row">
+            <!-- الأعمدة الرئيسية -->
             <div class="col-lg-8">
-                <!-- 1. البيانات الأساسية -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="mb-3" style="color: var(--deep-purple-dark);">البيانات الأساسية</h5>
+                        <h5 class="mb-3" style="color: var(--royal-purple);">البيانات الأساسية</h5>
                         <div class="row">
                             <div class="col-md-6 mb-3"><label>اسم المنتج</label><input type="text" class="form-control" id="title" value="{{ product.title or '' }}"></div>
                             <div class="col-md-6 mb-3"><label>الرابط (Slug)</label><input type="text" class="form-control" id="slug" value="{{ product.slug or '' }}"></div>
                             <div class="col-md-6 mb-3">
                                 <label>حالة المنتج</label>
                                 <select class="form-select" id="status">
+                                    <option value="active" {% if product.status == 'active' %}selected{% endif %}>نشط (Active)</option>
                                     <option value="draft" {% if product.status == 'draft' %}selected{% endif %}>مسودة (Draft)</option>
-                                    <option value="active" {% if product.status == 'active' %}selected{% endif %}>منشور (Active)</option>
-                                    <option value="archived" {% if product.status == 'archived' %}selected{% endif %}>غير منشور (Archived)</option>
                                 </select>
                             </div>
-                            <div class="col-md-6 mb-3"><label>المورد</label>
+                            <div class="col-md-6 mb-3">
+                                <label>المورد (ID - الاسم)</label>
                                 <select class="form-select" id="supplier_id">
-                                    <option value="">-- اختر مورد --</option>
+                                    <option value="">-- ابحث أو اختر مورداً --</option>
                                     {% for s in suppliers %}
-                                    <option value="{{ s.id }}" {% if mapping.selected_supplier_id == s.id %}selected{% endif %}>{{ s.trade_name }}</option>
+                                    <option value="{{ s.id }}" {% if mapping.selected_supplier_id == s.id %}selected{% endif %}>[{{ s.id }}] {{ s.trade_name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -43,26 +51,29 @@
                     </div>
                 </div>
 
-                <!-- 2. التسعير والمخزون -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="mb-3" style="color: var(--deep-purple-dark);">التسعير والمخزون</h5>
+                        <h5 class="mb-3" style="color: var(--royal-purple);">التسعير والمخزون</h5>
                         <div class="row">
-                            <div class="col-md-3 mb-3"><label>السعر</label><input type="number" class="form-control" id="price" value="{{ product.pricing.price if product.pricing else 0 }}"></div>
-                            <div class="col-md-3 mb-3"><label>السعر السابق</label><input type="number" class="form-control" id="compareAtPrice" value="{{ product.pricing.compareAtPrice if product.pricing else 0 }}"></div>
-                            <div class="col-md-3 mb-3"><label>التكلفة</label><input type="number" class="form-control" id="originalPrice" value="{{ product.pricing.originalPrice if product.pricing else 0 }}"></div>
+                            <div class="col-md-3 mb-3"><label>السعر</label><input type="number" class="form-control" id="price" value="{{ product.pricing.price or 0 }}"></div>
+                            <div class="col-md-3 mb-3"><label>السعر السابق</label><input type="number" class="form-control" id="compareAtPrice" value="{{ product.pricing.compareAtPrice or 0 }}"></div>
+                            <div class="col-md-3 mb-3"><label>التكلفة</label><input type="number" class="form-control" id="originalPrice" value="{{ product.pricing.originalPrice or 0 }}"></div>
                             <div class="col-md-3 mb-3"><label>الكمية</label><input type="number" class="form-control" id="quantity" value="{{ product.quantity or 0 }}"></div>
-                            <div class="col-md-12 mb-3"><label>SKU</label><input type="text" class="form-control" id="sku" value="{{ product.identification.sku if product.identification else '' }}"></div>
+                            <div class="col-md-12 mb-3">
+                                <label>SKU (كود المنتج)</label>
+                                <input type="text" class="form-control" id="sku" value="{{ product.identification.sku or '' }}" disabled style="background-color: #e9ecef;">
+                                <small class="text-muted">هذا الحقل معرف للنظام ولا يمكن تعديله من هنا.</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. الصور والملاحظات -->
+            <!-- الأعمدة الجانبية -->
             <div class="col-lg-4">
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="mb-3" style="color: var(--deep-purple-dark);">صور المنتج</h5>
+                        <h5 class="mb-3" style="color: var(--royal-purple);">صور المنتج</h5>
                         <div class="row g-2">
                             {% for img in product.images or [] %}
                                 <div class="col-6"><img src="{{ img.fileUrl }}" class="img-thumbnail w-100"></div>
@@ -70,57 +81,16 @@
                         </div>
                     </div>
                 </div>
-                
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <h5 class="mb-3" style="color: var(--deep-purple-dark);">ملاحظات إدارية</h5>
-                        <textarea class="form-control" id="internal_notes" rows="3">{{ mapping.internal_notes or '' }}</textarea>
+                        <h5 class="mb-3" style="color: var(--royal-purple);">ملاحظات إدارية</h5>
+                        <textarea class="form-control" id="internal_notes" rows="4">{{ mapping.internal_notes or '' }}</textarea>
                     </div>
                 </div>
             </div>
         </div>
-
-        <button type="submit" id="saveBtn" class="btn btn-custom-purple btn-lg w-100 mt-2 shadow-sm">
+        <button type="submit" id="saveBtn" class="btn btn-custom-purple btn-lg w-100 shadow-lg mb-5">
             <i class="fas fa-save me-2"></i>حفظ كافة التعديلات
         </button>
     </form>
 </div>
-
-<script>
-    async function saveProduct(event) {
-        event.preventDefault();
-        const btn = document.getElementById('saveBtn');
-        btn.disabled = true;
-        btn.innerHTML = "جاري الحفظ...";
-
-        const payload = {
-            qid: document.getElementById('qid').value,
-            title: document.getElementById('title').value,
-            slug: document.getElementById('slug').value,
-            status: document.getElementById('status').value,
-            supplier_id: document.getElementById('supplier_id').value,
-            internal_notes: document.getElementById('internal_notes').value,
-            price: document.getElementById('price').value,
-            compareAtPrice: document.getElementById('compareAtPrice').value,
-            originalPrice: document.getElementById('originalPrice').value,
-            quantity: document.getElementById('quantity').value,
-            sku: document.getElementById('sku').value
-        };
-
-        try {
-            const response = await fetch('/admin/product/save-sync', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            const result = await response.json();
-            alert(result.message);
-        } catch (err) {
-            alert("حدث خطأ أثناء الاتصال بالخادم");
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save me-2"></i>حفظ كافة التعديلات';
-        }
-    }
-</script>
-{% endblock %}
