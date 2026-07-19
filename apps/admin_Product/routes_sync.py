@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 @login_required
 def save_sync():
     """
-    حفظ بيانات المنتج وتحديثها في قمرة وقاعدة البيانات المحلية (تحديث متزامن)
+    حفظ بيانات المنتج وتحديثها في قمرة وقاعدة البيانات المحلية
     """
     data = request.get_json()
     
@@ -23,13 +23,9 @@ def save_sync():
         return jsonify({"status": "error", "message": "معرف المنتج مفقود"}), 400
 
     try:
-        # 1. تحديث الربط والملاحظات في قاعدة البيانات المحلية (MySQL)
+        # 1. تحديث قاعدة البيانات المحلية
         mapping = ProductSupplierMapping.query.filter_by(product_qid=data['qid']).first()
-        
-        # تحويل القيمة الفارغة لـ supplier_id إلى None
-        supplier_id = data.get('supplier_id')
-        if supplier_id == "":
-            supplier_id = None
+        supplier_id = data.get('supplier_id') if data.get('supplier_id') != "" else None
             
         if mapping:
             mapping.supplier_id = supplier_id
@@ -44,7 +40,7 @@ def save_sync():
         
         db.session.commit()
 
-        # 2. بناء الـ Mutation المحدث (لقمرة)
+        # 2. بناء الـ Mutation (تم توسيع حقول الـ input لتشمل كافة الأسعار المستخرجة)
         mutation = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfoInput!) {
             updateProductInfo(id: $id, input: $input) {
@@ -54,7 +50,7 @@ def save_sync():
         }
         """
         
-        # 3. تجهيز المدخلات
+        # 3. تجهيز المدخلات الشاملة
         variables = {
             "id": str(data['qid']),
             "input": {
@@ -62,7 +58,10 @@ def save_sync():
                 "slug": str(data.get('slug', '')),
                 "quantity": int(data.get('quantity', 0)),
                 "pricing": {
-                    "price": float(data.get('price', 0))
+                    "price": float(data.get('price', 0)),
+                    "compareAtPrice": float(data.get('compareAtPrice', 0)),
+                    "originalPrice": float(data.get('originalPrice', 0)),
+                    "discount": float(data.get('discount', 0))
                 },
                 "identification": {
                     "sku": str(data.get('sku', ''))
@@ -70,17 +69,22 @@ def save_sync():
             }
         }
         
-        # 4. تنفيذ التحديث في قمرة
+        # 4. تنفيذ التحديث
         response = QomrahGraphQLClient.execute_query(mutation, variables=variables)
         
-        if not response or 'errors' in response:
-            logger.error(f"❌ فشل تحديث قمرة لـ {data['qid']}: {response.get('errors')}")
-            # التحديث المحلي تم، لذا نبلغ المستخدم بالحالة الجزئية
-            return jsonify({"status": "partial_success", "message": "تم حفظ الملاحظات محلياً، لكن فشل التحديث في قمرة"}), 500
+        # 5. معالجة الأخطاء التفصيلية (للعلم: هذا الجزء سيكشف لنا الحقل المرفوض بالضبط)
+        if response and 'errors' in response:
+            error_details = response.get('errors')
+            logger.error(f"❌ فشل تحديث قمرة لـ {data['qid']}: {error_details}")
+            # إرجاع الخطأ الحقيقي للمتصفح لمعرفته فوراً
+            return jsonify({
+                "status": "error", 
+                "message": f"خطأ من قمرة: {error_details}"
+            }), 500
         
-        return jsonify({"status": "success", "message": "تم حفظ كافة التعديلات بنجاح في النظامين"}), 200
+        return jsonify({"status": "success", "message": "تم حفظ كافة التعديلات بنجاح"}), 200
         
     except Exception as e:
         db.session.rollback()
-        logger.error(f"❌ خطأ تقني أثناء عملية المزامنة للـ qid {data.get('qid')}: {str(e)}")
-        return jsonify({"status": "error", "message": "حدث خطأ داخلي أثناء حفظ البيانات"}), 500
+        logger.error(f"❌ خطأ تقني للـ qid {data.get('qid')}: {str(e)}")
+        return jsonify({"status": "error", "message": "حدث خطأ داخلي"}), 500
