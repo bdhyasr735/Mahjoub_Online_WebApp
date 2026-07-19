@@ -115,14 +115,14 @@
             collection_ids: Array.from(document.getElementById('collections-select').selectedOptions).map(o => o.value),
             variants: Array.from(document.querySelectorAll('.variant-row')).map(row => ({
                 title: row.querySelector('.v-title').value,
-                pricing: { price: parseFloat(row.querySelector('.v-price').value || 0) },
+                price: parseFloat(row.querySelector('.v-price').value || 0),
                 quantity: parseInt(row.querySelector('.v-quantity').value || 0),
                 sku: row.querySelector('.v-sku').value
             }))
         };
 
         try {
-            const res = await fetch('/admin/products/save-sync', {
+            const res = await fetch("{{ url_for('admin_product_bp.save_sync') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
