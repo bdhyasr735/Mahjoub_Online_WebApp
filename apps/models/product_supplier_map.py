@@ -8,12 +8,12 @@ from apps.extensions import db
 
 class ProductSupplierMapping(db.Model):
     """
-    جدول الربط السيادي: يربط منتج قمرة (qid) بمورد في نظامنا.
-    تم تصميم هذا الجدول ليكون خفيفاً وسريعاً جداً.
+    جدول الربط السيادي: يربط فقط بين منتج قمرة (qid) والمورد (supplier_id).
+    المصدر الأساسي لكل التفاصيل (الاسم، السعر، المخزون) يظل "قمرة".
     """
     __tablename__ = 'product_supplier_mapping'
 
-    # [فهرسة متقدمة]: للبحث السريع عن الموردين المرتبطين بالمنتجات
+    # [فهرسة]: للبحث فائق السرعة
     __table_args__ = (
         db.Index('idx_map_qid', 'product_qid'),
         db.Index('idx_map_supplier', 'supplier_id'),
@@ -22,13 +22,13 @@ class ProductSupplierMapping(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     
-    # المعرف الفريد لمنتج قمرة (مفهرس للوصول السريع)
+    # المعرف الفريد لمنتج قمرة (لا غنى عنه)
     product_qid = db.Column(db.String(255), nullable=False, unique=True)
     
-    # المعرف الخاص بالمورد في نظامنا
+    # المعرف الخاص بالمورد في نظامنا (الرابط)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     
-    # [تشفير سيادي]: ملاحظات الربط مشفرة في حال احتوت على بيانات حساسة
+    # [تشفير سيادي]: ملاحظات إدارية خاصة بك فقط حول هذا الربط
     _internal_notes_enc = db.Column(db.Text, nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -58,4 +58,4 @@ class ProductSupplierMapping(db.Model):
             self._internal_notes_enc = None
 
     def __repr__(self):
-        return f"<ProductMapping qid={self.product_qid} supplier={self.supplier_id}>"
+        return f"<Mapping qid={self.product_qid} supplier_id={self.supplier_id}>"
