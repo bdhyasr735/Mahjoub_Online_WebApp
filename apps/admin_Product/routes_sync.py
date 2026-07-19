@@ -40,7 +40,7 @@ def save_sync():
         
         db.session.commit()
 
-        # 2. بناء الـ Mutation (تم إضافة status وتعديل المدخلات)
+        # 2. بناء الـ Mutation المحدث ليشمل كافة الحقول الجديدة
         mutation = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfoInput!) {
             updateProductInfo(id: $id, input: $input) {
@@ -50,7 +50,7 @@ def save_sync():
         }
         """
         
-        # 3. تجهيز المدخلات الشاملة (تأكد من مطابقة أسماء الحقول لـ Input Type الخاص بك)
+        # 3. تجهيز المدخلات الشاملة (تأكد من توافق الأسماء مع الـ Schema)
         variables = {
             "id": str(data['qid']),
             "input": {
@@ -64,7 +64,12 @@ def save_sync():
                     "originalPrice": float(data.get('originalPrice', 0))
                 },
                 "identification": {
-                    "sku": str(data.get('sku', ''))
+                    "sku": str(data.get('sku', '')),
+                    "barcode": str(data.get('barcode', ''))
+                },
+                "seo": {
+                    "title": str(data.get('seo_title', '')),
+                    "description": str(data.get('seo_description', ''))
                 }
             }
         }
@@ -76,7 +81,7 @@ def save_sync():
         if response and 'errors' in response:
             error_details = response.get('errors')
             logger.error(f"❌ فشل تحديث قمرة لـ {data['qid']}: {error_details}")
-            return jsonify({"status": "error", "message": "حدث خطأ أثناء التواصل مع قمرة"}), 500
+            return jsonify({"status": "error", "message": "حدث خطأ أثناء التواصل مع خادم قمرة"}), 500
         
         return jsonify({"status": "success", "message": "تم حفظ كافة التعديلات بنجاح"}), 200
         
