@@ -40,7 +40,7 @@ def save_sync():
         
         db.session.commit()
 
-        # 2. بناء الـ Mutation المحدث ليشمل كافة الحقول الجديدة
+        # 2. بناء الـ Mutation المحدث ليشمل وصف المنتج
         mutation = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfoInput!) {
             updateProductInfo(id: $id, input: $input) {
@@ -50,11 +50,12 @@ def save_sync():
         }
         """
         
-        # 3. تجهيز المدخلات الشاملة (تأكد من توافق الأسماء مع الـ Schema)
+        # 3. تجهيز المدخلات الشاملة (تم إضافة description)
         variables = {
             "id": str(data['qid']),
             "input": {
                 "title": str(data.get('title', '')),
+                "description": str(data.get('description', '')), # إضافة الوصف هنا
                 "slug": str(data.get('slug', '')),
                 "status": str(data.get('status', 'draft')),
                 "quantity": int(data.get('quantity', 0)),
