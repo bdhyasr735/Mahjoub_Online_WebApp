@@ -73,9 +73,15 @@ def edit_product(qid):
         result = response.get('data', {}).get('findProductByQid', {})
         
         if result.get('success'):
+            product_data = result.get('data', {})
+            
+            # استخراج الـ QIDs للمجموعات المرتبطة بالمنتج لتحديدها في القائمة (selected)
+            product_collection_qids = [col['qid'] for col in product_data.get('collections', [])]
+            product_data['collection_qids'] = product_collection_qids
+
             return render_template(
                 'admin/admin_edit_product.html', 
-                product=result.get('data', {}),
+                product=product_data,
                 suppliers=suppliers,
                 all_collections=all_collections, 
                 mapping=mapping_data
