@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/admin_Product/routes_edit.py
 
-from flask import render_template, request, flash, redirect, url_for
+from flask import render_template, flash, redirect, url_for
 from flask_login import login_required
 from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# استعلام جلب المنتج
+# استعلام جلب المنتج لاستحضار حالته الحالية
 FIND_PRODUCT_QUERY = """
 query GetProduct($qid: String!) {
   findProductByQid(qid: $qid) {
@@ -23,16 +23,10 @@ query GetProduct($qid: String!) {
       title
       slug
       status
-      views
-      publishedAt
       pricing { price }
-      identification { sku, barcode }
+      identification { sku }
       quantity
-      trackQuantity
       images { fileUrl }
-      seo { title, description }
-      variants
-      options
     }
   }
 }
@@ -47,27 +41,25 @@ def edit_product(qid):
 
     clean_qid = unquote(unquote(qid))
     
-    # تعريف هيكل افتراضي (فارغ) لضمان عدم حدوث خطأ UndefinedError في القالب
+    # تعريف هيكل افتراضي لضمان استقرار القالب
     mapping_data_empty = {"selected_supplier_id": None, "internal_notes": ""}
     
     try:
-        # جلب الموردين المتاحين
+        # 1. جلب الموردين المتاحين
         suppliers = Supplier.query.filter_by(status='active').all()
         
-        # محاولة جلب البيانات المحلية
+        # 2. استحضار البيانات المحلية المرتبطة (الربط والملاحظات)
         mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
         mapping_data = {
             "selected_supplier_id": mapping.supplier_id if mapping else None,
             "internal_notes": mapping.internal_notes if mapping else ""
         }
 
-        # جلب البيانات من قمرة
-        variables = {"qid": clean_qid}
-        response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, variables)
+        # 3. استحضار البيانات من قمرة (المصدر الأساسي للحالة الراهنة)
+        response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, {"qid": clean_qid})
         
-        # التحقق من استجابة قمرة
         if not response or 'data' not in response:
-            logger.error(f"⚠️ استجابة فارغة من قمرة لـ qid: {clean_qid}")
+            logger.error(f"⚠️ فشل الاتصال بقمرة لـ qid: {clean_qid}")
             flash("لا يوجد اتصال بخادم البيانات.")
             return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, mapping=mapping_data_empty)
 
@@ -81,11 +73,10 @@ def edit_product(qid):
                 mapping=mapping_data
             )
         else:
-            error_msg = result.get('message', "لم يتم العثور على المنتج.")
-            flash(error_msg)
-            return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, mapping=mapping_data_empty)
+            flash(result.get('message', "لم يتم العثور على المنتج."))
+            return redirect(url_for('admin_product_bp.manage_products'))
             
     except Exception as e:
-        logger.error(f"❌ خطأ تقني أثناء جلب تفاصيل المنتج {clean_qid}: {str(e)}")
+        logger.error(f"❌ خطأ تقني أثناء استحضار المنتج {clean_qid}: {str(e)}")
         flash("حدث خطأ تقني أثناء تحميل بيانات المنتج.")
-        return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, mapping=mapping_data_empty)
+        return redirect(url_for('admin_product_bp.manage_products'))
