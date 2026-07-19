@@ -1,82 +1,32 @@
-# coding: utf-8
 # 📂 apps/admin_Product/routes_edit.py
-
-from flask import render_template, flash, redirect, url_for
+from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
-from apps.models.supplier_db import Supplier
-from apps.models.product_supplier_map import ProductSupplierMapping
-from urllib.parse import unquote
-import logging
 
-logger = logging.getLogger(__name__)
-
-FIND_PRODUCT_QUERY = """
-query GetProduct($qid: String!) {
-  findProductByQid(qid: $qid) {
-    success
-    message
-    data {
-      qid, title, description, slug, status, quantity, trackQuantity
-      pricing { price, compareAtPrice, originalPrice }
-      images { fileUrl }
-      variants { title, pricing { price }, quantity, identification { sku } }
-      collections { qid, title }
-    }
-  }
-}
-"""
-
-LIST_COLLECTIONS_QUERY = """
-query {
-  findAllCollections {
-    data { qid, title }
-  }
-}
-"""
-
-@admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
+@admin_product_bp.route('/edit/<qid>', methods=['GET', 'POST'])
 @login_required
 def edit_product(qid):
-    clean_qid = unquote(unquote(qid))
-    try:
-        # جلب الموردين والمجموعات بشكل منفصل لتجنب انهيار الصفحة
-        suppliers = Supplier.query.filter_by(status='active').all()
+    # جلب تفاصيل المنتج الحالية
+    if request.method == 'GET':
+        query = "query Get($qid: ID!) { findProduct(qid: $qid) { title, pricing { price }, quantity } }"
+        response = QomrahGraphQLClient.execute_query(query, {"qid": qid})
+        product = response['data']['findProduct'] if response else {}
+        return render_template('admin/edit_product.html', product=product, qid=qid)
+
+    # تحديث المنتج
+    if request.method == 'POST':
+        update_data = {
+            "title": request.form.get('title'),
+            "pricing": {"price": float(request.form.get('price', 0))},
+            "quantity": int(request.form.get('quantity', 0))
+        }
+        mutation = "mutation Update($qid: ID!, $input: UpdateProductInput!) { updateProduct(qid: $qid, input: $input) { qid } }"
+        response = QomrahGraphQLClient.execute_query(mutation, {"qid": qid, "input": update_data})
         
-        col_res = QomrahGraphQLClient.execute_query(LIST_COLLECTIONS_QUERY)
-        all_collections = []
-        if col_res and 'data' in col_res:
-            all_collections = col_res['data'].get('findAllCollections', {}).get('data', [])
-
-        # جلب بيانات الربط مع المورد
-        mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
-        mapping_data = {"selected_supplier_id": mapping.supplier_id if mapping else None}
-
-        # جلب بيانات المنتج من خدمة قمرا
-        response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, {"qid": clean_qid})
+        if response and 'data' in response:
+            flash("تم تحديث المنتج بنجاح.")
+            return redirect(url_for('admin_product_bp.manage_products'))
         
-        product_data = {}
-        if response and 'data' in response and response['data'].get('findProductByQid', {}).get('success'):
-            product_data = response['data']['findProductByQid'].get('data', {})
-            
-            # معالجة المتغيرات (Flattening) لتناسب القالب
-            for v in product_data.get('variants', []):
-                v['price'] = v.get('pricing', {}).get('price', 0) if v.get('pricing') else 0
-                v['sku'] = v.get('identification', {}).get('sku', '') if v.get('identification') else ''
-            
-            # استخراج معرفات المجموعات فقط لتسهيل تحديد الخيارات في القالب
-            product_data['collection_qids'] = [c['qid'] for c in product_data.get('collections', [])] if product_data.get('collections') else []
-
-        return render_template(
-            'admin/admin_edit_product.html', 
-            product=product_data, 
-            suppliers=suppliers, 
-            all_collections=all_collections, 
-            mapping=mapping_data
-        )
-            
-    except Exception as e:
-        logger.error(f"❌ خطأ فادح في edit_product: {str(e)}")
-        # إرجاع صفحة فارغة مع بيانات أولية لتجنب تعطل التطبيق
-        return render_template('admin/admin_edit_product.html', product={}, suppliers=[], all_collections=[], mapping={"selected_supplier_id": None})
+        flash("فشل التحديث.")
+        return redirect(url_for('admin_product_bp.edit_product', qid=qid))
