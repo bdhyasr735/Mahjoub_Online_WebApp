@@ -26,6 +26,19 @@
                             <input type="text" class="form-control" id="title" value="{{ product.title }}" required>
                         </div>
 
+                        <!-- المورد -->
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-success">المورد (صاحب المتجر)</label>
+                            <select class="form-select border-success" id="supplier_id">
+                                <option value="">-- بدون مورد (منتج عام) --</option>
+                                {% for supplier in suppliers %}
+                                    <option value="{{ supplier.id }}" {% if selected_supplier_id == supplier.id %}selected{% endif %}>
+                                        {{ supplier.trade_name or supplier.owner_name or supplier.username }} - ({{ supplier.supplier_code }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                         <!-- السعر والكمية -->
                         <div class="col-md-6 mb-3">
                             <label class="form-label">السعر</label>
@@ -66,7 +79,8 @@ async function saveProduct(event) {
         title: document.getElementById('title').value,
         price: parseFloat(document.getElementById('price').value),
         quantity: parseInt(document.getElementById('quantity').value),
-        sku: document.getElementById('sku').value
+        sku: document.getElementById('sku').value,
+        supplier_id: document.getElementById('supplier_id').value // إضافة المورد
     };
 
     try {
