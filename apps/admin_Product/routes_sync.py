@@ -40,7 +40,8 @@ def save_sync():
         
         db.session.commit()
 
-        # 2. بناء الـ Mutation المحدث ليشمل المجموعات (collections)
+        # 2. بناء الـ Mutation المحدث
+        # تأكد من أن السيرفر (قمرة) يتوقع collection_ids كقائمة من الـ IDs
         mutation = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfoInput!) {
             updateProductInfo(id: $id, input: $input) {
@@ -50,7 +51,8 @@ def save_sync():
         }
         """
         
-        # 3. تجهيز المدخلات الشاملة (تم إضافة collection_ids)
+        # 3. تجهيز المدخلات الشاملة
+        # نستخدم list() للتأكد من أن collection_ids دائماً قائمة
         variables = {
             "id": str(data['qid']),
             "input": {
@@ -59,7 +61,7 @@ def save_sync():
                 "slug": str(data.get('slug', '')),
                 "status": str(data.get('status', 'draft')),
                 "quantity": int(data.get('quantity', 0)),
-                "collection_ids": data.get('collection_ids', []), # إضافة المجموعات المختارة
+                "collection_ids": list(data.get('collection_ids', [])), 
                 "pricing": {
                     "price": float(data.get('price', 0)),
                     "compareAtPrice": float(data.get('compareAtPrice', 0)),
