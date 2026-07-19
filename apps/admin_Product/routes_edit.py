@@ -7,6 +7,7 @@ from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
 from apps.models.supplier_db import Supplier
 from apps.models.product_supplier_map import ProductSupplierMapping
+from apps.models.collection_db import Collection  # تم استيراد موديل المجموعات
 from urllib.parse import unquote
 import logging
 
@@ -62,20 +63,23 @@ def edit_product(qid):
         # 1. جلب الموردين المتاحين
         suppliers = Supplier.query.filter_by(status='active').all()
         
-        # 2. استحضار البيانات المحلية للمنتج
+        # 2. جلب المجموعات المتاحة لعرضها في القائمة
+        all_collections = Collection.query.all()
+        
+        # 3. استحضار البيانات المحلية للمنتج
         mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
         mapping_data = {
             "selected_supplier_id": mapping.supplier_id if mapping else None,
             "internal_notes": mapping.internal_notes if mapping else ""
         }
 
-        # 3. استحضار البيانات من قمرة
+        # 4. استحضار البيانات من قمرة
         response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, {"qid": clean_qid})
         
         if not response or 'data' not in response:
             logger.error(f"⚠️ فشل الاتصال بقمرة لـ qid: {clean_qid}")
             flash("لا يوجد اتصال بخادم البيانات.")
-            return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, mapping=mapping_data_empty)
+            return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, all_collections=all_collections, mapping=mapping_data_empty)
 
         result = response.get('data', {}).get('findProductByQid', {})
         
@@ -84,6 +88,7 @@ def edit_product(qid):
                 'admin/admin_edit_product.html', 
                 product=result.get('data', {}),
                 suppliers=suppliers,
+                all_collections=all_collections, # تمرير المجموعات للقالب المعتمد
                 mapping=mapping_data
             )
         else:
