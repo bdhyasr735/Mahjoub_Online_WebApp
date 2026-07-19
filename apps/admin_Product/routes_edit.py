@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# استعلام مُنظف: تم إزالة الحقول التي تسببت في خطأ الـ Validation
+# استعلام جلب المنتج
 FIND_PRODUCT_QUERY = """
 query GetProduct($qid: String!) {
   findProductByQid(qid: $qid) {
@@ -29,12 +29,10 @@ query GetProduct($qid: String!) {
       identification { sku, barcode }
       quantity
       trackQuantity
-      weight { unit }
-      dimensions { length, width, height, unit }
       images { fileUrl }
       seo { title, description }
-      reviewsCount
-      averageRating
+      variants
+      options
     }
   }
 }
@@ -49,37 +47,45 @@ def edit_product(qid):
 
     clean_qid = unquote(unquote(qid))
     
+    # تعريف هيكل افتراضي (فارغ) لضمان عدم حدوث خطأ UndefinedError في القالب
+    mapping_data_empty = {"selected_supplier_id": None, "internal_notes": ""}
+    
     try:
-        # جلب المورد والبيانات الأساسية
-        mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
+        # جلب الموردين المتاحين
         suppliers = Supplier.query.filter_by(status='active').all()
+        
+        # محاولة جلب البيانات المحلية
+        mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
+        mapping_data = {
+            "selected_supplier_id": mapping.supplier_id if mapping else None,
+            "internal_notes": mapping.internal_notes if mapping else ""
+        }
 
+        # جلب البيانات من قمرة
         variables = {"qid": clean_qid}
         response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, variables)
         
+        # التحقق من استجابة قمرة
         if not response or 'data' not in response:
             logger.error(f"⚠️ استجابة فارغة من قمرة لـ qid: {clean_qid}")
             flash("لا يوجد اتصال بخادم البيانات.")
-            return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers)
+            return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, mapping=mapping_data_empty)
 
         result = response.get('data', {}).get('findProductByQid', {})
         
         if result.get('success'):
-            product = result.get('data', {})
             return render_template(
                 'admin/admin_edit_product.html', 
-                product=product,
+                product=result.get('data', {}),
                 suppliers=suppliers,
-                selected_supplier_id=mapping.supplier_id if mapping else None,
-                internal_notes=mapping.internal_notes if mapping else ""
+                mapping=mapping_data
             )
         else:
-            error_msg = result.get('message', "لم يتم العثور على المنتج في قمرة.")
-            logger.warning(f"⚠️ {error_msg} لـ qid: {clean_qid}")
+            error_msg = result.get('message', "لم يتم العثور على المنتج.")
             flash(error_msg)
-            return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers)
+            return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, mapping=mapping_data_empty)
             
     except Exception as e:
         logger.error(f"❌ خطأ تقني أثناء جلب تفاصيل المنتج {clean_qid}: {str(e)}")
         flash("حدث خطأ تقني أثناء تحميل بيانات المنتج.")
-        return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers)
+        return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, mapping=mapping_data_empty)
