@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 def save_sync():
-    """مزامنة بيانات المنتج مع منصة قمرة وحفظ المورد محلياً باستخدام الـ Handle"""
+    """مزامنة بيانات المنتج مع منصة قمرة وحفظ المورد محلياً"""
     data = request.json or {}
     qid = data.get('qid')
     supplier_id = data.get('supplier_id')
@@ -25,27 +25,24 @@ def save_sync():
     if not qid:
         return jsonify({"status": "error", "message": "المعرف الفريد QID مفقود"}), 400
 
-    # 1. معالجة البيانات بأمان
+    # 1. معالجة البيانات القادمة من القالب
     try:
+        # تنسيق المتغيرات (Variants) كما يرسلها القالب
         raw_variants = data.get('variants', [])
         processed_variants = []
         for v in raw_variants:
             processed_variants.append({
-                "title": str(v.get('title', '')),
-                "price": float(v.get('price') or 0),
-                "quantity": int(v.get('quantity') or 0),
-                "sku": str(v.get('sku', ''))
+                "pricing": {"price": float(v.get('pricing', {}).get('price', 0))},
+                "quantity": int(v.get('quantity', 0))
             })
 
-        price_data = {
-            "price": float(data.get('price') or 0),
-            "compareAtPrice": float(data.get('compare_at_price') or 0),
-            "originalPrice": float(data.get('original_price') or 0)
-        }
+        # ملاحظة: في القالب الأخير اعتمدنا variants، وإذا كنت تحتاج إرسال price الرئيسي،
+        # تأكد من إضافته في الـ payload في ملف الـ JS إذا لزم الأمر.
+        
     except (ValueError, TypeError) as e:
-        return jsonify({"status": "error", "message": f"خطأ في تنسيق البيانات الرقمية: {str(e)}"}), 400
+        return jsonify({"status": "error", "message": f"خطأ في تنسيق البيانات: {str(e)}"}), 400
 
-    # 2. صياغة الـ Mutation
+    # 2. صياغة الـ Mutation (مطابقة لهيكلية قمرة)
     mutation = """
     mutation UpdateProduct($qid: String!, $input: UpdateProductInput!) {
         updateProduct(qid: $qid, input: $input) {
@@ -55,7 +52,7 @@ def save_sync():
     }
     """
     
-    # 3. بناء المتغيرات (تم استبدال collectionIds بـ collectionHandles)
+    # 3. بناء المتغيرات (تم تحديث الحقول لتطابق ما يتم إرساله من JS)
     variables = {
         "qid": qid,
         "input": {
@@ -63,10 +60,9 @@ def save_sync():
             "slug": data.get('slug'),
             "description": data.get('description'),
             "status": data.get('status'),
-            "collectionHandles": data.get('collection_handles', []),
+            "collectionIds": data.get('collection_ids', []), # تم التحديث إلى IDs
             "variants": processed_variants,
-            "pricing": price_data,
-            "images": data.get('images', []) 
+            "images": [{"fileUrl": url} for url in data.get('images', [])] # تنسيق الصور
         }
     }
     
@@ -75,8 +71,7 @@ def save_sync():
         qomrah_response = QomrahGraphQLClient.execute_query(mutation, variables)
         
         if not qomrah_response or 'errors' in qomrah_response:
-            error_msg = qomrah_response.get('errors', [{}])[0].get('message', 'خطأ غير معروف في التحديث')
-            logger.error(f"❌ خطأ من API قمرة: {error_msg}")
+            error_msg = qomrah_response.get('errors', [{}])[0].get('message', 'خطأ غير معروف')
             return jsonify({"status": "error", "message": f"فشل التحديث في قمرة: {error_msg}"}), 500
 
         # 4. تحديث ربط المورد في قاعدة البيانات المحلية
@@ -96,11 +91,11 @@ def save_sync():
                 db.session.commit()
             except Exception as db_err:
                 db.session.rollback()
-                logger.error(f"⚠️ فشل حفظ المورد محلياً: {str(db_err)}")
-                return jsonify({"status": "warning", "message": "تم تحديث المنتج في قمرة، لكن حدث خطأ أثناء حفظ المورد محلياً"})
+                logger.error(f"⚠️ فشل حفظ المورد: {str(db_err)}")
+                return jsonify({"status": "warning", "message": "تم تحديث المنتج في قمرة، لكن فشل حفظ المورد محلياً"})
 
-        return jsonify({"status": "success", "message": "✅ تم الحفظ بنجاح!"})
+        return jsonify({"status": "success", "message": "✅ تم حفظ التعديلات بنجاح!"})
 
     except Exception as e:
-        logger.error(f"❌ خطأ برمي أثناء المزامنة: {str(e)}")
+        logger.error(f"❌ خطأ برمي: {str(e)}")
         return jsonify({"status": "error", "message": "حدث خطأ غير متوقع أثناء المعالجة"}), 500
