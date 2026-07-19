@@ -57,14 +57,12 @@
                         <button type="button" class="btn btn-sm btn-success" onclick="addVariantRow()">+ إضافة متغير</button>
                     </div>
                     <table class="table table-bordered">
-                        <thead class="table-light"><tr><th>الاسم</th><th>السعر</th><th>الكمية</th><th>SKU</th><th></th></tr></thead>
+                        <thead class="table-light"><tr><th>السعر</th><th>الكمية</th><th></th></tr></thead>
                         <tbody id="variantsTableBody">
                             {% for v in product.variants %}
                             <tr class="variant-row">
-                                <td><input type="text" class="form-control v-title" value="{{ v.title }}"></td>
                                 <td><input type="number" step="0.01" class="form-control v-price" value="{{ v.pricing.price }}"></td>
                                 <td><input type="number" class="form-control v-quantity" value="{{ v.quantity }}"></td>
-                                <td><input type="text" class="form-control v-sku" value="{{ v.sku }}"></td>
                                 <td><button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">حذف</button></td>
                             </tr>
                             {% endfor %}
@@ -74,7 +72,7 @@
             </div>
 
             <div class="col-lg-4">
-                <!-- الصور -->
+                <!-- الصور والمورد والمجموعات (كما هي) -->
                 <div class="card mb-4 p-4">
                     <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">صور المنتج</h5>
                     <div id="imagesContainer" class="d-flex flex-wrap">
@@ -88,23 +86,12 @@
                     <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="addImageRow()">إضافة رابط صورة</button>
                 </div>
 
-                <!-- المورد -->
                 <div class="card mb-4 p-4">
                     <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">المورد المسؤول</h5>
                     <select class="form-select" id="supplier-select">
                         <option value="">-- اختر المورد --</option>
                         {% for sup in suppliers %}
                         <option value="{{ sup.id }}" {% if sup.id == mapping.selected_supplier_id %}selected{% endif %}>{{ sup.trade_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- المجموعات -->
-                <div class="card mb-4 p-4">
-                    <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">المجموعات</h5>
-                    <select class="form-select" id="collections-select" multiple>
-                        {% for col in all_collections %}
-                        <option value="{{ col.qid }}" {% if col.qid in product.collection_ids %}selected{% endif %}>{{ col.title }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -123,14 +110,7 @@
 
     function addVariantRow() {
         const tbody = document.getElementById('variantsTableBody');
-        tbody.insertAdjacentHTML('beforeend', `<tr class="variant-row"><td><input type="text" class="form-control v-title"></td><td><input type="number" step="0.01" class="form-control v-price" value="0"></td><td><input type="number" class="form-control v-quantity" value="0"></td><td><input type="text" class="form-control v-sku"></td><td><button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">حذف</button></td></tr>`);
-    }
-
-    function addImageRow() {
-        const url = prompt("أدخل رابط الصورة:");
-        if (url) {
-            document.getElementById('imagesContainer').insertAdjacentHTML('beforeend', `<div class="position-relative"><img src="${url}" class="img-thumb"><input type="hidden" class="img-url" value="${url}"></div>`);
-        }
+        tbody.insertAdjacentHTML('beforeend', `<tr class="variant-row"><td><input type="number" step="0.01" class="form-control v-price" value="0"></td><td><input type="number" class="form-control v-quantity" value="0"></td><td><button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">حذف</button></td></tr>`);
     }
 
     async function saveProduct(e) {
@@ -147,14 +127,9 @@
             price: document.getElementById('price').value,
             compare_at_price: document.getElementById('compare_at_price').value,
             original_price: document.getElementById('original_price').value,
-            supplier_id: document.getElementById('supplier-select').value,
-            collection_ids: Array.from(document.getElementById('collections-select').selectedOptions).map(o => o.value),
-            images: Array.from(document.querySelectorAll('.img-url')).map(input => ({ fileUrl: input.value })),
             variants: Array.from(document.querySelectorAll('.variant-row')).map(row => ({
-                title: row.querySelector('.v-title').value,
                 price: parseFloat(row.querySelector('.v-price').value || 0),
-                quantity: parseInt(row.querySelector('.v-quantity').value || 0),
-                sku: row.querySelector('.v-sku').value
+                quantity: parseInt(row.querySelector('.v-quantity').value || 0)
             }))
         };
 
