@@ -18,6 +18,7 @@ query Data($input: GetAllProductsInput) {
       title
       pricing { price }
       quantity
+      identification { sku }  # أضفت هذا الحقل لدعم عرض الـ SKU في الجدول
       images { fileUrl }
     }
     pagination { currentPage, totalPages }
@@ -30,7 +31,8 @@ query Data($input: GetAllProductsInput) {
 def manage_products():
     """جلب وعرض قائمة المنتجات مع دعم البحث والترقيم"""
     page = request.args.get('page', 1, type=int)
-    search = request.args.get('title', '').strip()
+    # نوحد الاسم ليكون search في الكود والقالب
+    search = request.args.get('search', '').strip()
     
     # إعداد المتغيرات للاستعلام
     input_data = {"page": page, "limit": 50}
@@ -51,7 +53,7 @@ def manage_products():
             products = result.get('data') or []
             pagination = result.get('pagination') or {"currentPage": page, "totalPages": 1}
         else:
-            logger.warning(f"⚠️ استجابة فارغة أو غير متوقعة من قمرة عند جلب المنتجات.")
+            logger.warning(f"⚠️ استجابة فارغة من قمرة عند جلب المنتجات.")
             
     except Exception as e:
         logger.error(f"❌ خطأ تقني أثناء جلب قائمة المنتجات: {str(e)}")
@@ -62,5 +64,5 @@ def manage_products():
         'admin/admin_Product.html',
         products=products,
         pagination=pagination,
-        search=search
+        search=search # يتم تمريره للقالب ليبقى في حقل البحث
     )
