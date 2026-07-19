@@ -25,6 +25,7 @@
 
         <div class="row">
             <div class="col-lg-8">
+                <!-- البيانات الأساسية -->
                 <div class="card mb-4 p-4">
                     <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">البيانات الأساسية</h5>
                     <div class="row">
@@ -37,6 +38,7 @@
                     </div>
                 </div>
 
+                <!-- المتغيرات (Variants) -->
                 <div class="card mb-4 p-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0" style="color: var(--deep-purple); font-weight: bold;">المتغيرات</h5>
@@ -61,6 +63,7 @@
                 </div>
             </div>
 
+            <!-- الجانب الأيمن (المورد والمجموعات) -->
             <div class="col-lg-4">
                 <div class="card mb-4 p-4">
                     <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">المورد المسؤول</h5>
@@ -75,7 +78,7 @@
                     <h5 class="mb-3" style="color: var(--deep-purple); font-weight: bold;">المجموعات</h5>
                     <select class="form-select" id="collections-select" multiple>
                         {% for col in all_collections %}
-                        <option value="{{ col.qid }}" {% if col.qid in product.collection_ids %}selected{% endif %}>{{ col.title }}</option>
+                        <option value="{{ col.qid }}" {% if col.qid in product.collection_qids %}selected{% endif %}>{{ col.title }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -128,8 +131,13 @@
                 body: JSON.stringify(payload)
             });
             const result = await res.json();
-            alert(result.message);
-            if (res.ok) location.reload();
+            
+            if (res.ok) {
+                alert("تم الحفظ بنجاح!");
+                location.reload();
+            } else {
+                alert("خطأ: " + (result.message || "فشل التحديث"));
+            }
         } catch (err) {
             alert("خطأ في الاتصال بالسيرفر");
         } finally {
