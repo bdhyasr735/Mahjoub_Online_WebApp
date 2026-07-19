@@ -7,7 +7,7 @@ from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
 from apps.models.supplier_db import Supplier
 from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models.collection_db import Collection  # تم استيراد موديل المجموعات
+from apps.models.collection_db import Collection
 from urllib.parse import unquote
 import logging
 
@@ -79,7 +79,13 @@ def edit_product(qid):
         if not response or 'data' not in response:
             logger.error(f"⚠️ فشل الاتصال بقمرة لـ qid: {clean_qid}")
             flash("لا يوجد اتصال بخادم البيانات.")
-            return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, all_collections=all_collections, mapping=mapping_data_empty)
+            return render_template(
+                'admin/admin_edit_product.html', 
+                product={}, 
+                suppliers=suppliers, 
+                all_collections=all_collections, 
+                mapping=mapping_data_empty
+            )
 
         result = response.get('data', {}).get('findProductByQid', {})
         
@@ -88,7 +94,7 @@ def edit_product(qid):
                 'admin/admin_edit_product.html', 
                 product=result.get('data', {}),
                 suppliers=suppliers,
-                all_collections=all_collections, # تمرير المجموعات للقالب المعتمد
+                all_collections=all_collections,
                 mapping=mapping_data
             )
         else:
