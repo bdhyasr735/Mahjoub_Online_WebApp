@@ -14,84 +14,65 @@ logger = logging.getLogger(__name__)
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync():
-    """
-    حفظ بيانات المنتج، الصور، المتغيرات، والمجموعات وتحديثها لحظياً
-    """
     data = request.get_json()
     
     if not data or 'qid' not in data:
         return jsonify({"status": "error", "message": "معرف المنتج مفقود"}), 400
 
     try:
-        # 1. تحديث قاعدة البيانات المحلية (المورد)
+        # 1. تحديث قاعدة البيانات المحلية
         mapping = ProductSupplierMapping.query.filter_by(product_qid=data['qid']).first()
         supplier_id = data.get('supplier_id') if data.get('supplier_id') != "" else None
             
         if mapping:
             mapping.supplier_id = supplier_id
-            mapping.internal_notes = data.get('internal_notes', '') 
         else:
-            new_mapping = ProductSupplierMapping(
-                product_qid=data['qid'], 
-                supplier_id=supplier_id,
-                internal_notes=data.get('internal_notes', '')
-            )
+            new_mapping = ProductSupplierMapping(product_qid=data['qid'], supplier_id=supplier_id)
             db.session.add(new_mapping)
-        
         db.session.commit()
 
-        # 2. بناء الـ Mutation المحدث
-        # تأكد من تطابق اسم المدخلات في الـ Schema الخاصة بـ Qomrah
+        # 2. بناء الـ Mutation (تم تعديل المدخلات لتكون متوافقة مع هيكل قمرة الجديد)
         mutation = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfoInput!) {
             updateProductInfo(id: $id, input: $input) {
                 qid
-                title
             }
         }
         """
         
-        # 3. تجهيز المدخلات الشاملة (تأكد من توافق المفاتيح مع الـ API)
+        # 3. معالجة المتغيرات لضمان وجود pricing { price } بداخلها
+        # لاحظ أننا نرسل الـ variants كما تم استلامها من الفرونت-إند (بعد تعديلها هناك)
+        processed_variants = []
+        for v in data.get('variants', []):
+            processed_variants.append({
+                "title": v.get('title'),
+                "sku": v.get('sku'),
+                "quantity": int(v.get('quantity', 0)),
+                "pricing": {"price": float(v.get('pricing', {}).get('price', 0))}
+            })
+        
         variables = {
             "id": str(data['qid']),
             "input": {
                 "title": str(data.get('title', '')),
                 "description": str(data.get('description', '')),
                 "slug": str(data.get('slug', '')),
-                "collection_ids": list(data.get('collection_ids', [])), 
-                "variants": data.get('variants', []), 
-                "images": data.get('images', []),
-                # الحقول الاختيارية مع توفير قيم افتراضية لتجنب الأخطاء
-                "status": str(data.get('status', 'draft')),
-                "quantity": int(data.get('quantity', 0)),
-                "pricing": {
-                    "price": float(data.get('price', 0)),
-                    "compareAtPrice": float(data.get('compareAtPrice', 0)),
-                    "originalPrice": float(data.get('originalPrice', 0))
-                },
-                "identification": {
-                    "sku": str(data.get('sku', '')),
-                    "barcode": str(data.get('barcode', ''))
-                },
-                "seo": {
-                    "title": str(data.get('seo_title', '')),
-                    "description": str(data.get('seo_description', ''))
-                }
+                "collection_ids": list(data.get('collection_ids', [])),
+                "variants": processed_variants
             }
         }
         
-        # 4. تنفيذ التحديث اللحظي عبر GraphQL
+        # 4. تنفيذ التحديث
         response = QomrahGraphQLClient.execute_query(mutation, variables=variables)
         
-        # التحقق من وجود أخطاء في استجابة GraphQL
         if not response or 'errors' in response:
             error_details = response.get('errors') if response else "No response"
             logger.error(f"❌ فشل تحديث قمرة لـ {data['qid']}: {error_details}")
-            return jsonify({"status": "error", "message": "حدث خطأ أثناء التواصل مع خادم قمرة"}), 500
+            return jsonify({"status": "error", "message": "خطأ في الاتصال بخادم قمرة"}), 500
         
-        return jsonify({"status": "success", "message": "تم حفظ كافة التعديلات وتحديثها في قمرة بنجاح"}), 200
+        return jsonify({"status": "success", "message": "تم الحفظ بنجاح"}), 200
         
     except Exception as e:
         db.session.rollback()
-        logger.error(f"❌ خطأ تقني للـ qid {data.get('qid')}: {str(e)}")
-        return jsonify({"status": "error", "message": f"حدث خطأ داخلي: {str(e)}"}), 500
+        logger.error(f"❌ خطأ تقني: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
