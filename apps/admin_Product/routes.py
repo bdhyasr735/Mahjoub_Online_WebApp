@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# الاستعلام متوافق مع بنية البيانات التي يعرضها القالب (_table_products.html)
+# الاستعلام متوافق مع بنية البيانات التي يعرضها القالب
 GET_ALL_PRODUCTS_QUERY = """
 query Data($input: GetAllProductsInput) {
   findAllProducts(input: $input) {
@@ -29,10 +29,11 @@ query Data($input: GetAllProductsInput) {
 @admin_product_bp.route('/', methods=['GET'])
 @login_required
 def manage_products():
-    """جلب وعرض قائمة المنتجات (متوافق مع Registry)"""
+    """جلب وعرض قائمة المنتجات (متوافق مع القالب)"""
     page = request.args.get('page', 1, type=int)
-    # استخدام 'search' ليتطابق مع ما تمرره في القوالب عبر url_for
-    search = request.args.get('search', '').strip()
+    
+    # تم تعديل المتغير ليطابق الـ name في نموذج القالب (title)
+    search = request.args.get('title', '').strip()
     
     input_data = {"page": page, "limit": 50}
     if search:
@@ -61,5 +62,5 @@ def manage_products():
         'admin/admin_Product.html',
         products=products,
         pagination=pagination,
-        search=search
+        search=search # هذا المتغير سيقوم بملء حقل الإدخال في القالب تلقائياً
     )
