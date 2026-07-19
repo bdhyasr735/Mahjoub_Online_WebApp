@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# استعلام جلب تفاصيل المنتج بالكامل وفق الهيكل المطلوب
+# استعلام مُنظف: تم إزالة الحقول التي تسببت في خطأ الـ Validation
 FIND_PRODUCT_QUERY = """
 query GetProduct($qid: String!) {
   findProductByQid(qid: $qid) {
@@ -25,16 +25,14 @@ query GetProduct($qid: String!) {
       status
       views
       publishedAt
-      pricing { price, compareAtPrice, costPrice, currency }
+      pricing { price }
       identification { sku, barcode }
       quantity
       trackQuantity
-      weight { value, unit }
+      weight { unit }
       dimensions { length, width, height, unit }
       images { fileUrl }
-      collections { name }
       seo { title, description }
-      options { name, values }
       reviewsCount
       averageRating
     }
@@ -45,42 +43,35 @@ query GetProduct($qid: String!) {
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """جلب بيانات المنتج من قمرة وعرضها في صفحة التعديل مع ربط المورد"""
-    
     if not qid:
         flash("معرف المنتج مفقود.")
         return redirect(url_for('admin_product_bp.manage_products'))
 
-    # فك الترميز المزدوج للـ qid
     clean_qid = unquote(unquote(qid))
     
     try:
-        # 1. جلب المورد المرتبط بهذا المنتج من قاعدة بياناتنا
+        # جلب المورد والبيانات الأساسية
         mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
-        
-        # 2. جلب جميع الموردين النشطين للقائمة المنسدلة في الواجهة
         suppliers = Supplier.query.filter_by(status='active').all()
 
-        # 3. إرسال الاستعلام الشامل لقمرة لجلب بيانات المنتج
         variables = {"qid": clean_qid}
         response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, variables)
         
-        if not response:
+        if not response or 'data' not in response:
             logger.error(f"⚠️ استجابة فارغة من قمرة لـ qid: {clean_qid}")
             flash("لا يوجد اتصال بخادم البيانات.")
             return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers)
 
-        data_payload = response.get('data', {})
-        result = data_payload.get('findProductByQid', {})
+        result = response.get('data', {}).get('findProductByQid', {})
         
         if result.get('success'):
             product = result.get('data', {})
-            # إرسال البيانات كاملة للـ Template
             return render_template(
                 'admin/admin_edit_product.html', 
                 product=product,
                 suppliers=suppliers,
-                selected_supplier_id=mapping.supplier_id if mapping else None
+                selected_supplier_id=mapping.supplier_id if mapping else None,
+                internal_notes=mapping.internal_notes if mapping else ""
             )
         else:
             error_msg = result.get('message', "لم يتم العثور على المنتج في قمرة.")
