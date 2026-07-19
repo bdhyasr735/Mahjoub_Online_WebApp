@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """عرض صفحة تعديل المنتج مع جلب المتغيرات (variants)"""
+    """عرض صفحة تعديل المنتج مع استعلام متوافق مع API قمرة"""
     
+    # تم تنظيف الحقول بناءً على رسالة خطأ GraphQL (إزالة currency، title، price، sku من داخل variants)
     product_query = """
     query GetProductDetail($qid: String!) { 
         findProductByQid(qid: $qid) { 
@@ -31,21 +32,19 @@ def edit_product(qid):
                 description
                 pricing {
                     price
-                    currency
                 }
                 identification {
                     sku
-                    barcode
                 }
                 quantity
                 collections {
                     qid
                 }
                 variants {
-                    title
-                    price
+                    pricing {
+                        price
+                    }
                     quantity
-                    sku
                 }
             }
         } 
@@ -67,7 +66,6 @@ def edit_product(qid):
         prod_response = QomrahGraphQLClient.execute_query(product_query, {"qid": qid})
         col_response = QomrahGraphQLClient.execute_query(collections_query)
         
-        # التأكد من المسار الصحيح في الاستجابة
         if not prod_response or 'data' not in prod_response or not prod_response['data'].get('findProductByQid', {}).get('data'):
             flash("❌ تعذر جلب بيانات المنتج من منصة قمرة.")
             return redirect(url_for('admin_product_bp.manage_products'))
