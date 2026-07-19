@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# استعلام جلب المنتج المحدث ليشمل حقل description
+# استعلام شامل لجلب بيانات المنتج مع المتغيرات والمجموعات
 FIND_PRODUCT_QUERY = """
 query GetProduct($qid: String!) {
   findProductByQid(qid: $qid) {
@@ -36,12 +36,21 @@ query GetProduct($qid: String!) {
         barcode
       }
       images { fileUrl }
+      variants {
+        qid
+        title
+        price
+        quantity
+        sku
+      }
+      collections {
+        qid
+        title
+      }
       seo {
         title
         description
       }
-      averageRating
-      reviewsCount
     }
   }
 }
@@ -79,7 +88,7 @@ def edit_product(qid):
                 'admin/admin_edit_product.html', 
                 product={}, 
                 suppliers=suppliers, 
-                all_collections=[],  # تمرير قائمة فارغة لتجنب الخطأ في القالب
+                all_collections=[], 
                 mapping=mapping_data_empty
             )
 
@@ -90,7 +99,8 @@ def edit_product(qid):
                 'admin/admin_edit_product.html', 
                 product=result.get('data', {}),
                 suppliers=suppliers,
-                all_collections=[], # قائمة فارغة لضمان عمل القالب
+                # نقوم بتمرير المجموعات المجلوبة مباشرة من قمرة
+                all_collections=result.get('data', {}).get('collections', []), 
                 mapping=mapping_data
             )
         else:
