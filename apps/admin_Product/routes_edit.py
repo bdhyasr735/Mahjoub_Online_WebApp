@@ -32,14 +32,19 @@ def edit_product(qid):
         mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
         mapping_data = {"selected_supplier_id": mapping.supplier_id if mapping else None}
 
-        # جلب بيانات المنتج من قمرة مع هيكل المتغيرات المحدث
+        # جلب بيانات المنتج من قمرة مع هيكل المتغيرات المحدث ليتوافق مع Schema قمرة الجديدة
         prod_query = """
         query GetProd($qid: String!) { 
             findProductByQid(qid: $qid) { 
                 success 
                 data { 
                     qid, title, description, slug, 
-                    variants { title, pricing { price }, quantity, sku }, 
+                    variants { 
+                        quantity, 
+                        pricing { price }, 
+                        identification { sku }, 
+                        displayTitle { ar } 
+                    }, 
                     collections { qid } 
                 } 
             } 
@@ -57,13 +62,21 @@ def edit_product(qid):
             flash("المنتج غير موجود.")
             return redirect(url_for('admin_product_bp.manage_products'))
 
-        # معالجة المتغيرات (Variants) لضمان وجود حقل السعر للواجهة
+        # معالجة المتغيرات (Variants) لضمان استخراج الحقول الجديدة للواجهة
         variants = product_data.get('variants', [])
         if variants:
             for v in variants:
-                # التأكد من أن pricing ليس None قبل محاولة الوصول لـ price
+                # استخراج السعر
                 pricing = v.get('pricing') or {}
                 v['price'] = pricing.get('price', 0)
+                
+                # استخراج SKU من كائن identification
+                identification = v.get('identification') or {}
+                v['sku'] = identification.get('sku', '')
+                
+                # استخراج العنوان من كائن displayTitle
+                display_title = v.get('displayTitle') or {}
+                v['title'] = display_title.get('ar', 'متغير بدون عنوان')
         
         # معالجة المجموعات المختارة
         collections = product_data.get('collections', [])
