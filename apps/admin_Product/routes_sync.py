@@ -23,7 +23,7 @@ def save_sync():
         return jsonify({"status": "error", "message": "معرف المنتج مفقود"}), 400
 
     try:
-        # 1. تحديث قاعدة البيانات المحلية
+        # 1. تحديث قاعدة البيانات المحلية (المورد)
         mapping = ProductSupplierMapping.query.filter_by(product_qid=data['qid']).first()
         supplier_id = data.get('supplier_id') if data.get('supplier_id') != "" else None
             
@@ -40,7 +40,8 @@ def save_sync():
         
         db.session.commit()
 
-        # 2. بناء الـ Mutation المحدث (تم إضافة حقل الصور)
+        # 2. بناء الـ Mutation المحدث
+        # تأكد من تطابق اسم المدخلات في الـ Schema الخاصة بـ Qomrah
         mutation = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfoInput!) {
             updateProductInfo(id: $id, input: $input) {
@@ -50,19 +51,19 @@ def save_sync():
         }
         """
         
-        # 3. تجهيز المدخلات الشاملة
-        # ملاحظة: تأكد أن تنسيق الصور المرسل (images) يتطابق مع توقعات الـ API
+        # 3. تجهيز المدخلات الشاملة (تأكد من توافق المفاتيح مع الـ API)
         variables = {
             "id": str(data['qid']),
             "input": {
                 "title": str(data.get('title', '')),
                 "description": str(data.get('description', '')),
                 "slug": str(data.get('slug', '')),
-                "status": str(data.get('status', 'draft')),
-                "quantity": int(data.get('quantity', 0)),
                 "collection_ids": list(data.get('collection_ids', [])), 
                 "variants": data.get('variants', []), 
-                "images": data.get('images', []), # إضافة مصفوفة الصور هنا
+                "images": data.get('images', []),
+                # الحقول الاختيارية مع توفير قيم افتراضية لتجنب الأخطاء
+                "status": str(data.get('status', 'draft')),
+                "quantity": int(data.get('quantity', 0)),
                 "pricing": {
                     "price": float(data.get('price', 0)),
                     "compareAtPrice": float(data.get('compareAtPrice', 0)),
@@ -82,6 +83,7 @@ def save_sync():
         # 4. تنفيذ التحديث اللحظي عبر GraphQL
         response = QomrahGraphQLClient.execute_query(mutation, variables=variables)
         
+        # التحقق من وجود أخطاء في استجابة GraphQL
         if not response or 'errors' in response:
             error_details = response.get('errors') if response else "No response"
             logger.error(f"❌ فشل تحديث قمرة لـ {data['qid']}: {error_details}")
