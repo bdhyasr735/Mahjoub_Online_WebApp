@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """عرض صفحة تعديل المنتج وتجهيز البيانات للقالب المحدث"""
+    """عرض صفحة تعديل المنتج مع كافة البيانات المحدثة والمخزون والشحن"""
     
-    # 1. الاستعلام لجلب تفاصيل المنتج
+    # 1. الاستعلام لجلب تفاصيل المنتج الشاملة
     product_query = """
     query GetProductDetail($qid: String!) { 
         findProductByQid(qid: $qid) { 
@@ -31,10 +31,13 @@ def edit_product(qid):
                 slug
                 description
                 status
+                sku
+                quantity
+                weight
                 pricing { price, compareAtPrice, originalPrice }
                 images { fileUrl }
-                collections { qid, handle }
-                variants { quantity, pricing { price } }
+                collections { qid, title }
+                variants { quantity, sku, pricing { price } }
             }
         } 
     }
@@ -44,7 +47,7 @@ def edit_product(qid):
     collections_query = """
     query GetAllCollections {
         findAllCollections(input: { limit: 100 }) {
-            data { qid, handle, title }
+            data { qid, title }
         }
     }
     """
@@ -59,13 +62,11 @@ def edit_product(qid):
             
         product = prod_response['data']['findProductByQid']['data']
         
-        # تحويل الصور إلى مصفوفة بسيطة من الروابط لتناسب القالب
+        # تجهيز البيانات للقالب
         product['images'] = [img['fileUrl'] for img in product.get('images', []) if img.get('fileUrl')]
-        
-        # تجهيز معرفات المجموعات المختارة
         product['collection_ids'] = [c['qid'] for c in product.get('collections', []) if c and c.get('qid')]
         
-        # تجهيز المجموعات المتاحة
+        # جلب كافة المجموعات
         all_collections = []
         if col_response and 'data' in col_response and col_response['data'].get('findAllCollections'):
             all_collections = col_response['data']['findAllCollections'].get('data', [])
