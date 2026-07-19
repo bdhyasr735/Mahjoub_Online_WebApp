@@ -20,9 +20,9 @@ def save_sync():
         return jsonify({"status": "error", "message": "معرف المنتج مفقود"}), 400
 
     try:
-        # 1. تحديث قاعدة البيانات المحلية (المورد)
+        # 1. تحديث قاعدة البيانات المحلية
         mapping = ProductSupplierMapping.query.filter_by(product_qid=data['qid']).first()
-        supplier_id = data.get('supplier_id') if str(data.get('supplier_id')).strip() != "" else None
+        supplier_id = data.get('supplier_id') if str(data.get('supplier_id', '')).strip() != "" else None
             
         if mapping:
             mapping.supplier_id = supplier_id
@@ -31,7 +31,7 @@ def save_sync():
             db.session.add(new_mapping)
         db.session.commit()
 
-        # 2. بناء الـ Mutation (هيكل متوافق مع متطلبات API قمرة)
+        # 2. بناء الـ Mutation (متوافق مع الهيكل الجديد)
         mutation = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfoInput!) {
             updateProductInfo(id: $id, input: $input) {
@@ -40,21 +40,14 @@ def save_sync():
         }
         """
         
-        # 3. معالجة المتغيرات (Variants) بعناية لضمان تطابق الهيكل
+        # 3. معالجة المتغيرات (Variants) لتطابق الهيكل الجديد للـ Mutation
         processed_variants = []
         for v in data.get('variants', []):
-            # التأكد من استخراج السعر بشكل صحيح سواء كان مرسلاً ككائن أو قيمة
-            price_val = 0.0
-            if isinstance(v.get('pricing'), dict):
-                price_val = float(v.get('pricing', {}).get('price', 0))
-            else:
-                price_val = float(v.get('price', 0)) # fallback إذا أرسل الـ frontend القيمة مباشرة
-            
             processed_variants.append({
-                "title": str(v.get('title', '')),
-                "sku": str(v.get('sku', '')),
                 "quantity": int(v.get('quantity', 0)),
-                "pricing": {"price": price_val}
+                "pricing": {"price": float(v.get('price', 0))},
+                "identification": {"sku": str(v.get('sku', ''))},
+                "displayTitle": {"ar": str(v.get('title', ''))}
             })
         
         # 4. تجهيز متغيرات الطلب
@@ -69,18 +62,17 @@ def save_sync():
             }
         }
         
-        # 5. تنفيذ التحديث عبر GraphQL
+        # 5. تنفيذ التحديث
         response = QomrahGraphQLClient.execute_query(mutation, variables=variables)
         
-        # التحقق من الاستجابة
         if not response or 'errors' in response:
             error_details = response.get('errors') if response else "No response"
-            logger.error(f"❌ فشل تحديث قمرة للـ qid {data['qid']}: {error_details}")
-            return jsonify({"status": "error", "message": "حدث خطأ أثناء تحديث المنتج في قمرة"}), 500
+            logger.error(f"❌ فشل تحديث قمرة لـ {data['qid']}: {error_details}")
+            return jsonify({"status": "error", "message": "خطأ في الاتصال بخادم قمرة (Validation Error)"}), 500
         
-        return jsonify({"status": "success", "message": "تم حفظ وتحديث المنتج بنجاح"}), 200
+        return jsonify({"status": "success", "message": "تم الحفظ بنجاح"}), 200
         
     except Exception as e:
         db.session.rollback()
-        logger.error(f"❌ خطأ تقني غير متوقع في save-sync للـ qid {data.get('qid')}: {str(e)}")
-        return jsonify({"status": "error", "message": f"خطأ داخلي: {str(e)}"}), 500
+        logger.error(f"❌ خطأ تقني في save-sync للـ {data.get('qid')}: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
