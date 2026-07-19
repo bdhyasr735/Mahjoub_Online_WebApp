@@ -49,20 +49,23 @@ def edit_product(qid):
         if col_res and 'data' in col_res:
             all_collections = col_res['data'].get('findAllCollections', {}).get('data', [])
 
+        # جلب بيانات الربط مع المورد
         mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
         mapping_data = {"selected_supplier_id": mapping.supplier_id if mapping else None}
 
-        # جلب المنتج
+        # جلب بيانات المنتج من خدمة قمرا
         response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, {"qid": clean_qid})
         
         product_data = {}
         if response and 'data' in response and response['data'].get('findProductByQid', {}).get('success'):
             product_data = response['data']['findProductByQid'].get('data', {})
-            # معالجة المتغيرات (Flattening)
+            
+            # معالجة المتغيرات (Flattening) لتناسب القالب
             for v in product_data.get('variants', []):
                 v['price'] = v.get('pricing', {}).get('price', 0) if v.get('pricing') else 0
                 v['sku'] = v.get('identification', {}).get('sku', '') if v.get('identification') else ''
             
+            # استخراج معرفات المجموعات فقط لتسهيل تحديد الخيارات في القالب
             product_data['collection_qids'] = [c['qid'] for c in product_data.get('collections', [])] if product_data.get('collections') else []
 
         return render_template(
@@ -75,5 +78,5 @@ def edit_product(qid):
             
     except Exception as e:
         logger.error(f"❌ خطأ فادح في edit_product: {str(e)}")
-        # نرجع صفحة فارغة بدلاً من تعطل التطبيق
-        return render_template('admin/admin_edit_product.html', product={}, suppliers=[], all_collections=[], mapping={})
+        # إرجاع صفحة فارغة مع بيانات أولية لتجنب تعطل التطبيق
+        return render_template('admin/admin_edit_product.html', product={}, suppliers=[], all_collections=[], mapping={"selected_supplier_id": None})
