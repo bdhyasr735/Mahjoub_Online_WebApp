@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 def save_sync():
-    """مزامنة بيانات المنتج مع منصة قمرة وحفظ المورد محلياً"""
+    """مزامنة بيانات المنتج مع منصة قمرة وحفظ المورد محلياً باستخدام الـ Handle"""
     data = request.json or {}
     qid = data.get('qid')
     supplier_id = data.get('supplier_id')
@@ -25,7 +25,7 @@ def save_sync():
     if not qid:
         return jsonify({"status": "error", "message": "المعرف الفريد QID مفقود"}), 400
 
-    # 1. معالجة البيانات بأمان (Safe Casting)
+    # 1. معالجة البيانات بأمان
     try:
         raw_variants = data.get('variants', [])
         processed_variants = []
@@ -37,7 +37,6 @@ def save_sync():
                 "sku": str(v.get('sku', ''))
             })
 
-        # معالجة الأسعار (التعامل مع القيم الفارغة)
         price_data = {
             "price": float(data.get('price') or 0),
             "compareAtPrice": float(data.get('compare_at_price') or 0),
@@ -56,15 +55,15 @@ def save_sync():
     }
     """
     
-    # 3. بناء المتغيرات (إضافة حقل status)
+    # 3. بناء المتغيرات (تم استبدال collectionIds بـ collectionHandles)
     variables = {
         "qid": qid,
         "input": {
             "title": data.get('title'),
             "slug": data.get('slug'),
             "description": data.get('description'),
-            "status": data.get('status'),  # تم إضافة حالة المنتج هنا
-            "collectionIds": data.get('collection_ids', []),
+            "status": data.get('status'),
+            "collectionHandles": data.get('collection_handles', []),
             "variants": processed_variants,
             "pricing": price_data,
             "images": data.get('images', []) 
