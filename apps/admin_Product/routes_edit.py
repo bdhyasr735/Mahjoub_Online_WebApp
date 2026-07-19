@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# استعلام لجلب بيانات المنتج (مطابق تماماً للهيكل الذي يعمل لديك)
+# تم تعديل الاستعلام ليتوافق مع أخطاء الـ Validation في السجلات
 FIND_PRODUCT_QUERY = """
 query GetProduct($qid: String!) {
   findProductByQid(qid: $qid) {
@@ -22,17 +22,17 @@ query GetProduct($qid: String!) {
       qid, title, description, slug, status, quantity, trackQuantity
       pricing { price, compareAtPrice, originalPrice }
       images { fileUrl }
-      variants { qid, title, price, quantity, sku }
+      variants { qid, title, pricing { price }, quantity, identification { sku } }
       collections { qid, title }
     }
   }
 }
 """
 
-# استعلام لجلب كافة المجموعات المتاحة
+# تم التصحيح إلى findAllCollections بناءً على رسالة الخطأ
 LIST_COLLECTIONS_QUERY = """
 query {
-  listCollections {
+  findAllCollections {
     data { qid, title }
   }
 }
@@ -41,56 +41,36 @@ query {
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    if not qid:
-        flash("معرف المنتج مفقود.")
-        return redirect(url_for('admin_product_bp.manage_products'))
-
+    if not qid: return redirect(url_for('admin_product_bp.manage_products'))
     clean_qid = unquote(unquote(qid))
-    mapping_data_empty = {"selected_supplier_id": None, "internal_notes": ""}
     
     try:
-        # 1. جلب الموردين المحليين
         suppliers = Supplier.query.filter_by(status='active').all()
         
-        # 2. جلب المجموعات من قمرة
+        # جلب المجموعات بالاستعلام المصحح
         col_response = QomrahGraphQLClient.execute_query(LIST_COLLECTIONS_QUERY)
-        all_collections = col_response.get('data', {}).get('listCollections', {}).get('data', []) if col_response else []
+        all_collections = col_response.get('data', {}).get('findAllCollections', {}).get('data', []) if col_response else []
         
-        # 3. استحضار البيانات المحلية للمنتج
         mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
-        mapping_data = {
-            "selected_supplier_id": mapping.supplier_id if mapping else None,
-            "internal_notes": mapping.internal_notes if mapping else ""
-        }
+        mapping_data = {"selected_supplier_id": mapping.supplier_id if mapping else None}
 
-        # 4. استحضار بيانات المنتج من قمرة باستخدام الاستعلام الصحيح
+        # جلب المنتج
         response = QomrahGraphQLClient.execute_query(FIND_PRODUCT_QUERY, {"qid": clean_qid})
-        
-        if not response or 'data' not in response:
-            flash("لا يوجد اتصال بخادم البيانات.")
-            return render_template('admin/admin_edit_product.html', product={}, suppliers=suppliers, all_collections=all_collections, mapping=mapping_data_empty)
-
         result = response.get('data', {}).get('findProductByQid', {})
         
         if result.get('success'):
             product_data = result.get('data', {})
+            # معالجة المتغيرات لتناسب القالب (Flattening)
+            for v in product_data.get('variants', []):
+                v['price'] = v.get('pricing', {}).get('price', 0)
+                v['sku'] = v.get('identification', {}).get('sku', '')
             
-            # استخراج الـ QIDs للمجموعات المرتبطة بالمنتج لتحديدها في القائمة (selected)
-            product_collection_qids = [col['qid'] for col in product_data.get('collections', [])]
-            product_data['collection_qids'] = product_collection_qids
-
-            return render_template(
-                'admin/admin_edit_product.html', 
-                product=product_data,
-                suppliers=suppliers,
-                all_collections=all_collections, 
-                mapping=mapping_data
-            )
-        else:
-            flash(result.get('message', "لم يتم العثور على المنتج."))
-            return redirect(url_for('admin_product_bp.manage_products'))
+            product_data['collection_qids'] = [col['qid'] for col in product_data.get('collections', [])]
+            return render_template('admin/admin_edit_product.html', product=product_data, suppliers=suppliers, all_collections=all_collections, mapping=mapping_data)
+        
+        flash("فشل جلب البيانات.")
+        return redirect(url_for('admin_product_bp.manage_products'))
             
     except Exception as e:
-        logger.error(f"❌ خطأ تقني أثناء استحضار المنتج {clean_qid}: {str(e)}")
-        flash("حدث خطأ تقني أثناء تحميل بيانات المنتج.")
+        logger.error(f"❌ خطأ: {str(e)}")
         return redirect(url_for('admin_product_bp.manage_products'))
