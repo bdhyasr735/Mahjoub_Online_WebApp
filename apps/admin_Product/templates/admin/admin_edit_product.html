@@ -2,13 +2,11 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
-<!-- ... (الـ CSS كما هو) ... -->
-
 <div class="container py-4">
     <div class="header-gradient shadow-lg d-flex justify-content-between align-items-center">
         <div>
             <h4 class="fw-bold mb-1">{{ product.title or 'منتج غير محدد' }}</h4>
-            <span class="badge bg-light text-dark">{{ product.status or 'Draft' }}</span>
+            <span class="badge bg-light text-dark">{{ product.status or 'draft' }}</span>
         </div>
         <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-outline-light px-4">العودة للقائمة</a>
     </div>
@@ -25,7 +23,15 @@
                         <div class="row">
                             <div class="col-md-6 mb-3"><label>اسم المنتج</label><input type="text" class="form-control" id="title" value="{{ product.title or '' }}"></div>
                             <div class="col-md-6 mb-3"><label>الرابط (Slug)</label><input type="text" class="form-control" id="slug" value="{{ product.slug or '' }}"></div>
-                            <div class="col-md-12 mb-3"><label>المورد</label>
+                            <div class="col-md-6 mb-3">
+                                <label>حالة المنتج</label>
+                                <select class="form-select" id="status">
+                                    <option value="draft" {% if product.status == 'draft' %}selected{% endif %}>مسودة (Draft)</option>
+                                    <option value="active" {% if product.status == 'active' %}selected{% endif %}>منشور (Active)</option>
+                                    <option value="archived" {% if product.status == 'archived' %}selected{% endif %}>غير منشور (Archived)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3"><label>المورد</label>
                                 <select class="form-select" id="supplier_id">
                                     <option value="">-- اختر مورد --</option>
                                     {% for s in suppliers %}
@@ -37,7 +43,7 @@
                     </div>
                 </div>
 
-                <!-- 2. التسعير والمخزون المحدث -->
+                <!-- 2. التسعير والمخزون -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
                         <h5 class="mb-3" style="color: var(--deep-purple-dark);">التسعير والمخزون</h5>
@@ -91,6 +97,7 @@
             qid: document.getElementById('qid').value,
             title: document.getElementById('title').value,
             slug: document.getElementById('slug').value,
+            status: document.getElementById('status').value,
             supplier_id: document.getElementById('supplier_id').value,
             internal_notes: document.getElementById('internal_notes').value,
             price: document.getElementById('price').value,
