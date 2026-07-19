@@ -12,7 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# استعلام جلب المنتج المحدث (تم إزالة discount لتجنب خطأ الـ Schema)
+# استعلام جلب المنتج المحدث ليشمل كافة الحقول الضرورية
 FIND_PRODUCT_QUERY = """
 query GetProduct($qid: String!) {
   findProductByQid(qid: $qid) {
