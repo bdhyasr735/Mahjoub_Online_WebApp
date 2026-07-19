@@ -19,20 +19,20 @@ def edit_product(qid):
     clean_qid = unquote(qid)
     
     try:
-        # جلب الموردين النشطين
+        # 1. جلب الموردين النشطين
         suppliers = Supplier.query.filter_by(status='active').all()
         
-        # جلب المجموعات باستخدام الاستعلام المعتمد
+        # 2. جلب المجموعات المتاحة
         col_response = QomrahGraphQLClient.execute_query("""query { findAllCollections { data { qid, title } } }""")
         all_collections = []
         if col_response and 'data' in col_response and col_response['data'].get('findAllCollections'):
             all_collections = col_response['data']['findAllCollections'].get('data', [])
         
-        # جلب بيانات المورد المحلي
+        # 3. جلب بيانات المورد المحلي المرتبط بهذا المنتج
         mapping = ProductSupplierMapping.query.filter_by(product_qid=clean_qid).first()
         mapping_data = {"selected_supplier_id": mapping.supplier_id if mapping else None}
 
-        # جلب بيانات المنتج من قمرة مع هيكل المتغيرات المحدث ليتوافق مع Schema قمرة الجديدة
+        # 4. جلب بيانات المنتج من قمرة (مع التعديلات الهيكلية للـ Schema الجديدة)
         prod_query = """
         query GetProd($qid: String!) { 
             findProductByQid(qid: $qid) { 
@@ -52,7 +52,7 @@ def edit_product(qid):
         """
         response = QomrahGraphQLClient.execute_query(prod_query, {"qid": clean_qid})
         
-        # التحقق من وجود بيانات المنتج
+        # التحقق من الاستجابة
         if not response or 'data' not in response or not response['data'].get('findProductByQid'):
             raise Exception("تعذر الوصول لبيانات المنتج من خادم قمرة")
             
@@ -62,11 +62,11 @@ def edit_product(qid):
             flash("المنتج غير موجود.")
             return redirect(url_for('admin_product_bp.manage_products'))
 
-        # معالجة المتغيرات (Variants) لضمان استخراج الحقول الجديدة للواجهة
+        # 5. معالجة المتغيرات (Variants) لسطح البيانات (Flattening) لتناسب القالب
         variants = product_data.get('variants', [])
         if variants:
             for v in variants:
-                # استخراج السعر
+                # استخراج السعر من كائن pricing
                 pricing = v.get('pricing') or {}
                 v['price'] = pricing.get('price', 0)
                 
@@ -78,7 +78,7 @@ def edit_product(qid):
                 display_title = v.get('displayTitle') or {}
                 v['title'] = display_title.get('ar', 'متغير بدون عنوان')
         
-        # معالجة المجموعات المختارة
+        # 6. معالجة المجموعات المختارة
         collections = product_data.get('collections', [])
         product_data['collection_ids'] = [c['qid'] for c in collections if c and 'qid' in c]
 
@@ -89,7 +89,7 @@ def edit_product(qid):
             all_collections=all_collections, 
             mapping=mapping_data
         )
-                                
+                                    
     except Exception as e:
         logger.error(f"خطأ في تحميل صفحة التعديل للـ qid {clean_qid}: {str(e)}")
         flash("حدث خطأ أثناء تحميل بيانات المنتج.")
