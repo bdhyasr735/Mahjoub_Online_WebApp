@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/admin_Product/routes_display.py
+# 📂 apps/admin_Product/routes.py
 
 import logging
 from flask import render_template, request, flash
@@ -9,6 +9,7 @@ from apps.services.graphql_client import QomrahGraphQLClient
 
 logger = logging.getLogger(__name__)
 
+# استعلام خفيف ومخصص لواجهة العرض فقط
 GET_ALL_PRODUCTS_QUERY = """
 query Data($input: GetAllProductsInput) {
     findAllProducts(input: $input) {
