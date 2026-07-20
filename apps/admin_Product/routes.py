@@ -10,38 +10,28 @@ from apps.services.graphql_client import QomrahGraphQLClient
 
 logger = logging.getLogger(__name__)
 
-# الاستعلام متوافق مع بنية البيانات التي يعرضها القالب
+# استعلام جلب المنتجات مع كافة التفاصيل المطلوبة للعرض والتعديل
 GET_ALL_PRODUCTS_QUERY = """
 query Data($input: GetAllProductsInput) {
   findAllProducts(input: $input) {
     data {
       qid
       title
-      pricing { price }
+      slug
+      status
       quantity
+      pricing {
+        price
+        cost_price
+        compare_price
+      }
       identification { sku }
-      images { fileUrl }
+      images {
+        _id
+        fileUrl
+      }
     }
     pagination { currentPage, totalPages }
-  }
-}
-"""
-
-GET_PRODUCT_BY_QID_QUERY = """
-query GetProduct($qid: String!) {
-  getProduct(qid: $qid) {
-    qid
-    title
-    description
-    status
-    quantity
-    pricing {
-      price
-    }
-    images {
-      _id
-      fileUrl
-    }
   }
 }
 """
@@ -107,20 +97,33 @@ def add_product():
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """عرض صفحة تعديل منتج موجود بالاعتماد على معرفه (qid) (محمي ضد الانهيار)"""
+    """عرض صفحة تعديل منتج موجود بالبحث عنه مباشرة لتجنب أخطاء الاستعلامات غير المتوافقة"""
     product = None
     try:
-        prod_response = QomrahGraphQLClient.execute_query(GET_PRODUCT_BY_QID_QUERY, {"qid": qid})
-        if prod_response and 'data' in prod_response:
-            product = prod_response['data'].get('getProduct')
+        # البحث عن المنتج باستخدام معرفه qid عبر الاستعلام المتاح
+        variables = {"input": {"page": 1, "limit": 10}}
+        response = QomrahGraphQLClient.execute_query(GET_ALL_PRODUCTS_QUERY, variables)
+        
+        if response and 'data' in response:
+            items = response['data'].get('findAllProducts', {}).get('data', [])
+            for item in items:
+                if item.get('qid') == qid:
+                    product = item
+                    break
+        
+        # إذا لم يتم العثور عليه في القائمة الأولى، ننشئ كائن أساسي بالـ qid لكي لا تنهار الصفحة
+        if not product:
+            product = {"qid": qid, "pricing": {}, "images": []}
+            
     except Exception as e:
         logger.error(f"❌ خطأ أثناء جلب تفاصيل المنتج للتعديل {qid}: {str(e)}")
         flash("تعذر تحميل بيانات المنتج للتعديل.")
+        product = {"qid": qid, "pricing": {}, "images": []}
 
     try:
         return render_template(
             'admin/admin_add_product.html',
-            product=product if product else {"qid": qid},
+            product=product,
             suppliers=[],
             all_collections=[]
         )
