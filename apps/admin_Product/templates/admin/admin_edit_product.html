@@ -2,22 +2,20 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
-<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
-
+<!-- 🎨 1. Dynamic Styling (Encapsulated inside the block with Theme Registry fallback values) -->
 <style>
     :root { 
-        --deep-purple: #2d144d; 
-        --royal-accent: #4b0082; 
-        --gold-accent: #d4af37;
-        --royal-bg: #f8f7fc;
+        --deep-purple: {{ theme.deep_purple if theme and theme.deep_purple else '#2d144d' }}; 
+        --royal-accent: {{ theme.royal_accent if theme and theme.royal_accent else '#4b0082' }}; 
+        --gold-accent: {{ theme.gold_accent if theme and theme.gold_accent else '#d4af37' }};
+        --royal-bg: {{ theme.royal_bg if theme and theme.royal_bg else '#f8f7fc' }};
     }
 
     body {
         background-color: var(--royal-bg);
     }
 
-    /* تصميم البطاقات الممتدة كفقرات */
+    /* Extended paragraph-style cards */
     .card { 
         border: none; 
         border-radius: 16px; 
@@ -171,8 +169,13 @@
     }
 </style>
 
+<!-- 📦 2. External Styling and Assets -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+
+<!-- 🏗️ 3. Main Form Structure -->
 <div class="container py-4" dir="rtl" style="max-width: 900px;">
-    <!-- شريط العنوان الرئيسي -->
+    <!-- Top Action Bar -->
     <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <h3 class="fw-bold m-0" style="color: var(--deep-purple);">
             تعديل المنتج: <span class="text-muted fs-5" id="productTitleHeader">{{ product.title if product else 'جلب البيانات...' }}</span>
@@ -185,13 +188,13 @@
     <form id="editProductForm" onsubmit="saveProduct(event)">
         <input type="hidden" id="productQid" value="{{ product.qid if product else '' }}">
         
-        <!-- الفقرة الأولى: الوصف والبيانات الأساسية -->
+        <!-- Section 1: Basic Information & Detailed Description -->
         <div class="card">
             <h5 class="section-title"><i class="fas fa-info-circle"></i> 1. البيانات الأساسية والوصف</h5>
             
             <div class="field-paragraph">
                 <label class="form-label fw-bold text-dark mb-2">اسم المنتج الرئيسي</label>
-                <input type="text" class="form-control form-control-lg" id="title" value="{{ product.title if product else '' }}" placeholder="أدخل اسم المنتج الواضح...">
+                <input type="text" class="form-control form-control-lg" id="title" value="{{ product.title if product else '' }}" placeholder="أدخل اسم المنتج الواضح..." required>
             </div>
 
             <div class="field-paragraph">
@@ -205,7 +208,7 @@
             </div>
         </div>
 
-        <!-- الفقرة الثانية: معرض صور المنتج -->
+        <!-- Section 2: Product Image Gallery -->
         <div class="card">
             <h5 class="section-title"><i class="fas fa-images"></i> 2. معرض صور المنتج</h5>
             
@@ -237,7 +240,7 @@
             </div>
         </div>
 
-        <!-- الفقرة الثالثة: إدارة الأسعار والمخزون -->
+        <!-- Section 3: Pricing & Inventory Management -->
         <div class="card">
             <h5 class="section-title"><i class="fas fa-tags"></i> 3. الأسعار والمخزون</h5>
             
@@ -276,7 +279,7 @@
             </div>
         </div>
 
-        <!-- الفقرة الرابعة: متغيرات المنتج (Variants) -->
+        <!-- Section 4: Product Variants -->
         <div class="card">
             <div class="d-flex justify-content-between align-items-center section-title border-bottom-0 pb-0 mb-3">
                 <h5 class="m-0 fw-bold" style="color: var(--deep-purple);"><i class="fas fa-list-ul"></i> 4. متغيرات المنتج (Variants)</h5>
@@ -301,7 +304,7 @@
             </div>
         </div>
 
-        <!-- الفقرة الخامسة: الإعدادات والتصنيف والمورد -->
+        <!-- Section 5: Settings, Alignment & Collections -->
         <div class="card">
             <h5 class="section-title"><i class="fas fa-sliders-h"></i> 5. الإعدادات والربط والتصنيف</h5>
             
@@ -336,7 +339,7 @@
             </div>
         </div>
 
-        <!-- زر الحفظ النهائي الممتد -->
+        <!-- Submission Button -->
         <div class="mb-5">
             <button type="submit" class="btn btn-royal btn-lg w-100 shadow py-3 fw-bold fs-5" id="saveBtn">
                 <i class="fas fa-sync-alt me-2"></i> حفظ المزامنة والتحديث
@@ -345,30 +348,49 @@
     </form>
 </div>
 
+<!-- ⚡ 4. Client Side Scripts (Including CSRF and AJAX safe handling) -->
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 <script>
-    let editorInstance;
-    let collectionsChoices, supplierChoices;
+    let editorInstance = null;
+    let collectionsChoices = null;
+    let supplierChoices = null;
     let uploadedFilesList = [];
     let removedImagesList = [];
 
     document.addEventListener("DOMContentLoaded", function() {
-        ClassicEditor.create(document.querySelector('#editor'), {
-            language: 'ar'
-        })
-        .then(editor => { 
-            editorInstance = editor; 
-        })
-        .catch(error => { 
-            console.error("CKEditor initialization error:", error); 
-        });
+        // Initialize Classic CKEditor
+        const editorElement = document.querySelector('#editor');
+        if (editorElement) {
+            ClassicEditor.create(editorElement, {
+                language: 'ar'
+            })
+            .then(editor => { 
+                editorInstance = editor; 
+            })
+            .catch(error => { 
+                console.error("CKEditor initialization error:", error); 
+            });
+        }
 
-        supplierChoices = new Choices('#supplier-select', { removeItemButton: true, searchEnabled: true });
-        collectionsChoices = new Choices('#collections-select', { removeItemButton: true, searchEnabled: true, placeholderValue: 'اختر المجموعات...' });
+        // Initialize Select Dropdowns safely
+        const supplierSelect = document.getElementById('supplier-select');
+        if (supplierSelect) {
+            supplierChoices = new Choices(supplierSelect, { removeItemButton: true, searchEnabled: true });
+        }
 
-        const existingVariants = {{ product.variants | tojson if product and product.variants else '[]' }};
-        if (Array.isArray(existingVariants)) {
-            existingVariants.forEach(v => addVariantRow(v));
+        const collectionsSelect = document.getElementById('collections-select');
+        if (collectionsSelect) {
+            collectionsChoices = new Choices(collectionsSelect, { removeItemButton: true, searchEnabled: true, placeholderValue: 'اختر المجموعات...' });
+        }
+
+        // Bind existing variants inside table without escaping JSON issues
+        try {
+            const existingVariants = {{ (product.variants if product and product.variants else []) | tojson | safe }};
+            if (Array.isArray(existingVariants)) {
+                existingVariants.forEach(v => addVariantRow(v));
+            }
+        } catch (e) {
+            console.error("Error parsing existing variants JSON:", e);
         }
     });
 
@@ -408,17 +430,22 @@
 
     function addVariantRow(data = {}) {
         const tbody = document.getElementById('variantsTableBody');
-        tbody.innerHTML += `<tr>
+        if (!tbody) return;
+        const row = document.createElement('tr');
+        row.innerHTML = `
             <td><input type="text" class="form-control variant-name" value="${data.name || ''}" placeholder="حجم/لون"></td>
             <td><input type="number" step="0.01" class="form-control variant-price" value="${data.price || 0}"></td>
             <td><input type="number" class="form-control variant-qty" value="${data.quantity || 0}"></td>
             <td><input type="text" class="form-control variant-sku" value="${data.sku || ''}"></td>
-            <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-times"></i></button></td>
-        </tr>`;
+            <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="fas fa-times"></i></button></td>
+        `;
+        tbody.appendChild(row);
     }
 
     async function saveProduct(event) {
+        // Essential: Stop the standard HTML submit pipeline immediately to prevent loops and reload
         event.preventDefault();
+        
         const saveBtn = document.getElementById('saveBtn');
         saveBtn.disabled = true;
         saveBtn.innerText = "جاري الحفظ والتحديث...";
@@ -458,25 +485,41 @@
         });
 
         try {
-            const response = await fetch('/admin/products/save-sync', {
+            // Using Flask url_for dynamically for the endpoint path mapping to make it robust
+            const response = await fetch("{{ url_for('admin_product_bp.save_sync_product') }}", {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    // Injecting CSRF verification header if configured inside Flask-WTF
+                    'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else "" }}'
+                }
             });
             const result = await response.json();
             
             if (response.ok && result.status === 'success') {
-                alert(result.message);
+                alert('✅ ' + result.message);
                 window.location.href = "{{ url_for('admin_product_bp.manage_products') }}";
             } else {
-                alert(result.message || "حدث خطأ أثناء الحفظ.");
+                alert('⚠️ تعذر الحفظ: ' + (result.message || "حدث خطأ أثناء الحفظ."));
             }
         } catch (error) {
-            console.error("Error:", error);
-            alert("حدث خطأ في الاتصال بالخادم.");
+            console.error("AJAX/Fetch Error Connection:", error);
+            alert("❌ خطأ: لم نتمكن من الاتصال بالسيرفر لحفظ ومزامنة البيانات.");
         } finally {
             saveBtn.disabled = false;
-            saveBtn.innerText = "حفظ المزامنة والتحديث";
+            saveBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i> حفظ المزامنة والتحديث';
         }
     }
 </script>
 {% endblock %}
+```eof
+
+قمت بإتمام وتجهيز ملف القالب المدمج والمحدث بالكامل. 
+
+### أبرز التعديلات والإصلاحات البرمجية التي تمت:
+1. **حقن الألوان من الـ Registry:** تم ربط خصائص الـ CSS بمتغيرات الهوية المأخوذة من مسار الإدخال الجديد لثيم الألوان (`theme`) مع تزويد قيم افتراضية آمنة (Fallbacks) لحماية الصفحة من التلف.
+2. **عزل القالب داخل البلوك:** كود الـ `<style>` والـ `<script>` تم بناؤه بالكامل داخل وسم `{% block content %}` ليضمن محرك Jinja2 تنفيذهما بسلاسة مع الـ Base Template بدون فقدان الهوية البصرية.
+3. **توليد روابط المزامنة ديناميكياً:** تم استخدام دالة `{{ url_for() }}` لتوليد روابط الاتصال بمسار الحفظ والمزامنة المطور (`save_sync_product`) لتجنب أي مشاكل تتعلق بـ URL Prefix مستقبلاً.
+4. **حماية JS والتوجيه:** تم حشو دوال الحفظ والتحميل بالـ `try-catch` لضمان السلوك الافتراضي لـ `event.preventDefault()` ومنع حدوث تكرار القالب (Page Loop) نهائياً.
+
+الآن، كل ما عليك فعله هو استبدال القالب الحالي بهذا الكود المكتمل وتجربة التطبيق مباشرة! وبإمكانك إطلاعي على أي تفاصيل أو حقول إضافية ترغب بتحديثها.
