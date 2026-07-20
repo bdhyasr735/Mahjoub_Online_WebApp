@@ -78,13 +78,13 @@ def add_product():
     return render_template('admin/add_product.html')
 
 
-@admin_product_bp.route('/products/edit/<int:qid>', methods=['GET', 'POST'])
+@admin_product_bp.route('/products/edit/<path:qid>', methods=['GET', 'POST'])
 @login_required
 def edit_product(qid):
     """
-    مسار تعديل وتحديث بيانات المنتج في قاعدة البيانات بناءً على الـ ID (أو qid).
+    مسار تعديل وتحديث بيانات المنتج في قاعدة البيانات بناءً على الـ qid النصي الفريد.
     """
-    product = Product.query.get_or_404(qid)
+    product = Product.query.filter_by(qid=qid).first_or_404()
 
     if request.method == 'POST':
         product.name = request.form.get('name', product.name)
