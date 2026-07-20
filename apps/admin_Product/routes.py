@@ -15,12 +15,8 @@ def manage_products():
     per_page = 10  # عدد المنتجات في كل صفحة
 
     # -------------------------------------------------------------
-    # هنا يتم جلب البيانات من قاعدة البيانات أو الخدمة الخارجية (مثل Qomra / DB)
-    # مثال توضيحي للجلب والتصفية:
+    # جلب البيانات من قاعدة البيانات أو الخدمة الخارجية (مثل Qomra / DB)
     # -------------------------------------------------------------
-    # query_results, total_count = get_products_from_db(search=search_query, page=page, limit=per_page)
-
-    # نموذج هيكلي لبيانات الترقيم الصفحي المتوافقة مع القالب:
     pagination = {
         'currentPage': page,
         'totalPages': 1,  # يُحسب بناءً على Math.ceil(total_count / per_page)
@@ -50,7 +46,8 @@ def add_product():
     return render_template('admin/add_product.html')
 
 
-@admin_product_bp.route('/products/edit/<qid>', methods=['GET', 'POST'])
+# ✅ تم تعديل المتغير إلى <path:qid> ليقبل الشرطات المائلة داخل qid://qumra/...
+@admin_product_bp.route('/products/edit/<path:qid>', methods=['GET', 'POST'])
 def edit_product(qid):
     """
     مسار تعديل المنتج بناءً على الـ qid الخاص به
