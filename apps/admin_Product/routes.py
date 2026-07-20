@@ -36,13 +36,10 @@ query GetProductDetail($qid: String!) {
             description
             status
             quantity
-            sku
-            weight
             pricing { 
                 price 
                 originalPrice 
                 compareAtPrice 
-                costPrice
             }
             images { 
                 _id 
@@ -102,10 +99,7 @@ def add_product():
         "description": "",
         "status": "ACTIVE",
         "quantity": 0,
-        "sku": "",
-        "weight": 0,
-        "variants": [],
-        "pricing": {"price": 0, "originalPrice": 0, "compareAtPrice": 0, "costPrice": 0},
+        "pricing": {"price": 0, "originalPrice": 0, "compareAtPrice": 0},
         "images": [],
         "collection_ids": []
     }
@@ -129,8 +123,7 @@ def add_product():
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """عرض صفحة تعديل منتج موجود بالاعتماد على معرفه (qid) مع فك التشفير المناسب."""
-    # فك تشفير الـ qid لتجنب مشاكل الأحرف الخاصة والمسارات المزدوجة
+    """عرض صفحة تعديل منتج موجود بالاعتماد على معرفه (qid) مع فك التشفير السليم."""
     decoded_qid = urllib.parse.unquote(qid)
     
     product = {
@@ -140,10 +133,7 @@ def edit_product(qid):
         "description": "",
         "status": "ACTIVE",
         "quantity": 0,
-        "sku": "",
-        "weight": 0,
-        "variants": [],
-        "pricing": {"price": 0, "originalPrice": 0, "compareAtPrice": 0, "costPrice": 0},
+        "pricing": {"price": 0, "originalPrice": 0, "compareAtPrice": 0},
         "images": [],
         "collection_ids": []
     }
@@ -163,9 +153,8 @@ def edit_product(qid):
             product['images'] = [img.get('fileUrl') for img in raw_images if isinstance(img, dict) and img.get('fileUrl')]
             product['collection_ids'] = [c['qid'] for c in product.get('collections', []) if c and c.get('qid')]
             
-            # التأكد من وجود كائن pricing لتجنب أي أخطاء في القالب
             if not product.get('pricing'):
-                product['pricing'] = {"price": 0, "originalPrice": 0, "compareAtPrice": 0, "costPrice": 0}
+                product['pricing'] = {"price": 0, "originalPrice": 0, "compareAtPrice": 0}
 
         if col_response and 'data' in col_response:
             all_collections = col_response['data'].get('findAllCollections', {}).get('data', [])
@@ -192,15 +181,10 @@ def save_sync():
         slug = request.form.get('slug', '').strip()
         status = request.form.get('status', 'ACTIVE').strip()
         description = request.form.get('description', '')
-        sku = request.form.get('sku', '').strip()
         quantity = int(request.form.get('quantity', 0) or 0)
-        weight = float(request.form.get('weight', 0) or 0)
         
         price = float(request.form.get('price') or 0)
-        
-        supplier_id = request.form.get('supplier_id', '')
         collections = json.loads(request.form.get('collection_ids', '[]'))
-        variants = request.form.get('variants', '[]')
         
         uploaded_images = request.files.getlist('images')
 
