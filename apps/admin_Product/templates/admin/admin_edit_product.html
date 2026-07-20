@@ -12,7 +12,6 @@
     .price-box { background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #e9ecef; }
     .image-zone { border: 2px dashed #ccc; padding: 20px; text-align: center; cursor: pointer; border-radius: 10px; transition: 0.3s; }
     .image-zone:hover { border-color: var(--royal-accent); background: #fdfdff; }
-    .img-preview { width: 100px; height: 100px; object-fit: cover; margin: 5px; border-radius: 8px; border: 1px solid #ddd; }
 </style>
 
 <div class="container py-4">
@@ -29,14 +28,30 @@
                 <!-- الصور -->
                 <div class="card">
                     <h5 class="section-title">صور المنتج</h5>
-                    <div class="image-zone" onclick="document.getElementById('imageInput').click()">
-                        <p class="mb-0">انقر هنا لرفع صور جديدة أو سحبها وإفلاتها</p>
+                    
+                    <!-- منطقة الرفع -->
+                    <div class="image-zone mb-3" onclick="document.getElementById('imageInput').click()">
+                        <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                        <p class="mb-0 text-muted">انقر هنا لرفع صور جديدة أو سحبها وإفلاتها</p>
+                        <span class="small text-secondary">تدعم صيغ الصور المتعددة بجودة عالية</span>
                         <input type="file" id="imageInput" class="d-none" multiple accept="image/*" onchange="previewImages(this)">
                     </div>
-                    <div id="imageGallery" class="d-flex flex-wrap mt-3">
+
+                    <!-- شبكة عرض الصور (الحالية والجديدة) -->
+                    <label class="form-label fw-bold text-dark small mb-2">معرض الصور الحالي والجديد:</label>
+                    <div class="row g-2" id="imageGallery">
                         {% if product and product.images %}
                             {% for img in product.images %}
-                            <img src="{{ img.fileUrl if img.fileUrl is mapping else img }}" class="img-preview">
+                            <div class="col-md-3 col-6 position-relative existing-image-card" id="img-card-{{ loop.index0 }}">
+                                <div class="card border shadow-sm p-1 h-100 text-center bg-light mb-0">
+                                    <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-1">
+                                        <img src="{{ img.fileUrl if img.fileUrl is mapping else img }}" class="w-100 h-100" style="object-fit: cover;">
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1 w-100" onclick="removeExistingImage(this, '{{ img.fileUrl if img.fileUrl is mapping else img }}')">
+                                        <i class="fas fa-trash-alt"></i> حذف
+                                    </button>
+                                </div>
+                            </div>
                             {% endfor %}
                         {% endif %}
                     </div>
@@ -110,6 +125,8 @@
 <script>
     let editorInstance;
     let collectionsChoices, supplierChoices;
+    let uploadedFilesList = [];
+    let removedImagesList = [];
 
     document.addEventListener("DOMContentLoaded", function() {
         ClassicEditor.create(document.querySelector('#editor'))
@@ -120,22 +137,39 @@
         collectionsChoices = new Choices('#collections-select', { removeItemButton: true });
     });
 
-    // معاينة الصور لحظياً
-    let uploadedFilesList = [];
+    // معاينة الصور الجديدة بشكل شبكي متناسق
     function previewImages(input) {
         const gallery = document.getElementById('imageGallery');
         if (input.files) {
-            Array.from(input.files).forEach(file => {
+            Array.from(input.files).forEach((file) => {
                 uploadedFilesList.push(file);
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'img-preview';
-                    gallery.appendChild(img);
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'col-md-3 col-6 position-relative';
+                    colDiv.innerHTML = `
+                        <div class="card border shadow-sm p-1 h-100 text-center bg-light mb-0">
+                            <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-1">
+                                <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
+                            </div>
+                            <span class="badge bg-secondary mb-1">جديدة</span>
+                            <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1 w-100" onclick="this.closest('.col-md-3').remove()">
+                                <i class="fas fa-trash-alt"></i> إزالة
+                            </button>
+                        </div>
+                    `;
+                    gallery.appendChild(colDiv);
                 }
                 reader.readAsDataURL(file);
             });
+        }
+    }
+
+    // دالة لحذف الصور القديمة الموجودة مسبقاً
+    function removeExistingImage(button, imgUrl) {
+        if (confirm("هل أنت متأكد من حذف هذه الصورة؟")) {
+            removedImagesList.push(imgUrl);
+            button.closest('.col-md-3').remove();
         }
     }
 
@@ -186,6 +220,9 @@
             });
         });
         formData.append('variants', JSON.stringify(variants));
+
+        // إرفاق الصور المحذوفة إن وجدت
+        formData.append('removed_images', JSON.stringify(removedImagesList));
 
         // إرفاق الصور الجديدة
         uploadedFilesList.forEach(file => {
