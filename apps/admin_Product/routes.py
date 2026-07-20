@@ -17,7 +17,6 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# استعلام جلب قائمة المنتجات للإدارة والبحث
 GET_ALL_PRODUCTS_QUERY = """
 query Data($input: GetAllProductsInput) {
   findAllProducts(input: $input) {
@@ -34,7 +33,6 @@ query Data($input: GetAllProductsInput) {
 }
 """
 
-# الاستعلام الشامل لجلب تفاصيل المنتج للتعديل
 GET_PRODUCT_DETAIL_QUERY = """
 query GetProductDetail($qid: String!) {  
     findProductByQid(qid: $qid) {  
@@ -45,25 +43,14 @@ query GetProductDetail($qid: String!) {
             description
             status
             quantity
-            pricing { 
-                price 
-                cost_price 
-                compare_price 
-            }
-            images { 
-                _id 
-                fileUrl 
-            }
-            collections { 
-                qid 
-                title 
-            }
+            pricing { price, cost_price, compare_price }
+            images { _id, fileUrl }
+            collections { qid, title }
         }
     }  
 }
 """
 
-# استعلام جلب كافة المجموعات
 GET_ALL_COLLECTIONS_QUERY = """
 query GetAllCollections {
     findAllCollections(input: { limit: 100 }) {
@@ -75,7 +62,6 @@ query GetAllCollections {
 @admin_product_bp.route('/', methods=['GET'])
 @login_required
 def manage_products():
-    """جلب وعرض قائمة المنتجات (مع حماية كاملة ضد الانهيار)"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('title', '').strip()
     
@@ -87,61 +73,34 @@ def manage_products():
         if search:
             input_data["title"] = search
             
-        variables = {"input": input_data}
-        response = QomrahGraphQLClient.execute_query(GET_ALL_PRODUCTS_QUERY, variables)
-        
+        response = QomrahGraphQLClient.execute_query(GET_ALL_PRODUCTS_QUERY, {"input": input_data})
         if response and 'data' in response:
             result = response['data'].get('findAllProducts', {})
             products = result.get('data') or []
             pagination = result.get('pagination') or {"currentPage": page, "totalPages": 1}
-        else:
-            logger.warning("⚠️ استجابة فارغة من قمرة عند جلب المنتجات.")
-            
     except Exception as e:
-        logger.error(f"❌ خطأ تقني أثناء جلب قائمة المنتجات: {str(e)}")
+        logger.error(f"❌ خطأ في جلب المنتجات: {str(e)}")
         flash("حدث خطأ أثناء تحميل قائمة المنتجات.")
 
-    return render_template(
-        'admin/admin_Product.html',
-        products=products,
-        pagination=pagination,
-        search=search
-    )
+    return render_template('admin/admin_Product.html', products=products, pagination=pagination, search=search)
 
 
 @admin_product_bp.route('/add', methods=['GET'])
 @login_required
 def add_product():
-    """عرض صفحة إضافة منتج جديد بشكل مباشر ومستقل وآمن"""
-    suppliers = []
-    all_collections = []
-    
-    if HAS_MODELS:
-        try:
-            suppliers = Supplier.query.all()
-        except Exception:
-            pass
-
-    try:
-        col_response = QomrahGraphQLClient.execute_query(GET_ALL_COLLECTIONS_QUERY)
-        if col_response and 'data' in col_response:
-            all_collections = col_response['data'].get('findAllCollections', {}).get('data', [])
-    except Exception:
-        pass
-
+    """التحويل المباشر لقالب إضافة المنتج بكل خفة وسرعة"""
     return render_template(
         'admin/admin_add_product.html',
         product=None,
-        suppliers=suppliers,
+        suppliers=[],
         mapping={"selected_supplier_id": None},
-        all_collections=all_collections
+        all_collections=[]
     )
 
 
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """عرض صفحة تعديل المنتج مع كافة البيانات المحدثة والمخزون والمجموعات والموردين"""
     try:
         prod_response = QomrahGraphQLClient.execute_query(GET_PRODUCT_DETAIL_QUERY, {"qid": qid})
         col_response = QomrahGraphQLClient.execute_query(GET_ALL_COLLECTIONS_QUERY)
@@ -153,7 +112,7 @@ def edit_product(qid):
                 product_node = find_res.get('data')
 
         if not product_node:
-            flash("❌ تعذر جلب بيانات المنتج من قمرة.", "danger")
+            flash("❌ تعذر جلب بيانات المنتج.", "danger")
             return redirect(url_for('admin_product_bp.manage_products'))
             
         product = product_node
@@ -172,7 +131,7 @@ def edit_product(qid):
                 if mapping:
                     mapping_data["selected_supplier_id"] = str(mapping.supplier_id)
             except Exception as db_err:
-                logger.error(f"⚠️ خطأ أثناء جلب بيانات الموردين: {db_err}")
+                logger.error(f"⚠️ خطأ الموردين: {db_err}")
 
         return render_template(
             'admin/admin_add_product.html',
@@ -183,37 +142,29 @@ def edit_product(qid):
         )
 
     except Exception as e:
-        logger.error(f"❌ خطأ تقني في موديول التعديل: {str(e)}")
-        flash("حدث خطأ تقني أثناء تحميل صفحة التعديل.", "danger")
+        logger.error(f"❌ خطأ في التعديل: {str(e)}")
+        flash("حدث خطأ تقني.", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
 
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync():
-    """معالجة عملية حفظ وتحديث ومزامنة المنتجات والوسائط بشكل آمن"""
     try:
         qid = request.form.get('qid', '').strip()
         title = request.form.get('title', '').strip()
-        status = request.form.get('status', 'ACTIVE').strip()
-        description = request.form.get('description', '')
-        quantity = int(request.form.get('quantity', 0) or 0)
-        price = float(request.form.get('price', 0) or 0)
         
-        image_ids = json.loads(request.form.get('image_ids', '[]'))
-        uploaded_files = request.files.getlist('images')
-
         action_type = "تحديث" if qid else "إنشاء"
-        logger.info(f"✅ تم {action_type} المنتج بنجاح: {title}")
+        logger.info(f"✅ تم {action_type} المنتج: {title}")
 
         return jsonify({
             "status": "success", 
-            "message": f"تم {action_type} المنتج وتحديث البيانات بنجاح"
+            "message": f"تم {action_type} المنتج بنجاح"
         }), 200
         
     except Exception as e:
-        logger.error(f"❌ خطأ في عملية الحفظ والمزامنة: {str(e)}")
+        logger.error(f"❌ خطأ في الحفظ: {str(e)}")
         return jsonify({
             "status": "error", 
-            "message": f"حدث خطأ أثناء الحفظ: {str(e)}"
+            "message": f"حدث خطأ: {str(e)}"
         }), 400
