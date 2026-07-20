@@ -9,55 +9,111 @@
     :root { 
         --deep-purple: #1a0033; 
         --royal-accent: #4b0082; 
+        --royal-bg: #f8f7fc;
     }
+
+    body {
+        background-color: var(--royal-bg);
+    }
+
     .card { 
         border: none; 
-        border-radius: 15px; 
-        box-shadow: 0 4px 20px rgba(0,0,0,0.06); 
+        border-radius: 16px; 
+        box-shadow: 0 4px 24px rgba(26, 0, 51, 0.06); 
         margin-bottom: 25px; 
         padding: 25px; 
         background: #ffffff;
+        transition: all 0.3s ease;
     }
+    
+    .card:hover {
+        box-shadow: 0 6px 28px rgba(75, 0, 130, 0.09);
+    }
+
     .section-title { 
         color: var(--deep-purple); 
         font-weight: 700; 
-        border-bottom: 2px solid #f0f0f5; 
+        border-bottom: 2px solid #f0edf5; 
         padding-bottom: 12px; 
         margin-bottom: 20px; 
         font-size: 1.15rem;
+        display: flex;
+        align-items: center;
     }
+
+    .section-title i {
+        color: var(--royal-accent);
+        margin-left: 8px;
+    }
+
     .price-box { 
-        background: #fcfcfd; 
+        background: #fdfcff; 
         padding: 20px; 
         border-radius: 12px; 
-        border: 1px solid #eaeaf0; 
+        border: 1px solid #e9e4f0; 
     }
+
     .image-zone { 
-        border: 2px dashed #d1d1d8; 
+        border: 2px dashed #d0c5e2; 
         padding: 25px; 
         text-align: center; 
         cursor: pointer; 
         border-radius: 12px; 
         transition: 0.3s; 
-        background: #fafafa;
+        background: #faf8fd;
     }
+    
     .image-zone:hover { 
         border-color: var(--royal-accent); 
-        background: #fdfdff; 
+        background: #f5f0fc; 
     }
-    .ck-editor__editable {
-        min-height: 220px;
-        border-radius: 0 0 10px 10px !important;
-        border-color: #ced4da !important;
+
+    /* إصلاح مظهر محرر النصوص ليطابق الهوية البصرية */
+    .ck-editor__editable_inline {
+        min-height: 240px;
+        border-radius: 0 0 12px 12px !important;
+        border-color: #d0c5e2 !important;
+        padding: 15px !important;
+    }
+    
+    .ck.ck-toolbar {
+        border-radius: 12px 12px 0 0 !important;
+        background-color: #f8f5fc !important;
+        border-color: #d0c5e2 !important;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #d0c5e2;
+        padding: 10px 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--royal-accent);
+        box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.15);
+    }
+
+    .btn-royal {
+        background-color: var(--royal-accent);
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        transition: opacity 0.2s;
+    }
+
+    .btn-royal:hover {
+        background-color: var(--deep-purple);
+        color: #ffffff;
     }
 </style>
 
-<div class="container py-4">
+<div class="container py-4" dir="rtl">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold" style="color: var(--deep-purple);">
             تعديل المنتج: <span class="text-muted fs-5" id="productTitleHeader">{{ product.title if product else 'جلب البيانات...' }}</span>
         </h3>
-        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-dark px-4 shadow-sm">
+        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-dark px-4 shadow-sm" style="border-radius: 10px;">
             <i class="fas fa-arrow-right me-1"></i> العودة للقائمة
         </a>
     </div>
@@ -71,29 +127,29 @@
                 
                 <!-- البيانات الأساسية والوصف الاحترافي -->
                 <div class="card">
-                    <h5 class="section-title"><i class="fas fa-info-circle me-2"></i>البيانات الأساسية والوصف الاحترافي</h5>
+                    <h5 class="section-title"><i class="fas fa-info-circle"></i> البيانات الأساسية والوصف الاحترافي</h5>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">اسم المنتج</label>
+                            <label class="form-label fw-bold text-dark">اسم المنتج</label>
                             <input type="text" class="form-control" id="title" value="{{ product.title if product else '' }}" placeholder="أدخل اسم المنتج الواضح...">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">رابط المنتج (Slug)</label>
+                            <label class="form-label fw-bold text-dark">رابط المنتج (Slug)</label>
                             <input type="text" class="form-control text-start" dir="ltr" id="slug" value="{{ product.slug if product else '' }}" placeholder="product-url-slug">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">وصف المنتج الاحترافي</label>
+                        <label class="form-label fw-bold text-dark mb-2">وصف المنتج الاحترافي</label>
                         <textarea id="editor">{{ product.description | safe if product and product.description else '' }}</textarea>
                     </div>
                 </div>
 
                 <!-- صور المنتج (عرض شبكي متناسق) -->
                 <div class="card">
-                    <h5 class="section-title"><i class="fas fa-images me-2"></i>معرض صور المنتج</h5>
+                    <h5 class="section-title"><i class="fas fa-images"></i> معرض صور المنتج</h5>
                     
                     <div class="image-zone mb-3" onclick="document.getElementById('imageInput').click()">
-                        <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                        <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2" style="color: var(--royal-accent);"></i>
                         <p class="mb-1 fw-bold text-dark">انقر هنا لرفع صور جديدة أو قم بسحبها وإفلاتها هنا</p>
                         <span class="small text-secondary">تدعم صيغ الصور المتعددة بجودة عالية</span>
                         <input type="file" id="imageInput" class="d-none" multiple accept="image/*" onchange="previewImages(this)">
@@ -104,7 +160,7 @@
                         {% if product and product.images %}
                             {% for img in product.images %}
                             <div class="col-md-3 col-6 position-relative" id="img-card-{{ loop.index0 }}">
-                                <div class="card border shadow-sm p-1 h-100 text-center bg-light mb-0">
+                                <div class="card border shadow-sm p-1 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
                                     <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-1">
                                         <img src="{{ img.fileUrl if img.fileUrl is mapping else img }}" class="w-100 h-100" style="object-fit: cover;">
                                     </div>
@@ -120,7 +176,7 @@
 
                 <!-- الأسعار والمخزون -->
                 <div class="card">
-                    <h5 class="section-title"><i class="fas fa-tags me-2"></i>إدارة الأسعار والمخزون</h5>
+                    <h5 class="section-title"><i class="fas fa-tags"></i> إدارة الأسعار والمخزون</h5>
                     <div class="row price-box mb-3">
                         <div class="col-md-4 mb-2 mb-md-0">
                             <label class="form-label small fw-bold">سعر التكلفة</label>
@@ -154,8 +210,8 @@
                 <!-- الأنواع المتعددة (Variants) -->
                 <div class="card">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="section-title mb-0"><i class="fas fa-list-ul me-2"></i>متغيرات المنتج (Variants)</h5>
-                        <button type="button" class="btn btn-sm btn-success px-3" onclick="addVariantRow()">+ إضافة نوع</button>
+                        <h5 class="section-title mb-0 border-0 pb-0"><i class="fas fa-list-ul"></i> متغيرات المنتج (Variants)</h5>
+                        <button type="button" class="btn btn-sm btn-success px-3" style="border-radius: 8px;" onclick="addVariantRow()">+ إضافة نوع</button>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-bordered align-middle">
@@ -177,7 +233,7 @@
             <!-- العمود الأيسر: الإعدادات، التصنيف، والمورد -->
             <div class="col-lg-4">
                 <div class="card sticky-top" style="top: 20px;">
-                    <h5 class="section-title"><i class="fas fa-sliders-h me-2"></i>الإعدادات والتصنيف</h5>
+                    <h5 class="section-title"><i class="fas fa-sliders-h"></i> الإعدادات والتصنيف</h5>
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold">حالة المنتج</label>
@@ -211,7 +267,7 @@
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-lg w-100 shadow py-3 fw-bold" id="saveBtn" style="background-color: var(--royal-accent); border: none;">
+        <button type="submit" class="btn btn-royal btn-lg w-100 shadow py-3 fw-bold fs-5" id="saveBtn">
             حفظ المزامنة والتحديث
         </button>
     </form>
@@ -225,15 +281,21 @@
     let removedImagesList = [];
 
     document.addEventListener("DOMContentLoaded", function() {
-        ClassicEditor.create(document.querySelector('#editor'))
-            .then(editor => { editorInstance = editor; })
-            .catch(error => { console.error(error); });
+        // تهيئة محرر النصوص بشكل دقيق مع دعم اللغة العربية
+        ClassicEditor.create(document.querySelector('#editor'), {
+            language: 'ar'
+        })
+        .then(editor => { 
+            editorInstance = editor; 
+        })
+        .catch(error => { 
+            console.error("CKEditor initialization error:", error); 
+        });
 
         supplierChoices = new Choices('#supplier-select', { removeItemButton: true, searchEnabled: true });
         collectionsChoices = new Choices('#collections-select', { removeItemButton: true, searchEnabled: true });
     });
 
-    // معاينة الصور الجديدة بشكل شبكي متناسق
     function previewImages(input) {
         const gallery = document.getElementById('imageGallery');
         if (input.files) {
@@ -244,7 +306,7 @@
                     const colDiv = document.createElement('div');
                     colDiv.className = 'col-md-3 col-6 position-relative';
                     colDiv.innerHTML = `
-                        <div class="card border shadow-sm p-1 h-100 text-center bg-light mb-0">
+                        <div class="card border shadow-sm p-1 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
                             <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-1">
                                 <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
                             </div>
@@ -261,7 +323,6 @@
         }
     }
 
-    // دالة لحذف الصور القديمة الموجودة مسبقاً
     function removeExistingImage(button, imgUrl) {
         if (confirm("هل أنت متأكد من حذف هذه الصورة؟")) {
             removedImagesList.push(imgUrl);
@@ -280,7 +341,6 @@
         </tr>`;
     }
 
-    // إرسال البيانات وحفظها لحظياً عبر AJAX
     async function saveProduct(event) {
         event.preventDefault();
         const saveBtn = document.getElementById('saveBtn');
@@ -302,11 +362,9 @@
         formData.append('compare_at_price', document.getElementById('compare_at_price').value);
         formData.append('price', document.getElementById('price').value);
 
-        // جمع المجموعات المختارة
         const selectedCols = Array.from(document.getElementById('collections-select').selectedOptions).map(opt => opt.value);
         formData.append('collections', JSON.stringify(selectedCols));
 
-        // جمع الأنواع
         const variants = [];
         document.querySelectorAll('#variantsTableBody tr').forEach(row => {
             variants.push({
@@ -318,10 +376,8 @@
         });
         formData.append('variants', JSON.stringify(variants));
 
-        // إرفاق الصور المحذوفة إن وجدت
         formData.append('removed_images', JSON.stringify(removedImagesList));
 
-        // إرفاق الصور الجديدة
         uploadedFilesList.forEach(file => {
             formData.append('images', file);
         });
