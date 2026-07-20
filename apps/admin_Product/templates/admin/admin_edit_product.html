@@ -17,18 +17,37 @@
         background-color: var(--royal-bg);
     }
 
+    /* تصميم البطاقات الاحترافي التفاعلي */
     .card { 
         border: none; 
         border-radius: 16px; 
-        box-shadow: 0 4px 24px rgba(45, 20, 77, 0.06); 
+        box-shadow: 0 4px 20px rgba(45, 20, 77, 0.05); 
         margin-bottom: 25px; 
         padding: 25px; 
         background: #ffffff;
-        transition: all 0.3s ease;
+        transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
+        position: relative;
+        overflow: hidden;
     }
     
+    .card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 4px;
+        height: 100%;
+        background: transparent;
+        transition: background 0.3s ease;
+    }
+
     .card:hover {
-        box-shadow: 0 6px 28px rgba(75, 0, 130, 0.09);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(75, 0, 130, 0.1);
+    }
+
+    .card:hover::before {
+        background: var(--royal-accent);
     }
 
     .section-title { 
@@ -45,6 +64,11 @@
     .section-title i {
         color: var(--royal-accent);
         margin-left: 10px;
+        transition: transform 0.3s ease;
+    }
+
+    .card:hover .section-title i {
+        transform: scale(1.15);
     }
 
     .price-box { 
@@ -52,6 +76,11 @@
         padding: 20px; 
         border-radius: 12px; 
         border: 1px solid #e9e4f0; 
+        transition: border-color 0.3s;
+    }
+
+    .price-box:focus-within {
+        border-color: var(--royal-accent);
     }
 
     .image-zone { 
@@ -60,13 +89,23 @@
         text-align: center; 
         cursor: pointer; 
         border-radius: 12px; 
-        transition: 0.3s; 
+        transition: all 0.3s ease; 
         background: #faf8fd;
     }
     
     .image-zone:hover { 
         border-color: var(--royal-accent); 
         background: #f5f0fc; 
+        transform: scale(1.01);
+    }
+
+    .img-preview-card {
+        transition: all 0.3s ease;
+    }
+
+    .img-preview-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(45, 20, 77, 0.15) !important;
     }
 
     .ck-editor__editable_inline {
@@ -86,12 +125,13 @@
         border-radius: 10px;
         border: 1px solid #d0c5e2;
         padding: 10px 14px;
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition: all 0.25s ease;
     }
 
     .form-control:focus, .form-select:focus {
         border-color: var(--royal-accent);
-        box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.15);
+        box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.12);
+        transform: translateY(-1px);
     }
 
     .choices__inner {
@@ -100,10 +140,11 @@
         background-color: #ffffff !important;
         padding: 6px 10px !important;
         min-height: 45px !important;
+        transition: all 0.25s ease;
     }
     .choices.is-focused .choices__inner {
         border-color: var(--royal-accent) !important;
-        box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.15);
+        box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.12);
     }
     .choices__list--multiple .choices__item {
         background-color: var(--deep-purple) !important;
@@ -116,12 +157,14 @@
         color: #ffffff;
         border: none;
         border-radius: 12px;
-        transition: background-color 0.2s;
+        transition: all 0.3s ease;
     }
 
     .btn-royal:hover {
         background-color: var(--royal-accent);
         color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(75, 0, 130, 0.25);
     }
 </style>
 
@@ -130,7 +173,7 @@
         <h3 class="fw-bold" style="color: var(--deep-purple);">
             تعديل المنتج: <span class="text-muted fs-5" id="productTitleHeader">{{ product.title if product else 'جلب البيانات...' }}</span>
         </h3>
-        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-outline-secondary px-4 shadow-sm" style="border-radius: 10px;">
+        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-outline-secondary px-4 shadow-sm" style="border-radius: 10px; transition: 0.2s;">
             <i class="fas fa-arrow-right ms-1"></i> العودة للقائمة
         </a>
     </div>
@@ -139,12 +182,18 @@
         <input type="hidden" id="productQid" value="{{ product.qid if product else '' }}">
         
         <div class="row">
-            <!-- العمود الأيمن: البيانات الأساسية، الصور، الأسعار، والمتغيرات -->
+            <!-- العمود الأيمن: البيانات الأساسية، الوصف، الصور، الأسعار، والمتغيرات -->
             <div class="col-lg-8">
                 
-                <!-- البيانات الأساسية والوصف الاحترافي -->
+                <!-- البيانات الأساسية والوصف الاحترافي (تم نقل الوصف للأعلى) -->
                 <div class="card">
-                    <h5 class="section-title"><i class="fas fa-info-circle"></i> البيانات الأساسية والوصف الاحترافي</h5>
+                    <h5 class="section-title"><i class="fas fa-info-circle"></i> وصف المنتج والبيانات الأساسية</h5>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark mb-2">وصف المنتج الاحترافي (مع شريط الأدوات)</label>
+                        <textarea id="editor">{{ product.description | safe if product and product.description else '' }}</textarea>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold text-dark">اسم المنتج</label>
@@ -154,10 +203,6 @@
                             <label class="form-label fw-bold text-dark">رابط المنتج (Slug)</label>
                             <input type="text" class="form-control text-start" dir="ltr" id="slug" value="{{ product.slug if product else '' }}" placeholder="product-url-slug">
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark mb-2">وصف المنتج الاحترافي</label>
-                        <textarea id="editor">{{ product.description | safe if product and product.description else '' }}</textarea>
                     </div>
                 </div>
 
@@ -177,7 +222,7 @@
                         {% if product and product.images %}
                             {% for img in product.images %}
                             <div class="col-md-3 col-6 position-relative" id="img-card-{{ loop.index0 }}">
-                                <div class="card border shadow-sm p-1 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
+                                <div class="card img-preview-card border shadow-sm p-1 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
                                     <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-1">
                                         <img src="{{ img.fileUrl if img is mapping and img.fileUrl is defined else img }}" class="w-100 h-100" style="object-fit: cover;">
                                     </div>
@@ -231,7 +276,7 @@
                         <button type="button" class="btn btn-sm btn-royal px-3" style="border-radius: 8px;" onclick="addVariantRow()">+ إضافة نوع</button>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-bordered align-middle">
+                        <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
                                     <th>الخيارات (حجم/لون)</th>
@@ -266,14 +311,16 @@
                             <option value="">اختر المورد...</option>
                             {% for sup in suppliers %}
                             <option value="{{ sup.id }}" {% if product and product.supplier_id == sup.id %}selected{% endif %}>
-                                {{ sup.trade_name }}
+                                {{ sup.trade_name }} ({{ sup.supplier_code }})
                             </option>
                             {% endfor %}
                         </select>
+                        <div class="form-text text-muted small mt-1">يتم عرض اسم المتجر وكود المورد للتعرف السريع.</div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">المجموعات والتصنيفات</label>
+                        <!-- تم ربط القائمة المنسدلة التفاعلية المتعددة Choices.js -->
                         <select class="form-select" id="collections-select" multiple>
                             {% for col in all_collections %}
                             <option value="{{ col.qid }}" {% if product and product.collection_ids and col.qid in product.collection_ids %}selected{% endif %}>{{ col.title }}</option>
@@ -309,7 +356,7 @@
         });
 
         supplierChoices = new Choices('#supplier-select', { removeItemButton: true, searchEnabled: true });
-        collectionsChoices = new Choices('#collections-select', { removeItemButton: true, searchEnabled: true });
+        collectionsChoices = new Choices('#collections-select', { removeItemButton: true, searchEnabled: true, placeholderValue: 'اختر المجموعات...' });
 
         const existingVariants = {{ product.variants | tojson if product and product.variants else '[]' }};
         if (Array.isArray(existingVariants)) {
@@ -327,7 +374,7 @@
                     const colDiv = document.createElement('div');
                     colDiv.className = 'col-md-3 col-6 position-relative';
                     colDiv.innerHTML = `
-                        <div class="card border shadow-sm p-1 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
+                        <div class="card img-preview-card border shadow-sm p-1 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
                             <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-1">
                                 <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
                             </div>
