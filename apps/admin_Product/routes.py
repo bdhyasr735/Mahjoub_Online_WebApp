@@ -25,6 +25,37 @@ query Data($input: GetAllProductsInput) {
 }
 """
 
+GET_PRODUCT_DETAIL_QUERY = """
+query GetProductDetail($qid: String!) {  
+    findProductByQid(qid: $qid) {  
+        data {
+            qid
+            title
+            slug
+            description
+            status
+            quantity
+            sku
+            weight
+            variants
+            pricing { 
+                price 
+                originalPrice 
+                compareAtPrice 
+            }
+            images { 
+                _id 
+                fileUrl 
+            }
+            collections { 
+                qid 
+                title 
+            }
+        }
+    }  
+}
+"""
+
 GET_ALL_COLLECTIONS_QUERY = """
 query GetAllCollections {
     findAllCollections(input: { limit: 100 }) {
@@ -94,11 +125,48 @@ def add_product():
     )
 
 
+@admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
+@login_required
+def edit_product(qid):
+    """عرض صفحة تعديل منتج موجود بالاعتماد على معرفه (qid)."""
+    product = None
+    all_collections = []
+
+    try:
+        prod_response = QomrahGraphQLClient.execute_query(GET_PRODUCT_DETAIL_QUERY, {"qid": qid})
+        col_response = QomrahGraphQLClient.execute_query(GET_ALL_COLLECTIONS_QUERY)
+
+        if prod_response and 'data' in prod_response:
+            find_res = prod_response['data'].get('findProductByQid')
+            if find_res:
+                product = find_res.get('data')
+
+        if product:
+            raw_images = product.get('images', [])
+            product['images'] = [img.get('fileUrl') for img in raw_images if isinstance(img, dict) and img.get('fileUrl')]
+            product['collection_ids'] = [c['qid'] for c in product.get('collections', []) if c and c.get('qid')]
+
+        if col_response and 'data' in col_response:
+            all_collections = col_response['data'].get('findAllCollections', {}).get('data', [])
+
+    except Exception as e:
+        logger.error(f"❌ خطأ أثناء جلب تفاصيل المنتج للتعديل {qid}: {str(e)}")
+        flash("تعذر تحميل بيانات المنتج.", "danger")
+
+    return render_template(
+        'admin/admin_add_product.html',
+        product=product,
+        suppliers=[],
+        all_collections=all_collections
+    )
+
+
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync_product():
-    """معالجة حفظ وإنشاء المنتج الجديد واستلام البيانات والوسائط."""
+    """معالجة حفظ وإنشاء أو تحديث المنتج واستلام البيانات والوسائط."""
     try:
+        qid = request.form.get('qid', '').strip()
         title = request.form.get('title', '').strip()
         slug = request.form.get('slug', '').strip()
         status = request.form.get('status', 'ACTIVE').strip()
@@ -115,15 +183,16 @@ def save_sync_product():
         
         uploaded_images = request.files.getlist('images')
 
-        logger.info(f"✅ تم إنشاء المنتج الجديد بنجاح: {title} [عدد الصور المرفوعة: {len(uploaded_images)}]")
+        action_type = "تحديث" if qid else "إنشاء"
+        logger.info(f"✅ تم {action_type} المنتج بنجاح: {title} [عدد الصور المرفوعة: {len(uploaded_images)}]")
 
         return jsonify({
             "status": "success",
-            "message": "تم إنشاء المنتج وحفظ البيانات بنجاح."
+            "message": f"تم {action_type} المنتج وحفظ البيانات بنجاح."
         }), 200
 
     except Exception as e:
-        logger.error(f"❌ خطأ أثناء معالجة إنشاء المنتج: {str(e)}")
+        logger.error(f"❌ خطأ أثناء معالجة حفظ المنتج: {str(e)}")
         return jsonify({
             "status": "error",
             "message": f"حدث خطأ أثناء الحفظ: {str(e)}"
