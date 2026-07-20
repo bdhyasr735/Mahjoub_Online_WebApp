@@ -131,8 +131,40 @@
             variants: document.getElementById('variants').value
         };
 
-        // مسار إرسال البيانات (يمكن ربطه بمسار الحفظ أو المزامنة الخاص بك)
-        console.log("Form Payload:", payload);
+        try {
+            const response = await fetch('/admin/products/save-sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            
+            if (response.ok && result.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'نجاح',
+                    text: result.message,
+                    confirmButtonColor: '#2d0b36'
+                }).then(() => {
+                    window.location.href = '/admin/products/';
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'تنبيه',
+                    text: result.message || 'حدث خطأ أثناء الحفظ',
+                    confirmButtonColor: '#2d0b36'
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ',
+                text: 'تعذر الاتصال بالخادم',
+                confirmButtonColor: '#2d0b36'
+            });
+        }
     });
 </script>
 {% endblock %}
