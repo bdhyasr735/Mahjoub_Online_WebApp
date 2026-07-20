@@ -53,28 +53,39 @@
     <div id="results-container">
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
             {% for product in products %}
+            {% if product and product.name %}
             <div class="col">
-                <!-- تم استخدام product.qid النصي مباشرة -->
                 <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}" class="product-card">
                     <div class="card h-100 border-0">
-                        <img src="/static/images/default.png" 
-                             class="card-img-top" style="height: 180px; object-fit: cover; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                        <!-- عرض صورة المنتج مع صورة افتراضية احتياطية في حال عدم وجودها -->
+                        <img src="{{ product.image_url if product.image_url else url_for('static', filename='images/default.png') }}" 
+                             class="card-img-top" style="height: 180px; object-fit: cover; border-top-left-radius: 12px; border-top-right-radius: 12px;"
+                             onerror="this.src='{{ url_for('static', filename='images/default.png') }}';">
+                        
                         <div class="card-body">
-                            <!-- تم التعديل من product.title إلى product.name لتتطابق مع قاعدة البيانات -->
-                            <h6 class="fw-bold mb-2 text-truncate">{{ product.name }}</h6>
+                            <!-- عنوان المنتج -->
+                            <h6 class="fw-bold mb-2 text-truncate" title="{{ product.name }}">{{ product.name }}</h6>
+                            
                             <div class="d-flex justify-content-between align-items-center mt-2">
-                                <!-- تم التعديل من product.pricing.price إلى product.price -->
-                                <span class="text-primary fw-bold">{{ product.price }} ر.س</span>
-                                <span class="badge bg-success badge-qty">متوفر</span>
+                                <!-- السعر مع رمز العملة المستورد حصرياً من قاعدة البيانات -->
+                                <span class="text-primary fw-bold">
+                                    {{ product.price or 0 }} {{ product.currency if product.currency else '' }}
+                                </span>
+                                
+                                <!-- الكمية المتوفرة -->
+                                <span class="badge {{ 'bg-success' if (product.quantity or 0) > 0 else 'bg-danger' }} badge-qty">
+                                    {{ product.quantity or 0 }} متوفر
+                                </span>
                             </div>
                         </div>
                     </div>
                 </a>
             </div>
+            {% endif %}
             {% else %}
             <div class="col-12 text-center py-5">
                 <div class="display-1 text-muted"><i class="fas fa-box-open"></i></div>
-                <p class="text-muted fs-4">لا توجد منتجات مطابقة للبحث الحالي.</p>
+                <p class="text-muted fs-4">لا توجد منتجات مسجلة أو مطابقة للبحث الحالي. قم بإجراء "مزامنة" لجلب المنتجات.</p>
             </div>
             {% endfor %}
         </div>
