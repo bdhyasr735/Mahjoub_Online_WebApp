@@ -137,12 +137,18 @@
 
     <form id="addProductForm" onsubmit="saveNewProduct(event)">
         <div class="row">
-            <!-- العمود الأيمن: البيانات الأساسية، الصور، الأسعار، والمتغيرات -->
+            <!-- العمود الأيمن: وصف المنتج والبيانات الأساسية، الصور، الأسعار، والمتغيرات -->
             <div class="col-lg-8">
                 
-                <!-- البيانات الأساسية والوصف الاحترافي -->
+                <!-- البيانات الأساسية والوصف الاحترافي (مُرتّب بحيث يكون الوصف في الأعلى) -->
                 <div class="card">
-                    <h5 class="section-title"><i class="fas fa-info-circle"></i> البيانات الأساسية والوصف الاحترافي</h5>
+                    <h5 class="section-title"><i class="fas fa-info-circle"></i> وصف المنتج والبيانات الأساسية</h5>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark mb-2">وصف المنتج الاحترافي (مع شريط الأدوات)</label>
+                        <textarea id="editor"></textarea>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold text-dark">اسم المنتج</label>
@@ -152,10 +158,6 @@
                             <label class="form-label fw-bold text-dark">رابط المنتج (Slug)</label>
                             <input type="text" class="form-control text-start" dir="ltr" id="slug" placeholder="product-url-slug">
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark mb-2">وصف المنتج الاحترافي</label>
-                        <textarea id="editor"></textarea>
                     </div>
                 </div>
 
