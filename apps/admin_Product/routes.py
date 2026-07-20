@@ -26,25 +26,6 @@ query Data($input: GetAllProductsInput) {
 }
 """
 
-# تصحيح أسماء الحقول لتوافقschema قمرة الرسمية
-GET_PRODUCT_DETAIL_QUERY = """
-query GetProductDetail($qid: String!) {  
-    findProductByQid(qid: $qid) {  
-        data {
-            qid
-            title
-            slug
-            description
-            status
-            quantity
-            pricing { price, compareAtPrice }
-            images { _id, fileUrl }
-            collections { qid, title }
-        }
-    }  
-}
-"""
-
 @admin_product_bp.route('/', methods=['GET'])
 @login_required
 def manage_products():
@@ -69,62 +50,6 @@ def manage_products():
         flash("حدث خطأ أثناء تحميل قائمة المنتجات.")
 
     return render_template('admin/admin_Product.html', products=products, pagination=pagination, search=search)
-
-
-@admin_product_bp.route('/add', methods=['GET'])
-@login_required
-def add_product():
-    """تمرير كائن فارغ آمن ليتوافق مع الحقول في القالب أثناء الإضافة الجديدة"""
-    empty_product = {
-        "title": "",
-        "slug": "",
-        "description": "",
-        "status": "ACTIVE",
-        "quantity": 0,
-        "pricing": {"price": 0, "compareAtPrice": 0},
-        "images": [],
-        "collection_ids": []
-    }
-    return render_template(
-        'admin/admin_add_product.html',
-        product=empty_product,
-        suppliers=[],
-        mapping={"selected_supplier_id": None},
-        all_collections=[]
-    )
-
-
-@admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
-@login_required
-def edit_product(qid):
-    try:
-        prod_response = QomrahGraphQLClient.execute_query(GET_PRODUCT_DETAIL_QUERY, {"qid": qid})
-        
-        product_node = None
-        if prod_response and 'data' in prod_response:
-            find_res = prod_response['data'].get('findProductByQid')
-            if find_res:
-                product_node = find_res.get('data')
-
-        if not product_node:
-            flash("❌ تعذر جلب بيانات المنتج.", "danger")
-            return redirect(url_for('admin_product_bp.manage_products'))
-            
-        product = product_node
-        product['collection_ids'] = [c['qid'] for c in product.get('collections', []) if c and c.get('qid')]
-
-        return render_template(
-            'admin/admin_add_product.html',
-            product=product,
-            suppliers=[],
-            mapping={"selected_supplier_id": None},
-            all_collections=[]
-        )
-
-    except Exception as e:
-        logger.error(f"❌ خطأ في التعديل: {str(e)}")
-        flash("حدث خطأ تقني.", "danger")
-        return redirect(url_for('admin_product_bp.manage_products'))
 
 
 @admin_product_bp.route('/save-sync', methods=['POST'])
