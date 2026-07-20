@@ -74,3 +74,13 @@ def add_product():
         'admin/admin_add_product.html',
         product=None
     )
+
+
+@admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
+@login_required
+def edit_product(qid):
+    """عرض صفحة تعديل منتج موجود بالاعتماد على معرفه (qid)"""
+    return render_template(
+        'admin/admin_add_product.html',
+        product={"qid": qid}
+    )
