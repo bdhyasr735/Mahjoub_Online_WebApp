@@ -2,7 +2,7 @@
 {% extends "admin/admin_base.html" %}
 
 {% block content %}
-<!-- 🎨 1. Dynamic Styling (Encapsulated inside the block with Theme Registry fallback values) -->
+<!-- 🎨 1. Dynamic Styling (Theme Registry with Fallbacks) -->
 <style>
     :root { 
         --deep-purple: {{ theme.deep_purple if theme and theme.deep_purple else '#2d144d' }}; 
@@ -93,7 +93,7 @@
         background: #faf8fd;
     }
     
-    .image-zone:hover { 
+    .image-zone:hover, .image-zone.dragover { 
         border-color: var(--royal-accent); 
         background: #f5f0fc; 
         transform: scale(1.005);
@@ -167,6 +167,10 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(75, 0, 130, 0.25);
     }
+
+    .text-purple {
+        color: var(--deep-purple) !important;
+    }
 </style>
 
 <!-- 📦 2. External Styling and Assets -->
@@ -212,11 +216,11 @@
         <div class="card">
             <h5 class="section-title"><i class="fas fa-images"></i> 2. معرض صور المنتج</h5>
             
-            <div class="image-zone mb-3" onclick="document.getElementById('imageInput').click()">
+            <div class="image-zone mb-3" id="dropZone" onclick="document.getElementById('imageInput').click()">
                 <i class="fas fa-cloud-upload-alt fa-3x mb-2" style="color: var(--royal-accent);"></i>
                 <p class="mb-1 fw-bold text-dark fs-5">انقر هنا لرفع صور جديدة أو قم بسحبها وإفلاتها هنا</p>
-                <span class="small text-secondary">تدعم صيغ الصور المتعددة بجودة عالية</span>
-                <input type="file" id="imageInput" class="d-none" multiple accept="image/*" onchange="previewImages(this)">
+                <span class="small text-secondary">تدعم صيغ الصور المتعددة (PNG, JPG, WEBP)</span>
+                <input type="file" id="imageInput" class="d-none" multiple accept="image/*" onchange="handleImageSelect(this.files)">
             </div>
 
             <div class="field-paragraph mb-0">
@@ -224,12 +228,13 @@
                 <div class="row g-3" id="imageGallery">
                     {% if product and product.images %}
                         {% for img in product.images %}
-                        <div class="col-md-3 col-6 position-relative" id="img-card-{{ loop.index0 }}">
+                        {% set img_url = img.fileUrl if img is mapping and img.fileUrl is defined else img %}
+                        <div class="col-md-3 col-6 position-relative">
                             <div class="card img-preview-card border shadow-sm p-2 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
                                 <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-2">
-                                    <img src="{{ img.fileUrl if img is mapping and img.fileUrl is defined else img }}" class="w-100 h-100" style="object-fit: cover;">
+                                    <img src="{{ img_url }}" class="w-100 h-100" style="object-fit: cover;">
                                 </div>
-                                <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 w-100" onclick="removeExistingImage(this, '{{ img.fileUrl if img is mapping and img.fileUrl is defined else img }}')">
+                                <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 w-100" onclick="removeExistingImage(this, '{{ img_url }}')">
                                     <i class="fas fa-trash-alt me-1"></i> حذف
                                 </button>
                             </div>
@@ -348,17 +353,19 @@
     </form>
 </div>
 
-<!-- ⚡ 4. Client Side Scripts (Including CSRF and AJAX safe handling) -->
+<!-- ⚡ 4. Client Side Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 <script>
     let editorInstance = null;
     let collectionsChoices = null;
     let supplierChoices = null;
-    let uploadedFilesList = [];
-    let removedImagesList = [];
+    
+    // Map إدارة ملفات الصور الجديدة بدقة لمنع خطأ التكرار أو الإرسال بعد الحذف
+    const uploadedFilesMap = new Map();
+    const removedImagesList = [];
 
     document.addEventListener("DOMContentLoaded", function() {
-        // Initialize Classic CKEditor
+        // 1. Initialize Classic CKEditor
         const editorElement = document.querySelector('#editor');
         if (editorElement) {
             ClassicEditor.create(editorElement, {
@@ -372,7 +379,7 @@
             });
         }
 
-        // Initialize Select Dropdowns safely
+        // 2. Initialize Select Dropdowns safely
         const supplierSelect = document.getElementById('supplier-select');
         if (supplierSelect) {
             supplierChoices = new Choices(supplierSelect, { removeItemButton: true, searchEnabled: true });
@@ -383,7 +390,30 @@
             collectionsChoices = new Choices(collectionsSelect, { removeItemButton: true, searchEnabled: true, placeholderValue: 'اختر المجموعات...' });
         }
 
-        // Bind existing variants inside table without escaping JSON issues
+        // 3. Setup Drag & Drop Handlers
+        const dropZone = document.getElementById('dropZone');
+        if (dropZone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (dt && dt.files && dt.files.length > 0) {
+                    handleImageSelect(dt.files);
+                }
+            }, false);
+        }
+
+        // 4. Bind existing variants inside table safely
         try {
             const existingVariants = {{ (product.variants if product and product.variants else []) | tojson | safe }};
             if (Array.isArray(existingVariants)) {
@@ -394,31 +424,50 @@
         }
     });
 
-    function previewImages(input) {
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function handleImageSelect(files) {
         const gallery = document.getElementById('imageGallery');
-        if (input.files) {
-            Array.from(input.files).forEach((file) => {
-                uploadedFilesList.push(file);
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const colDiv = document.createElement('div');
-                    colDiv.className = 'col-md-3 col-6 position-relative';
-                    colDiv.innerHTML = `
-                        <div class="card img-preview-card border shadow-sm p-2 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
-                            <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-2">
-                                <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
-                            </div>
-                            <span class="badge bg-secondary mb-2">جديدة</span>
-                            <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 w-100" onclick="this.closest('.col-md-3').remove()">
-                                <i class="fas fa-trash-alt me-1"></i> إزالة
-                            </button>
+        if (!files || files.length === 0) return;
+
+        Array.from(files).forEach((file) => {
+            if (!file.type.startsWith('image/')) return;
+
+            const fileId = 'new_img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7);
+            uploadedFilesMap.set(fileId, file);
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'col-md-3 col-6 position-relative';
+                colDiv.id = fileId;
+                colDiv.innerHTML = `
+                    <div class="card img-preview-card border shadow-sm p-2 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
+                        <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-2">
+                            <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
                         </div>
-                    `;
-                    gallery.appendChild(colDiv);
-                }
-                reader.readAsDataURL(file);
-            });
-        }
+                        <span class="badge bg-secondary mb-2">جديدة</span>
+                        <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 w-100" onclick="removeNewImage('${fileId}')">
+                            <i class="fas fa-trash-alt me-1"></i> إزالة
+                        </button>
+                    </div>
+                `;
+                gallery.appendChild(colDiv);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Reset file input value to allow selecting same file again if removed
+        document.getElementById('imageInput').value = '';
+    }
+
+    function removeNewImage(fileId) {
+        uploadedFilesMap.delete(fileId);
+        const card = document.getElementById(fileId);
+        if (card) card.remove();
     }
 
     function removeExistingImage(button, imgUrl) {
@@ -443,12 +492,11 @@
     }
 
     async function saveProduct(event) {
-        // Essential: Stop the standard HTML submit pipeline immediately to prevent loops and reload
         event.preventDefault();
         
         const saveBtn = document.getElementById('saveBtn');
         saveBtn.disabled = true;
-        saveBtn.innerText = "جاري الحفظ والتحديث...";
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ والتحديث...';
 
         const formData = new FormData();
         formData.append('qid', document.getElementById('productQid').value);
@@ -470,27 +518,29 @@
 
         const variants = [];
         document.querySelectorAll('#variantsTableBody tr').forEach(row => {
-            variants.push({
-                name: row.querySelector('.variant-name').value,
-                price: row.querySelector('.variant-price').value,
-                quantity: row.querySelector('.variant-qty').value,
-                sku: row.querySelector('.variant-sku').value
-            });
+            const nameVal = row.querySelector('.variant-name').value.trim();
+            if (nameVal) {
+                variants.push({
+                    name: nameVal,
+                    price: row.querySelector('.variant-price').value,
+                    quantity: row.querySelector('.variant-qty').value,
+                    sku: row.querySelector('.variant-sku').value
+                });
+            }
         });
         formData.append('variants', JSON.stringify(variants));
         formData.append('removed_images', JSON.stringify(removedImagesList));
 
-        uploadedFilesList.forEach(file => {
+        // Append all active new files from Map
+        uploadedFilesMap.forEach((file) => {
             formData.append('images', file);
         });
 
         try {
-            // Using Flask url_for dynamically for the endpoint path mapping to make it robust
             const response = await fetch("{{ url_for('admin_product_bp.save_sync_product') }}", {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    // Injecting CSRF verification header if configured inside Flask-WTF
                     'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else "" }}'
                 }
             });
@@ -512,14 +562,3 @@
     }
 </script>
 {% endblock %}
-```eof
-
-قمت بإتمام وتجهيز ملف القالب المدمج والمحدث بالكامل. 
-
-### أبرز التعديلات والإصلاحات البرمجية التي تمت:
-1. **حقن الألوان من الـ Registry:** تم ربط خصائص الـ CSS بمتغيرات الهوية المأخوذة من مسار الإدخال الجديد لثيم الألوان (`theme`) مع تزويد قيم افتراضية آمنة (Fallbacks) لحماية الصفحة من التلف.
-2. **عزل القالب داخل البلوك:** كود الـ `<style>` والـ `<script>` تم بناؤه بالكامل داخل وسم `{% block content %}` ليضمن محرك Jinja2 تنفيذهما بسلاسة مع الـ Base Template بدون فقدان الهوية البصرية.
-3. **توليد روابط المزامنة ديناميكياً:** تم استخدام دالة `{{ url_for() }}` لتوليد روابط الاتصال بمسار الحفظ والمزامنة المطور (`save_sync_product`) لتجنب أي مشاكل تتعلق بـ URL Prefix مستقبلاً.
-4. **حماية JS والتوجيه:** تم حشو دوال الحفظ والتحميل بالـ `try-catch` لضمان السلوك الافتراضي لـ `event.preventDefault()` ومنع حدوث تكرار القالب (Page Loop) نهائياً.
-
-الآن، كل ما عليك فعله هو استبدال القالب الحالي بهذا الكود المكتمل وتجربة التطبيق مباشرة! وبإمكانك إطلاعي على أي تفاصيل أو حقول إضافية ترغب بتحديثها.
