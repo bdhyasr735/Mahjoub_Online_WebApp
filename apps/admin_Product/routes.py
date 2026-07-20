@@ -64,3 +64,13 @@ def manage_products():
         pagination=pagination,
         search=search
     )
+
+
+@admin_product_bp.route('/add', methods=['GET'])
+@login_required
+def add_product():
+    """عرض صفحة إضافة منتج جديد (متطابق مع رابط القالب)"""
+    return render_template(
+        'admin/admin_add_product.html',
+        product=None
+    )
