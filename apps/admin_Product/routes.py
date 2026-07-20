@@ -3,6 +3,7 @@
 
 import json
 import logging
+import urllib.parse
 from flask import render_template, request, jsonify, flash
 from flask_login import login_required
 from .registry import admin_product_bp
@@ -35,10 +36,13 @@ query GetProductDetail($qid: String!) {
             description
             status
             quantity
+            sku
+            weight
             pricing { 
                 price 
                 originalPrice 
                 compareAtPrice 
+                costPrice
             }
             images { 
                 _id 
@@ -101,7 +105,7 @@ def add_product():
         "sku": "",
         "weight": 0,
         "variants": [],
-        "pricing": {"price": 0, "originalPrice": 0, "compareAtPrice": 0, "cost_price": 0},
+        "pricing": {"price": 0, "originalPrice": 0, "compareAtPrice": 0, "costPrice": 0},
         "images": [],
         "collection_ids": []
     }
@@ -125,8 +129,12 @@ def add_product():
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """عرض صفحة تعديل منتج موجود بالاعتماد على معرفه (qid)."""
+    """عرض صفحة تعديل منتج موجود بالاعتماد على معرفه (qid) مع فك التشفير المناسب."""
+    # فك تشفير الـ qid لتجنب مشاكل الأحرف الخاصة والمسارات المزدوجة
+    decoded_qid = urllib.parse.unquote(qid)
+    
     product = {
+        "qid": decoded_qid,
         "title": "",
         "slug": "",
         "description": "",
@@ -135,14 +143,14 @@ def edit_product(qid):
         "sku": "",
         "weight": 0,
         "variants": [],
-        "pricing": {"price": 0, "originalPrice": 0, "compareAtPrice": 0, "cost_price": 0},
+        "pricing": {"price": 0, "originalPrice": 0, "compareAtPrice": 0, "costPrice": 0},
         "images": [],
         "collection_ids": []
     }
     all_collections = []
 
     try:
-        prod_response = QomrahGraphQLClient.execute_query(GET_PRODUCT_DETAIL_QUERY, {"qid": qid})
+        prod_response = QomrahGraphQLClient.execute_query(GET_PRODUCT_DETAIL_QUERY, {"qid": decoded_qid})
         col_response = QomrahGraphQLClient.execute_query(GET_ALL_COLLECTIONS_QUERY)
 
         if prod_response and 'data' in prod_response:
@@ -157,13 +165,13 @@ def edit_product(qid):
             
             # التأكد من وجود كائن pricing لتجنب أي أخطاء في القالب
             if not product.get('pricing'):
-                product['pricing'] = {"price": 0, "originalPrice": 0, "compareAtPrice": 0, "cost_price": 0}
+                product['pricing'] = {"price": 0, "originalPrice": 0, "compareAtPrice": 0, "costPrice": 0}
 
         if col_response and 'data' in col_response:
             all_collections = col_response['data'].get('findAllCollections', {}).get('data', [])
 
     except Exception as e:
-        logger.error(f"❌ خطأ أثناء جلب تفاصيل المنتج للتعديل {qid}: {str(e)}")
+        logger.error(f"❌ خطأ أثناء جلب تفاصيل المنتج للتعديل {decoded_qid}: {str(e)}")
         flash("تعذر تحميل بيانات المنتج.", "danger")
 
     return render_template(
