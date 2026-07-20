@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/admin_Product/routes.py
+# 📂 apps/admin_Product/routes_add.py
 
 import json
 import logging
@@ -28,18 +28,20 @@ query Data($input: GetAllProductsInput) {
 
 GET_PRODUCT_BY_QID_QUERY = """
 query GetProduct($qid: String!) {
-  getProduct(qid: $qid) {
-    qid
-    title
-    description
-    status
-    quantity
-    pricing {
-      price
-    }
-    images {
-      _id
-      fileUrl
+  findProductByQid(qid: $qid) {
+    data {
+      qid
+      title
+      description
+      status
+      quantity
+      pricing {
+        price
+      }
+      images {
+        _id
+        fileUrl
+      }
     }
   }
 }
@@ -86,14 +88,22 @@ def manage_products():
 @admin_product_bp.route('/add', methods=['GET'])
 @login_required
 def add_product_page():
-    """عرض صفحة إضافة منتج جديد."""
+    """عرض صفحة إضافة منتج جديد مع كائن فارغ آمن لتجنب أخطاء القالب."""
+    empty_product = {
+        "title": "",
+        "description": "",
+        "status": "ACTIVE",
+        "quantity": 0,
+        "pricing": {"price": 0},
+        "images": []
+    }
     return render_template(
         'admin/admin_add_product.html',
-        product=None
+        product=empty_product
     )
 
 
-@admin_product_bp.route('/edit/<string:qid>', methods=['GET'])
+@admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product_page(qid):
     """عرض صفحة تعديل منتج موجود بالاعتماد على معرفه (qid)."""
@@ -102,7 +112,9 @@ def edit_product_page(qid):
     try:
         prod_response = QomrahGraphQLClient.execute_query(GET_PRODUCT_BY_QID_QUERY, {"qid": qid})
         if prod_response and 'data' in prod_response:
-            product = prod_response['data'].get('getProduct')
+            find_res = prod_response['data'].get('findProductByQid')
+            if find_res:
+                product = find_res.get('data')
     except Exception as e:
         logger.error(f"❌ خطأ أثناء جلب تفاصيل المنتج للتعديل {qid}: {str(e)}")
         flash("تعذر تحميل بيانات المنتج.", "danger")
@@ -122,21 +134,11 @@ def save_sync_product():
         title = request.form.get('title', '').strip()
         status = request.form.get('status', 'ACTIVE').strip()
         description = request.form.get('description', '')
-        quantity = int(request.form.get('quantity', 0))
+        quantity = int(request.form.get('quantity', 0) or 0)
         price = float(request.form.get('price') or 0)
         
         image_ids = json.loads(request.form.get('image_ids', '[]'))
         new_uploaded_files = request.files.getlist('images')
-
-        payload_data = {
-            "qid": qid if qid else None,
-            "title": title,
-            "status": status,
-            "description": description,
-            "quantity": quantity,
-            "pricing": {"price": price},
-            "retained_image_ids": image_ids
-        }
 
         action_type = "تحديث" if qid else "إنشاء"
         logger.info(f"✅ تم {action_type} المنتج بنجاح: {title}")
@@ -151,4 +153,4 @@ def save_sync_product():
         return jsonify({
             "status": "error",
             "message": f"حدث خطأ أثناء الحفظ: {str(e)}"
-        }, 500)
+        }), 500
