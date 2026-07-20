@@ -7,7 +7,7 @@ from flask_login import login_required
 from apps.extensions import db
 from apps.models.product_db import Product
 from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models.supplier import Supplier
+from apps.models.supplier_db import Supplier  # التصحيح هنا: الاستيراد من الملف الصحيح supplier_db
 
 # تعريف الـ Blueprint باسم admin_product_bp ليتوافق مع url_for في القالب والـ Registry
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
@@ -51,7 +51,7 @@ def manage_products():
 @login_required
 def add_product():
     """
-    مسار إضافة وحفظ منتج جديد مباشرة في قاعدة البيانات مع توليد qid وربطه بالمورد الافتراضي.
+    مسار إضافة وحفظ منتج جديد مباشرة في قاعدة البيانات مع توليد qid وربطه بالمورد الحقيقي.
     """
     if request.method == 'POST':
         name = request.form.get('name')
@@ -80,7 +80,7 @@ def add_product():
             )
             db.session.add(new_product)
 
-            # جلب المورد الافتراضي لربط المنتج به سيادياً
+            # جلب المورد الأول من قاعدة البيانات لربط المنتج به سيادياً
             default_supplier = Supplier.query.first()
             supplier_id = default_supplier.id if default_supplier else 1
 
@@ -94,7 +94,7 @@ def add_product():
 
             db.session.commit()
 
-            flash('تمت إضافة وحفظ المنتج وربطه بنجاح!', 'success')
+            flash('تمت إضافة وحفظ المنتج وربطه بالمورد بنجاح!', 'success')
             return redirect(url_for('admin_product_bp.manage_products'))
         
         except Exception as e:
