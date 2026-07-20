@@ -48,12 +48,15 @@ def manage_products():
 @login_required
 def add_product():
     """
-    مسار إضافة وحفظ منتج جديد مباشرة في قاعدة البيانات.
+    مسار إضافة وحفظ منتج جديد مباشرة في قاعدة البيانات مع دعم الحقول الإضافية.
     """
     if request.method == 'POST':
         name = request.form.get('name')
         price = request.form.get('price')
         description = request.form.get('description', '')
+        quantity = request.form.get('quantity', 0)
+        currency = request.form.get('currency', 'ر.س')
+        image_url = request.form.get('image_url', '')
 
         if not name or not price:
             flash('يرجى إدخال اسم المنتج والسعر على الأقل.', 'danger')
@@ -63,7 +66,10 @@ def add_product():
             new_product = Product(
                 name=name,
                 price=float(price),
-                description=description
+                description=description,
+                quantity=int(quantity or 0),
+                currency=currency,
+                image_url=image_url
             )
             db.session.add(new_product)
             db.session.commit()
@@ -92,6 +98,14 @@ def edit_product(qid):
             product.price = float(request.form.get('price', product.price))
         except ValueError:
             pass
+        
+        try:
+            product.quantity = int(request.form.get('quantity', product.quantity))
+        except ValueError:
+            pass
+
+        product.currency = request.form.get('currency', product.currency)
+        product.image_url = request.form.get('image_url', product.image_url)
         product.description = request.form.get('description', product.description)
 
         try:
@@ -114,7 +128,7 @@ def save_sync():
     try:
         from apps.services.product_sync_service import sync_products_from_qomra
         
-        # تنفيذ خدمة الجلب والحفظ الفعلي للمنتجات
+        # تنفيذ خدمة الجلب والحفظ الفعلي للمنتجات بكل تفاصيلها
         success_message = sync_products_from_qomra()
 
         return jsonify({
