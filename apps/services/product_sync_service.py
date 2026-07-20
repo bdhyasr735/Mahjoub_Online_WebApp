@@ -3,14 +3,15 @@
 
 from apps.extensions import db
 from apps.models.product_db import Product
+from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.services.graphql_client import QomrahGraphQLClient
 import logging
 
 def sync_products_from_qomra():
     """
-    جلب المنتجات من منصة قمرة باستخدام QomrahGraphQLClient وحفظها في قاعدة البيانات المحلية بكل تفاصيلها.
+    جلب المنتجات من منصة قمرة باستخدام QomrahGraphQLClient وحفظها في قاعدة البيانات المحلية بكل تفاصيلها،
+    مع ربط المنتجات تلقائياً بجدول الموردين السيادي (ProductSupplierMapping).
     """
-    # استعلام GraphQL المتوافق تماماً مع مخطط قمرة (بدون حقل currency غير الموجود في Pricing)
     query = """
     query GetProductsList {
       findAllProducts {
@@ -48,6 +49,17 @@ def sync_products_from_qomra():
 
     saved_count = 0
     updated_count = 0
+    mappings_count = 0
+
+    # محاولة العثور على المورد الافتراضي في النظام لربط المنتجات به مبدئياً
+    default_supplier_id = 1
+    try:
+        from apps.models.supplier import Supplier
+        first_supplier = Supplier.query.first()
+        if first_supplier:
+            default_supplier_id = first_supplier.id
+    except Exception:
+        pass
 
     for item in products_data:
         title = item.get('title')
@@ -58,16 +70,14 @@ def sync_products_from_qomra():
         description = item.get('description', '')
         quantity = int(item.get('quantity', 0) or 0)
         
-        # استخراج رابط الصورة الأولى إن وجدت
         images = item.get('images', [])
         image_url = images[0].get('fileUrl') if images and isinstance(images, list) else None
         
-        # استخراج السعر
         pricing = item.get('pricing', {})
         price = float(pricing.get('price', 0) if pricing else 0)
-        currency = 'ر.س'  # تعيين العملة الافتراضية
+        currency = 'ر.س'
 
-        # التحقق من وجود المنتج مسبقاً (عبر qid أو الاسم)
+        # 1. حفظ أو تحديث المنتج في جدول المنتجات المحلي
         product = None
         if qid:
             product = Product.query.filter_by(qid=qid).first()
@@ -96,6 +106,18 @@ def sync_products_from_qomra():
             )
             db.session.add(new_product)
             saved_count += 1
+
+        # 2. ضمان وجود سجل ربط سيادي في جدول ProductSupplierMapping لكل منتج يحمل qid
+        if qid:
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            if not mapping:
+                new_mapping = ProductSupplierMapping(
+                    product_qid=qid,
+                    supplier_id=default_supplier_id,
+                    status='active'
+                )
+                db.session.add(new_mapping)
+                mappings_count += 1
                 
     db.session.commit()
-    return f"تمت المزامنة بنجاح! تم إضافة {saved_count} منتج وتحديث {updated_count} منتج."
+    return f"تمت المزامنة بنجاح! إضافة {saved_count}، تحديث {updated_count}، وربط {mappings_count} منتج."
