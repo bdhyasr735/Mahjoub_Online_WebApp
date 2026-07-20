@@ -10,6 +10,7 @@ from apps.services.graphql_client import QomrahGraphQLClient
 
 logger = logging.getLogger(__name__)
 
+# --- الاستعلامات (Queries) ---
 GET_ALL_COLLECTIONS_QUERY = """
 query GetAllCollections {
     findAllCollections(input: { limit: 100 }) {
@@ -22,6 +23,15 @@ GET_ALL_SUPPLIERS_QUERY = """
 query GetAllSuppliers {
     findAllSuppliers(input: { limit: 100 }) {
         data { id, trade_name }
+    }
+}
+"""
+
+# --- المتحولات (Mutations) ---
+CREATE_PRODUCT_MUTATION = """
+mutation CreateProduct($input: CreateProductInput!) {
+    createProduct(input: $input) {
+        qid
     }
 }
 """
@@ -73,8 +83,9 @@ def add_product():
 @admin_product_bp.route('/save-sync', methods=['POST'])
 @login_required
 def save_sync_product():
-    """معالجة حفظ وإنشاء المنتج الجديد واستلام البيانات والوسائط."""
+    """معالجة حفظ وإنشاء المنتج الجديد واستلام البيانات والوسائط عبر GraphQL."""
     try:
+        # استلام البيانات من الطلب
         title = request.form.get('title', '').strip()
         slug = request.form.get('slug', '').strip()
         status = request.form.get('status', 'ACTIVE').strip()
@@ -83,28 +94,47 @@ def save_sync_product():
         weight = float(request.form.get('weight', 0) or 0)
         sku = request.form.get('sku', '').strip()
         
-        # أسماء الحقول مطابقة تماماً لما ترسله الواجهة الأمامية
         cost_price = float(request.form.get('original_price', 0) or 0)
         compare_price = float(request.form.get('compare_at_price', 0) or 0)
         price = float(request.form.get('price', 0) or 0)
         
         supplier_id = request.form.get('supplier_id', '').strip()
         collections = json.loads(request.form.get('collection_ids', '[]'))
+        variants = json.loads(request.form.get('variants', '[]'))
         
-        # فك تشفير مصفوفة المتغيرات (Variants) والألوان/الأحجام المضافة
-        variants_raw = request.form.get('variants', '[]')
-        variants = json.loads(variants_raw) if variants_raw else []
+        # تجهيز كائن المدخلات (Payload)
+        product_input = {
+            "title": title,
+            "slug": slug,
+            "description": description,
+            "status": status,
+            "quantity": quantity,
+            "weight": weight,
+            "sku": sku,
+            "supplierId": supplier_id,
+            "collectionIds": collections,
+            "pricing": {
+                "price": price,
+                "originalPrice": cost_price,
+                "compareAtPrice": compare_price
+            },
+            "variants": variants
+        }
+
+        # تنفيذ الحفظ عبر الـ Client
+        response = QomrahGraphQLClient.execute_mutation(CREATE_PRODUCT_MUTATION, {"input": product_input})
         
-        uploaded_images = request.files.getlist('images')
+        if response and 'errors' in response:
+            error_msg = response['errors'][0]['message']
+            return jsonify({"status": "error", "message": f"خطأ في الـ API: {error_msg}"}), 400
 
-        # هنا يمكنك كتابة استعلام الـ Mutation الخاص بـ GraphQL لحفظ البيانات في قاعدة البيانات
-        # ...
-
-        logger.info(f"✅ تم إنشاء المنتج الجديد بنجاح: {title} [المورد: {supplier_id}] [عدد المتغيرات: {len(variants)}] [عدد الصور: {len(uploaded_images)}]")
+        new_qid = response['data']['createProduct']['qid']
+        logger.info(f"✅ تم إنشاء المنتج الجديد بنجاح: {title} [QID: {new_qid}]")
 
         return jsonify({
             "status": "success",
-            "message": "تم إنشاء المنتج وحفظ البيانات بنجاح."
+            "message": "تم إنشاء المنتج وحفظ البيانات بنجاح.",
+            "qid": new_qid
         }), 200
 
     except Exception as e:
