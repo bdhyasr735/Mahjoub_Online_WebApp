@@ -50,57 +50,69 @@
         </div>
     </div>
 
+    <!-- حاوية النتائج والترقيم -->
     <div id="results-container">
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-4">
-            {% for product in products %}
-            {% if product and product.name %}
-            <div class="col">
-                <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}" class="product-card">
-                    <div class="card h-100 border-0">
-                        <!-- عرض صورة المنتج مع صورة افتراضية احتياطية في حال عدم وجودها -->
-                        <img src="{{ product.image_url if product.image_url else url_for('static', filename='images/default.png') }}" 
-                             class="card-img-top" style="height: 180px; object-fit: cover; border-top-left-radius: 12px; border-top-right-radius: 12px;"
-                             onerror="this.src='{{ url_for('static', filename='images/default.png') }}';">
-                        
-                        <div class="card-body">
-                            <!-- عنوان المنتج -->
-                            <h6 class="fw-bold mb-2 text-truncate" title="{{ product.name }}">{{ product.name }}</h6>
+            {% if products %}
+                {% for product in products %}
+                {% if product and product.name %}
+                <div class="col">
+                    <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}" class="product-card">
+                        <div class="card h-100 border-0">
+                            <!-- عرض صورة المنتج مع صورة افتراضية احتياطية في حال عدم وجودها -->
+                            <img src="{{ product.image_url if product.image_url else url_for('static', filename='images/default.png') }}" 
+                                 class="card-img-top" style="height: 180px; object-fit: cover; border-top-left-radius: 12px; border-top-right-radius: 12px;"
+                                 onerror="this.src='{{ url_for('static', filename='images/default.png') }}';">
                             
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <!-- السعر مع رمز العملة المستورد حصرياً من قاعدة البيانات -->
-                                <span class="text-primary fw-bold">
-                                    {{ product.price or 0 }} {{ product.currency if product.currency else '' }}
-                                </span>
+                            <div class="card-body">
+                                <!-- عنوان المنتج -->
+                                <h6 class="fw-bold mb-2 text-truncate" title="{{ product.name }}">{{ product.name }}</h6>
                                 
-                                <!-- الكمية المتوفرة -->
-                                <span class="badge {{ 'bg-success' if (product.quantity or 0) > 0 else 'bg-danger' }} badge-qty">
-                                    {{ product.quantity or 0 }} متوفر
-                                </span>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <!-- السعر مع رمز العملة المستورد حصرياً من قاعدة البيانات -->
+                                    <span class="text-primary fw-bold">
+                                        {{ product.price or 0 }} {{ product.currency if product.currency else '' }}
+                                    </span>
+                                    
+                                    <!-- الكمية المتوفرة -->
+                                    <span class="badge {{ 'bg-success' if (product.quantity or 0) > 0 else 'bg-danger' }} badge-qty">
+                                        {{ product.quantity or 0 }} متوفر
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </a>
-            </div>
-            {% endif %}
+                    </a>
+                </div>
+                {% endif %}
+                {% endfor %}
             {% else %}
             <div class="col-12 text-center py-5">
                 <div class="display-1 text-muted"><i class="fas fa-box-open"></i></div>
                 <p class="text-muted fs-4">لا توجد منتجات مسجلة أو مطابقة للبحث الحالي. قم بإجراء "مزامنة" لجلب المنتجات.</p>
             </div>
-            {% endfor %}
+            {% endif %}
         </div>
 
+        <!-- الترقيم الاحترافي (Pagination) يظهر فقط إذا كان عدد الصفحات أكبر من 1 -->
         {% if pagination and pagination.totalPages > 1 %}
         <nav class="mt-5">
             <ul class="pagination justify-content-center">
+                <!-- زر السابق -->
                 <li class="page-item {{ 'disabled' if pagination.currentPage <= 1 }}">
                     <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage-1, title=search) }}">السابق</a>
                 </li>
+                
+                <!-- عرض رقم الصفحة الحالية وإجمالي الصفحات -->
                 <li class="page-item active shadow-sm">
-                    <span class="page-link" style="background-color: var(--dark-purple); border-color: var(--dark-purple);">
-                        {{ pagination.currentPage }} / {{ pagination.totalPages }}
+                    <span class="page-link" style="background-color: var(--dark-purple); border-color: var(--dark-purple); color: #fff;">
+                        صفحة {{ pagination.currentPage }} من {{ pagination.totalPages }}
                     </span>
                 </li>
+                
+                <!-- زر التالي -->
+                <script>
+                    // ملاحظة: تأكد أن كود الباك إند (routes.py) يمرر كائن pagination بالشكل الصحيح (currentPage و totalPages)
+                </script>
                 <li class="page-item {{ 'disabled' if pagination.currentPage >= pagination.totalPages }}">
                     <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage+1, title=search) }}">التالي</a>
                 </li>
@@ -115,6 +127,7 @@
     const searchInput = document.getElementById('searchInput');
     const resultsContainer = document.getElementById('results-container');
 
+    // نظام البحث الفوري الحي (Live Search)
     searchInput.addEventListener('keyup', () => {
         clearTimeout(timeout);
         timeout = setTimeout(async () => {
@@ -129,6 +142,11 @@
             } catch (error) { console.error("خطأ في البحث:", error); }
         }, 600);
     });
+
+    // دالة عامة لتحديث الصفحة تلقائياً فور نجاح عملية المزامنة
+    window.onSyncCompleted = function() {
+        location.reload();
+    };
 </script>
 
 {% include 'admin/includes/_sync_modal.html' %}
