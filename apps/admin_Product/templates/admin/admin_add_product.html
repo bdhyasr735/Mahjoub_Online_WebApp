@@ -8,93 +8,190 @@
 
 <style>
     :root { --dark-purple: #2d0b36; --royal-accent: #4b0082; }
-    .btn-custom { background-color: var(--dark-purple); color: #fff; }
+    .btn-custom { background-color: var(--dark-purple); color: #fff; transition: 0.2s; }
     .btn-custom:hover { background-color: var(--royal-accent); color: #fff; }
     .text-custom { color: var(--dark-purple); }
-    .card { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-    .ck-editor__editable { min-height: 250px; }
-    .section-title { border-right: 4px solid var(--dark-purple); padding-right: 10px; margin-bottom: 20px; color: var(--dark-purple); font-weight: 700; }
+    .card { border-radius: 15px; border: none; box-shadow: 0 4px 20px rgba(45, 11, 54, 0.06); margin-bottom: 24px; background: #ffffff; }
+    .ck-editor__editable { min-height: 220px; border-radius: 0 0 10px 10px !important; }
+    .ck-toolbar { border-radius: 10px 10px 0 0 !important; }
+    .section-title { border-right: 4px solid var(--dark-purple); padding-right: 12px; margin-bottom: 20px; color: var(--dark-purple); font-weight: 700; font-size: 1.1rem; }
+    
+    /* تنسيق معرض الصور */
+    .image-preview-card {
+        position: relative;
+        border: 2px dashed #d1c4e9;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        background: #faf8fb;
+        transition: 0.3s;
+    }
+    .image-preview-card:hover {
+        border-color: var(--dark-purple);
+        background: #f5f0f7;
+    }
+    .thumb-container {
+        position: relative;
+        display: inline-block;
+        margin: 6px;
+    }
+    .thumb-img {
+        width: 95px;
+        height: 95px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 2px solid #e0d4ec;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .thumb-delete {
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 26px;
+        height: 26px;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .form-control, .form-select {
+        border-radius: 10px;
+        padding: 10px 14px;
+        border: 1px solid #dcd6e4;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: var(--dark-purple);
+        box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.15);
+    }
 </style>
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <button onclick="history.back()" class="btn btn-outline-dark"><i class="fas fa-arrow-right"></i> الرجوع</button>
+        <button onclick="history.back()" class="btn btn-outline-dark px-4 rounded-pill"><i class="fas fa-arrow-right me-2"></i> الرجوع</button>
         <h4 class="m-0 text-custom fw-bold">{{ "تعديل المنتج" if product else "إضافة منتج جديد" }}</h4>
     </div>
 
     <form id="productForm">
         <div class="row">
-            <!-- القسم الأساسي -->
-            <div class="col-md-8">
-                <div class="card p-4 mb-4">
+            <!-- الأعمدة الأساسية (اليسار/اليمين حسب الواجهة) -->
+            <div class="col-lg-8">
+                <!-- 1. البيانات الأساسية والرابط -->
+                <div class="card p-4">
                     <h5 class="section-title">بيانات المنتج الأساسية</h5>
                     <input type="hidden" id="qid" value="{{ product.qid if product else '' }}">
+                    
                     <div class="mb-3">
-                        <label class="fw-bold small">اسم المنتج</label>
-                        <input type="text" id="title" class="form-control" value="{{ product.title or '' }}" required>
+                        <label class="fw-bold small text-muted mb-1">اسم المنتج</label>
+                        <input type="text" id="title" class="form-control" value="{{ product.title or '' }}" placeholder="أدخل اسم المنتج الواضح..." required>
                     </div>
+
                     <div class="mb-3">
-                        <label class="fw-bold small">الوصف الاحترافي</label>
+                        <label class="fw-bold small text-muted mb-1">رابط المنتج (Slug)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted">/products/</span>
+                            <input type="text" id="slug" class="form-control" value="{{ product.slug or '' }}" placeholder="product-url-slug">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="fw-bold small text-muted mb-1">الوصف الاحترافي</label>
                         <textarea id="editor">{{ product.description | safe if product else '' }}</textarea>
                     </div>
                 </div>
 
-                <!-- قسم الأسعار -->
-                <div class="card p-4 mb-4">
+                <!-- 2. معرض الوسائط والصور -->
+                <div class="card p-4">
+                    <h5 class="section-title">معرض صور المنتج</h5>
+                    <div class="mb-2">
+                        <div id="existing-images-container" class="d-flex flex-wrap gap-2 mb-3">
+                            {% if product and product.images %}
+                                {% for img in product.images %}
+                                <div class="thumb-container" data-id="{{ img._id }}">
+                                    <img src="{{ img.fileUrl }}" class="thumb-img" alt="Product Image">
+                                    <button type="button" class="thumb-delete" onclick="removeExistingImage(this, '{{ img._id }}')">&times;</button>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        <label class="image-preview-card w-100 py-4" style="cursor: pointer;">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-custom mb-2 opacity-75"></i>
+                            <p class="mb-1 fw-bold text-dark">انقر لرفع صور جديدة أو قم بسحبها وإفلاتها هنا</p>
+                            <span class="small text-muted">تدعم صيغ الصور المتعددة بجودة عالية</span>
+                            <input type="file" id="imageUploadInput" class="d-none" multiple accept="image/*">
+                        </label>
+                        <div id="new-uploads-preview" class="d-flex flex-wrap gap-2 mt-3"></div>
+                    </div>
+                </div>
+
+                <!-- 3. الأسعار والمخزون -->
+                <div class="card p-4">
                     <h5 class="section-title">إدارة الأسعار والمخزون</h5>
                     <div class="row">
                         <div class="col-md-3 mb-3">
-                            <label class="fw-bold small">سعر التكلفة</label>
+                            <label class="fw-bold small text-muted mb-1">سعر التكلفة</label>
                             <input type="number" id="cost_price" class="form-control" step="0.01" value="{{ product.pricing.cost_price or '' }}">
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="fw-bold small">السعر قبل الخصم</label>
+                            <label class="fw-bold small text-muted mb-1">السعر قبل الخصم</label>
                             <input type="number" id="compare_price" class="form-control" step="0.01" value="{{ product.pricing.compare_price or '' }}">
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="fw-bold small">السعر النهائي</label>
+                            <label class="fw-bold small text-muted mb-1">السعر النهائي</label>
                             <input type="number" id="price" class="form-control" step="0.01" value="{{ product.pricing.price or '' }}" required>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="fw-bold small">الكمية</label>
+                            <label class="fw-bold small text-muted mb-1">الكمية المتاحة</label>
                             <input type="number" id="quantity" class="form-control" value="{{ product.quantity or 0 }}">
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="fw-bold small">المتغيرات (Variants)</label>
+                    <div class="mb-0">
+                        <label class="fw-bold small text-muted mb-1">المتغيرات (Variants)</label>
                         <input type="text" id="variants" class="form-control" placeholder="مثل: أحمر, أزرق | صغير, كبير" value="{{ product.variants or '' }}">
                     </div>
                 </div>
             </div>
 
-            <!-- الجانب -->
-            <div class="col-md-4">
-                <div class="card p-4">
+            <!-- العمود الجانبي (الإعدادات والتصنيفات) -->
+            <div class="col-lg-4">
+                <div class="card p-4 sticky-top" style="top: 20px;">
                     <h5 class="section-title">الإعدادات والتصنيف</h5>
+                    
                     <div class="mb-3">
-                        <label class="fw-bold small">حالة المنتج</label>
+                        <label class="fw-bold small text-muted mb-1">حالة المنتج</label>
                         <select id="status" class="form-select">
-                            <option value="ACTIVE" {% if product and product.status == 'ACTIVE' %}selected{% endif %}>نشط</option>
-                            <option value="DRAFT" {% if product and product.status == 'DRAFT' %}selected{% endif %}>مسودة</option>
+                            <option value="ACTIVE" {% if product and product.status == 'ACTIVE' %}selected{% endif %}>نشط (معروض)</option>
+                            <option value="DRAFT" {% if product and product.status == 'DRAFT' %}selected{% endif %}>مسودة (مخفي)</option>
                         </select>
                     </div>
+
                     <div class="mb-3">
-                        <label class="fw-bold small">المورد</label>
+                        <label class="fw-bold small text-muted mb-1">المورد المسؤول</label>
                         <select id="supplier-select" class="form-select">
                             {% for sup in suppliers %}
                             <option value="{{ sup.id }}" {% if product and sup.id == mapping.selected_supplier_id|int %}selected{% endif %}>{{ sup.trade_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="fw-bold small">المجموعات</label>
+
+                    <div class="mb-4">
+                        <label class="fw-bold small text-muted mb-1">المجموعات والتصنيفات</label>
                         <select id="collections-select" multiple>
                             {% for col in all_collections %}
                             <option value="{{ col.qid }}" {% if product and col.qid in product.collection_ids %}selected{% endif %}>{{ col.title }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-custom w-100 py-3 fw-bold shadow-sm">حفظ المنتج</button>
+
+                    <button type="submit" class="btn btn-custom w-100 py-3 fw-bold shadow-sm rounded-pill">
+                        <i class="fas fa-save me-2"></i> حفظ المزامنة والتحديث
+                    </button>
                 </div>
             </div>
         </div>
@@ -113,29 +210,76 @@
     new Choices(document.getElementById('supplier-select'));
     new Choices(document.getElementById('collections-select'), { removeItemButton: true });
 
+    // تتبع معرّفات الصور الحالية المتبقية
+    let activeImageIds = [];
+    document.querySelectorAll('#existing-images-container .thumb-container').forEach(el => {
+        activeImageIds.push(el.getAttribute('data-id'));
+    });
+
+    let selectedFiles = [];
+
+    function removeExistingImage(buttonElement, imageId) {
+        buttonElement.parentElement.remove();
+        activeImageIds = activeImageIds.filter(id => id !== imageId);
+    }
+
+    document.getElementById('imageUploadInput').addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        const previewContainer = document.getElementById('new-uploads-preview');
+
+        files.forEach(file => {
+            selectedFiles.push(file);
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const div = document.createElement('div');
+                div.className = 'thumb-container';
+                div.innerHTML = `
+                    <img src="${event.target.result}" class="thumb-img" alt="New Upload">
+                    <button type="button" class="thumb-delete" onclick="removeNewFile(this, '${file.name}')">&times;</button>
+                `;
+                previewContainer.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    function removeNewFile(buttonElement, fileName) {
+        buttonElement.parentElement.remove();
+        selectedFiles = selectedFiles.filter(f => f.name !== fileName);
+    }
+
     document.getElementById('productForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const payload = {
-            qid: document.getElementById('qid').value,
-            title: document.getElementById('title').value,
-            status: document.getElementById('status').value,
-            supplier_id: document.getElementById('supplier-select').value,
-            collection_ids: Array.from(document.getElementById('collections-select').selectedOptions).map(o => o.value),
-            description: editor.getData(),
-            pricing: {
-                cost_price: parseFloat(document.getElementById('cost_price').value) || 0,
-                compare_price: parseFloat(document.getElementById('compare_price').value) || 0,
-                price: parseFloat(document.getElementById('price').value) || 0
-            },
-            quantity: parseInt(document.getElementById('quantity').value) || 0,
-            variants: document.getElementById('variants').value
-        };
+
+        const formData = new FormData();
+        formData.append('qid', document.getElementById('qid').value);
+        formData.append('title', document.getElementById('title').value);
+        formData.append('slug', document.getElementById('slug').value);
+        formData.append('status', document.getElementById('status').value);
+        formData.append('supplier_id', document.getElementById('supplier-select').value);
+        formData.append('description', editor.getData());
+        formData.append('quantity', document.getElementById('quantity').value || 0);
+        formData.append('variants', document.getElementById('variants').value);
+        
+        // الأسعار
+        formData.append('cost_price', document.getElementById('cost_price').value || 0);
+        formData.append('compare_price', document.getElementById('compare_price').value || 0);
+        formData.append('price', document.getElementById('price').value || 0);
+
+        // المجموعات ومعرفات الصور المتبقية
+        const collectionIds = Array.from(document.getElementById('collections-select').selectedOptions).map(o => o.value);
+        formData.append('collection_ids', JSON.stringify(collectionIds));
+        formData.append('image_ids', JSON.stringify(activeImageIds));
+
+        // إضافة الملفات الجديدة المراد رفعها
+        selectedFiles.forEach((file) => {
+            formData.append('images', file);
+        });
 
         try {
             const response = await fetch('/admin/products/save-sync', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: formData
             });
             const result = await response.json();
             
