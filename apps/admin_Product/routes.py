@@ -8,13 +8,6 @@ from flask_login import login_required
 from .registry import admin_product_bp
 from apps.services.graphql_client import QomrahGraphQLClient
 
-try:
-    from apps.models.product_supplier_map import ProductSupplierMapping
-    from apps.models.supplier import Supplier
-    HAS_MODELS = True
-except ImportError:
-    HAS_MODELS = False
-
 logger = logging.getLogger(__name__)
 
 GET_ALL_PRODUCTS_QUERY = """
@@ -33,6 +26,7 @@ query Data($input: GetAllProductsInput) {
 }
 """
 
+# تصحيح أسماء الحقول لتوافقschema قمرة الرسمية
 GET_PRODUCT_DETAIL_QUERY = """
 query GetProductDetail($qid: String!) {  
     findProductByQid(qid: $qid) {  
@@ -43,19 +37,11 @@ query GetProductDetail($qid: String!) {
             description
             status
             quantity
-            pricing { price, cost_price, compare_price }
+            pricing { price, compareAtPrice }
             images { _id, fileUrl }
             collections { qid, title }
         }
     }  
-}
-"""
-
-GET_ALL_COLLECTIONS_QUERY = """
-query GetAllCollections {
-    findAllCollections(input: { limit: 100 }) {
-        data { qid, title }
-    }
 }
 """
 
@@ -88,10 +74,20 @@ def manage_products():
 @admin_product_bp.route('/add', methods=['GET'])
 @login_required
 def add_product():
-    """التحويل المباشر لقالب إضافة المنتج بكل خفة وسرعة"""
+    """تمرير كائن فارغ آمن ليتوافق مع الحقول في القالب أثناء الإضافة الجديدة"""
+    empty_product = {
+        "title": "",
+        "slug": "",
+        "description": "",
+        "status": "ACTIVE",
+        "quantity": 0,
+        "pricing": {"price": 0, "compareAtPrice": 0},
+        "images": [],
+        "collection_ids": []
+    }
     return render_template(
         'admin/admin_add_product.html',
-        product=None,
+        product=empty_product,
         suppliers=[],
         mapping={"selected_supplier_id": None},
         all_collections=[]
@@ -103,7 +99,6 @@ def add_product():
 def edit_product(qid):
     try:
         prod_response = QomrahGraphQLClient.execute_query(GET_PRODUCT_DETAIL_QUERY, {"qid": qid})
-        col_response = QomrahGraphQLClient.execute_query(GET_ALL_COLLECTIONS_QUERY)
         
         product_node = None
         if prod_response and 'data' in prod_response:
@@ -118,27 +113,12 @@ def edit_product(qid):
         product = product_node
         product['collection_ids'] = [c['qid'] for c in product.get('collections', []) if c and c.get('qid')]
 
-        all_collections = []
-        if col_response and 'data' in col_response:
-            all_collections = col_response['data'].get('findAllCollections', {}).get('data', [])
-
-        suppliers = []
-        mapping_data = {"selected_supplier_id": None}
-        if HAS_MODELS:
-            try:
-                suppliers = Supplier.query.all()
-                mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-                if mapping:
-                    mapping_data["selected_supplier_id"] = str(mapping.supplier_id)
-            except Exception as db_err:
-                logger.error(f"⚠️ خطأ الموردين: {db_err}")
-
         return render_template(
             'admin/admin_add_product.html',
             product=product,
-            suppliers=suppliers,
-            mapping=mapping_data,
-            all_collections=all_collections
+            suppliers=[],
+            mapping={"selected_supplier_id": None},
+            all_collections=[]
         )
 
     except Exception as e:
