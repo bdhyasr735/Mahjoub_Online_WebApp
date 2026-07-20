@@ -10,28 +10,42 @@ from apps.services.graphql_client import QomrahGraphQLClient
 
 logger = logging.getLogger(__name__)
 
-# استعلام جلب المنتجات مع كافة التفاصيل المطلوبة للعرض والتعديل
+# استعلام جلب قائمة المنتجات للإدارة والبحث
 GET_ALL_PRODUCTS_QUERY = """
 query Data($input: GetAllProductsInput) {
   findAllProducts(input: $input) {
     data {
       qid
       title
-      slug
-      status
+      pricing { price }
       quantity
-      pricing {
-        price
-        cost_price
-        compare_price
-      }
       identification { sku }
-      images {
-        _id
-        fileUrl
-      }
+      images { fileUrl }
     }
     pagination { currentPage, totalPages }
+  }
+}
+"""
+
+# المفتاح الذهبي الصحيح لجلب تفاصيل المنتج للتعديل
+GET_PRODUCT_BY_QID_QUERY = """
+query FindProductByQid($qid: String!) {
+  findProductByQid(qid: $qid) {
+    qid
+    title
+    slug
+    status
+    description
+    quantity
+    pricing {
+      price
+      cost_price
+      compare_price
+    }
+    images {
+      _id
+      fileUrl
+    }
   }
 }
 """
@@ -97,21 +111,15 @@ def add_product():
 @admin_product_bp.route('/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_product(qid):
-    """عرض صفحة تعديل منتج موجود بالبحث عنه مباشرة لتجنب أخطاء الاستعلامات غير المتوافقة"""
+    """عرض صفحة تعديل منتج موجود بالاعتماد على مفتاح البحث الذهبي findProductByQid"""
     product = None
     try:
-        # البحث عن المنتج باستخدام معرفه qid عبر الاستعلام المتاح
-        variables = {"input": {"page": 1, "limit": 10}}
-        response = QomrahGraphQLClient.execute_query(GET_ALL_PRODUCTS_QUERY, variables)
+        variables = {"qid": qid}
+        response = QomrahGraphQLClient.execute_query(GET_PRODUCT_BY_QID_QUERY, variables)
         
         if response and 'data' in response:
-            items = response['data'].get('findAllProducts', {}).get('data', [])
-            for item in items:
-                if item.get('qid') == qid:
-                    product = item
-                    break
-        
-        # إذا لم يتم العثور عليه في القائمة الأولى، ننشئ كائن أساسي بالـ qid لكي لا تنهار الصفحة
+            product = response['data'].get('findProductByQid')
+            
         if not product:
             product = {"qid": qid, "pricing": {}, "images": []}
             
