@@ -7,7 +7,7 @@ from flask_login import login_required
 from apps.extensions import db
 from apps.models.product_db import Product
 from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models.supplier_db import Supplier  # التصحيح هنا: الاستيراد من الملف الصحيح supplier_db
+from apps.models.supplier_db import Supplier  # الاستيراد من الملف الصحيح supplier_db
 
 # تعريف الـ Blueprint باسم admin_product_bp ليتوافق مع url_for في القالب والـ Registry
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
