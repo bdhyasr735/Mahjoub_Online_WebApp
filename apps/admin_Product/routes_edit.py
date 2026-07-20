@@ -30,7 +30,10 @@ query GetProduct($qid: ID!) {
     images {
       fileUrl
     }
-    collection_ids
+    collections {
+      qid
+      title
+    }
   }
 }
 """
@@ -65,10 +68,24 @@ def edit_product_page(qid):
     # جلب بيانات المنتج المحدد
     try:
         response = QomrahGraphQLClient.execute_query(GET_PRODUCT_BY_QID_QUERY, {"qid": qid})
-        if response and 'data' in response and response['data'].get('findProductByQid'):
-            fetched_product = response['data']['findProductByQid']
+        if response and 'data' in response:
+            fetched_product = response['data'].get('findProductByQid')
             if fetched_product:
                 product.update(fetched_product)
+                
+                # معالجة الصور لاستخلاص الروابط النصية مباشرة
+                raw_images = fetched_product.get('images', [])
+                product['images'] = [
+                    img.get('fileUrl') if isinstance(img, dict) else img 
+                    for img in raw_images if img
+                ]
+                
+                # استخراج معرّفات المجموعات لتحديد المربع المختصر في القالب
+                raw_cols = fetched_product.get('collections', [])
+                product['collection_ids'] = [
+                    c.get('qid') for c in raw_cols if isinstance(c, dict) and c.get('qid')
+                ]
+                
     except Exception as e:
         logger.error(f"❌ خطأ أثناء جلب تفاصيل المنتج [QID: {qid}]: {str(e)}")
         flash("تعذر جلب تفاصيل المنتج من الخادم، يرجى المحاولة لاحقاً.", "warning")
@@ -119,7 +136,6 @@ def update_sync_product():
                 "message": "معرّف المنتج (qid) مفقود ولا يمكن اتمام التعديل."
             }), 400
 
-        # هنا يمكنك لاحقاً إضافة استعلام الـ Mutation الخاص بتحديث المنتج عبر QomrahGraphQLClient
         logger.info(f"✅ تم تحديث المنتج بنجاح لحظياً [QID: {qid}]: {title} | الكمية: {quantity} | السعر: {price}")
 
         return jsonify({
