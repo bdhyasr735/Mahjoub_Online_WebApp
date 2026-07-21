@@ -1,115 +1,105 @@
 # coding: utf-8
 # 📂 apps/services/product_sync_service.py
 
+import os
+import requests
+import logging
 from apps.extensions import db
 from apps.models.product_db import Product
-from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.services.graphql_client import QomrahGraphQLClient
+
+logger = logging.getLogger(__name__)
+
+# رابط وبوابة API الخاصة بقمرة
+QOMRA_GRAPHQL_URL = os.getenv("QOMRA_GRAPHQL_URL", "https://api.qumra.cloud/graphql")
+QOMRA_API_TOKEN = os.getenv("QOMRA_API_TOKEN", "")
+
+# ✅ الاستعلام المصحح المتوافق تماماً مع Schema قمرة
+PRODUCTS_QUERY = """
+query GetProducts {
+    products {
+        id
+        title
+        description
+        sku
+        quantity
+        pricing {
+            price
+        }
+        images {
+            url
+        }
+    }
+}
+"""
 
 def sync_products_from_qomra():
     """
-    خدمة مزامنة المنتجات مع توافق كامل لمخطط (ProductWithReviewIds).
+    جلب المنتجات من قمرة وتحديثها أو إضافتها في قاعدة البيانات المحلية.
     """
-    # تم تحديث الاستعلام بناءً على الحقول الصحيحة المطلوبة من السيرفر
-    query = """
-    query {
-        findAllProducts {
-            data {
-                qid
-                title
-                pricing {
-                    price
-                    currency {
-                        code
-                    }
-                }
-                quantity
-                slug
-                images
-                description
-            }
-        }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {QOMRA_API_TOKEN}" if QOMRA_API_TOKEN else ""
     }
-    """
 
-    result = QomrahGraphQLClient.execute_query(query)
-    
-    if not result:
-        raise Exception("فشل الاتصال بخادم قمرة أو تعذر جلب البيانات عبر GraphQL.")
-
-    data = result.get('data', {})
-    products_response = data.get('findAllProducts', {})
-    
-    # تفريغ قائمة المنتجات
-    products_data = []
-    if isinstance(products_response, dict):
-        products_data = products_response.get('data') or products_response.get('products') or []
-    elif isinstance(products_response, list):
-        products_data = products_response
-
-    if not products_data:
-        return "تمت المزامنة بنجاح، لكن لم يتم العثور على منتجات لجلبها."
-
-    synced_count = 0
-    for item in products_data:
-        qid = str(item.get('qid') or '')
-        if not qid:
-            continue
-
-        title = item.get('title') or 'منتج بدون اسم'
+    try:
+        response = requests.post(
+            QOMRA_GRAPHQL_URL,
+            json={"query": PRODUCTS_QUERY},
+            headers=headers,
+            timeout=15
+        )
         
-        # 1. استخراج السعر والعملة من كائن pricing
-        pricing_data = item.get('pricing') or {}
-        if isinstance(pricing_data, dict):
-            price = float(pricing_data.get('price') or pricing_data.get('amount') or 0)
-            currency_raw = pricing_data.get('currency')
-            if isinstance(currency_raw, dict):
-                currency = currency_raw.get('code') or currency_raw.get('symbol') or 'SAR'
-            else:
-                currency = currency_raw or 'SAR'
-        else:
-            price = 0
-            currency = 'SAR'
+        # التأكد من وصول الاستجابة بنجاح
+        if response.status_code != 200:
+            logger.error(f"❌ Qomra Sync Failed [Status {response.status_code}]: {response.text}")
+            raise Exception(f"فشل الاتصال بقمرة (رمز الاستجابة: {response.status_code})")
 
-        quantity = int(item.get('quantity') or 0)
-        sku = item.get('slug') or item.get('seo') or ''
-        
-        # 2. استخراج رابط الصورة من حقل images (سواء كان مصفوفة أو نصاً مباشرًا)
-        images_raw = item.get('images')
-        image_url = ''
-        if isinstance(images_raw, list) and len(images_raw) > 0:
-            if isinstance(images_raw[0], dict):
-                image_url = images_raw[0].get('url') or images_raw[0].get('src') or ''
-            else:
-                image_url = str(images_raw[0])
-        elif isinstance(images_raw, str):
-            image_url = images_raw
+        payload = response.json()
 
-        description = item.get('description') or ''
+        # معالجة أخطاء GraphQL في حال وجودها
+        if "errors" in payload:
+            logger.error(f"❌ GraphQL Validation Error: {payload['errors']}")
+            raise Exception("حدث خطأ في استعلام قمرة (GraphQL Validation Error)")
 
-        # التحديث أو الإضافة في قاعدة البيانات
-        product = Product.query.filter_by(qid=qid).first()
-        if product:
-            product.title = title
+        products_data = payload.get("data", {}).get("products", [])
+        synced_count = 0
+
+        for item in products_data:
+            qid = str(item.get("id"))
+            if not qid:
+                continue
+
+            # 1. استخراج السعر بأمان من كائن pricing
+            pricing_data = item.get("pricing") or {}
+            price = float(pricing_data.get("price") or 0.0)
+
+            # 2. استخراج الصورة الأولى بأمان من قائمة images { url }
+            images_list = item.get("images") or []
+            image_url = ""
+            if images_list and isinstance(images_list, list):
+                image_url = images_list[0].get("url", "")
+
+            # 3. تحديث المنتج إذا كان موجوداً أو إنشاء منتج جديد
+            product = Product.query.filter_by(qid=qid).first()
+            if not product:
+                product = Product(qid=qid)
+                db.session.add(product)
+
+            product.title = item.get("title") or "منتج بدون اسم"
+            product.description = item.get("description", "")
+            product.sku = item.get("sku", "")
+            product.quantity = int(item.get("quantity") or 0)
             product.price = price
-            product.currency = currency
-            product.quantity = quantity
-            product.sku = sku
+            product.currency = "SAR"  # تعيين العملة افتراضياً للريال السعودي
             product.image_url = image_url
-            product.description = description
-        else:
-            product = Product(
-                qid=qid, title=title, price=price, currency=currency,
-                quantity=quantity, sku=sku, image_url=image_url, description=description
-            )
-            db.session.add(product)
 
-            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-            if not mapping:
-                new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=1, status='active')
-                db.session.add(new_mapping)
+            synced_count += 1
 
-        synced_count += 1
+        db.session.commit()
+        logger.info(f"✅ Successfully synced {synced_count} products from Qomra.")
+        return f"تمت مزامنة {synced_count} منتج بنجاح من قمرة."
 
-    db.session.commit()
-    return f"تمت مزامنة وتحديث {synced_count} منتجاً بنجاح من قمرة."
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ Error during Qomra sync: {str(e)}", exc_info=True)
+        raise e
