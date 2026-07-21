@@ -13,22 +13,20 @@ logger = logging.getLogger(__name__)
 QOMRA_GRAPHQL_URL = os.getenv("QOMRA_GRAPHQL_URL", "https://api.qumra.cloud/graphql")
 QOMRA_API_TOKEN = os.getenv("QOMRA_API_TOKEN", "")
 
-# ✅ الاستعلام المصحح المعتمد على findAllProducts في Schema قمرة
+# ✅ الاستعلام المصحح المتوافق مع هيكل Schema الخاص بقمرة
 PRODUCTS_QUERY = """
 query FetchAllProducts {
     findAllProducts {
-        products {
-            id
-            title
-            description
-            sku
-            quantity
-            pricing {
-                price
-            }
-            images {
-                url
-            }
+        id
+        title
+        description
+        sku
+        quantity
+        pricing {
+            price
+        }
+        images {
+            url
         }
     }
 }
