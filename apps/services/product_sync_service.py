@@ -10,39 +10,25 @@ from apps.services.graphql_client import QomrahGraphQLClient
 
 def sync_products_from_qomra():
     """
-    جلب كافة المنتجات من منصة قمرة بدون قيود عددية (عدد مفتوح)،
-    مع دعم شامل لجميع هياكل الأسعار والصور والعملات لضمان عدم ظهور أصفار،
-    وربطها تلقائياً بجدول الموردين السيادي.
+    جلب كافة المنتجات من منصة قمرة مع توافق تام ومباشر مع الـ Schema المعتمدة لـ GraphQL،
+    وتخزينها وتحديثها محلياً مع ربطها بجدول الموردين السيادي.
     """
-    # استخدام استعلام مرن يجلب كافة الحقول المحتملة للأسعار والمنتجات بدون قيود
+    # استخدام استعلام متوافق مع الحقول المدعومة في قمرة (بدون معاملات غير مدعومة مثل limit أو page)
     query = """
     query GetProductsList {
-      findAllProducts(limit: 10000, page: 1) {
-        data {
-          qid
-          title
-          name
-          description
-          quantity
-          currency
-          images {
-            _id
-            fileUrl
-            url
-            path
-          }
-          pricing {
-            price
-            salePrice
-            regularPrice
-            amount
-            currency
-          }
-          price
-          salePrice
+      findAllProducts {
+        qid
+        title
+        description
+        quantity
+        images {
+          _id
+          fileUrl
         }
-        success
-        message
+        pricing {
+          price
+          originalPrice
+        }
       }
     }
     """
@@ -50,8 +36,7 @@ def sync_products_from_qomra():
     # تنفيذ الاستعلام عبر الكلاس المعتمد
     result = QomrahGraphQLClient.execute_query(query)
     
-    # طباعة الاستجابة الخام في السجلات لفحصها بدقة عند الحاجة
-    logging.info(f"🔍 [Qomra Sync Raw Response Received]")
+    logging.info("🔍 [Qomra Sync Raw Response Received]")
     
     if not result:
         logging.error("❌ لم يتم استلام أي استجابة من خدمة قمرة GraphQL.")
@@ -93,7 +78,6 @@ def sync_products_from_qomra():
         if not isinstance(item, dict):
             continue
             
-        # دعم أسماء حقول متعددة تحسساً لاختلاف واجهة قمرة
         title = item.get('title') or item.get('name')
         if not title:
             continue
@@ -106,7 +90,7 @@ def sync_products_from_qomra():
         except (ValueError, TypeError):
             quantity = 0
         
-        # استخراج الصورة بمرونة فائقة
+        # استخراج الصورة من الهيكل الصحيح
         images = item.get('images', [])
         image_url = None
         if images and isinstance(images, list):
@@ -116,31 +100,15 @@ def sync_products_from_qomra():
             elif isinstance(first_img, str):
                 image_url = first_img
         
-        # استخراج السعر بمرونة تامة لجميع الهياكل الممكنة (تجنب ظهور 0)
+        # استخراج السعر والعملة من كائن pricing المعتمد
         price_val = 0
         currency = 'SAR'
         
-        # 1. البحث في كائن pricing المتداخل
         pricing = item.get('pricing', {})
         if isinstance(pricing, dict):
-            price_val = (
-                pricing.get('price') or 
-                pricing.get('salePrice') or 
-                pricing.get('regularPrice') or 
-                pricing.get('amount') or 0
-            )
-            currency = pricing.get('currency') or currency
+            price_val = pricing.get('price') or pricing.get('originalPrice') or 0
         elif isinstance(pricing, (int, float, str)):
             price_val = pricing
-
-        # 2. إذا لم يوجد في pricing، نبحث في الحقول المباشرة للمنتج
-        if not price_val or float(price_val) == 0:
-            price_val = item.get('price') or item.get('salePrice') or 0
-
-        # فحص العملة المباشرة إن وجدت
-        direct_currency = item.get('currency')
-        if direct_currency:
-            currency = direct_currency
 
         try:
             price = float(price_val or 0)
