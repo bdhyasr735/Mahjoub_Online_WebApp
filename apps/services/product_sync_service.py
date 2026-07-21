@@ -27,7 +27,9 @@ query($qid: String!) {
         fileUrl
       }
       variants {
-        pricing
+        pricing {
+          price
+        }
         quantity
       }
     }
