@@ -1,147 +1,582 @@
-# coding: utf-8
-# 📂 apps/admin_Product/routes_edit.py
+<!-- 📂 apps/admin_Product/templates/admin/admin_edit_product.html -->
+{% extends "admin/admin_base.html" %}
 
-import json
-import os
-from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash
-from apps.services.product_sync_service import ProductSyncService
+{% block content %}
+<!-- 🎨 1. Dynamic Styling (Theme Registry with Fallbacks) -->
+<style>
+    :root { 
+        --deep-purple: {{ theme.deep_purple if theme and theme.deep_purple else '#2d144d' }}; 
+        --royal-accent: {{ theme.royal_accent if theme and theme.royal_accent else '#4b0082' }}; 
+        --gold-accent: {{ theme.gold_accent if theme and theme.gold_accent else '#d4af37' }};
+        --royal-bg: {{ theme.royal_bg if theme and theme.royal_bg else '#f8f7fc' }};
+    }
 
-admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
+    body {
+        background-color: var(--royal-bg);
+    }
 
-GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN') 
-
-@admin_product_bp.route('/products/edit', methods=['GET'])
-def edit_product():
-    """عرض صفحة تعديل المنتج وتصحيح معرّف الـ QID المزدوج تلقائياً"""
-    raw_qid = request.args.get('qid')
+    /* Extended paragraph-style cards */
+    .card { 
+        border: none; 
+        border-radius: 16px; 
+        box-shadow: 0 4px 20px rgba(45, 20, 77, 0.05); 
+        margin-bottom: 25px; 
+        padding: 25px; 
+        background: #ffffff;
+        transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
+        position: relative;
+        overflow: hidden;
+    }
     
-    if raw_qid:
-        if raw_qid.startswith('qid=qid='):
-            qid = raw_qid.replace('qid=qid=', 'qid://')
-        elif raw_qid.startswith('qid='):
-            qid = raw_qid.replace('qid=', '')
-        else:
-            qid = raw_qid
-    else:
-        qid = None
-    
-    if not qid:
-        flash("معرف المنتج (qid) مفقود.", "danger")
-        return redirect(url_for('admin_product_bp.manage_products'))
-    
-    sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
-    product = sync_service.fetch_product_by_qid(qid)
+    .card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 4px;
+        height: 100%;
+        background: transparent;
+        transition: background 0.3s ease;
+    }
 
-    if not product:
-        return f"""
-        <div style="direction: rtl; font-family: Tahoma; padding: 30px; text-align: center;">
-            <h2 style="color: #d9534f;">فشل جلب بيانات المنتج!</h2>
-            <p>الـ QID المعالج هو: <b>{qid}</b></p>
-            <p style="color: #666;">الرجاء مراجعة سجلات الـ Logs في سيرفر Render لمعرفة استجابة الـ GraphQL.</p>
-            <br>
-            <a href="{url_for('admin_product_bp.manage_products')}" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">الرجوع لقائمة المنتجات</a>
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(75, 0, 130, 0.08);
+    }
+
+    .card:hover::before {
+        background: var(--royal-accent);
+    }
+
+    .section-title { 
+        color: var(--deep-purple); 
+        font-weight: 700; 
+        border-bottom: 2px solid #f0edf5; 
+        padding-bottom: 12px; 
+        margin-bottom: 20px; 
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .section-title i {
+        color: var(--royal-accent);
+        margin-left: 10px;
+        transition: transform 0.3s ease;
+    }
+
+    .card:hover .section-title i {
+        transform: scale(1.15);
+    }
+
+    .field-paragraph {
+        background: #faf8fd;
+        padding: 18px 20px;
+        border-radius: 12px;
+        border: 1px solid #eee8f5;
+        margin-bottom: 15px;
+        transition: border-color 0.3s, background-color 0.3s;
+    }
+
+    .field-paragraph:focus-within {
+        border-color: var(--royal-accent);
+        background-color: #ffffff;
+    }
+
+    .image-zone { 
+        border: 2px dashed #d0c5e2; 
+        padding: 30px; 
+        text-align: center; 
+        cursor: pointer; 
+        border-radius: 12px; 
+        transition: all 0.3s ease; 
+        background: #faf8fd;
+    }
+    
+    .image-zone:hover, .image-zone.dragover { 
+        border-color: var(--royal-accent); 
+        background: #f5f0fc; 
+        transform: scale(1.005);
+    }
+
+    .img-preview-card {
+        transition: all 0.3s ease;
+    }
+
+    .img-preview-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(45, 20, 77, 0.15) !important;
+    }
+
+    .ck-editor__editable_inline {
+        min-height: 240px;
+        border-radius: 0 0 12px 12px !important;
+        border-color: #d0c5e2 !important;
+        padding: 15px !important;
+    }
+    
+    .ck.ck-toolbar {
+        border-radius: 12px 12px 0 0 !important;
+        background-color: #f8f5fc !important;
+        border-color: #d0c5e2 !important;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #d0c5e2;
+        padding: 10px 14px;
+        transition: all 0.25s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--royal-accent);
+        box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.12);
+    }
+
+    /* Choices.js Custom Royal Theme Integration */
+    .choices__inner {
+        border-radius: 10px !important;
+        border: 1px solid #d0c5e2 !important;
+        background-color: #ffffff !important;
+        padding: 6px 10px !important;
+        min-height: 48px !important;
+        transition: all 0.25s ease;
+    }
+
+    .choices.is-focused .choices__inner, 
+    .choices.is-open .choices__inner {
+        border-color: var(--royal-accent) !important;
+        box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.12);
+    }
+
+    .choices__list--multiple .choices__item {
+        background-color: var(--deep-purple) !important;
+        border: 1px solid var(--deep-purple) !important;
+        border-radius: 6px !important;
+        font-size: 0.9rem;
+    }
+
+    .choices__list--dropdown {
+        border-radius: 10px !important;
+        border: 1px solid #d0c5e2 !important;
+        box-shadow: 0 10px 25px rgba(45, 20, 77, 0.1) !important;
+        margin-top: 5px;
+    }
+
+    .choices__input {
+        background-color: transparent !important;
+        margin-bottom: 0 !important;
+    }
+
+    .btn-royal {
+        background-color: var(--deep-purple);
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-royal:hover {
+        background-color: var(--royal-accent);
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(75, 0, 130, 0.25);
+    }
+
+    .text-purple {
+        color: var(--deep-purple) !important;
+    }
+</style>
+
+<!-- 📦 2. External Styling and Assets -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+
+<!-- 🏗️ 3. Main Form Structure -->
+<div class="container py-4" dir="rtl" style="max-width: 900px;">
+    <!-- Top Action Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <h3 class="fw-bold m-0" style="color: var(--deep-purple);">
+            تعديل المنتج: <span class="text-muted fs-5" id="productTitleHeader">{{ product.title if product else 'جلب البيانات...' }}</span>
+        </h3>
+        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-outline-secondary px-4 shadow-sm" style="border-radius: 10px; transition: 0.2s;">
+            <i class="fas fa-arrow-right ms-1"></i> العودة للقائمة
+        </a>
+    </div>
+
+    <form id="editProductForm" onsubmit="saveProduct(event)">
+        <input type="hidden" id="productQid" value="{{ product.qid if product else '' }}">
+        
+        <!-- Section 1: Basic Information & Detailed Description -->
+        <div class="card">
+            <h5 class="section-title"><i class="fas fa-info-circle"></i> 1. البيانات الأساسية والوصف</h5>
+            
+            <div class="field-paragraph">
+                <label class="form-label fw-bold text-dark mb-2">اسم المنتج الرئيسي</label>
+                <input type="text" class="form-control form-control-lg" id="title" value="{{ product.title if product else '' }}" placeholder="أدخل اسم المنتج الواضح..." required>
+            </div>
+
+            <div class="field-paragraph">
+                <label class="form-label fw-bold text-dark mb-2">رابط المنتج (Slug)</label>
+                <input type="text" class="form-control text-start" dir="ltr" id="slug" value="{{ product.slug if product else '' }}" placeholder="product-url-slug">
+            </div>
+
+            <div class="field-paragraph mb-0">
+                <label class="form-label fw-bold text-dark mb-2">وصف المنتج الاحترافي (مع شريط الأدوات)</label>
+                <textarea id="editor">{{ product.description | safe if product and product.description else '' }}</textarea>
+            </div>
         </div>
-        """, 400
 
-    all_collections = [
-        {"qid": "col_1", "title": "المجموعة العامة"},
-        {"qid": "col_2", "title": "عروض العيد"},
-        {"qid": "col_3", "title": "الإلكترونيات والتقنية"}
-    ]
+        <!-- Section 2: Product Image Gallery -->
+        <div class="card">
+            <h5 class="section-title"><i class="fas fa-images"></i> 2. معرض صور المنتج</h5>
+            
+            <div class="image-zone mb-3" id="dropZone" onclick="document.getElementById('imageInput').click()">
+                <i class="fas fa-cloud-upload-alt fa-3x mb-2" style="color: var(--royal-accent);"></i>
+                <p class="mb-1 fw-bold text-dark fs-5">انقر هنا لرفع صور جديدة أو قم بسحبها وإفلاتها هنا</p>
+                <span class="small text-secondary">تدعم صيغ الصور المتعددة (PNG, JPG, WEBP)</span>
+                <input type="file" id="imageInput" class="d-none" multiple accept="image/*" onchange="handleImageSelect(this.files)">
+            </div>
+
+            <div class="field-paragraph mb-0">
+                <label class="form-label fw-bold text-dark small mb-3">الصور الحالية والجديدة للمنتج:</label>
+                <div class="row g-3" id="imageGallery">
+                    {% if product and product.images %}
+                        {% for img in product.images %}
+                        {% set img_url = img.fileUrl if img is mapping and img.fileUrl is defined else img %}
+                        <div class="col-md-3 col-6 position-relative">
+                            <div class="card img-preview-card border shadow-sm p-2 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
+                                <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-2">
+                                    <img src="{{ img_url }}" class="w-100 h-100" style="object-fit: cover;">
+                                </div>
+                                <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 w-100" onclick="removeExistingImage(this, '{{ img_url }}')">
+                                    <i class="fas fa-trash-alt me-1"></i> حذف
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Pricing & Inventory Management -->
+        <div class="card">
+            <h5 class="section-title"><i class="fas fa-tags"></i> 3. الأسعار والمخزون</h5>
+            
+            <div class="field-paragraph">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">سعر التكلفة</label>
+                        <input type="number" step="0.01" class="form-control" id="original_price" value="{{ product.pricing.costPrice if product and product.pricing and product.pricing.costPrice is defined else (product.pricing.originalPrice if product and product.pricing and product.pricing.originalPrice is defined else 0) }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">السعر قبل الخصم</label>
+                        <input type="number" step="0.01" class="form-control" id="compare_at_price" value="{{ product.pricing.compareAtPrice if product and product.pricing and product.pricing.compareAtPrice is defined else 0 }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-purple">السعر النهائي</label>
+                        <input type="number" step="0.01" class="form-control fw-bold text-purple" id="price" value="{{ product.pricing.price if product and product.pricing and product.pricing.price is defined else 0 }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="field-paragraph mb-0">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">رمز التخزين (SKU)</label>
+                        <input type="text" class="form-control text-start" dir="ltr" id="sku" value="{{ product.sku if product and product.sku is defined else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">الكمية المتاحة</label>
+                        <input type="number" class="form-control" id="quantity" value="{{ product.quantity if product else 0 }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">الوزن (كجم)</label>
+                        <input type="number" step="0.1" class="form-control" id="weight" value="{{ product.weight if product and product.weight is defined else 0 }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Product Variants -->
+        <div class="card">
+            <div class="d-flex justify-content-between align-items-center section-title border-bottom-0 pb-0 mb-3">
+                <h5 class="m-0 fw-bold" style="color: var(--deep-purple);"><i class="fas fa-list-ul"></i> 4. متغيرات المنتج (Variants)</h5>
+                <button type="button" class="btn btn-sm btn-royal px-3" style="border-radius: 8px;" onclick="addVariantRow()">+ إضافة نوع</button>
+            </div>
+            
+            <div class="field-paragraph mb-0 p-2">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الخيارات (حجم/لون)</th>
+                                <th>السعر</th>
+                                <th>الكمية</th>
+                                <th>SKU</th>
+                                <th class="text-center" style="width: 60px;">حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody id="variantsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Settings, Alignment & Collections -->
+        <div class="card">
+            <h5 class="section-title"><i class="fas fa-sliders-h"></i> 5. الإعدادات والربط والتصنيف</h5>
+            
+            <div class="field-paragraph">
+                <label class="form-label fw-bold mb-2">حالة المنتج</label>
+                <select class="form-select" id="status">
+                    <option value="ACTIVE" {% if product and product.status == 'ACTIVE' %}selected{% endif %}>نشط (معروض)</option>
+                    <option value="DRAFT" {% if product and product.status == 'DRAFT' %}selected{% endif %}>مسودة (مخفي)</option>
+                </select>
+            </div>
+
+            <!-- المورد المسؤول مع قائمة منسدلة قابلة للبحث -->
+            <div class="field-paragraph">
+                <label class="form-label fw-bold mb-2">المورد المسؤول</label>
+                <select class="form-select" id="supplier-select">
+                    <option value="">اختر المورد...</option>
+                    {% for sup in suppliers %}
+                    <option value="{{ sup.id }}" {% if product and product.supplier_id == sup.id %}selected{% endif %}>
+                        {{ sup.trade_name }} ({{ sup.supplier_code }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text text-muted small mt-2"><i class="fas fa-info-circle me-1"></i> يمكنك البحث بكتابة اسم المتجر أو كود المورد للتعرف السريع.</div>
+            </div>
+
+            <!-- المجموعات والتصنيفات المتعددة مع بحث واختيار مرن -->
+            <div class="field-paragraph mb-0">
+                <label class="form-label fw-bold mb-2">المجموعات والتصنيفات (اختيار متعدد)</label>
+                <select class="form-select" id="collections-select" multiple>
+                    {% for col in all_collections %}
+                    <option value="{{ col.qid }}" {% if product and product.collection_ids and col.qid in product.collection_ids %}selected{% endif %}>{{ col.title }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text text-muted small mt-2"><i class="fas fa-info-circle me-1"></i> يمكنك البحث واختيار عدة مجموعات بكل سهولة.</div>
+            </div>
+        </div>
+
+        <!-- Submission Button -->
+        <div class="mb-5">
+            <button type="submit" class="btn btn-royal btn-lg w-100 shadow py-3 fw-bold fs-5" id="saveBtn">
+                <i class="fas fa-sync-alt me-2"></i> حفظ المزامنة والتحديث
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- ⚡ 4. Client Side Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+    let editorInstance = null;
+    let collectionsChoices = null;
+    let supplierChoices = null;
     
-    suppliers = [
-        {"id": 1, "trade_name": "متجر التقنية السريعة", "supplier_code": "SUP-001"},
-        {"id": 2, "trade_name": "مؤسسة النور التجارية", "supplier_code": "SUP-002"}
-    ]
+    const uploadedFilesMap = new Map();
+    const removedImagesList = [];
 
-    return render_template(
-        'admin/admin_edit_product.html',
-        product=product,
-        all_collections=all_collections,
-        suppliers=suppliers
-    )
+    document.addEventListener("DOMContentLoaded", function() {
+        const editorElement = document.querySelector('#editor');
+        if (editorElement) {
+            ClassicEditor.create(editorElement, { language: 'ar' })
+            .then(editor => { editorInstance = editor; })
+            .catch(error => { console.error("CKEditor initialization error:", error); });
+        }
 
+        // تفعيل قائمة الموردين مع محرك البحث المدمج
+        const supplierSelect = document.getElementById('supplier-select');
+        if (supplierSelect) {
+            supplierChoices = new Choices(supplierSelect, { 
+                removeItemButton: true, 
+                searchEnabled: true,
+                itemSelectText: '',
+                noResultsText: 'لا توجد نتائج مطابقة للمورد',
+                noChoicesText: 'لا توجد خيارات متاحة',
+                placeholderValue: 'ابحث واختر المورد...'
+            });
+        }
 
-@admin_product_bp.route('/products/save-sync', methods=['POST'])
-def save_sync_product():
-    """معالجة وحفظ البيانات وتحديث الصور والمتغيرات عبر الـ API"""
-    try:
-        qid = request.form.get('qid')
-        if not qid:
-            return jsonify({"status": "error", "message": "معرف المنتج (qid) مفقود."}), 400
+        // تفعيل قائمة المجموعات المتعددة مع البحث المتقدم
+        const collectionsSelect = document.getElementById('collections-select');
+        if (collectionsSelect) {
+            collectionsChoices = new Choices(collectionsSelect, { 
+                removeItemButton: true, 
+                searchEnabled: true,
+                itemSelectText: '',
+                noResultsText: 'لا توجد نتائج مطابقة للمجموعات',
+                noChoicesText: 'لا توجد مجموعات متاحة',
+                placeholderValue: 'اختر أو ابحث عن المجموعات...'
+            });
+        }
 
-        title = request.form.get('title', '')
-        slug = request.form.get('slug', '')
-        description = request.form.get('description', '')
-        status = request.form.get('status', 'DRAFT')
-        sku = request.form.get('sku', '')
-        supplier_id = request.form.get('supplier_id')
+        const dropZone = document.getElementById('dropZone');
+        if (dropZone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+            });
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+            });
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (dt && dt.files && dt.files.length > 0) {
+                    handleImageSelect(dt.files);
+                }
+            }, false);
+        }
+
+        try {
+            const existingVariants = {{ (product.variants if product and product.variants else []) | tojson | safe }};
+            if (Array.isArray(existingVariants)) {
+                existingVariants.forEach(v => addVariantRow(v));
+            }
+        } catch (e) {
+            console.error("Error parsing existing variants JSON:", e);
+        }
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function handleImageSelect(files) {
+        const gallery = document.getElementById('imageGallery');
+        if (!files || files.length === 0) return;
+
+        Array.from(files).forEach((file) => {
+            if (!file.type.startsWith('image/')) return;
+
+            const fileId = 'new_img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7);
+            uploadedFilesMap.set(fileId, file);
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'col-md-3 col-6 position-relative';
+                colDiv.id = fileId;
+                colDiv.innerHTML = `
+                    <div class="card img-preview-card border shadow-sm p-2 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
+                        <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-2">
+                            <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
+                        </div>
+                        <span class="badge bg-secondary mb-2">جديدة</span>
+                        <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 w-100" onclick="removeNewImage('${fileId}')">
+                            <i class="fas fa-trash-alt me-1"></i> إزالة
+                        </button>
+                    </div>
+                `;
+                gallery.appendChild(colDiv);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('imageInput').value = '';
+    }
+
+    function removeNewImage(fileId) {
+        uploadedFilesMap.delete(fileId);
+        const card = document.getElementById(fileId);
+        if (card) card.remove();
+    }
+
+    function removeExistingImage(button, imgUrl) {
+        if (confirm("هل أنت متأكد من حذف هذه الصورة؟")) {
+            removedImagesList.push(imgUrl);
+            button.closest('.col-md-3').remove();
+        }
+    }
+
+    function addVariantRow(data = {}) {
+        const tbody = document.getElementById('variantsTableBody');
+        if (!tbody) return;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="text" class="form-control variant-name" value="${data.name || ''}" placeholder="حجم/لون"></td>
+            <td><input type="number" step="0.01" class="form-control variant-price" value="${data.price || 0}"></td>
+            <td><input type="number" class="form-control variant-qty" value="${data.quantity || 0}"></td>
+            <td><input type="text" class="form-control variant-sku" value="${data.sku || ''}"></td>
+            <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="fas fa-times"></i></button></td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    async function saveProduct(event) {
+        event.preventDefault();
         
-        try:
-            price = float(request.form.get('price', 0))
-            compare_at_price = float(request.form.get('compare_at_price', 0))
-            cost_price = float(request.form.get('original_price', 0))
-        except ValueError:
-            price, compare_at_price, cost_price = 0.0, 0.0, 0.0
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ والتحديث...';
 
-        try:
-            quantity = int(request.form.get('quantity', 0))
-            weight_val = float(request.form.get('weight', 0))
-        except ValueError:
-            quantity, weight_val = 0, 0.0
-
-        info = {"title": title, "slug": slug, "status": status}
-        pricing = {"price": price, "compareAtPrice": compare_at_price, "costPrice": cost_price, "currency": "YER"}
-        dims = {"length": 0, "width": 0, "height": 0, "unit": "cm"}
-        weight = {"value": weight_val, "unit": "kg"}
-        ident = {"sku": sku}
-
-        collection_ids = json.loads(request.form.get('collection_ids', '[]') or '[]')
-        variants = json.loads(request.form.get('variants', '[]') or '[]')
-        removed_images = json.loads(request.form.get('removed_images', '[]') or '[]')
-        new_images = request.files.getlist('images')
-
-        sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
+        const formData = new FormData();
+        formData.append('qid', document.getElementById('productQid').value);
+        formData.append('title', document.getElementById('title').value);
+        formData.append('slug', document.getElementById('slug').value);
+        formData.append('description', editorInstance ? editorInstance.getData() : '');
+        formData.append('status', document.getElementById('status').value);
+        formData.append('supplier_id', document.getElementById('supplier-select').value);
+        formData.append('sku', document.getElementById('sku').value);
+        formData.append('quantity', document.getElementById('quantity').value);
+        formData.append('weight', document.getElementById('weight').value);
         
-        # تنفيذ عملية التحديث الشاملة للمنتج
-        success = sync_service.update_product_data(
-            qid=qid,
-            info=info,
-            pricing=pricing,
-            dims=dims,
-            weight=weight,
-            ident=ident,
-            desc=description,
-            supplier_id=supplier_id,
-            collection_ids=collection_ids,
-            variants=variants,
-            removed_images=removed_images,
-            new_images=new_images,
-            quantity=quantity
-        )
+        formData.append('original_price', document.getElementById('original_price').value);
+        formData.append('compare_at_price', document.getElementById('compare_at_price').value);
+        formData.append('price', document.getElementById('price').value);
 
-        if not success:
-            return jsonify({"status": "error", "message": "فشل حفظ وتحديث التعديلات على الخادم المركزي."}), 500
+        const selectedCols = Array.from(document.getElementById('collections-select').selectedOptions).map(opt => opt.value);
+        formData.append('collection_ids', JSON.stringify(selectedCols));
 
-        return jsonify({"status": "success", "message": "تم حفظ وتحديث المنتج ومزامنة بياناته بنجاح!"})
+        const variants = [];
+        document.querySelectorAll('#variantsTableBody tr').forEach(row => {
+            const nameVal = row.querySelector('.variant-name').value.trim();
+            if (nameVal) {
+                variants.push({
+                    name: nameVal,
+                    price: row.querySelector('.variant-price').value,
+                    quantity: row.querySelector('.variant-qty').value,
+                    sku: row.querySelector('.variant-sku').value
+                });
+            }
+        });
+        formData.append('variants', JSON.stringify(variants));
+        formData.append('removed_images', JSON.stringify(removedImagesList));
 
-    except Exception as e:
-        print(f"Error saving product sync: {e}")
-        return jsonify({"status": "error", "message": f"حدث خطأ أثناء معالجة الطلب: {str(e)}"}), 500
+        uploadedFilesMap.forEach((file) => {
+            formData.append('images', file);
+        });
 
-
-@admin_product_bp.route('/products/manage', methods=['GET'])
-def manage_products():
-    """عرض قائمة إدارة المنتجات"""
-    sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
-    page = request.args.get('page', 1, type=int)
-    title_query = request.args.get('title', '', type=str)
-    
-    result = sync_service.fetch_products(page=page, limit=20, title=title_query)
-    
-    return render_template(
-        'admin/admin_manage_products.html',
-        products=result.get("data", []),
-        pagination=result.get("pagination", None),
-        search_title=title_query
-    )
+        try {
+            const response = await fetch("{{ url_for('admin_product_bp.save_sync_product') }}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else "" }}'
+                }
+            });
+            const result = await response.json();
+            
+            if (response.ok && result.status === 'success') {
+                alert('✅ ' + result.message);
+                window.location.href = "{{ url_for('admin_product_bp.manage_products') }}";
+            } else {
+                alert('⚠️ تعذر الحفظ: ' + (result.message || "حدث خطأ أثناء الحفظ."));
+            }
+        } catch (error) {
+            console.error("AJAX/Fetch Error Connection:", error);
+            alert("❌ خطأ: لم نتمكن من الاتصال بالسيرفر لحفظ ومزامنة البيانات.");
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i> حفظ المزامنة والتحديث';
+        }
+    }
+</script>
+{% endblock %}
