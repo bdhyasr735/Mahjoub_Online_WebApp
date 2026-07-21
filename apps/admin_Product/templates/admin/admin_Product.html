@@ -29,7 +29,7 @@
             <i class="fas fa-search"></i>
             <form action="{{ url_for('admin_product_bp.manage_products') }}" method="GET" id="searchForm">
                 <input type="text" name="title" id="searchInput" class="form-control shadow-sm" 
-                       placeholder="ابحث عن منتج بالاسم..." value="{{ search }}">
+                       placeholder="ابحث عن منتج بالاسم..." value="{{ search_title }}">
             </form>
         </div>
 
@@ -43,7 +43,7 @@
         </div>
     </div>
 
-    <!-- 🟣 هنا نستبدل البطاقات بالجدول -->
+    <!-- 🟣 عرض الجدول -->
     <div id="results-container">
         {% include 'admin/includes/_table_products.html' %}
     </div>
