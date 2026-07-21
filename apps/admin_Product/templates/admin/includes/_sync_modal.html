@@ -43,7 +43,8 @@
             const metaTag = document.querySelector('meta[name="csrf-token"]');
             const csrfToken = metaTag ? metaTag.getAttribute('content') : '';
             
-            const response = await fetch("{{ safe_url_for('admin_product_bp.save_sync') }}", { 
+            // استخدام url_for القياسي لتوليد الرابط البرمجي الصحيح للمزامنة
+            const response = await fetch("{{ url_for('admin_product_bp.save_sync') }}", { 
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -72,7 +73,7 @@
             progressBar.style.width = '100%';
             statusText.innerHTML = `<span class="text-success">${responseMessage}</span>`;
             
-            // إخفاء المودال وإعادة تحميل الصفحة بعد النجاح
+            // إخفاء المودال وإعادة تحميل الصفحة بعد النجاح لتحديث جدول المنتجات والأسعار
             setTimeout(() => {
                 const modalElement = document.getElementById('syncModal');
                 const modal = bootstrap.Modal.getInstance(modalElement);
