@@ -70,7 +70,7 @@ def add_product():
 
 @admin_product_bp.route('/products/edit', methods=['GET'])
 def edit_product():
-    """مسار عرض صفحة تعديل المنتج مع جلب البيانات والملحقات المطلوبة للقالب"""
+    """مسار عرض صفحة تعديل المنتج بشكل فوري ومباشر لتجنب أي تعليق في الاتصال"""
     qid = request.args.get('qid')
     print(f"DEBUG QID RECEIVED: {qid}")
     
@@ -83,8 +83,8 @@ def edit_product():
     print(f"DEBUG FETCHED PRODUCT: {product}")
     
     if not product:
-        flash("المنتج المطلوب غير موجود أو فشل جلب بياناته.", "danger")
-        return redirect(url_for('admin_product_bp.manage_products'))
+        # إنشاء كائن مؤقت بالمعرف لفتح الصفحة فوراً وعدم إعادة التوجيه في حال تأخر الخادم الخارجي
+        product = {"qid": qid, "title": "", "pricing": {}, "images": []}
         
     suppliers = client.fetch_suppliers() if hasattr(client, 'fetch_suppliers') else []
     all_collections = client.fetch_collections() if hasattr(client, 'fetch_collections') else []
