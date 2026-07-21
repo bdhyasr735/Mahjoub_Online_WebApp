@@ -1,140 +1,33 @@
 <!-- 📂 apps/admin_Product/templates/admin/includes/_sync_modal.html -->
-<style>
-    #syncModal .modal-content {
-        border-radius: 16px;
-        border: 1px solid rgba(212, 175, 55, 0.25);
-        overflow: hidden;
-        box-shadow: 0 15px 35px rgba(8, 2, 13, 0.25);
-    }
-    #syncModal .modal-header {
-        background: linear-gradient(135deg, var(--royal-purple, #1a0b2e) 0%, var(--deep-black, #08020d) 100%);
-        color: #fff;
-        border-bottom: 1px solid rgba(212, 175, 55, 0.3);
-    }
-    #syncModal .modal-title {
-        color: var(--mahjoub-gold, #D4AF37);
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
-    #syncModal .btn-sync-submit {
-        background: linear-gradient(135deg, var(--royal-purple, #1a0b2e) 0%, var(--deep-black, #08020d) 100%);
-        color: var(--mahjoub-gold, #D4AF37);
-        border: 1px solid var(--mahjoub-gold, #D4AF37);
-        transition: all 0.3s ease;
-    }
-    #syncModal .btn-sync-submit:hover {
-        background: var(--mahjoub-gold, #D4AF37);
-        color: var(--deep-black, #08020d);
-        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
-    }
-    #syncModal .progress {
-        height: 12px;
-        border-radius: 10px;
-        background-color: #e9ecef;
-    }
-    #syncModal .progress-bar-custom {
-        background: linear-gradient(90deg, var(--royal-purple, #1a0b2e), var(--mahjoub-gold, #D4AF37));
-    }
-</style>
-
 <div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="syncModalLabel">
-                    <i class="fas fa-sync-alt me-2"></i>تحديث قائمة المنتجات من قمرة
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div id="sync-progress-area" class="d-none">
-                    <div class="progress mb-3">
-                        <div id="sync-bar" class="progress-bar progress-bar-striped progress-bar-animated progress-bar-custom" role="progressbar" style="width: 0%"></div>
-                    </div>
-                    <p id="sync-status" class="text-center fw-bold text-muted small mb-0">جاري التحديث...</p>
-                </div>
-
-                <div id="sync-info" class="text-center py-3">
-                    <div class="mb-3">
-                        <i class="fas fa-cloud-download-alt fa-3x" style="color: var(--royal-purple, #1a0b2e);"></i>
-                    </div>
-                    <p class="fs-6 text-dark mb-3">سيتم جلب أحدث المنتجات والأسعار والمخزون مباشرة من <strong>قمرة</strong>.</p>
-                    <small class="text-muted">هل تريد بدء المزامنة وتحديث قاعدة البيانات الآن؟</small>
-                </div>
-            </div>
-            <div class="modal-footer bg-light border-0">
-                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">إغلاق</button>
-                <button type="button" id="startSyncBtn" class="btn btn-sync-submit rounded-pill px-4 fw-bold" onclick="startProductSync()">
-                    <i class="fas fa-play me-1"></i> تحديث البيانات الآن
-                </button>
-            </div>
-        </div>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-3 shadow-lg">
+      <div class="modal-header" style="background-color: var(--dark-purple); color: #fff;">
+        <h5 class="modal-title fw-bold" id="syncModalLabel">
+          <i class="fas fa-sync-alt me-2"></i> مزامنة المنتجات
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-3 text-muted">
+          ستقوم هذه العملية بجلب المنتجات من المتجر الخارجي وتحديث قاعدة البيانات الداخلية.
+        </p>
+        <ul class="list-unstyled small text-secondary">
+          <li><i class="fas fa-check-circle text-success me-2"></i> تحديث الأسعار والكميات</li>
+          <li><i class="fas fa-check-circle text-success me-2"></i> إضافة المنتجات الجديدة</li>
+          <li><i class="fas fa-check-circle text-success me-2"></i> مزامنة الصور والعناوين</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <form action="{{ url_for('admin_product_bp.sync_products') }}" method="POST">
+          <button type="submit" class="btn btn-custom px-4 shadow-sm">
+            <i class="fas fa-sync-alt me-1"></i> بدء المزامنة
+          </button>
+        </form>
+        <button type="button" class="btn btn-secondary px-4 shadow-sm" data-bs-dismiss="modal">
+          إلغاء
+        </button>
+      </div>
     </div>
+  </div>
 </div>
-
-<script>
-    async function startProductSync() {
-        const btn = document.getElementById('startSyncBtn');
-        const progressBar = document.getElementById('sync-bar');
-        const statusText = document.getElementById('sync-status');
-        
-        btn.disabled = true;
-        document.getElementById('sync-info').classList.add('d-none');
-        document.getElementById('sync-progress-area').classList.remove('d-none');
-        
-        progressBar.style.width = '35%';
-        statusText.innerText = "جاري الاتصال بخادم قمرة وجلب البيانات...";
-
-        try {
-            const metaTag = document.querySelector('meta[name="csrf-token"]');
-            const csrfToken = metaTag ? metaTag.getAttribute('content') : '';
-            
-            const syncUrl = "{{ safe_url_for('admin_product_bp.save_sync') if safe_url_for is defined else url_for('admin_product_bp.save_sync') }}";
-            
-            const response = await fetch(syncUrl, { 
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({})
-            });
-
-            const contentType = response.headers.get("content-type");
-            let responseMessage = "تمت المزامنة بنجاح";
-
-            if (contentType && contentType.includes("application/json")) {
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.message || 'خطأ غير معروف أثناء المزامنة');
-                }
-                responseMessage = data.message || responseMessage;
-            } else {
-                const textData = await response.text();
-                if (!response.ok) {
-                    throw new Error(textData || 'خطأ غير معروف أثناء المزامنة');
-                }
-                responseMessage = textData || responseMessage;
-            }
-            
-            progressBar.style.width = '100%';
-            statusText.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i> ${responseMessage}</span>`;
-            
-            setTimeout(() => {
-                const modalElement = document.getElementById('syncModal');
-                const modal = bootstrap.Modal.getInstance(modalElement);
-                if (modal) modal.hide();
-                window.location.reload(); 
-            }, 1200);
-            
-        } catch (err) {
-            progressBar.classList.remove('progress-bar-custom');
-            progressBar.classList.add('bg-danger');
-            progressBar.style.width = '100%';
-            statusText.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i> خطأ: ${err.message}</span>`;
-            btn.disabled = false;
-        }
-    }
-</script>
