@@ -54,25 +54,11 @@
                     <p id="sync-status" class="text-center fw-bold text-muted small mb-0">جاري التحديث...</p>
                 </div>
 
-                <div id="sync-info" class="text-center py-2">
+                <div id="sync-info" class="text-center py-3">
                     <div class="mb-3">
                         <i class="fas fa-cloud-download-alt fa-3x" style="color: var(--royal-purple, #1a0b2e);"></i>
                     </div>
-                    <p class="fs-6 text-dark mb-2">سيتم جلب أحدث المنتجات والأسعار والمخزون ديناميكياً مباشرة من <strong>قمرة</strong>.</p>
-                    
-                    <!-- عرض العملة المعتمدة للمتجر (عملة واحدة ثابتة) -->
-                    <div class="text-start bg-light p-3 rounded-3 my-3 border d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="fw-bold text-dark small d-block">
-                                <i class="fas fa-coins me-1 text-warning"></i> العملة المعتمدة للمتجر:
-                            </span>
-                            <small class="text-muted fs-7">ستُسجل جميع المنتجات المجلوبة بهذه العملة تلقائياً.</small>
-                        </div>
-                        <span id="syncCurrency" data-currency="{{ default_currency if default_currency is defined else 'ر.س' }}" class="badge bg-white text-dark border px-3 py-2 fw-bold shadow-sm">
-                            {{ default_currency if default_currency is defined else 'ر.س' }}
-                        </span>
-                    </div>
-
+                    <p class="fs-6 text-dark mb-3">سيتم جلب أحدث المنتجات والأسعار والمخزون مباشرة من <strong>قمرة</strong>.</p>
                     <small class="text-muted">هل تريد بدء المزامنة وتحديث قاعدة البيانات الآن؟</small>
                 </div>
             </div>
@@ -92,10 +78,6 @@
         const progressBar = document.getElementById('sync-bar');
         const statusText = document.getElementById('sync-status');
         
-        // قراءة العملة المعتمدة للمتجر مباشرة من الـ Element
-        const currencyEl = document.getElementById('syncCurrency');
-        const storeCurrency = currencyEl ? (currencyEl.getAttribute('data-currency') || 'ر.س') : 'ر.س';
-
         btn.disabled = true;
         document.getElementById('sync-info').classList.add('d-none');
         document.getElementById('sync-progress-area').classList.remove('d-none');
@@ -117,9 +99,7 @@
                     'X-CSRF-TOKEN': csrfToken,
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify({ 
-                    currency: storeCurrency 
-                })
+                body: JSON.stringify({})
             });
 
             const contentType = response.headers.get("content-type");
