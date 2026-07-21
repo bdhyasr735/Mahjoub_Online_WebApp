@@ -8,22 +8,24 @@ from apps.services.graphql_client import QomrahGraphQLClient
 
 def sync_products_from_qomra():
     """
-    خدمة مزامنة المنتجات مع استعلام GraphQL المصحح طبقاً لمخطط السيرفر (ProductsResponse).
+    خدمة مزامنة المنتجات مع توافق كامل لمخطط (ProductWithReviewIds).
     """
-    # استعلام مصحح يراعي الغلاف ProductsResponse والحقول الفرعية للعملة
+    # تم تحديث الاستعلام بناءً على الحقول الصحيحة المطلوبة من السيرفر
     query = """
     query {
         findAllProducts {
             data {
-                id
+                qid
                 title
-                price
-                currency {
-                    code
+                pricing {
+                    price
+                    currency {
+                        code
+                    }
                 }
                 quantity
-                sku
-                image_url
+                slug
+                images
                 description
             }
         }
@@ -38,7 +40,7 @@ def sync_products_from_qomra():
     data = result.get('data', {})
     products_response = data.get('findAllProducts', {})
     
-    # تفريغ قائمة المنتجات سواء كانت داخل data أو products أو مصفوفة مباشرة
+    # تفريغ قائمة المنتجات
     products_data = []
     if isinstance(products_response, dict):
         products_data = products_response.get('data') or products_response.get('products') or []
@@ -50,25 +52,42 @@ def sync_products_from_qomra():
 
     synced_count = 0
     for item in products_data:
-        qid = str(item.get('id') or item.get('qid') or '')
+        qid = str(item.get('qid') or '')
         if not qid:
             continue
 
-        title = item.get('title') or item.get('name') or 'منتج بدون اسم'
-        price = float(item.get('price') or 0)
+        title = item.get('title') or 'منتج بدون اسم'
         
-        # استخراج كائن العملة بالشكل الصحيح
-        currency_raw = item.get('currency')
-        if isinstance(currency_raw, dict):
-            currency = currency_raw.get('code') or currency_raw.get('symbol') or 'SAR'
+        # 1. استخراج السعر والعملة من كائن pricing
+        pricing_data = item.get('pricing') or {}
+        if isinstance(pricing_data, dict):
+            price = float(pricing_data.get('price') or pricing_data.get('amount') or 0)
+            currency_raw = pricing_data.get('currency')
+            if isinstance(currency_raw, dict):
+                currency = currency_raw.get('code') or currency_raw.get('symbol') or 'SAR'
+            else:
+                currency = currency_raw or 'SAR'
         else:
-            currency = currency_raw or 'SAR'
+            price = 0
+            currency = 'SAR'
 
         quantity = int(item.get('quantity') or 0)
-        sku = item.get('sku') or ''
-        image_url = item.get('image_url') or item.get('image') or ''
+        sku = item.get('slug') or item.get('seo') or ''
+        
+        # 2. استخراج رابط الصورة من حقل images (سواء كان مصفوفة أو نصاً مباشرًا)
+        images_raw = item.get('images')
+        image_url = ''
+        if isinstance(images_raw, list) and len(images_raw) > 0:
+            if isinstance(images_raw[0], dict):
+                image_url = images_raw[0].get('url') or images_raw[0].get('src') or ''
+            else:
+                image_url = str(images_raw[0])
+        elif isinstance(images_raw, str):
+            image_url = images_raw
+
         description = item.get('description') or ''
 
+        # التحديث أو الإضافة في قاعدة البيانات
         product = Product.query.filter_by(qid=qid).first()
         if product:
             product.title = title
