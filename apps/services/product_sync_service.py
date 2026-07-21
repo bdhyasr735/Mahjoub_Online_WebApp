@@ -1,5 +1,5 @@
+# apps/services/product_sync_service.py
 # coding: utf-8
-# 📂 apps/services/product_sync_service.py
 
 import uuid
 import logging
