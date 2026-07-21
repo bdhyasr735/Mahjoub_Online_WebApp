@@ -104,18 +104,28 @@ class ProductSyncService:
             )
 
             if response.status_code != 200:
+                print(f"GraphQL HTTP Error: {response.status_code}")
                 return None
 
             result = response.json()
-            if "errors" in result or "data" not in result or "findProductByQid" not in result["data"]:
+            
+            # ✅ طباعة الأخطاء البرمجية للـ GraphQL إن وجدت لتشخيص السبب فوراً
+            if "errors" in result:
+                print("GraphQL Errors in fetch_product_by_qid:", result["errors"])
+                return None
+
+            if "data" not in result or "findProductByQid" not in result["data"]:
+                print("GraphQL Response missing data fields:", result)
                 return None
 
             res_data = result["data"]["findProductByQid"]
             if res_data and res_data.get("success"):
                 return res_data.get("data")
             
+            print("GraphQL findProductByQid returned success=False:", res_data)
             return None
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
+            print(f"Request Exception in fetch_product_by_qid: {str(e)}")
             return None
 
     def update_product_data(self, qid: str, info: dict, pricing: dict, dims: dict, weight: dict, ident: dict, desc: str):
