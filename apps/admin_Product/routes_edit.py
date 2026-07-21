@@ -26,8 +26,16 @@ def edit_product(qid):
     print(f"==================================================")
 
     if not product:
-        flash(f"المنتج المطلوب غير موجود أو فشل جلب بياناته للـ QID: {qid}", "danger")
-        return redirect(url_for('admin_product_bp.manage_products'))
+        # إظهار رسالة واضحة على الشاشة لتشخيص سبب فشل الجلب بدلاً من التوجيه الصامت
+        return f"""
+        <div style="direction: rtl; font-family: Tahoma; padding: 30px; text-align: center;">
+            <h2 style="color: #d9534f;">فشل جلب بيانات المنتج!</h2>
+            <p>الـ QID المرسل هو: <b>{qid}</b></p>
+            <p style="color: #666;">الرجاء مراجعة سجلات الـ Logs في سيرفر Render لمعرفة استجابة الـ GraphQL وتصحيحها.</p>
+            <br>
+            <a href="{url_for('admin_product_bp.manage_products')}" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">الرجوع لقائمة المنتجات</a>
+        </div>
+        """, 400
 
     # جلب قائمة المجموعات والموردين (يمكن ربطها بقاعدتك المحلية أو خدمات الـ API)
     all_collections = [
