@@ -8,9 +8,9 @@ from apps.services.graphql_client import QomrahGraphQLClient
 
 def sync_products_from_qomra():
     """
-    خدمة مزامنة المنتجات مع استعلام GraphQL المصحح طبقاً لمخطط السيرفر
+    خدمة مزامنة المنتجات مع استعلام GraphQL المصحح طبقاً لمخطط السيرفر (ProductsResponse).
     """
-    # استعلام مصحح يراعي وجود الغلاف ProductsResponse وتفريغ حقل العملة
+    # استعلام مصحح يراعي الغلاف ProductsResponse والحقول الفرعية للعملة
     query = """
     query {
         findAllProducts {
@@ -38,7 +38,7 @@ def sync_products_from_qomra():
     data = result.get('data', {})
     products_response = data.get('findAllProducts', {})
     
-    # جلب قائمة المنتجات من داخل الغلاف (دعم data أو products أو المصفوفة المباشرة)
+    # تفريغ قائمة المنتجات سواء كانت داخل data أو products أو مصفوفة مباشرة
     products_data = []
     if isinstance(products_response, dict):
         products_data = products_response.get('data') or products_response.get('products') or []
@@ -57,7 +57,7 @@ def sync_products_from_qomra():
         title = item.get('title') or item.get('name') or 'منتج بدون اسم'
         price = float(item.get('price') or 0)
         
-        # استخراج رمز العملة سواء كانت كائناً أو نصاً
+        # استخراج كائن العملة بالشكل الصحيح
         currency_raw = item.get('currency')
         if isinstance(currency_raw, dict):
             currency = currency_raw.get('code') or currency_raw.get('symbol') or 'SAR'
