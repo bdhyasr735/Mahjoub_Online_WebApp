@@ -8,7 +8,7 @@ GRAPHQL_ENDPOINT = "https://mahjoub.online/admin/graphql"
 
 class ProductSyncService:
     def __init__(self, token: str):
-        # ضع التوكن الحقيقي هنا (Bearer ...)
+        # ترويسات الطلب مع تمرير التوكن بصيغة Bearer
         self.headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -38,23 +38,35 @@ class ProductSyncService:
         """
 
         variables = {"page": page, "limit": limit}
-        response = requests.post(
-            GRAPHQL_ENDPOINT,
-            headers=self.headers,
-            json={"query": query, "variables": variables}
-        )
+        
+        try:
+            response = requests.post(
+                GRAPHQL_ENDPOINT,
+                headers=self.headers,
+                json={"query": query, "variables": variables},
+                timeout=30
+            )
 
-        result = response.json()
+            if response.status_code != 200:
+                print(f"HTTP Error Status: {response.status_code}")
+                return {"data": [], "pagination": None}
 
-        # 🛡️ تحقق قبل الوصول إلى result["data"]
-        if "errors" in result:
-            print("GraphQL Error:", result["errors"])
+            result = response.json()
+
+            # 🛡️ تحقق قبل الوصول إلى result["data"]
+            if "errors" in result:
+                print("GraphQL Error:", result["errors"])
+                return {"data": [], "pagination": None}
+                
+            if "data" not in result or "findAllProducts" not in result["data"]:
+                print("Unexpected response:", result)
+                return {"data": [], "pagination": None}
+
+            return result["data"]["findAllProducts"]
+
+        except requests.exceptions.RequestException as e:
+            print(f"Network Connection Error: {e}")
             return {"data": [], "pagination": None}
-        if "data" not in result or "findAllProducts" not in result["data"]:
-            print("Unexpected response:", result)
-            return {"data": [], "pagination": None}
-
-        return result["data"]["findAllProducts"]
 
     def fetch_product_by_qid(self, qid: str):
         query = """
@@ -74,26 +86,41 @@ class ProductSyncService:
         }
         """
         variables = {"qid": qid}
-        response = requests.post(
-            GRAPHQL_ENDPOINT,
-            headers=self.headers,
-            json={"query": query, "variables": variables}
-        )
+        
+        try:
+            response = requests.post(
+                GRAPHQL_ENDPOINT,
+                headers=self.headers,
+                json={"query": query, "variables": variables},
+                timeout=30
+            )
 
-        result = response.json()
+            if response.status_code != 200:
+                print(f"HTTP Error Status: {response.status_code}")
+                return None
 
-        # 🛡️ تحقق قبل الوصول إلى result["data"]
-        if "errors" in result:
-            print("GraphQL Error:", result["errors"])
+            result = response.json()
+
+            # 🛡️ تحقق قبل الوصول إلى result["data"]
+            if "errors" in result:
+                print("GraphQL Error:", result["errors"])
+                return None
+                
+            if "data" not in result or "findProductByQid" not in result["data"]:
+                print("Unexpected response:", result)
+                return None
+
+            return result["data"]["findProductByQid"]
+
+        except requests.exceptions.RequestException as e:
+            print(f"Network Connection Error: {e}")
             return None
-        if "data" not in result or "findProductByQid" not in result["data"]:
-            print("Unexpected response:", result)
-            return None
-
-        return result["data"]["findProductByQid"]
 
     def sync_to_local_db(self, products_data):
-        # لا نقوم بأي حفظ داخلي، فقط نطبع للتأكيد
+        if not products_data or "data" not in products_data:
+            print("No products found to sync.")
+            return
+
         for product in products_data.get("data", []):
             print(f"Fetched product {product.get('qid')} - {product.get('title')}")
         print("Sync completed (no local save).")
