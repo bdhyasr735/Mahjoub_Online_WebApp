@@ -360,26 +360,17 @@
     let collectionsChoices = null;
     let supplierChoices = null;
     
-    // Map إدارة ملفات الصور الجديدة بدقة لمنع خطأ التكرار أو الإرسال بعد الحذف
     const uploadedFilesMap = new Map();
     const removedImagesList = [];
 
     document.addEventListener("DOMContentLoaded", function() {
-        // 1. Initialize Classic CKEditor
         const editorElement = document.querySelector('#editor');
         if (editorElement) {
-            ClassicEditor.create(editorElement, {
-                language: 'ar'
-            })
-            .then(editor => { 
-                editorInstance = editor; 
-            })
-            .catch(error => { 
-                console.error("CKEditor initialization error:", error); 
-            });
+            ClassicEditor.create(editorElement, { language: 'ar' })
+            .then(editor => { editorInstance = editor; })
+            .catch(error => { console.error("CKEditor initialization error:", error); });
         }
 
-        // 2. Initialize Select Dropdowns safely
         const supplierSelect = document.getElementById('supplier-select');
         if (supplierSelect) {
             supplierChoices = new Choices(supplierSelect, { removeItemButton: true, searchEnabled: true });
@@ -390,21 +381,17 @@
             collectionsChoices = new Choices(collectionsSelect, { removeItemButton: true, searchEnabled: true, placeholderValue: 'اختر المجموعات...' });
         }
 
-        // 3. Setup Drag & Drop Handlers
         const dropZone = document.getElementById('dropZone');
         if (dropZone) {
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 dropZone.addEventListener(eventName, preventDefaults, false);
             });
-
             ['dragenter', 'dragover'].forEach(eventName => {
                 dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
             });
-
             ['dragleave', 'drop'].forEach(eventName => {
                 dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
             });
-
             dropZone.addEventListener('drop', (e) => {
                 const dt = e.dataTransfer;
                 if (dt && dt.files && dt.files.length > 0) {
@@ -413,7 +400,6 @@
             }, false);
         }
 
-        // 4. Bind existing variants inside table safely
         try {
             const existingVariants = {{ (product.variants if product and product.variants else []) | tojson | safe }};
             if (Array.isArray(existingVariants)) {
@@ -460,7 +446,6 @@
             reader.readAsDataURL(file);
         });
 
-        // Reset file input value to allow selecting same file again if removed
         document.getElementById('imageInput').value = '';
     }
 
@@ -531,7 +516,6 @@
         formData.append('variants', JSON.stringify(variants));
         formData.append('removed_images', JSON.stringify(removedImagesList));
 
-        // Append all active new files from Map
         uploadedFilesMap.forEach((file) => {
             formData.append('images', file);
         });
