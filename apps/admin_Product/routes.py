@@ -13,14 +13,16 @@ admin_product_bp = Blueprint(
     static_folder='static'
 )
 
+# مفتاح أو توكن الاتصال بالخادم المركزي
+GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN')
+
 @admin_product_bp.route('/products', methods=['GET'])
 def manage_products():
     """عرض قائمة المنتجات مع دعم الترقيم والبحث المباشر عبر الـ API في جميع الصفحات"""
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('title', '', type=str)
     
-    token = os.environ.get('QUMRA_API_KEY') or os.environ.get('GRAPHQL_ENDPOINT')
-    client = ProductSyncService(token=token)
+    client = ProductSyncService(token=GRAPHQL_TOKEN)
     
     # تمرير قيمة الـ search_query إلى الـ Service لتنفيذ البحث مباشرة في الخادم
     response_data = client.fetch_products(page=page, limit=20, title=search_query)
@@ -31,7 +33,7 @@ def manage_products():
     return render_template(
         'admin/admin_Product.html',
         products=products,
-        search=search_query,
+        search_title=search_query,
         pagination=pagination
     )
 
@@ -39,8 +41,7 @@ def manage_products():
 def sync_products():
     """مسار تنفيذ المزامنة عند النقر على الزر في نافذة الـ Modal"""
     try:
-        token = os.environ.get('QUMRA_API_KEY') or os.environ.get('GRAPHQL_ENDPOINT')
-        client = ProductSyncService(token=token)
+        client = ProductSyncService(token=GRAPHQL_TOKEN)
         
         raw_data = client.fetch_products(page=1, limit=50)
         
@@ -64,13 +65,15 @@ def add_product():
 @admin_product_bp.route('/products/edit/<path:qid>', methods=['GET', 'POST'])
 def edit_product(qid):
     """مسار تعديل المنتج باستخدام الـ qid الخاص به مع دعم المسارات الطويلة والرموز الخاصة"""
-    token = os.environ.get('QUMRA_API_KEY') or os.environ.get('GRAPHQL_ENDPOINT')
-    client = ProductSyncService(token=token)
+    print(f"DEBUG: Fetching product edit page for QID -> {qid}")
     
+    client = ProductSyncService(token=GRAPHQL_TOKEN)
     product = client.fetch_product_by_qid(qid)
     
+    print(f"DEBUG: Product fetch result -> {product}")
+    
     if not product:
-        flash("المنتج المطلوب غير موجود.", "danger")
+        flash("المنتج المطلوب غير موجود أو فشل جلب بياناته.", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
         
     return render_template('admin/admin_edit_product.html', product=product)
