@@ -27,18 +27,18 @@ class QomrahGraphQLClient:
     """
     كلاس مُحسن لإدارة طلبات GraphQL بكفاءة عالية للتواصل مع منصة Mahjoub Online
     """
-    
+
     @staticmethod
     def get_base_url():
         """جلب رابط API ديناميكياً من متغيرات البيئة مع خيار افتراضي آمن"""
-        return os.environ.get('QOMRA_GRAPHQL_URL', 'https://mahjoub.online/admin/graphql')
+        return os.environ.get('QUMRA_API_URL', 'https://mahjoub.online/admin/graphql')
 
     @staticmethod
     def execute_query(query, variables=None):
         """تنفيذ استعلام أو Mutation لـ GraphQL باستخدام الجلسة الثابتة"""
         api_key = os.environ.get('QUMRA_API_KEY')
         target_url = QomrahGraphQLClient.get_base_url()
-        
+
         if not api_key:
             logging.error("❌ مفتاح API (QUMRA_API_KEY) مفقود في متغيرات البيئة.")
             return None
@@ -49,7 +49,7 @@ class QomrahGraphQLClient:
             "Accept": "application/json",
             "User-Agent": "Mozilla/5.0 (Qomrah-Sync-Engine/1.0)"
         }
-        
+
         try:
             # تنفيذ الطلب باستخدام الجلسة والرابط الديناميكي
             response = _session.post(
@@ -57,23 +57,23 @@ class QomrahGraphQLClient:
                 json={'query': query, 'variables': variables},
                 headers=headers,
                 verify=False,
-                timeout=15 
+                timeout=15
             )
-            
+
             # التحقق من حالة استجابة HTTP
             if response.status_code != 200:
                 logging.error(f"❌ GraphQL Status {response.status_code}: {response.text}")
                 return None
-            
+
             result = response.json()
-            
+
             # التحقق من وجود أخطاء منطقية داخل استجابة GraphQL
             if 'errors' in result:
                 logging.error(f"❌ GraphQL Logic Error: {result['errors']}")
                 return None
-            
+
             return result
-            
+
         except requests.exceptions.RequestException as req_err:
             logging.error(f"❌ خطأ في الشبكة أثناء الاتصال بـ قمرة: {str(req_err)}")
             return None
