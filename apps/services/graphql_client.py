@@ -28,12 +28,16 @@ class QomrahGraphQLClient:
     كلاس مُحسن لإدارة طلبات GraphQL بكفاءة عالية للتواصل مع منصة Mahjoub Online
     """
     
-    BASE_URL = "https://mahjoub.online/admin/graphql"
-    
+    @staticmethod
+    def get_base_url():
+        """جلب رابط API ديناميكياً من متغيرات البيئة مع خيار افتراضي آمن"""
+        return os.environ.get('QOMRA_GRAPHQL_URL', 'https://mahjoub.online/admin/graphql')
+
     @staticmethod
     def execute_query(query, variables=None):
         """تنفيذ استعلام أو Mutation لـ GraphQL باستخدام الجلسة الثابتة"""
         api_key = os.environ.get('QUMRA_API_KEY')
+        target_url = QomrahGraphQLClient.get_base_url()
         
         if not api_key:
             logging.error("❌ مفتاح API (QUMRA_API_KEY) مفقود في متغيرات البيئة.")
@@ -47,9 +51,9 @@ class QomrahGraphQLClient:
         }
         
         try:
-            # تنفيذ الطلب باستخدام الجلسة
+            # تنفيذ الطلب باستخدام الجلسة والرابط الديناميكي
             response = _session.post(
-                QomrahGraphQLClient.BASE_URL,
+                target_url,
                 json={'query': query, 'variables': variables},
                 headers=headers,
                 verify=False,
@@ -68,7 +72,6 @@ class QomrahGraphQLClient:
                 logging.error(f"❌ GraphQL Logic Error: {result['errors']}")
                 return None
             
-            # إرجاع الاستجابة كاملة (تتضمن 'data' وغالباً ما يتم التعامل معها في المسارات)
             return result
             
         except requests.exceptions.RequestException as req_err:
