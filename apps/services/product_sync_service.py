@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 QOMRA_GRAPHQL_URL = os.getenv("QOMRA_GRAPHQL_URL", "https://api.qumra.cloud/graphql")
 QOMRA_API_TOKEN = os.getenv("QOMRA_API_TOKEN", "")
 
-# ✅ الاستعلام المطابق تماماً لمخطط Schema الخاص بقمرة (حسب حقل data و ProductsResponse)
+# ✅ الاستعلام بعد استبعاد حقل الصورة مؤقتاً لمنع خطأ الـ Validation
 PRODUCTS_QUERY = """
 query FetchAllProducts {
     findAllProducts {
@@ -27,9 +27,6 @@ query FetchAllProducts {
             quantity
             pricing {
                 price
-            }
-            images {
-                url
             }
         }
         pagination {
@@ -92,13 +89,7 @@ def sync_products_from_qomra(currency: str = "ر.س"):
             pricing_data = item.get("pricing") or {}
             price = float(pricing_data.get("price") or 0.0)
 
-            # 2. استخراج الصورة الأولى بأمان من قائمة images { url }
-            images_list = item.get("images") or []
-            image_url = ""
-            if images_list and isinstance(images_list, list):
-                image_url = images_list[0].get("url", "")
-
-            # 3. تحديث المنتج إذا كان موجوداً أو إنشاء منتج جديد
+            # 2. تحديث المنتج إذا كان موجوداً أو إنشاء منتج جديد
             product = Product.query.filter_by(qid=qid).first()
             if not product:
                 product = Product(qid=qid)
@@ -110,7 +101,6 @@ def sync_products_from_qomra(currency: str = "ر.س"):
             product.quantity = int(item.get("quantity") or 0)
             product.price = price
             product.currency = currency  # حفظ العملة المحددة
-            product.image_url = image_url
 
             synced_count += 1
 
