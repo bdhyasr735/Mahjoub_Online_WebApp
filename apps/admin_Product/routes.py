@@ -1,67 +1,60 @@
-# coding: utf-8
 # 📂 apps/admin_Product/routes.py
 
-import logging
-from flask import Blueprint, render_template, request, flash
-from flask_login import login_required
-from apps.services.product_sync_service import fetch_products_from_qomra
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from apps.services.product_sync_service import ProductSyncService
 
-# إعداد السجلات للمراقبة
-logger = logging.getLogger(__name__)
+# إنشاء Blueprint خاص بالمنتجات
+admin_product_bp = Blueprint("admin_product_bp", __name__, url_prefix="/admin/products")
 
-admin_product_bp = Blueprint(
-    'admin_product_bp', 
-    __name__, 
-    template_folder='templates',
-    static_folder='static'
-)
-
-@admin_product_bp.route('/products', methods=['GET'])
-@login_required
+# صفحة إدارة المنتجات
+@admin_product_bp.route("/", methods=["GET"])
 def manage_products():
-    """
-    جلب وعرض المنتجات مباشرة من قمرة لحظياً دون تخزين محلي، مع حماية ضد الأخطاء.
-    """
-    search_query = request.args.get('title', '').strip()
-    
-    products = []
-    pagination = {'currentPage': 1, 'totalPages': 1, 'totalItems': 0}
+    search = request.args.get("title", "")
+    page = int(request.args.get("page", 1))
 
-    try:
-        # جلب المنتجات مباشرة من خدمة قمرة
-        fetched_products, fetched_pagination = fetch_products_from_qomra(search=search_query)
-        if fetched_products is not None:
-            products = fetched_products
-        if fetched_pagination is not None:
-            pagination = fetched_pagination
-    except Exception as e:
-        logger.error(f"Error fetching products from Qomra: {str(e)}", exc_info=True)
-        flash('تعذر الاتصال بخادم قمرة لعرض المنتجات حالياً.', 'warning')
+    service = ProductSyncService(token="YOUR_API_TOKEN")
+    products_response = service.fetch_products(page=page, limit=20)
 
-    # إذا كان الطلب قادماً عبر AJAX للبحث الفوري، يتم إرجاع الجدول الجزئي فقط
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render_template(
-            'admin/includes/_table_products.html', 
-            products=products, 
-            pagination=pagination, 
-            search=search_query
-        )
-        
+    products = products_response.get("data", [])
+    pagination = products_response.get("pagination", None)
+
     return render_template(
-        'admin/admin_Product.html', 
-        products=products, 
-        pagination=pagination, 
-        search=search_query
+        "admin/admin_Product.html",
+        products=products,
+        pagination=pagination,
+        search=search
     )
 
+# صفحة إضافة منتج يدوي
+@admin_product_bp.route("/add", methods=["GET", "POST"])
+def add_product():
+    if request.method == "POST":
+        # هنا تكتب منطق إضافة المنتج لقاعدة البيانات الداخلية
+        flash("تمت إضافة المنتج بنجاح ✅", "success")
+        return redirect(url_for("admin_product_bp.manage_products"))
+    return render_template("admin/add_product.html")
 
-@admin_product_bp.route('/save-sync', methods=['POST'])
-@login_required
-def save_sync():
-    """
-    مسار فارغ لتوافق الواجهة (حيث أن النظام أصبح يعرض البيانات مباشرة من قمرة دون تخزين محلي).
-    """
-    return {
-        'status': 'success',
-        'message': 'النظام يعرض أحدث البيانات مباشرة من قمرة لحظياً.'
-    }, 200
+# صفحة تعديل منتج
+@admin_product_bp.route("/edit/<string:qid>", methods=["GET", "POST"])
+def edit_product(qid):
+    service = ProductSyncService(token="YOUR_API_TOKEN")
+    product_response = service.fetch_product_by_qid(qid)
+
+    product = product_response.get("data", None)
+
+    if request.method == "POST":
+        # هنا تكتب منطق تعديل المنتج
+        flash("تم تعديل المنتج بنجاح ✅", "success")
+        return redirect(url_for("admin_product_bp.manage_products"))
+
+    return render_template("admin/edit_product.html", product=product)
+
+# زر المزامنة (من الـ Modal)
+@admin_product_bp.route("/sync", methods=["POST"])
+def sync_products():
+    service = ProductSyncService(token="YOUR_API_TOKEN")
+    products_response = service.fetch_products(page=1, limit=100)  # جلب أول 100 منتج مثلاً
+    service.sync_to_local_db(products_response)
+
+    flash("تمت مزامنة المنتجات بنجاح ✅", "success")
+    return redirect(url_for("admin_product_bp.manage_products"))
