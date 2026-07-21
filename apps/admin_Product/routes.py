@@ -15,20 +15,20 @@ admin_product_bp = Blueprint(
 
 @admin_product_bp.route('/products', methods=['GET'])
 def manage_products():
-    """عرض قائمة المنتجات مع دعم الترقيم والبحث"""
+    """عرض قائمة المنتجات مع دعم الترقيم والبحث المستقر محلياً"""
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('title', '', type=str)
     
     token = os.environ.get('QUMRA_API_KEY') or os.environ.get('GRAPHQL_ENDPOINT')
     client = ProductSyncService(token=token)
     
-    # جلب المنتجات من الخادم الخارجي عبر GraphQL
+    # جلب المنتجات بالهيكل الأساسي الصحيح لتفادي أخطاء الـ API
     response_data = client.fetch_products(page=page, limit=20)
     
     products = response_data.get("data", [])
     pagination = response_data.get("pagination", {"currentPage": page, "totalPages": 1, "limit": 20})
     
-    # تصفية محلية للبحث بالاسم إذا لزم الأمر أو تمريرها للـ API
+    # تصفية محلية آمنة للبحث بالاسم
     if search_query:
         products = [p for p in products if search_query.lower() in p.get('title', '').lower()]
 
@@ -63,7 +63,6 @@ def sync_products():
 @admin_product_bp.route('/products/add', methods=['GET', 'POST'])
 def add_product():
     """مسار إضافة منتج جديد"""
-    # منطق إضافة المنتج هنا
     return render_template('admin/add_product.html')
 
 @admin_product_bp.route('/products/edit/<qid>', methods=['GET', 'POST'])
@@ -78,4 +77,5 @@ def edit_product(qid):
         flash("المنتج المطلوب غير موجود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
         
-    return render_template('admin/edit_product.html', product=product)
+    # تم التصحيح ليتطابق مع اسم القالب الموجود لديك admin_edit_product.html
+    return render_template('admin/admin_edit_product.html', product=product)
