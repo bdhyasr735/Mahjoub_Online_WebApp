@@ -6,7 +6,7 @@ from apps.services.update_product_data import UPDATE_PRODUCT_MUTATION
 
 GRAPHQL_ENDPOINT = "https://mahjoub.online/admin/graphql"
 
-# الاستعلام الشامل لتفاصيل المنتج داخلياً لتجنب مشاكل الاستيراد
+# الاستعلام الشامل لتفاصيل المنتج مصححاً حسب مخطط الـ GraphQL الفعلي
 GET_PRODUCT_DETAIL_QUERY = """
 query($qid: String!) {
   findProductByQid(qid: $qid) {
@@ -18,22 +18,17 @@ query($qid: String!) {
       slug
       description
       status
-      sku
       quantity
       pricing {
         price
         compareAtPrice
-        costPrice
-        currency
       }
       images {
         fileUrl
       }
       variants {
-        name
-        price
+        pricing
         quantity
-        sku
       }
     }
   }
@@ -108,12 +103,12 @@ class ProductSyncService:
 
             if response.status_code != 200:
                 print(f"GraphQL HTTP Error: {response.status_code}")
-                print(f"Response Body: {response.text}")  # 🔍 هذا السطر سيكشف السبب الجذري للخطأ 400
+                print(f"Response Body: {response.text}")
                 return None
 
             result = response.json()
              
-            # طباعة الأخطاء البرمجية للـ GraphQL إن وجدت لتشخيص السبب فوراً
+            # طباعة الأخطاء البرمجية للـ GraphQL إن وجدت
             if "errors" in result:
                 print("GraphQL Errors in fetch_product_by_qid:", result["errors"])
                 return None
