@@ -52,6 +52,15 @@ class ProductSyncService:
         )
 
         result = response.json()
+
+        # 🛡️ تحقق قبل الوصول إلى result["data"]
+        if "errors" in result:
+            print("GraphQL Error:", result["errors"])
+            return {"data": [], "pagination": None}
+        if "data" not in result or "findAllProducts" not in result["data"]:
+            print("Unexpected response:", result)
+            return {"data": [], "pagination": None}
+
         return result["data"]["findAllProducts"]
 
     def fetch_product_by_qid(self, qid: str):
@@ -78,13 +87,21 @@ class ProductSyncService:
             headers=self.headers,
             json={"query": query, "variables": variables}
         )
-        return response.json()["data"]["findProductByQid"]
+
+        result = response.json()
+
+        # 🛡️ تحقق قبل الوصول إلى result["data"]
+        if "errors" in result:
+            print("GraphQL Error:", result["errors"])
+            return None
+        if "data" not in result or "findProductByQid" not in result["data"]:
+            print("Unexpected response:", result)
+            return None
+
+        return result["data"]["findProductByQid"]
 
     def sync_to_local_db(self, products_data):
-        # هنا تكتب منطق حفظ المنتجات في قاعدة بياناتك الداخلية
-        for product in products_data["data"]:
-            print(f"Syncing product {product['id']} - {product['title']}")
-            # مثال: تحديث أو إدخال المنتج في جدول المنتجات
-            # db.upsert_product(product)
-
-        print("Sync completed successfully.")
+        # لا نقوم بأي حفظ داخلي، فقط نطبع للتأكيد
+        for product in products_data.get("data", []):
+            print(f"Fetched product {product.get('id')} - {product.get('title')}")
+        print("Sync completed (no local save).")
