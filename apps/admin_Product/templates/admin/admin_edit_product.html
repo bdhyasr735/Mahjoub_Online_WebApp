@@ -133,16 +133,18 @@
         box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.12);
     }
 
+    /* Choices.js Custom Royal Theme Integration */
     .choices__inner {
         border-radius: 10px !important;
         border: 1px solid #d0c5e2 !important;
         background-color: #ffffff !important;
         padding: 6px 10px !important;
-        min-height: 45px !important;
+        min-height: 48px !important;
         transition: all 0.25s ease;
     }
 
-    .choices.is-focused .choices__inner {
+    .choices.is-focused .choices__inner, 
+    .choices.is-open .choices__inner {
         border-color: var(--royal-accent) !important;
         box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.12);
     }
@@ -151,6 +153,19 @@
         background-color: var(--deep-purple) !important;
         border: 1px solid var(--deep-purple) !important;
         border-radius: 6px !important;
+        font-size: 0.9rem;
+    }
+
+    .choices__list--dropdown {
+        border-radius: 10px !important;
+        border: 1px solid #d0c5e2 !important;
+        box-shadow: 0 10px 25px rgba(45, 20, 77, 0.1) !important;
+        margin-top: 5px;
+    }
+
+    .choices__input {
+        background-color: transparent !important;
+        margin-bottom: 0 !important;
     }
 
     .btn-royal {
@@ -321,6 +336,7 @@
                 </select>
             </div>
 
+            <!-- المورد المسؤول مع قائمة منسدلة قابلة للبحث -->
             <div class="field-paragraph">
                 <label class="form-label fw-bold mb-2">المورد المسؤول</label>
                 <select class="form-select" id="supplier-select">
@@ -331,16 +347,18 @@
                     </option>
                     {% endfor %}
                 </select>
-                <div class="form-text text-muted small mt-2"><i class="fas fa-info-circle me-1"></i> يتم عرض اسم المتجر وكود المورد للتعرف السريع.</div>
+                <div class="form-text text-muted small mt-2"><i class="fas fa-info-circle me-1"></i> يمكنك البحث بكتابة اسم المتجر أو كود المورد للتعرف السريع.</div>
             </div>
 
+            <!-- المجموعات والتصنيفات المتعددة مع بحث واختيار مرن -->
             <div class="field-paragraph mb-0">
-                <label class="form-label fw-bold mb-2">المجموعات والتصنيفات</label>
+                <label class="form-label fw-bold mb-2">المجموعات والتصنيفات (اختيار متعدد)</label>
                 <select class="form-select" id="collections-select" multiple>
                     {% for col in all_collections %}
                     <option value="{{ col.qid }}" {% if product and product.collection_ids and col.qid in product.collection_ids %}selected{% endif %}>{{ col.title }}</option>
                     {% endfor %}
                 </select>
+                <div class="form-text text-muted small mt-2"><i class="fas fa-info-circle me-1"></i> يمكنك البحث واختيار عدة مجموعات بكل سهولة.</div>
             </div>
         </div>
 
@@ -371,14 +389,30 @@
             .catch(error => { console.error("CKEditor initialization error:", error); });
         }
 
+        // تفعيل قائمة الموردين مع محرك البحث المدمج
         const supplierSelect = document.getElementById('supplier-select');
         if (supplierSelect) {
-            supplierChoices = new Choices(supplierSelect, { removeItemButton: true, searchEnabled: true });
+            supplierChoices = new Choices(supplierSelect, { 
+                removeItemButton: true, 
+                searchEnabled: true,
+                itemSelectText: '',
+                noResultsText: 'لا توجد نتائج مطابقة للمورد',
+                noChoicesText: 'لا توجد خيارات متاحة',
+                placeholderValue: 'ابحث واختر المورد...'
+            });
         }
 
+        // تفعيل قائمة المجموعات المتعددة مع البحث المتقدم
         const collectionsSelect = document.getElementById('collections-select');
         if (collectionsSelect) {
-            collectionsChoices = new Choices(collectionsSelect, { removeItemButton: true, searchEnabled: true, placeholderValue: 'اختر المجموعات...' });
+            collectionsChoices = new Choices(collectionsSelect, { 
+                removeItemButton: true, 
+                searchEnabled: true,
+                itemSelectText: '',
+                noResultsText: 'لا توجد نتائج مطابقة للمجموعات',
+                noChoicesText: 'لا توجد مجموعات متاحة',
+                placeholderValue: 'اختر أو ابحث عن المجموعات...'
+            });
         }
 
         const dropZone = document.getElementById('dropZone');
