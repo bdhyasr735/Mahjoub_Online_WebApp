@@ -34,9 +34,9 @@
         
         <div class="col-md-4 search-wrapper">
             <i class="fas fa-search"></i>
-            <form action="{{ url_for('admin_product_bp.manage_products') }}" method="GET" id="searchForm">
+            <form action="{{ url_for('admin_product_bp.manage_products') }}" method="GET" id="searchForm" onsubmit="event.preventDefault();">
                 <input type="text" name="search" id="searchInput" class="form-control shadow-sm" 
-                       placeholder="ابحث عن منتج بالاسم..." value="{{ search|default('') }}">
+                       placeholder="ابحث عن منتج بالاسم..." value="{{ search if search is defined else '' }}">
             </form>
         </div>
 
@@ -99,7 +99,7 @@
             <ul class="pagination justify-content-center">
                 <!-- زر السابق -->
                 <li class="page-item {{ 'disabled' if pagination.currentPage <= 1 }}">
-                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage-1, search=search|default('')) }}">السابق</a>
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage-1, search=search if search is defined else '') }}">السابق</a>
                 </li>
                 
                 <!-- عرض رقم الصفحة الحالية وإجمالي الصفحات -->
@@ -111,7 +111,7 @@
                 
                 <!-- زر التالي -->
                 <li class="page-item {{ 'disabled' if pagination.currentPage >= pagination.totalPages }}">
-                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage+1, search=search|default('')) }}">التالي</a>
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage+1, search=search if search is defined else '') }}">التالي</a>
                 </li>
             </ul>
         </nav>
@@ -147,11 +147,6 @@
             }
         }, 400);
     });
-
-    // دالة عامة لتحديث الصفحة تلقائياً فور نجاح عملية المزامنة
-    window.onSyncCompleted = function() {
-        location.reload();
-    };
 </script>
 
 {% include 'admin/includes/_sync_modal.html' %}
