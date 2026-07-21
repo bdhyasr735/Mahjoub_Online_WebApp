@@ -12,11 +12,11 @@ class ProductSyncService:
             "Content-Type": "application/json"
         }
 
-    def fetch_products(self, page: int = 1, limit: int = 20):
-        # ✅ إعادة الاستعلام إلى الهيكل الأصلي المعتمد تماماً من الخادم لتفادي خطأ 400
+    def fetch_products(self, page: int = 1, limit: int = 20, title: str = ""):
+        # ✅ تحديث الاستعلام ليشمل معامل الـ title الداعم للبحث المباشر حسب السكيما
         query = """
-        query($page: Int!, $limit: Int!) {
-          findAllProducts(input: { page: $page, limit: $limit }) {
+        query($page: Int!, $limit: Int!, $title: String) {
+          findAllProducts(input: { page: $page, limit: $limit, title: $title }) {
             success
             message
             data {
@@ -37,6 +37,8 @@ class ProductSyncService:
         """
 
         variables = {"page": page, "limit": limit}
+        if title:
+            variables["title"] = title
         
         try:
             response = requests.post(
