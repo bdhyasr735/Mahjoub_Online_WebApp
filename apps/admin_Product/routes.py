@@ -62,9 +62,15 @@ def add_product():
     """مسار إضافة منتج جديد"""
     return render_template('admin/add_product.html')
 
-@admin_product_bp.route('/products/edit/<path:qid>', methods=['GET', 'POST'])
-def edit_product(qid):
-    """مسار تعديل المنتج باستخدام الـ qid الخاص به مع دعم المسارات الطويلة والرموز الخاصة"""
+@admin_product_bp.route('/products/edit', methods=['GET', 'POST'])
+def edit_product():
+    """مسار تعديل المنتج باستخدام الـ qid عبر Query Parameter لتجنب مشاكل الـ Slashes والترميز"""
+    qid = request.args.get('qid')
+    
+    if not qid:
+        flash("معرف المنتج (qid) مفقود.", "danger")
+        return redirect(url_for('admin_product_bp.manage_products'))
+
     print(f"DEBUG: Fetching product edit page for QID -> {qid}")
     
     client = ProductSyncService(token=GRAPHQL_TOKEN)
