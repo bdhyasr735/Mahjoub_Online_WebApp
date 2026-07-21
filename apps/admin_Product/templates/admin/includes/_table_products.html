@@ -30,22 +30,24 @@
                 {% for product in products %}
                 <tr onclick="window.location.href='{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}';">
                     <td>
-                        <img src="{{ product.images[0].fileUrl if product.images and product.images|length > 0 else '/static/images/default.png' }}" 
-                             class="rounded" style="width: 40px; height: 40px; object-fit: cover;">
+                        <!-- تصحيح مسار الصورة ليعتمد على الحقل المخزن مباشرة في قاعدة البيانات -->
+                        <img src="{{ product.image_url if product.image_url else '/static/images/default.png' }}" 
+                             class="rounded" style="width: 40px; height: 40px; object-fit: cover;"
+                             onerror="this.src='/static/images/default.png';">
                     </td>
                     <td class="fw-semibold text-dark">{{ product.title }}</td>
                     <td>
-                        <span class="badge {{ 'bg-success' if product.quantity > 0 else 'bg-danger' }}">
+                        <span class="badge {{ 'bg-success' if product.quantity and product.quantity > 0 else 'bg-danger' }}">
                             {{ product.quantity or 0 }}
                         </span>
                     </td>
-                    <!-- تم إزالة "ر.س" ليعتمد العرض على السعر القادم من السيرفر فقط -->
+                    <!-- تصحيح قراءة السعر من الحقل المحلي المباشر -->
                     <td class="text-custom fw-bold">
-                        {{ product.pricing.price if product.pricing and product.pricing.price else (product.price or 0) }}
+                        {{ product.price or 0 }} <small class="text-muted">{{ product.currency or 'SAR' }}</small>
                     </td>
                     <td>
                         <span class="badge bg-light text-dark border">
-                            {{ product.identification.sku if product.identification and product.identification.sku else (product.sku or '---') }}
+                            {{ product.sku or '---' }}
                         </span>
                     </td>
                 </tr>
