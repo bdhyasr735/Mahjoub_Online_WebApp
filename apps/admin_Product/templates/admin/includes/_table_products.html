@@ -10,8 +10,8 @@
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
         <h5 class="mb-0 fw-bold">قائمة المنتجات (تفصيلية)</h5>
-        <button type="button" class="btn btn-sm btn-custom" data-bs-toggle="modal" data-bs-target="#syncModal" style="background-color: var(--dark-purple); color: white;">
-            <i class="fas fa-sync-alt"></i> تحديث البيانات
+        <button type="button" class="btn btn-sm text-white" data-bs-toggle="modal" data-bs-target="#syncModal" style="background-color: var(--dark-purple);">
+            <i class="fas fa-sync-alt me-1"></i> تحديث البيانات
         </button>
     </div>
     
@@ -28,11 +28,11 @@
             </thead>
             <tbody>
                 {% for product in products %}
-                <tr onclick="window.location.href='{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}';">
+                <tr class="product-row" data-href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}">
                     <td>
                         <!-- تصحيح مسار الصورة ليعتمد على الحقل المخزن مباشرة في قاعدة البيانات -->
                         <img src="{{ product.image_url if product.image_url else '/static/images/default.png' }}" 
-                             class="rounded" style="width: 40px; height: 40px; object-fit: cover;"
+                             class="rounded shadow-sm" style="width: 40px; height: 40px; object-fit: cover;"
                              onerror="this.src='/static/images/default.png';">
                     </td>
                     <td class="fw-semibold text-dark">{{ product.title }}</td>
@@ -81,5 +81,18 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.product-row').forEach(row => {
+            row.addEventListener('click', function() {
+                const href = this.getAttribute('data-href');
+                if (href) {
+                    window.location.href = href;
+                }
+            });
+        });
+    });
+</script>
 
 {% include 'admin/includes/_sync_modal.html' %}
