@@ -2,6 +2,7 @@
 # 📂 apps/services/product_sync_service.py
 
 import requests
+from apps.services.fetch_product_data import GET_PRODUCT_DETAIL_QUERY
 
 GRAPHQL_ENDPOINT = "https://mahjoub.online/admin/graphql"
 
@@ -69,29 +70,14 @@ class ProductSyncService:
             return {"data": [], "pagination": None}
 
     def fetch_product_by_qid(self, qid: str):
-        query = """
-        query($qid: String!) {
-          findProductByQid(qid: $qid) {
-            success
-            message
-            data {
-              qid
-              title
-              description
-              pricing { price }
-              quantity
-              images { fileUrl }
-            }
-          }
-        }
-        """
+        # استخدام الاستعلام الشامل المستورد من ملف fetch_product_data
         variables = {"qid": qid}
         
         try:
             response = requests.post(
                 GRAPHQL_ENDPOINT,
                 headers=self.headers,
-                json={"query": query, "variables": variables},
+                json={"query": GET_PRODUCT_DETAIL_QUERY, "variables": variables},
                 timeout=30
             )
 
@@ -102,7 +88,12 @@ class ProductSyncService:
             if "errors" in result or "data" not in result or "findProductByQid" not in result["data"]:
                 return None
 
-            return result["data"]["findProductByQid"]
+            # إرجاع بيانات المنتج التفصيلية المضمنة بالداخل
+            res_data = result["data"]["findProductByQid"]
+            if res_data and res_data.get("success"):
+                return res_data.get("data")
+            
+            return None
         except requests.exceptions.RequestException:
             return None
 
