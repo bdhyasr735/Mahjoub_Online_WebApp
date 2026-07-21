@@ -30,7 +30,7 @@
                 {% for product in products %}
                 <tr class="product-row" data-href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}">
                     <td>
-                        <!-- تصحيح مسار الصورة ليعتمد على الحقل المخزن مباشرة في قاعدة البيانات -->
+                        <!-- عرض الصورة مع مسار احتياطي افتراضي -->
                         <img src="{{ product.image_url if product.image_url else '/static/images/default.png' }}" 
                              class="rounded shadow-sm" style="width: 40px; height: 40px; object-fit: cover;"
                              onerror="this.src='/static/images/default.png';">
@@ -41,7 +41,7 @@
                             {{ product.quantity or 0 }}
                         </span>
                     </td>
-                    <!-- تصحيح قراءة السعر من الحقل المحلي المباشر -->
+                    <!-- قراءة السعر والعملة بشكل مباشر ودقيق من الحقول المحلية المتزامنة -->
                     <td class="text-custom fw-bold">
                         {{ product.price or 0 }} <small class="text-muted">{{ product.currency or 'SAR' }}</small>
                     </td>
