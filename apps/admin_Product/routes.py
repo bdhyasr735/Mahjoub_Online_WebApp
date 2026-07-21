@@ -77,5 +77,4 @@ def edit_product(qid):
         flash("المنتج المطلوب غير موجود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
         
-    # تم التصحيح ليتطابق مع اسم القالب الموجود لديك admin_edit_product.html
     return render_template('admin/admin_edit_product.html', product=product)
