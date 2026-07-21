@@ -13,20 +13,29 @@ logger = logging.getLogger(__name__)
 QOMRA_GRAPHQL_URL = os.getenv("QOMRA_GRAPHQL_URL", "https://api.qumra.cloud/graphql")
 QOMRA_API_TOKEN = os.getenv("QOMRA_API_TOKEN", "")
 
-# ✅ الاستعلام المباشر والمصحح المتوافق مع هيكل قمرة
+# ✅ الاستعلام المطابق تماماً لمخطط Schema الخاص بقمرة (حسب حقل data و ProductsResponse)
 PRODUCTS_QUERY = """
 query FetchAllProducts {
     findAllProducts {
-        id
-        title
-        description
-        sku
-        quantity
-        pricing {
-            price
+        success
+        message
+        data {
+            id
+            title
+            description
+            sku
+            quantity
+            pricing {
+                price
+            }
+            images {
+                url
+            }
         }
-        images {
-            url
+        pagination {
+            currentPage
+            totalPages
+            totalItems
         }
     }
 }
@@ -62,11 +71,11 @@ def sync_products_from_qomra(currency: str = "ر.س"):
             logger.error(f"❌ GraphQL Validation Error: {payload['errors']}")
             raise Exception("حدث خطأ في استعلام قمرة (GraphQL Validation Error)")
 
-        # ✅ استخراج قائمة المنتجات بشكل مرن سواء كانت مصفوفة مباشرة أو داخل كائن
-        find_all_res = payload.get("data", {}).get("findAllProducts") or []
+        # ✅ استخراج قائمة المنتجات من هيكل ProductsResponse عبر حقل data المستهدف
+        find_all_res = payload.get("data", {}).get("findAllProducts") or {}
         
         if isinstance(find_all_res, dict):
-            products_data = find_all_res.get("products") or find_all_res.get("nodes") or find_all_res.get("items") or []
+            products_data = find_all_res.get("data") or []
         elif isinstance(find_all_res, list):
             products_data = find_all_res
         else:
