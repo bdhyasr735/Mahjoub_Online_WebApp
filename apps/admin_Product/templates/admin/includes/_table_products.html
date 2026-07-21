@@ -68,3 +68,9 @@
     <li class="page-item {{ 'disabled' if pagination.currentPage >= pagination.totalPages }}">
       <a class="page-link"
          href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage+1, title=search) }}">
+        التالي
+      </a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
