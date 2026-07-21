@@ -1,11 +1,14 @@
-# apps/services/product_sync_service.py
+# coding: utf-8
+# 📂 apps/services/product_sync_service.py
 
 import requests
 
-GRAPHQL_ENDPOINT = "https://your-external-store.com/graphql"
+# ✅ الرابط الصحيح للـ GraphQL API
+GRAPHQL_ENDPOINT = "https://mahjoub.online/admin/graphql"
 
 class ProductSyncService:
     def __init__(self, token: str):
+        # ضع التوكن الحقيقي هنا (Bearer ...)
         self.headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -46,6 +49,30 @@ class ProductSyncService:
 
         result = response.json()
         return result["data"]["findAllProducts"]
+
+    def fetch_product_by_qid(self, qid: str):
+        query = """
+        query($qid: String!) {
+          findProductByQid(qid: $qid) {
+            success
+            message
+            data {
+              id
+              title
+              description
+              price
+              sku
+            }
+          }
+        }
+        """
+        variables = {"qid": qid}
+        response = requests.post(
+            GRAPHQL_ENDPOINT,
+            headers=self.headers,
+            json={"query": query, "variables": variables}
+        )
+        return response.json()["data"]["findProductByQid"]
 
     def sync_to_local_db(self, products_data):
         # هنا تكتب منطق حفظ المنتجات في قاعدة بياناتك الداخلية
