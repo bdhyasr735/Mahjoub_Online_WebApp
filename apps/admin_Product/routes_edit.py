@@ -2,28 +2,27 @@
 # 📂 apps/admin_Product/routes_edit.py
 
 import json
+import os
 from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash
 from apps.services.product_sync_service import ProductSyncService
-# استيراد الخدمات الأخرى بحسب هيكل مشروعك (مثل جلب الموردين والمجموعات)
 
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
-# مفتاح أو توكن الاتصال بالخادم المركزي (يمكن جذبه من إعدادات النظام أو الجلسة)
-GRAPHQL_TOKEN = "YOUR_ADMIN_API_TOKEN" 
+# مفتاح أو توكن الاتصال بالخادم المركزي (يُفضل جذبه من متغيرات البيئة)
+GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN') 
 
 @admin_product_bp.route('/products/edit/<qid>', methods=['GET'])
 def edit_product(qid):
     """عرض صفحة تعديل المنتج مع جلب بياناته الأساسية والموردين والمجموعات"""
     sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
     
-    # جلب بيانات المنتج المحدد بالـ qid
+    # جلب بيانات المنتج المحدد بالـ qid باستخدام الاستعلام الشامل
     product = sync_service.fetch_product_by_qid(qid)
     if not product:
         flash("المنتج المطلوب غير موجود أو حدث خطأ في جلب بياناته.", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
 
-    # ملاحظة: يمكنك جلب قائمة المجموعات والموردين من قاعدة البيانات المحلية أو عبر خدمات الـ API المناسبة
-    # مثال توضيحي لهياكل البيانات الوهمية أو المستدعاة:
+    # جلب قائمة المجموعات والموردين (يمكن ربطها بقاعدتك المحلية أو خدمات الـ API)
     all_collections = [
         {"qid": "col_1", "title": "المجموعة العامة"},
         {"qid": "col_2", "title": "عروض العيد"},
@@ -45,51 +44,87 @@ def edit_product(qid):
 
 @admin_product_bp.route('/products/save-sync', methods=['POST'])
 def save_sync_product():
-    """معالجة وحفظ بيانات التعديل والمزامنة (AJAX Endpoint)"""
+    """معالجة وحفظ بيانات التعديل والمزامنة (AJAX Endpoint) عبر الـ Mutation"""
     try:
         qid = request.form.get('qid')
-        title = request.form.get('title')
-        slug = request.form.get('slug')
-        description = request.form.get('description')
-        status = request.form.get('status')
-        supplier_id = request.form.get('supplier_id')
-        sku = request.form.get('sku')
-        quantity = request.form.get('quantity', 0)
-        weight = request.form.get('weight', 0)
+        if not qid:
+            return jsonify({"status": "error", "message": "معرف المنتج (qid) مفقود."}), 400
+
+        title = request.form.get('title', '')
+        slug = request.form.get('slug', '')
+        description = request.form.get('description', '')
+        status = request.form.get('status', 'DRAFT')
+        sku = request.form.get('sku', '')
         
         # الأسعار
-        original_price = request.form.get('original_price', 0)
-        compare_at_price = request.form.get('compare_at_price', 0)
-        price = request.form.get('price', 0)
-
-        # فك تشفير المجموعات المتعددة المختارة عبر Choices.js
-        collection_ids_raw = request.form.get('collection_ids', '[]')
         try:
-            collection_ids = json.loads(collection_ids_raw)
-        except json.JSONDecodeError:
-            collection_ids = []
+            price = float(request.form.get('price', 0))
+            compare_at_price = float(request.form.get('compare_at_price', 0))
+            cost_price = float(request.form.get('original_price', 0))
+        except ValueError:
+            price, compare_at_price, cost_price = 0.0, 0.0, 0.0
 
-        # فك تشفير المتغيرات (Variants)
-        variants_raw = request.form.get('variants', '[]')
+        # الأبعاد والوزن
         try:
-            variants = json.loads(variants_raw)
-        except json.JSONDecodeError:
-            variants = []
+            weight_val = float(request.form.get('weight', 0))
+        except ValueError:
+            weight_val = 0.0
 
-        # الصور المحذوفة والجديدة
-        removed_images_raw = request.form.get('removed_images', '[]')
-        try:
-            removed_images = json.loads(removed_images_raw)
-        except json.JSONDecodeError:
-            removed_images = []
+        # تجهيز الهياكل المطلوبة للـ Mutation بدقة
+        info = {
+            "title": title,
+            "slug": slug,
+            "status": status
+        }
+        
+        pricing = {
+            "price": price,
+            "compareAtPrice": compare_at_price,
+            "costPrice": cost_price,
+            "currency": "YER" # أو العملة المعتمدة لديك
+        }
+        
+        dims = {
+            "length": 0,
+            "width": 0,
+            "height": 0,
+            "unit": "cm"
+        }
+        
+        weight = {
+            "value": weight_val,
+            "unit": "kg"
+        }
+        
+        ident = {
+            "sku": sku
+        }
 
-        new_uploaded_images = request.files.getlist('images')
+        # فك تشفير المجموعات والمتغيرات المختارة
+        collection_ids = json.loads(request.form.get('collection_ids', '[]') or '[]')
+        variants = json.loads(request.form.get('variants', '[]') or '[]')
 
-        # TODO: كتابة منطق إرسال البيانات المحدثة إلى الـ API المركزي أو حفظها محلياً في قاعدة البيانات
+        # استدعاء خدمة المزامنة لتنفيذ الـ Mutation المعتمد
+        sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
+        success = sync_service.update_product_data(
+            qid=qid,
+            info=info,
+            pricing=pricing,
+            dims=dims,
+            weight=weight,
+            ident=ident,
+            desc=description
+        )
+
+        if not success:
+            return jsonify({
+                "status": "error",
+                "message": "فشل حفظ التعديلات على الخادم المركزي."
+            }), 500
 
         return jsonify({
             "status": "success",
-            "message": "تم حفظ وتحديث المنتج ومزامنة المجموعات بنجاح!"
+            "message": "تم حفظ وتحديث المنتج ومزامنة بياناته بنجاح!"
         })
 
     except Exception as e:
@@ -107,7 +142,7 @@ def manage_products():
     page = request.args.get('page', 1, type=int)
     title_query = request.args.get('title', '', type=str)
     
-    # جلب المنتجات مع دعم البحث المباشر بالعنوان حسب التحديث الأخير في الـ Service
+    # جلب المنتجات مع دعم البحث المباشر بالعنوان
     result = sync_service.fetch_products(page=page, limit=20, title=title_query)
     
     return render_template(
