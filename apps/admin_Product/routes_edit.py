@@ -11,13 +11,31 @@ admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='temp
 # مفتاح أو توكن الاتصال بالخادم المركزي (يُفضل جذبه من متغيرات البيئة)
 GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN') 
 
-@admin_product_bp.route('/products/edit/<qid>', methods=['GET'])
-def edit_product(qid):
-    """عرض صفحة تعديل المنتج مع جلب بياناته الأساسية والموردين والمجموعات"""
-    sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
+@admin_product_bp.route('/products/edit', methods=['GET'])
+def edit_product():
+    """عرض صفحة تعديل المنتج مع جلب بياناته الأساسية والموردين والمجموعات وتنصيب معالجة الـ QID المزدوج"""
+    raw_qid = request.args.get('qid')
     
+    # تنظيف الـ QID في حال تم تكرار بادئة qid= أو qid://
+    if raw_qid:
+        if raw_qid.startswith('qid=qid='):
+            qid = raw_qid.replace('qid=qid=', 'qid://')
+        elif raw_qid.startswith('qid='):
+            qid = raw_qid.replace('qid=', '')
+        else:
+            qid = raw_qid
+    else:
+        qid = None
+
     print(f"==================================================")
-    print(f"DEBUG: Trying to fetch product with QID: {qid}")
+    print(f"DEBUG RAW QID: {raw_qid} | CLEANED QID: {qid}")
+    print(f"==================================================")
+    
+    if not qid:
+        flash("معرف المنتج (qid) مفقود.", "danger")
+        return redirect(url_for('admin_product_bp.manage_products'))
+    
+    sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
     
     # جلب بيانات المنتج المحدد بالـ qid باستخدام الاستعلام الشامل
     product = sync_service.fetch_product_by_qid(qid)
@@ -30,7 +48,7 @@ def edit_product(qid):
         return f"""
         <div style="direction: rtl; font-family: Tahoma; padding: 30px; text-align: center;">
             <h2 style="color: #d9534f;">فشل جلب بيانات المنتج!</h2>
-            <p>الـ QID المرسل هو: <b>{qid}</b></p>
+            <p>الـ QID المعالج هو: <b>{qid}</b></p>
             <p style="color: #666;">الرجاء مراجعة سجلات الـ Logs في سيرفر Render لمعرفة استجابة الـ GraphQL وتصحيحها.</p>
             <br>
             <a href="{url_for('admin_product_bp.manage_products')}" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">الرجوع لقائمة المنتجات</a>
@@ -96,7 +114,7 @@ def save_sync_product():
             "price": price,
             "compareAtPrice": compare_at_price,
             "costPrice": cost_price,
-            "currency": "YER" # أو العملة المعتمدة لديك
+            "currency": "YER" # العملة المعتمدة
         }
         
         dims = {
