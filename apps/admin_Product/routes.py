@@ -4,8 +4,13 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from apps.services.product_sync_service import ProductSyncService
 
-# إنشاء Blueprint خاص بالمنتجات
-admin_product_bp = Blueprint("admin_product_bp", __name__, url_prefix="/admin/products")
+# إنشاء Blueprint خاص بالمنتجات مع تحديد مجلد القوالب الصحيح
+admin_product_bp = Blueprint(
+    "admin_product_bp",
+    __name__,
+    url_prefix="/admin/products",
+    template_folder="templates"  # هذا يضمن أن Flask يبحث داخل apps/admin_Product/templates
+)
 
 # 🟣 صفحة إدارة المنتجات (عرض مباشر من الـ API)
 @admin_product_bp.route("/", methods=["GET"])
