@@ -24,9 +24,9 @@
                     {% for var in product.variants %}
                     <tr>
                         <td class="p-2 border-b"><input type="text" name="variant_name[]" value="{{ var.name if var.name else '' }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="مثال: أحمر / أخضر / أزرق / أسود"></td>
-                        <td class="p-2 border-b"><input type="number" step="0.01" name="variant_price[]" value="{{ var.pricing.price if var.pricing and var.pricing.price is defined else (var.price if var.price is defined else 0) }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="0.00"></td>
-                        <td class="p-2 border-b"><input type="number" name="variant_qty[]" value="{{ var.quantity if var.quantity is defined else 0 }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="0"></td>
-                        <td class="p-2 border-b"><input type="text" name="variant_sku[]" value="{{ var.sku if var.sku else '' }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="SKU-VAR"></td>
+                        <td class="p-2 border-b"><input type="text" inputmode="decimal" name="variant_price[]" value="{{ var.pricing.price if var.pricing and var.pricing.price is defined else (var.price if var.price is defined else '0.00') }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" placeholder="0.00"></td>
+                        <td class="p-2 border-b"><input type="text" inputmode="numeric" name="variant_qty[]" value="{{ var.quantity if var.quantity is defined else '0' }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" placeholder="0"></td>
+                        <td class="p-2 border-b"><input type="text" name="variant_sku[]" value="{{ var.sku if var.sku else '' }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" placeholder="SKU-VAR" style="direction: ltr; text-align: left;"></td>
                         <td class="p-2 border-b text-center">
                             <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer"><i class="fa-solid fa-trash"></i></button>
                         </td>
@@ -35,9 +35,9 @@
                 {% else %}
                     <tr>
                         <td class="p-2 border-b"><input type="text" name="variant_name[]" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="مثال: أحمر / أخضر / أزرق / أسود"></td>
-                        <td class="p-2 border-b"><input type="number" step="0.01" name="variant_price[]" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="0.00"></td>
-                        <td class="p-2 border-b"><input type="number" name="variant_qty[]" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="0"></td>
-                        <td class="p-2 border-b"><input type="text" name="variant_sku[]" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="SKU-VAR"></td>
+                        <td class="p-2 border-b"><input type="text" inputmode="decimal" name="variant_price[]" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" placeholder="0.00"></td>
+                        <td class="p-2 border-b"><input type="text" inputmode="numeric" name="variant_qty[]" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" placeholder="0"></td>
+                        <td class="p-2 border-b"><input type="text" name="variant_sku[]" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" placeholder="SKU-VAR" style="direction: ltr; text-align: left;"></td>
                         <td class="p-2 border-b text-center">
                             <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer"><i class="fa-solid fa-trash"></i></button>
                         </td>
