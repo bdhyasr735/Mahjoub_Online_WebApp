@@ -174,6 +174,7 @@ class ProductSyncService:
             return []
 
     def update_product_data(self, qid: str, info: dict, pricing: dict, dims: dict, weight: dict, ident: dict, desc: str, **kwargs):
+        # بناء هيكل المتغيرات الأساسية المطلوبة للعملية
         variables = {
             "id": qid,
             "info": info,
@@ -183,6 +184,10 @@ class ProductSyncService:
             "ident": ident,
             "desc": desc
         }
+        
+        # دمج أي متغيرات إضافية مرسلة (مثل collection_ids, variants, removed_images, new_images) مباشرة
+        if kwargs:
+            variables.update(kwargs)
          
         try:
             response = requests.post(
