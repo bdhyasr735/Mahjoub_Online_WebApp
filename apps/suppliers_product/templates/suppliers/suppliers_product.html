@@ -1,1 +1,581 @@
-apps/admin_platform_treasury/templates
+<!-- 📂 apps/suppliers_product/templates/suppliers/suppliers_product.html -->
+{% extends "suppliers/supplier_base.html" %}
+
+{% block title %}منتجاتي | محجوب أونلاين{% endblock %}
+
+{% block content %}
+<style>
+    :root { 
+        --dark-purple: #2d0b36; 
+        --accent-gold: #c5a059; 
+        --card-shadow: 0 4px 20px rgba(45, 11, 54, 0.08);
+        --card-hover: 0 8px 30px rgba(45, 11, 54, 0.15);
+    }
+    
+    .btn-custom { 
+        background-color: var(--dark-purple); 
+        color: #fff; 
+        border: none; 
+        transition: all 0.3s ease;
+    }
+    .btn-custom:hover { 
+        background-color: #4a1558; 
+        color: #fff; 
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(45, 11, 54, 0.3);
+    }
+    .btn-back { 
+        color: var(--dark-purple); 
+        text-decoration: none; 
+        font-weight: 500; 
+        transition: 0.3s; 
+    }
+    .btn-back:hover { 
+        color: #000; 
+        padding-right: 5px; 
+    }
+    
+    /* ✅ بطاقات المنتجات */
+    .product-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+        transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        border: 1px solid rgba(45, 11, 54, 0.05);
+        height: 100%;
+        position: relative;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--card-hover);
+        border-color: rgba(45, 11, 54, 0.15);
+    }
+    
+    .product-card .card-image {
+        position: relative;
+        overflow: hidden;
+        background: #f8f5fa;
+        height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .product-card .card-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    
+    .product-card:hover .card-image img {
+        transform: scale(1.05);
+    }
+    
+    .product-card .card-image .status-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        backdrop-filter: blur(8px);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .product-card .card-image .status-badge.published {
+        background: rgba(40, 167, 69, 0.95);
+        color: white;
+    }
+    
+    .product-card .card-image .status-badge.draft {
+        background: rgba(255, 193, 7, 0.95);
+        color: #856404;
+    }
+    
+    .product-card .card-image .status-badge.archived {
+        background: rgba(108, 117, 125, 0.95);
+        color: white;
+    }
+    
+    .product-card .card-body {
+        padding: 18px 20px 20px;
+    }
+    
+    .product-card .product-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        height: 48px;
+        line-height: 1.4;
+    }
+    
+    .product-card .product-sku {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        font-family: monospace;
+        margin-top: 2px;
+    }
+    
+    .product-card .product-price {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--dark-purple);
+    }
+    
+    .product-card .product-price .currency {
+        font-size: 0.8rem;
+        font-weight: 400;
+        color: #9ca3af;
+        margin-right: 2px;
+    }
+    
+    .product-card .product-quantity {
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .product-card .product-quantity .badge-qty {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+    }
+    
+    .product-card .product-actions {
+        border-top: 1px solid #f3f0f5;
+        padding-top: 14px;
+        margin-top: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .product-card .product-actions .btn-action {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        background: #f5f0f8;
+        color: var(--dark-purple);
+        cursor: pointer;
+    }
+    
+    .product-card .product-actions .btn-action:hover {
+        background: var(--dark-purple);
+        color: white;
+        transform: scale(1.1);
+    }
+    
+    .product-card .product-actions .btn-action.copy-btn:hover {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    /* ✅ تأثير التقليب (Flip) */
+    .product-card.flip-container {
+        perspective: 1000px;
+        cursor: pointer;
+    }
+    
+    .product-card .flipper {
+        position: relative;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d;
+    }
+    
+    .product-card.flipped .flipper {
+        transform: rotateY(180deg);
+    }
+    
+    .product-card .front,
+    .product-card .back {
+        backface-visibility: hidden;
+        position: relative;
+        width: 100%;
+    }
+    
+    .product-card .back {
+        transform: rotateY(180deg);
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        padding: 20px;
+        background: white;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .product-card .back .back-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--dark-purple);
+        margin-bottom: 8px;
+    }
+    
+    .product-card .back .back-desc {
+        font-size: 0.85rem;
+        color: #6c757d;
+        line-height: 1.6;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .product-card .back .back-collections {
+        margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    
+    .product-card .back .back-collections .tag {
+        background: #f3e8ff;
+        color: var(--dark-purple);
+        font-size: 0.7rem;
+        padding: 2px 10px;
+        border-radius: 12px;
+    }
+    
+    /* ✅ إحصائيات */
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: var(--card-shadow);
+        border-right: 4px solid var(--dark-purple);
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--card-hover);
+    }
+    
+    .stat-card .stat-number {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--dark-purple);
+        line-height: 1.2;
+    }
+    
+    .stat-card .stat-label {
+        font-size: 0.85rem;
+        color: #9ca3af;
+        font-weight: 500;
+    }
+    
+    .stat-card .stat-icon {
+        font-size: 2rem;
+        opacity: 0.15;
+        position: absolute;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+    .stat-card.published { border-right-color: #28a745; }
+    .stat-card.draft { border-right-color: #ffc107; }
+    .stat-card.archived { border-right-color: #dc3545; }
+    
+    /* ✅ حقل البحث */
+    .search-wrapper {
+        position: relative;
+    }
+    
+    .search-wrapper .search-icon {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        z-index: 5;
+    }
+    
+    .search-wrapper .form-control {
+        padding-right: 44px;
+        border-radius: 12px;
+        border: 2px solid #f0ecf3;
+        transition: all 0.3s ease;
+        height: 48px;
+    }
+    
+    .search-wrapper .form-control:focus {
+        border-color: var(--dark-purple);
+        box-shadow: 0 0 0 4px rgba(45, 11, 54, 0.08);
+    }
+    
+    /* ✅ زر التبديل بين الجدول والبطاقات */
+    .view-toggle .btn-toggle {
+        border-radius: 10px;
+        padding: 8px 16px;
+        border: 2px solid #f0ecf3;
+        background: white;
+        color: #9ca3af;
+        transition: all 0.3s ease;
+        font-size: 0.85rem;
+    }
+    
+    .view-toggle .btn-toggle.active {
+        border-color: var(--dark-purple);
+        background: var(--dark-purple);
+        color: white;
+    }
+    
+    .view-toggle .btn-toggle:hover:not(.active) {
+        border-color: var(--dark-purple);
+        color: var(--dark-purple);
+    }
+</style>
+
+<div class="container-fluid py-4" dir="rtl">
+    
+    <!-- ============================================================ -->
+    <!-- 🟣 رأس الصفحة -->
+    <!-- ============================================================ -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-4">
+            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="btn-back d-block mb-2">
+                <i class="fas fa-arrow-right me-1"></i> رجوع للوحة التحكم
+            </a>
+            <h3 class="fw-bold mb-0 text-dark">
+                <i class="fas fa-boxes text-muted me-2"></i> منتجاتي
+            </h3>
+            <p class="text-muted small mt-1">إدارة وعرض المنتجات المرتبطة بمتجرك</p>
+        </div>
+        
+        <!-- ✅ البحث -->
+        <div class="col-md-4 search-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="searchProduct" class="form-control shadow-sm" 
+                   placeholder="🔍 ابحث عن منتج بالاسم أو SKU..." 
+                   autocomplete="off">
+        </div>
+
+        <!-- ✅ أزرار التحكم -->
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <div class="d-flex justify-content-md-end gap-2">
+                <div class="view-toggle btn-group" role="group">
+                    <button type="button" class="btn-toggle active" id="gridViewBtn" title="عرض بطاقات">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button type="button" class="btn-toggle" id="listViewBtn" title="عرض جدول">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-custom px-4 shadow-sm" onclick="window.location.reload()">
+                    <i class="fas fa-sync-alt me-1"></i> تحديث
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 🟣 إشعار المنتجات قيد المراجعة -->
+    <!-- ============================================================ -->
+    {% set draft_count = products|selectattr('status', 'equalto', 'DRAFT')|list|length if products else 0 %}
+    {% if draft_count > 0 %}
+    <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 16px; border-right: 4px solid #ffc107;">
+        <div class="d-flex align-items-center gap-3">
+            <i class="fas fa-clock fa-2x text-warning"></i>
+            <div>
+                <strong class="text-warning">📌 منتجات قيد المراجعة:</strong>
+                <span class="fw-bold">{{ draft_count }}</span> منتج(ات) في انتظار موافقة الإدارة.
+                <span class="text-muted small">سيتم نشرها تلقائياً بعد المراجعة.</span>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- ============================================================ -->
+    <!-- 🟣 الإحصائيات -->
+    <!-- ============================================================ -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="stat-card position-relative">
+                <i class="fas fa-boxes stat-icon"></i>
+                <div class="stat-number">{{ products|length if products else 0 }}</div>
+                <div class="stat-label">📦 إجمالي المنتجات</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 stat-card published">
+            <div class="stat-card position-relative">
+                <i class="fas fa-check-circle stat-icon"></i>
+                <div class="stat-number" style="color: #28a745;">
+                    {{ products|selectattr('status', 'equalto', 'PUBLISHED')|list|length if products else 0 }}
+                </div>
+                <div class="stat-label">✅ منشور</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 stat-card draft">
+            <div class="stat-card position-relative">
+                <i class="fas fa-clock stat-icon"></i>
+                <div class="stat-number" style="color: #ffc107;">{{ draft_count }}</div>
+                <div class="stat-label">⏳ قيد المراجعة</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 stat-card archived">
+            <div class="stat-card position-relative">
+                <i class="fas fa-archive stat-icon"></i>
+                <div class="stat-number" style="color: #dc3545;">
+                    {{ products|selectattr('status', 'equalto', 'ARCHIVED')|list|length if products else 0 }}
+                </div>
+                <div class="stat-label">📦 مؤرشف</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 🟣 عرض المنتجات (بطاقات أو جدول) -->
+    <!-- ============================================================ -->
+    <div id="productsContainer">
+        {% include 'suppliers/includes/_product_cards.html' %}
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 🟣 رسالة عدم وجود منتجات -->
+    <!-- ============================================================ -->
+    {% if not products or products|length == 0 %}
+    <div class="text-center py-5">
+        <i class="fas fa-box-open fa-4x text-muted mb-3 d-block" style="opacity: 0.3;"></i>
+        <h4 class="text-muted">لا توجد منتجات مرتبطة بمتجرك</h4>
+        <p class="text-muted small">سيتم عرض المنتجات هنا بمجرد ربطها بمتجرك من قبل الإدارة.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- ============================================================ -->
+<!-- 🟣 JavaScript -->
+<!-- ============================================================ -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // ============================================
+        // ✅ البحث المباشر
+        // ============================================
+        const searchInput = document.getElementById('searchProduct');
+        const container = document.getElementById('productsContainer');
+        let timeout = null;
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            const query = this.value.trim();
+            timeout = setTimeout(() => {
+                fetch(`{{ url_for('suppliers_product_bp.products') }}?search=${encodeURIComponent(query)}&view=grid`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.text())
+                .then(html => {
+                    container.innerHTML = html;
+                })
+                .catch(err => console.error('Search error:', err));
+            }, 400);
+        });
+
+        // ============================================
+        // ✅ التبديل بين العرض (بطاقات / جدول)
+        // ============================================
+        const gridBtn = document.getElementById('gridViewBtn');
+        const listBtn = document.getElementById('listViewBtn');
+
+        function setView(view) {
+            gridBtn.classList.toggle('active', view === 'grid');
+            listBtn.classList.toggle('active', view === 'list');
+            
+            fetch(`{{ url_for('suppliers_product_bp.products') }}?view=${view}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.text())
+            .then(html => {
+                container.innerHTML = html;
+            })
+            .catch(err => console.error('View change error:', err));
+        }
+
+        gridBtn.addEventListener('click', () => setView('grid'));
+        listBtn.addEventListener('click', () => setView('list'));
+
+        // ============================================
+        // ✅ تقليب البطاقة (Flip)
+        // ============================================
+        document.addEventListener('click', function(e) {
+            const card = e.target.closest('.product-card.flip-container');
+            if (card && !e.target.closest('.btn-action') && !e.target.closest('a')) {
+                card.classList.toggle('flipped');
+            }
+        });
+
+        // ============================================
+        // ✅ نسخ الرابط
+        // ============================================
+        window.copyProductLink = function(qid, event) {
+            if (event) event.stopPropagation();
+            const url = `{{ request.host_url }}products/edit?qid=${qid}`;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('✅ تم نسخ الرابط بنجاح!', 'success');
+                }).catch(() => {
+                    fallbackCopy(url);
+                });
+            } else {
+                fallbackCopy(url);
+            }
+        };
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            textarea.remove();
+            showToast('✅ تم نسخ الرابط بنجاح!', 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: '#28a745',
+                info: '#0d6efd',
+                warning: '#ffc107',
+                danger: '#dc3545'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed bottom-0 end-0 p-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `
+                <div class="toast show border-0 shadow-lg" role="alert" style="border-right: 4px solid ${colors[type] || colors.info};">
+                    <div class="toast-body d-flex align-items-center gap-2">
+                        <span>${message}</span>
+                        <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+    });
+</script>
+
+{% endblock %}
