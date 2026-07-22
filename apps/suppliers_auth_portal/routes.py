@@ -1,83 +1,60 @@
 # coding: utf-8
-# 📂 apps/suppliers_auth_portal/routes.py
+# 📂 apps/suppliers_dashboard/dashboard_routes.py
 
-from flask import Blueprint, render_template, request, jsonify, session, url_for, redirect
-from flask_login import login_user, logout_user, login_required
-from sqlalchemy import or_
-from datetime import datetime, timedelta
-from apps.models.supplier_db import Supplier
-from apps.models.supplier_staff_db import SupplierStaff
+from flask import Blueprint, render_template, session, redirect, jsonify
+from flask_login import login_required, current_user
 
-suppliers_bp = Blueprint('suppliers_auth', __name__, template_folder='templates')
+from apps.models import db, Supplier, Order, SupplierWallet
 
-def get_wait_time(attempts):
-    if attempts <= 5: return 0
-    return 2 ** (attempts - 6)
+suppliers_dashboard_bp = Blueprint(
+    'suppliers_dashboard',
+    __name__,
+    template_folder='templates'
+)
 
-@suppliers_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'GET':
-        return render_template('suppliers_auth_portal/login.html')
 
-    try:
-        # مسح الجلسة السابقة لضمان عدم وجود تداخل
-        session.clear()
-
-        # قراءة البيانات
-        username = request.form.get('username', '').strip() if not request.is_json else request.get_json().get('username', '').strip()
-        password = request.form.get('password', '') if not request.is_json else request.get_json().get('password', '')
-
-        # 1. التحقق من الحظر
-        block_until = session.get('block_until')
-        if block_until and datetime.now() < datetime.fromisoformat(block_until):
-            remaining = int((datetime.fromisoformat(block_until) - datetime.now()).total_seconds() / 60) + 1
-            msg = f"لا يمكنك المحاولة حالياً. يرجى الانتظار {remaining} دقيقة."
-            return jsonify({"status": "error", "message": msg}), 429 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-        # 2. البحث الشامل في الجدولين (بدون اشتراط نوع المستخدم)
-        target_user = Supplier.query.filter(or_(Supplier.search_phone == username, Supplier.username == username)).first()
-        found_as = 'supplier' if target_user else None
-
-        if not target_user:
-            target_user = SupplierStaff.query.filter(or_(SupplierStaff.search_phone == username, SupplierStaff.username == username)).first()
-            found_as = 'staff' if target_user else None
-
-        # 3. التحقق من وجود المستخدم (رسالة واضحة)
-        if not target_user:
-            msg = "المستخدم غير مسجل في المنصة اللامركزية"
-            return jsonify({"status": "error", "message": msg}), 404 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-        # 4. التحقق من كلمة المرور (رسالة واضحة)
-        if not target_user.check_password(password.strip()):
-            attempts = session.get('login_attempts', 0) + 1
-            session['login_attempts'] = attempts
-            if attempts >= 5:
-                wait_minutes = get_wait_time(attempts)
-                session['block_until'] = (datetime.now() + timedelta(minutes=wait_minutes)).isoformat()
-            
-            msg = "كلمة المرور غير صحيحة"
-            return jsonify({"status": "error", "message": msg}), 401 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-        # 5. التحقق من التفعيل
-        if hasattr(target_user, 'is_active') and not target_user.is_active:
-            msg = "الحساب غير مفعل حالياً."
-            return jsonify({"status": "error", "message": msg}), 403 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-        # 6. تسجيل الدخول
-        session['user_type'] = found_as
-        login_user(target_user, remember=True)
-        
-        redirect_url = url_for('suppliers_dashboard.dashboard')
-        return jsonify({"status": "success", "redirect": redirect_url}) if request.is_json else redirect(redirect_url)
-
-    except Exception as e:
-        print(f"❌ [Login Error]: {str(e)}")
-        msg = "حدث خطأ تقني في النظام"
-        return jsonify({"status": "error", "message": msg}), 500 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-@suppliers_bp.route('/logout')
+@suppliers_dashboard_bp.route('/dashboard', methods=['GET'])
 @login_required
-def logout():
-    session.clear()
-    logout_user()
-    return redirect(url_for('suppliers_auth.login'))
+def dashboard():
+    try:
+        # ✅ جلب المورد
+        user_type = session.get('user_type')
+        
+        if user_type == 'supplier':
+            supplier_id = current_user.id
+        elif user_type == 'staff':
+            supplier_id = current_user.supplier_id
+        else:
+            return "❌ نوع المستخدم غير معروف", 400
+        
+        supplier = db.session.get(Supplier, supplier_id)
+        
+        if not supplier:
+            return "❌ المورد غير موجود", 404
+        
+        # ✅ جلب المحفظة
+        wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+        supplier.wallet = wallet
+        
+        # ✅ عدد الطلبات
+        pending_orders_count = Order.query.filter_by(
+            supplier_id=supplier.id, status='pending'
+        ).count()
+        
+        # ✅ عرض الصفحة
+        return render_template(
+            'suppliers/dashboard.html',
+            supplier=supplier,
+            pending_orders_count=pending_orders_count,
+            total_sales=0
+        )
+        
+    except Exception as e:
+        return f"""
+        <div style="direction: rtl; font-family: Tahoma; padding: 30px; text-align: center;">
+            <h2 style="color: #d9534f;">❌ خطأ في لوحة التحكم</h2>
+            <p><strong>{str(e)}</strong></p>
+            <p style="color: #666; font-size: 14px;">يرجى مراجعة سجلات الخادم لمزيد من التفاصيل.</p>
+            <a href="/supplier/dashboard" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">محاولة مرة أخرى</a>
+        </div>
+        """, 500
