@@ -12,73 +12,58 @@
     </button>
   </div>
 
-  <!-- جدول المتغيرات -->
+  <!-- ✅ جدول المتغيرات (بدون SKU) -->
   <div class="overflow-x-auto">
-    <table class="w-full text-right border-collapse min-w-[600px]">
+    <table class="w-full text-right border-collapse min-w-[400px]">
       <thead>
         <tr class="bg-[var(--royal-midnight-800)]/5 text-gray-700 text-sm">
-          <th class="p-3 border-b">📦 SKU</th>
+          <th class="p-3 border-b">#</th>
           <th class="p-3 border-b">💰 السعر</th>
           <th class="p-3 border-b">📊 الكمية</th>
           <th class="p-3 border-b text-center">🗑️ حذف</th>
         </tr>
       </thead>
       <tbody id="variantsTableBody" class="text-sm">
-        {% if product.variants %}
+        {% if product.variants and product.variants|length > 0 %}
           {% for var in product.variants %}
-          <tr>
-            <!-- فقرة SKU -->
+          <tr class="variant-row">
+            <td class="p-2 border-b text-center variant-index">{{ loop.index }}</td>
+            <!-- ✅ تم إزالة عمود SKU -->
             <td class="p-2 border-b">
-              <input type="text" name="variant_sku[]" 
-                     value="{{ var.sku if var.sku else '' }}" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" 
-                     placeholder="SKU-VAR" style="direction: ltr; text-align: left;">
+              <input type="number" step="0.01" name="variant_price[]" 
+                     value="{{ var.pricing.price if var.pricing and var.pricing.price is defined else 0 }}" 
+                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-price" 
+                     placeholder="0.00" required>
             </td>
-
-            <!-- فقرة السعر -->
             <td class="p-2 border-b">
-              <input type="text" inputmode="decimal" name="variant_price[]" 
-                     value="{{ var.pricing.price if var.pricing and var.pricing.price is defined else '0.00' }}" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" 
-                     placeholder="0.00">
+              <input type="number" step="1" name="variant_qty[]" 
+                     value="{{ var.quantity if var.quantity is defined else 0 }}" 
+                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-qty" 
+                     placeholder="0" required>
             </td>
-
-            <!-- فقرة الكمية -->
-            <td class="p-2 border-b">
-              <input type="text" inputmode="numeric" name="variant_qty[]" 
-                     value="{{ var.quantity if var.quantity is defined else '0' }}" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" 
-                     placeholder="0">
-            </td>
-
-            <!-- فقرة الحذف -->
             <td class="p-2 border-b text-center">
-              <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer">
+              <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer transition hover:scale-110" title="حذف المتغير">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </td>
           </tr>
           {% endfor %}
         {% else %}
-          <!-- صف فارغ لإضافة أول متغير -->
-          <tr>
+          <!-- ✅ صف فارغ لإضافة أول متغير (بدون SKU) -->
+          <tr class="variant-row">
+            <td class="p-2 border-b text-center variant-index">1</td>
             <td class="p-2 border-b">
-              <input type="text" name="variant_sku[]" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" 
-                     placeholder="SKU-VAR" style="direction: ltr; text-align: left;">
+              <input type="number" step="0.01" name="variant_price[]" 
+                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-price" 
+                     placeholder="0.00" required>
             </td>
             <td class="p-2 border-b">
-              <input type="text" inputmode="decimal" name="variant_price[]" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" 
-                     placeholder="0.00">
-            </td>
-            <td class="p-2 border-b">
-              <input type="text" inputmode="numeric" name="variant_qty[]" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left" 
-                     placeholder="0">
+              <input type="number" step="1" name="variant_qty[]" 
+                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-qty" 
+                     placeholder="0" required>
             </td>
             <td class="p-2 border-b text-center">
-              <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer">
+              <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer transition hover:scale-110" title="حذف المتغير">
                 <i class="fa-solid fa-trash"></i>
               </button>
             </td>
@@ -87,4 +72,239 @@
       </tbody>
     </table>
   </div>
+
+  <!-- ✅ قالب المتغير الجديد (مخفي) -->
+  <template id="variantTemplate">
+    <tr class="variant-row">
+      <td class="p-2 border-b text-center variant-index"></td>
+      <td class="p-2 border-b">
+        <input type="number" step="0.01" name="variant_price[]" 
+               class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-price" 
+               placeholder="0.00" required>
+      </td>
+      <td class="p-2 border-b">
+        <input type="number" step="1" name="variant_qty[]" 
+               class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-qty" 
+               placeholder="0" required>
+      </td>
+      <td class="p-2 border-b text-center">
+        <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer transition hover:scale-110" title="حذف المتغير">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>
+  </template>
+
+  <!-- ✅ ملاحظة توضيحية -->
+  <p class="text-xs text-gray-500 mt-3 flex items-center gap-1">
+    <i class="fa-solid fa-info-circle"></i>
+    <span>ملاحظة: المتغيرات لا تحتوي على SKU منفصل. يمكنك استخدام حقل SKU الرئيسي للمنتج.</span>
+  </p>
+
 </div>
+
+<!-- ✅ JavaScript للتعامل مع المتغيرات -->
+<script>
+  (function() {
+    'use strict';
+
+    // تحديث أرقام المتغيرات
+    function updateVariantIndices() {
+      const rows = document.querySelectorAll('#variantsTableBody .variant-row');
+      rows.forEach((row, index) => {
+        const indexCell = row.querySelector('.variant-index');
+        if (indexCell) {
+          indexCell.textContent = index + 1;
+        }
+      });
+    }
+
+    // إضافة متغير جديد
+    const addBtn = document.getElementById('addVariantBtn');
+    if (addBtn) {
+      addBtn.addEventListener('click', function() {
+        const template = document.getElementById('variantTemplate');
+        const tbody = document.getElementById('variantsTableBody');
+        
+        if (template && tbody) {
+          const clone = template.content.cloneNode(true);
+          tbody.appendChild(clone);
+          updateVariantIndices();
+          
+          // التركيز على الحقل الأول في الصف الجديد
+          const newRow = tbody.lastElementChild;
+          const firstInput = newRow.querySelector('input');
+          if (firstInput) {
+            setTimeout(() => firstInput.focus(), 100);
+          }
+        }
+      });
+    }
+
+    // حذف متغير
+    document.addEventListener('click', function(e) {
+      const removeBtn = e.target.closest('.remove-variant');
+      if (removeBtn) {
+        const row = removeBtn.closest('.variant-row');
+        const tbody = document.getElementById('variantsTableBody');
+        
+        if (row && tbody) {
+          // التأكد من وجود على الأقل صف واحد
+          if (tbody.querySelectorAll('.variant-row').length <= 1) {
+            // عرض تنبيه بدلاً من الحذف
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm flex items-center gap-2';
+            alertDiv.innerHTML = `
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>لا يمكن حذف المتغير الوحيد. يمكنك تعديل قيمته بدلاً من ذلك.</span>
+            `;
+            
+            // إزالة أي تنبيه سابق
+            const existingAlert = row.closest('div')?.querySelector('.bg-yellow-50');
+            if (existingAlert) existingAlert.remove();
+            
+            // إضافة التنبيه قبل الجدول
+            const container = row.closest('.overflow-x-auto');
+            if (container) {
+              container.parentNode.insertBefore(alertDiv, container);
+              setTimeout(() => {
+                alertDiv.remove();
+              }, 3000);
+            }
+            return;
+          }
+          
+          if (confirm('هل أنت متأكد من حذف هذا المتغير؟')) {
+            row.remove();
+            updateVariantIndices();
+          }
+        }
+      }
+    });
+
+    // ✅ جمع بيانات المتغيرات عند إرسال النموذج
+    function collectVariantsData() {
+      const variants = [];
+      const rows = document.querySelectorAll('#variantsTableBody .variant-row');
+      
+      rows.forEach(row => {
+        const priceInput = row.querySelector('.variant-price');
+        const qtyInput = row.querySelector('.variant-qty');
+        
+        if (priceInput && qtyInput) {
+          const price = parseFloat(priceInput.value) || 0;
+          const quantity = parseInt(qtyInput.value) || 0;
+          
+          variants.push({
+            price: price,
+            quantity: quantity
+          });
+        }
+      });
+      
+      return variants;
+    }
+
+    // ✅ إضافة حقل مخفي للـ variants عند إرسال النموذج
+    const form = document.getElementById('editProductForm');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        const variants = collectVariantsData();
+        // إزالة أي حقل سابق
+        const existingField = form.querySelector('input[name="variants_json"]');
+        if (existingField) {
+          existingField.remove();
+        }
+        
+        // إضافة الحقل الجديد
+        const hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.name = 'variants_json';
+        hiddenField.value = JSON.stringify(variants);
+        form.appendChild(hiddenField);
+        
+        // ✅ تحديث حقول المتغيرات العادية للتأكد من وجود قيم
+        const priceInputs = form.querySelectorAll('input[name="variant_price[]"]');
+        const qtyInputs = form.querySelectorAll('input[name="variant_qty[]"]');
+        
+        priceInputs.forEach(input => {
+          if (!input.value || input.value === '') {
+            input.value = '0';
+          }
+        });
+        
+        qtyInputs.forEach(input => {
+          if (!input.value || input.value === '') {
+            input.value = '0';
+          }
+        });
+      });
+    }
+
+    // ✅ تحديث الأرقام عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+      updateVariantIndices();
+    });
+
+  })();
+</script>
+
+<!-- ✅ CSS إضافي -->
+<style>
+  .variant-row {
+    transition: all 0.2s ease;
+  }
+  
+  .variant-row:hover {
+    background-color: rgba(107, 33, 168, 0.03);
+  }
+  
+  .variant-row input {
+    transition: all 0.2s ease;
+    background-color: #fafafa;
+  }
+  
+  .variant-row input:focus {
+    background-color: white;
+    border-color: #6b21a8;
+    box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
+  }
+  
+  .variant-row .remove-variant {
+    opacity: 0.6;
+    transition: all 0.2s ease;
+  }
+  
+  .variant-row:hover .remove-variant {
+    opacity: 1;
+  }
+  
+  .variant-index {
+    font-weight: 600;
+    color: #6b21a8;
+    font-size: 0.85rem;
+  }
+  
+  .bg-yellow-50 {
+    background-color: #fefce8;
+  }
+  
+  .border-yellow-200 {
+    border-color: #fde68a;
+  }
+  
+  .text-yellow-800 {
+    color: #92400e;
+  }
+  
+  /* تحسين مظهر الأرقام */
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+</style>
