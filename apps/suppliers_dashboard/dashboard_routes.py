@@ -22,6 +22,20 @@ def dashboard():
         # ✅ جلب نوع المستخدم
         user_type = session.get('user_type')
         
+        # ✅ إذا كانت user_type فارغة، حاول تعيينها تلقائياً
+        if not user_type:
+            if hasattr(current_user, 'supplier_id') and current_user.supplier_id:
+                user_type = 'staff'
+                session['user_type'] = 'staff'
+            elif hasattr(current_user, 'id'):
+                # التحقق من وجود المستخدم في جدول Supplier
+                supplier = Supplier.query.get(current_user.id)
+                if supplier:
+                    user_type = 'supplier'
+                    session['user_type'] = 'supplier'
+                else:
+                    return "❌ لا يمكن تحديد نوع المستخدم", 400
+        
         # ✅ التحقق من وجود user_type
         if user_type not in ['supplier', 'staff']:
             return "❌ نوع المستخدم غير معروف", 400
