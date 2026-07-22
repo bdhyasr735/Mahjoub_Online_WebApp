@@ -12,13 +12,10 @@ MODULE_NAME = "منتجاتي"
 MODULE_ICON = "fas fa-boxes"
 SHOW_IN_SUPPLIER = True
 
-# ✅ الروابط التي تظهر في القائمة الجانبية للمورد
 LINKS = {
     'suppliers_product_bp.products': '📦 منتجاتي'
 }
 
-
-# ✅ تعريف الـ Blueprint الرئيسي
 suppliers_product_bp = Blueprint(
     'suppliers_product_bp',
     __name__,
@@ -28,16 +25,9 @@ suppliers_product_bp = Blueprint(
 )
 
 
-def register_module(app):
-    """
-    تسجيل التطبيق في التطبيق الرئيسي
-    """
-    # ✅ استيراد الـ routes بعد تعريف الـ Blueprint لتجنب Circular Import
+def register_module(app):  # ✅ تغيير اسم الدالة
     from apps.suppliers_product import routes
-    
-    # ✅ تسجيل الـ Blueprint
     if 'suppliers_product_bp' not in app.blueprints:
         app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
         print("✅ [Registry]: تم تسجيل 'suppliers_product' بنجاح.")
-    
     return app
