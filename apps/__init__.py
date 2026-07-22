@@ -60,6 +60,11 @@ def create_app():
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    
+    # ✅ استثناء CSRF لبوابة الموردين (حل مشكلة CSRF token is missing)
+    from apps.suppliers_auth_portal.routes import suppliers_bp
+    csrf.exempt(suppliers_bp)
+    
     limiter.init_app(app)
 
     @login_manager.user_loader
@@ -79,7 +84,7 @@ def create_app():
             return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x'))
         return redirect(url_for('suppliers_auth.login'))
 
-    # إعداد السياسة الأمنية (CSP) مع السماح لنطاق الأيقونات والخطوط الخارجي
+    # إعداد السياسة الأمنية (CSP)
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
