@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify
 from flask_login import login_required
 import requests
 import traceback
+import os
 from config import Config
 
 # ✅ تعريف الـ Blueprint
@@ -13,6 +14,70 @@ ai_bp = Blueprint(
     __name__,
     template_folder='templates'
 )
+
+
+# ============================================================
+# ✅ مسار اختبار الاتصال بـ DeepSeek API
+# ============================================================
+@ai_bp.route('/api/test-ai', methods=['GET'])
+@login_required
+def test_ai():
+    """
+    مسار اختبار للتحقق من اتصال DeepSeek API
+    """
+    api_key = os.environ.get('DEEPSEEK_API_KEY')
+    
+    # ✅ بناء رسالة النتيجة
+    result = {
+        'api_key_exists': bool(api_key),
+        'api_key_preview': api_key[:15] + '...' if api_key else '❌ غير موجود',
+        'api_url': Config.DEEPSEEK_API_URL,
+        'model': Config.DEEPSEEK_MODEL,
+        'test_result': None
+    }
+    
+    if not api_key:
+        result['error'] = 'مفتاح DeepSeek غير موجود'
+        return jsonify(result), 500
+    
+    try:
+        response = requests.post(
+            Config.DEEPSEEK_API_URL,
+            headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'model': Config.DEEPSEEK_MODEL,
+                'messages': [
+                    {'role': 'system', 'content': 'أنت مساعد مفيد.'},
+                    {'role': 'user', 'content': 'مرحباً، قل لي كلمة واحدة فقط: مرحباً'}
+                ],
+                'max_tokens': 20,
+                'temperature': 0.5
+            },
+            timeout=10
+        )
+        
+        result['status_code'] = response.status_code
+        result['test_result'] = response.text[:500]
+        
+        if response.status_code == 200:
+            result['success'] = True
+            data = response.json()
+            result['reply'] = data.get('choices', [{}])[0].get('message', {}).get('content', 'لا يوجد رد')
+        else:
+            result['success'] = False
+            result['error'] = f'خطأ {response.status_code}'
+            
+    except requests.exceptions.Timeout:
+        result['success'] = False
+        result['error'] = 'انتهى وقت الانتظار'
+    except Exception as e:
+        result['success'] = False
+        result['error'] = str(e)
+    
+    return jsonify(result)
 
 
 # ============================================================
