@@ -36,32 +36,69 @@ def create_app():
 
     db.init_app(app)
     
-    # بناء الجداول التلقائي وزراعة المالك
+    # ============================================================
+    # ✅ إعادة بناء الجداول (Drop & Create)
+    # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
         from apps.models.product_db import Product
-        try:
-            from apps.models.wallet_db import SupplierWallet 
-        except ImportError:
-            pass
+        from apps.models.wallet_db import SupplierWallet, WalletTransaction
+        from apps.models.financials_db import OrderFinancial
+        from apps.models.orders_db import Order
+        from apps.models.order_items_db import OrderItem
+        from apps.models.supplier_profile_db import SupplierProfile
+        from apps.models.product_supplier_map import ProductSupplierMapping
+        from apps.models.sync_log import SyncLog
+        from apps.models.marketer_db import Marketer
+        from apps.models.admin_staff_db import AdminStaff
         
+        # ✅ حذف جميع الجداول وإعادة إنشائها
+        print("🔄 [DB]: جاري حذف جميع الجداول...")
+        db.drop_all()
+        print("✅ [DB]: تم حذف جميع الجداول.")
+        
+        print("🔄 [DB]: جاري إنشاء الجداول من جديد...")
         db.create_all()
+        print("✅ [DB]: تم إنشاء جميع الجداول بنجاح.")
 
-        # زراعة المالك "علي محجوب"
+        # ✅ زراعة المالك "علي محجوب"
         if not AdminUser.query.filter_by(username='ali_mahjoub').first():
             new_admin = AdminUser(username='ali_mahjoub', role='Owner')
             new_admin.set_password('123')
             db.session.add(new_admin)
             db.session.commit()
             print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
+        
+        # ✅ زراعة مورد تجريبي (اختياري)
+        if not Supplier.query.filter_by(username='test_supplier').first():
+            test_supplier = Supplier(
+                username='test_supplier',
+                trade_name='متجر تجريبي',
+                owner_name='محمد التجريبي',
+                phone='0500000000',
+                status='active'
+            )
+            test_supplier.set_password('123')
+            db.session.add(test_supplier)
+            db.session.flush()
+            
+            # ✅ إنشاء محفظة للمورد التجريبي
+            wallet = SupplierWallet(
+                supplier_id=test_supplier.id,
+                wallet_code=f"MAH-WEL963{test_supplier.id}",
+                balance_sar=1000.00
+            )
+            db.session.add(wallet)
+            db.session.commit()
+            print("✅ [Seed]: تم زرع مورد تجريبي test_supplier / 123")
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
     
-    # ✅ استثناء CSRF لبوابة الموردين (حل مشكلة CSRF token is missing)
+    # ✅ استثناء CSRF لبوابة الموردين
     from apps.suppliers_auth_portal.routes import suppliers_bp
     csrf.exempt(suppliers_bp)
     
