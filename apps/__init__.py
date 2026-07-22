@@ -37,7 +37,7 @@ def create_app():
     db.init_app(app)
     
     # ============================================================
-    # ✅ إعادة بناء الجداول (Drop & Create)
+    # ✅ إعادة بناء الجداول (Drop & Create) مع CASCADE
     # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
@@ -54,10 +54,19 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
-        # ✅ حذف جميع الجداول وإعادة إنشائها
-        print("🔄 [DB]: جاري حذف جميع الجداول...")
-        db.drop_all()
-        print("✅ [DB]: تم حذف جميع الجداول.")
+        # ✅ حذف جميع الجداول مع CASCADE (لتجاوز مشكلة التبعيات)
+        print("🔄 [DB]: جاري حذف جميع الجداول مع CASCADE...")
+        try:
+            # استخدام SQL خام لحذف جميع الجداول مع CASCADE
+            from sqlalchemy import text
+            db.session.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
+            db.session.commit()
+            print("✅ [DB]: تم حذف وإعادة إنشاء الـ Schema بنجاح.")
+        except Exception as e:
+            print(f"⚠️ [DB]: فشل حذف الـ Schema: {e}")
+            print("🔄 [DB]: محاولة الحذف باستخدام db.drop_all()...")
+            db.drop_all()
+            print("✅ [DB]: تم حذف جميع الجداول باستخدام db.drop_all().")
         
         print("🔄 [DB]: جاري إنشاء الجداول من جديد...")
         db.create_all()
