@@ -476,7 +476,6 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 const card = document.createElement('div');
-                // تحديث المعاينة الجديدة لتصبح مربعة كذلك بأبعاد aspect-square
                 card.className = 'relative group border-2 border-dashed border-[var(--royal-purple-accent)] rounded-xl overflow-hidden bg-purple-50/55 aspect-square shadow-xs new-preview-card';
                 card.innerHTML = `
                     <img src="${e.target.result}" class="w-full h-full object-cover">
