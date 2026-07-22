@@ -125,6 +125,13 @@
     select.form-control option {
         padding: 8px;
     }
+    
+    /* ✅ تنسيق الحقول المقروءة فقط */
+    .readonly-field {
+        background-color: #e9ecef !important;
+        cursor: not-allowed !important;
+        opacity: 0.8;
+    }
 </style>
 
 <div class="container-fluid py-4">
@@ -210,18 +217,17 @@
                             <small class="text-muted">هذا الاسم سيظهر للعملاء في المتجر</small>
                         </div>
 
-                        <!-- ✅ اسم المالك (للقراءة فقط) -->
+                        <!-- ✅ اسم المالك (للقراءة فقط - لا يمكن تعديله) -->
                         <div class="mb-3">
                             <label class="form-label fw-bold text-dark">
                                 <i class="fas fa-user text-muted me-1"></i> اسم المالك
                             </label>
                             <input type="text" name="owner_name" 
                                    value="{{ supplier.owner_name if supplier.owner_name else '' }}"
-                                   class="form-control" 
+                                   class="form-control readonly-field" 
                                    placeholder="الاسم الكامل للمالك"
-                                   readonly
-                                   style="background-color: #e9ecef; cursor: not-allowed;">
-                            <small class="text-muted">لا يمكن تعديل اسم المالك</small>
+                                   readonly>
+                            <small class="text-muted">🔒 لا يمكن تعديل اسم المالك</small>
                         </div>
 
                         <!-- ✅ البريد الإلكتروني -->
@@ -235,7 +241,7 @@
                                    placeholder="example@domain.com">
                         </div>
 
-                        <!-- ✅ رقم الهاتف (مع تحقق لحظي) -->
+                        <!-- ✅ رقم الهاتف (مع تحقق لحظي من قاعدة البيانات) -->
                         <div class="mb-3">
                             <label class="form-label fw-bold text-dark">
                                 <i class="fas fa-phone text-muted me-1"></i> رقم الهاتف <span class="required-star">*</span>
@@ -255,7 +261,7 @@
                                     <i class="fas fa-check-circle me-1"></i> رقم هاتف صحيح
                                 </div>
                             </div>
-                            <small class="text-muted">أدخل رقم الهاتف بدون فواصل</small>
+                            <small class="text-muted">أدخل رقم الهاتف بدون فواصل (9 أرقام)</small>
                         </div>
 
                         <!-- ✅ وصف المتجر -->
@@ -266,6 +272,22 @@
                             <textarea name="description" class="form-control" rows="3" 
                                       placeholder="وصف قصير عن متجرك ونشاطك التجاري">{{ supplier.supplier_profile.description if supplier.supplier_profile and supplier.supplier_profile.description else '' }}</textarea>
                             <small class="text-muted">وصف يظهر في صفحة المتجر (اختياري)</small>
+                        </div>
+
+                        <!-- ✅ فئة المتجر -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-tags text-muted me-1"></i> فئة المتجر
+                            </label>
+                            <select name="category" class="form-control">
+                                <option value="">اختر الفئة...</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.name }}" {% if supplier.supplier_profile and supplier.supplier_profile.category == cat.name %}selected{% endif %}>
+                                    <i class="fas {{ cat.icon }} me-2"></i> {{ cat.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">اختر الفئة التي ينتمي إليها متجرك</small>
                         </div>
 
                         <!-- ✅ المحافظة -->
@@ -298,7 +320,7 @@
                         </div>
 
                         <!-- ✅ العنوان التفصيلي -->
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <label class="form-label fw-bold text-dark">
                                 <i class="fas fa-map-marker-alt text-muted me-1"></i> العنوان التفصيلي
                             </label>
@@ -306,8 +328,85 @@
                                       placeholder="العنوان التفصيلي (الشارع، الحي، المبنى)">{{ supplier.supplier_profile.address if supplier.supplier_profile and supplier.supplier_profile.address else '' }}</textarea>
                         </div>
 
+                        <!-- ✅ البنك -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-university text-muted me-1"></i> البنك
+                            </label>
+                            <select name="bank_name" class="form-control">
+                                <option value="">اختر البنك...</option>
+                                {% for bank in banks %}
+                                <option value="{{ bank.name }}" {% if supplier.supplier_profile and supplier.supplier_profile.bank_name == bank.name %}selected{% endif %}>
+                                    <i class="fas {{ bank.icon }} me-2"></i> {{ bank.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">اختر البنك الذي تتعامل معه</small>
+                        </div>
+
+                        <!-- ✅ رقم الحساب البنكي -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-credit-card text-muted me-1"></i> رقم الحساب البنكي
+                            </label>
+                            <input type="text" name="bank_account" 
+                                   value="{{ supplier.supplier_profile.bank_account if supplier.supplier_profile and supplier.supplier_profile.bank_account else '' }}"
+                                   class="form-control" 
+                                   placeholder="أدخل رقم الحساب البنكي">
+                        </div>
+
+                        <!-- ✅ الشركة المالية -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-handshake text-muted me-1"></i> الشركة المالية
+                            </label>
+                            <select name="financial_company" class="form-control">
+                                <option value="">اختر الشركة المالية...</option>
+                                {% for comp in financial_companies %}
+                                <option value="{{ comp.name }}" {% if supplier.supplier_profile and supplier.supplier_profile.company_name == comp.name %}selected{% endif %}>
+                                    <i class="fas {{ comp.icon }} me-2"></i> {{ comp.name }}
+                                    <span class="badge bg-light text-muted ms-1">{{ comp.type }}</span>
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">اختر الشركة المالية التي تتعامل معها</small>
+                        </div>
+
+                        <!-- ✅ رقم الهوية -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-id-card text-muted me-1"></i> رقم الهوية
+                            </label>
+                            <input type="text" name="id_number" 
+                                   value="{{ supplier.supplier_profile.id_number if supplier.supplier_profile and supplier.supplier_profile.id_number else '' }}"
+                                   class="form-control" 
+                                   placeholder="أدخل رقم الهوية">
+                        </div>
+
+                        <!-- ✅ السجل التجاري -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-building text-muted me-1"></i> السجل التجاري
+                            </label>
+                            <input type="text" name="commercial_reg" 
+                                   value="{{ supplier.supplier_profile.commercial_reg if supplier.supplier_profile and supplier.supplier_profile.commercial_reg else '' }}"
+                                   class="form-control" 
+                                   placeholder="أدخل رقم السجل التجاري">
+                        </div>
+
+                        <!-- ✅ اسم الشركة -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-building text-muted me-1"></i> اسم الشركة
+                            </label>
+                            <input type="text" name="company_name" 
+                                   value="{{ supplier.supplier_profile.company_name if supplier.supplier_profile and supplier.supplier_profile.company_name else '' }}"
+                                   class="form-control" 
+                                   placeholder="أدخل اسم الشركة">
+                        </div>
+
                         <!-- ✅ أزرار الإجراء -->
-                        <div class="d-flex flex-wrap gap-2">
+                        <div class="d-flex flex-wrap gap-2 mt-3">
                             <button type="submit" class="btn btn-gold" id="submitBtn">
                                 <i class="fas fa-save me-2"></i> 
                                 {% if is_new %}إكمال التسجيل{% else %}حفظ التغييرات{% endif %}
@@ -382,7 +481,9 @@
                         (supplier.phone, 'رقم الهاتف'),
                         (supplier.supplier_profile.governorate if supplier.supplier_profile else None, 'المحافظة'),
                         (supplier.supplier_profile.city if supplier.supplier_profile else None, 'المدينة'),
-                        (supplier.supplier_profile.address if supplier.supplier_profile else None, 'العنوان')
+                        (supplier.supplier_profile.address if supplier.supplier_profile else None, 'العنوان'),
+                        (supplier.supplier_profile.bank_name if supplier.supplier_profile else None, 'البنك'),
+                        (supplier.supplier_profile.category if supplier.supplier_profile else None, 'فئة المتجر')
                     ] %}
                     {% set completed = fields|selectattr(0)|list|length %}
                     {% set total = fields|length %}
