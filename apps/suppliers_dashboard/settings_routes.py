@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/suppliers_dashboard/routes/settings_routes.py
+# 📂 apps/suppliers_dashboard/settings_routes.py
 
 from flask import Blueprint, render_template, abort, session, request, flash, redirect, url_for
 from flask_login import login_required, current_user
