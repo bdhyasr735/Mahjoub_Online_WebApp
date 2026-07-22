@@ -15,8 +15,8 @@ class SupplierProfile(db.Model):
         db.Index('idx_prof_email', 'email'),
         db.Index('idx_prof_gov', 'governorate'),
         db.Index('idx_prof_city', 'city'),
-        # ✅ إضافة فهرس للعنوان
         db.Index('idx_prof_address', 'address'),
+        db.Index('idx_prof_category', 'category'),  # ✅ فهرس للفئة
         {'extend_existing': True}
     )
     
@@ -38,6 +38,9 @@ class SupplierProfile(db.Model):
     
     # ✅ وصف المتجر
     description = db.Column(db.Text, nullable=True)         # وصف المتجر
+    
+    # ✅ فئة المتجر (جديد)
+    category = db.Column(db.String(100), nullable=True)     # فئة المتجر
     
     # [التحميل المتصل]: استخدام 'joined' يضمن جلب بيانات المورد في نفس الاستعلام
     supplier = db.relationship(
@@ -80,4 +83,4 @@ class SupplierProfile(db.Model):
             self._id_number_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
 
     def __repr__(self):
-        return f'<Profile {self.trade_name} | {self.governorate} | {self.city}>'
+        return f'<Profile {self.trade_name} | {self.governorate} | {self.city} | {self.category}>'
