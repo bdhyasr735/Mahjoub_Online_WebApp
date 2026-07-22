@@ -9,7 +9,10 @@ mutation UpdateProductEverything(
   $dims: DimensionsInput!,
   $weight: WeightInput!,
   $ident: IdentificationInput!,
-  $desc: String!
+  $desc: String!,
+  $collections: [String!],
+  $images: [ImageInput!],
+  $variants: [VariantInput!]
 ) {
   updateProductInfo(id: $id, updateProductInfoInput: $info) { success }
   updateProductPricing(id: $id, pricing: $pricing) { success }
@@ -17,5 +20,8 @@ mutation UpdateProductEverything(
   updateProductWeight(id: $id, data: $weight) { success }
   updateProductIdentification(id: $id, data: $ident) { success }
   updateProductDescription(id: $id, data: $desc) { success }
+  updateProductCollections(id: $id, collectionIds: $collections) { success }
+  updateProductImages(id: $id, images: $images) { success }
+  updateProductVariants(id: $id, variants: $variants) { success }
 }
 """
