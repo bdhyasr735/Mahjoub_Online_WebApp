@@ -65,22 +65,13 @@ def dashboard():
             supplier_id=supplier.id, status='pending'
         ).count()
         
-        # ✅ ✅ ✅ للاختبار: عرض معلومات بدلاً من القالب
-        return f"""
-        <div style="direction: rtl; font-family: Tahoma; padding: 30px; text-align: center; max-width: 600px; margin: auto;">
-            <h1 style="color: #28a745;">✅ لوحة التحكم تعمل</h1>
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: right; margin: 20px 0; border: 1px solid #ddd;">
-                <p><strong>نوع المستخدم:</strong> {user_type}</p>
-                <p><strong>معرف المورد:</strong> {supplier_id}</p>
-                <p><strong>اسم المتجر:</strong> {supplier.trade_name if supplier else 'غير موجود'}</p>
-                <p><strong>رقم المحفظة:</strong> {wallet.wallet_code if wallet else 'لا توجد محفظة'}</p>
-                <p><strong>رصيد SAR:</strong> {wallet.balance_sar if wallet else 0}</p>
-                <p><strong>الطلبات المعلقة:</strong> {pending_orders_count}</p>
-            </div>
-            <p style="color: #666; font-size: 14px;">✅ جميع البيانات تعمل بشكل صحيح</p>
-            <a href="/supplier/dashboard" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">تحديث</a>
-        </div>
-        """
+        # ✅ عرض القالب الأصلي
+        return render_template(
+            'suppliers/dashboard.html',
+            supplier=supplier,
+            pending_orders_count=pending_orders_count,
+            total_sales=0
+        )
         
     except Exception as e:
         # ✅ عرض تفاصيل الخطأ كاملة
