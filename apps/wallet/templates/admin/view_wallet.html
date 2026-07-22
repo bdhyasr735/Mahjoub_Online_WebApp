@@ -3,7 +3,7 @@
 {% block title %}تفاصيل محفظة {{ wallet.supplier.trade_name }}{% endblock %}
 
 {% block content %}
-<!-- 📂 view_wallet.html - النسخة المصححة -->
+<!-- 📂 view_wallet.html - العملة الوحيدة SAR -->
 <style>
     :root { 
         --royal-purple: #2e003e; 
@@ -32,30 +32,40 @@
         <a href="{{ url_for('wallet_app.dashboard') }}" class="btn btn-royal-back px-4"><i class="fas fa-arrow-right me-2"></i>رجوع</a>
     </div>
 
-    <!-- بطاقات الأرصدة -->
+    <!-- ✅ بطاقات الأرصدة - عملة واحدة فقط SAR -->
     <div class="row">
-        {% for balance, currency, color in [(wallet.balance_sar, 'SAR', 'bg-primary'), (wallet.balance_yer, 'YER', 'bg-success'), (wallet.balance_usd, 'USD', 'bg-warning')] %}
-        <div class="col-md-4">
-            <button onclick="filterTable('{{ currency }}')" class="btn p-0 w-100 text-start shadow-sm border-0">
-                <div class="card text-white {{ color }} mb-3" style="border: 1px solid #d4af37;">
-                    <div class="card-body">
-                        <h5 class="card-title">الرصيد بـ {{ currency }}</h5>
-                        <!-- تم إصلاح الخطأ عبر تحويل القيمة لـ float وضمان وجود default -->
-                        <h2 class="fw-bold">
-                            {{ "{:,.2f}".format((balance or 0)|float) }} 
-                            <small class="fs-6">{{ currency }}</small>
-                        </h2>
-                    </div>
+        <div class="col-md-6 mx-auto">
+            <div class="card text-white bg-primary mb-3 shadow-lg" style="border: 1px solid #d4af37;">
+                <div class="card-body text-center">
+                    <h5 class="card-title">💵 الرصيد بالريال السعودي</h5>
+                    <h2 class="fw-bold">
+                        {{ "{:,.2f}".format((wallet.balance_sar or 0)|float) }} 
+                        <small class="fs-6">SAR</small>
+                    </h2>
                 </div>
-            </button>
+            </div>
         </div>
-        {% endfor %}
+    </div>
+
+    <!-- ✅ إجمالي الأرصدة المحجوزة (قيد الانتظار) -->
+    <div class="row mt-2 mb-4">
+        <div class="col-md-6 mx-auto">
+            <div class="card text-white bg-secondary mb-3 shadow-sm" style="border: 1px solid #d4af37;">
+                <div class="card-body text-center">
+                    <h5 class="card-title">⏳ رصيد قيد الانتظار</h5>
+                    <h4 class="fw-bold">
+                        {{ "{:,.2f}".format((wallet.balance_pending or 0)|float) }} 
+                        <small class="fs-6">SAR</small>
+                    </h4>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- جدول الحركات -->
     <div class="card mt-4 border-gold shadow-sm">
         <div class="card-header regal-gradient fw-bold d-flex justify-content-between align-items-center">
-            <span class="text-white">سجل الحركات (الفلتر: <span id="currentFilter" class="text-royal-gold">الكل</span>)</span>
+            <span class="text-white">سجل الحركات <span class="text-royal-gold">(SAR)</span></span>
             <button class="btn btn-sm btn-outline-light" onclick="filterTable('ALL')">إظهار الكل</button>
         </div>
         <div class="card-body table-responsive">
@@ -73,7 +83,7 @@
                     {% for trans in wallet.transactions|sort(attribute='created_at', reverse=True) %}
                     {% set is_debit = trans.trans_type in ['debit', 'adjustment_debit', 'marketer_commission'] %}
                     {% set amount = trans.amount|default(0) %}
-                    <tr class="trans-row" data-currency="{{ trans.currency }}" 
+                    <tr class="trans-row" data-currency="SAR" 
                         data-debit="{{ amount if is_debit else 0 }}" 
                         data-credit="{{ amount if not is_debit else 0 }}">
                         <td dir="ltr" class="text-muted small">
@@ -82,7 +92,7 @@
                         <td class="fw-bold">{{ trans.description or 'حركة مالية رقم ' ~ trans.reference_number }}</td>
                         <td class="text-danger fw-bold">{{ "{:,.2f}".format(amount) if is_debit else '-' }}</td>
                         <td class="text-success fw-bold">{{ "{:,.2f}".format(amount) if not is_debit else '-' }}</td>
-                        <td><span class="badge" style="background-color: var(--royal-purple); color: #fff;">{{ trans.currency }}</span></td>
+                        <td><span class="badge" style="background-color: var(--royal-purple); color: #fff;">SAR</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
