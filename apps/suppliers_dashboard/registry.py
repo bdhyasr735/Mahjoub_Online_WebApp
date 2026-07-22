@@ -22,11 +22,9 @@ def register_module(app):
     """
     تسجيل موديول لوحة التحكم (Dashboard) في التطبيق الرئيسي
     """
-    from apps.suppliers_dashboard.routes import (
-        suppliers_dashboard_bp,
-        settings_bp,
-        wallet_bp
-    )
+    from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
+    from apps.suppliers_dashboard.settings_routes import settings_bp
+    from apps.suppliers_dashboard.wallet_routes import wallet_bp
     
     # ✅ تسجيل Blueprint لوحة التحكم
     if 'suppliers_dashboard' not in app.blueprints:
