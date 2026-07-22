@@ -1,82 +1,446 @@
-{# 📂 apps/suppliers_dashboard/templates/suppliers/settings.html #}
 {% extends 'suppliers/base.html' %}
 
-{% block title %}إعدادات المتجر | محجوب أونلاين{% endblock %}
+{% block title %}إعدادات المتجر | {{ supplier.trade_name if supplier else 'غير متاح' }}{% endblock %}
 
 {% block content %}
-{# منطق تحديد المصدر الصحيح للبيانات #}
-{% set store = current_user if session.get('user_type') == 'supplier' else current_user.supplier %}
-{% set profile = store.supplier_profile %}
+<style>
+    .settings-card {
+        border-radius: 20px;
+        border: 1px solid rgba(212, 175, 55, 0.15);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    .settings-card:hover {
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+    .settings-header {
+        background: linear-gradient(135deg, var(--royal-purple) 0%, #36175e 100%);
+        color: white;
+        padding: 20px 25px;
+        border-bottom: 3px solid var(--mahjoub-gold);
+    }
+    .settings-header h5 {
+        margin: 0;
+        font-weight: 700;
+    }
+    .settings-header i {
+        color: var(--mahjoub-gold);
+        margin-left: 10px;
+    }
+    .form-control:focus {
+        border-color: var(--mahjoub-gold);
+        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
+    }
+    .form-control.is-invalid {
+        border-color: #dc3545;
+    }
+    .btn-gold {
+        background: var(--mahjoub-gold);
+        color: var(--royal-purple);
+        font-weight: 700;
+        padding: 10px 30px;
+        border: none;
+        border-radius: 50px;
+        transition: var(--transition);
+    }
+    .btn-gold:hover {
+        background: #c4a035;
+        color: var(--royal-purple);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+    }
+    .info-box {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 15px 20px;
+        border-right: 4px solid var(--mahjoub-gold);
+    }
+    .info-box .label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .info-box .value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--royal-purple);
+    }
+    
+    /* ✅ رسالة الترحيب للموردين الجدد */
+    .welcome-banner {
+        background: linear-gradient(135deg, #1a0b2e 0%, #2d1b4e 100%);
+        border-radius: 20px;
+        padding: 30px 35px;
+        color: white;
+        border-right: 5px solid var(--mahjoub-gold);
+        margin-bottom: 25px;
+    }
+    .welcome-banner h4 {
+        color: var(--mahjoub-gold);
+        font-weight: 800;
+    }
+    .welcome-banner .step-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--mahjoub-gold);
+        color: var(--royal-purple);
+        font-weight: 800;
+        margin-left: 12px;
+        flex-shrink: 0;
+    }
+    .required-star {
+        color: #dc3545;
+        font-weight: 700;
+    }
+    
+    /* ✅ حالة اكتمال الملف الشخصي */
+    .completion-bar {
+        height: 6px;
+        border-radius: 10px;
+        background: #e9ecef;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+    .completion-bar .fill {
+        height: 100%;
+        border-radius: 10px;
+        background: linear-gradient(90deg, var(--mahjoub-gold), #f0d060);
+        transition: width 0.6s ease;
+    }
+</style>
 
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+
+    <!-- ✅ رسالة ترحيب للموردين الجدد -->
+    {% set is_new = not supplier.trade_name and not supplier.owner_name %}
+    {% if is_new %}
+    <div class="welcome-banner">
+        <div class="d-flex align-items-start gap-3">
+            <div>
+                <i class="fas fa-hand-wave fa-2x" style="color: var(--mahjoub-gold);"></i>
+            </div>
+            <div>
+                <h4>👋 أهلاً بك في منصة محجوب!</h4>
+                <p class="mb-2" style="opacity: 0.9;">
+                    يسعدنا انضمامك كشريك في منصة محجوب أونلاين. 
+                    <strong>أكمل بيانات متجرك</strong> ليظهر بشكل احترافي لعملائك.
+                </p>
+                <div class="d-flex flex-wrap gap-3 mt-2">
+                    <div class="d-flex align-items-center">
+                        <span class="step-icon">1</span>
+                        <span style="font-size: 0.9rem;">أضف اسم المتجر</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="step-icon">2</span>
+                        <span style="font-size: 0.9rem;">أضف معلومات الاتصال</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="step-icon">3</span>
+                        <span style="font-size: 0.9rem;">احفظ البيانات</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ✅ رأس الصفحة -->
+    <div class="d-flex align-items-center mb-4">
+        <div class="bg-white p-3 rounded-circle shadow-sm me-3" style="border: 2px solid var(--mahjoub-gold);">
+            <i class="fas fa-cog fa-2x" style="color: var(--royal-purple);"></i>
+        </div>
         <div>
-            <h3 class="fw-bold text-dark">إعدادات المتجر المتقدمة</h3>
-            <p class="text-muted">إدارة بيانات حسابك الشخصي وهويتك التجارية.</p>
+            <h3 class="fw-bold text-dark mb-0">
+                إعدادات المتجر
+                {% if is_new %}
+                <span class="badge bg-warning text-dark me-2">جديد</span>
+                {% endif %}
+            </h3>
+            <p class="text-muted mb-0">
+                {% if is_new %}
+                📝 أكمل بيانات متجرك لبدء البيع
+                {% else %}
+                تحديث بيانات متجرك ومعلومات الاتصال
+                {% endif %}
+            </p>
         </div>
     </div>
 
-    <form action="{{ url_for('suppliers_dashboard.update_settings') }}" method="POST">
-        <!-- إضافة الـ CSRF Token ضروري جداً للأمان -->
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        
-        <div class="row g-4">
-            <!-- الجزء الأول: بيانات الحساب الرسمية (غير قابلة للتعديل) -->
-            <div class="col-lg-6">
-                <div class="card shadow-sm border-0 p-4 h-100">
-                    <h5 class="mb-4 fw-bold" style="color: var(--royal-purple); border-bottom: 2px solid var(--mahjoub-gold);"><i class="fas fa-user-shield me-2"></i> بيانات الحساب الرسمية</h5>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">الاسم التجاري</label>
-                            <input type="text" class="form-control bg-light" value="{{ store.trade_name }}" disabled>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">الحالة</label>
-                            <input type="text" class="form-control bg-light text-success fw-bold" value="{{ 'نشط' if store.status == 'active' else 'موقوف' }}" disabled>
-                        </div>
-                    </div>
+    <div class="row g-4">
 
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted">الرتبة</label>
-                            <input type="text" class="form-control bg-light text-primary fw-bold" value="{{ store.rank | upper }}" disabled>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted">رقم الهاتف</label>
-                            <input type="text" class="form-control bg-light" value="{{ store.phone }}" disabled>
-                        </div>
-                    </div>
+        <!-- ✅ نموذج إعدادات المتجر -->
+        <div class="col-lg-8">
+            <div class="card settings-card">
+                <div class="settings-header">
+                    <h5><i class="fas fa-store"></i> معلومات المتجر</h5>
                 </div>
-            </div>
+                <div class="card-body p-4">
 
-            <!-- الجزء الثاني: بيانات الملف الشخصي (قابلة للتعديل) -->
-            <div class="col-lg-6">
-                <div class="card shadow-sm border-0 p-4 h-100">
-                    <h5 class="mb-4 fw-bold" style="color: var(--royal-purple); border-bottom: 2px solid var(--mahjoub-gold);"><i class="fas fa-address-card me-2"></i> بيانات الملف الشخصي</h5>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">اسم المالك</label>
-                            <input type="text" name="owner_name" class="form-control" value="{{ profile.owner_name or '' }}" placeholder="أدخل اسم المالك">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted">البريد الإلكتروني</label>
-                            <input type="email" name="email" class="form-control" value="{{ profile.email or '' }}" placeholder="example@mail.com">
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label text-muted">العنوان التفصيلي</label>
-                        <textarea name="address" class="form-control" rows="2">{{ profile.address or '' }}</textarea>
-                    </div>
+                    <form method="POST" action="{{ url_for('suppliers_dashboard.settings') }}" id="settingsForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
-                    <div class="text-end mt-3">
-                        <button type="submit" class="btn px-4" style="background: var(--royal-purple); color: white;">حفظ التغييرات</button>
-                    </div>
+                        <!-- ✅ اسم المتجر (إلزامي) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-tag text-muted me-1"></i> اسم المتجر <span class="required-star">*</span>
+                            </label>
+                            <input type="text" name="trade_name" 
+                                   value="{{ supplier.trade_name if supplier.trade_name else '' }}"
+                                   class="form-control {% if not supplier.trade_name %}border-warning{% endif %}" 
+                                   placeholder="مثال: متجر الرياض للإلكترونيات"
+                                   required>
+                            <small class="text-muted">هذا الاسم سيظهر للعملاء في المتجر</small>
+                        </div>
+
+                        <!-- ✅ اسم المالك -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-user text-muted me-1"></i> اسم المالك <span class="required-star">*</span>
+                            </label>
+                            <input type="text" name="owner_name" 
+                                   value="{{ supplier.owner_name if supplier.owner_name else '' }}"
+                                   class="form-control {% if not supplier.owner_name %}border-warning{% endif %}" 
+                                   placeholder="الاسم الكامل للمالك"
+                                   required>
+                        </div>
+
+                        <!-- ✅ البريد الإلكتروني -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-envelope text-muted me-1"></i> البريد الإلكتروني
+                            </label>
+                            <input type="email" name="email" 
+                                   value="{{ supplier.supplier_profile.email if supplier.supplier_profile and supplier.supplier_profile.email else '' }}"
+                                   class="form-control" 
+                                   placeholder="example@domain.com">
+                        </div>
+
+                        <!-- ✅ رقم الهاتف -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-phone text-muted me-1"></i> رقم الهاتف <span class="required-star">*</span>
+                            </label>
+                            <input type="text" name="phone" 
+                                   value="{{ supplier.phone if supplier.phone else '' }}"
+                                   class="form-control {% if not supplier.phone %}border-warning{% endif %}" 
+                                   placeholder="05XXXXXXXX" dir="ltr"
+                                   required>
+                            <small class="text-muted">أدخل رقم الهاتف بدون فواصل</small>
+                        </div>
+
+                        <!-- ✅ وصف المتجر (جديد) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-align-right text-muted me-1"></i> وصف المتجر
+                            </label>
+                            <textarea name="description" class="form-control" rows="3" 
+                                      placeholder="وصف قصير عن متجرك ونشاطك التجاري">{{ supplier.supplier_profile.description if supplier.supplier_profile and supplier.supplier_profile.description else '' }}</textarea>
+                            <small class="text-muted">وصف يظهر في صفحة المتجر (اختياري)</small>
+                        </div>
+
+                        <!-- ✅ العنوان -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark">
+                                <i class="fas fa-map-marker-alt text-muted me-1"></i> العنوان
+                            </label>
+                            <textarea name="address" class="form-control" rows="2" 
+                                      placeholder="العنوان الكامل للمتجر">{{ supplier.supplier_profile.address if supplier.supplier_profile and supplier.supplier_profile.address else '' }}</textarea>
+                        </div>
+
+                        <!-- ✅ أزرار الإجراء -->
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="submit" class="btn btn-gold">
+                                <i class="fas fa-save me-2"></i> 
+                                {% if is_new %}إكمال التسجيل{% else %}حفظ التغييرات{% endif %}
+                            </button>
+                            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-right me-1"></i> رجوع
+                            </a>
+                        </div>
+
+                    </form>
+
                 </div>
             </div>
         </div>
-    </form>
+
+        <!-- ✅ معلومات إضافية -->
+        <div class="col-lg-4">
+            
+            <!-- ✅ بطاقة معلومات الحساب -->
+            <div class="card settings-card">
+                <div class="settings-header">
+                    <h5><i class="fas fa-info-circle"></i> معلومات الحساب</h5>
+                </div>
+                <div class="card-body p-4">
+
+                    <div class="info-box mb-3">
+                        <div class="label">كود المورد</div>
+                        <div class="value">{{ supplier.supplier_code if supplier.supplier_code else '---' }}</div>
+                    </div>
+
+                    <div class="info-box mb-3">
+                        <div class="label">اسم المستخدم</div>
+                        <div class="value">{{ supplier.username if supplier.username else '---' }}</div>
+                    </div>
+
+                    <div class="info-box mb-3">
+                        <div class="label">كود المحفظة</div>
+                        <div class="value">{{ supplier.wallet.wallet_code if supplier.wallet and supplier.wallet.wallet_code else '---' }}</div>
+                    </div>
+
+                    <div class="info-box mb-3">
+                        <div class="label">الرتبة</div>
+                        <div class="value">
+                            {% if supplier.rank == 'gold' %}
+                                <span class="badge bg-warning text-dark">🏆 ذهبي</span>
+                            {% elif supplier.rank == 'silver' %}
+                                <span class="badge bg-secondary">🥈 فضي</span>
+                            {% elif supplier.rank == 'bronze' %}
+                                <span class="badge bg-danger">🥉 برونزي</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">{{ supplier.rank or 'عادي' }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="info-box mb-0">
+                        <div class="label">تاريخ الانضمام</div>
+                        <div class="value">{{ supplier.created_at.strftime('%Y-%m-%d') if supplier.created_at else '---' }}</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ✅ بطاقة اكتمال الملف الشخصي -->
+            <div class="card settings-card mt-3">
+                <div class="settings-header" style="background: linear-gradient(135deg, #1a472a 0%, #2d6a4f 100%);">
+                    <h5><i class="fas fa-check-circle"></i> اكتمال الملف الشخصي</h5>
+                </div>
+                <div class="card-body p-4">
+                    
+                    {% set fields = [
+                        (supplier.trade_name, 'اسم المتجر'),
+                        (supplier.owner_name, 'اسم المالك'),
+                        (supplier.phone, 'رقم الهاتف')
+                    ] %}
+                    {% set completed = fields|selectattr(0)|list|length %}
+                    {% set total = fields|length %}
+                    {% set percent = (completed / total * 100)|round|int %}
+                    
+                    <div class="text-center mb-2">
+                        <span class="display-6 fw-bold" style="color: var(--mahjoub-gold);">{{ percent }}%</span>
+                        <span class="text-muted"> مكتمل</span>
+                    </div>
+                    
+                    <div class="completion-bar">
+                        <div class="fill" style="width: {{ percent }}%;"></div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        {% for field, label in fields %}
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-light">
+                            <span class="text-muted small">{{ label }}</span>
+                            {% if field %}
+                                <span class="text-success"><i class="fas fa-check-circle"></i></span>
+                            {% else %}
+                                <span class="text-danger"><i class="fas fa-times-circle"></i></span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if percent < 100 %}
+                    <div class="alert alert-warning mt-3 mb-0 py-2 small">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        أكمل جميع الحقول المطلوبة لإكمال ملفك الشخصي
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success mt-3 mb-0 py-2 small">
+                        <i class="fas fa-check-circle me-1"></i>
+                        ✅ ملفك الشخصي مكتمل
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+
+            <!-- ✅ رصيد المحفظة -->
+            <div class="card settings-card mt-3">
+                <div class="settings-header" style="background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5c 100%);">
+                    <h5><i class="fas fa-wallet"></i> رصيد المحفظة</h5>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div class="display-4 fw-bold" style="color: var(--mahjoub-gold);">
+                        {{ "{:,.2f}".format(supplier.wallet.balance_sar|float) if supplier.wallet and supplier.wallet.balance_sar else '0.00' }}
+                    </div>
+                    <div class="text-muted small">ريال سعودي (SAR)</div>
+                    <a href="{{ url_for('suppliers_dashboard.withdraw') }}" class="btn btn-gold mt-3 w-100">
+                        <i class="fas fa-hand-holding-usd me-2"></i> طلب سحب
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
 </div>
+
+<!-- ✅ JavaScript للتحقق من صحة النموذج -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('settingsForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const tradeName = form.querySelector('[name="trade_name"]');
+                const ownerName = form.querySelector('[name="owner_name"]');
+                const phone = form.querySelector('[name="phone"]');
+                
+                let hasError = false;
+                
+                // التحقق من اسم المتجر
+                if (!tradeName.value.trim()) {
+                    tradeName.classList.add('is-invalid');
+                    hasError = true;
+                } else {
+                    tradeName.classList.remove('is-invalid');
+                }
+                
+                // التحقق من اسم المالك
+                if (!ownerName.value.trim()) {
+                    ownerName.classList.add('is-invalid');
+                    hasError = true;
+                } else {
+                    ownerName.classList.remove('is-invalid');
+                }
+                
+                // التحقق من رقم الهاتف
+                if (!phone.value.trim() || phone.value.length < 9) {
+                    phone.classList.add('is-invalid');
+                    hasError = true;
+                } else {
+                    phone.classList.remove('is-invalid');
+                }
+                
+                if (hasError) {
+                    e.preventDefault();
+                    // عرض رسالة خطأ
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger mt-3';
+                    errorDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i> يرجى تعبئة جميع الحقول المطلوبة';
+                    const existingAlert = form.querySelector('.alert-danger');
+                    if (existingAlert) existingAlert.remove();
+                    form.prepend(errorDiv);
+                }
+            });
+        }
+    });
+</script>
+
 {% endblock %}
