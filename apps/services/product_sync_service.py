@@ -21,8 +21,6 @@ query($qid: String!) {
             pricing {
                 price
                 compareAtPrice
-                costPrice
-                currency
             }
             images {
                 _id
@@ -35,7 +33,7 @@ query($qid: String!) {
             }
             variants {
                 _id
-                sku
+                name
                 quantity
                 pricing {
                     price
@@ -67,7 +65,6 @@ class ProductSyncService:
                     pricing {
                         price
                         compareAtPrice
-                        costPrice
                     }
                     quantity
                     images {
