@@ -12,11 +12,13 @@ class SupplierProfile(db.Model):
     __table_args__ = (
         db.Index('idx_prof_supplier_id', 'supplier_id'),
         db.Index('idx_prof_trade_name', 'trade_name'),
-        db.Index('idx_prof_email', 'email'),
+        # ❌ تم إزالة: db.Index('idx_prof_email', 'email'),
         db.Index('idx_prof_gov', 'governorate'),
         db.Index('idx_prof_city', 'city'),
         db.Index('idx_prof_address', 'address'),
         db.Index('idx_prof_category', 'category'),
+        # ✅ اختياري: فهرس على العمود المشفر للبريد الإلكتروني
+        db.Index('idx_prof_email_enc', '_email_enc'),
         {'extend_existing': True}
     )
     
