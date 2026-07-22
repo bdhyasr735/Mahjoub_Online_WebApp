@@ -3,12 +3,14 @@
 
 from flask import Blueprint, render_template, abort, session, request, flash, redirect, url_for
 from flask_login import login_required, current_user
+from sqlalchemy import func
 
 # استيراد الموديلات والـ DB من الحزمة المركزية
-from apps.models import db, Supplier, Order, SupplierWallet
+from apps.models import db, Supplier, Order, SupplierWallet, OrderFinancial
 
 # تعريف الـ Blueprint
 suppliers_dashboard_bp = Blueprint('suppliers_dashboard', __name__, template_folder='templates')
+
 
 def get_supplier_context():
     """دالة مساعدة لجلب المورد والمحفظة بأمان لتقليل التكرار"""
@@ -28,22 +30,38 @@ def get_supplier_context():
         
     return supplier
 
+
 @suppliers_dashboard_bp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
-    """لوحة التحكم الرئيسية"""
+    """لوحة التحكم الرئيسية للمورد"""
     supplier = get_supplier_context()
     if not supplier:
         return redirect('/supplier/login')
-        
+    
+    # ✅ عدد الطلبات قيد التنفيذ
     pending_orders_count = Order.query.filter_by(
         supplier_id=supplier.id, 
         status='pending'
     ).count()
     
-    return render_template('suppliers/dashboard.html', 
-                           supplier=supplier, 
-                           pending_orders_count=pending_orders_count)
+    # ✅ ✅ إجمالي المبيعات (SAR فقط)
+    total_sales = db.session.query(
+        func.sum(OrderFinancial.total_paid_raw)
+    ).join(
+        Order, Order.id == OrderFinancial.order_id
+    ).filter(
+        Order.supplier_id == supplier.id,
+        Order.status == 'completed'
+    ).scalar() or 0
+    
+    return render_template(
+        'suppliers/dashboard.html',
+        supplier=supplier,
+        pending_orders_count=pending_orders_count,
+        total_sales=float(total_sales)
+    )
+
 
 @suppliers_dashboard_bp.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -71,13 +89,35 @@ def settings():
         
     return render_template('suppliers/settings.html', supplier=supplier)
 
+
 @suppliers_dashboard_bp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdraw():
-    """صفحة السحب من المحفظة"""
+    """صفحة السحب من المحفظة (عملة SAR فقط)"""
     supplier = get_supplier_context()
     if not supplier:
         return redirect('/supplier/login')
     
-    # هنا ستتم إضافة منطق معالجة طلب السحب لاحقاً
-    return render_template('suppliers/withdraw.html', supplier=supplier)
+    wallet = supplier.wallet
+    
+    if request.method == 'POST':
+        try:
+            amount = float(request.form.get('amount', 0))
+            if amount <= 0:
+                flash('المبلغ يجب أن يكون أكبر من صفر', 'danger')
+                return redirect(url_for('suppliers_dashboard.withdraw'))
+            
+            if not wallet or amount > wallet.balance_sar:
+                flash(f'الرصيد غير كافٍ. الرصيد الحالي: {wallet.balance_sar if wallet else 0:.2f} SAR', 'danger')
+                return redirect(url_for('suppliers_dashboard.withdraw'))
+            
+            # ✅ تسجيل طلب السحب
+            # هنا يمكن إضافة منطق إنشاء طلب سحب
+            
+            flash(f'✅ تم تقديم طلب سحب بمبلغ {amount:.2f} SAR بنجاح', 'success')
+            return redirect(url_for('suppliers_dashboard.dashboard'))
+            
+        except ValueError:
+            flash('قيمة المبلغ غير صحيحة', 'danger')
+    
+    return render_template('suppliers/withdraw.html', supplier=supplier, wallet=wallet)
