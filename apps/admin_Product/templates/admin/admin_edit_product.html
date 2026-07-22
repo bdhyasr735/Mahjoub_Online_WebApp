@@ -7,7 +7,6 @@
     <i class="fas fa-edit me-2 text-primary"></i> تعديل المنتج
   </h2>
 
-  <!-- تفاصيل المنتج -->
   <div class="card shadow-sm mb-4 border-0">
     <div class="card-header" style="background-color: var(--royal-purple); color: var(--mahjoub-gold);">
       <i class="fas fa-box-open me-2"></i> بيانات المنتج
@@ -16,25 +15,25 @@
       <form id="editProductForm" method="POST" enctype="multipart/form-data" action="{{ url_for('admin_product_bp.save_sync_product') }}">
         <input type="hidden" name="qid" value="{{ product.qid }}">
 
-        <!-- العنوان -->
+        <!-- فقرة العنوان -->
         <div class="mb-3">
           <label class="form-label fw-bold text-dark">العنوان</label>
           <input type="text" class="form-control shadow-sm" name="title" value="{{ product.title }}">
         </div>
 
-        <!-- الرابط -->
+        <!-- فقرة الرابط -->
         <div class="mb-3">
           <label class="form-label fw-bold text-dark">الرابط (Slug)</label>
           <input type="text" class="form-control shadow-sm" name="slug" value="{{ product.slug }}">
         </div>
 
-        <!-- الوصف -->
+        <!-- فقرة الوصف -->
         <div class="mb-3">
           <label class="form-label fw-bold text-dark">الوصف</label>
           <textarea class="form-control shadow-sm" name="description">{{ product.description }}</textarea>
         </div>
 
-        <!-- السعر والكمية -->
+        <!-- فقرة السعر والكمية -->
         <div class="row">
           <div class="col-md-4 mb-3">
             <label class="form-label fw-bold text-dark">SKU</label>
@@ -61,7 +60,7 @@
           </div>
         </div>
 
-        <!-- المتغيرات -->
+        <!-- فقرة المتغيرات -->
         <h5 class="mt-4 fw-bold text-dark"><i class="fas fa-layer-group me-2"></i> المتغيرات (Variants)</h5>
         {% if product.variants %}
         <table class="table table-hover align-middle shadow-sm rounded">
@@ -86,28 +85,28 @@
         <p class="text-muted">لا توجد متغيرات لهذا المنتج.</p>
         {% endif %}
 
-        <!-- المورد -->
+        <!-- فقرة المورد -->
         <div class="mb-3">
           <label class="form-label fw-bold text-dark">المورد</label>
-          <select class="form-select shadow-sm" name="supplier_id">
-            <option value="">اختر المورد</option>
+          <select class="form-select shadow-sm" id="supplierSelect" name="supplier_id">
+            <option value="">اختر المورد...</option>
             {% for s in suppliers %}
               <option value="{{ s.id }}" {% if assigned_supplier_id == s.id %}selected{% endif %}>{{ s.name }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <!-- المجموعات -->
+        <!-- فقرة المجموعات -->
         <div class="mb-3">
           <label class="form-label fw-bold text-dark">المجموعات</label>
-          <select class="form-select shadow-sm" name="collection_ids" multiple>
+          <select class="form-select shadow-sm" id="collectionSelect" name="collection_ids" multiple>
             {% for c in all_collections %}
               <option value="{{ c.qid }}" {% if c.qid in product.collections|map(attribute='qid') %}selected{% endif %}>{{ c.title }}</option>
             {% endfor %}
           </select>
         </div>
 
-        <!-- الصور -->
+        <!-- فقرة الصور -->
         <div class="mb-3">
           <label class="form-label fw-bold text-dark">الصور</label>
           <input type="file" class="form-control shadow-sm" name="images" multiple>
@@ -118,6 +117,7 @@
           </div>
         </div>
 
+        <!-- زر الحفظ -->
         <button type="submit" class="btn btn-custom px-4 shadow-sm">
           <i class="fas fa-save me-2"></i> حفظ التعديلات
         </button>
@@ -125,4 +125,20 @@
     </div>
   </div>
 </div>
+
+<!-- تفعيل البحث داخل القوائم باستخدام Select2 -->
+<script>
+  $(document).ready(function() {
+    $('#supplierSelect').select2({
+      placeholder: "ابحث واختر المورد...",
+      allowClear: true,
+      width: '100%'
+    });
+    $('#collectionSelect').select2({
+      placeholder: "ابحث واختر المجموعات...",
+      allowClear: true,
+      width: '100%'
+    });
+  });
+</script>
 {% endblock %}
