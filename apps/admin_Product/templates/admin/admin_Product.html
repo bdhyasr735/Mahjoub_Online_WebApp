@@ -1,5 +1,5 @@
 <!-- 📂 apps/admin_Product/templates/admin/admin_Product.html -->
-{% extends "admin/admin_base.html" %}
+{% extends "admin_dashboard/admin_base.html" %}
 
 {% block content %}
 <style>
@@ -20,7 +20,6 @@
             <h3 class="fw-bold mb-0 text-dark">
                 <i class="fas fa-boxes text-muted me-2"></i> إدارة المنتجات
             </h3>
-            <!-- ✅ عرض عدد المنتجات -->
             <h6 class="text-muted mt-2">
                 عدد المنتجات الحالية: {{ products|length }}
             </h6>
@@ -44,13 +43,11 @@
         </div>
     </div>
 
-    <!-- 🟣 عرض الجدول -->
     <div id="results-container">
         {% include 'admin/includes/_table_products.html' %}
     </div>
 </div>
 
-<!-- Modal المزامنة مع تضمين رمز حماية الـ CSRF -->
 <div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
