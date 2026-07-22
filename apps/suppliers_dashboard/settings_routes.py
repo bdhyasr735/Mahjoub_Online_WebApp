@@ -7,6 +7,7 @@ import traceback
 
 from apps.models import db, Supplier, SupplierWallet
 from apps.models.supplier_profile_db import SupplierProfile
+from apps.data.yemen_data import YEMEN_GOVERNORATES
 
 settings_bp = Blueprint(
     'suppliers_settings',
@@ -45,20 +46,28 @@ def settings():
         # ✅ معالجة POST
         if request.method == 'POST':
             try:
+                # ✅ تحديث بيانات المورد الأساسية
                 supplier.trade_name = request.form.get('trade_name', supplier.trade_name)
-                supplier.owner_name = request.form.get('owner_name', supplier.owner_name)
+                # ❌ owner_name لا يتم تحديثه (للقراءة فقط)
+                # supplier.owner_name = request.form.get('owner_name', supplier.owner_name)
+                
+                # ✅ تحديث رقم الهاتف
                 new_phone = request.form.get('phone', '')
                 if new_phone and new_phone != supplier.phone:
                     supplier.phone = new_phone
                 
+                # ✅ تحديث الملف الشخصي
                 profile = getattr(supplier, 'supplier_profile', None)
                 if not profile:
                     profile = SupplierProfile(supplier_id=supplier.id)
                     db.session.add(profile)
                 
+                # ✅ حفظ البيانات الجديدة
                 profile.email = request.form.get('email', '')
                 profile.address = request.form.get('address', '')
                 profile.description = request.form.get('description', '')
+                profile.governorate = request.form.get('governorate', '')
+                profile.city = request.form.get('city', '')
                 
                 db.session.commit()
                 flash('✅ تم تحديث البيانات بنجاح', 'success')
@@ -70,8 +79,12 @@ def settings():
             
             return redirect(url_for('suppliers_settings.settings'))
         
-        # ✅ عرض الصفحة
-        return render_template('suppliers/settings.html', supplier=supplier)
+        # ✅ عرض الصفحة مع تمرير المحافظات
+        return render_template(
+            'suppliers/settings.html',
+            supplier=supplier,
+            governorates=YEMEN_GOVERNORATES
+        )
         
     except Exception as e:
         # ✅ عرض تفاصيل الخطأ كاملة
