@@ -1,168 +1,76 @@
 # coding: utf-8
-# 📂 apps/suppliers_auth_portal/routes.py
+# 📂 apps/suppliers_dashboard/routes/dashboard_routes.py
 
-from flask import Blueprint, render_template, request, jsonify, session, url_for, redirect
-from flask_login import login_user, logout_user, login_required
-from sqlalchemy import or_
-from datetime import datetime, timedelta
-from apps.models.supplier_db import Supplier
-from apps.models.supplier_staff_db import SupplierStaff
+from flask import Blueprint, render_template, session, redirect, jsonify
+from flask_login import login_required, current_user
+import traceback
+
+from apps.models import db, Supplier, Order, SupplierWallet
 
 # ✅ تعريف الـ Blueprint بالاسم الصحيح
-suppliers_bp = Blueprint('suppliers_auth', __name__, template_folder='templates')
-
-def get_wait_time(attempts):
-    if attempts <= 5: return 0
-    return 2 ** (attempts - 6)
-
-
-# ============================================================
-# 🔍 مسار اختبار الدخول (للتشخيص)
-# ============================================================
-@suppliers_bp.route('/test-login', methods=['GET', 'POST'])
-def test_login():
-    if request.method == 'GET':
-        return '''
-        <h2>🔍 اختبار الدخول</h2>
-        <form method="POST" style="direction: rtl; font-family: Tahoma; padding: 20px;">
-            <div style="margin-bottom: 10px;">
-                <label>اسم المستخدم:</label><br>
-                <input type="text" name="username" placeholder="أدخل اسم المستخدم" style="padding: 8px; width: 250px;">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label>كلمة المرور:</label><br>
-                <input type="password" name="password" placeholder="أدخل كلمة المرور" style="padding: 8px; width: 250px;">
-            </div>
-            <button type="submit" style="padding: 8px 20px; background: #2d0b36; color: #fff; border: none; border-radius: 5px;">دخول</button>
-        </form>
-        <hr>
-        <p><strong>المستخدم الافتراضي:</strong> test_supplier / 123</p>
-        '''
-    
-    username = request.form.get('username')
-    password = request.form.get('password')
-    
-    # البحث عن المستخدم
-    user = Supplier.query.filter_by(username=username).first()
-    
-    if not user:
-        return f"""
-        <div style="direction: rtl; font-family: Tahoma; padding: 20px;">
-            <h2 style="color: #d9534f;">❌ المستخدم غير موجود</h2>
-            <p>المستخدم <strong>'{username}'</strong> غير موجود في قاعدة البيانات.</p>
-            <p>المستخدمون المسجلون:</p>
-            <ul>
-            {''.join([f"<li>{u.username}</li>" for u in Supplier.query.all()])}
-            </ul>
-            <a href="/supplier/test-login">محاولة مرة أخرى</a>
-        </div>
-        """
-    
-    # التحقق من كلمة المرور
-    try:
-        if user.check_password(password):
-            return f"""
-            <div style="direction: rtl; font-family: Tahoma; padding: 20px;">
-                <h2 style="color: #28a745;">✅ كلمة المرور صحيحة!</h2>
-                <p>المستخدم: <strong>{user.username}</strong></p>
-                <p>المتجر: <strong>{user.trade_name or 'غير محدد'}</strong></p>
-                <p>المعرف: <strong>{user.id}</strong></p>
-                <br>
-                <a href="/supplier/dashboard" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">اذهب للداشبورد</a>
-                <br><br>
-                <a href="/supplier/test-login">رجوع</a>
-            </div>
-            """
-        else:
-            return f"""
-            <div style="direction: rtl; font-family: Tahoma; padding: 20px;">
-                <h2 style="color: #d9534f;">❌ كلمة المرور غير صحيحة</h2>
-                <p>المستخدم: <strong>{user.username}</strong></p>
-                <p>كلمة المرور المدخلة غير صحيحة.</p>
-                <a href="/supplier/test-login">محاولة مرة أخرى</a>
-            </div>
-            """
-    except Exception as e:
-        return f"""
-        <div style="direction: rtl; font-family: Tahoma; padding: 20px;">
-            <h2 style="color: #d9534f;">❌ خطأ في التحقق</h2>
-            <p><strong>{str(e)}</strong></p>
-            <a href="/supplier/test-login">محاولة مرة أخرى</a>
-        </div>
-        """
+suppliers_dashboard_bp = Blueprint(
+    'suppliers_dashboard',
+    __name__,
+    template_folder='templates'
+)
 
 
-# ============================================================
-# 🟣 مسار تسجيل الدخول الأساسي
-# ============================================================
-@suppliers_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'GET':
-        return render_template('suppliers_auth_portal/login.html')
-
-    try:
-        # مسح الجلسة السابقة لضمان عدم وجود تداخل
-        session.clear()
-
-        # قراءة البيانات
-        username = request.form.get('username', '').strip() if not request.is_json else request.get_json().get('username', '').strip()
-        password = request.form.get('password', '') if not request.is_json else request.get_json().get('password', '')
-
-        # 1. التحقق من الحظر
-        block_until = session.get('block_until')
-        if block_until and datetime.now() < datetime.fromisoformat(block_until):
-            remaining = int((datetime.fromisoformat(block_until) - datetime.now()).total_seconds() / 60) + 1
-            msg = f"لا يمكنك المحاولة حالياً. يرجى الانتظار {remaining} دقيقة."
-            return jsonify({"status": "error", "message": msg}), 429 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-        # 2. البحث الشامل في الجدولين
-        target_user = Supplier.query.filter(or_(Supplier.search_phone == username, Supplier.username == username)).first()
-        found_as = 'supplier' if target_user else None
-
-        if not target_user:
-            target_user = SupplierStaff.query.filter(or_(SupplierStaff.search_phone == username, SupplierStaff.username == username)).first()
-            found_as = 'staff' if target_user else None
-
-        # 3. التحقق من وجود المستخدم
-        if not target_user:
-            msg = "المستخدم غير مسجل في المنصة اللامركزية"
-            return jsonify({"status": "error", "message": msg}), 404 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-        # 4. التحقق من كلمة المرور
-        if not target_user.check_password(password.strip()):
-            attempts = session.get('login_attempts', 0) + 1
-            session['login_attempts'] = attempts
-            if attempts >= 5:
-                wait_minutes = get_wait_time(attempts)
-                session['block_until'] = (datetime.now() + timedelta(minutes=wait_minutes)).isoformat()
-            
-            msg = "كلمة المرور غير صحيحة"
-            return jsonify({"status": "error", "message": msg}), 401 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-        # 5. التحقق من التفعيل
-        if hasattr(target_user, 'is_active') and not target_user.is_active:
-            msg = "الحساب غير مفعل حالياً."
-            return jsonify({"status": "error", "message": msg}), 403 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-        # 6. تسجيل الدخول
-        session['user_type'] = found_as
-        login_user(target_user, remember=True)
-        
-        redirect_url = url_for('suppliers_dashboard.dashboard')
-        return jsonify({"status": "success", "redirect": redirect_url}) if request.is_json else redirect(redirect_url)
-
-    except Exception as e:
-        print(f"❌ [Login Error]: {str(e)}")
-        msg = "حدث خطأ تقني في النظام"
-        return jsonify({"status": "error", "message": msg}), 500 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
-
-
-# ============================================================
-# 🟣 مسار تسجيل الخروج
-# ============================================================
-@suppliers_bp.route('/logout')
+@suppliers_dashboard_bp.route('/dashboard', methods=['GET'])
 @login_required
-def logout():
-    session.clear()
-    logout_user()
-    return redirect(url_for('suppliers_auth.login'))
+def dashboard():
+    try:
+        # ✅ جلب نوع المستخدم
+        user_type = session.get('user_type')
+        
+        # ✅ التحقق من وجود user_type
+        if user_type not in ['supplier', 'staff']:
+            return "❌ نوع المستخدم غير معروف", 400
+        
+        # ✅ جلب supplier_id بأمان
+        if user_type == 'staff':
+            supplier_id = getattr(current_user, 'supplier_id', None)
+        else:
+            supplier_id = current_user.id
+        
+        # ✅ التحقق من وجود supplier_id
+        if not supplier_id:
+            return "❌ لا يوجد مورد مرتبط بهذا الحساب", 404
+        
+        # ✅ جلب المورد
+        supplier = db.session.get(Supplier, supplier_id)
+        
+        if not supplier:
+            return "❌ المورد غير موجود", 404
+        
+        # ✅ جلب المحفظة
+        wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+        supplier.wallet = wallet
+        
+        # ✅ عدد الطلبات
+        pending_orders_count = Order.query.filter_by(
+            supplier_id=supplier.id, status='pending'
+        ).count()
+        
+        # ✅ عرض الصفحة
+        return render_template(
+            'suppliers/dashboard.html',
+            supplier=supplier,
+            pending_orders_count=pending_orders_count,
+            total_sales=0
+        )
+        
+    except Exception as e:
+        # ✅ عرض تفاصيل الخطأ كاملة
+        error_details = traceback.format_exc()
+        print(f"❌ خطأ في dashboard: {error_details}")
+        
+        return f"""
+        <div style="direction: rtl; font-family: Tahoma; padding: 30px; text-align: center;">
+            <h2 style="color: #d9534f;">❌ خطأ في لوحة التحكم</h2>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: right; margin: 20px auto; max-width: 800px; overflow: auto; border: 1px solid #ddd;">
+                <p><strong>تفاصيل الخطأ:</strong></p>
+                <pre style="background: #fff; padding: 15px; border-radius: 5px; border: 1px solid #ddd; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">{error_details}</pre>
+            </div>
+            <a href="/supplier/dashboard" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">محاولة مرة أخرى</a>
+        </div>
+        """, 500
