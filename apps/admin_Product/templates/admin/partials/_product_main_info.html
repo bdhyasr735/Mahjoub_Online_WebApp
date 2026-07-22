@@ -1,79 +1,98 @@
-<!-- 1. القسم الأول: البيانات الأساسية والوصف -->
+<!-- القسم الأول: البيانات الأساسية والوصف -->
 <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-[var(--royal-purple-light)]">
-    <h2 class="text-lg font-bold text-[var(--royal-midnight-900)] mb-4 flex items-center gap-2 border-b pb-3 border-[var(--royal-purple-light)]">
-        <i class="fa-solid fa-circle-info text-[var(--royal-purple-accent)]"></i> البيانات الأساسية للقطعة والوصف
-    </h2>
-    <div class="space-y-4">
-        <!-- اسم المنتج -->
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">اسم المنتج (title)</label>
-            <input type="text" name="title" value="{{ product.title if product.title else (product.info.title if product.info and product.info.title else '') }}" class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition" placeholder="أدخل اسم المنتج هنا..." required>
-        </div>
 
-        <!-- نبذة مختصرة أو عنوان فرعي -->
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">نبذة مختصرة (subtitle / summary)</label>
-            <input type="text" name="subtitle" value="{{ product.subtitle if product.subtitle else (product.info.subtitle if product.info and product.info.subtitle else '') }}" class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition" placeholder="وصف قصير يظهر تحت عنوان المنتج...">
-        </div>
+  <!-- عنوان القسم -->
+  <h2 class="text-lg font-bold text-[var(--royal-midnight-900)] mb-4 flex items-center gap-2 border-b pb-3 border-[var(--royal-purple-light)]">
+    <i class="fa-solid fa-circle-info text-[var(--royal-purple-accent)]"></i> البيانات الأساسية للقطعة والوصف
+  </h2>
 
-        <!-- محرر الوصف الغني -->
-        <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">وصف المنتج التفصيلي (description)</label>
-            <!-- أدوات التحرير -->
-            <div class="flex flex-wrap items-center gap-1 bg-gray-50 border border-b-0 rounded-t-xl p-2 border-gray-200">
-                <!-- أزرار التنسيق -->
-                <button type="button" onclick="formatText('bold')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="تثخين الخط"><i class="fa-solid fa-bold text-xs"></i></button>
-                <button type="button" onclick="formatText('italic')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="خط مائل"><i class="fa-solid fa-italic text-xs"></i></button>
-                <button type="button" onclick="formatText('underline')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="خط تحتي"><i class="fa-solid fa-underline text-xs"></i></button>
-                <!-- محاذاة -->
-                <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
-                <button type="button" onclick="formatText('justifyRight')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="محاذاة لليمين"><i class="fa-solid fa-align-right text-xs"></i></button>
-                <button type="button" onclick="formatText('justifyCenter')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="توسيط"><i class="fa-solid fa-align-center text-xs"></i></button>
-                <button type="button" onclick="formatText('justifyLeft')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="محاذاة لليسار"><i class="fa-solid fa-align-left text-xs"></i></button>
-                <!-- قوائم -->
-                <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
-                <button type="button" onclick="formatText('insertUnorderedList')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="قائمة نقطية"><i class="fa-solid fa-list-ul text-xs"></i></button>
-                <button type="button" onclick="formatText('insertOrderedList')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="قائمة رقمية"><i class="fa-solid fa-list-ol text-xs"></i></button>
-                <!-- روابط وألوان -->
-                <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
-                <button type="button" onclick="openLinkModal()" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="إدراج رابط"><i class="fa-solid fa-link text-xs"></i></button>
-                <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
-                <div class="flex items-center gap-1 mr-auto">
-                    <span class="text-xs text-gray-500">لون النص:</span>
-                    <button type="button" onclick="formatTextColor('#0f071a')" class="w-4 h-4 rounded-full bg-[#0f071a] border border-gray-300 cursor-pointer" title="ملكي داكن"></button>
-                    <button type="button" onclick="formatTextColor('#6b21a8')" class="w-4 h-4 rounded-full bg-[#6b21a8] border border-gray-300 cursor-pointer" title="بنفسجي ملكي"></button>
-                    <button type="button" onclick="formatTextColor('#dc2626')" class="w-4 h-4 rounded-full bg-red-600 border border-gray-300 cursor-pointer" title="أحمر"></button>
-                    <button type="button" onclick="formatTextColor('#2563eb')" class="w-4 h-4 rounded-full bg-blue-600 border border-gray-300 cursor-pointer" title="أزرق"></button>
-                </div>
-            </div>
+  <div class="space-y-4">
 
-            <!-- صندوق التحرير -->
-            <div id="productDescriptionEditor" contenteditable="true" class="w-full min-h-[180px] max-h-[350px] overflow-y-auto px-4 py-3 border border-t-0 rounded-b-xl royal-focus outline-none bg-white transition text-sm leading-relaxed" dir="auto">
-                {% if product.description %}
-                    {{ product.description | safe }}
-                {% elif product.info and product.info.description %}
-                    {{ product.info.description | safe }}
-                {% else %}
-                    <p>أدخل تفاصيل ومميزات المنتج هنا...</p>
-                {% endif %}
-            </div>
-            <input type="hidden" name="description" id="hiddenDescription">
-        </div>
-
-        <!-- ✅ الحقول الجديدة: SKU والسعر والكمية -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">SKU</label>
-                <input type="text" name="sku" value="{{ product.ident.sku if product.ident }}" class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">السعر</label>
-                <input type="number" step="0.01" name="price" value="{{ product.pricing.price }}" class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">الكمية</label>
-                <input type="number" name="quantity" value="{{ product.quantity }}" class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition">
-            </div>
-        </div>
+    <!-- فقرة اسم المنتج -->
+    <div>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">اسم المنتج (title)</label>
+      <input type="text" name="title" 
+             value="{{ product.title if product.title else (product.info.title if product.info and product.info.title else '') }}" 
+             class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition" 
+             placeholder="أدخل اسم المنتج هنا..." required>
     </div>
+
+    <!-- فقرة النبذة المختصرة -->
+    <div>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">نبذة مختصرة (subtitle / summary)</label>
+      <input type="text" name="subtitle" 
+             value="{{ product.subtitle if product.subtitle else (product.info.subtitle if product.info and product.info.subtitle else '') }}" 
+             class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition" 
+             placeholder="وصف قصير يظهر تحت عنوان المنتج...">
+    </div>
+
+    <!-- فقرة الوصف التفصيلي -->
+    <div>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">وصف المنتج التفصيلي (description)</label>
+
+      <!-- أدوات التحرير -->
+      <div class="flex flex-wrap items-center gap-1 bg-gray-50 border border-b-0 rounded-t-xl p-2 border-gray-200">
+        <!-- أزرار التنسيق -->
+        <button type="button" onclick="formatText('bold')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="تثخين الخط"><i class="fa-solid fa-bold text-xs"></i></button>
+        <button type="button" onclick="formatText('italic')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="خط مائل"><i class="fa-solid fa-italic text-xs"></i></button>
+        <button type="button" onclick="formatText('underline')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="خط تحتي"><i class="fa-solid fa-underline text-xs"></i></button>
+
+        <!-- محاذاة -->
+        <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
+        <button type="button" onclick="formatText('justifyRight')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="محاذاة لليمين"><i class="fa-solid fa-align-right text-xs"></i></button>
+        <button type="button" onclick="formatText('justifyCenter')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="توسيط"><i class="fa-solid fa-align-center text-xs"></i></button>
+        <button type="button" onclick="formatText('justifyLeft')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="محاذاة لليسار"><i class="fa-solid fa-align-left text-xs"></i></button>
+
+        <!-- قوائم -->
+        <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
+        <button type="button" onclick="formatText('insertUnorderedList')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="قائمة نقطية"><i class="fa-solid fa-list-ul text-xs"></i></button>
+        <button type="button" onclick="formatText('insertOrderedList')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="قائمة رقمية"><i class="fa-solid fa-list-ol text-xs"></i></button>
+
+        <!-- روابط وألوان -->
+        <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
+        <button type="button" onclick="openLinkModal()" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="إدراج رابط"><i class="fa-solid fa-link text-xs"></i></button>
+        <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
+        <div class="flex items-center gap-1 mr-auto">
+          <span class="text-xs text-gray-500">لون النص:</span>
+          <button type="button" onclick="formatTextColor('#0f071a')" class="w-4 h-4 rounded-full bg-[#0f071a] border border-gray-300 cursor-pointer" title="ملكي داكن"></button>
+          <button type="button" onclick="formatTextColor('#6b21a8')" class="w-4 h-4 rounded-full bg-[#6b21a8] border border-gray-300 cursor-pointer" title="بنفسجي ملكي"></button>
+          <button type="button" onclick="formatTextColor('#dc2626')" class="w-4 h-4 rounded-full bg-red-600 border border-gray-300 cursor-pointer" title="أحمر"></button>
+          <button type="button" onclick="formatTextColor('#2563eb')" class="w-4 h-4 rounded-full bg-blue-600 border border-gray-300 cursor-pointer" title="أزرق"></button>
+        </div>
+      </div>
+
+      <!-- صندوق التحرير -->
+      <div id="productDescriptionEditor" contenteditable="true" 
+           class="w-full min-h-[180px] max-h-[350px] overflow-y-auto px-4 py-3 border border-t-0 rounded-b-xl royal-focus outline-none bg-white transition text-sm leading-relaxed" dir="auto">
+        {% if product.description %}
+          {{ product.description | safe }}
+        {% elif product.info and product.info.description %}
+          {{ product.info.description | safe }}
+        {% else %}
+          <p>أدخل تفاصيل ومميزات المنتج هنا...</p>
+        {% endif %}
+      </div>
+      <input type="hidden" name="description" id="hiddenDescription">
+    </div>
+
+    <!-- فقرة SKU والسعر والكمية -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">SKU</label>
+        <input type="text" name="sku" value="{{ product.ident.sku if product.ident }}" 
+               class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">السعر</label>
+        <input type="number" step="0.01" name="price" value="{{ product.pricing.price }}" 
+               class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">الكمية</label>
+        <input type="number" name="quantity" value="{{ product.quantity }}" 
+               class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition">
+      </div>
+    </div>
+
+  </div>
 </div>
