@@ -441,93 +441,134 @@
 
     const colInput = document.getElementById('collectionSearchInput');
     const colDropdown = document.getElementById('collectionsDropdownList');
-    const selectedColsContainer = document.getElementById('selectedCollectionsContainer');
-    const selectedCollectionsJsonInput = document.getElementById('selectedCollectionsJson');
-    const selectedCollectionsMap = new Map();
+    const selectedCollectionsContainer = document.getElementById('selectedCollectionsContainer');
+    const selectedCollectionsJson = document.getElementById('selectedCollectionsJson');
+
+    let selectedCollections = [];
+
+    try {
+        const initialCols = {{ product.collection_ids | default([]) | tojson }};
+        initialCols.forEach(colId => {
+            const item = document.querySelector(`.collection-item[data-id="${colId}"]`);
+            if (item) {
+                const name = item.getAttribute('data-name');
+                if (!selectedCollections.some(c => c.id === colId)) {
+                    selectedCollections.push({ id: colId, name: name });
+                }
+            }
+        });
+        updateCollectionsUI();
+    } catch(e) {
+        console.error("Error loading initial collections:", e);
+    }
 
     colInput.addEventListener('focus', () => colDropdown.classList.remove('hidden'));
     colInput.addEventListener('input', function() {
         const val = this.value.toLowerCase();
         colDropdown.classList.remove('hidden');
-        document.querySelectorAll('.collection-item').forEach(item => {
-            item.style.display = item.textContent.toLowerCase().includes(val) ? 'flex' : 'none';
+        document.querySelectorAll('.collection-item').forEach(opt => {
+            const text = opt.getAttribute('data-name').toLowerCase();
+            opt.style.display = text.includes(val) ? 'flex' : 'none';
         });
     });
-    
-    document.querySelectorAll('.collection-item').forEach(item => {
-        item.addEventListener('click', function() {
+
+    document.querySelectorAll('.collection-item').forEach(opt => {
+        opt.addEventListener('click', function() {
             const id = this.getAttribute('data-id');
             const name = this.getAttribute('data-name');
-            
-            if (!selectedCollectionsMap.has(id)) {
-                selectedCollectionsMap.set(id, name);
-                renderCollectionsTags();
+
+            if (!selectedCollections.some(c => c.id === id)) {
+                selectedCollections.push({ id, name });
+                updateCollectionsUI();
             }
-            colDropdown.classList.add('hidden');
+
             colInput.value = '';
+            colDropdown.classList.add('hidden');
+            colInput.focus();
         });
     });
 
-    function removeCollectionTag(id) {
-        selectedCollectionsMap.delete(id);
-        renderCollectionsTags();
-    }
+    function updateCollectionsUI() {
+        selectedCollectionsContainer.innerHTML = '';
+        const idsArray = [];
 
-    function renderCollectionsTags() {
-        selectedColsContainer.innerHTML = '';
-        const idsList = [];
-        selectedCollectionsMap.forEach((name, id) => {
-            idsList.push(id);
-            const tag = document.createElement('span');
-            tag.className = 'bg-[var(--royal-midnight-800)]/10 text-[var(--royal-midnight-900)] text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1 border border-[var(--royal-purple-light)]';
-            tag.innerHTML = `${name} <button type="button" class="hover:text-red-500 cursor-pointer" onclick="removeCollectionTag('${id}')"><i class="fa-solid fa-xmark"></i></button>`;
-            selectedColsContainer.appendChild(tag);
+        selectedCollections.forEach(col => {
+            idsArray.push(col.id);
+
+            const badge = document.createElement('div');
+            badge.className = 'bg-[var(--royal-midnight-800)]/5 border border-[var(--royal-purple-light)] text-[var(--royal-midnight-900)] px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs';
+            badge.innerHTML = `
+                <span>${col.name}</span>
+                <button type="button" class="text-gray-400 hover:text-red-600 cursor-pointer transition" onclick="removeCollection('${col.id}')">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+            selectedCollectionsContainer.appendChild(badge);
         });
-        selectedCollectionsJsonInput.value = JSON.stringify(idsList);
+
+        selectedCollectionsJson.value = JSON.stringify(idsArray);
     }
 
-    {% if product.collection_ids %}
-        {% for cid in product.collection_ids %}
-            {% for col in all_collections %}
-                {% if col.qid == cid %}
-                    selectedCollectionsMap.set("{{ col.qid }}", "{{ col.title }}");
-                {% endif %}
-            {% endfor %}
-        {% endfor %}
-        renderCollectionsTags();
-    {% endif %}
+    window.removeCollection = function(id) {
+        selectedCollections = selectedCollections.filter(c => c.id !== id);
+        updateCollectionsUI();
+    };
 
-    window.addEventListener('click', function(e) {
-        if (!e.target.closest('#supplierSearchInput') && !e.target.closest('#supplierDropdownList')) {
+    document.addEventListener('click', function(e) {
+        if (!supplierInput.contains(e.target) && !supplierDropdown.contains(e.target)) {
             supplierDropdown.classList.add('hidden');
         }
-        if (!e.target.closest('#collectionSearchInput') && !e.target.closest('#collectionsDropdownList')) {
+        if (!colInput.contains(e.target) && !colDropdown.contains(e.target) && !selectedCollectionsContainer.contains(e.target)) {
             colDropdown.classList.add('hidden');
         }
     });
 
     const dropZone = document.getElementById('dropZone');
     const imageInput = document.getElementById('imageInput');
+    const imageGallery = document.getElementById('imageGallery');
+
     dropZone.addEventListener('click', () => imageInput.click());
 
-    imageInput.addEventListener('change', function() {
-        const gallery = document.getElementById('imageGallery');
-        if (this.files && this.files.length > 0) {
-            for (let i = 0; i < this.files.length; i++) {
-                const file = this.files[i];
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const div = document.createElement('div');
-                    div.className = 'relative group border rounded-xl overflow-hidden bg-gray-100 h-28 shadow-xs new-uploaded-preview';
-                    div.innerHTML = `
-                        <img src="${e.target.result}" class="w-full h-full object-cover">
-                        <span class="absolute bottom-1 right-1 bg-emerald-600 text-white text-[10px] px-1.5 py-0.5 rounded">جديد</span>
-                    `;
-                    gallery.appendChild(div);
-                }
-                reader.readAsDataURL(file);
-            }
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('bg-[var(--royal-midnight-800)]/10');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('bg-[var(--royal-midnight-800)]/10');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('bg-[var(--royal-midnight-800)]/10');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            imageInput.files = e.dataTransfer.files;
+            previewNewImages(e.dataTransfer.files);
         }
     });
+
+    imageInput.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            previewNewImages(this.files);
+        }
+    });
+
+    function previewNewImages(files) {
+        document.querySelectorAll('.new-preview-card').forEach(el => el.remove());
+
+        Array.from(files).forEach((file) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const card = document.createElement('div');
+                card.className = 'relative group border-2 border-dashed border-[var(--royal-purple-accent)] rounded-xl overflow-hidden bg-purple-50/50 h-28 shadow-xs new-preview-card';
+                card.innerHTML = `
+                    <img src="${e.target.result}" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 inset-x-0 bg-[var(--royal-midnight-900)]/70 text-white text-[10px] text-center py-0.5 font-semibold">جديد للاستبدال</div>
+                `;
+                imageGallery.appendChild(card);
+            }
+            reader.readAsDataURL(file);
+        });
+    }
 </script>
 {% endblock %}
