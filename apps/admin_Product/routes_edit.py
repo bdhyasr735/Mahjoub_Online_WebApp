@@ -83,9 +83,8 @@ def save_sync_product():
         try:
             price = float(request.form.get('price', 0))
             compare_at_price = float(request.form.get('compare_at_price', 0))
-            cost_price = float(request.form.get('original_price', 0))
         except ValueError:
-            price, compare_at_price, cost_price = 0.0, 0.0, 0.0
+            price, compare_at_price = 0.0, 0.0
 
         try:
             quantity = int(request.form.get('quantity', 0))
@@ -94,14 +93,15 @@ def save_sync_product():
             quantity, weight_val = 0, 0.0
 
         info = {"title": title, "slug": slug, "status": status}
-        pricing = {"price": price, "compareAtPrice": compare_at_price, "costPrice": cost_price, "currency": "YER"}
+        # مطابقة بنية التسعير مع الـ Schema المحدثة (price و compareAtPrice فقط)
+        pricing = {"price": price, "compareAtPrice": compare_at_price}
         dims = {"length": 0, "width": 0, "height": 0, "unit": "cm"}
         weight = {"value": weight_val, "unit": "kg"}
         ident = {"sku": sku}
 
         collection_ids = json.loads(request.form.get('collection_ids', '[]') or '[]')
         
-        # معالجة قراءة المتغيرات
+        # معالجة قراءة المتغيرات بالشكل المتوافق مع الـ Schema
         variants_raw = request.form.get('variants', '')
         if variants_raw:
             try:
@@ -109,30 +109,24 @@ def save_sync_product():
             except Exception:
                 variants = []
         else:
-            var_names = request.form.getlist('variant_name[]')
             var_prices = request.form.getlist('variant_price[]')
             var_qtys = request.form.getlist('variant_qty[]')
-            var_skus = request.form.getlist('variant_sku[]')
             
             variants = []
-            for i in range(len(var_names)):
-                if var_names[i].strip():
-                    try:
-                        v_price = float(var_prices[i]) if i < len(var_prices) and var_prices[i] else 0.0
-                    except ValueError:
-                        v_price = 0.0
-                    try:
-                        v_qty = int(var_qtys[i]) if i < len(var_qtys) and var_qtys[i] else 0
-                    except ValueError:
-                        v_qty = 0
-                    v_sku = var_skus[i] if i < len(var_skus) else ''
-                    
-                    variants.append({
-                        "name": var_names[i],
-                        "price": v_price,
-                        "quantity": v_qty,
-                        "sku": v_sku
-                    })
+            for i in range(len(var_qtys)):
+                try:
+                    v_price = float(var_prices[i]) if i < len(var_prices) and var_prices[i] else 0.0
+                except ValueError:
+                    v_price = 0.0
+                try:
+                    v_qty = int(var_qtys[i]) if i < len(var_qtys) and var_qtys[i] else 0
+                except ValueError:
+                    v_qty = 0
+                
+                variants.append({
+                    "quantity": v_qty,
+                    "pricing": {"price": v_price}
+                })
 
         removed_images = json.loads(request.form.get('removed_images', '[]') or '[]')
         new_images = request.files.getlist('images')
