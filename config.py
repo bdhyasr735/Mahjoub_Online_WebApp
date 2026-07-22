@@ -73,8 +73,16 @@ class Config:
     # ✅ تمكين الذكاء الاصطناعي
     AI_ENABLED = os.environ.get('AI_ENABLED', 'true').lower() == 'true'
     
+    # ============================================================
+    # 🌐 إعدادات OpenRouter (بديل مجاني لـ DeepSeek)
+    # ============================================================
+    OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
+    OPENROUTER_API_URL = os.environ.get('OPENROUTER_API_URL', 'https://openrouter.ai/api/v1/chat/completions')
+    OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'mistralai/mistral-7b-instruct:free')
+    
     # ✅ طباعة للتأكد من وجود المفتاح (في السجلات)
     print(f"🔑 DEEPSEEK_API_KEY: {DEEPSEEK_API_KEY[:10] if DEEPSEEK_API_KEY else '❌ غير موجود'}...")
+    print(f"🌐 OPENROUTER_API_KEY: {OPENROUTER_API_KEY[:15] if OPENROUTER_API_KEY else '❌ غير موجود'}...")
     print(f"🤖 AI_ENABLED: {AI_ENABLED}")
 
     @classmethod
@@ -88,8 +96,14 @@ class Config:
         
         # ✅ التحقق من مفتاح DeepSeek إذا كان مفعلاً
         if cls.AI_ENABLED and not cls.DEEPSEEK_API_KEY:
-            print("⚠️ [AI]: DEEPSEEK_API_KEY غير موجود. سيتم تعطيل الذكاء الاصطناعي.")
+            print("⚠️ [AI]: DEEPSEEK_API_KEY غير موجود. سيتم تعطيل DeepSeek.")
         elif cls.AI_ENABLED and cls.DEEPSEEK_API_KEY:
             print(f"✅ [AI]: DEEPSEEK_API_KEY موجود ومفعل.")
+        
+        # ✅ التحقق من مفتاح OpenRouter
+        if cls.AI_ENABLED and not cls.OPENROUTER_API_KEY:
+            print("⚠️ [OpenRouter]: OPENROUTER_API_KEY غير موجود.")
+        elif cls.AI_ENABLED and cls.OPENROUTER_API_KEY:
+            print(f"✅ [OpenRouter]: OPENROUTER_API_KEY موجود ومفعل.")
         
         return True
