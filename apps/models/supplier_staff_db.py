@@ -1,139 +1,83 @@
 # coding: utf-8
-# 📂 apps/models/supplier_profile_db.py
+# 📂 apps/models/supplier_staff_db.py
 
 import os
+from datetime import datetime
 from cryptography.fernet import Fernet
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 from apps.extensions import db
 
-class SupplierProfile(db.Model):
-    __tablename__ = 'supplier_profiles'
+class SupplierStaff(db.Model, UserMixin):
+    __tablename__ = 'supplier_staff'
     
-    # [صمام الأمان]: فهرسة مسمّاة لضمان سرعة الاستعلامات
+    # [فهرسة متقدمة]: فهرسة الحقول الأكثر استخداماً في البحث والفلترة
     __table_args__ = (
-        db.Index('idx_prof_supplier_id', 'supplier_id'),
-        db.Index('idx_prof_trade_name', 'trade_name'),
-        db.Index('idx_prof_email', 'email'),
-        db.Index('idx_prof_gov', 'governorate'),
-        db.Index('idx_prof_city', 'city'),
-        db.Index('idx_prof_address', 'address'),
-        db.Index('idx_prof_category', 'category'),
+        db.Index('idx_sup_staff_username', 'username'),
+        db.Index('idx_sup_staff_phone', 'search_phone'),
+        db.Index('idx_sup_staff_active', 'is_active'),
+        # فهرس فريد مركب لمنع تكرار الموظف لنفس المورد
+        db.Index('idx_unique_staff_in_supplier', 'supplier_id', 'username', unique=True),
         {'extend_existing': True}
     )
     
+    # 1. الأعمدة الأساسية
     id = db.Column(db.Integer, primary_key=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    username = db.Column(db.String(100), nullable=False)
     
-    # ✅ حقول غير مشفرة (للسرعة والبحث)
-    trade_name = db.Column(db.String(150))
-    governorate = db.Column(db.String(100), nullable=True)
-    city = db.Column(db.String(100), nullable=True)
-    category = db.Column(db.String(100), nullable=True)
+    # [التشفير السيادي]: الهاتف مشفر وله فهرس للبحث
+    _phone_enc = db.Column(db.String(255), nullable=False) 
+    search_phone = db.Column(db.String(20)) 
     
-    # ✅ [تشفير سيادي]: جميع البيانات الحساسة مشفرة
-    _email_enc = db.Column(db.String(255), nullable=True)
-    _address_enc = db.Column(db.String(500), nullable=True)
-    _description_enc = db.Column(db.Text, nullable=True)
-    _bank_account_enc = db.Column(db.String(255), nullable=True)
-    _id_number_enc = db.Column(db.String(255), nullable=True)
-    _bank_name_enc = db.Column(db.String(255), nullable=True)        # ✅ اسم البنك
-    _company_name_enc = db.Column(db.String(255), nullable=True)     # ✅ اسم الشركة
-    _commercial_reg_enc = db.Column(db.String(255), nullable=True)   # ✅ السجل التجاري
+    email = db.Column(db.String(150), nullable=True)
     
-    # [التحميل المتصل]: استخدام 'joined' يضمن جلب بيانات المورد في نفس الاستعلام
+    # [تعديل هام]: زيادة الطول إلى 500 لتجنب قص الـ Hash الناتج عن pbkdf2:sha256
+    password_hash = db.Column(db.String(500), nullable=False)
+    
+    role = db.Column(db.String(50), default='worker')
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # [الصلاحيات]: حقول للتحكم في وصول الموظف
+    can_view_wallet = db.Column(db.Boolean, default=False)
+    can_manage_orders = db.Column(db.Boolean, default=False)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # 3. العلاقات
     supplier = db.relationship(
         'Supplier', 
-        back_populates='supplier_profile',
+        back_populates='staff_members',
         lazy='joined' 
     )
 
-    # --- نظام التشفير (AES-256) ---
+    # 4. التشفير (Fernet AES-256 للهاتف)
     @staticmethod
     def _get_key():
+        # استخدام مفتاح البيئة لضمان سرية البيانات
         return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
 
-    def _encrypt(self, value):
-        if not value:
-            return None
+    @property
+    def phone(self):
         try:
-            return Fernet(self._get_key()).encrypt(str(value).encode()).decode()
-        except:
+            return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
+        except: 
             return None
 
-    def _decrypt(self, value):
-        if not value:
-            return None
-        try:
-            return Fernet(self._get_key()).decrypt(value.encode()).decode()
-        except:
-            return None
+    @phone.setter
+    def phone(self, value):
+        if value:
+            self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
+            self.search_phone = str(value)[-9:] 
 
-    # ============================================================
-    # ✅ Properties المشفرة
-    # ============================================================
-    
-    @property
-    def email(self):
-        return self._decrypt(self._email_enc)
-    
-    @email.setter
-    def email(self, value):
-        self._email_enc = self._encrypt(value)
+    # 5. التشفير الآمن لكلمة المرور (مع تنظيف المسافات)
+    def set_password(self, password):
+        """تشقير كلمة المرور وتخزينها مع إزالة أي مسافات زائدة."""
+        self.password_hash = generate_password_hash(password.strip(), method='pbkdf2:sha256')
 
-    @property
-    def address(self):
-        return self._decrypt(self._address_enc)
-    
-    @address.setter
-    def address(self, value):
-        self._address_enc = self._encrypt(value)
-
-    @property
-    def description(self):
-        return self._decrypt(self._description_enc)
-    
-    @description.setter
-    def description(self, value):
-        self._description_enc = self._encrypt(value)
-
-    @property
-    def bank_account(self):
-        return self._decrypt(self._bank_account_enc)
-    
-    @bank_account.setter
-    def bank_account(self, value):
-        self._bank_account_enc = self._encrypt(value)
-
-    @property
-    def id_number(self):
-        return self._decrypt(self._id_number_enc)
-    
-    @id_number.setter
-    def id_number(self, value):
-        self._id_number_enc = self._encrypt(value)
-
-    @property
-    def bank_name(self):
-        return self._decrypt(self._bank_name_enc)
-    
-    @bank_name.setter
-    def bank_name(self, value):
-        self._bank_name_enc = self._encrypt(value)
-
-    @property
-    def company_name(self):
-        return self._decrypt(self._company_name_enc)
-    
-    @company_name.setter
-    def company_name(self, value):
-        self._company_name_enc = self._encrypt(value)
-
-    @property
-    def commercial_reg(self):
-        return self._decrypt(self._commercial_reg_enc)
-    
-    @commercial_reg.setter
-    def commercial_reg(self, value):
-        self._commercial_reg_enc = self._encrypt(value)
+    def check_password(self, password):
+        """التحقق من كلمة المرور مع تنظيف المدخلات."""
+        return check_password_hash(self.password_hash, password.strip())
 
     def __repr__(self):
-        return f'<Profile {self.trade_name} | {self.governorate} | {self.city} | {self.category}>'
+        return f'<SupplierStaff {self.username} | Active: {self.is_active}>'
