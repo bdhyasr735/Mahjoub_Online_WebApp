@@ -1,8 +1,9 @@
 # coding: utf-8
 # 📂 apps/suppliers_dashboard/routes/dashboard_routes.py
 
-from flask import Blueprint, render_template, session, redirect
+from flask import Blueprint, render_template, session, redirect, jsonify
 from flask_login import login_required, current_user
+import traceback
 
 from apps.models import db, Supplier, Order, SupplierWallet
 
@@ -58,10 +59,17 @@ def dashboard():
         )
         
     except Exception as e:
+        # ✅ عرض تفاصيل الخطأ كاملة
+        error_details = traceback.format_exc()
+        print(f"❌ خطأ في dashboard: {error_details}")
+        
         return f"""
         <div style="direction: rtl; font-family: Tahoma; padding: 30px; text-align: center;">
             <h2 style="color: #d9534f;">❌ خطأ في لوحة التحكم</h2>
-            <p><strong>{str(e)}</strong></p>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: right; margin: 20px auto; max-width: 800px; overflow: auto; border: 1px solid #ddd;">
+                <p><strong>تفاصيل الخطأ:</strong></p>
+                <pre style="background: #fff; padding: 15px; border-radius: 5px; border: 1px solid #ddd; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">{error_details}</pre>
+            </div>
             <a href="/supplier/dashboard" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">محاولة مرة أخرى</a>
         </div>
         """, 500
