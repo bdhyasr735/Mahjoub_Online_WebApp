@@ -90,7 +90,7 @@ def test_ai():
 @login_required
 def ask_ai():
     """
-    واجهة API للتواصل مع OpenRouter (Gemma 2 مجاناً)
+    واجهة API للتواصل مع OpenRouter (نماذج مجانية متعددة)
     """
     try:
         data = request.get_json()
