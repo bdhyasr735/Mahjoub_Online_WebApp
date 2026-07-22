@@ -1,10 +1,10 @@
 # coding: utf-8
 # 📂 apps/suppliers_dashboard/dashboard_routes.py
 
-from flask import Blueprint, render_template, session, redirect, jsonify
+from flask import Blueprint, render_template, session, redirect
 from flask_login import login_required, current_user
 
-from apps.models import db, Supplier, Order, SupplierWallet
+from apps.models import db, Supplier, SupplierWallet
 
 suppliers_dashboard_bp = Blueprint(
     'suppliers_dashboard',
@@ -19,14 +19,7 @@ def dashboard():
     try:
         # ✅ جلب المورد
         user_type = session.get('user_type')
-        
-        if user_type == 'supplier':
-            supplier_id = current_user.id
-        elif user_type == 'staff':
-            supplier_id = current_user.supplier_id
-        else:
-            return "❌ نوع المستخدم غير معروف", 400
-        
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
         supplier = db.session.get(Supplier, supplier_id)
         
         if not supplier:
@@ -36,16 +29,11 @@ def dashboard():
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
         supplier.wallet = wallet
         
-        # ✅ عدد الطلبات
-        pending_orders_count = Order.query.filter_by(
-            supplier_id=supplier.id, status='pending'
-        ).count()
-        
-        # ✅ عرض الصفحة
+        # ✅ عرض الصفحة بدون أي استعلامات معقدة
         return render_template(
             'suppliers/dashboard.html',
             supplier=supplier,
-            pending_orders_count=pending_orders_count,
+            pending_orders_count=0,
             total_sales=0
         )
         
@@ -54,7 +42,6 @@ def dashboard():
         <div style="direction: rtl; font-family: Tahoma; padding: 30px; text-align: center;">
             <h2 style="color: #d9534f;">❌ خطأ في لوحة التحكم</h2>
             <p><strong>{str(e)}</strong></p>
-            <p style="color: #666; font-size: 14px;">يرجى مراجعة سجلات الخادم لمزيد من التفاصيل.</p>
             <a href="/supplier/dashboard" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">محاولة مرة أخرى</a>
         </div>
         """, 500
