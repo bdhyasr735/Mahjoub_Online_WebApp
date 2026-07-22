@@ -1,4 +1,4 @@
-# apps/admin_Product/templates/admin/partials/_product_meta_variants.html
+apps/admin_Product/templates/admin/partials/_product_meta_variants.html
 
 <!-- القسم الرابع: متغيرات المنتج (Variants) -->
 <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-[var(--royal-purple-light)]">
@@ -26,7 +26,7 @@
                     {% for var in product.variants %}
                     <tr>
                         <td class="p-2 border-b"><input type="text" name="variant_name[]" value="{{ var.name if var.name else '' }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="مثال: أحمر / أخضر / أزرق / أسود"></td>
-                        <td class="p-2 border-b"><input type="number" step="0.01" name="variant_price[]" value="{{ var.price if var.price is defined else 0 }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="0.00"></td>
+                        <td class="p-2 border-b"><input type="number" step="0.01" name="variant_price[]" value="{{ var.pricing.price if var.pricing and var.pricing.price is defined else (var.price if var.price is defined else 0) }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="0.00"></td>
                         <td class="p-2 border-b"><input type="number" name="variant_qty[]" value="{{ var.quantity if var.quantity is defined else 0 }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="0"></td>
                         <td class="p-2 border-b"><input type="text" name="variant_sku[]" value="{{ var.sku if var.sku else '' }}" class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition" placeholder="SKU-VAR"></td>
                         <td class="p-2 border-b text-center">
