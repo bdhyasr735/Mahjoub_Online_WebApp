@@ -15,10 +15,9 @@ ai_bp = Blueprint(
     template_folder='templates'
 )
 
-# ✅ مفتاح OpenRouter
+# ✅ مفتاح OpenRouter (مع قيمة افتراضية)
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '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')
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "mistralai/mistral-7b-instruct:free"  # ✅ نموذج مجاني ومتاح
 
 
 # ============================================================
@@ -34,7 +33,7 @@ def test_ai():
         'api_key_exists': bool(OPENROUTER_API_KEY),
         'api_key_preview': OPENROUTER_API_KEY[:15] + '...' if OPENROUTER_API_KEY else '❌ غير موجود',
         'api_url': OPENROUTER_API_URL,
-        'model': OPENROUTER_MODEL,
+        'model': Config.OPENROUTER_MODEL,
         'test_result': None
     }
     
@@ -52,7 +51,7 @@ def test_ai():
                 'X-Title': 'Mahjoub Online'
             },
             json={
-                'model': OPENROUTER_MODEL,
+                'model': Config.OPENROUTER_MODEL,
                 'messages': [
                     {'role': 'system', 'content': 'أنت مساعد مفيد.'},
                     {'role': 'user', 'content': 'مرحباً، قل لي كلمة واحدة فقط: مرحباً'}
@@ -91,7 +90,7 @@ def test_ai():
 @login_required
 def ask_ai():
     """
-    واجهة API للتواصل مع OpenRouter (Mistral 7B مجاناً)
+    واجهة API للتواصل مع OpenRouter (Gemma 2 مجاناً)
     """
     try:
         data = request.get_json()
@@ -120,7 +119,7 @@ def ask_ai():
                 'X-Title': 'Mahjoub Online'
             },
             json={
-                'model': OPENROUTER_MODEL,
+                'model': Config.OPENROUTER_MODEL,
                 'messages': [
                     {
                         'role': 'system',
