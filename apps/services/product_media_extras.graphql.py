@@ -14,6 +14,7 @@ query GetProductMediaAndExtras($qid: String!) {
       collections {
         qid
         title
+        slug
       }
     }
   }
@@ -23,29 +24,30 @@ query GetProductMediaAndExtras($qid: String!) {
 MANAGE_MEDIA_AND_EXTRAS_MUTATION = """
 mutation ManageMediaAndExtras(
   $productId: ID!,
-  $slug: String!,       # تم إضافة حقل الرابط هنا
-  $imageIds: [ID!]!,
+  $slug: String!,       
+  $removedImages: [String!],
+  $newImages: [String!],
   $tags: [String!]!,
   $collectionIds: [String!]!
 ) {
-  # تحديث الرابط (Slug) ضمن معلومات المنتج
+  # تحديث الرابط (Slug)
   updateProductInfo(id: $productId, updateProductInfoInput: { slug: $slug }) {
-    qid
+    success message
   }
 
-  # تحديث قائمة صور المنتج
-  updateProductImages(id: $productId, data: $imageIds) {
-    qid
+  # تحديث الصور (إزالة وإضافة)
+  updateProductImages(id: $productId, removedImages: $removedImages, newImages: $newImages) {
+    success message
   }
 
   # تحديث وسوم المنتج
   updateProductInfo(id: $productId, updateProductInfoInput: { tags: $tags }) {
-    qid
+    success message
   }
 
-  # تحديث تصنيفات المنتج
-  updateProductCollection(collectionIds: $collectionIds) {
-    qid
+  # تحديث التصنيفات
+  updateProductCollections(id: $productId, collectionIds: $collectionIds) {
+    success message
   }
 }
 """
