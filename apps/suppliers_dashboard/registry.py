@@ -1,26 +1,46 @@
 # coding: utf-8
 # 📂 apps/suppliers_dashboard/registry.py
 
-# هذه البيانات ستسمح للنظام بمعرفة أيقونة واسم الموديول
+"""
+تسجيل تطبيق لوحة تحكم الموردين في المنصة
+"""
+
+# ✅ بيانات الموديول
 MODULE_NAME = "لوحة التحكم"
 MODULE_ICON = "fas fa-home"
 SHOW_IN_SUPPLIER = True
 
-# تم تعديل ترتيب الـ LINKS لتصبح المفاتيح هي الـ endpoints
-# النظام يبحث عن الـ endpoint في url_map ليتأكد من وجوده قبل عرضه
+# ✅ الروابط التي تظهر في القائمة الجانبية للمورد
 LINKS = {
-    'suppliers_dashboard.dashboard': 'لوحة التحكم',
-    'suppliers_dashboard.withdraw': 'سحب الرصيد',
-    'suppliers_dashboard.settings': 'إعدادات المتجر'
+    'suppliers_dashboard.dashboard': '📊 لوحة التحكم',
+    'suppliers_wallet.withdraw': '💳 سحب الرصيد',
+    'suppliers_settings.settings': '⚙️ إعدادات المتجر'
 }
+
 
 def register_module(app):
     """
-    تسجيل موديول لوحة التحكم (Dashboard)
+    تسجيل موديول لوحة التحكم (Dashboard) في التطبيق الرئيسي
     """
-    from apps.suppliers_dashboard.routes import suppliers_dashboard_bp
+    from apps.suppliers_dashboard.routes import (
+        suppliers_dashboard_bp,
+        settings_bp,
+        wallet_bp
+    )
     
-    # التحقق من عدم تسجيل البلوبرنت أكثر من مرة
+    # ✅ تسجيل Blueprint لوحة التحكم
     if 'suppliers_dashboard' not in app.blueprints:
         app.register_blueprint(suppliers_dashboard_bp, url_prefix='/supplier')
         print("✅ [Registry]: تم تسجيل 'suppliers_dashboard' بنجاح.")
+    
+    # ✅ تسجيل Blueprint الإعدادات
+    if 'suppliers_settings' not in app.blueprints:
+        app.register_blueprint(settings_bp, url_prefix='/supplier')
+        print("✅ [Registry]: تم تسجيل 'suppliers_settings' بنجاح.")
+    
+    # ✅ تسجيل Blueprint المحفظة
+    if 'suppliers_wallet' not in app.blueprints:
+        app.register_blueprint(wallet_bp, url_prefix='/supplier')
+        print("✅ [Registry]: تم تسجيل 'suppliers_wallet' بنجاح.")
+    
+    return app
