@@ -13,7 +13,7 @@ from apps.extensions import db
 from .supplier_db import Supplier
 from .admin_db import AdminUser
 from .marketer_db import Marketer
-from .exchange_db import ExchangeRate
+# ❌ تم إزالة .exchange_db import ExchangeRate
 
 # 2. الموديلات التابعة (تعتمد على الموديلات الأساسية عبر ForeignKeys)
 from .admin_staff_db import AdminStaff
@@ -32,7 +32,7 @@ __all__ = [
     'db',
     'AdminStaff',
     'AdminUser',
-    'ExchangeRate',
+    # ❌ تم إزالة 'ExchangeRate',
     'Marketer',
     'Order',
     'OrderItem',
