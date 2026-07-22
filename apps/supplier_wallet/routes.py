@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, abort, request, session
 from flask_login import login_required, current_user
 from flask_paginate import Pagination, get_page_parameter
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
-from apps.api.sync_engine import SyncEngine
+# ❌ تم إزالة: from apps.api.sync_engine import SyncEngine
 from datetime import datetime, timedelta
 from sqlalchemy import func
 
@@ -16,6 +16,7 @@ supplier_wallet_bp = Blueprint(
     __name__, 
     template_folder='templates'
 )
+
 
 @supplier_wallet_bp.route('/my-wallet', methods=['GET'])
 @login_required
@@ -43,12 +44,12 @@ def view_my_wallet():
     if not wallet:
         abort(404, description="لم يتم العثور على محفظة مرتبطة بهذا المورد.")
 
-    # 3. الفلاتر الأساسية
-    currency = request.args.get('currency', 'SAR')
+    # 3. ✅ العملة ثابتة SAR - تم إزالة فلتر العملة
     filter_type = request.args.get('filter_type', 'all')
     search = request.args.get('search', '').strip()
     
-    query = WalletTransaction.query.filter_by(wallet_id=wallet.id, currency=currency)
+    # ✅ استعلام بدون فلتر عملة
+    query = WalletTransaction.query.filter_by(wallet_id=wallet.id)
 
     # 4. الفلترة الزمنية
     now = datetime.utcnow()
@@ -61,8 +62,10 @@ def view_my_wallet():
     
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-    if start_date: query = query.filter(WalletTransaction.created_at >= start_date)
-    if end_date: query = query.filter(WalletTransaction.created_at <= end_date)
+    if start_date: 
+        query = query.filter(WalletTransaction.created_at >= start_date)
+    if end_date: 
+        query = query.filter(WalletTransaction.created_at <= end_date)
 
     # 5. البحث المرن
     if search:
@@ -88,7 +91,7 @@ def view_my_wallet():
     wallet_imbalance = None
     if getattr(current_user, 'is_admin', False):
         calculated_balance = total_credit - total_debit
-        if abs(float(wallet.balance or 0) - float(calculated_balance)) > 0.01:
+        if abs(float(wallet.balance_sar or 0) - float(calculated_balance)) > 0.01:
             wallet_imbalance = calculated_balance
 
     # 7. الترقيم
@@ -101,7 +104,7 @@ def view_my_wallet():
                         .offset((page - 1) * per_page)\
                         .limit(per_page).all()
 
-    # 8. استجابة (باستخدام المسارات الصحيحة للمجلد الفرعي)
+    # 8. استجابة
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render_template('supplier_wallet/_table_partial.html', 
                                transactions=transactions, 
@@ -116,11 +119,13 @@ def view_my_wallet():
                            total_credit=total_credit,
                            wallet_imbalance=wallet_imbalance)
 
-@supplier_wallet_bp.route('/test-sync', methods=['GET'])
-@login_required
-def test_sync():
-    if not getattr(current_user, 'is_admin', False): 
-        abort(403)
-    if SyncEngine.fetch_and_sync_order():
-        return "✅ تم تنفيذ المزامنة بنجاح."
-    return "❌ فشل عملية المزامنة."
+
+# ❌ تم إزالة مسار test_sync لأنه يعتمد على SyncEngine غير الموجود
+# @supplier_wallet_bp.route('/test-sync', methods=['GET'])
+# @login_required
+# def test_sync():
+#     if not getattr(current_user, 'is_admin', False): 
+#         abort(403)
+#     if SyncEngine.fetch_and_sync_order():
+#         return "✅ تم تنفيذ المزامنة بنجاح."
+#     return "❌ فشل عملية المزامنة."
