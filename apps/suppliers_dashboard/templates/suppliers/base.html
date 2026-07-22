@@ -69,6 +69,149 @@
             border: 2px solid #fff;
         }
         
+        /* ✅ جرس الإشعارات */
+        .notification-bell {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #f8f5fa;
+            border: 2px solid transparent;
+            color: var(--royal-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .notification-bell:hover {
+            background: var(--royal-purple);
+            color: #fff;
+            border-color: var(--mahjoub-gold);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(26, 11, 46, 0.2);
+        }
+        
+        .notification-bell .badge-count {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #dc3545;
+            color: #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #fff;
+        }
+        
+        .notification-bell .bell-ring {
+            animation: ring 0.5s ease-in-out;
+        }
+        
+        @keyframes ring {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            50% { transform: rotate(-15deg); }
+            75% { transform: rotate(10deg); }
+            100% { transform: rotate(0deg); }
+        }
+        
+        /* ✅ قائمة الإشعارات المنسدلة */
+        .dropdown-menu-notifications {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+            padding: 0;
+            min-width: 320px;
+            max-width: 400px;
+            margin-top: 10px;
+            border: 1px solid rgba(26, 11, 46, 0.06);
+            overflow: hidden;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .dropdown-menu-notifications .notif-header {
+            padding: 12px 20px;
+            background: var(--royal-purple);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--mahjoub-gold);
+        }
+        
+        .dropdown-menu-notifications .notif-header .mark-all {
+            font-size: 0.7rem;
+            color: var(--mahjoub-gold);
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        
+        .dropdown-menu-notifications .notif-header .mark-all:hover {
+            text-decoration: underline;
+        }
+        
+        .dropdown-menu-notifications .notif-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0ecf3;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .dropdown-menu-notifications .notif-item:hover {
+            background: #f8f5fa;
+        }
+        
+        .dropdown-menu-notifications .notif-item .notif-title {
+            font-weight: 600;
+            color: #1a0b2e;
+            font-size: 0.9rem;
+        }
+        
+        .dropdown-menu-notifications .notif-item .notif-time {
+            font-size: 0.7rem;
+            color: #9ca3af;
+        }
+        
+        .dropdown-menu-notifications .notif-item .notif-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .dropdown-menu-notifications .notif-item.unread {
+            background: #faf5ff;
+            border-right: 3px solid var(--royal-purple);
+        }
+        
+        .dropdown-menu-notifications .notif-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: #9ca3af;
+        }
+        
+        .dropdown-menu-notifications .notif-empty i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 10px;
+            opacity: 0.3;
+        }
+        
         .dropdown-menu-settings {
             border: none;
             border-radius: 16px;
@@ -154,8 +297,10 @@
             .top-navbar { padding: 10px 12px; min-height: 60px; }
             .badge-portal { font-size: 0.65rem; padding: 4px 12px; }
             .settings-dropdown-toggle { width: 36px; height: 36px; font-size: 1rem; }
+            .notification-bell { width: 36px; height: 36px; font-size: 1rem; }
             .btn-sidebar-toggle { width: 36px; height: 36px; font-size: 1.1rem; }
             .dropdown-menu-settings { min-width: 180px; }
+            .dropdown-menu-notifications { min-width: 280px; max-width: 320px; }
         }
         
         @media (min-width: 577px) and (max-width: 992px) {
@@ -196,13 +341,77 @@
 
     <main class="main-wrapper" id="main">
         
-        <!-- ✅ شريط العلوي المحسن مع أيقونة الإعدادات -->
+        <!-- ✅ شريط العلوي المحسن مع أيقونة الإعدادات وجرس الإشعارات -->
         <header class="top-navbar">
             <div class="d-flex align-items-center gap-2 gap-sm-3">
                 <!-- زر القائمة الجانبية (للشاشات الصغيرة) -->
                 <button class="btn-sidebar-toggle d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('active')">
                     <i class="fas fa-bars"></i>
                 </button>
+                
+                <!-- ✅ جرس الإشعارات -->
+                <div class="dropdown">
+                    <button class="notification-bell" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإشعارات" id="notifBell">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge-count" id="notifCount">3</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-notifications dropdown-menu-end" id="notifDropdown">
+                        <li class="notif-header">
+                            <span><i class="fas fa-bell me-2"></i> الإشعارات</span>
+                            <button class="mark-all" onclick="markAllRead()">تحديد الكل كمقروء</button>
+                        </li>
+                        <div id="notifList">
+                            <!-- ✅ إشعار 1 -->
+                            <li class="notif-item unread">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="notif-icon bg-warning bg-opacity-10 text-warning">
+                                        <i class="fas fa-truck"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="notif-title">تم شحن طلب جديد</div>
+                                        <div class="notif-time">منذ 5 دقائق</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <!-- ✅ إشعار 2 -->
+                            <li class="notif-item unread">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="notif-icon bg-success bg-opacity-10 text-success">
+                                        <i class="fas fa-wallet"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="notif-title">تم إيداع مبلغ 500 ريال</div>
+                                        <div class="notif-time">منذ 2 ساعة</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <!-- ✅ إشعار 3 -->
+                            <li class="notif-item unread">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="notif-icon bg-danger bg-opacity-10 text-danger">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="notif-title">تنبيه: رصيد منخفض</div>
+                                        <div class="notif-time">منذ 3 ساعات</div>
+                                    </div>
+                                </div>
+                            </li>
+                            <!-- ✅ إشعار 4 (مقروء) -->
+                            <li class="notif-item">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="notif-icon bg-info bg-opacity-10 text-info">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="notif-title">تم تأكيد طلب #1234</div>
+                                        <div class="notif-time">منذ يوم</div>
+                                    </div>
+                                </div>
+                            </li>
+                        </div>
+                    </ul>
+                </div>
                 
                 <!-- ✅ أيقونة الإعدادات مع قائمة منسدلة -->
                 <div class="dropdown">
@@ -269,11 +478,90 @@
                 sidebar.classList.remove('active');
             }
         });
+        
         document.getElementById('logout-btn').addEventListener('click', function(e) {
             e.preventDefault(); 
             sessionStorage.clear(); localStorage.clear();
             window.location.href = this.href; 
         });
+        
+        // ✅ جرس الإشعارات - رنين عند التحميل
+        document.addEventListener('DOMContentLoaded', function() {
+            const bell = document.getElementById('notifBell');
+            if (bell) {
+                bell.classList.add('bell-ring');
+                setTimeout(() => {
+                    bell.classList.remove('bell-ring');
+                }, 600);
+            }
+        });
+        
+        // ✅ تحديث عدد الإشعارات
+        function updateNotifCount(count) {
+            const badge = document.getElementById('notifCount');
+            if (badge) {
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+        
+        // ✅ تحديد الكل كمقروء
+        function markAllRead() {
+            const items = document.querySelectorAll('#notifList .notif-item.unread');
+            items.forEach(item => {
+                item.classList.remove('unread');
+            });
+            updateNotifCount(0);
+            
+            // عرض رسالة
+            const header = document.querySelector('.notif-header');
+            if (header) {
+                const oldText = header.querySelector('span').innerHTML;
+                header.querySelector('span').innerHTML = '<i class="fas fa-check-circle me-2 text-success"></i> تم تحديد الكل كمقروء';
+                setTimeout(() => {
+                    header.querySelector('span').innerHTML = oldText;
+                }, 2000);
+            }
+        }
+        
+        // ✅ إضافة إشعار جديد (مثال)
+        function addNotification(title, icon, time, type) {
+            const list = document.getElementById('notifList');
+            const item = document.createElement('li');
+            item.className = 'notif-item unread';
+            item.innerHTML = `
+                <div class="d-flex align-items-center gap-3">
+                    <div class="notif-icon bg-${type}-opacity-10 text-${type}">
+                        <i class="fas fa-${icon}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="notif-title">${title}</div>
+                        <div class="notif-time">${time}</div>
+                    </div>
+                </div>
+            `;
+            list.prepend(item);
+            
+            // تحديث العدد
+            const count = document.querySelectorAll('#notifList .notif-item.unread').length;
+            updateNotifCount(count);
+            
+            // رنين الجرس
+            const bell = document.getElementById('notifBell');
+            bell.classList.add('bell-ring');
+            setTimeout(() => {
+                bell.classList.remove('bell-ring');
+            }, 600);
+        }
+        
+        // ✅ مثال: إضافة إشعار جديد بعد 5 ثواني
+        setTimeout(() => {
+            addNotification('طلب جديد في انتظار الموافقة', 'clock', 'الآن', 'warning');
+        }, 5000);
     </script>
 </body>
 </html>
