@@ -61,6 +61,18 @@ class Config:
     # 7. ترميز النصوص
     JSON_AS_ASCII = False
 
+    # ============================================================
+    # 🤖 إعدادات DeepSeek AI (الذكاء الاصطناعي)
+    # ============================================================
+    DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
+    DEEPSEEK_API_URL = os.environ.get('DEEPSEEK_API_URL', 'https://api.deepseek.com/v1/chat/completions')
+    DEEPSEEK_MODEL = os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat')
+    DEEPSEEK_MAX_TOKENS = int(os.environ.get('DEEPSEEK_MAX_TOKENS', 2048))
+    DEEPSEEK_TEMPERATURE = float(os.environ.get('DEEPSEEK_TEMPERATURE', 0.7))
+    
+    # ✅ تمكين الذكاء الاصطناعي
+    AI_ENABLED = os.environ.get('AI_ENABLED', 'true').lower() == 'true'
+
     @classmethod
     def validate_config(cls):
         """التحقق من وجود المفاتيح الحساسة في بيئة الإنتاج."""
@@ -69,4 +81,9 @@ class Config:
             for var in required:
                 if not getattr(cls, var):
                     raise EnvironmentError(f"❌ المتغير الحساس {var} مفقود في بيئة الإنتاج!")
+        
+        # ✅ التحقق من مفتاح DeepSeek إذا كان مفعلاً
+        if cls.AI_ENABLED and not cls.DEEPSEEK_API_KEY:
+            print("⚠️ [AI]: DEEPSEEK_API_KEY غير موجود. سيتم تعطيل الذكاء الاصطناعي.")
+        
         return True
