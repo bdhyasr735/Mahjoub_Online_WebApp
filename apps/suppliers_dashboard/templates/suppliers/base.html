@@ -40,12 +40,10 @@
                 {% for key, module in supplier_modules.items() %}
                     {% if key != 'suppliers_dashboard' and module.links is mapping %}
                         {% for endpoint, link_title in module.links.items() %}
-                            {# استخدام current_app.url_map لضمان الأمان وعدم حدوث خطأ إذا لم يتم تمرير url_map من الباك إند #}
-                            {% if endpoint in current_app.url_map._rules_by_endpoint %}
-                                <a href="{{ url_for(endpoint) }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
-                                    <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> <span>{{ link_title }}</span>
-                                </a>
-                            {% endif %}
+                            {# ✅ استخدام safe_url_for بدلاً من current_app #}
+                            <a href="{{ safe_url_for(endpoint) }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
+                                <i class="{{ module.icon|default('fas fa-folder') }} me-3"></i> <span>{{ link_title }}</span>
+                            </a>
                         {% endfor %}
                     {% endif %}
                 {% endfor %}
