@@ -17,7 +17,7 @@ class OrderFinancial(db.Model):
         db.Index('idx_fin_settlement', 'settlement_status'),
         db.Index('idx_fin_created', 'created_at'),
         db.Index('idx_fin_transaction', 'transaction_id'),
-        db.Index('idx_fin_currency', 'currency'),
+        # ✅ تم إزالة idx_fin_currency
         {'extend_existing': True}
     )
 
@@ -27,8 +27,7 @@ class OrderFinancial(db.Model):
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     transaction_id = db.Column(db.Integer, db.ForeignKey('wallet_transactions.id'), nullable=True)
     
-    # 2. حقل العملة
-    currency = db.Column(db.String(5), default='SAR', nullable=False)
+    # ✅ تم إزالة حقل currency نهائياً - العملة ثابتة SAR
     
     # 3. المبالغ المالية (تشفير محكم + قيمة خام للعمليات الحسابية السريعة)
     _supplier_cost_enc = db.Column(db.String(255), nullable=False)
@@ -91,5 +90,11 @@ class OrderFinancial(db.Model):
         self._total_paid_enc = self._encrypt(value)
         self.total_paid_raw = float(value)
 
+    # ✅ دالة مساعدة لإرجاع العملة (ثابتة)
+    @property
+    def currency(self):
+        """العملة ثابتة: ريال سعودي (SAR)"""
+        return "SAR"
+
     def __repr__(self):
-        return f'<OrderFinancial OrderID: {self.order_id} | Status: {self.settlement_status}>'
+        return f'<OrderFinancial OrderID: {self.order_id} | Status: {self.settlement_status} | Currency: SAR>'
