@@ -156,17 +156,39 @@
           </select>
         </div>
 
-        <!-- ✅ فقرة المجموعات -->
+        <!-- ✅ فقرة المجموعات - قائمة منسدلة مع بحث احترافي -->
         <div class="mb-3">
           <label class="form-label fw-bold text-dark">📂 المجموعات</label>
-          <select class="form-select shadow-sm" id="collectionSelect" name="collection_ids" multiple>
+          
+          <!-- حقل البحث عن المجموعات -->
+          <div class="position-relative">
+            <input type="text" id="collectionSearchInput" 
+                   class="form-control shadow-sm" 
+                   placeholder="🔍 ابحث عن مجموعة..."
+                   autocomplete="off">
+            <div id="collectionSearchResults" class="position-absolute w-100 bg-white border rounded shadow-lg mt-1 d-none" 
+                 style="max-height: 200px; overflow-y: auto; z-index: 1000;">
+            </div>
+          </div>
+          
+          <!-- المجموعات المحددة -->
+          <div id="selectedCollectionsContainer" class="mt-2 d-flex flex-wrap gap-2">
             {% for c in all_collections %}
-              <option value="{{ c.qid }}" {% if c.qid in product.collections|map(attribute='qid') %}selected{% endif %}>
-                {{ c.title }}
-              </option>
+              {% if c.qid in product.collections|map(attribute='qid') %}
+              <span class="collection-tag bg-purple-100 text-purple-700 px-3 py-1 rounded-pill d-inline-flex align-items-center gap-2 border border-purple-200" 
+                    data-qid="{{ c.qid }}">
+                <i class="fas fa-tag"></i>
+                <span>{{ c.title }}</span>
+                <button type="button" class="btn-close btn-close-sm remove-collection" 
+                        style="font-size: 10px;" aria-label="إزالة"></button>
+              </span>
+              {% endif %}
             {% endfor %}
-          </select>
-          <small class="text-muted">اضغط Ctrl (⌘ في Mac) لتحديد مجموعات متعددة</small>
+          </div>
+          
+          <!-- حقل مخفي لقائمة المجموعات المحددة -->
+          <input type="hidden" name="collection_ids" id="selectedCollectionsInput" 
+                 value='{{ product.collections|map(attribute='qid')|list|tojson }}'>
         </div>
 
         <!-- ✅ فقرة الصور -->
@@ -228,24 +250,174 @@
     font-weight: 600;
     color: #6f2b7a;
   }
+  
+  .collection-tag {
+    animation: fadeIn 0.3s ease;
+    font-size: 0.9rem;
+  }
+  
+  .collection-tag .btn-close {
+    width: 0.6rem;
+    height: 0.6rem;
+    background-size: 0.6rem;
+  }
+  
+  #collectionSearchResults .search-result-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  
+  #collectionSearchResults .search-result-item:hover {
+    background-color: #f3e8ff;
+  }
+  
+  #collectionSearchResults .search-result-item:last-child {
+    border-bottom: none;
+  }
+  
+  #collectionSearchResults .search-result-item .badge-check {
+    color: #7c3aed;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
 </style>
 
 <!-- ✅ JavaScript -->
 <script>
   $(document).ready(function() {
-    // تفعيل Select2
+    // تفعيل Select2 للموردين
     $('#supplierSelect').select2({
       placeholder: "ابحث واختر المورد...",
       allowClear: true,
       width: '100%',
       language: { noResults: function() { return "لا توجد نتائج"; } }
     });
+
+    // ============================================
+    // ✅ نظام البحث عن المجموعات الاحترافي
+    // ============================================
     
-    $('#collectionSelect').select2({
-      placeholder: "ابحث واختر المجموعات...",
-      allowClear: true,
-      width: '100%',
-      language: { noResults: function() { return "لا توجد مجموعات"; } }
+    const allCollections = {{ all_collections|tojson }};
+    const searchInput = document.getElementById('collectionSearchInput');
+    const resultsContainer = document.getElementById('collectionSearchResults');
+    const selectedContainer = document.getElementById('selectedCollectionsContainer');
+    const hiddenInput = document.getElementById('selectedCollectionsInput');
+    
+    // الحصول على المجموعات المحددة مسبقاً
+    let selectedQids = [];
+    try {
+      const currentValue = hiddenInput.value;
+      if (currentValue) {
+        selectedQids = JSON.parse(currentValue);
+      }
+    } catch (e) {
+      selectedQids = [];
+    }
+    
+    // تحديث الحقل المخفي
+    function updateHiddenInput() {
+      hiddenInput.value = JSON.stringify(selectedQids);
+    }
+    
+    // إضافة مجموعة
+    function addCollection(qid, title) {
+      if (!selectedQids.includes(qid)) {
+        selectedQids.push(qid);
+        updateHiddenInput();
+        
+        // إضافة العلامة
+        const tag = document.createElement('span');
+        tag.className = 'collection-tag bg-purple-100 text-purple-700 px-3 py-1 rounded-pill d-inline-flex align-items-center gap-2 border border-purple-200';
+        tag.dataset.qid = qid;
+        tag.innerHTML = `
+          <i class="fas fa-tag"></i>
+          <span>${title}</span>
+          <button type="button" class="btn-close btn-close-sm remove-collection" 
+                  style="font-size: 10px;" aria-label="إزالة"></button>
+        `;
+        selectedContainer.appendChild(tag);
+        
+        // إخفاء النتائج
+        resultsContainer.classList.add('d-none');
+        searchInput.value = '';
+      }
+    }
+    
+    // إزالة مجموعة
+    function removeCollection(qid) {
+      selectedQids = selectedQids.filter(id => id !== qid);
+      updateHiddenInput();
+      
+      const tag = selectedContainer.querySelector(`[data-qid="${qid}"]`);
+      if (tag) {
+        tag.remove();
+      }
+    }
+    
+    // البحث عن المجموعات
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim().toLowerCase();
+      
+      if (!query) {
+        resultsContainer.classList.add('d-none');
+        return;
+      }
+      
+      const filtered = allCollections.filter(c => 
+        c.title.toLowerCase().includes(query) && !selectedQids.includes(c.qid)
+      );
+      
+      if (filtered.length === 0) {
+        resultsContainer.innerHTML = `
+          <div class="search-result-item text-center text-muted py-2">
+            <i class="fas fa-search"></i> لا توجد نتائج
+          </div>
+        `;
+      } else {
+        resultsContainer.innerHTML = filtered.map(c => `
+          <div class="search-result-item d-flex justify-content-between align-items-center" data-qid="${c.qid}" data-title="${c.title}">
+            <span><i class="fas fa-tag text-purple-500 me-2"></i> ${c.title}</span>
+            <span class="badge bg-purple-100 text-purple-700 rounded-pill px-2 py-1">
+              <i class="fas fa-plus"></i> إضافة
+            </span>
+          </div>
+        `).join('');
+        
+        // إضافة حدث النقر لكل نتيجة
+        resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
+          item.addEventListener('click', function() {
+            const qid = this.dataset.qid;
+            const title = this.dataset.title;
+            addCollection(qid, title);
+          });
+        });
+      }
+      
+      resultsContainer.classList.remove('d-none');
+    });
+    
+    // إغلاق النتائج عند النقر خارجها
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#collectionSearchInput') && !e.target.closest('#collectionSearchResults')) {
+        resultsContainer.classList.add('d-none');
+      }
+    });
+    
+    // تفعيل زر الإزالة في العلامات
+    selectedContainer.addEventListener('click', function(e) {
+      const removeBtn = e.target.closest('.remove-collection');
+      if (removeBtn) {
+        const tag = removeBtn.closest('.collection-tag');
+        if (tag) {
+          const qid = tag.dataset.qid;
+          removeCollection(qid);
+        }
+      }
     });
 
     // ✅ إضافة متغير جديد
@@ -305,6 +477,9 @@
       });
       formData.append('variants', JSON.stringify(variants));
       
+      // تحديث الحقل المخفي للمجموعات قبل الإرسال
+      updateHiddenInput();
+      
       // إظهار مؤشر التحميل
       const btn = $('#saveProductBtn');
       const originalText = btn.html();
@@ -355,7 +530,7 @@
   });
 </script>
 
-<!-- ✅ إضافة SweetAlert2 -->
+<!-- ✅ إضافة SweetAlert2 و Select2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
