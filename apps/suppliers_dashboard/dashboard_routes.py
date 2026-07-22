@@ -34,15 +34,23 @@ def dashboard():
     supplier = get_supplier_context()
     if not supplier:
         return redirect('/supplier/login')
+    
     pending_orders_count = Order.query.filter_by(
         supplier_id=supplier.id, status='pending'
     ).count()
-    total_sales = db.session.query(
-        func.sum(OrderFinancial.total_paid_raw)
-    ).join(Order, Order.id == OrderFinancial.order_id).filter(
-        Order.supplier_id == supplier.id,
-        Order.status == 'completed'
-    ).scalar() or 0
+    
+    # ✅ حساب إجمالي المبيعات - مع معالجة الأخطاء
+    try:
+        total_sales = db.session.query(
+            func.sum(OrderFinancial.total_paid_raw)
+        ).join(Order, Order.id == OrderFinancial.order_id).filter(
+            Order.supplier_id == supplier.id,
+            Order.status == 'completed'
+        ).scalar() or 0
+    except Exception as e:
+        print(f"⚠️ خطأ في حساب المبيعات: {e}")
+        total_sales = 0
+    
     return render_template(
         'suppliers/dashboard.html',
         supplier=supplier,
