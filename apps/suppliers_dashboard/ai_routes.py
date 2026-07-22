@@ -17,8 +17,8 @@ ai_bp = Blueprint(
 
 # ✅ مفتاح OpenRouter (مع قيمة افتراضية)
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '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')
-OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-
+# في config.py
+OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'mistralai/mistral-7b-instruct-v0.3')
 
 # ============================================================
 # ✅ مسار اختبار الاتصال بـ OpenRouter
