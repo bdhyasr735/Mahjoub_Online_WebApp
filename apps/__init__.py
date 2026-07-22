@@ -79,12 +79,12 @@ def create_app():
             return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x'))
         return redirect(url_for('suppliers_auth.login'))
 
-    # إعداد السياسة الأمنية (CSP) بمرونة تامة لتجنب تداخل الحماية مع محرر النصوص والتنسيقات
+    # إعداد السياسة الأمنية (CSP) مع السماح لنطاق الأيقونات والخطوط الخارجي
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
             'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com"],
-            'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+            'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
             'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com"],
             'img-src': ["'self'", "data:", "https://*"],
             'connect-src': ["'self'", "https://ckeditor.com", "https://*.ckeditor.com"]
