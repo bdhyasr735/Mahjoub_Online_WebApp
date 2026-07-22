@@ -15,20 +15,18 @@ logger = logging.getLogger(__name__)
 # تعريف البلوبرنت
 wallet_bp = Blueprint('wallet_app', __name__, template_folder='templates')
 
-# دالة مركزية لتحديث الرصيد (لضمان سلامة العمليات المالية)
-def update_wallet_balance(wallet, amount, trans_type, currency):
-    """تحديث رصيد المحفظة بناءً على نوع العملية."""
-    if trans_type == 'credit': # إيداع (زيادة الرصيد)
-        if currency == 'SAR': wallet.balance_sar += amount
-        elif currency == 'YER': wallet.balance_yer += amount
-        elif currency == 'USD': wallet.balance_usd += amount
-    elif trans_type == 'debit': # سحب (إنقاص الرصيد)
-        if currency == 'SAR': wallet.balance_sar -= amount
-        elif currency == 'YER': wallet.balance_yer -= amount
-        elif currency == 'USD': wallet.balance_usd -= amount
+
+# ✅ دالة مركزية لتحديث الرصيد - عملة واحدة فقط SAR
+def update_wallet_balance(wallet, amount, trans_type):
+    """تحديث رصيد المحفظة بناءً على نوع العملية (العملة: SAR فقط)."""
+    if trans_type == 'credit':  # إيداع (زيادة الرصيد)
+        wallet.balance_sar += amount
+    elif trans_type == 'debit':  # سحب (إنقاص الرصيد)
+        wallet.balance_sar -= amount
     
     wallet.updated_at = func.now()
     return wallet
+
 
 # 1. مسار خاص بالموردين
 @wallet_bp.route('/my-wallet', methods=['GET'])
@@ -38,6 +36,7 @@ def my_wallet():
         abort(403)
     wallet = SupplierWallet.query.filter_by(supplier_id=current_user.id).first()
     return render_template('suppliers/my_wallet.html', wallet=wallet)
+
 
 # 2. مسارات الإدارة
 @wallet_bp.route('/admin/dashboard', methods=['GET'])
@@ -53,10 +52,9 @@ def dashboard():
             SupplierWallet.wallet_code.ilike(f'%{search}%')
         ))
     
+    # ✅ إحصائيات - عملة واحدة فقط SAR
     stats = {
-        'total_sar': query.with_entities(func.sum(SupplierWallet.balance_sar)).scalar() or 0,
-        'total_yer': query.with_entities(func.sum(SupplierWallet.balance_yer)).scalar() or 0,
-        'total_usd': query.with_entities(func.sum(SupplierWallet.balance_usd)).scalar() or 0
+        'total_sar': query.with_entities(func.sum(SupplierWallet.balance_sar)).scalar() or 0
     }
     
     pagination = query.order_by(SupplierWallet.id.desc()).paginate(page=page, per_page=20, error_out=False)
@@ -66,11 +64,13 @@ def dashboard():
         
     return render_template('admin/wallet_app.html', wallets=pagination.items, stats=stats, pagination=pagination)
 
+
 @wallet_bp.route('/admin/manage/<int:supplier_id>', methods=['GET'])
 @login_required
 def manage_wallet(supplier_id):
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first_or_404()
     return render_template('admin/view_wallet.html', wallet=wallet)
+
 
 @wallet_bp.route('/admin/manage/<int:supplier_id>/add_transaction', methods=['POST'])
 @login_required
@@ -87,15 +87,16 @@ def add_transaction(supplier_id):
             
         trans_type = request.form.get('type')
         order_ref = request.form.get('reference_number', '').strip()
-        currency = request.form.get('currency', 'SAR')
+        # ✅ العملة ثابتة SAR
+        currency = 'SAR'
         description = request.form.get('description', f"تسوية يدوية للطلب {order_ref}")
         
         if amount <= 0:
             flash("يجب أن يكون المبلغ أكبر من صفر.", "danger")
             return redirect(url_for('wallet_app.manage_wallet', supplier_id=supplier_id))
 
-        # 1. تحديث الرصيد باستخدام الدالة المركزية
-        wallet = update_wallet_balance(wallet, amount, trans_type, currency)
+        # 1. تحديث الرصيد باستخدام الدالة المركزية (بدون عملة)
+        wallet = update_wallet_balance(wallet, amount, trans_type)
         
         # 2. تسجيل العملية
         new_trans = WalletTransaction(
@@ -105,7 +106,7 @@ def add_transaction(supplier_id):
             owner_type='supplier',
             owner_id=wallet.supplier_id,
             description=description,
-            currency=currency,
+            currency=currency,  # ✅ ثابت SAR
             related_order_id=order_ref if order_ref else None,
             reference_number=order_ref if order_ref else None
         )
