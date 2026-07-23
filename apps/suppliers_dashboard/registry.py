@@ -8,7 +8,7 @@
 # ✅ بيانات الموديول
 MODULE_NAME = "لوحة التحكم"
 MODULE_ICON = "fas fa-home"
-SHOW_IN_SUPPLIER = True
+SHOW_IN_SUPPLIER = True  # ✅ يظهر في قائمة المورد
 
 # ✅ الروابط التي تظهر في القائمة الجانبية للمورد
 LINKS = {
@@ -26,7 +26,7 @@ def register_module(app):
     from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
     from apps.suppliers_dashboard.settings_routes import settings_bp
     from apps.suppliers_dashboard.wallet_routes import wallet_bp
-    from apps.suppliers_dashboard.ai_routes import ai_bp  # ✅ إضافة مساعد AI
+    from apps.suppliers_dashboard.ai_routes import ai_bp
     
     # ✅ تسجيل Blueprint لوحة التحكم
     if 'suppliers_dashboard' not in app.blueprints:
