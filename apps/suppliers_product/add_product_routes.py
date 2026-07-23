@@ -23,42 +23,23 @@ add_product_bp = Blueprint(
     template_folder='templates'
 )
 
-# ✅ لا حاجة لـ GRAPHQL_TOKEN
-# GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN')
 
-
-def compress_image(image_data, max_size=(1200, 1200), quality=75):
+def compress_image(image_data, max_size=(800, 800), quality=50):
     """
     ضغط الصورة وتقليل حجمها
-    
-    Args:
-        image_data: بيانات الصورة (bytes)
-        max_size: tuple (width, height) الحد الأقصى للأبعاد
-        quality: جودة الصورة (1-100)
-    
-    Returns:
-        bytes: بيانات الصورة المضغوطة
     """
     try:
-        # ✅ فتح الصورة
         img = Image.open(BytesIO(image_data))
-        
-        # ✅ تحويل إلى RGB إذا كانت RGBA (لحفظ JPEG)
         if img.mode == 'RGBA':
             img = img.convert('RGB')
-        
-        # ✅ تغيير الأبعاد إذا كانت أكبر من max_size
         if img.width > max_size[0] or img.height > max_size[1]:
             img.thumbnail(max_size, Image.Resampling.LANCZOS)
-        
-        # ✅ حفظ الصورة بجودة أقل
         output = BytesIO()
         img.save(output, format='JPEG', quality=quality, optimize=True)
         return output.getvalue()
-        
     except Exception as e:
         print(f"⚠️ خطأ في ضغط الصورة: {e}")
-        return image_data  # إرجاع الصورة الأصلية في حالة الخطأ
+        return image_data
 
 
 @add_product_bp.route('/add-product', methods=['GET'])
@@ -126,21 +107,25 @@ def save_product():
         
         # ✅ قراءة الصورة وضغطها
         image_data = image.read()
-        compressed_data = compress_image(image_data, max_size=(1200, 1200), quality=75)
+        compressed_data = compress_image(image_data, max_size=(800, 800), quality=50)
         
-        # ✅ تحويل الصورة المضغوطة إلى base64
-        image_base64 = base64.b64encode(compressed_data).decode('utf-8')
-        image_base64 = f"data:image/jpeg;base64,{image_base64}"
-        
-        # ✅ رفع المنتج إلى Qumra (بدون token)
+        # ✅ رفع المنتج إلى Qumra
         sync_service = ProductSyncService()
         
+        # ✅ رفع الصورة إلى مكتبة قمرة (بدلاً من base64)
+        image_url = sync_service.upload_image(compressed_data, image.filename)
+        
+        if not image_url:
+            flash('❌ فشل رفع الصورة إلى قمرة', 'danger')
+            return redirect(url_for('add_product_bp.add_product'))
+        
+        # ✅ إنشاء المنتج مع رابط الصورة
         product_data = {
             'title': name,
             'price': float(cost_price),
             'quantity': 0,
             'supplier_id': str(supplier_id),
-            'images': [image_base64],
+            'images': [image_url],  # ✅ رابط الصورة من قمرة
             'description': description
         }
         
