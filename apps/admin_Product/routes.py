@@ -25,22 +25,34 @@ admin_product_bp = Blueprint(
 @admin_product_bp.route('/products', methods=['GET'])
 def manage_products():
     """عرض قائمة المنتجات مع دعم الترقيم والبحث المباشر عبر الـ API"""
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('title', '', type=str)
-    
-    # ✅ بدون token
-    client = ProductSyncService()
-    response_data = client.fetch_products(page=page, limit=20, title=search_query)
-    
-    products = response_data.get("data", [])
-    pagination = response_data.get("pagination", {"currentPage": page, "totalPages": 1, "limit": 20})
-
-    return render_template(
-        'admin/admin_Product.html',
-        products=products,
-        search_title=search_query,
-        pagination=pagination
-    )
+    try:
+        page = request.args.get('page', 1, type=int)
+        search_query = request.args.get('title', '', type=str)
+        
+        # ✅ بدون token
+        client = ProductSyncService()
+        response_data = client.fetch_products(page=page, limit=20, title=search_query)
+        
+        products = response_data.get("data", [])
+        pagination = response_data.get("pagination", {"currentPage": page, "totalPages": 1, "limit": 20})
+        
+        print(f"🔍 Products fetched: {len(products)} products")
+        
+        return render_template(
+            'admin/admin_Product.html',
+            products=products,
+            search_title=search_query,
+            pagination=pagination
+        )
+    except Exception as e:
+        print(f"❌ خطأ في manage_products: {e}")
+        flash(f'❌ حدث خطأ في تحميل المنتجات: {str(e)}', 'danger')
+        return render_template(
+            'admin/admin_Product.html',
+            products=[],
+            search_title=request.args.get('title', ''),
+            pagination={"currentPage": 1, "totalPages": 1, "limit": 20}
+        )
 
 
 # ============================================================
@@ -257,6 +269,37 @@ def change_product_status(qid):
             })
         else:
             return jsonify({'success': False, 'message': '❌ فشل تغيير الحالة'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# ✅ حذف المنتج
+# ============================================================
+@admin_product_bp.route('/products/delete/<qid>', methods=['POST'])
+def delete_product(qid):
+    """حذف المنتج من النظام"""
+    try:
+        data = request.get_json()
+        
+        # ✅ بدون token
+        client = ProductSyncService()
+        result = client.delete_product(qid)
+        
+        if result:
+            # ✅ حذف الربط من قاعدة البيانات المحلية
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            if mapping:
+                db.session.delete(mapping)
+                db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': '✅ تم حذف المنتج بنجاح'
+            })
+        else:
+            return jsonify({'success': False, 'message': '❌ فشل حذف المنتج'}), 500
             
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
