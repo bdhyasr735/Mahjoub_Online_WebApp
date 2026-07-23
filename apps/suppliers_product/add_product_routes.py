@@ -114,7 +114,7 @@ def save_product():
         image_type = image.filename.rsplit('.', 1)[1].lower()
         image_base64 = f"data:image/{image_type};base64,{image_base64}"
         
-        # ✅ إنشاء المنتج عبر REST API (بدلاً من GraphQL)
+        # ✅ إنشاء المنتج عبر REST API
         rest_api = ProductRestAPI()
         
         product_data = {
@@ -141,11 +141,13 @@ def save_product():
             flash('✅ تم إضافة المنتج بنجاح، سيراجعه فريق الإدارة', 'success')
             return redirect(url_for('suppliers_product_bp.products'))
         else:
-            flash(f'❌ فشل إضافة المنتج: {result.get("message", "خطأ غير معروف")}', 'danger')
+            # ✅ عرض رسالة الخطأ التفصيلية
+            error_msg = result.get('message', 'خطأ غير معروف')
+            flash(f'❌ فشل إضافة المنتج: {error_msg}', 'danger')
             return redirect(url_for('add_product_bp.add_product'))
         
     except Exception as e:
         error_details = traceback.format_exc()
         print(f"❌ خطأ في save_product: {error_details}")
-        flash('❌ حدث خطأ أثناء إضافة المنتج', 'danger')
+        flash(f'❌ حدث خطأ أثناء إضافة المنتج: {str(e)}', 'danger')
         return redirect(url_for('add_product_bp.add_product'))
