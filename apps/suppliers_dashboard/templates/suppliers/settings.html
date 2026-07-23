@@ -830,4 +830,107 @@
         .then(data => {
             if (data.success) {
                 // إضافة العنصر إلى القائمة
-                const dropdown = document.getElementById(dropdownId
+                const dropdown = document.getElementById(dropdownId);
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.setAttribute('data-value', value);
+                item.onclick = function() {
+                    selectOption(selectId, value, inputId);
+                };
+                item.innerHTML = `<i class="fas fa-tag me-2"></i> ${value}`;
+                dropdown.appendChild(item);
+                
+                // تحديد العنصر
+                selectOption(selectId, value, inputId);
+                
+                alert(`✅ تم إضافة "${value}" بنجاح`);
+            } else {
+                alert(`❌ ${data.message || 'حدث خطأ'}`);
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('❌ حدث خطأ في الاتصال');
+        });
+    }
+
+    // ============================================================
+    // ✅ تحديث المدن بناءً على المحافظة
+    // ============================================================
+    function updateCities() {
+        const governorate = document.getElementById('governorateSelect').value;
+        const citySelect = document.getElementById('citySelect');
+        
+        // مسح الخيارات الحالية
+        citySelect.innerHTML = '<option value="">اختر المدينة...</option>';
+        
+        if (governorate) {
+            // جلب المدن من قاعدة البيانات أو من كائن محلي
+            fetch(`/supplier/settings/get-cities?governorate=${encodeURIComponent(governorate)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.cities && data.cities.length > 0) {
+                    data.cities.forEach(city => {
+                        const option = document.createElement('option');
+                        option.value = city;
+                        option.textContent = city;
+                        citySelect.appendChild(option);
+                    });
+                } else {
+                    // إذا لم توجد مدن، أضف خيار لإدخال المدينة يدوياً
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'لا توجد مدن مسجلة';
+                    citySelect.appendChild(option);
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching cities:', err);
+            });
+        }
+    }
+
+    // ============================================================
+    // ✅ تهيئة القوائم المنسدلة - إغلاق عند النقر خارجها
+    // ============================================================
+    document.addEventListener('click', function(event) {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            const wrapper = menu.closest('.search-select-wrapper');
+            if (wrapper && !wrapper.contains(event.target)) {
+                menu.style.display = 'none';
+            }
+        });
+    });
+
+    // ============================================================
+    // ✅ تهيئة الحقول - عند تحميل الصفحة
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        // التحقق من رقم الهاتف
+        const phoneInput = document.getElementById('phoneInput');
+        if (phoneInput && phoneInput.value) {
+            validatePhone(phoneInput);
+        }
+        
+        // التحقق من البريد الإلكتروني
+        const emailInput = document.getElementById('emailInput');
+        if (emailInput && emailInput.value) {
+            validateField(emailInput, 'email');
+        }
+        
+        // تهيئة قيمة حقول البحث
+        document.querySelectorAll('.search-select-input').forEach(input => {
+            const hiddenInput = document.getElementById(input.id.replace('SearchInput', ''));
+            if (hiddenInput && hiddenInput.value) {
+                input.value = hiddenInput.value;
+            }
+        });
+        
+        // تحديث المدن إذا كانت المحافظة محددة
+        const governorateSelect = document.getElementById('governorateSelect');
+        if (governorateSelect && governorateSelect.value) {
+            updateCities();
+        }
+    });
+</script>
+{% endblock %}
