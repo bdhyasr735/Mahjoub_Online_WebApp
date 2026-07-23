@@ -2,18 +2,33 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="theme-color" content="#1a0b2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>{% block title %}لوحة المورد | محجوب{% endblock %}</title>
+    
+    <!-- ✅ أيقونات التطبيق -->
     <link rel="icon" type="image/webp" href="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp">
+    <link rel="apple-touch-icon" href="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp">
+    
+    <!-- ✅ الخطوط والأيقونات -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    
     <style>
+        /* ============================================================
+           ✅ المتغيرات العامة
+           ============================================================ */
         :root {
             --royal-purple: #1a0b2e;
-            --deep-black: #08020d;
+            --royal-purple-light: #2d1b4e;
+            --royal-purple-dark: #08020d;
             --mahjoub-gold: #D4AF37;
+            --mahjoub-gold-light: #e8c84a;
             --sidebar-width: 280px;
+            --header-height: 64px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
             --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
@@ -29,6 +44,8 @@
             margin: 0;
             overflow-x: hidden;
             min-height: 100vh;
+            min-height: 100dvh;
+            -webkit-font-smoothing: antialiased;
         }
         
         /* ============================================================
@@ -36,8 +53,9 @@
            ============================================================ */
         .sidebar {
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
+            background: linear-gradient(180deg, var(--royal-purple) 0%, var(--royal-purple-dark) 100%);
             height: 100vh;
+            height: 100dvh;
             position: fixed;
             right: 0;
             top: 0;
@@ -47,9 +65,11 @@
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: var(--mahjoub-gold) transparent;
+            padding-top: env(safe-area-inset-top, 0px);
         }
         
         .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
         
         .logo-container {
@@ -58,7 +78,13 @@
             border-bottom: 1px solid rgba(212, 175, 55, 0.2);
         }
         
-        .sidebar-logo { width: 60px; filter: brightness(0) invert(1); }
+        .sidebar-logo { 
+            width: 60px; 
+            height: 60px;
+            object-fit: contain;
+            filter: brightness(0) invert(1); 
+        }
+        
         .sidebar-brand {
             color: var(--mahjoub-gold);
             font-size: 0.85rem;
@@ -69,6 +95,17 @@
         }
         
         .nav-menu { padding: 16px 12px; }
+        
+        /* ✅ عناوين المجموعات */
+        .nav-group-title {
+            color: rgba(255,255,255,0.25);
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 12px 16px 6px;
+            display: block;
+        }
         
         .nav-link {
             display: flex;
@@ -82,12 +119,33 @@
             gap: 14px;
             margin-bottom: 2px;
             position: relative;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: right;
+            cursor: pointer;
         }
         
-        .nav-link i { width: 20px; text-align: center; font-size: 1.05rem; }
+        .nav-link i { 
+            width: 20px; 
+            text-align: center; 
+            font-size: 1.05rem; 
+            flex-shrink: 0;
+        }
+        
+        .nav-link span { 
+            flex: 1;
+            white-space: nowrap;
+        }
+        
         .nav-link:hover,
-        .nav-link.active {
+        .nav-link:focus {
             background: rgba(212, 175, 55, 0.15);
+            color: var(--mahjoub-gold);
+        }
+        
+        .nav-link.active {
+            background: rgba(212, 175, 55, 0.18);
             color: var(--mahjoub-gold);
         }
         
@@ -103,12 +161,31 @@
             border-radius: 0 4px 4px 0;
         }
         
-        .nav-link.text-danger { color: rgba(239, 68, 68, 0.8) !important; }
-        .nav-link.text-danger:hover { color: #ef4444 !important; background: rgba(239, 68, 68, 0.12); }
+        .nav-link .module-badge {
+            font-size: 0.55rem;
+            padding: 2px 10px;
+            border-radius: 20px;
+            background: rgba(212, 175, 55, 0.15);
+            color: var(--mahjoub-gold);
+            margin-right: auto;
+            flex-shrink: 0;
+        }
+        
+        .nav-link.active .module-badge {
+            background: rgba(212, 175, 55, 0.25);
+        }
+        
+        .nav-link.text-danger { 
+            color: rgba(239, 68, 68, 0.7) !important; 
+        }
+        .nav-link.text-danger:hover { 
+            color: #ef4444 !important; 
+            background: rgba(239, 68, 68, 0.12);
+        }
         
         .nav-divider {
             border: none;
-            border-top: 1px solid rgba(255,255,255,0.08);
+            border-top: 1px solid rgba(255,255,255,0.06);
             margin: 12px 16px;
         }
         
@@ -119,13 +196,16 @@
             margin-right: var(--sidebar-width);
             transition: var(--transition);
             min-height: 100vh;
+            min-height: 100dvh;
         }
         
         /* ============================================================
            ✅ شريط العلوي
            ============================================================ */
         .top-navbar {
-            background: #fff;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             padding: 12px 24px;
             display: flex;
             justify-content: space-between;
@@ -134,9 +214,10 @@
             position: sticky;
             top: 0;
             z-index: 1040;
-            min-height: 68px;
+            min-height: var(--header-height);
             gap: 12px;
             flex-wrap: nowrap;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
         }
         
         .top-navbar-start {
@@ -153,13 +234,12 @@
             flex-shrink: 0;
         }
         
-        /* ✅ أيقونة الإعدادات */
         .icon-btn {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             border: none;
-            background: #f8f5fa;
+            background: transparent;
             color: var(--royal-purple);
             display: flex;
             align-items: center;
@@ -172,15 +252,18 @@
         }
         
         .icon-btn:hover {
-            background: var(--royal-purple);
-            color: #fff;
+            background: rgba(26, 11, 46, 0.06);
             transform: scale(1.05);
+        }
+        
+        .icon-btn:active {
+            transform: scale(0.92);
         }
         
         .icon-btn .badge-dot {
             position: absolute;
-            top: 4px;
-            right: 4px;
+            top: 6px;
+            right: 6px;
             width: 10px;
             height: 10px;
             background: var(--mahjoub-gold);
@@ -188,35 +271,24 @@
             border: 2px solid #fff;
         }
         
-        /* ✅ جرس الإشعارات */
         .icon-btn .badge-count {
             position: absolute;
-            top: -4px;
-            right: -4px;
-            background: #dc3545;
+            top: -2px;
+            right: -2px;
+            background: #ef4444;
             color: #fff;
             border-radius: 50%;
-            width: 20px;
+            min-width: 20px;
             height: 20px;
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
             border: 2px solid #fff;
+            padding: 0 4px;
         }
         
-        .icon-btn .bell-ring { animation: ring 0.6s ease-in-out; }
-        
-        @keyframes ring {
-            0%, 100% { transform: rotate(0); }
-            20% { transform: rotate(12deg); }
-            40% { transform: rotate(-10deg); }
-            60% { transform: rotate(8deg); }
-            80% { transform: rotate(-4deg); }
-        }
-        
-        /* ✅ زر القائمة الجانبية للهواتف */
         .btn-sidebar-toggle {
             width: 40px;
             height: 40px;
@@ -225,29 +297,65 @@
             background: transparent;
             color: var(--royal-purple);
             font-size: 1.25rem;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             transition: var(--transition);
             flex-shrink: 0;
         }
         
-        .btn-sidebar-toggle:hover { background: #f8f5fa; }
+        .btn-sidebar-toggle:hover {
+            background: rgba(26, 11, 46, 0.06);
+        }
         
-        /* ✅ شارة بوابة المورد */
         .badge-portal {
-            background: var(--mahjoub-gold);
-            color: #000;
+            background: linear-gradient(135deg, var(--mahjoub-gold), var(--mahjoub-gold-light));
+            color: var(--royal-purple);
             padding: 6px 16px;
             border-radius: 50px;
             font-weight: 700;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             letter-spacing: 0.3px;
             white-space: nowrap;
             flex-shrink: 0;
+            box-shadow: 0 2px 12px rgba(212, 175, 55, 0.2);
         }
         
         .badge-portal i { margin-left: 6px; }
+        
+        /* ✅ اسم المستخدم */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 12px 4px 4px;
+            border-radius: 50px;
+            transition: var(--transition);
+        }
+        
+        .user-info:hover {
+            background: rgba(26, 11, 46, 0.04);
+        }
+        
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--royal-purple), var(--royal-purple-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--mahjoub-gold);
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--royal-purple);
+        }
         
         /* ============================================================
            ✅ القوائم المنسدلة
@@ -261,6 +369,8 @@
             margin-top: 8px;
             border: 1px solid rgba(0,0,0,0.04);
             overflow: hidden;
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(20px);
         }
         
         .dropdown-menu-custom .dropdown-item {
@@ -271,6 +381,11 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: right;
+            cursor: pointer;
         }
         
         .dropdown-menu-custom .dropdown-item i {
@@ -281,18 +396,18 @@
         }
         
         .dropdown-menu-custom .dropdown-item:hover {
-            background: #f8f5fa;
+            background: rgba(26, 11, 46, 0.05);
             color: var(--royal-purple);
         }
         
         .dropdown-menu-custom .dropdown-item.text-danger:hover {
-            background: #fef2f2;
+            background: rgba(239, 68, 68, 0.08);
             color: #dc2626;
         }
         
         .dropdown-menu-custom .dropdown-divider {
             margin: 4px 0;
-            border-color: #f0ecf3;
+            border-color: rgba(0,0,0,0.06);
         }
         
         /* ✅ قائمة الإشعارات */
@@ -336,16 +451,28 @@
         
         .dropdown-menu-notifications .notif-item {
             padding: 12px 16px;
-            border-bottom: 1px solid #f3f0f5;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
             transition: var(--transition);
             cursor: pointer;
         }
         
-        .dropdown-menu-notifications .notif-item:hover { background: #faf8fc; }
-        .dropdown-menu-notifications .notif-item.unread { background: #faf5ff; border-right: 3px solid var(--royal-purple); }
+        .dropdown-menu-notifications .notif-item:hover { 
+            background: rgba(26, 11, 46, 0.02); 
+        }
+        .dropdown-menu-notifications .notif-item.unread { 
+            background: rgba(212, 175, 55, 0.04); 
+            border-right: 3px solid var(--mahjoub-gold);
+        }
         
-        .dropdown-menu-notifications .notif-item .notif-title { font-weight: 600; color: #1a0b2e; font-size: 0.85rem; }
-        .dropdown-menu-notifications .notif-item .notif-time { font-size: 0.7rem; color: #9ca3af; }
+        .dropdown-menu-notifications .notif-item .notif-title { 
+            font-weight: 600; 
+            color: #1a0b2e; 
+            font-size: 0.85rem; 
+        }
+        .dropdown-menu-notifications .notif-item .notif-time { 
+            font-size: 0.7rem; 
+            color: #9ca3af; 
+        }
         
         .dropdown-menu-notifications .notif-item .notif-icon {
             width: 36px;
@@ -363,12 +490,17 @@
             color: #9ca3af;
         }
         
-        .dropdown-menu-notifications .notif-empty i { font-size: 2rem; display: block; margin-bottom: 10px; opacity: 0.3; }
+        .dropdown-menu-notifications .notif-empty i { 
+            font-size: 2rem; 
+            display: block; 
+            margin-bottom: 10px; 
+            opacity: 0.3; 
+        }
         
         /* ✅ رسائل التنبيهات */
         .flash-messages {
             position: fixed;
-            top: 80px;
+            top: calc(var(--header-height) + 16px);
             left: 20px;
             z-index: 2000;
             width: 350px;
@@ -379,6 +511,8 @@
             border-radius: var(--radius);
             box-shadow: var(--shadow-md);
             border-right: 4px solid var(--mahjoub-gold);
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.95);
         }
         
         /* ============================================================
@@ -394,6 +528,8 @@
                 box-shadow: 4px 0 30px rgba(0,0,0,0.3);
             }
             .main-wrapper { margin-right: 0; }
+            .btn-sidebar-toggle { display: flex !important; }
+            .user-name { display: none !important; }
         }
         
         @media (max-width: 576px) {
@@ -404,56 +540,136 @@
             }
             .icon-btn { width: 36px; height: 36px; font-size: 0.95rem; }
             .btn-sidebar-toggle { width: 36px; height: 36px; font-size: 1.1rem; }
-            .badge-portal { font-size: 0.6rem; padding: 4px 10px; }
-            .dropdown-menu-notifications { min-width: 280px; max-width: calc(100vw - 40px); }
+            .badge-portal { font-size: 0.55rem; padding: 4px 10px; }
+            .dropdown-menu-notifications { 
+                min-width: 280px; 
+                max-width: calc(100vw - 30px);
+                right: -60px !important;
+            }
             .dropdown-menu-custom { min-width: 170px; }
-            .flash-messages { width: calc(100% - 30px); top: 72px; left: 15px; }
+            .flash-messages { 
+                width: calc(100% - 30px); 
+                top: calc(56px + 12px);
+                left: 15px; 
+            }
             .sidebar { width: 260px; }
-        }
-        
-        @media (min-width: 577px) and (max-width: 992px) {
-            .top-navbar { padding: 12px 20px; }
-            .icon-btn { width: 38px; height: 38px; }
+            .nav-link { padding: 8px 12px; font-size: 0.85rem; }
         }
         
         @media (max-width: 380px) {
-            .top-navbar { padding: 8px 8px; gap: 4px; }
-            .icon-btn { width: 32px; height: 32px; font-size: 0.8rem; }
-            .badge-portal { font-size: 0.5rem; padding: 3px 8px; }
-            .btn-sidebar-toggle { width: 32px; height: 32px; font-size: 1rem; }
+            .top-navbar { 
+                padding: 8px 8px; 
+                gap: 4px; 
+                min-height: 48px;
+            }
+            .icon-btn { 
+                width: 32px; 
+                height: 32px; 
+                font-size: 0.8rem; 
+            }
+            .badge-portal { 
+                font-size: 0.45rem; 
+                padding: 3px 8px; 
+            }
+            .btn-sidebar-toggle { 
+                width: 32px; 
+                height: 32px; 
+                font-size: 1rem; 
+            }
+            .sidebar { width: 220px; }
+        }
+        
+        /* ============================================================
+           ✅ تأثيرات إضافية
+           ============================================================ */
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--mahjoub-gold);
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
 
     <!-- ============================================================
-    ✅ القائمة الجانبية
+    ✅ القائمة الجانبية - ديناميكية بالكامل
     ============================================================ -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="القائمة الجانبية">
         <div class="logo-container">
-            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="sidebar-logo" alt="MAHJOUB">
+            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
+                 class="sidebar-logo" 
+                 alt="محجوب - شعار التطبيق"
+                 loading="lazy">
             <span class="sidebar-brand">بوابة المورد</span>
         </div>
+        
         <nav class="nav-menu">
-            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
-                <i class="fas fa-home"></i> <span>الرئيسية</span>
+            <!-- ✅ الرئيسية (ثابتة) -->
+            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" 
+               class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}"
+               aria-current="{% if request.endpoint == 'suppliers_dashboard.dashboard' %}page{% endif %}">
+                <i class="fas fa-home"></i> 
+                <span>الرئيسية</span>
             </a>
             
+            <!-- ✅ عناوين المجموعات -->
+            <span class="nav-group-title">📂 التطبيقات</span>
+            
+            <!-- ✅ جميع الموديولات المسجلة تلقائياً -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if key != 'suppliers_dashboard' and module.links is mapping %}
                         {% for endpoint, link_title in module.links.items() %}
-                            <a href="{{ safe_url_for(endpoint) }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
-                                <i class="{{ module.icon|default('fas fa-folder') }}"></i> <span>{{ link_title }}</span>
+                            <a href="{{ url_for(endpoint) }}" 
+                               class="nav-link {% if request.endpoint == endpoint %}active{% endif %}"
+                               aria-current="{% if request.endpoint == endpoint %}page{% endif %}">
+                                <i class="{{ module.icon|default('fas fa-folder') }}"></i> 
+                                <span>{{ link_title }}</span>
+                                {% if module.badge and module.badge > 0 %}
+                                <span class="module-badge">{{ module.badge }}</span>
+                                {% endif %}
                             </a>
                         {% endfor %}
                     {% endif %}
                 {% endfor %}
             {% endif %}
             
+            <!-- ✅ فصل -->
             <hr class="nav-divider">
-            <a href="{{ url_for('suppliers_auth.logout') }}" id="logout-btn" class="nav-link text-danger">
-                <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
+            
+            <!-- ✅ الإعدادات (تسجل تلقائياً إن وجدت) -->
+            {% if 'suppliers_settings' in supplier_modules %}
+                {% for endpoint, link_title in supplier_modules['suppliers_settings'].links.items() %}
+                    <a href="{{ url_for(endpoint) }}" 
+                       class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
+                        <i class="fas fa-cog"></i> 
+                        <span>{{ link_title }}</span>
+                    </a>
+                {% endfor %}
+            {% endif %}
+            
+            <!-- ✅ تسجيل الخروج (ثابت) -->
+            <a href="{{ url_for('suppliers_auth.logout') }}" 
+               id="logout-btn" 
+               class="nav-link text-danger">
+                <i class="fas fa-sign-out-alt"></i> 
+                <span>تسجيل الخروج</span>
             </a>
         </nav>
     </aside>
@@ -461,26 +677,38 @@
     <!-- ============================================================
     ✅ المحتوى الرئيسي
     ============================================================ -->
-    <main class="main-wrapper" id="main">
+    <main class="main-wrapper" id="main" role="main">
         
         <!-- ✅ شريط العلوي -->
-        <header class="top-navbar">
+        <header class="top-navbar" role="banner">
             <div class="top-navbar-start">
                 <!-- زر القائمة الجانبية (للشاشات الصغيرة) -->
-                <button class="btn-sidebar-toggle d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('active')" aria-label="القائمة">
+                <button class="btn-sidebar-toggle" 
+                        onclick="document.getElementById('sidebar').classList.toggle('active')" 
+                        aria-label="فتح/إغلاق القائمة"
+                        aria-expanded="false">
                     <i class="fas fa-bars"></i>
                 </button>
                 
                 <!-- ✅ جرس الإشعارات -->
                 <div class="dropdown">
-                    <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإشعارات" id="notifBell">
+                    <button class="icon-btn" 
+                            type="button" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false" 
+                            aria-label="الإشعارات"
+                            title="الإشعارات" 
+                            id="notifBell">
                         <i class="fas fa-bell"></i>
                         <span class="badge-count" id="notifCount">0</span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-custom dropdown-menu-notifications dropdown-menu-end" id="notifDropdown">
+                    <ul class="dropdown-menu dropdown-menu-custom dropdown-menu-notifications dropdown-menu-end" 
+                        id="notifDropdown">
                         <li class="notif-header">
                             <span><i class="fas fa-bell me-2"></i> الإشعارات</span>
-                            <button class="mark-all" onclick="markAllRead()" id="markAllBtn">تحديد الكل كمقروء</button>
+                            <button class="mark-all" onclick="markAllRead()" id="markAllBtn">
+                                تحديد الكل كمقروء
+                            </button>
                         </li>
                         <div id="notifList">
                             <li class="notif-empty">
@@ -493,29 +721,42 @@
                 
                 <!-- ✅ أيقونة الإعدادات -->
                 <div class="dropdown">
-                    <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإعدادات">
+                    <button class="icon-btn" 
+                            type="button" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false" 
+                            aria-label="الإعدادات"
+                            title="الإعدادات">
                         <i class="fas fa-user-cog"></i>
                         <span class="badge-dot"></span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-custom dropdown-menu-end">
+                        {% if 'suppliers_settings' in supplier_modules %}
+                            {% for endpoint, link_title in supplier_modules['suppliers_settings'].links.items() %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for(endpoint) }}">
+                                    <i class="fas fa-store"></i> {{ link_title }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        {% endif %}
+                        {% if 'suppliers_wallet' in supplier_modules %}
+                            {% for endpoint, link_title in supplier_modules['suppliers_wallet'].links.items() %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for(endpoint) }}">
+                                    <i class="fas fa-wallet"></i> {{ link_title }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        {% endif %}
                         <li>
-                            <a class="dropdown-item" href="{{ safe_url_for('suppliers_settings.settings') }}">
-                                <i class="fas fa-store"></i> إعدادات المتجر
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ safe_url_for('suppliers_wallet.wallet') }}">
-                                <i class="fas fa-wallet"></i> المحفظة
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ safe_url_for('suppliers_dashboard.dashboard') }}">
+                            <a class="dropdown-item" href="{{ url_for('suppliers_dashboard.dashboard') }}">
                                 <i class="fas fa-chart-pie"></i> لوحة التحكم
                             </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item text-danger" href="{{ safe_url_for('suppliers_auth.logout') }}">
+                            <a class="dropdown-item text-danger" href="{{ url_for('suppliers_auth.logout') }}">
                                 <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
                             </a>
                         </li>
@@ -523,19 +764,30 @@
                 </div>
             </div>
             
-            <!-- شارة بوابة المورد -->
-            <div class="badge-portal">
-                <i class="fas fa-crown"></i> بوابة المورد
+            <!-- ✅ معلومات المستخدم + شارة بوابة المورد -->
+            <div class="top-navbar-end">
+                <div class="user-info d-none d-md-flex">
+                    <div class="user-avatar">
+                        {{ current_user.username[0]|upper if current_user.username else 'م' }}
+                    </div>
+                    <span class="user-name">
+                        {{ current_user.username if current_user.username else 'المورد' }}
+                    </span>
+                </div>
+                
+                <div class="badge-portal">
+                    <i class="fas fa-crown"></i> بوابة المورد
+                </div>
             </div>
         </header>
 
         <!-- ✅ رسائل التنبيهات -->
-        <div class="flash-messages" id="flashMessages">
+        <div class="flash-messages" id="flashMessages" role="alert" aria-live="polite">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
                         <div class="alert alert-{{ category }} alert-dismissible fade show shadow" role="alert">
-                            {{ message }}
+                            {{ message|safe }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
                         </div>
                     {% endfor %}
@@ -544,9 +796,14 @@
         </div>
 
         <!-- ✅ محتوى الصفحة -->
-        <section class="p-3 p-md-4">
+        <section class="p-3 p-md-4 fade-in">
             {% block content %}{% endblock %}
         </section>
+        
+        <!-- ✅ فوتر -->
+        <div class="text-center py-3 text-muted small">
+            <span class="opacity-50">© 2024 محجوب - بوابة المورد</span>
+        </div>
     </main>
 
     <!-- ============================================================
@@ -583,7 +840,7 @@
             }
             
             // ============================================================
-            // ✅ جرس الإشعارات (معطل مؤقتاً)
+            // ✅ جرس الإشعارات
             // ============================================================
             const notifBell = document.getElementById('notifBell');
             const notifCount = document.getElementById('notifCount');
@@ -592,7 +849,6 @@
             
             let notificationCount = 0;
             
-            // ✅ عرض عدد الإشعارات
             function updateNotifCount(count) {
                 notificationCount = count;
                 if (notifCount) {
@@ -605,7 +861,6 @@
                 }
             }
             
-            // ✅ إضافة إشعار جديد (يدوي)
             function addNotification(title, icon, time, type) {
                 if (!notifList) return;
                 
@@ -638,7 +893,6 @@
                 updateNotifCount(unread);
             }
             
-            // ✅ تحديد الكل كمقروء
             function markAllRead() {
                 const items = document.querySelectorAll('#notifList .notif-item.unread');
                 items.forEach(item => item.classList.remove('unread'));
@@ -656,62 +910,14 @@
             }
             
             // ============================================================
-            // ✅ تحميل الإشعارات من الخادم - معطل مؤقتاً
+            // ✅ تحديث عدد الإشعارات عند التحميل
             // ============================================================
-            function loadNotifications() {
-                // ⏸️ معطل مؤقتاً لحين إنشاء المسار
-                console.log('⏸️ الإشعارات معطلة مؤقتاً');
-                
-                // ❌ غير مفعل
-                /*
-                fetch('/supplier/notifications', {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(res => {
-                    if (!res.ok) throw new Error('فشل تحميل الإشعارات');
-                    return res.json();
-                })
-                .then(data => {
-                    if (data && data.notifications) {
-                        const items = notifList.querySelectorAll('.notif-item');
-                        items.forEach(item => item.remove());
-                        
-                        if (data.notifications.length === 0) {
-                            notifList.innerHTML = `
-                                <li class="notif-empty">
-                                    <i class="fas fa-bell-slash"></i>
-                                    لا توجد إشعارات جديدة
-                                </li>
-                            `;
-                            updateNotifCount(0);
-                            return;
-                        }
-                        
-                        data.notifications.forEach(notif => {
-                            addNotification(notif.title, notif.icon || 'bell', notif.time, notif.type || 'info');
-                        });
-                        
-                        const unread = document.querySelectorAll('#notifList .notif-item.unread').length;
-                        updateNotifCount(unread);
-                    }
-                })
-                .catch(err => {
-                    console.warn('⚠️ فشل تحميل الإشعارات:', err);
-                });
-                */
-            }
-            
-            // ✅ تحميل الإشعارات عند تحميل الصفحة (معطل)
             document.addEventListener('DOMContentLoaded', function() {
                 const initialUnread = document.querySelectorAll('#notifList .notif-item.unread').length;
                 updateNotifCount(initialUnread);
-                
-                // ⏸️ معطل مؤقتاً
-                // loadNotifications();
-                // setInterval(loadNotifications, 30000);
             });
             
-            // ✅ تصدير الدوال للاستخدام في القوالب
+            // ✅ تصدير الدوال
             window.addNotification = addNotification;
             window.markAllRead = markAllRead;
             window.updateNotifCount = updateNotifCount;
