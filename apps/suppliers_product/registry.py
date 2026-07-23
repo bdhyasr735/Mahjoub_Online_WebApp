@@ -14,11 +14,10 @@ SHOW_IN_SUPPLIER = True
 
 # ✅ الروابط - تأكد من أن الاسم صحيح
 LINKS = {
-    'suppliers_product_bp.products': '📦 منتجاتي',
-    'add_product_bp.add_product': '➕ إضافة منتج'  # ✅ أضف هذا السطر
+    'suppliers_product_bp.products': '📦 منتجاتي'
 }
 
-# ✅ تعريف الـ Blueprint
+# ✅ تعريف الـ Blueprint (تم نقله إلى هنا)
 suppliers_product_bp = Blueprint(
     'suppliers_product_bp',
     __name__,
@@ -30,17 +29,12 @@ suppliers_product_bp = Blueprint(
 
 def register_module(app):
     """تسجيل الموديول في التطبيق"""
+    # ✅ استيراد الـ routes بعد تعريف الـ Blueprint
     from apps.suppliers_product import routes
-    from apps.suppliers_product.add_product_routes import add_product_bp  # ✅ استيراد الـ Blueprint الخاص بالإضافة
     
     if 'suppliers_product_bp' not in app.blueprints:
         app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
         print("✅ [Registry]: تم تسجيل 'suppliers_product' بنجاح.")
-    
-    if 'add_product_bp' not in app.blueprints:
-        app.register_blueprint(add_product_bp, url_prefix='/supplier')
-        print("✅ [Registry]: تم تسجيل 'add_product_bp' بنجاح.")
-    
     return app
 
 
