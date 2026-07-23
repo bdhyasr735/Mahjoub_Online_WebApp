@@ -1,46 +1,91 @@
 # coding: utf-8
-# 📂 apps/suppliers_dashboard/registry.py
+# 📂 apps/suppliers_dashboard/dashboard_routes.py
 
-"""
-تسجيل تطبيق لوحة تحكم الموردين في المنصة
-"""
+from flask import Blueprint, render_template, session, redirect
+from flask_login import login_required, current_user
+import traceback
 
-# ✅ بيانات الموديول
-MODULE_NAME = "لوحة التحكم"
-MODULE_ICON = "fas fa-home"
-SHOW_IN_SUPPLIER = True
+from apps.models import db, Supplier, Order, SupplierWallet
 
-# ✅ جميع الروابط في مكان واحد
-LINKS = {
-    'suppliers_dashboard.dashboard': '📊 لوحة التحكم',
-    'suppliers_wallet.wallet': '💰 المحفظة',
-    'suppliers_wallet.withdraw': '💳 سحب الرصيد',
-    'suppliers_settings.settings': '⚙️ إعدادات المتجر'
-}
+# ✅ تعريف الـ Blueprint بالاسم الصحيح
+suppliers_dashboard_bp = Blueprint(
+    'suppliers_dashboard',
+    __name__,
+    template_folder='templates'
+)
 
 
-def register_module(app):
-    """
-    تسجيل جميع Blueprints الخاصة بلوحة التحكم في التطبيق الرئيسي
-    """
-    # ✅ استيراد الـ Blueprints
-    from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
-    from apps.suppliers_dashboard.settings_routes import settings_bp
-    from apps.suppliers_dashboard.wallet_routes import wallet_bp
-    
-    # ✅ تسجيل Blueprint لوحة التحكم
-    if 'suppliers_dashboard' not in app.blueprints:
-        app.register_blueprint(suppliers_dashboard_bp, url_prefix='/supplier')
-        print("✅ [Registry]: تم تسجيل 'suppliers_dashboard'")
-    
-    # ✅ تسجيل Blueprint الإعدادات
-    if 'suppliers_settings' not in app.blueprints:
-        app.register_blueprint(settings_bp, url_prefix='/supplier')
-        print("✅ [Registry]: تم تسجيل 'suppliers_settings'")
-    
-    # ✅ تسجيل Blueprint المحفظة
-    if 'suppliers_wallet' not in app.blueprints:
-        app.register_blueprint(wallet_bp, url_prefix='/supplier')
-        print("✅ [Registry]: تم تسجيل 'suppliers_wallet'")
-    
-    return app
+@suppliers_dashboard_bp.route('/dashboard', methods=['GET'])
+@login_required
+def dashboard():
+    try:
+        # ✅ جلب نوع المستخدم
+        user_type = session.get('user_type')
+        
+        # ✅ إذا كانت user_type فارغة، حاول تعيينها تلقائياً
+        if not user_type:
+            if hasattr(current_user, 'supplier_id') and current_user.supplier_id:
+                user_type = 'staff'
+                session['user_type'] = 'staff'
+            elif hasattr(current_user, 'id'):
+                # التحقق من وجود المستخدم في جدول Supplier
+                supplier = Supplier.query.get(current_user.id)
+                if supplier:
+                    user_type = 'supplier'
+                    session['user_type'] = 'supplier'
+                else:
+                    return "❌ لا يمكن تحديد نوع المستخدم", 400
+        
+        # ✅ التحقق من وجود user_type
+        if user_type not in ['supplier', 'staff']:
+            return "❌ نوع المستخدم غير معروف", 400
+        
+        # ✅ جلب supplier_id بأمان
+        if user_type == 'staff':
+            supplier_id = getattr(current_user, 'supplier_id', None)
+        else:
+            supplier_id = current_user.id
+        
+        # ✅ التحقق من وجود supplier_id
+        if not supplier_id:
+            return "❌ لا يوجد مورد مرتبط بهذا الحساب", 404
+        
+        # ✅ جلب المورد
+        supplier = db.session.get(Supplier, supplier_id)
+        
+        if not supplier:
+            return "❌ المورد غير موجود", 404
+        
+        # ✅ جلب المحفظة
+        wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
+        supplier.wallet = wallet
+        
+        # ✅ عدد الطلبات
+        pending_orders_count = Order.query.filter_by(
+            supplier_id=supplier.id, status='pending'
+        ).count()
+        
+        # ✅ عرض القالب (المتغيرات العامة من context_processor ستكون متاحة تلقائياً)
+        return render_template(
+            'suppliers/dashboard.html',
+            supplier=supplier,
+            pending_orders_count=pending_orders_count,
+            total_sales=0
+            # ❌ لا حاجة لتمرير supplier_modules هنا لأنه موجود في context_processor
+        )
+        
+    except Exception as e:
+        # ✅ عرض تفاصيل الخطأ كاملة
+        error_details = traceback.format_exc()
+        print(f"❌ خطأ في dashboard: {error_details}")
+        
+        return f"""
+        <div style="direction: rtl; font-family: Tahoma; padding: 30px; text-align: center;">
+            <h2 style="color: #d9534f;">❌ خطأ في لوحة التحكم</h2>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: right; margin: 20px auto; max-width: 800px; overflow: auto; border: 1px solid #ddd;">
+                <p><strong>تفاصيل الخطأ:</strong></p>
+                <pre style="background: #fff; padding: 15px; border-radius: 5px; border: 1px solid #ddd; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">{error_details}</pre>
+            </div>
+            <a href="/supplier/dashboard" style="background: #2d0b36; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">محاولة مرة أخرى</a>
+        </div>
+        """, 500
