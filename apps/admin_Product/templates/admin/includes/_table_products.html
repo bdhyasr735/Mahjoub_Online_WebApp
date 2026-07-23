@@ -1,76 +1,191 @@
 <!-- 📂 apps/admin_Product/templates/admin/includes/_table_products.html -->
-<table class="table table-hover align-middle shadow-sm rounded">
-  <thead class="table-light">
-    <tr>
-      <th scope="col">#</th>
-      <th scope="col">الصورة</th>
-      <th scope="col">اسم المنتج</th>
-      <th scope="col">السعر</th>
-      <th scope="col">الكمية</th>
-      <th scope="col">الإجراءات</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for product in products %}
-    <tr>
-      <td>{{ loop.index }}</td>
-      <td>
-        <img src="{{ product.images[0].fileUrl if product.images else '/static/images/default.png' }}"
-             alt="{{ product.title }}"
-             style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
-      </td>
-      <td class="fw-bold text-truncate" style="max-width: 200px;">
-        {{ product.title }}
-      </td>
-      <td class="text-primary fw-bold">
-        {{ product.pricing.price if product.pricing else 0 }} ر.س
-      </td>
-      <td>
-        <span class="badge {{ 'bg-success' if product.quantity|int > 0 else 'bg-danger' }}">
-          {{ product.quantity or 0 }}
-        </span>
-      </td>
-      <td>
-        <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}"
-           class="btn btn-sm btn-outline-primary me-2">
-          <i class="fas fa-edit"></i> تعديل
-        </a>
-        <button type="button" class="btn btn-sm btn-outline-danger">
-          <i class="fas fa-trash"></i> حذف
-        </button>
-      </td>
-    </tr>
-    {% else %}
-    <tr>
-      <td colspan="6" class="text-center py-4 text-muted">
-        <i class="fas fa-box-open fa-2x mb-2"></i>
-        <div>لا توجد منتجات مطابقة للبحث الحالي.</div>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="table-responsive">
+    <table class="table table-hover align-middle shadow-sm rounded">
+        <thead class="table-light">
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">الصورة</th>
+                <th scope="col">اسم المنتج</th>
+                <th scope="col">السعر</th>
+                <th scope="col">الكمية</th>
+                <th scope="col">الحالة</th>
+                <th scope="col">الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    <img src="{{ product.images[0].fileUrl if product.images else '/static/images/default.png' }}"
+                         alt="{{ product.title }}"
+                         style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
+                         onerror="this.src='/static/images/default.png'">
+                </td>
+                <td class="fw-bold text-truncate" style="max-width: 200px;">
+                    {{ product.title }}
+                    {% if product.description %}
+                    <br><small class="text-muted">{{ product.description|striptags|truncate(40) }}</small>
+                    {% endif %}
+                </td>
+                <td class="text-primary fw-bold">
+                    {{ "%.2f"|format(product.pricing.price if product.pricing and product.pricing.price else 0) }} ر.س
+                </td>
+                <td>
+                    <span class="badge {{ 'bg-success' if product.quantity|int > 0 else 'bg-danger' }}">
+                        {{ product.quantity or 0 }}
+                    </span>
+                </td>
+                <td>
+                    {% set status = product.status|upper if product.status else 'DRAFT' %}
+                    <span class="badge 
+                        {% if status == 'PUBLISHED' %}bg-success
+                        {% elif status == 'DRAFT' %}bg-warning text-dark
+                        {% elif status == 'REJECTED' %}bg-danger
+                        {% elif status == 'ARCHIVED' %}bg-secondary
+                        {% else %}bg-light text-dark{% endif %}">
+                        {% if status == 'PUBLISHED' %}
+                            <i class="fas fa-check-circle me-1"></i> منشور
+                        {% elif status == 'DRAFT' %}
+                            <i class="fas fa-clock me-1"></i> قيد المراجعة
+                        {% elif status == 'REJECTED' %}
+                            <i class="fas fa-times-circle me-1"></i> مرفوض
+                        {% elif status == 'ARCHIVED' %}
+                            <i class="fas fa-archive me-1"></i> مؤرشف
+                        {% else %}
+                            {{ status }}
+                        {% endif %}
+                    </span>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}"
+                           class="btn btn-outline-primary" title="تعديل المنتج">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button type="button" class="btn btn-outline-danger" 
+                                onclick="deleteProduct('{{ product.qid }}')" title="حذف المنتج">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                    <i class="fas fa-box-open fa-2x mb-2 d-block"></i>
+                    <div>لا توجد منتجات مطابقة للبحث الحالي.</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
+<!-- ✅ الترقيم -->
 {% if pagination and pagination.totalPages > 1 %}
 <nav class="mt-4">
-  <ul class="pagination justify-content-center">
-    <li class="page-item {{ 'disabled' if pagination.currentPage <= 1 }}">
-      <a class="page-link"
-         href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage-1, title=search_title) }}">
-        السابق
-      </a>
-    </li>
-    <li class="page-item active shadow-sm">
-      <span class="page-link" style="background-color: var(--dark-purple); border-color: var(--dark-purple);">
-        {{ pagination.currentPage }} / {{ pagination.totalPages }}
-      </span>
-    </li>
-    <li class="page-item {{ 'disabled' if pagination.currentPage >= pagination.totalPages }}">
-      <a class="page-link"
-         href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage+1, title=search_title) }}">
-        التالي
-      </a>
-    </li>
-  </ul>
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if pagination.currentPage <= 1 }}">
+            <a class="page-link"
+               href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage-1, title=search_title) }}">
+                <i class="fas fa-chevron-right"></i> السابق
+            </a>
+        </li>
+        <li class="page-item active shadow-sm">
+            <span class="page-link" style="background-color: var(--dark-purple); border-color: var(--dark-purple);">
+                {{ pagination.currentPage }} / {{ pagination.totalPages }}
+            </span>
+        </li>
+        <li class="page-item {{ 'disabled' if pagination.currentPage >= pagination.totalPages }}">
+            <a class="page-link"
+               href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage+1, title=search_title) }}">
+                التالي <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+    </ul>
 </nav>
 {% endif %}
+
+<!-- ✅ JavaScript للحذف -->
+<script>
+function deleteProduct(qid) {
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء!')) return;
+    
+    const btn = event?.target?.closest('button');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    }
+    
+    fetch(`/admin/products/delete/${qid}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name="csrf_token"]')?.value || ''
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', '✅ ' + data.message);
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showToast('error', '❌ ' + data.message);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash"></i>';
+            }
+        }
+    })
+    .catch(err => {
+        showToast('error', '❌ حدث خطأ: ' + err.message);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i>';
+        }
+    });
+}
+
+function showToast(type, message) {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#0d6efd'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show border-0 shadow-lg" role="alert" 
+             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <span>${message}</span>
+                <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
+</script>
+
+<style>
+    .table th {
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(45, 11, 54, 0.02);
+    }
+    .btn-group .btn {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
+</style>
