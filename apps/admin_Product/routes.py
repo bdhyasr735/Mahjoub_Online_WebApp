@@ -15,7 +15,8 @@ admin_product_bp = Blueprint(
     static_folder='static'
 )
 
-GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN')
+# ❌ لا حاجة لـ GRAPHQL_TOKEN
+# GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN')
 
 
 # ============================================================
@@ -27,7 +28,8 @@ def manage_products():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('title', '', type=str)
     
-    client = ProductSyncService(token=GRAPHQL_TOKEN)
+    # ✅ بدون token
+    client = ProductSyncService()
     response_data = client.fetch_products(page=page, limit=20, title=search_query)
     
     products = response_data.get("data", [])
@@ -48,14 +50,13 @@ def manage_products():
 def review_products():
     """صفحة مراجعة المنتجات - تعرض المنتجات التي حالتها DRAFT"""
     try:
-        client = ProductSyncService(token=GRAPHQL_TOKEN)
+        # ✅ بدون token
+        client = ProductSyncService()
         response_data = client.fetch_products(page=1, limit=100)
         all_products = response_data.get("data", [])
         
-        # ✅ تصفية المنتجات التي حالتها DRAFT
         draft_products = [p for p in all_products if p.get('status') == 'DRAFT']
         
-        # ✅ جلب الموردين لكل منتج
         for product in draft_products:
             mapping = ProductSupplierMapping.query.filter_by(
                 product_qid=product.get('qid')
@@ -63,10 +64,8 @@ def review_products():
             if mapping:
                 supplier = Supplier.query.get(mapping.supplier_id)
                 product['supplier_name'] = supplier.trade_name if supplier else 'غير معروف'
-                product['supplier_id'] = mapping.supplier_id
             else:
                 product['supplier_name'] = 'غير مرتبط'
-                product['supplier_id'] = None
         
         return render_template(
             'admin/min_review_products.html',
@@ -85,9 +84,9 @@ def review_products():
 # ============================================================
 @admin_product_bp.route('/sync-products', methods=['POST'])
 def sync_products():
-    """مسار تنفيذ المزامنة عند النقر على الزر في نافذة الـ Modal"""
     try:
-        client = ProductSyncService(token=GRAPHQL_TOKEN)
+        # ✅ بدون token
+        client = ProductSyncService()
         raw_data = client.fetch_products(page=1, limit=50)
         
         if not raw_data or "data" not in raw_data:
@@ -108,14 +107,13 @@ def sync_products():
 # ============================================================
 @admin_product_bp.route('/products/add', methods=['GET', 'POST'])
 def add_product():
-    """مسار إضافة منتج جديد"""
-    client = ProductSyncService(token=GRAPHQL_TOKEN)
+    # ✅ بدون token
+    client = ProductSyncService()
     suppliers = Supplier.query.filter_by(status='active').all()
     all_collections = client.fetch_collections() if hasattr(client, 'fetch_collections') else []
 
     if request.method == 'POST':
         try:
-            # ✅ هنا يتم إنشاء المنتج
             flash("✅ تم إضافة المنتج بنجاح.", "success")
             return redirect(url_for('admin_product_bp.manage_products'))
         except Exception as e:
@@ -133,14 +131,14 @@ def add_product():
 # ============================================================
 @admin_product_bp.route('/products/edit', methods=['GET'])
 def edit_product():
-    """مسار عرض صفحة تعديل المنتج"""
     qid = request.args.get('qid')
     
     if not qid:
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
     
-    client = ProductSyncService(token=GRAPHQL_TOKEN)
+    # ✅ بدون token
+    client = ProductSyncService()
     product = client.fetch_product_by_qid(qid)
     
     if not product:
@@ -166,15 +164,14 @@ def edit_product():
 # ============================================================
 @admin_product_bp.route('/products/save-sync', methods=['POST'])
 def save_sync_product():
-    """مسار استقبال وتخزين البيانات الواردة من قالب التعديل"""
     try:
         qid = request.form.get('qid')
         if not qid:
             return jsonify({"status": "error", "message": "qid مفقود"}), 400
         
-        client = ProductSyncService(token=GRAPHQL_TOKEN)
+        # ✅ بدون token
+        client = ProductSyncService()
         
-        # ✅ تجميع البيانات
         title = request.form.get('title', '')
         slug = request.form.get('slug', '')
         description = request.form.get('description', '')
@@ -195,7 +192,6 @@ def save_sync_product():
         except ValueError:
             quantity, weight_val = 0, 0.0
 
-        # ✅ تحديث المنتج في قمرة
         info = {"title": title, "slug": slug, "status": status}
         pricing = {
             "price": price,
@@ -218,7 +214,6 @@ def save_sync_product():
         if not success:
             return jsonify({"status": "error", "message": "فشل تحديث المنتج"}), 500
         
-        # ✅ تحديث ربط المورد
         if supplier_id:
             mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
             if mapping:
@@ -239,11 +234,10 @@ def save_sync_product():
 
 
 # ============================================================
-# ✅ تغيير حالة المنتج (موافقة/رفض)
+# ✅ تغيير حالة المنتج
 # ============================================================
 @admin_product_bp.route('/products/change-status/<qid>', methods=['POST'])
 def change_product_status(qid):
-    """تغيير حالة المنتج (موافقة أو رفض)"""
     try:
         data = request.get_json()
         new_status = data.get('status', '').upper()
@@ -251,7 +245,8 @@ def change_product_status(qid):
         if new_status not in ['PUBLISHED', 'REJECTED', 'DRAFT', 'ARCHIVED']:
             return jsonify({'success': False, 'message': 'حالة غير صالحة'}), 400
         
-        client = ProductSyncService(token=GRAPHQL_TOKEN)
+        # ✅ بدون token
+        client = ProductSyncService()
         result = client.update_product_status(qid, new_status)
         
         if result:
