@@ -2,21 +2,27 @@
 # 📂 apps/admin_Product/registry.py
 
 import apps.admin_Product.routes as product_routes
-import apps.admin_Product.routes_edit as product_edit_routes
 
-# بيانات الموديول للظهور في الشريط الجانبي
 MODULE_NAME = "إدارة المنتجات"
 MODULE_ICON = "fa-boxes"
 SHOW_IN_SUPPLIER = False
 
-# هنا المفتاح هو الـ endpoint (اسم المسار)، والقيمة هي النص العربي الذي سيظهر في القائمة
+# ✅ الروابط الأساسية فقط
 LINKS = {
-    "admin_product_bp.manage_products": "المنتجات",
-    "admin_product_bp.add_product": "إضافة منتج"
-    # زر المزامنة سيبقى داخل نافذة إدارة المنتجات (Modal) ولا يظهر هنا
+    "admin_product_bp.manage_products": "📦 إدارة المنتجات",
+    "admin_product_bp.add_product": "➕ إضافة منتج"
 }
 
+
 def register_module(app):
-    # تسجيل الـ Blueprint (بما أن مسارات الإدارة والتعديل تشترك في نفس اسم الـ Blueprint admin_product_bp،
-    # يكفي تسجيله من الملف الأساسي أو ملف التعديل بشرط أن يكونا مستخدمين لنفس الـ Blueprint)
-    app.register_blueprint(product_routes.admin_product_bp)
+    try:
+        if 'admin_product_bp' not in app.blueprints:
+            app.register_blueprint(product_routes.admin_product_bp, url_prefix='/admin')
+            print("✅ [Registry]: تم تسجيل 'admin_product_bp'")
+        else:
+            print("ℹ️ [Registry]: 'admin_product_bp' مسجل مسبقاً")
+            
+    except Exception as e:
+        print(f"❌ [Registry]: خطأ في تسجيل admin_product: {e}")
+    
+    return app
