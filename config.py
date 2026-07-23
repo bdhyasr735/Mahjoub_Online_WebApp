@@ -79,18 +79,18 @@ class Config:
     OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
     OPENROUTER_API_URL = os.environ.get('OPENROUTER_API_URL', 'https://openrouter.ai/api/v1/chat/completions')
     
-    # ✅ نماذج مجانية متعددة (جرب واحداً تلو الآخر)
+    # ✅ نماذج مجانية - qwen أولاً لأنه النموذج العامل
     OPENROUTER_MODELS = {
+        'qwen': 'qwen/qwen-2.5-7b-instruct',    # ✅ يعمل
         'mistral': 'mistralai/mistral-7b-instruct-v0.1',
         'llama': 'meta-llama/llama-3-8b-instruct',
         'gemma': 'google/gemma-2-9b-it',
-        'phi': 'microsoft/phi-3-mini-128k-instruct',
-        'qwen': 'qwen/qwen-2.5-7b-instruct'
+        'phi': 'microsoft/phi-3-mini-128k-instruct'
     }
     
-    # ✅ النموذج النشط (غيّر المفتاح لتبديل النموذج)
-    OPENROUTER_MODEL_KEY = os.environ.get('OPENROUTER_MODEL_KEY', 'mistral')
-    OPENROUTER_MODEL = OPENROUTER_MODELS.get(OPENROUTER_MODEL_KEY, OPENROUTER_MODELS['mistral'])
+    # ✅ النموذج النشط - qwen افتراضياً
+    OPENROUTER_MODEL_KEY = os.environ.get('OPENROUTER_MODEL_KEY', 'qwen')
+    OPENROUTER_MODEL = OPENROUTER_MODELS.get(OPENROUTER_MODEL_KEY, OPENROUTER_MODELS['qwen'])
     
     # ✅ طباعة للتأكد من وجود المفتاح (في السجلات)
     print(f"🔑 DEEPSEEK_API_KEY: {DEEPSEEK_API_KEY[:10] if DEEPSEEK_API_KEY else '❌ غير موجود'}...")
