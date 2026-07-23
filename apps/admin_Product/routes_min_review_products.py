@@ -1,9 +1,12 @@
 # coding: utf-8
-# 📂 apps/admin_Product/routes_review_products.py
+# 📂 apps/admin_Product/routes_min_review_products.py
 
-from flask import Blueprint, render_template, jsonify, session, redirect, url_for, flash
+from flask import Blueprint, render_template, jsonify, session, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from apps.services.product_sync_service import ProductSyncService
+from apps.models.supplier_db import Supplier
+from apps.models.product_supplier_map import ProductSupplierMapping
+from apps.extensions import db
 import os
 
 # ✅ تعريف الـ Blueprint
@@ -29,15 +32,27 @@ def review_products():
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
             return redirect(url_for('admin_dashboard_bp.dashboard'))
         
+        # ✅ جلب المنتجات من قمرة
         client = ProductSyncService(token=GRAPHQL_TOKEN)
         response_data = client.fetch_products(page=1, limit=100)
         all_products = response_data.get("data", [])
         
-        # ✅ تصفية المنتجات التي حالتها DRAFT فقط
+        # ✅ تصفية المنتجات التي حالتها DRAFT
         draft_products = [p for p in all_products if p.get('status') == 'DRAFT']
         
+        # ✅ جلب الموردين لكل منتج
+        for product in draft_products:
+            mapping = ProductSupplierMapping.query.filter_by(
+                product_qid=product.get('qid')
+            ).first()
+            if mapping:
+                supplier = Supplier.query.get(mapping.supplier_id)
+                product['supplier_name'] = supplier.trade_name if supplier else 'غير معروف'
+            else:
+                product['supplier_name'] = 'غير مرتبط'
+        
         return render_template(
-            'admin/admin_review_products.html',
+            'admin/min_review_products.html',
             products=draft_products,
             total_count=len(draft_products)
         )
@@ -78,6 +93,35 @@ def change_status(qid):
             })
         else:
             return jsonify({'success': False, 'message': '❌ فشل تغيير الحالة'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# ✅ حذف المنتج
+# ============================================================
+@review_bp.route('/products/delete/<qid>', methods=['POST'])
+@login_required
+def delete_product(qid):
+    """حذف المنتج من صفحة المراجعة"""
+    try:
+        user_type = session.get('user_type')
+        if user_type != 'admin':
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+        
+        client = ProductSyncService(token=GRAPHQL_TOKEN)
+        result = client.delete_product(qid)
+        
+        if result:
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            if mapping:
+                db.session.delete(mapping)
+                db.session.commit()
+            
+            return jsonify({'success': True, 'message': '✅ تم حذف المنتج بنجاح'})
+        else:
+            return jsonify({'success': False, 'message': '❌ فشل حذف المنتج'}), 500
             
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
