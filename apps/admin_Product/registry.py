@@ -5,10 +5,11 @@ MODULE_NAME = "إدارة المنتجات"
 MODULE_ICON = "fa-boxes"
 SHOW_IN_SUPPLIER = False
 
-# ✅ الروابط الأساسية فقط (بدون review مؤقتاً)
+# ✅ الروابط الأساسية
 LINKS = {
     "admin_product_bp.manage_products": "📦 إدارة المنتجات",
-    "admin_product_bp.add_product": "➕ إضافة منتج"
+    "admin_product_bp.add_product": "➕ إضافة منتج",
+    "admin_product_bp.review_products": "📋 مراجعة المنتجات"  # ✅ أضف هذا
 }
 
 
