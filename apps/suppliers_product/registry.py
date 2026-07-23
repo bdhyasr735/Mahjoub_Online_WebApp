@@ -21,7 +21,7 @@ suppliers_product_bp = Blueprint(
     static_url_path='/suppliers_product/static'
 )
 
-# ✅ الروابط (بعد تعريف الـ Blueprint)
+# ✅ الروابط
 LINKS = {
     'suppliers_product_bp.products': '📦 منتجاتي'
 }
@@ -30,22 +30,28 @@ LINKS = {
 def register_module(app):
     """تسجيل الموديول في التطبيق"""
     try:
-        # ✅ استيراد الـ routes بعد تعريف الـ Blueprint
         from apps.suppliers_product.suppliers_product_routes import suppliers_product_bp as bp
         from apps.suppliers_product.add_product_routes import add_product_bp
         from apps.suppliers_product.edit_product_routes import edit_product_bp
         
+        # ✅ التحقق من وجود الـ Blueprint قبل التسجيل
         if 'suppliers_product_bp' not in app.blueprints:
             app.register_blueprint(bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'suppliers_product'")
+        else:
+            print("ℹ️ [Registry]: 'suppliers_product' مسجل مسبقاً")
         
         if 'add_product_bp' not in app.blueprints:
             app.register_blueprint(add_product_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'add_product_bp'")
+        else:
+            print("ℹ️ [Registry]: 'add_product_bp' مسجل مسبقاً")
         
         if 'edit_product_bp' not in app.blueprints:
             app.register_blueprint(edit_product_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'edit_product_bp'")
+        else:
+            print("ℹ️ [Registry]: 'edit_product_bp' مسجل مسبقاً")
             
     except ImportError as e:
         print(f"❌ [Registry]: خطأ في استيراد: {e}")
