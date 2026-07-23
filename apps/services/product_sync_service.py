@@ -2,10 +2,70 @@
 # 📂 apps/services/product_sync_service.py
 
 from apps.services.graphql_client import QomrahGraphQLClient
+import requests
+import os
 
 class ProductSyncService:
     def __init__(self):
         self.client = QomrahGraphQLClient()
+
+    # ============================================================
+    # ✅ رفع صورة إلى قمرة
+    # ============================================================
+    def upload_image(self, image_data: bytes, filename: str) -> str:
+        """
+        رفع صورة إلى مكتبة قمرة
+        
+        Args:
+            image_data: بيانات الصورة (bytes)
+            filename: اسم الملف
+        
+        Returns:
+            str: رابط الصورة في قمرة
+        """
+        try:
+            # ✅ تحضير الملف للرفع
+            files = {
+                'file': (filename, image_data, 'image/jpeg'),
+                'filename': (None, filename)
+            }
+            
+            # ✅ إضافة رأس Authorization
+            api_key = os.environ.get('QUMRA_API_KEY')
+            if not api_key:
+                print("❌ QUMRA_API_KEY غير موجود")
+                return None
+            
+            headers = {
+                'Authorization': f'Bearer {api_key}',
+                'Accept': 'application/json'
+            }
+            
+            # ✅ رفع الصورة إلى قمرة
+            response = requests.post(
+                'https://mahjoub.online/admin/graphql',
+                files=files,
+                headers=headers,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                upload_result = result.get('data', {}).get('uploadFile', {})
+                if upload_result.get('success'):
+                    file_url = upload_result.get('data', {}).get('fileUrl')
+                    print(f"✅ تم رفع الصورة بنجاح: {file_url}")
+                    return file_url
+                else:
+                    print(f"❌ فشل رفع الصورة: {upload_result.get('message')}")
+                    return None
+            else:
+                print(f"❌ HTTP Error {response.status_code}: {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ خطأ في رفع الصورة: {e}")
+            return None
 
     # ============================================================
     # ✅ جلب المنتجات
@@ -244,7 +304,6 @@ class ProductSyncService:
     # ============================================================
     def update_product_data(self, qid: str, **kwargs):
         """تحديث بيانات المنتج في قمرة"""
-        # هذه دالة مبسطة، يمكن توسيعها حسب الحاجة
         info = kwargs.get('info', {})
         pricing = kwargs.get('pricing', {})
         weight = kwargs.get('weight', {})
