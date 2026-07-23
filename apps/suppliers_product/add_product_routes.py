@@ -23,7 +23,8 @@ add_product_bp = Blueprint(
     template_folder='templates'
 )
 
-GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN')
+# ✅ لا حاجة لـ GRAPHQL_TOKEN
+# GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN')
 
 
 def compress_image(image_data, max_size=(1200, 1200), quality=75):
@@ -32,7 +33,7 @@ def compress_image(image_data, max_size=(1200, 1200), quality=75):
     
     Args:
         image_data: بيانات الصورة (bytes)
-        max_size: tuple (عرض, ارتفاع) الحد الأقصى للأبعاد
+        max_size: tuple (width, height) الحد الأقصى للأبعاد
         quality: جودة الصورة (1-100)
     
     Returns:
@@ -131,8 +132,8 @@ def save_product():
         image_base64 = base64.b64encode(compressed_data).decode('utf-8')
         image_base64 = f"data:image/jpeg;base64,{image_base64}"
         
-        # ✅ رفع المنتج إلى Qumra
-        sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
+        # ✅ رفع المنتج إلى Qumra (بدون token)
+        sync_service = ProductSyncService()
         
         product_data = {
             'title': name,
