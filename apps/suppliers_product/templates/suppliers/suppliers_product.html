@@ -57,7 +57,6 @@
         </div>
 
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <!-- ✅ الرابط المعدل -->
             <a href="{{ url_for('suppliers_product_bp.add_product') }}" class="btn btn-success px-4 shadow-sm">
                 <i class="fas fa-plus me-1"></i> إضافة منتج
             </a>
@@ -68,11 +67,11 @@
     </div>
 
     <!-- 🟣 الفلتر والإحصائيات -->
-    {% include 'includes/_product_filters.html' %}
+    {% include 'suppliers/includes/_product_filters.html' %}
 
     <!-- 🟣 عرض المنتجات (جدول) -->
     <div id="results-container">
-        {% include 'includes/_table_products.html' %}
+        {% include 'suppliers/includes/_table_products.html' %}
     </div>
 </div>
 
