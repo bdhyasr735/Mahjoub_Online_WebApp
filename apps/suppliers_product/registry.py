@@ -78,8 +78,7 @@ def get_module_stats(supplier_id):
         product_qids = [m.product_qid for m in mappings]
         total_products = len(product_qids)
         
-        token = os.environ.get('QUMRA_API_KEY', '')
-        sync_service = ProductSyncService(token=token)
+        sync_service = ProductSyncService()
         
         published = 0
         draft = 0
