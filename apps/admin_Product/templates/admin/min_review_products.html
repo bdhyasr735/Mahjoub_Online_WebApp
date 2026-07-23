@@ -1,0 +1,304 @@
+<!-- 📂 apps/admin_Product/templates/admin/admin_review_products.html -->
+{% extends "admin/admin_base.html" %}
+
+{% block title %}مراجعة المنتجات | محجوب{% endblock %}
+
+{% block content %}
+<style>
+    .btn-custom { background-color: var(--dark-purple, #2d0b36); color: #fff; border: none; }
+    .btn-custom:hover { background-color: #4a1558; color: #fff; }
+    .btn-back { color: var(--dark-purple, #2d0b36); text-decoration: none; font-weight: 500; }
+    .btn-back:hover { color: #000; padding-right: 5px; }
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .status-badge.draft { background: #ffc107; color: #333; }
+    .status-badge.published { background: #28a745; color: white; }
+    .status-badge.rejected { background: #dc3545; color: white; }
+    .status-badge.archived { background: #6c757d; color: white; }
+    .product-image {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+    .product-card {
+        transition: all 0.3s ease;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.06);
+        height: 100%;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    }
+    .product-card .card-image {
+        height: 180px;
+        overflow: hidden;
+        background: #f8f9fa;
+    }
+    .product-card .card-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .product-card .card-body {
+        padding: 16px;
+    }
+    .product-card .product-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        min-height: 48px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .product-card .product-price {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--dark-purple, #2d0b36);
+    }
+    .product-card .product-supplier {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .action-btns {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+    .action-btns .btn {
+        flex: 1;
+        min-width: 60px;
+        font-size: 0.75rem;
+        padding: 5px 10px;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    .empty-state i {
+        font-size: 4rem;
+        opacity: 0.3;
+        display: block;
+        margin-bottom: 20px;
+    }
+    .stats-bar {
+        background: white;
+        border-radius: 16px;
+        padding: 20px 25px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        margin-bottom: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .stats-bar .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .stats-bar .stat-item .number {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--dark-purple, #2d0b36);
+    }
+    .stats-bar .stat-item .label {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    
+    <!-- ✅ رأس الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="btn-back d-block mb-2">
+                <i class="fas fa-arrow-right me-1"></i> رجوع
+            </a>
+            <h3 class="fw-bold mb-0 text-dark">
+                <i class="fas fa-clipboard-check me-2" style="color: var(--dark-purple, #2d0b36);"></i> مراجعة المنتجات
+            </h3>
+            <p class="text-muted">المنتجات التي تنتظر موافقة الإدارة</p>
+        </div>
+        <div>
+            <span class="badge bg-warning text-dark fs-6 p-2 px-3">
+                <i class="fas fa-clock me-1"></i> {{ total_count }} منتج قيد المراجعة
+            </span>
+        </div>
+    </div>
+
+    <!-- ✅ الإحصائيات -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <span class="number">{{ total_count }}</span>
+            <span class="label">📦 منتجات تنتظر المراجعة</span>
+        </div>
+        <div class="stat-item">
+            <span class="number" style="color: #28a745;">{{ products|selectattr('status', 'equalto', 'PUBLISHED')|list|length if products else 0 }}</span>
+            <span class="label">✅ تمت الموافقة</span>
+        </div>
+        <div class="stat-item">
+            <span class="number" style="color: #dc3545;">{{ products|selectattr('status', 'equalto', 'REJECTED')|list|length if products else 0 }}</span>
+            <span class="label">❌ مرفوض</span>
+        </div>
+    </div>
+
+    <!-- ✅ عرض المنتجات كبطاقات -->
+    {% if products and products|length > 0 %}
+    <div class="row g-4">
+        {% for product in products %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="product-card">
+                <!-- صورة المنتج -->
+                <div class="card-image">
+                    {% if product.images and product.images|length > 0 %}
+                        <img src="{{ product.images[0].fileUrl }}" alt="{{ product.title }}" loading="lazy">
+                    {% else %}
+                        <div class="d-flex align-items-center justify-content-center h-100" style="background: #f8f5fa;">
+                            <i class="fas fa-image fa-3x text-muted" style="opacity: 0.3;"></i>
+                        </div>
+                    {% endif %}
+                    <span class="status-badge draft" style="position: absolute; top: 10px; right: 10px;">
+                        <i class="fas fa-clock me-1"></i> قيد المراجعة
+                    </span>
+                </div>
+                
+                <!-- معلومات المنتج -->
+                <div class="card-body">
+                    <div class="product-title">{{ product.title }}</div>
+                    <div class="product-supplier">
+                        <i class="fas fa-store me-1"></i> 
+                        {{ product.supplier_name if product.supplier_name else 'غير مرتبط' }}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div class="product-price">
+                            {{ "%.2f"|format(product.pricing.price if product.pricing and product.pricing.price else 0) }}
+                            <span class="text-muted small">SAR</span>
+                        </div>
+                        <div>
+                            <span class="badge 
+                                {% if product.quantity > 10 %}bg-success
+                                {% elif product.quantity > 0 %}bg-warning text-dark
+                                {% else %}bg-danger{% endif %}">
+                                <i class="fas fa-box me-1"></i> {{ product.quantity if product.quantity is not none else 0 }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- أزرار الإجراءات -->
+                    <div class="action-btns mt-3 pt-3 border-top">
+                        <button class="btn btn-success btn-sm" onclick="changeStatus('{{ product.qid }}', 'PUBLISHED')">
+                            <i class="fas fa-check-circle me-1"></i> موافقة
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="changeStatus('{{ product.qid }}', 'REJECTED')">
+                            <i class="fas fa-times-circle me-1"></i> رفض
+                        </button>
+                        <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit me-1"></i> تعديل
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- ✅ حالة عدم وجود منتجات -->
+    <div class="empty-state">
+        <i class="fas fa-check-circle text-success"></i>
+        <h4 class="text-muted">🎉 لا توجد منتجات تنتظر المراجعة</h4>
+        <p class="text-muted">جميع المنتجات تمت مراجعتها</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- ✅ JavaScript -->
+<script>
+    // ✅ تغيير حالة المنتج (موافقة/رفض)
+    function changeStatus(qid, status) {
+        const statusNames = {
+            'PUBLISHED': 'نشر',
+            'REJECTED': 'رفض'
+        };
+        
+        if (!confirm(`⚠️ هل أنت متأكد من ${statusNames[status] || status} هذا المنتج؟`)) return;
+        
+        const btn = event?.target?.closest('button');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> جاري...';
+        }
+        
+        fetch(`{{ url_for('admin_product_bp.change_product_status', qid='') }}${qid}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name="csrf_token"]')?.value || ''
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('success', data.message);
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast('error', '❌ ' + data.message);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = status === 'PUBLISHED' ? 
+                        '<i class="fas fa-check-circle me-1"></i> موافقة' : 
+                        '<i class="fas fa-times-circle me-1"></i> رفض';
+                }
+            }
+        })
+        .catch(err => {
+            showToast('error', '❌ حدث خطأ');
+            console.error(err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = status === 'PUBLISHED' ? 
+                    '<i class="fas fa-check-circle me-1"></i> موافقة' : 
+                    '<i class="fas fa-times-circle me-1"></i> رفض';
+            }
+        });
+    }
+
+    // ✅ عرض الإشعارات
+    function showToast(type, message) {
+        const colors = {
+            success: '#28a745',
+            error: '#dc3545',
+            warning: '#ffc107',
+            info: '#0d6efd'
+        };
+        
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 end-0 p-3';
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            <div class="toast show border-0 shadow-lg" role="alert" 
+                 style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
+                <div class="toast-body d-flex align-items-center gap-2">
+                    <span>${message}</span>
+                    <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3500);
+    }
+</script>
+{% endblock %}
