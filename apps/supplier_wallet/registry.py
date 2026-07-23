@@ -5,37 +5,30 @@
 تسجيل تطبيق محفظة المورد في المنصة
 """
 
-from flask import Blueprint
-
-# ✅ بيانات الموديول
 MODULE_NAME = "محفظة المورد"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# ✅ الروابط التي تظهر في القائمة الجانبية للمورد
+# ✅ الروابط الصحيحة - استخدم المسار الصحيح
 LINKS = {
-    "supplier_wallet.view_my_wallet": "💳 محفظتي"
+    'supplier_wallet.view_my_wallet': '💰 محفظتي'
 }
 
 
-# ✅ تعريف الـ Blueprint الرئيسي
-supplier_wallet_bp = Blueprint(
-    'supplier_wallet',
-    __name__,
-    template_folder='templates'
-)
-
-
 def register_module(app):
-    """
-    تسجيل تطبيق محفظة المورد في التطبيق الرئيسي
-    """
-    # ✅ استيراد الـ routes بعد تعريف الـ Blueprint
-    from apps.supplier_wallet import routes
-    
-    # ✅ تسجيل الـ Blueprint
-    if 'supplier_wallet' not in app.blueprints:
-        app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
-        print("✅ [Registry]: تم تسجيل 'supplier_wallet' بنجاح.")
+    """تسجيل تطبيق محفظة المورد"""
+    try:
+        from apps.supplier_wallet.routes import supplier_wallet_bp
+        
+        if 'supplier_wallet' not in app.blueprints:
+            app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier')
+            print("✅ [Registry]: تم تسجيل 'supplier_wallet'")
+        else:
+            print("ℹ️ [Registry]: 'supplier_wallet' مسجل مسبقاً")
+            
+    except ImportError as e:
+        print(f"❌ [Registry]: خطأ في استيراد supplier_wallet: {e}")
+    except Exception as e:
+        print(f"❌ [Registry]: خطأ في تسجيل supplier_wallet: {e}")
     
     return app
