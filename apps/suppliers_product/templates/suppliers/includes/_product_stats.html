@@ -1,1 +1,63 @@
+<!-- apps/suppliers_product/templates/includes/_product_stats.html -->
+<div class="row g-3 mb-4">
+    {% set total = products|length if products else 0 %}
+    {% set published = products|selectattr('status', 'equalto', 'PUBLISHED')|list|length if products else 0 %}
+    {% set draft = products|selectattr('status', 'equalto', 'DRAFT')|list|length if products else 0 %}
+    {% set rejected = products|selectattr('status', 'equalto', 'REJECTED')|list|length if products else 0 %}
+    {% set archived = products|selectattr('status', 'equalto', 'ARCHIVED')|list|length if products else 0 %}
+    
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-number">{{ total }}</div>
+            <div class="stat-label">📦 إجمالي المنتجات</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card published">
+            <div class="stat-number" style="color: #28a745;">{{ published }}</div>
+            <div class="stat-label">✅ منشور</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card draft">
+            <div class="stat-number" style="color: #ffc107;">{{ draft }}</div>
+            <div class="stat-label">⏳ قيد المراجعة</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card rejected">
+            <div class="stat-number" style="color: #dc3545;">{{ rejected }}</div>
+            <div class="stat-label">❌ مرفوض</div>
+        </div>
+    </div>
+</div>
 
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        border-right: 4px solid var(--dark-purple, #2d0b36);
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    }
+    .stat-card .stat-number {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--dark-purple, #2d0b36);
+        line-height: 1.2;
+    }
+    .stat-card .stat-label {
+        font-size: 0.85rem;
+        color: #9ca3af;
+        font-weight: 500;
+    }
+    .stat-card.published { border-right-color: #28a745; }
+    .stat-card.draft { border-right-color: #ffc107; }
+    .stat-card.rejected { border-right-color: #dc3545; }
+    .stat-card.archived { border-right-color: #6c757d; }
+</style>
