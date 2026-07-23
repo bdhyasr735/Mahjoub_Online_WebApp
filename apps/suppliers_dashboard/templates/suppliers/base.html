@@ -108,14 +108,23 @@
                 <i class="fas fa-home"></i> <span>الرئيسية</span>
             </a>
             
+            <!-- ✅ عرض الموديولات مع safe_url_for -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if key != 'suppliers_dashboard' and module.links is mapping %}
                         {% for endpoint, link_title in module.links.items() %}
-                            <a href="{{ url_for(endpoint) }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
-                                <i class="{{ module.icon|default('fas fa-folder') }}"></i> 
-                                <span>{{ link_title }}</span>
-                            </a>
+                            {% set url = safe_url_for(endpoint) %}
+                            {% if url != '#' %}
+                                <a href="{{ url }}" class="nav-link {% if request.endpoint == endpoint %}active{% endif %}">
+                                    <i class="{{ module.icon|default('fas fa-folder') }}"></i> 
+                                    <span>{{ link_title }}</span>
+                                </a>
+                            {% else %}
+                                <a href="#" class="nav-link text-muted" style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="{{ module.icon|default('fas fa-folder') }}"></i> 
+                                    <span>{{ link_title }} (قيد التطوير)</span>
+                                </a>
+                            {% endif %}
                         {% endfor %}
                     {% endif %}
                 {% endfor %}
