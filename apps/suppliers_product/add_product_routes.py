@@ -10,6 +10,8 @@ from apps.services.product_sync_service import ProductSyncService
 import os
 import traceback
 import base64
+from io import BytesIO
+from PIL import Image
 
 # ✅ استيراد الـ Blueprint من registry.py
 from apps.suppliers_product.registry import suppliers_product_bp
@@ -22,6 +24,40 @@ add_product_bp = Blueprint(
 )
 
 GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN')
+
+
+def compress_image(image_data, max_size=(1200, 1200), quality=75):
+    """
+    ضغط الصورة وتقليل حجمها
+    
+    Args:
+        image_data: بيانات الصورة (bytes)
+        max_size: tuple (width, height) الحد الأقصى للأبعاد
+        quality: جودة الصورة (1-100)
+    
+    Returns:
+        bytes: بيانات الصورة المضغوطة
+    """
+    try:
+        # ✅ فتح الصورة
+        img = Image.open(BytesIO(image_data))
+        
+        # ✅ تحويل إلى RGB إذا كانت RGBA (لحفظ JPEG)
+        if img.mode == 'RGBA':
+            img = img.convert('RGB')
+        
+        # ✅ تغيير الأبعاد إذا كانت أكبر من max_size
+        if img.width > max_size[0] or img.height > max_size[1]:
+            img.thumbnail(max_size, Image.Resampling.LANCZOS)
+        
+        # ✅ حفظ الصورة بجودة أقل
+        output = BytesIO()
+        img.save(output, format='JPEG', quality=quality, optimize=True)
+        return output.getvalue()
+        
+    except Exception as e:
+        print(f"⚠️ خطأ في ضغط الصورة: {e}")
+        return image_data  # إرجاع الصورة الأصلية في حالة الخطأ
 
 
 @add_product_bp.route('/add-product', methods=['GET'])
@@ -87,11 +123,13 @@ def save_product():
             flash('⚠️ صورة المنتج مطلوبة', 'danger')
             return redirect(url_for('add_product_bp.add_product'))
         
-        # ✅ قراءة الصورة وتحويلها إلى base64 (بدون تقييد الحجم)
+        # ✅ قراءة الصورة وضغطها
         image_data = image.read()
-        image_base64 = base64.b64encode(image_data).decode('utf-8')
-        image_type = image.filename.rsplit('.', 1)[1].lower()
-        image_base64 = f"data:image/{image_type};base64,{image_base64}"
+        compressed_data = compress_image(image_data, max_size=(1200, 1200), quality=75)
+        
+        # ✅ تحويل الصورة المضغوطة إلى base64
+        image_base64 = base64.b64encode(compressed_data).decode('utf-8')
+        image_base64 = f"data:image/jpeg;base64,{image_base64}"
         
         # ✅ رفع المنتج إلى Qumra
         sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
