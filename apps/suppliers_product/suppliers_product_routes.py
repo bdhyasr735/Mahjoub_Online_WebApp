@@ -1,9 +1,10 @@
 # coding: utf-8
 # 📂 apps/suppliers_product/suppliers_product_routes.py
 
-from flask import Blueprint, render_template, request, jsonify, abort, session
+from flask import render_template, request, abort, session
 from flask_login import login_required, current_user
 import math
+import os
 
 from apps.services.product_sync_service import ProductSyncService
 from apps.models.product_supplier_map import ProductSupplierMapping
@@ -150,4 +151,46 @@ def products():
         search=search_query,
         filter_status=filter_status,
         supplier=supplier
+    )
+
+
+# ============================================================
+# 🟣 مسار عرض تفاصيل منتج معين
+# ============================================================
+@suppliers_product_bp.route('/product/<qid>', methods=['GET'])
+@login_required
+def view_product(qid):
+    """عرض تفاصيل منتج معين للمورد."""
+    
+    user_type = session.get('user_type')
+    if user_type not in ['supplier', 'staff']:
+        abort(403)
+    
+    if user_type == 'staff':
+        supplier_id = current_user.supplier_id
+    else:
+        supplier_id = current_user.id
+    
+    # التحقق من أن المنتج مرتبط بهذا المورد
+    mapping = ProductSupplierMapping.query.filter_by(
+        product_qid=qid,
+        supplier_id=supplier_id,
+        status='active'
+    ).first()
+    
+    if not mapping:
+        abort(404)
+    
+    # جلب بيانات المنتج من Qumra
+    sync_service = ProductSyncService(token=GRAPHQL_TOKEN)
+    product = sync_service.fetch_product_by_qid(qid)
+    
+    if not product:
+        abort(404)
+    
+    return render_template(
+        'suppliers/product_detail.html',
+        product=product,
+        supplier=Supplier.query.get(supplier_id),
+        mapping=mapping
     )
