@@ -4,6 +4,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort
 from flask_login import login_required, current_user
 from apps.services.product_sync_service import ProductSyncService
+from apps.services.product_rest_api import ProductRestAPI  # ✅ إضافة REST API
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
@@ -22,9 +23,6 @@ edit_product_bp = Blueprint(
     __name__,
     template_folder='templates'
 )
-
-# ✅ لا حاجة لـ GRAPHQL_TOKEN
-# GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN')
 
 
 def compress_image(image_data, max_size=(1200, 1200), quality=75):
@@ -105,12 +103,12 @@ def edit_product_page(qid):
 
 
 # ============================================================
-# 🟣 مسار تحديث المنتج
+# 🟣 مسار تحديث المنتج (باستخدام REST API)
 # ============================================================
 @edit_product_bp.route('/edit-product/<qid>', methods=['POST'])
 @login_required
 def update_product(qid):
-    """تحديث بيانات المنتج"""
+    """تحديث بيانات المنتج باستخدام REST API"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -143,16 +141,17 @@ def update_product(qid):
             flash('⚠️ اسم المنتج مطلوب', 'danger')
             return redirect(url_for('edit_product_bp.edit_product_page', qid=qid))
         
-        # ✅ تحديث المنتج في Qumra (بدون token)
-        sync_service = ProductSyncService()
-        
         # ✅ تحويل الصورة إلى base64 إذا تم رفع صورة جديدة
         image_base64 = None
         if image:
             image_data = image.read()
-            compressed_data = compress_image(image_data, max_size=(1200, 1200), quality=75)
+            compressed_data = compress_image(image_data, max_size=(600, 600), quality=40)
             image_base64 = base64.b64encode(compressed_data).decode('utf-8')
-            image_base64 = f"data:image/jpeg;base64,{image_base64}"
+            image_type = image.filename.rsplit('.', 1)[1].lower()
+            image_base64 = f"data:image/{image_type};base64,{image_base64}"
+        
+        # ✅ تحديث المنتج عبر REST API
+        rest_api = ProductRestAPI()
         
         product_data = {
             'title': name,
@@ -165,7 +164,7 @@ def update_product(qid):
         if image_base64:
             product_data['images'] = [image_base64]
         
-        result = sync_service.update_product(qid, product_data)
+        result = rest_api.update_product(qid, product_data)
         
         if result:
             flash('✅ تم تحديث المنتج بنجاح', 'success')
