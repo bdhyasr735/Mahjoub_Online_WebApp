@@ -2,6 +2,47 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         
+        // ✅ عناصر الصفحة
+        const searchInput = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('results-container');
+
+        // ✅ البحث
+        if (searchInput) {
+            let timeout = null;
+            searchInput.addEventListener('keyup', function() {
+                clearTimeout(timeout);
+                const query = this.value.trim();
+                timeout = setTimeout(() => {
+                    const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
+                    fetch(`{{ url_for('suppliers_product_bp.products') }}?search=${encodeURIComponent(query)}&filter=${filter}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(res => res.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newResults = doc.getElementById('results-container');
+                        if (newResults) {
+                            resultsContainer.innerHTML = newResults.innerHTML;
+                        }
+                        // ✅ تحديث الإحصائيات
+                        const newStats = doc.querySelector('.row.g-3.mb-4');
+                        if (newStats) {
+                            const oldStats = document.querySelector('.row.g-3.mb-4');
+                            if (oldStats) oldStats.outerHTML = newStats.outerHTML;
+                        }
+                        // ✅ تحديث أعداد الفلتر
+                        const newFilters = doc.querySelector('.filter-tabs');
+                        if (newFilters) {
+                            const oldFilters = document.querySelector('.filter-tabs');
+                            if (oldFilters) oldFilters.outerHTML = newFilters.outerHTML;
+                        }
+                    })
+                    .catch(err => console.error("خطأ في البحث:", err));
+                }, 400);
+            });
+        }
+
         // ✅ فلتر المنتجات
         window.applyFilter = function(filter, btn) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -19,6 +60,18 @@
                 if (newResults) {
                     resultsContainer.innerHTML = newResults.innerHTML;
                 }
+                // ✅ تحديث الإحصائيات
+                const newStats = doc.querySelector('.row.g-3.mb-4');
+                if (newStats) {
+                    const oldStats = document.querySelector('.row.g-3.mb-4');
+                    if (oldStats) oldStats.outerHTML = newStats.outerHTML;
+                }
+                // ✅ تحديث أعداد الفلتر
+                const newFilters = doc.querySelector('.filter-tabs');
+                if (newFilters) {
+                    const oldFilters = document.querySelector('.filter-tabs');
+                    if (oldFilters) oldFilters.outerHTML = newFilters.outerHTML;
+                }
             })
             .catch(err => console.error("خطأ في الفلتر:", err));
         };
@@ -31,6 +84,56 @@
                 window.location.href = `?page=${page}&search=${encodeURIComponent(search)}&filter=${filter}`;
             }
         };
+
+        // ✅ نسخ الرابط
+        window.copyProductLink = function(qid) {
+            const url = `{{ request.host_url }}supplier/product/${qid}`;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('✅ تم نسخ الرابط بنجاح!', 'success');
+                }).catch(() => {
+                    fallbackCopy(url);
+                });
+            } else {
+                fallbackCopy(url);
+            }
+        };
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            textarea.remove();
+            showToast('✅ تم نسخ الرابط بنجاح!', 'success');
+        }
+
+        // ✅ عرض الإشعارات
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: '#28a745',
+                info: '#0d6efd',
+                warning: '#ffc107',
+                danger: '#dc3545'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed bottom-0 end-0 p-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `
+                <div class="toast show border-0 shadow-lg" role="alert" style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px;">
+                    <div class="toast-body d-flex align-items-center gap-2">
+                        <span>${message}</span>
+                        <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
 
     });
 </script>
