@@ -32,7 +32,7 @@ def compress_image(image_data, max_size=(1200, 1200), quality=75):
     
     Args:
         image_data: بيانات الصورة (bytes)
-        max_size: tuple (width, height) الحد الأقصى للأبعاد
+        max_size: tuple (عرض, ارتفاع) الحد الأقصى للأبعاد
         quality: جودة الصورة (1-100)
     
     Returns:
