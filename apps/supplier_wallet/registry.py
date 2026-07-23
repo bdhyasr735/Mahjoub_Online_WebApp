@@ -9,22 +9,22 @@ MODULE_NAME = "محفظة المورد"
 MODULE_ICON = "fas fa-wallet"
 SHOW_IN_SUPPLIER = True
 
-# ✅ الروابط الصحيحة - استخدم المسار الصحيح
+# ✅ الروابط التي تظهر في القائمة الجانبية للمورد
 LINKS = {
     'supplier_wallet.view_my_wallet': '💰 محفظتي'
 }
 
 
 def register_module(app):
-    """تسجيل تطبيق محفظة المورد"""
+    """تسجيل تطبيق محفظة المورد في التطبيق الرئيسي"""
     try:
         from apps.supplier_wallet.routes import supplier_wallet_bp
         
         if 'supplier_wallet' not in app.blueprints:
             app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier')
-            print("✅ [Registry]: تم تسجيل 'supplier_wallet'")
+            print("✅ [Registry]: تم تسجيل 'supplier_wallet' بنجاح.")
         else:
-            print("ℹ️ [Registry]: 'supplier_wallet' مسجل مسبقاً")
+            print("ℹ️ [Registry]: 'supplier_wallet' مسجل مسبقاً.")
             
     except ImportError as e:
         print(f"❌ [Registry]: خطأ في استيراد supplier_wallet: {e}")
