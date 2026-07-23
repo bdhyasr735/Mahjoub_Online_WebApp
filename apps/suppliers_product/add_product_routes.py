@@ -6,7 +6,7 @@ from flask_login import login_required, current_user
 from apps.models.supplier_db import Supplier
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.extensions import db
-from apps.services.product_rest_api import ProductRestAPI  # ✅ استخدام REST API بدلاً من GraphQL
+from apps.services.product_rest_api import ProductRestAPI  # ✅ استخدام REST API
 import os
 import traceback
 import base64
@@ -105,27 +105,34 @@ def save_product():
             flash('⚠️ صورة المنتج مطلوبة', 'danger')
             return redirect(url_for('add_product_bp.add_product'))
         
-        # ✅ قراءة الصورة وضغطها (حجم أصغر)
+        # ✅ قراءة الصورة وضغطها
         image_data = image.read()
         compressed_data = compress_image(image_data, max_size=(600, 600), quality=40)
         
-        # ✅ تحويل الصورة المضغوطة إلى base64
-        image_base64 = base64.b64encode(compressed_data).decode('utf-8')
-        image_type = image.filename.rsplit('.', 1)[1].lower()
-        image_base64 = f"data:image/{image_type};base64,{image_base64}"
-        
-        # ✅ إنشاء المنتج عبر REST API
+        # ✅ إنشاء كائن REST API
         rest_api = ProductRestAPI()
         
+        # ✅ الخطوة 1: رفع الصورة إلى مكتبة قمرة
+        print("🔄 جاري رفع الصورة إلى مكتبة قمرة...")
+        image_url = rest_api.upload_image(compressed_data, image.filename)
+        
+        if not image_url:
+            flash('❌ فشل رفع الصورة إلى مكتبة قمرة', 'danger')
+            return redirect(url_for('add_product_bp.add_product'))
+        
+        print(f"✅ تم رفع الصورة بنجاح: {image_url}")
+        
+        # ✅ الخطوة 2: إنشاء المنتج مع رابط الصورة
         product_data = {
             'title': name,
             'price': float(cost_price),
             'quantity': 0,
-            'images': [image_base64],
+            'images': [image_url],  # ✅ رابط الصورة من قمرة
             'description': description,
             'status': 'DRAFT'
         }
         
+        print("🔄 جاري إنشاء المنتج في قمرة...")
         result = rest_api.create_product(product_data)
         
         if result.get('success'):
@@ -141,7 +148,6 @@ def save_product():
             flash('✅ تم إضافة المنتج بنجاح، سيراجعه فريق الإدارة', 'success')
             return redirect(url_for('suppliers_product_bp.products'))
         else:
-            # ✅ عرض رسالة الخطأ التفصيلية
             error_msg = result.get('message', 'خطأ غير معروف')
             flash(f'❌ فشل إضافة المنتج: {error_msg}', 'danger')
             return redirect(url_for('add_product_bp.add_product'))
