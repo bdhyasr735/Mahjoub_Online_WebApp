@@ -34,6 +34,59 @@
         border-color: var(--dark-purple);
         box-shadow: 0 0 0 4px rgba(45, 11, 54, 0.08);
     }
+
+    .stats-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border-right: 4px solid var(--dark-purple);
+        transition: 0.3s;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .stats-card .number {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--dark-purple);
+    }
+    .stats-card .label {
+        font-size: 13px;
+        color: #6b7280;
+    }
+    .stats-card .icon {
+        font-size: 28px;
+        opacity: 0.3;
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #4a1558;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .product-thumb {
+        width: 45px;
+        height: 45px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #f0ecf3;
+    }
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .status-badge.active { background: #d4edda; color: #155724; }
+    .status-badge.draft { background: #fff3cd; color: #856404; }
+    .status-badge.inactive { background: #f8d7da; color: #721c24; }
+    .status-badge.archived { background: #e2e3e5; color: #383d41; }
+    .status-badge.rejected { background: #f8d7da; color: #721c24; }
 </style>
 
 <div class="container-fluid py-4">
@@ -46,24 +99,71 @@
                 <i class="fas fa-boxes text-muted me-2"></i> منتجاتي
             </h3>
             <h6 class="text-muted mt-2">
-                عدد المنتجات الحالية: {{ products|length if products else 0 }}
+                عدد المنتجات الحالية: {{ products.total if products else 0 }}
             </h6>
         </div>
         
         <div class="col-md-4 search-wrapper">
             <i class="fas fa-search"></i>
             <input type="text" name="search" id="searchInput" class="form-control shadow-sm" 
-                   placeholder="ابحث عن منتج بالاسم أو SKU..." value="{{ search or '' }}">
+                   placeholder="ابحث عن منتج بالاسم أو SKU..." value="{{ search_query or '' }}">
         </div>
 
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <!-- ✅ الرابط المعدل -->
-            <a href="{{ url_for('add_product_bp.add_product') }}" class="btn btn-success px-4 shadow-sm">
+            <a href="{{ url_for('add_product_bp.add_product_page') }}" class="btn btn-success px-4 shadow-sm">
                 <i class="fas fa-plus me-1"></i> إضافة منتج
             </a>
             <button type="button" class="btn btn-custom px-4 shadow-sm" onclick="window.location.reload()">
                 <i class="fas fa-sync-alt me-1"></i> تحديث
             </button>
+        </div>
+    </div>
+
+    <!-- ✅ الإحصائيات -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="number">{{ total_products|default(0) }}</div>
+                        <div class="label">إجمالي المنتجات</div>
+                    </div>
+                    <i class="fas fa-box icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stats-card" style="border-right-color: #28a745;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="number" style="color:#28a745;">{{ active_products|default(0) }}</div>
+                        <div class="label">منتجات نشطة</div>
+                    </div>
+                    <i class="fas fa-check-circle icon" style="color:#28a745;"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stats-card" style="border-right-color: #ffc107;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="number" style="color:#ffc107;">{{ draft_products|default(0) }}</div>
+                        <div class="label">مسودات</div>
+                    </div>
+                    <i class="fas fa-pencil-alt icon" style="color:#ffc107;"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stats-card" style="border-right-color: #6c757d;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="number" style="color:#6c757d;">{{ total_suppliers|default(0) }}</div>
+                        <div class="label">عدد الموردين</div>
+                    </div>
+                    <i class="fas fa-building icon" style="color:#6c757d;"></i>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -101,6 +201,106 @@
                 .catch(err => console.error("خطأ في البحث:", err));
             }, 400);
         });
+    }
+
+    // ✅ حذف المنتج
+    document.addEventListener('click', function(e) {
+        const deleteBtn = e.target.closest('.delete-product');
+        if (deleteBtn) {
+            e.preventDefault();
+            const qid = deleteBtn.dataset.qid;
+            const row = deleteBtn.closest('tr');
+            
+            if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                fetch(`/supplier/api/product/${qid}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        if (row) row.remove();
+                        const countEl = document.querySelector('.text-muted.mt-2');
+                        if (countEl) {
+                            const current = parseInt(countEl.textContent.match(/\d+/)?.[0] || 0);
+                            countEl.textContent = `عدد المنتجات الحالية: ${current - 1}`;
+                        }
+                        showToast('✅ تم حذف المنتج بنجاح', 'success');
+                    } else {
+                        showToast('❌ ' + data.message, 'danger');
+                    }
+                })
+                .catch(err => {
+                    showToast('❌ خطأ في الاتصال بالخادم', 'danger');
+                });
+            }
+        }
+    });
+
+    // ✅ تحديث حالة المنتج
+    document.addEventListener('change', function(e) {
+        const statusSelect = e.target.closest('.product-status-select');
+        if (statusSelect) {
+            const qid = statusSelect.dataset.qid;
+            const status = statusSelect.value;
+            
+            fetch(`/supplier/api/edit-product/${qid}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ status: status })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('✅ تم تحديث الحالة بنجاح', 'success');
+                    const badge = statusSelect.closest('td').querySelector('.status-badge');
+                    if (badge) {
+                        badge.className = `status-badge ${status.toLowerCase()}`;
+                        badge.textContent = status;
+                    }
+                } else {
+                    showToast('❌ ' + data.message, 'danger');
+                    location.reload();
+                }
+            })
+            .catch(err => {
+                showToast('❌ خطأ في الاتصال بالخادم', 'danger');
+                location.reload();
+            });
+        }
+    });
+
+    // ✅ Toast notifications
+    function showToast(message, type = 'info') {
+        const colors = {
+            success: 'bg-success text-white',
+            danger: 'bg-danger text-white',
+            warning: 'bg-warning text-dark',
+            info: 'bg-info text-dark'
+        };
+        
+        const toastContainer = document.querySelector('.toast-container') || (() => {
+            const container = document.createElement('div');
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(container);
+            return container;
+        })();
+        
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center border-0 ${colors[type] || colors.info} show`;
+        toast.role = 'alert';
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
     }
 </script>
 
