@@ -286,7 +286,7 @@
         const skuInput = document.getElementById('productSku');
         const prefix = 'PRD';
         const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        skuInput.value = `${prefix}-${random}`;
+        skuInput.value = prefix + '-' + random;
     });
 
     // ============================================================
@@ -301,7 +301,7 @@
 
         const formData = new FormData(this);
 
-        fetch('{{ url_for("add_product_bp.api_add_product") }}', {
+        fetch('/supplier/api/add-product', {
             method: 'POST',
             body: formData
         })
@@ -309,8 +309,8 @@
         .then(data => {
             if (data.success) {
                 showToast('✅ ' + data.message, 'success');
-                setTimeout(() => {
-                    window.location.href = '{{ url_for("suppliers_product_bp.products") }}';
+                setTimeout(function() {
+                    window.location.href = '/supplier/products';
                 }, 1500);
             } else {
                 showToast('❌ ' + data.message, 'danger');
@@ -318,7 +318,7 @@
                 submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ المنتج';
             }
         })
-        .catch(error => {
+        .catch(function(error) {
             showToast('❌ خطأ في الاتصال بالخادم', 'danger');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ المنتج';
@@ -326,33 +326,28 @@
     });
 
     // ✅ Toast notifications
-    function showToast(message, type = 'info') {
-        const colors = {
+    function showToast(message, type) {
+        var colors = {
             success: 'bg-success text-white',
             danger: 'bg-danger text-white',
             warning: 'bg-warning text-dark',
             info: 'bg-info text-dark'
         };
         
-        const toastContainer = document.querySelector('.toast-container') || (() => {
-            const container = document.createElement('div');
-            container.className = 'toast-container position-fixed top-0 end-0 p-3';
-            document.body.appendChild(container);
-            return container;
-        })();
+        var toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
         
-        const toast = document.createElement('div');
-        toast.className = `toast align-items-center border-0 ${colors[type] || colors.info} show`;
+        var toast = document.createElement('div');
+        toast.className = 'toast align-items-center border-0 ' + (colors[type] || colors.info) + ' show';
         toast.role = 'alert';
-        toast.innerHTML = `
-            <div class="d-flex">
-                <div class="toast-body">${message}</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        `;
+        toast.innerHTML = '<div class="d-flex"><div class="toast-body">' + message + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
         
         toastContainer.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
+        setTimeout(function() { toast.remove(); }, 4000);
     }
 </script>
 
