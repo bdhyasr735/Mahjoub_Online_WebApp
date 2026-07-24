@@ -1,206 +1,349 @@
 # coding: utf-8
-# 📂 apps/suppliers_product/suppliers_product_routes.py
+# 📂 apps/suppliers_product/routes/products.py
 
-from flask import render_template, request, abort, session
+from flask import Blueprint, render_template, request, session, abort, jsonify
 from flask_login import login_required, current_user
-import math
-import os
-import traceback
-
 from apps.services.product_sync_service import ProductSyncService
-from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models.supplier_db import Supplier
+from apps.services.product_mapping_service import product_mapping
+from apps.models.supplier import Supplier
 from apps.extensions import db
+import logging
 
-# ✅ استيراد الـ Blueprint من registry.py
-from apps.suppliers_product.registry import suppliers_product_bp
+logger = logging.getLogger(__name__)
 
-
-# ============================================================
-# 🟣 دالة مساعدة لإنشاء بيانات الترقيم (Pagination)
-# ============================================================
-def get_pages_list(current, total, around=2):
-    """إنشاء قائمة الصفحات مع علامات الحذف"""
-    pages = []
-    
-    if total <= 1:
-        return [1]
-    
-    pages.append(1)
-    
-    start = max(2, current - around)
-    end = min(total - 1, current + around)
-    
-    if start > 2:
-        pages.append('...')
-    
-    for p in range(start, end + 1):
-        pages.append(p)
-    
-    if end < total - 1:
-        pages.append('...')
-    
-    if total > 1:
-        pages.append(total)
-    
-    return pages
+# ✅ تعريف Blueprint
+suppliers_product_bp = Blueprint(
+    'suppliers_product_bp',
+    __name__,
+    template_folder='templates'
+)
 
 
 # ============================================================
-# 🟣 مسار عرض منتجات المورد
+# 🟣 الصفحة الرئيسية - عرض منتجات المورد
 # ============================================================
+
 @suppliers_product_bp.route('/products', methods=['GET'])
 @login_required
 def products():
-    """عرض منتجات المورد المرتبطة به فقط مع Pagination."""
+    """عرض قائمة منتجات المورد"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
             abort(403)
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        # جلب قائمة الموردين للفلترة
+        suppliers = Supplier.query.filter_by(status='active').all()
+
+        # جلب المنتجات المرتبطة بالمورد
+        mappings = product_mapping.get_all_mappings()
         
-        if user_type == 'staff':
-            supplier_id = current_user.supplier_id
-        else:
-            supplier_id = current_user.id
-        
-        supplier = Supplier.query.get(supplier_id)
-        if not supplier:
-            abort(404)
-        
-        # ✅ جلب المعاملات
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
-        search_query = request.args.get('search', '').strip()
-        filter_status = request.args.get('filter', 'all')
-        
-        # ✅ جلب جميع المنتجات المرتبطة بهذا المورد
-        mappings = ProductSupplierMapping.query.filter_by(
-            supplier_id=supplier_id,
-            status='active'
-        ).all()
-        
-        product_qids = [m.product_qid for m in mappings]
-        
-        # ✅ جلب بيانات المنتجات من Qumra
-        sync_service = ProductSyncService()
-        all_products = []
-        
-        for qid in product_qids:
-            product = sync_service.fetch_product_by_qid(qid)
-            if product:
-                all_products.append(product)
-        
-        # ✅ تطبيق الفلتر حسب الحالة
-        if filter_status == 'published':
-            all_products = [p for p in all_products if p.get('status') == 'PUBLISHED']
-        elif filter_status == 'draft':
-            all_products = [p for p in all_products if p.get('status') == 'DRAFT']
-        elif filter_status == 'rejected':
-            all_products = [p for p in all_products if p.get('status') == 'REJECTED']
-        elif filter_status == 'archived':
-            all_products = [p for p in all_products if p.get('status') == 'ARCHIVED']
-        
-        # ✅ تطبيق البحث
-        if search_query:
-            all_products = [
-                p for p in all_products 
-                if search_query.lower() in p.get('title', '').lower() 
-                or search_query.lower() in p.get('ident', {}).get('sku', '').lower()
-            ]
-        
-        # ✅ ترتيب المنتجات (الأحدث أولاً)
-        all_products.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-        
-        # ✅ Pagination
-        total = len(all_products)
-        total_pages = math.ceil(total / per_page) if per_page > 0 and total > 0 else 1
-        page = max(1, min(page, total_pages))
-        start = (page - 1) * per_page
-        end = min(start + per_page, total)
-        page_products = all_products[start:end] if total > 0 else []
-        
-        # ✅ بناء بيانات Pagination
-        pagination = {
-            'total': total,
-            'current_page': page,
-            'per_page': per_page,
-            'pages': total_pages,
-            'start': start + 1 if total > 0 else 0,
-            'end': end,
-            'has_prev': page > 1,
-            'has_next': page < total_pages,
-            'prev_page': page - 1 if page > 1 else None,
-            'next_page': page + 1 if page < total_pages else None,
-            'pages_list': get_pages_list(page, total_pages) if total_pages > 1 else [1]
+        # فلترة حسب المورد
+        filtered_mappings = {
+            k: v for k, v in mappings.items() 
+            if v.get('supplier_id') == supplier_id
         }
+
+        # فلترة حسب البحث
+        search_query = request.args.get('search', '').strip()
+        if search_query:
+            filtered_mappings = {
+                k: v for k, v in filtered_mappings.items()
+                if search_query.lower() in v.get('product_title', '').lower()
+                or search_query.lower() in v.get('qid', '').lower()
+            }
+
+        # جلب بيانات المنتجات من قمرة
+        sync_service = ProductSyncService()
+        products_list = []
         
-        # ✅ إذا كان طلب AJAX
+        for local_id, mapping in filtered_mappings.items():
+            qid = mapping.get('qid')
+            product_data = sync_service.fetch_product_by_qid(qid) if qid else None
+            if product_data:
+                products_list.append({
+                    'local_id': local_id,
+                    'qid': qid,
+                    'product': product_data,
+                    'supplier_id': mapping.get('supplier_id'),
+                    'supplier_name': mapping.get('supplier_name'),
+                    'status': mapping.get('status'),
+                    'created_at': mapping.get('created_at')
+                })
+
+        # إحصائيات
+        total_products = len(products_list)
+        active_products = sum(1 for p in products_list if p['product'].get('status') == 'ACTIVE' or p['product'].get('status') == 'PUBLISHED')
+        draft_products = sum(1 for p in products_list if p['product'].get('status') == 'DRAFT')
+        total_suppliers = len(suppliers)
+
+        # التحقق من طلب AJAX (للبحث)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return render_template(
                 'suppliers/includes/_table_products.html',
-                products=page_products,
-                pagination=pagination,
-                filter_status=filter_status
+                products={'items': products_list, 'total': total_products}
             )
-        
-        # ✅ عرض الصفحة كاملة
+
         return render_template(
             'suppliers/suppliers_product.html',
-            products=page_products,
-            pagination=pagination,
-            search=search_query,
-            filter_status=filter_status,
-            supplier=supplier
+            products={'items': products_list, 'total': total_products},
+            suppliers=suppliers,
+            total_products=total_products,
+            active_products=active_products,
+            draft_products=draft_products,
+            total_suppliers=total_suppliers,
+            search_query=search_query
         )
-        
+
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"❌ خطأ في products: {error_details}")
-        return f"❌ خطأ: {error_details}", 500
+        logger.error(f"❌ خطأ في products: {e}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return render_template('suppliers/includes/_table_products.html', products={'items': [], 'total': 0})
+        
+        return render_template(
+            'suppliers/suppliers_product.html',
+            products={'items': [], 'total': 0},
+            suppliers=[],
+            total_products=0,
+            active_products=0,
+            draft_products=0,
+            total_suppliers=0,
+            search_query=''
+        )
 
 
 # ============================================================
-# 🟣 مسار عرض تفاصيل منتج معين
+# 🟣 API: جلب إحصائيات المنتجات (AJAX)
 # ============================================================
-@suppliers_product_bp.route('/product/<qid>', methods=['GET'])
+
+@suppliers_product_bp.route('/api/products/stats', methods=['GET'])
 @login_required
-def view_product(qid):
-    """عرض تفاصيل منتج معين للمورد."""
+def api_products_stats():
+    """API لجلب إحصائيات منتجات المورد"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
-            abort(403)
-        
-        if user_type == 'staff':
-            supplier_id = current_user.supplier_id
-        else:
-            supplier_id = current_user.id
-        
-        # التحقق من أن المنتج مرتبط بهذا المورد
-        mapping = ProductSupplierMapping.query.filter_by(
-            product_qid=qid,
-            supplier_id=supplier_id,
-            status='active'
-        ).first()
-        
-        if not mapping:
-            abort(404)
-        
-        # جلب بيانات المنتج من Qumra
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        # جلب المنتجات المرتبطة بالمورد
+        mappings = product_mapping.get_all_mappings()
+        filtered_mappings = {
+            k: v for k, v in mappings.items() 
+            if v.get('supplier_id') == supplier_id
+        }
+
         sync_service = ProductSyncService()
-        product = sync_service.fetch_product_by_qid(qid)
-        
-        if not product:
-            abort(404)
-        
-        return render_template(
-            'suppliers/product_detail.html',
-            product=product,
-            supplier=Supplier.query.get(supplier_id),
-            mapping=mapping
-        )
-        
+        total = 0
+        active = 0
+        draft = 0
+        inactive = 0
+        archived = 0
+
+        for mapping in filtered_mappings.values():
+            qid = mapping.get('qid')
+            product_data = sync_service.fetch_product_by_qid(qid) if qid else None
+            if product_data:
+                total += 1
+                status = product_data.get('status', '').upper()
+                if status in ['ACTIVE', 'PUBLISHED']:
+                    active += 1
+                elif status == 'DRAFT':
+                    draft += 1
+                elif status == 'INACTIVE':
+                    inactive += 1
+                elif status == 'ARCHIVED':
+                    archived += 1
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'total': total,
+                'active': active,
+                'draft': draft,
+                'inactive': inactive,
+                'archived': archived
+            }
+        })
+
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"❌ خطأ في view_product: {error_details}")
-        return f"❌ خطأ: {error_details}", 500
+        logger.error(f"❌ خطأ في api_products_stats: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: بحث عن المنتجات (AJAX)
+# ============================================================
+
+@suppliers_product_bp.route('/api/products/search', methods=['GET'])
+@login_required
+def api_products_search():
+    """API للبحث عن المنتجات"""
+    try:
+        user_type = session.get('user_type')
+        if user_type not in ['supplier', 'staff']:
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+        query = request.args.get('q', '').strip()
+
+        # جلب المنتجات المرتبطة بالمورد
+        mappings = product_mapping.get_all_mappings()
+        filtered_mappings = {
+            k: v for k, v in mappings.items() 
+            if v.get('supplier_id') == supplier_id
+        }
+
+        # فلترة حسب البحث
+        if query:
+            filtered_mappings = {
+                k: v for k, v in filtered_mappings.items()
+                if query.lower() in v.get('product_title', '').lower()
+                or query.lower() in v.get('qid', '').lower()
+            }
+
+        # جلب بيانات المنتجات
+        sync_service = ProductSyncService()
+        results = []
+        
+        for local_id, mapping in filtered_mappings.items():
+            qid = mapping.get('qid')
+            product_data = sync_service.fetch_product_by_qid(qid) if qid else None
+            if product_data:
+                results.append({
+                    'local_id': local_id,
+                    'qid': qid,
+                    'title': product_data.get('title'),
+                    'price': product_data.get('price'),
+                    'status': product_data.get('status'),
+                    'image': product_data.get('images', [{}])[0].get('fileUrl') if product_data.get('images') else None
+                })
+
+        return jsonify({
+            'success': True,
+            'data': results,
+            'total': len(results)
+        })
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_products_search: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: جلب منتج محدد (AJAX)
+# ============================================================
+
+@suppliers_product_bp.route('/api/product/<qid>', methods=['GET'])
+@login_required
+def api_get_product(qid):
+    """API لجلب بيانات منتج محدد"""
+    try:
+        user_type = session.get('user_type')
+        if user_type not in ['supplier', 'staff']:
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        # التحقق من أن المنتج يخص المورد
+        mapping = product_mapping.get_mapping_by_qid(qid)
+        if not mapping or mapping.get('supplier_id') != supplier_id:
+            return jsonify({'success': False, 'message': 'المنتج غير موجود أو غير مصرح'}), 404
+
+        # جلب بيانات المنتج من قمرة
+        sync_service = ProductSyncService()
+        product_data = sync_service.fetch_product_by_qid(qid)
+
+        if not product_data:
+            return jsonify({'success': False, 'message': 'المنتج غير موجود في قمرة'}), 404
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'product': product_data,
+                'mapping': mapping
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_get_product: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: تحديث حالة المنتج (AJAX)
+# ============================================================
+
+@suppliers_product_bp.route('/api/product/<qid>/status', methods=['PATCH'])
+@login_required
+def api_update_product_status(qid):
+    """API لتحديث حالة المنتج"""
+    try:
+        user_type = session.get('user_type')
+        if user_type not in ['supplier', 'staff']:
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        # التحقق من أن المنتج يخص المورد
+        mapping = product_mapping.get_mapping_by_qid(qid)
+        if not mapping or mapping.get('supplier_id') != supplier_id:
+            return jsonify({'success': False, 'message': 'المنتج غير موجود أو غير مصرح'}), 404
+
+        data = request.get_json()
+        status = data.get('status')
+
+        if not status:
+            return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
+
+        # تحديث حالة المنتج في قمرة
+        sync_service = ProductSyncService()
+        success = sync_service.update_product_status(qid, status)
+
+        if success:
+            # تحديث حالة الربط
+            product_mapping.update_mapping_status(qid, status)
+            return jsonify({'success': True, 'message': f'تم تحديث الحالة إلى {status}'})
+        else:
+            return jsonify({'success': False, 'message': 'فشل تحديث حالة المنتج'}), 400
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_update_product_status: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: حذف منتج (AJAX)
+# ============================================================
+
+@suppliers_product_bp.route('/api/product/<qid>', methods=['DELETE'])
+@login_required
+def api_delete_product(qid):
+    """API لحذف منتج"""
+    try:
+        user_type = session.get('user_type')
+        if user_type not in ['supplier', 'staff']:
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        # التحقق من أن المنتج يخص المورد
+        mapping = product_mapping.get_mapping_by_qid(qid)
+        if not mapping or mapping.get('supplier_id') != supplier_id:
+            return jsonify({'success': False, 'message': 'المنتج غير موجود أو غير مصرح'}), 404
+
+        # حذف المنتج من قمرة
+        sync_service = ProductSyncService()
+        success = sync_service.delete_product(qid, delete_mapping=True)
+
+        if success:
+            return jsonify({'success': True, 'message': 'تم حذف المنتج بنجاح'})
+        else:
+            return jsonify({'success': False, 'message': 'فشل حذف المنتج'}), 400
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_delete_product: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
