@@ -21,22 +21,16 @@ def register_module(app):
         if 'suppliers_product_bp' not in app.blueprints:
             app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'suppliers_product_bp'")
-        else:
-            print("ℹ️ [Registry]: 'suppliers_product_bp' مسجل مسبقاً")
         
         # ✅ تسجيل Blueprint الإضافة
         if 'add_product_bp' not in app.blueprints:
             app.register_blueprint(add_product_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'add_product_bp'")
-        else:
-            print("ℹ️ [Registry]: 'add_product_bp' مسجل مسبقاً")
         
         # ✅ تسجيل Blueprint التعديل
         if 'edit_product_bp' not in app.blueprints:
             app.register_blueprint(edit_product_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'edit_product_bp'")
-        else:
-            print("ℹ️ [Registry]: 'edit_product_bp' مسجل مسبقاً")
             
     except ImportError as e:
         print(f"❌ [Registry]: خطأ في استيراد Blueprint: {e}")
