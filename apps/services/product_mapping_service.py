@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from apps.extensions import db
 from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models.supplier import Supplier
+from apps.models import Supplier  # ✅ تم التصحيح
 from .graphql_client import QomrahGraphQLClient
 
 
