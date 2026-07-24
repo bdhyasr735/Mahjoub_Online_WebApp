@@ -301,7 +301,7 @@
 
         const formData = new FormData(this);
 
-        fetch('/supplier/api/add-product', {
+        fetch('{{ url_for("add_product_bp.api_add_product") }}', {
             method: 'POST',
             body: formData
         })
@@ -310,7 +310,7 @@
             if (data.success) {
                 showToast('✅ ' + data.message, 'success');
                 setTimeout(function() {
-                    window.location.href = '/supplier/products';
+                    window.location.href = '{{ url_for("suppliers_product_bp.products") }}';
                 }, 1500);
             } else {
                 showToast('❌ ' + data.message, 'danger');
