@@ -153,7 +153,7 @@ class ProductMappingService:
             'updated_at': mapping.updated_at.isoformat() if mapping.updated_at else None
         }
     
-    def get_mapping_by_supplier(self, supplier_id: int) -> List[Dict]:
+    def get_mappings_by_supplier(self, supplier_id: int) -> List[Dict]:
         """
         استرجاع جميع علاقات الربط لمورد معين
         
@@ -164,15 +164,34 @@ class ProductMappingService:
             List[Dict]: قائمة العلاقات
         """
         mappings = ProductSupplierMapping.query.filter_by(
-            supplier_id=supplier_id
+            supplier_id=supplier_id,
+            status='active'
         ).all()
         
         return [{
             'id': m.id,
             'product_qid': m.product_qid,
+            'supplier_id': m.supplier_id,
             'status': m.status,
-            'created_at': m.created_at.isoformat() if m.created_at else None
+            'created_at': m.created_at.isoformat() if m.created_at else None,
+            'updated_at': m.updated_at.isoformat() if m.updated_at else None
         } for m in mappings]
+    
+    def get_supplier_by_qid(self, qid: str) -> Optional[int]:
+        """
+        جلب معرف المورد من خلال QID
+        
+        Args:
+            qid: معرف المنتج في قمرة
+        
+        Returns:
+            int: معرف المورد أو None
+        """
+        mapping = ProductSupplierMapping.query.filter_by(
+            product_qid=qid,
+            status='active'
+        ).first()
+        return mapping.supplier_id if mapping else None
     
     def update_mapping_status(self, product_qid: str, status: str) -> Dict:
         """
@@ -485,6 +504,31 @@ class ProductMappingService:
             Dict: بيانات العلاقة
         """
         return self.get_mapping_by_qid(product_qid)
+    
+    def get_all_mappings(self) -> Dict[str, Dict]:
+        """
+        جلب جميع العلاقات
+        
+        Returns:
+            Dict: جميع العلاقات {local_id: mapping_data}
+        """
+        mappings = ProductSupplierMapping.query.filter_by(status='active').all()
+        
+        result = {}
+        for mapping in mappings:
+            result[f"mapping_{mapping.id}"] = {
+                'id': mapping.id,
+                'qid': mapping.product_qid,
+                'supplier_id': mapping.supplier_id,
+                'supplier_name': mapping.supplier.name if mapping.supplier else None,
+                'product_title': None,  # سيتم ملؤه لاحقاً
+                'product_status': None,  # سيتم ملؤه لاحقاً
+                'status': mapping.status,
+                'created_at': mapping.created_at.isoformat() if mapping.created_at else None,
+                'updated_at': mapping.updated_at.isoformat() if mapping.updated_at else None
+            }
+        
+        return result
 
 
 # ============================================================
