@@ -172,7 +172,7 @@
         }
         .supplier-badge i { font-size: 0.8rem; }
         
-        /* ===== أيقونة الإشعارات ===== */
+        /* ===== أيقونة الإشعارات الاحترافية ===== */
         .notification-wrapper {
             position: relative;
             display: inline-flex;
@@ -201,14 +201,18 @@
         }
         .notification-btn .badge-dot {
             position: absolute;
-            top: 6px;
-            right: 6px;
+            top: 4px;
+            right: 4px;
             width: 10px;
             height: 10px;
             background: #ef4444;
             border-radius: 50%;
             border: 2px solid #fff;
             animation: pulse-dot 2s infinite;
+            display: none;
+        }
+        .notification-btn .badge-dot.show {
+            display: block;
         }
         @keyframes pulse-dot {
             0%, 100% { transform: scale(1); opacity: 1; }
@@ -461,7 +465,7 @@
                 <i class="fas fa-home"></i> <span>الرئيسية</span>
             </a>
             
-            <!-- ✅ عرض الموديولات ديناميكياً (معدل - يعمل مباشرة) -->
+            <!-- ✅ عرض الموديولات ديناميكياً -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if key != 'suppliers_dashboard' and module.links is mapping %}
@@ -497,7 +501,7 @@
             </div>
             
             <div class="navbar-right">
-                <!-- ✅ أيقونة الإشعارات -->
+                <!-- ✅ أيقونة الإشعارات الاحترافية -->
                 <div class="notification-wrapper">
                     <button class="notification-btn" id="notificationToggle" onclick="toggleNotifications()">
                         <i class="fas fa-bell"></i>
@@ -565,7 +569,9 @@
             });
         }
 
-        // ===== الإشعارات =====
+        // ============================================================
+        // ✅ الإشعارات
+        // ============================================================
         let notificationsOpen = false;
 
         function toggleNotifications() {
@@ -627,13 +633,15 @@
                         <p>لا توجد إشعارات جديدة</p>
                     </li>
                 `;
-                badge.style.display = 'none';
+                badge.classList.remove('show');
                 return;
             }
 
             let html = '';
+            let unreadCount = 0;
             notifications.forEach(function(noti) {
                 const unreadClass = noti.read ? '' : 'unread';
+                if (!noti.read) unreadCount++;
                 html += `
                     <li class="${unreadClass}" onclick="markAsRead('${noti.id}')">
                         <div class="noti-icon">
@@ -648,8 +656,11 @@
             });
             list.innerHTML = html;
             
-            const unreadCount = notifications.filter(n => !n.read).length;
-            badge.style.display = unreadCount > 0 ? 'block' : 'none';
+            if (unreadCount > 0) {
+                badge.classList.add('show');
+            } else {
+                badge.classList.remove('show');
+            }
         }
 
         function markAsRead(id) {
@@ -663,7 +674,7 @@
             document.querySelectorAll('.notification-list li.unread').forEach(function(item) {
                 item.classList.remove('unread');
             });
-            document.getElementById('notiBadge').style.display = 'none';
+            document.getElementById('notiBadge').classList.remove('show');
             // ✅ هنا يمكن إرسال طلب إلى الخادم لتحديث الكل
             // fetch('/api/notifications/read-all', { method: 'POST' })
         }
