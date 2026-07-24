@@ -38,7 +38,9 @@ class QomrahGraphQLClient:
 
     @staticmethod
     def execute_query(query, variables=None):
-        # ✅ التعديل هنا ليدعم QUMRA_API_KEY الموجود في Render بصورة أساسية
+        # ✅ إضافة تصحيح للتحقق من الاتصال
+        print(f"🔍 Executing GraphQL query to: {QomrahGraphQLClient.get_base_url()}")
+        
         api_key = (
             os.environ.get('QUMRA_API_KEY') or 
             os.environ.get('ADMIN_JWT_TOKEN')
@@ -58,17 +60,20 @@ class QomrahGraphQLClient:
         }
 
         try:
+            print(f"🔄 Sending request with query length: {len(query)} characters")
             response = _session.post(
                 target_url,
                 json={'query': query, 'variables': variables},
                 headers=headers,
                 verify=False,
-                timeout=15
+                timeout=30  # ✅ زيادة المهلة إلى 30 ثانية
             )
 
+            print(f"📡 Response Status: {response.status_code}")
+            
             if response.status_code != 200:
-                logging.error(f"❌ GraphQL Status {response.status_code}: {response.text}")
-                print(f"❌ HTTP Error {response.status_code}: {response.text}")
+                logging.error(f"❌ GraphQL Status {response.status_code}: {response.text[:500]}")
+                print(f"❌ HTTP Error {response.status_code}: {response.text[:500]}")
                 return None
 
             result = response.json()
@@ -78,11 +83,22 @@ class QomrahGraphQLClient:
                 print(f"❌ GraphQL Logic Error: {result['errors']}")
                 return None
 
+            print("✅ GraphQL query executed successfully")
             return result
 
+        except requests.exceptions.Timeout:
+            logging.error("❌ طلب GraphQL انتهى وقته (Timeout)")
+            print("❌ GraphQL Request Timeout")
+            return None
+        except requests.exceptions.ConnectionError as conn_err:
+            logging.error(f"❌ خطأ في الاتصال: {str(conn_err)}")
+            print(f"❌ Connection Error: {str(conn_err)}")
+            return None
         except requests.exceptions.RequestException as req_err:
             logging.error(f"❌ خطأ في الشبكة أثناء الاتصال: {str(req_err)}")
+            print(f"❌ Request Exception: {str(req_err)}")
             return None
         except Exception as e:
             logging.error(f"❌ خطأ غير متوقع: {str(e)}")
+            print(f"❌ Unexpected Error: {str(e)}")
             return None
