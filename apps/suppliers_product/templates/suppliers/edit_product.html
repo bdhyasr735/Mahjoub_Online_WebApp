@@ -329,7 +329,7 @@
         const qid = '{{ product.qid if product else "" }}';
         const formData = new FormData(this);
 
-        fetch('/supplier/api/edit-product/' + qid, {
+        fetch('{{ url_for("edit_product_bp.api_update_product", qid=qid) }}', {
             method: 'PUT',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
