@@ -6,13 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}القيادة المركزية | MAHJOUB{% endblock %}</title>
     
-    <!-- خط القاهرة -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5 RTL -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    <!-- أيقونات FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/tailwindcss-cdn@3.4.10/tailwindcss.min.js"></script>
     
     <style>
@@ -26,13 +22,11 @@
         }
         body { font-family: 'Cairo', sans-serif !important; background-color: #f4f7f6; margin: 0; }
         
-        /* إصلاح الأيقونات */
         i.fas, i.far, i.fab, .fa, .fas, .far, .fab {
             font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
             font-style: normal;
         }
 
-        /* ===== القائمة الجانبية ===== */
         .sidebar { 
             width: var(--sidebar-width); 
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); 
@@ -48,7 +42,6 @@
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
         
-        /* ===== الشعار ===== */
         .logo-container { 
             padding: 30px 10px; 
             text-align: center; 
@@ -70,7 +63,6 @@
         }
         .nav-menu { padding: 20px 15px; }
         
-        /* ===== الروابط ===== */
         .nav-link-custom { 
             display: flex; 
             align-items: center; 
@@ -88,7 +80,6 @@
         }
         .nav-link-custom i { width: 20px; text-align: center; }
         
-        /* ===== القوائم المنسدلة ===== */
         .dropdown-content { 
             display: none; 
             list-style: none; 
@@ -122,14 +113,12 @@
             transform: rotate(180deg);
         }
         
-        /* ===== المحتوى الرئيسي ===== */
         .main-wrapper { 
             margin-right: var(--sidebar-width); 
             transition: 0.3s; 
             min-height: 100vh;
         }
         
-        /* ===== الشريط العلوي ===== */
         .top-navbar { 
             background: #fff; 
             padding: 15px 30px; 
@@ -148,7 +137,6 @@
             outline: none;
         }
 
-        /* ===== شارة الإدارة ===== */
         .admin-badge {
             background: linear-gradient(135deg, var(--royal-purple), var(--deep-black));
             color: var(--mahjoub-gold);
@@ -159,7 +147,6 @@
             border: 1px solid rgba(212, 175, 55, 0.2);
         }
 
-        /* ===== رسائل الفلاش ===== */
         .flash-messages {
             position: fixed;
             top: 80px;
@@ -174,7 +161,6 @@
             border-right: 4px solid var(--mahjoub-gold);
         }
 
-        /* ===== التجاوب ===== */
         @media (max-width: 992px) { 
             .sidebar { right: -280px; } 
             .sidebar.active { right: 0; } 
@@ -193,7 +179,6 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- ===== القائمة الجانبية ===== -->
     <aside class="sidebar" id="sidebar">
         <div class="logo-container">
             <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="sidebar-logo" alt="MAHJOUB">
@@ -201,12 +186,10 @@
             <span class="brand-text">محجوب أونلاين | سوقك الذكي</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ الإحصائيات (رئيسي) -->
             <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="nav-link-custom {{ 'active' if request.endpoint == 'admin_dashboard_bp.dashboard' }}">
                 <i class="fas fa-chart-line"></i> <span>الإحصائيات</span>
             </a>
             
-            <!-- ✅ الموديولات المسجلة ديناميكياً -->
             {% if registered_modules %}
                 {% for mod_name, module in registered_modules.items() %}
                     <div class="nav-item mt-2">
@@ -219,7 +202,7 @@
                         </div>
                         <ul class="dropdown-content">
                             {% for endpoint, label in module.links.items() %}
-                                {% set url = url_for(endpoint, **{}) %}
+                                {% set url = safe_url_for(endpoint) %}
                                 <li>
                                     <a href="{{ url }}" class="{{ 'active-link' if request.endpoint == endpoint }}">
                                         <i class="fas fa-angle-left me-2"></i> {{ label }}
@@ -238,7 +221,6 @@
         </nav>
     </aside>
 
-    <!-- ===== المحتوى الرئيسي ===== -->
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
             <button class="btn btn-outline-dark d-lg-none" onclick="toggleSidebar()">
@@ -250,7 +232,6 @@
             </div>
         </header>
 
-        <!-- ===== رسائل الفلاش ===== -->
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -271,7 +252,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ===== تبديل القوائم المنسدلة =====
         function toggleSub(el) {
             let drop = el.nextElementSibling;
             if(!drop) return;
@@ -283,12 +263,10 @@
             }
         }
         
-        // ===== تبديل القائمة الجانبية في الموبايل =====
         function toggleSidebar() { 
             document.getElementById('sidebar').classList.toggle('active'); 
         }
 
-        // ===== إغلاق القائمة عند النقر خارجها =====
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.querySelector('.btn-outline-dark');
@@ -298,7 +276,6 @@
             }
         });
 
-        // ===== فتح القائمة النشطة تلقائياً =====
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.dropdown-content').forEach(function(drop) {
                 if (drop.querySelector('.active-link')) {
@@ -309,25 +286,6 @@
                         if (chevron) chevron.classList.add('rotated');
                     }
                 }
-            });
-        });
-
-        // ===== منع إغلاق القائمة عند النقر على الرابط =====
-        document.querySelectorAll('.dropdown-content a').forEach(function(link) {
-            link.addEventListener('click', function(e) {
-                // لا نمنع الانتقال للرابط
-                // فقط نغلق القائمة بعد النقر
-                setTimeout(function() {
-                    const parent = link.closest('.nav-item');
-                    if (parent) {
-                        const drop = parent.querySelector('.dropdown-content');
-                        const chevron = parent.querySelector('.fa-chevron-down');
-                        if (drop && window.innerWidth < 992) {
-                            drop.style.display = 'none';
-                            if (chevron) chevron.classList.remove('rotated');
-                        }
-                    }
-                }, 200);
             });
         });
     </script>
