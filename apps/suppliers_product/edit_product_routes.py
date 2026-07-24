@@ -1,23 +1,14 @@
 # coding: utf-8
 # 📂 apps/suppliers_product/edit_product_routes.py
 
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, abort, jsonify
 from flask_login import login_required, current_user
-from apps.services.product_sync_service import ProductSyncService
-from apps.services.product_rest_api import ProductRestAPI  # ✅ إضافة REST API
-from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models.supplier_db import Supplier
-from apps.extensions import db
-import os
-import traceback
-import base64
-from io import BytesIO
-from PIL import Image
+from apps.suppliers_product.sync_edit_product import edit_sync
+import logging
 
-# ✅ استيراد الـ Blueprint من registry.py
-from apps.suppliers_product.registry import suppliers_product_bp
+logger = logging.getLogger(__name__)
 
-# ✅ تعريف Blueprint منفصل للتعديل
+# ✅ تعريف Blueprint
 edit_product_bp = Blueprint(
     'edit_product_bp',
     __name__,
@@ -25,39 +16,10 @@ edit_product_bp = Blueprint(
 )
 
 
-def compress_image(image_data, max_size=(1200, 1200), quality=75):
-    """
-    ضغط الصورة وتقليل حجمها
-    
-    Args:
-        image_data: بيانات الصورة (bytes)
-        max_size: tuple (width, height) الحد الأقصى للأبعاد
-        quality: جودة الصورة (1-100)
-    
-    Returns:
-        bytes: بيانات الصورة المضغوطة
-    """
-    try:
-        img = Image.open(BytesIO(image_data))
-        
-        if img.mode == 'RGBA':
-            img = img.convert('RGB')
-        
-        if img.width > max_size[0] or img.height > max_size[1]:
-            img.thumbnail(max_size, Image.Resampling.LANCZOS)
-        
-        output = BytesIO()
-        img.save(output, format='JPEG', quality=quality, optimize=True)
-        return output.getvalue()
-        
-    except Exception as e:
-        print(f"⚠️ خطأ في ضغط الصورة: {e}")
-        return image_data
-
-
 # ============================================================
 # 🟣 مسار عرض صفحة تعديل المنتج
 # ============================================================
+
 @edit_product_bp.route('/edit-product/<qid>', methods=['GET'])
 @login_required
 def edit_product_page(qid):
@@ -66,115 +28,272 @@ def edit_product_page(qid):
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
             abort(403)
-        
-        if user_type == 'staff':
-            supplier_id = current_user.supplier_id
-        else:
-            supplier_id = current_user.id
-        
-        # ✅ التحقق من أن المنتج يخص هذا المورد
-        mapping = ProductSupplierMapping.query.filter_by(
-            product_qid=qid,
-            supplier_id=supplier_id,
-            status='active'
-        ).first()
-        
-        if not mapping:
-            abort(404)
-        
-        # ✅ جلب بيانات المنتج من Qumra (بدون token)
-        sync_service = ProductSyncService()
-        product = sync_service.fetch_product_by_qid(qid)
-        
-        if not product:
-            abort(404)
-        
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        # جلب بيانات المنتج
+        result = edit_sync.get_product(qid, supplier_id)
+
+        if not result['success']:
+            flash(f'❌ {result["error"]}', 'danger')
+            return redirect(url_for('suppliers_product_bp.products'))
+
         return render_template(
             'suppliers/edit_product.html',
-            product=product,
-            supplier=Supplier.query.get(supplier_id)
+            product=result['product'],
+            mapping=result['mapping'],
+            supplier=result['supplier']
         )
-        
+
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"❌ خطأ في edit_product_page: {error_details}")
+        logger.error(f"❌ خطأ في edit_product_page: {e}")
         flash('❌ حدث خطأ في تحميل صفحة التعديل', 'danger')
         return redirect(url_for('suppliers_product_bp.products'))
 
 
 # ============================================================
-# 🟣 مسار تحديث المنتج (باستخدام REST API)
+# 🟣 مسار تحديث المنتج (POST - نموذج)
 # ============================================================
+
 @edit_product_bp.route('/edit-product/<qid>', methods=['POST'])
 @login_required
 def update_product(qid):
-    """تحديث بيانات المنتج باستخدام REST API"""
+    """تحديث بيانات المنتج"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
             abort(403)
-        
-        if user_type == 'staff':
-            supplier_id = current_user.supplier_id
-        else:
-            supplier_id = current_user.id
-        
-        # ✅ التحقق من أن المنتج يخص هذا المورد
-        mapping = ProductSupplierMapping.query.filter_by(
-            product_qid=qid,
-            supplier_id=supplier_id,
-            status='active'
-        ).first()
-        
-        if not mapping:
-            abort(404)
-        
-        # ✅ جلب البيانات من النموذج
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
-        price = request.form.get('price', '').strip()
-        quantity = request.form.get('quantity', '').strip()
-        image = request.files.get('image')
-        
-        # ✅ التحقق من البيانات
-        if not name:
-            flash('⚠️ اسم المنتج مطلوب', 'danger')
-            return redirect(url_for('edit_product_bp.edit_product_page', qid=qid))
-        
-        # ✅ تحويل الصورة إلى base64 إذا تم رفع صورة جديدة
-        image_base64 = None
-        if image:
-            image_data = image.read()
-            compressed_data = compress_image(image_data, max_size=(600, 600), quality=40)
-            image_base64 = base64.b64encode(compressed_data).decode('utf-8')
-            image_type = image.filename.rsplit('.', 1)[1].lower()
-            image_base64 = f"data:image/{image_type};base64,{image_base64}"
-        
-        # ✅ تحديث المنتج عبر REST API
-        rest_api = ProductRestAPI()
-        
-        product_data = {
-            'title': name,
-            'description': description,
-            'price': float(price) if price else 0,
-            'quantity': int(quantity) if quantity else 0
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        # تجهيز البيانات
+        data = {
+            'title': request.form.get('title', '').strip(),
+            'description': request.form.get('description', '').strip(),
+            'price': request.form.get('price', '').strip(),
+            'quantity': request.form.get('quantity', '').strip(),
+            'status': request.form.get('status', 'DRAFT'),
+            'sku': request.form.get('sku', '').strip(),
+            'weight': request.form.get('weight', '').strip(),
         }
-        
-        # ✅ إضافة الصورة إذا وجدت
-        if image_base64:
-            product_data['images'] = [image_base64]
-        
-        result = rest_api.update_product(qid, product_data)
-        
-        if result:
+
+        # معالجة الصورة
+        image = request.files.get('image')
+        if image and image.filename:
+            data['image_file'] = image.read()
+            data['image_filename'] = image.filename
+
+        # تحديث المنتج
+        result = edit_sync.update_product(qid, supplier_id, data)
+
+        if result['success']:
             flash('✅ تم تحديث المنتج بنجاح', 'success')
         else:
-            flash('❌ فشل تحديث المنتج', 'danger')
-            
+            flash(f'❌ {result["error"]}', 'danger')
+
         return redirect(url_for('suppliers_product_bp.products'))
-        
+
     except Exception as e:
-        error_details = traceback.format_exc()
-        print(f"❌ خطأ في update_product: {error_details}")
+        logger.error(f"❌ خطأ في update_product: {e}")
         flash('❌ حدث خطأ أثناء تحديث المنتج', 'danger')
         return redirect(url_for('edit_product_bp.edit_product_page', qid=qid))
+
+
+# ============================================================
+# 🟣 API: تحديث المنتج (AJAX)
+# ============================================================
+
+@edit_product_bp.route('/api/edit-product/<qid>', methods=['PUT'])
+@login_required
+def api_update_product(qid):
+    """API لتحديث المنتج"""
+    try:
+        user_type = session.get('user_type')
+        if user_type not in ['supplier', 'staff']:
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        result = edit_sync.update_product(qid, supplier_id, request.get_json() or {})
+
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_update_product: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: تحديث حالة المنتج (AJAX)
+# ============================================================
+
+@edit_product_bp.route('/api/edit-product/<qid>/status', methods=['PATCH'])
+@login_required
+def api_update_status(qid):
+    """API لتحديث حالة المنتج"""
+    try:
+        user_type = session.get('user_type')
+        if user_type not in ['supplier', 'staff']:
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+        status = request.get_json().get('status')
+
+        if not status:
+            return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
+
+        result = edit_sync.update_product_status(qid, supplier_id, status)
+
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_update_status: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: رفع صورة (AJAX)
+# ============================================================
+
+@edit_product_bp.route('/api/edit-product/<qid>/image', methods=['POST'])
+@login_required
+def api_upload_image(qid):
+    """API لرفع صورة للمنتج"""
+    try:
+        user_type = session.get('user_type')
+        if user_type not in ['supplier', 'staff']:
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        # التحقق من الصلاحية
+        if not edit_sync.verify_access(qid, supplier_id):
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'message': 'لا توجد صورة'}), 400
+
+        file = request.files['image']
+        if not file or not file.filename:
+            return jsonify({'success': False, 'message': 'ملف غير صالح'}), 400
+
+        result = edit_sync.add_product_image(qid, file.read(), file.filename)
+
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_upload_image: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: حذف صورة (AJAX)
+# ============================================================
+
+@edit_product_bp.route('/api/edit-product/<qid>/image/<image_id>', methods=['DELETE'])
+@login_required
+def api_remove_image(qid, image_id):
+    """API لحذف صورة من المنتج"""
+    try:
+        user_type = session.get('user_type')
+        if user_type not in ['supplier', 'staff']:
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        # التحقق من الصلاحية
+        if not edit_sync.verify_access(qid, supplier_id):
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        result = edit_sync.remove_product_image(qid, image_id)
+
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_remove_image: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: جلب بيانات المنتج (AJAX)
+# ============================================================
+
+@edit_product_bp.route('/api/product/<qid>', methods=['GET'])
+@login_required
+def api_get_product(qid):
+    """API لجلب بيانات المنتج"""
+    try:
+        user_type = session.get('user_type')
+        if user_type not in ['supplier', 'staff']:
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        result = edit_sync.get_product(qid, supplier_id)
+
+        if result['success']:
+            return jsonify({'success': True, 'data': result['product']})
+        else:
+            return jsonify({'success': False, 'message': result['error']}), 404
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_get_product: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: التحقق من SKU (AJAX)
+# ============================================================
+
+@edit_product_bp.route('/api/check-sku', methods=['POST'])
+@login_required
+def api_check_sku():
+    """API للتحقق من توفر SKU"""
+    try:
+        data = request.get_json()
+        sku = data.get('sku')
+        exclude_qid = data.get('exclude_qid')
+
+        if not sku:
+            return jsonify({'success': False, 'message': 'SKU مطلوب'}), 400
+
+        result = edit_sync.check_sku_availability(sku, exclude_qid)
+
+        return jsonify({'success': True, 'data': result})
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_check_sku: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🟣 API: توليد SKU (AJAX)
+# ============================================================
+
+@edit_product_bp.route('/api/generate-sku', methods=['POST'])
+@login_required
+def api_generate_sku():
+    """API لإنشاء SKU تلقائي"""
+    try:
+        data = request.get_json()
+        prefix = data.get('prefix', 'PRD')
+
+        sku = edit_sync.generate_sku(prefix)
+
+        return jsonify({'success': True, 'data': {'sku': sku}})
+
+    except Exception as e:
+        logger.error(f"❌ خطأ في api_generate_sku: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
