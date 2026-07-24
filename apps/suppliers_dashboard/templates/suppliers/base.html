@@ -19,10 +19,12 @@
             --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
             --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
             --radius: 12px;
+            --header-height: 68px;
         }
         * { box-sizing: border-box; }
         body { font-family: 'Cairo', sans-serif; background: #f4f7f6; margin: 0; overflow-x: hidden; min-height: 100vh; }
         
+        /* ===== القائمة الجانبية ===== */
         .sidebar {
             width: var(--sidebar-width);
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
@@ -40,36 +42,83 @@
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
         
-        .logo-container { padding: 25px 15px 20px; text-align: center; border-bottom: 1px solid rgba(212, 175, 55, 0.2); }
-        .sidebar-logo { width: 60px; filter: brightness(0) invert(1); }
-        .sidebar-brand { color: var(--mahjoub-gold); font-size: 0.85rem; margin-top: 8px; display: block; font-weight: 700; letter-spacing: 0.5px; }
-        .nav-menu { padding: 16px 12px; }
+        /* ===== الشعار ===== */
+        .logo-container {
+            padding: 20px 15px 16px;
+            text-align: center;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+        }
+        .sidebar-logo {
+            width: 55px;
+            height: 55px;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+            transition: var(--transition);
+        }
+        .sidebar-logo:hover {
+            transform: scale(1.05);
+        }
+        .sidebar-brand {
+            color: var(--mahjoub-gold);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            display: block;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .sidebar-sub {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.65rem;
+            display: block;
+            margin-top: 2px;
+        }
         
+        /* ===== الروابط ===== */
+        .nav-menu { padding: 12px 12px; }
         .nav-link {
             display: flex;
             align-items: center;
-            padding: 11px 16px;
-            color: rgba(255,255,255,0.7);
+            padding: 10px 14px;
+            color: rgba(255,255,255,0.65);
             text-decoration: none;
             border-radius: var(--radius);
             transition: var(--transition);
-            font-size: 0.9rem;
-            gap: 14px;
+            font-size: 0.85rem;
+            gap: 12px;
             margin-bottom: 2px;
             position: relative;
         }
-        .nav-link i { width: 20px; text-align: center; font-size: 1.05rem; }
-        .nav-link:hover, .nav-link.active { background: rgba(212, 175, 55, 0.15); color: var(--mahjoub-gold); }
-        .nav-link.active::before { content: ''; position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 24px; background: var(--mahjoub-gold); border-radius: 0 4px 4px 0; }
-        .nav-link.text-danger { color: rgba(239, 68, 68, 0.8) !important; }
-        .nav-link.text-danger:hover { color: #ef4444 !important; background: rgba(239, 68, 68, 0.12); }
-        .nav-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 12px 16px; }
+        .nav-link i { width: 20px; text-align: center; font-size: 1rem; }
+        .nav-link:hover, .nav-link.active {
+            background: rgba(212, 175, 55, 0.12);
+            color: var(--mahjoub-gold);
+        }
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 24px;
+            background: var(--mahjoub-gold);
+            border-radius: 0 4px 4px 0;
+        }
+        .nav-link.text-danger { color: rgba(239, 68, 68, 0.7) !important; }
+        .nav-link.text-danger:hover { color: #ef4444 !important; background: rgba(239, 68, 68, 0.1); }
+        .nav-divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 10px 16px; }
         
-        .main-wrapper { margin-right: var(--sidebar-width); transition: var(--transition); min-height: 100vh; }
+        /* ===== المحتوى الرئيسي ===== */
+        .main-wrapper {
+            margin-right: var(--sidebar-width);
+            transition: var(--transition);
+            min-height: 100vh;
+        }
         
+        /* ===== الشريط العلوي ===== */
         .top-navbar {
             background: #fff;
-            padding: 12px 24px;
+            padding: 0 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -77,50 +126,307 @@
             position: sticky;
             top: 0;
             z-index: 1040;
-            min-height: 68px;
+            height: var(--header-height);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         
-        .badge-portal { background: var(--mahjoub-gold); color: #000; padding: 6px 16px; border-radius: 50px; font-weight: 700; font-size: 0.75rem; }
-        
-        .flash-messages { position: fixed; top: 80px; left: 20px; z-index: 2000; width: 350px; max-width: calc(100% - 40px); }
-        .flash-messages .alert { border-radius: var(--radius); box-shadow: var(--shadow-md); border-right: 4px solid var(--mahjoub-gold); }
-        
-        /* ✅ تحسين عرض الموديولات في القائمة الجانبية */
-        .nav-section-title {
-            color: rgba(255,255,255,0.3);
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            padding: 8px 16px 4px;
-            margin-top: 4px;
+        /* ===== زر القائمة في الموبايل ===== */
+        .menu-toggle {
+            background: transparent;
+            border: none;
+            color: var(--royal-purple);
+            font-size: 1.3rem;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: var(--transition);
+            display: none;
+        }
+        .menu-toggle:hover {
+            background: rgba(26, 11, 46, 0.06);
         }
         
+        /* ===== أيقونة الإشعارات ===== */
+        .notification-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .notification-btn {
+            background: transparent;
+            border: none;
+            color: #4b5563;
+            font-size: 1.25rem;
+            padding: 8px;
+            border-radius: 50%;
+            transition: var(--transition);
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+        }
+        .notification-btn:hover {
+            background: rgba(26, 11, 46, 0.06);
+            color: var(--royal-purple);
+        }
+        .notification-btn .badge-dot {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 10px;
+            height: 10px;
+            background: #ef4444;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+        
+        /* ===== قائمة الإشعارات المنسدلة ===== */
+        .notification-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            width: 360px;
+            max-width: 90vw;
+            padding: 0;
+            display: none;
+            z-index: 1060;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .notification-dropdown.show {
+            display: block;
+            animation: slideDown 0.25s ease;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .notification-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notification-header h6 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--royal-purple);
+        }
+        .notification-header .mark-all {
+            font-size: 0.7rem;
+            color: var(--mahjoub-gold);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .notification-header .mark-all:hover {
+            text-decoration: underline;
+        }
+        .notification-list {
+            max-height: 320px;
+            overflow-y: auto;
+            padding: 0;
+            list-style: none;
+            margin: 0;
+        }
+        .notification-list li {
+            padding: 12px 18px;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            transition: var(--transition);
+            cursor: pointer;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .notification-list li:hover {
+            background: #f8fafc;
+        }
+        .notification-list li.unread {
+            background: rgba(212, 175, 55, 0.04);
+            border-right: 3px solid var(--mahjoub-gold);
+        }
+        .notification-list li .noti-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(212, 175, 55, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--mahjoub-gold);
+            flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+        .notification-list li .noti-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .notification-list li .noti-content .noti-text {
+            font-size: 0.8rem;
+            color: #1f2937;
+            margin: 0 0 4px 0;
+            line-height: 1.4;
+        }
+        .notification-list li .noti-content .noti-time {
+            font-size: 0.65rem;
+            color: #9ca3af;
+        }
+        .notification-footer {
+            padding: 10px 18px;
+            text-align: center;
+            border-top: 1px solid rgba(0,0,0,0.06);
+        }
+        .notification-footer a {
+            font-size: 0.8rem;
+            color: var(--royal-purple);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .notification-footer a:hover {
+            color: var(--mahjoub-gold);
+        }
+        .notification-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: #9ca3af;
+        }
+        .notification-empty i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+        .notification-empty p {
+            font-size: 0.85rem;
+            margin: 0;
+        }
+        
+        /* ===== شارة المورد ===== */
+        .supplier-badge {
+            background: linear-gradient(135deg, var(--royal-purple), var(--deep-black));
+            color: var(--mahjoub-gold);
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            white-space: nowrap;
+        }
+        .supplier-badge i { font-size: 0.8rem; }
+        
+        /* ===== رسائل الفلاش ===== */
+        .flash-messages {
+            position: fixed;
+            top: calc(var(--header-height) + 16px);
+            left: 20px;
+            z-index: 2000;
+            width: 350px;
+            max-width: calc(100% - 40px);
+        }
+        .flash-messages .alert {
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            border-right: 4px solid var(--mahjoub-gold);
+            margin-bottom: 8px;
+        }
+        
+        /* ===== التجاوب ===== */
         @media (max-width: 992px) {
-            .sidebar { right: calc(-1 * var(--sidebar-width)); box-shadow: none; }
-            .sidebar.active { right: 0; box-shadow: 4px 0 30px rgba(0,0,0,0.3); }
-            .main-wrapper { margin-right: 0; }
+            .sidebar {
+                right: calc(-1 * var(--sidebar-width));
+                box-shadow: none;
+            }
+            .sidebar.active {
+                right: 0;
+                box-shadow: 4px 0 30px rgba(0,0,0,0.3);
+            }
+            .main-wrapper {
+                margin-right: 0;
+            }
+            .menu-toggle {
+                display: flex;
+            }
+            .top-navbar {
+                padding: 0 16px;
+            }
+            .supplier-badge span {
+                display: none;
+            }
         }
         
         @media (max-width: 576px) {
-            .top-navbar { padding: 10px 12px; min-height: 56px; }
+            .top-navbar { padding: 0 12px; height: 60px; }
             .sidebar { width: 260px; }
+            .notification-dropdown {
+                width: 320px;
+                right: -60px;
+                left: auto;
+            }
+            .supplier-badge {
+                padding: 4px 12px;
+                font-size: 0.65rem;
+            }
+            .flash-messages {
+                width: calc(100% - 24px);
+                left: 12px;
+                top: calc(60px + 12px);
+            }
+        }
+        
+        @media (min-width: 993px) and (max-width: 1200px) {
+            .sidebar { width: 240px; }
+            .main-wrapper { margin-right: 240px; }
+        }
+        
+        @media (min-width: 1400px) {
+            .sidebar { width: 300px; }
+            .main-wrapper { margin-right: 300px; }
         }
     </style>
 </head>
 <body>
 
+    <!-- ===== القائمة الجانبية ===== -->
     <aside class="sidebar" id="sidebar">
         <div class="logo-container">
-            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="sidebar-logo" alt="MAHJOUB">
-            <span class="sidebar-brand">بوابة المورد</span>
+            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
+                 class="sidebar-logo" 
+                 alt="MAHJOUB">
+            <span class="sidebar-brand">منصة محجوب</span>
+            <span class="sidebar-sub">بوابة الموردين</span>
         </div>
         <nav class="nav-menu">
-            <!-- ✅ الرابط الأساسي: لوحة التحكم -->
-            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
+            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" 
+               class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
                 <i class="fas fa-home"></i> <span>الرئيسية</span>
             </a>
             
-            <!-- ✅ عرض الموديولات مع safe_url_for -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if key != 'suppliers_dashboard' and module.links is mapping %}
@@ -132,7 +438,7 @@
                                     <span>{{ link_title }}</span>
                                 </a>
                             {% else %}
-                                <a href="#" class="nav-link text-muted" style="opacity: 0.5; cursor: not-allowed;">
+                                <a href="#" class="nav-link" style="opacity: 0.5; cursor: not-allowed;">
                                     <i class="{{ module.icon|default('fas fa-folder') }}"></i> 
                                     <span>{{ link_title }} (قيد التطوير)</span>
                                 </a>
@@ -149,16 +455,47 @@
         </nav>
     </aside>
 
+    <!-- ===== المحتوى الرئيسي ===== -->
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
-            <button class="btn btn-dark d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('active')">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="badge-portal">
-                <i class="fas fa-crown"></i> بوابة المورد
+            <div class="navbar-left">
+                <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('active')">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="supplier-badge">
+                    <i class="fas fa-store"></i>
+                    <span>بوابة الموردين</span>
+                </div>
+            </div>
+            
+            <div class="navbar-right">
+                <!-- ✅ أيقونة الإشعارات -->
+                <div class="notification-wrapper">
+                    <button class="notification-btn" id="notificationToggle" onclick="toggleNotifications()">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge-dot" id="notiBadge"></span>
+                    </button>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h6><i class="fas fa-bell me-2"></i>الإشعارات</h6>
+                            <span class="mark-all" onclick="markAllRead()">تحديد الكل كمقروء</span>
+                        </div>
+                        <ul class="notification-list" id="notificationList">
+                            <!-- سيتم تحميل الإشعارات ديناميكياً -->
+                            <li class="notification-empty">
+                                <i class="fas fa-inbox"></i>
+                                <p>لا توجد إشعارات جديدة</p>
+                            </li>
+                        </ul>
+                        <div class="notification-footer">
+                            <a href="#">عرض جميع الإشعارات</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
+        <!-- ✅ رسائل الفلاش -->
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -177,17 +514,20 @@
         </section>
     </main>
 
+    <!-- ===== السكربتات ===== -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ===== إغلاق القائمة الجانبية عند النقر خارجها =====
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.btn-dark');
+            const toggleBtn = document.querySelector('.menu-toggle');
             if (window.innerWidth < 992 && sidebar && toggleBtn &&
                 !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
                 sidebar.classList.remove('active');
             }
         });
 
+        // ===== تسجيل الخروج =====
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', function(e) {
@@ -197,6 +537,112 @@
                 window.location.href = this.href;
             });
         }
+
+        // ===== الإشعارات =====
+        let notificationsOpen = false;
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            notificationsOpen = !notificationsOpen;
+            dropdown.classList.toggle('show', notificationsOpen);
+        }
+
+        // ===== إغلاق الإشعارات عند النقر خارجها =====
+        document.addEventListener('click', function(e) {
+            const wrapper = document.querySelector('.notification-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                document.getElementById('notificationDropdown').classList.remove('show');
+                notificationsOpen = false;
+            }
+        });
+
+        // ===== تحديث الإشعارات (مثال) =====
+        function updateNotifications(notifications) {
+            const list = document.getElementById('notificationList');
+            const badge = document.getElementById('notiBadge');
+            
+            if (!notifications || notifications.length === 0) {
+                list.innerHTML = `
+                    <li class="notification-empty">
+                        <i class="fas fa-inbox"></i>
+                        <p>لا توجد إشعارات جديدة</p>
+                    </li>
+                `;
+                badge.style.display = 'none';
+                return;
+            }
+
+            let html = '';
+            notifications.forEach(function(noti) {
+                const unreadClass = noti.read ? '' : 'unread';
+                html += `
+                    <li class="${unreadClass}" onclick="markAsRead('${noti.id}')">
+                        <div class="noti-icon">
+                            <i class="${noti.icon || 'fas fa-circle'}"></i>
+                        </div>
+                        <div class="noti-content">
+                            <p class="noti-text">${noti.message}</p>
+                            <span class="noti-time">${noti.time}</span>
+                        </div>
+                    </li>
+                `;
+            });
+            list.innerHTML = html;
+            
+            // تحديث النقطة الحمراء
+            const unreadCount = notifications.filter(n => !n.read).length;
+            if (unreadCount > 0) {
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // ===== دوال الإشعارات =====
+        function markAsRead(id) {
+            console.log('تم تحديد الإشعار كـ مقروء:', id);
+            // هنا يمكن إرسال طلب إلى الخادم لتحديث الحالة
+        }
+
+        function markAllRead() {
+            console.log('تم تحديد جميع الإشعارات كـ مقروءة');
+            // هنا يمكن إرسال طلب إلى الخادم لتحديث الكل
+            document.querySelectorAll('.notification-list li.unread').forEach(function(item) {
+                item.classList.remove('unread');
+            });
+            document.getElementById('notiBadge').style.display = 'none';
+        }
+
+        // ===== مثال: تحميل إشعارات وهمية =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // يمكن استبدال هذا بطلب AJAX حقيقي
+            const sampleNotifications = [
+                {
+                    id: 1,
+                    message: 'تم قبول منتجك "سماعات لاسلكية" للنشر',
+                    time: 'منذ 5 دقائق',
+                    icon: 'fas fa-check-circle',
+                    read: false
+                },
+                {
+                    id: 2,
+                    message: 'لديك طلب جديد برقم #ORD-2024-001',
+                    time: 'منذ ساعة',
+                    icon: 'fas fa-shopping-cart',
+                    read: false
+                },
+                {
+                    id: 3,
+                    message: 'تم تحديث سياسة الشحن للمتجر',
+                    time: 'منذ 3 ساعات',
+                    icon: 'fas fa-truck',
+                    read: true
+                }
+            ];
+            
+            // تحديث الإشعارات
+            updateNotifications(sampleNotifications);
+        });
     </script>
     
     {% block extra_js %}{% endblock %}
