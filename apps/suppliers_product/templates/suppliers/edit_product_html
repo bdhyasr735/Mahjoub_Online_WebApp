@@ -372,6 +372,11 @@
         toastContainer.appendChild(toast);
         setTimeout(() => toast.remove(), 4000);
     }
+
+    // ✅ عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📦 صفحة تعديل المنتج جاهزة');
+    });
 </script>
 
 {% endblock %}
