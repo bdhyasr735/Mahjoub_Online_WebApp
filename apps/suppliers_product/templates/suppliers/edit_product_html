@@ -21,12 +21,6 @@
         border-color: var(--dark-purple, #2d0b36);
         box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.15);
     }
-    .form-control:disabled,
-    .form-control[readonly] {
-        background-color: #e9ecef;
-        opacity: 1;
-        cursor: not-allowed;
-    }
     .image-preview {
         max-width: 150px;
         max-height: 150px;
@@ -71,6 +65,11 @@
         border-color: var(--dark-purple, #2d0b36);
         background: #f0ecf3;
     }
+    .card {
+        border: none;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+    }
 </style>
 
 <div class="container-fluid py-4">
@@ -86,7 +85,7 @@
 
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card">
                 <div class="card-body p-4">
                     <form id="editProductForm" enctype="multipart/form-data">
                         
@@ -246,7 +245,6 @@
             reader.onload = function(e) {
                 previewImage.src = e.target.result;
                 imagePreview.style.display = 'block';
-                // إخفاء الصورة الحالية
                 const currentContainer = document.getElementById('currentImageContainer');
                 if (currentContainer) {
                     currentContainer.style.display = 'none';
@@ -372,11 +370,6 @@
         toastContainer.appendChild(toast);
         setTimeout(() => toast.remove(), 4000);
     }
-
-    // ✅ عند تحميل الصفحة
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('📦 صفحة تعديل المنتج جاهزة');
-    });
 </script>
 
 {% endblock %}
