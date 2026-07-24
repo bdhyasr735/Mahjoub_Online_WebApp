@@ -9,7 +9,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import event, update
 from apps.extensions import db
 
+
 class Supplier(db.Model, UserMixin):
+    """نموذج المورد - يدعم التشفير والعلاقات"""
     __tablename__ = 'suppliers'
     
     # [فهرسة متقدمة]: لضمان سرعة الاستعلامات والبحث
@@ -50,17 +52,22 @@ class Supplier(db.Model, UserMixin):
     
     # الربط مع الموظفين
     staff_members = db.relationship('SupplierStaff', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
+    
+    # الربط مع منتجات قمرة (ProductSupplierMapping)
+    product_mappings = db.relationship('ProductSupplierMapping', backref='supplier', lazy='dynamic')
 
     # --- نظام التشفير ---
     @staticmethod
     def _get_key():
-        return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
+        key = os.environ.get('ENCRYPTION_KEY')
+        return key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
 
     @property
     def phone(self):
         try:
             return Fernet(self._get_key()).decrypt(self._phone_enc.encode()).decode()
-        except: return None
+        except:
+            return None
 
     @phone.setter
     def phone(self, value):
@@ -73,6 +80,25 @@ class Supplier(db.Model, UserMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def to_dict(self):
+        """تحويل المورد إلى قاموس"""
+        return {
+            'id': self.id,
+            'username': self.username,
+            'supplier_code': self.supplier_code,
+            'owner_name': self.owner_name,
+            'trade_name': self.trade_name,
+            'phone': self.phone,
+            'status': self.status,
+            'rank': self.rank,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None
+        }
+
+    def __repr__(self):
+        return f"<Supplier {self.id}: {self.trade_name or self.username}>"
+
 
 # --- المحرك التلقائي لضبط الأكواد الفريدة ---
 @event.listens_for(Supplier, 'after_insert')
