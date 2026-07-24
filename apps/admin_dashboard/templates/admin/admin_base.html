@@ -202,9 +202,8 @@
                         </div>
                         <ul class="dropdown-content">
                             {% for endpoint, label in module.links.items() %}
-                                {% set url = safe_url_for(endpoint) %}
                                 <li>
-                                    <a href="{{ url }}" class="{{ 'active-link' if request.endpoint == endpoint }}">
+                                    <a href="{{ url_for(endpoint) }}" class="{{ 'active-link' if request.endpoint == endpoint }}">
                                         <i class="fas fa-angle-left me-2"></i> {{ label }}
                                     </a>
                                 </li>
