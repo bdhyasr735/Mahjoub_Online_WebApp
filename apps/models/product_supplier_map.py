@@ -6,6 +6,7 @@ from datetime import datetime
 from cryptography.fernet import Fernet
 from apps.extensions import db
 
+
 class ProductSupplierMapping(db.Model):
     """
     جدول الربط السيادي: يربط فقط بين منتج قمرة (qid) والمورد (supplier_id).
@@ -48,10 +49,12 @@ class ProductSupplierMapping(db.Model):
 
     @property
     def internal_notes(self):
-        if not self._internal_notes_enc: return None
+        if not self._internal_notes_enc:
+            return None
         try:
             return Fernet(self._get_key()).decrypt(self._internal_notes_enc.encode()).decode()
-        except Exception: return None
+        except Exception:
+            return None
 
     @internal_notes.setter
     def internal_notes(self, value):
@@ -59,6 +62,18 @@ class ProductSupplierMapping(db.Model):
             self._internal_notes_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
         else:
             self._internal_notes_enc = None
+
+    def to_dict(self):
+        """تحويل الربط إلى قاموس"""
+        return {
+            'id': self.id,
+            'product_qid': self.product_qid,
+            'supplier_id': self.supplier_id,
+            'status': self.status,
+            'internal_notes': self.internal_notes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
     def __repr__(self):
         return f"<Mapping qid={self.product_qid} supplier_id={self.supplier_id} status={self.status}>"
