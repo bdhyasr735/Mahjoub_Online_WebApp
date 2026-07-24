@@ -19,6 +19,7 @@ edit_product_bp = Blueprint('edit_product_bp', __name__, template_folder='templa
 @suppliers_product_bp.route('/products', methods=['GET'])
 @login_required
 def products():
+    """عرض قائمة منتجات المورد"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -42,7 +43,8 @@ def products():
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return render_template('suppliers/includes/_table_products.html', products=paginated)
 
-        return render_template('suppliers/suppliers_product.html',
+        return render_template(
+            'suppliers/suppliers_product.html',
             products=paginated,
             suppliers=supplier_product.get_active_suppliers(),
             total_products=stats['total'],
@@ -60,6 +62,7 @@ def products():
 @add_product_bp.route('/add-product', methods=['GET'])
 @login_required
 def add_product_page():
+    """صفحة إضافة منتج جديد"""
     try:
         if session.get('user_type') not in ['supplier', 'staff']:
             abort(403)
@@ -73,6 +76,7 @@ def add_product_page():
 @add_product_bp.route('/api/add-product', methods=['POST'])
 @login_required
 def api_add_product():
+    """API إضافة منتج جديد"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -111,6 +115,7 @@ def api_add_product():
 @add_product_bp.route('/api/check-sku', methods=['POST'])
 @login_required
 def api_check_sku():
+    """API التحقق من توفر SKU"""
     try:
         data = request.get_json()
         sku = data.get('sku', '').strip() if data else ''
@@ -126,6 +131,7 @@ def api_check_sku():
 @add_product_bp.route('/api/generate-sku', methods=['POST'])
 @login_required
 def api_generate_sku():
+    """API توليد SKU تلقائي"""
     try:
         data = request.get_json()
         prefix = data.get('prefix', 'PRD') if data else 'PRD'
@@ -140,6 +146,7 @@ def api_generate_sku():
 @edit_product_bp.route('/edit-product/<qid>', methods=['GET'])
 @login_required
 def edit_product_page(qid):
+    """صفحة تعديل منتج"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -165,6 +172,7 @@ def edit_product_page(qid):
 @edit_product_bp.route('/edit-product/<qid>', methods=['POST'])
 @login_required
 def update_product(qid):
+    """تحديث منتج (نموذج)"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -205,6 +213,7 @@ def update_product(qid):
 @edit_product_bp.route('/api/edit-product/<qid>', methods=['PUT'])
 @login_required
 def api_update_product(qid):
+    """API تحديث منتج"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -227,6 +236,7 @@ def api_update_product(qid):
 @edit_product_bp.route('/api/edit-product/<qid>/status', methods=['PATCH'])
 @login_required
 def api_update_status(qid):
+    """API تحديث حالة المنتج"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -254,6 +264,7 @@ def api_update_status(qid):
 @edit_product_bp.route('/api/edit-product/<qid>/image', methods=['POST'])
 @login_required
 def api_upload_image(qid):
+    """API رفع صورة للمنتج"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -286,6 +297,7 @@ def api_upload_image(qid):
 @edit_product_bp.route('/api/edit-product/<qid>/image/<image_id>', methods=['DELETE'])
 @login_required
 def api_remove_image(qid, image_id):
+    """API حذف صورة من المنتج"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -311,6 +323,7 @@ def api_remove_image(qid, image_id):
 @edit_product_bp.route('/api/product/<qid>', methods=['DELETE'])
 @login_required
 def api_delete_product(qid):
+    """API حذف منتج"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
