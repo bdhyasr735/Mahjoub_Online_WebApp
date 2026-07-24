@@ -16,20 +16,11 @@ class ProductSyncService:
     def upload_image(self, image_data: bytes, filename: str) -> str:
         """
         رفع صورة إلى مكتبة قمرة باستخدام GraphQL Mutation مع base64
-        
-        Args:
-            image_data: بيانات الصورة (bytes)
-            filename: اسم الملف
-        
-        Returns:
-            str: رابط الصورة في قمرة
         """
         try:
-            # ✅ تحويل الصورة إلى base64
             image_base64 = base64.b64encode(image_data).decode('utf-8')
             image_type = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'jpeg'
             
-            # ✅ Mutation لرفع الصورة
             mutation = """
             mutation($file: String!, $filename: String!) {
                 uploadFile(file: $file, filename: $filename) {
@@ -48,7 +39,6 @@ class ProductSyncService:
                 "filename": filename
             }
             
-            # ✅ تنفيذ الاستعلام
             result = self.client.execute_query(mutation, variables)
             
             if result:
@@ -208,51 +198,61 @@ class ProductSyncService:
         return []
 
     # ============================================================
-    # ✅ إنشاء منتج
+    # ✅ إنشاء منتج (باستخدام GraphQL الصحيح)
     # ============================================================
     def create_product(self, product_data: dict) -> dict:
-        """إنشاء منتج جديد في قمرة"""
+        """إنشاء منتج جديد في قمرة باستخدام GraphQL Mutation الصحيحة"""
         mutation = """
-        mutation($input: CreateProductInput!) {
-            createProduct(input: $input) {
-                success
-                message
-                data {
-                    qid
-                    title
-                    status
-                }
+        mutation createProduct(
+            $title: String!,
+            $description: String,
+            $price: Float,
+            $quantity: Int,
+            $images: [String!],
+            $status: String
+        ) {
+            createProduct(
+                title: $title,
+                description: $description,
+                price: $price,
+                quantity: $quantity,
+                images: $images,
+                status: $status
+            ) {
+                _id
+                title
+                slug
+                status
             }
         }
         """
         
-        input_data = {
+        variables = {
             "title": product_data.get('title', ''),
             "description": product_data.get('description', ''),
-            "status": "DRAFT",
-            "pricing": {
-                "price": float(product_data.get('price', 0))
-            },
+            "price": float(product_data.get('price', 0)),
             "quantity": int(product_data.get('quantity', 0)),
-            "supplierId": product_data.get('supplier_id', ''),
-            "images": product_data.get('images', [])
+            "images": product_data.get('images', []),
+            "status": product_data.get('status', 'DRAFT')
         }
         
-        result = self.client.execute_query(mutation, {"input": input_data})
+        result = self.client.execute_query(mutation, variables)
         
         if result:
-            create_result = result.get('data', {}).get('createProduct', {})
-            if create_result.get('success'):
-                data = create_result.get('data', {})
+            data = result.get('data', {}).get('createProduct', {})
+            if data:
+                # ✅ الحصول على _id أو qid من الاستجابة
+                qid = data.get('_id') or data.get('qid')
                 return {
                     'success': True,
-                    'qid': data.get('qid'),
-                    'message': create_result.get('message', 'تم إنشاء المنتج بنجاح')
+                    'qid': qid,
+                    'message': 'تم إنشاء المنتج بنجاح',
+                    'data': data
                 }
             else:
                 return {
                     'success': False,
-                    'message': create_result.get('message', 'فشل إنشاء المنتج'),
+                    'message': 'فشل إنشاء المنتج',
                     'qid': None
                 }
         else:
