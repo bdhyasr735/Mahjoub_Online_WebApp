@@ -200,14 +200,19 @@ def create_app():
             try: 
                 return url_for(endpoint, **values)
             except BuildError:
+                # ✅ محاولة إضافة _bp
                 alt_endpoint = f"{endpoint}_bp" if not endpoint.endswith('_bp') else endpoint.replace('_bp', '')
                 try: 
                     return url_for(alt_endpoint, **values)
                 except BuildError:
-                    # ✅ محاولة البحث في الـ Blueprints المسجلة
+                    # ✅ البحث في الـ Blueprints المسجلة
                     for bp_name in app.blueprints:
                         try:
-                            test_endpoint = f"{bp_name}.{endpoint.split('.')[-1] if '.' in endpoint else endpoint}"
+                            # ✅ محاولة ربط الـ endpoint بالـ blueprint
+                            if '.' not in endpoint:
+                                test_endpoint = f"{bp_name}.{endpoint}"
+                            else:
+                                test_endpoint = endpoint
                             return url_for(test_endpoint, **values)
                         except:
                             continue
