@@ -142,7 +142,7 @@ def create_app():
     # ✅ تسجيل الموديولات ديناميكياً (تلقائي)
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin', 'data']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data']
     
     print("🔄 [Registry]: جارٍ البحث عن الموديولات...")
     
