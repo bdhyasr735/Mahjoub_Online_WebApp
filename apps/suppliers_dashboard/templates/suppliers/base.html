@@ -172,179 +172,6 @@
         }
         .supplier-badge i { font-size: 0.8rem; }
         
-        /* ===== أيقونة الإشعارات الاحترافية ===== */
-        .notification-wrapper {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .notification-btn {
-            background: transparent;
-            border: none;
-            color: #4b5563;
-            font-size: 1.25rem;
-            padding: 8px;
-            border-radius: 50%;
-            transition: var(--transition);
-            width: 42px;
-            height: 42px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            cursor: pointer;
-        }
-        .notification-btn:hover {
-            background: rgba(26, 11, 46, 0.06);
-            color: var(--royal-purple);
-        }
-        .notification-btn .badge-dot {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 10px;
-            height: 10px;
-            background: #ef4444;
-            border-radius: 50%;
-            border: 2px solid #fff;
-            animation: pulse-dot 2s infinite;
-            display: none;
-        }
-        .notification-btn .badge-dot.show {
-            display: block;
-        }
-        @keyframes pulse-dot {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.7; }
-        }
-        
-        /* ===== قائمة الإشعارات المنسدلة ===== */
-        .notification-dropdown {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            background: #fff;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow-lg);
-            width: 360px;
-            max-width: 90vw;
-            padding: 0;
-            display: none;
-            z-index: 1060;
-            overflow: hidden;
-            border: 1px solid rgba(0,0,0,0.06);
-        }
-        .notification-dropdown.show {
-            display: block;
-            animation: slideDown 0.25s ease;
-        }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .notification-header {
-            padding: 14px 18px;
-            border-bottom: 1px solid rgba(0,0,0,0.06);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .notification-header h6 {
-            margin: 0;
-            font-weight: 700;
-            font-size: 0.85rem;
-            color: var(--royal-purple);
-        }
-        .notification-header .mark-all {
-            font-size: 0.7rem;
-            color: var(--mahjoub-gold);
-            text-decoration: none;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .notification-header .mark-all:hover {
-            text-decoration: underline;
-        }
-        .notification-list {
-            max-height: 320px;
-            overflow-y: auto;
-            padding: 0;
-            list-style: none;
-            margin: 0;
-        }
-        .notification-list li {
-            padding: 12px 18px;
-            border-bottom: 1px solid rgba(0,0,0,0.04);
-            transition: var(--transition);
-            cursor: pointer;
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-        }
-        .notification-list li:hover {
-            background: #f8fafc;
-        }
-        .notification-list li.unread {
-            background: rgba(212, 175, 55, 0.04);
-            border-right: 3px solid var(--mahjoub-gold);
-        }
-        .notification-list li .noti-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: rgba(212, 175, 55, 0.12);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--mahjoub-gold);
-            flex-shrink: 0;
-            font-size: 0.9rem;
-        }
-        .notification-list li .noti-content {
-            flex: 1;
-            min-width: 0;
-        }
-        .notification-list li .noti-content .noti-text {
-            font-size: 0.8rem;
-            color: #1f2937;
-            margin: 0 0 4px 0;
-            line-height: 1.4;
-        }
-        .notification-list li .noti-content .noti-time {
-            font-size: 0.65rem;
-            color: #9ca3af;
-        }
-        .notification-footer {
-            padding: 10px 18px;
-            text-align: center;
-            border-top: 1px solid rgba(0,0,0,0.06);
-        }
-        .notification-footer a {
-            font-size: 0.8rem;
-            color: var(--royal-purple);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .notification-footer a:hover {
-            color: var(--mahjoub-gold);
-        }
-        .notification-empty {
-            padding: 30px 20px;
-            text-align: center;
-            color: #9ca3af;
-        }
-        .notification-empty i {
-            font-size: 2rem;
-            display: block;
-            margin-bottom: 10px;
-            opacity: 0.5;
-        }
-        .notification-empty p {
-            font-size: 0.85rem;
-            margin: 0;
-        }
-        
         /* ===== رسائل الفلاش ===== */
         .flash-messages {
             position: fixed;
@@ -413,10 +240,6 @@
             .supplier-badge span {
                 display: none;
             }
-            .notification-dropdown {
-                left: -60px;
-                right: auto;
-            }
         }
         
         @media (max-width: 576px) {
@@ -428,11 +251,6 @@
                 width: calc(100% - 24px);
                 left: 12px;
                 top: calc(60px + 12px);
-            }
-            .notification-dropdown {
-                width: 320px;
-                right: -60px;
-                left: auto;
             }
         }
         
@@ -501,28 +319,7 @@
             </div>
             
             <div class="navbar-right">
-                <!-- ✅ أيقونة الإشعارات الاحترافية -->
-                <div class="notification-wrapper">
-                    <button class="notification-btn" id="notificationToggle" onclick="toggleNotifications()">
-                        <i class="fas fa-bell"></i>
-                        <span class="badge-dot" id="notiBadge"></span>
-                    </button>
-                    <div class="notification-dropdown" id="notificationDropdown">
-                        <div class="notification-header">
-                            <h6><i class="fas fa-bell me-2"></i>الإشعارات</h6>
-                            <span class="mark-all" onclick="markAllRead()">تحديد الكل كمقروء</span>
-                        </div>
-                        <ul class="notification-list" id="notificationList">
-                            <li class="notification-empty">
-                                <i class="fas fa-inbox"></i>
-                                <p>لا توجد إشعارات جديدة</p>
-                            </li>
-                        </ul>
-                        <div class="notification-footer">
-                            <a href="#">عرض جميع الإشعارات</a>
-                        </div>
-                    </div>
-                </div>
+                <!-- تم إزالة الإشعارات بنجاح -->
             </div>
         </header>
 
@@ -568,124 +365,6 @@
                 window.location.href = this.href;
             });
         }
-
-        // ============================================================
-        // ✅ الإشعارات
-        // ============================================================
-        let notificationsOpen = false;
-
-        function toggleNotifications() {
-            const dropdown = document.getElementById('notificationDropdown');
-            notificationsOpen = !notificationsOpen;
-            dropdown.classList.toggle('show', notificationsOpen);
-        }
-
-        // ===== إغلاق الإشعارات عند النقر خارجها =====
-        document.addEventListener('click', function(e) {
-            const wrapper = document.querySelector('.notification-wrapper');
-            if (wrapper && !wrapper.contains(e.target)) {
-                document.getElementById('notificationDropdown').classList.remove('show');
-                notificationsOpen = false;
-            }
-        });
-
-        // ===== تحديث الإشعارات من الخادم =====
-        function fetchNotifications() {
-            // ✅ هنا يمكنك استدعاء API حقيقي لجلب الإشعارات
-            // مثال: fetch('/api/notifications').then(res => res.json()).then(data => updateNotifications(data))
-            
-            // 👇 للإشعارات الوهمية (للاختبار)
-            const sampleNotifications = [
-                {
-                    id: 1,
-                    message: 'تم قبول منتجك "سماعات لاسلكية" للنشر',
-                    time: 'منذ 5 دقائق',
-                    icon: 'fas fa-check-circle',
-                    read: false
-                },
-                {
-                    id: 2,
-                    message: 'لديك طلب جديد برقم #ORD-2024-001',
-                    time: 'منذ ساعة',
-                    icon: 'fas fa-shopping-cart',
-                    read: false
-                },
-                {
-                    id: 3,
-                    message: 'تم تحديث سياسة الشحن للمتجر',
-                    time: 'منذ 3 ساعات',
-                    icon: 'fas fa-truck',
-                    read: true
-                }
-            ];
-            updateNotifications(sampleNotifications);
-        }
-
-        // ===== تحديث واجهة الإشعارات =====
-        function updateNotifications(notifications) {
-            const list = document.getElementById('notificationList');
-            const badge = document.getElementById('notiBadge');
-            
-            if (!notifications || notifications.length === 0) {
-                list.innerHTML = `
-                    <li class="notification-empty">
-                        <i class="fas fa-inbox"></i>
-                        <p>لا توجد إشعارات جديدة</p>
-                    </li>
-                `;
-                badge.classList.remove('show');
-                return;
-            }
-
-            let html = '';
-            let unreadCount = 0;
-            notifications.forEach(function(noti) {
-                const unreadClass = noti.read ? '' : 'unread';
-                if (!noti.read) unreadCount++;
-                html += `
-                    <li class="${unreadClass}" onclick="markAsRead('${noti.id}')">
-                        <div class="noti-icon">
-                            <i class="${noti.icon || 'fas fa-circle'}"></i>
-                        </div>
-                        <div class="noti-content">
-                            <p class="noti-text">${noti.message}</p>
-                            <span class="noti-time">${noti.time}</span>
-                        </div>
-                    </li>
-                `;
-            });
-            list.innerHTML = html;
-            
-            if (unreadCount > 0) {
-                badge.classList.add('show');
-            } else {
-                badge.classList.remove('show');
-            }
-        }
-
-        function markAsRead(id) {
-            console.log('تم تحديد الإشعار كـ مقروء:', id);
-            // ✅ هنا يمكن إرسال طلب إلى الخادم لتحديث الحالة
-            // fetch('/api/notifications/read', { method: 'POST', body: JSON.stringify({id: id}) })
-        }
-
-        function markAllRead() {
-            console.log('تم تحديد جميع الإشعارات كـ مقروءة');
-            document.querySelectorAll('.notification-list li.unread').forEach(function(item) {
-                item.classList.remove('unread');
-            });
-            document.getElementById('notiBadge').classList.remove('show');
-            // ✅ هنا يمكن إرسال طلب إلى الخادم لتحديث الكل
-            // fetch('/api/notifications/read-all', { method: 'POST' })
-        }
-
-        // ===== تحميل الإشعارات عند تحميل الصفحة =====
-        document.addEventListener('DOMContentLoaded', function() {
-            fetchNotifications();
-            
-            // ✅ تحديث الإشعارات كل 30 ثانية (اختياري)
-            setInterval(fetchNotifications, 30000);
-        });
     </script>
     
     {% block extra_js %}{% endblock %}
