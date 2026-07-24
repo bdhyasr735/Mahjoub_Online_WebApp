@@ -5,6 +5,7 @@ from apps.services.graphql_client import QomrahGraphQLClient
 import requests
 import os
 import base64
+import traceback
 
 class ProductSyncService:
     def __init__(self):
@@ -56,7 +57,6 @@ class ProductSyncService:
                 
         except Exception as e:
             print(f"❌ خطأ في رفع الصورة: {e}")
-            import traceback
             traceback.print_exc()
             return None
 
@@ -198,194 +198,321 @@ class ProductSyncService:
         return []
 
     # ============================================================
-    # ✅ إنشاء منتج (بدون بيانات - ثم تحديث)
+    # ✅ إنشاء منتج (باستخدام title فقط)
     # ============================================================
-    def create_product(self, product_data: dict = None) -> dict:
-        """إنشاء منتج جديد في قمرة (بدون بيانات)"""
-        mutation = """
-        mutation {
-            createProduct {
-                _id
-                title
-                slug
-                status
-            }
-        }
+    def create_product(self, title: str) -> dict:
         """
+        إنشاء منتج جديد في قمرة باستخدام title فقط
         
-        result = self.client.execute_query(mutation, {})
+        Args:
+            title: اسم المنتج
         
-        if result:
-            data = result.get('data', {}).get('createProduct', {})
-            if data:
-                qid = data.get('_id') or data.get('qid')
-                return {
-                    'success': True,
-                    'qid': qid,
-                    'message': 'تم إنشاء المنتج بنجاح',
-                    'data': data
+        Returns:
+            dict: {'success': bool, 'qid': str, 'message': str, 'data': dict}
+        """
+        try:
+            mutation = """
+            mutation CreateProduct($title: String) {
+                createProduct(title: $title) {
+                    _id
+                    title
+                    slug
+                    status
                 }
-        
-        return {
-            'success': False,
-            'message': 'فشل إنشاء المنتج',
-            'qid': None
-        }
+            }
+            """
+            
+            print(f"🔄 جاري إنشاء المنتج بالاسم: {title}")
+            result = self.client.execute_query(mutation, {"title": title})
+            
+            if result:
+                data = result.get('data', {}).get('createProduct', {})
+                if data:
+                    qid = data.get('_id') or data.get('qid')
+                    print(f"✅ تم إنشاء المنتج بنجاح بـ QID: {qid}")
+                    return {
+                        'success': True,
+                        'qid': qid,
+                        'message': 'تم إنشاء المنتج بنجاح',
+                        'data': data
+                    }
+                else:
+                    print(f"❌ البيانات فارغة: {result}")
+                    return {
+                        'success': False,
+                        'message': 'فشل إنشاء المنتج: البيانات فارغة',
+                        'qid': None
+                    }
+            else:
+                print(f"❌ لا توجد نتيجة من الخادم")
+                return {
+                    'success': False,
+                    'message': 'فشل الاتصال بقمرة',
+                    'qid': None
+                }
+                
+        except Exception as e:
+            print(f"❌ خطأ في create_product: {e}")
+            traceback.print_exc()
+            return {
+                'success': False,
+                'message': f'خطأ: {str(e)}',
+                'qid': None
+            }
 
     # ============================================================
     # ✅ تحديث معلومات المنتج
     # ============================================================
-    def update_product_info(self, qid: str, title: str, description: str = "", status: str = "DRAFT"):
-        """تحديث معلومات المنتج"""
-        mutation = """
-        mutation($id: String!, $info: UpdateProductInfo!) {
-            updateProductInfo(id: $id, updateProductInfoInput: $info) {
-                success
-                message
-            }
-        }
+    def update_product_info(self, qid: str, title: str, description: str = "", status: str = "DRAFT") -> bool:
         """
+        تحديث معلومات المنتج
         
-        variables = {
-            "id": qid,
-            "info": {
-                "title": title,
-                "description": description,
-                "status": status
+        Args:
+            qid: معرف المنتج
+            title: اسم المنتج
+            description: وصف المنتج
+            status: حالة المنتج (DRAFT, PUBLISHED, REJECTED, ARCHIVED)
+        
+        Returns:
+            bool: نجاح أو فشل العملية
+        """
+        try:
+            mutation = """
+            mutation($id: String!, $info: UpdateProductInfo!) {
+                updateProductInfo(id: $id, updateProductInfoInput: $info) {
+                    success
+                    message
+                }
             }
-        }
-        
-        result = self.client.execute_query(mutation, variables)
-        
-        if result:
-            update_result = result.get('data', {}).get('updateProductInfo', {})
-            return update_result.get('success', False)
-        return False
+            """
+            
+            variables = {
+                "id": qid,
+                "info": {
+                    "title": title,
+                    "description": description,
+                    "status": status
+                }
+            }
+            
+            print(f"🔄 جاري تحديث معلومات المنتج {qid}")
+            result = self.client.execute_query(mutation, variables)
+            
+            if result:
+                update_result = result.get('data', {}).get('updateProductInfo', {})
+                if update_result.get('success'):
+                    print(f"✅ تم تحديث معلومات المنتج بنجاح")
+                    return True
+                else:
+                    print(f"❌ فشل تحديث معلومات المنتج: {update_result.get('message')}")
+                    return False
+            else:
+                print(f"❌ لا توجد نتيجة من الخادم")
+                return False
+                
+        except Exception as e:
+            print(f"❌ خطأ في update_product_info: {e}")
+            traceback.print_exc()
+            return False
 
     # ============================================================
     # ✅ تحديث سعر المنتج
     # ============================================================
-    def update_product_pricing(self, qid: str, price: float):
-        """تحديث سعر المنتج"""
-        mutation = """
-        mutation($id: ID!, $pricing: PricingInput!) {
-            updateProductPricing(id: $id, pricing: $pricing) {
-                success
-                message
-            }
-        }
+    def update_product_pricing(self, qid: str, price: float) -> bool:
         """
+        تحديث سعر المنتج
         
-        variables = {
-            "id": qid,
-            "pricing": {"price": price}
-        }
+        Args:
+            qid: معرف المنتج
+            price: السعر الجديد
         
-        result = self.client.execute_query(mutation, variables)
-        
-        if result:
-            update_result = result.get('data', {}).get('updateProductPricing', {})
-            return update_result.get('success', False)
-        return False
+        Returns:
+            bool: نجاح أو فشل العملية
+        """
+        try:
+            mutation = """
+            mutation($id: ID!, $pricing: PricingInput!) {
+                updateProductPricing(id: $id, pricing: $pricing) {
+                    success
+                    message
+                }
+            }
+            """
+            
+            variables = {
+                "id": qid,
+                "pricing": {"price": price}
+            }
+            
+            print(f"🔄 جاري تحديث سعر المنتج {qid}: {price}")
+            result = self.client.execute_query(mutation, variables)
+            
+            if result:
+                update_result = result.get('data', {}).get('updateProductPricing', {})
+                if update_result.get('success'):
+                    print(f"✅ تم تحديث سعر المنتج بنجاح")
+                    return True
+                else:
+                    print(f"❌ فشل تحديث سعر المنتج: {update_result.get('message')}")
+                    return False
+            else:
+                print(f"❌ لا توجد نتيجة من الخادم")
+                return False
+                
+        except Exception as e:
+            print(f"❌ خطأ في update_product_pricing: {e}")
+            traceback.print_exc()
+            return False
 
     # ============================================================
     # ✅ تحديث صور المنتج
     # ============================================================
-    def update_product_images(self, qid: str, images: list):
-        """تحديث صور المنتج"""
-        mutation = """
-        mutation($id: ID!, $images: [String!]!) {
-            updateProductImages(id: $id, data: $images) {
-                success
-                message
-            }
-        }
+    def update_product_images(self, qid: str, images: list) -> bool:
         """
+        تحديث صور المنتج
         
-        variables = {
-            "id": qid,
-            "images": images
-        }
+        Args:
+            qid: معرف المنتج
+            images: قائمة صور (base64 أو روابط)
         
-        result = self.client.execute_query(mutation, variables)
-        
-        if result:
-            update_result = result.get('data', {}).get('updateProductImages', {})
-            return update_result.get('success', False)
-        return False
+        Returns:
+            bool: نجاح أو فشل العملية
+        """
+        try:
+            mutation = """
+            mutation($id: ID!, $images: [String!]!) {
+                updateProductImages(id: $id, data: $images) {
+                    success
+                    message
+                }
+            }
+            """
+            
+            variables = {
+                "id": qid,
+                "images": images
+            }
+            
+            print(f"🔄 جاري تحديث صور المنتج {qid}")
+            result = self.client.execute_query(mutation, variables)
+            
+            if result:
+                update_result = result.get('data', {}).get('updateProductImages', {})
+                if update_result.get('success'):
+                    print(f"✅ تم تحديث صور المنتج بنجاح")
+                    return True
+                else:
+                    print(f"❌ فشل تحديث صور المنتج: {update_result.get('message')}")
+                    return False
+            else:
+                print(f"❌ لا توجد نتيجة من الخادم")
+                return False
+                
+        except Exception as e:
+            print(f"❌ خطأ في update_product_images: {e}")
+            traceback.print_exc()
+            return False
 
     # ============================================================
     # ✅ تحديث حالة المنتج
     # ============================================================
     def update_product_status(self, qid: str, status: str) -> bool:
         """تحديث حالة المنتج في قمرة"""
-        mutation = """
-        mutation($qid: String!, $status: String!) {
-            updateProductStatus(qid: $qid, status: $status) {
-                success
-                message
+        try:
+            mutation = """
+            mutation($qid: String!, $status: String!) {
+                updateProductStatus(qid: $qid, status: $status) {
+                    success
+                    message
+                }
             }
-        }
-        """
-        result = self.client.execute_query(mutation, {"qid": qid, "status": status})
-        
-        if result:
-            update_result = result.get('data', {}).get('updateProductStatus', {})
-            return update_result.get('success', False)
-        return False
+            """
+            result = self.client.execute_query(mutation, {"qid": qid, "status": status})
+            
+            if result:
+                update_result = result.get('data', {}).get('updateProductStatus', {})
+                if update_result.get('success'):
+                    print(f"✅ تم تحديث حالة المنتج إلى {status}")
+                    return True
+                else:
+                    print(f"❌ فشل تحديث حالة المنتج: {update_result.get('message')}")
+                    return False
+            return False
+            
+        except Exception as e:
+            print(f"❌ خطأ في update_product_status: {e}")
+            traceback.print_exc()
+            return False
 
     # ============================================================
     # ✅ حذف المنتج
     # ============================================================
     def delete_product(self, qid: str) -> bool:
         """حذف منتج من قمرة"""
-        mutation = """
-        mutation($qid: String!) {
-            deleteProduct(qid: $qid) {
-                success
-                message
+        try:
+            mutation = """
+            mutation($qid: String!) {
+                deleteProduct(qid: $qid) {
+                    success
+                    message
+                }
             }
-        }
-        """
-        result = self.client.execute_query(mutation, {"qid": qid})
-        
-        if result:
-            delete_result = result.get('data', {}).get('deleteProduct', {})
-            return delete_result.get('success', False)
-        return False
+            """
+            result = self.client.execute_query(mutation, {"qid": qid})
+            
+            if result:
+                delete_result = result.get('data', {}).get('deleteProduct', {})
+                if delete_result.get('success'):
+                    print(f"✅ تم حذف المنتج {qid} بنجاح")
+                    return True
+                else:
+                    print(f"❌ فشل حذف المنتج: {delete_result.get('message')}")
+                    return False
+            return False
+            
+        except Exception as e:
+            print(f"❌ خطأ في delete_product: {e}")
+            traceback.print_exc()
+            return False
 
     # ============================================================
     # ✅ تحديث بيانات المنتج (شامل)
     # ============================================================
     def update_product_data(self, qid: str, **kwargs):
         """تحديث بيانات المنتج في قمرة"""
-        info = kwargs.get('info', {})
-        pricing = kwargs.get('pricing', {})
-        weight = kwargs.get('weight', {})
-        ident = kwargs.get('ident', {})
-        description = kwargs.get('desc', '')
-        
-        mutation = """
-        mutation($qid: String!, $info: UpdateProductInfo!, $pricing: PricingInput!, $weight: WeightInput!, $ident: IdentificationInput!, $desc: String!) {
-            updateProductInfo(id: $qid, updateProductInfoInput: $info) { success }
-            updateProductPricing(id: $qid, pricing: $pricing) { success }
-            updateProductWeight(id: $qid, data: $weight) { success }
-            updateProductIdentification(id: $qid, data: $ident) { success }
-            updateProductDescription(id: $qid, data: $desc) { success }
-        }
-        """
-        
-        variables = {
-            "qid": qid,
-            "info": info,
-            "pricing": pricing,
-            "weight": weight,
-            "ident": ident,
-            "desc": description
-        }
-        
-        result = self.client.execute_query(mutation, variables)
-        
-        if result:
-            return True
-        return False
+        try:
+            info = kwargs.get('info', {})
+            pricing = kwargs.get('pricing', {})
+            weight = kwargs.get('weight', {})
+            ident = kwargs.get('ident', {})
+            description = kwargs.get('desc', '')
+            
+            mutation = """
+            mutation($qid: String!, $info: UpdateProductInfo!, $pricing: PricingInput!, $weight: WeightInput!, $ident: IdentificationInput!, $desc: String!) {
+                updateProductInfo(id: $qid, updateProductInfoInput: $info) { success }
+                updateProductPricing(id: $qid, pricing: $pricing) { success }
+                updateProductWeight(id: $qid, data: $weight) { success }
+                updateProductIdentification(id: $qid, data: $ident) { success }
+                updateProductDescription(id: $qid, data: $desc) { success }
+            }
+            """
+            
+            variables = {
+                "qid": qid,
+                "info": info,
+                "pricing": pricing,
+                "weight": weight,
+                "ident": ident,
+                "desc": description
+            }
+            
+            result = self.client.execute_query(mutation, variables)
+            
+            if result:
+                return True
+            return False
+            
+        except Exception as e:
+            print(f"❌ خطأ في update_product_data: {e}")
+            traceback.print_exc()
+            return False
