@@ -52,7 +52,7 @@ def products():
             search_query=search
         )
     except Exception as e:
-        logger.error(f"❌ خطأ: {e}")
+        logger.error(f"❌ خطأ في products: {e}")
         return render_template('suppliers/suppliers_product.html', products={'items': [], 'total': 0})
 
 
@@ -60,9 +60,14 @@ def products():
 @add_product_bp.route('/add-product', methods=['GET'])
 @login_required
 def add_product_page():
-    if session.get('user_type') not in ['supplier', 'staff']:
-        abort(403)
-    return render_template('suppliers/add_product.html', suppliers=supplier_product.get_active_suppliers())
+    try:
+        if session.get('user_type') not in ['supplier', 'staff']:
+            abort(403)
+        return render_template('suppliers/add_product.html', suppliers=supplier_product.get_active_suppliers())
+    except Exception as e:
+        logger.error(f"❌ خطأ في add_product_page: {e}")
+        flash('❌ حدث خطأ في تحميل صفحة الإضافة', 'danger')
+        return redirect(url_for('suppliers_product_bp.products'))
 
 
 @add_product_bp.route('/api/add-product', methods=['POST'])
@@ -97,7 +102,9 @@ def api_add_product():
 
         result = supplier_product.create_product(supplier_id, data)
         return jsonify(result), 201 if result['success'] else 400
+
     except Exception as e:
+        logger.error(f"❌ خطأ في api_add_product: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -105,9 +112,14 @@ def api_add_product():
 @login_required
 def api_check_sku():
     try:
-        sku = request.get_json().get('sku', '').strip()
-        return jsonify({'success': True, 'data': supplier_product.check_sku_availability(sku)})
+        data = request.get_json()
+        sku = data.get('sku', '').strip() if data else ''
+        if not sku:
+            return jsonify({'success': False, 'message': 'SKU مطلوب'}), 400
+        result = supplier_product.check_sku_availability(sku)
+        return jsonify({'success': True, 'data': result})
     except Exception as e:
+        logger.error(f"❌ خطأ في api_check_sku: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -115,9 +127,12 @@ def api_check_sku():
 @login_required
 def api_generate_sku():
     try:
-        prefix = request.get_json().get('prefix', 'PRD')
-        return jsonify({'success': True, 'data': {'sku': supplier_product.generate_sku(prefix)}})
+        data = request.get_json()
+        prefix = data.get('prefix', 'PRD') if data else 'PRD'
+        sku = supplier_product.generate_sku(prefix)
+        return jsonify({'success': True, 'data': {'sku': sku}})
     except Exception as e:
+        logger.error(f"❌ خطأ في api_generate_sku: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -142,7 +157,8 @@ def edit_product_page(qid):
             mapping=result['mapping']
         )
     except Exception as e:
-        flash('❌ حدث خطأ', 'danger')
+        logger.error(f"❌ خطأ في edit_product_page: {e}")
+        flash('❌ حدث خطأ في تحميل صفحة التعديل', 'danger')
         return redirect(url_for('suppliers_product_bp.products'))
 
 
@@ -172,10 +188,17 @@ def update_product(qid):
             data['image_filename'] = image.filename
 
         result = supplier_product.update_product(qid, supplier_id, data)
-        flash(result['message'] if result['success'] else result['error'], 'success' if result['success'] else 'danger')
+
+        if result['success']:
+            flash(result['message'], 'success')
+        else:
+            flash(result.get('error', 'فشل تحديث المنتج'), 'danger')
+
         return redirect(url_for('suppliers_product_bp.products'))
+
     except Exception as e:
-        flash('❌ حدث خطأ', 'danger')
+        logger.error(f"❌ خطأ في update_product: {e}")
+        flash('❌ حدث خطأ أثناء تحديث المنتج', 'danger')
         return redirect(url_for('edit_product_bp.edit_product_page', qid=qid))
 
 
@@ -188,9 +211,16 @@ def api_update_product(qid):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
-        result = supplier_product.update_product(qid, supplier_id, request.get_json() or {})
-        return jsonify(result), 200 if result['success'] else 400
+        data = request.get_json() or {}
+        result = supplier_product.update_product(qid, supplier_id, data)
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
     except Exception as e:
+        logger.error(f"❌ خطأ في api_update_product: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -203,10 +233,21 @@ def api_update_status(qid):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
-        status = request.get_json().get('status')
+        data = request.get_json() or {}
+        status = data.get('status')
+
+        if not status:
+            return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
+
         result = supplier_product.update_product_status(qid, supplier_id, status)
-        return jsonify(result), 200 if result['success'] else 400
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
     except Exception as e:
+        logger.error(f"❌ خطأ في api_update_status: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -219,13 +260,26 @@ def api_upload_image(qid):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
         if not supplier_product.verify_access(qid, supplier_id):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        file = request.files.get('image')
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'message': 'لا توجد صورة'}), 400
+
+        file = request.files['image']
+        if not file or not file.filename:
+            return jsonify({'success': False, 'message': 'ملف غير صالح'}), 400
+
         result = supplier_product.add_product_image(qid, file.read(), file.filename)
-        return jsonify(result), 200 if result['success'] else 400
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
     except Exception as e:
+        logger.error(f"❌ خطأ في api_upload_image: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -238,12 +292,19 @@ def api_remove_image(qid, image_id):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
         if not supplier_product.verify_access(qid, supplier_id):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
         result = supplier_product.remove_product_image(qid, image_id)
-        return jsonify(result), 200 if result['success'] else 400
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
     except Exception as e:
+        logger.error(f"❌ خطأ في api_remove_image: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -256,7 +317,17 @@ def api_delete_product(qid):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
+
+        if not supplier_product.verify_access(qid, supplier_id):
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
         result = supplier_product.delete_product(qid, supplier_id)
-        return jsonify(result), 200 if result['success'] else 400
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
     except Exception as e:
+        logger.error(f"❌ خطأ في api_delete_product: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
