@@ -6,7 +6,7 @@ from flask_login import login_required, current_user
 from apps.models.supplier_db import Supplier
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.extensions import db
-from apps.services.product_rest_api import ProductRestAPI  # ✅ استخدام REST API
+from apps.services.product_sync_service import ProductSyncService  # ✅ استخدام GraphQL
 import os
 import traceback
 import base64
@@ -75,7 +75,7 @@ def add_product():
 @add_product_bp.route('/add-product', methods=['POST'])
 @login_required
 def save_product():
-    """حفظ منتج جديد للمورد باستخدام REST API"""
+    """حفظ منتج جديد للمورد باستخدام GraphQL"""
     try:
         user_type = session.get('user_type')
         if user_type not in ['supplier', 'staff']:
@@ -109,31 +109,26 @@ def save_product():
         image_data = image.read()
         compressed_data = compress_image(image_data, max_size=(600, 600), quality=40)
         
-        # ✅ إنشاء كائن REST API
-        rest_api = ProductRestAPI()
+        # ✅ تحويل الصورة المضغوطة إلى base64
+        image_base64 = base64.b64encode(compressed_data).decode('utf-8')
+        image_type = image.filename.rsplit('.', 1)[1].lower()
+        image_base64 = f"data:image/{image_type};base64,{image_base64}"
         
-        # ✅ الخطوة 1: رفع الصورة إلى مكتبة قمرة
-        print("🔄 جاري رفع الصورة إلى مكتبة قمرة...")
-        image_url = rest_api.upload_image(compressed_data, image.filename)
+        # ✅ إنشاء كائن GraphQL
+        sync_service = ProductSyncService()
         
-        if not image_url:
-            flash('❌ فشل رفع الصورة إلى مكتبة قمرة', 'danger')
-            return redirect(url_for('add_product_bp.add_product'))
-        
-        print(f"✅ تم رفع الصورة بنجاح: {image_url}")
-        
-        # ✅ الخطوة 2: إنشاء المنتج مع رابط الصورة
+        # ✅ إنشاء المنتج مع الصورة كـ base64
         product_data = {
             'title': name,
+            'description': description,
             'price': float(cost_price),
             'quantity': 0,
-            'images': [image_url],  # ✅ رابط الصورة من قمرة
-            'description': description,
+            'images': [image_base64],  # ✅ base64
             'status': 'DRAFT'
         }
         
-        print("🔄 جاري إنشاء المنتج في قمرة...")
-        result = rest_api.create_product(product_data)
+        print("🔄 جاري إنشاء المنتج في قمرة عبر GraphQL...")
+        result = sync_service.create_product(product_data)
         
         if result.get('success'):
             # ✅ حفظ الربط في قاعدة البيانات المحلية
