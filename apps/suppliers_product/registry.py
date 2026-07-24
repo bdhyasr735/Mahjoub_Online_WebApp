@@ -15,17 +15,12 @@ def register_module(app):
     try:
         from apps.suppliers_product.routes import suppliers_product_bp, add_product_bp, edit_product_bp
         
-        if 'suppliers_product_bp' not in app.blueprints:
-            app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
-            print("✅ [Registry]: تم تسجيل 'suppliers_product_bp'")
+        # ✅ تسجيل جميع الـ Blueprints مباشرة بدون شروط
+        app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
+        app.register_blueprint(add_product_bp, url_prefix='/supplier')
+        app.register_blueprint(edit_product_bp, url_prefix='/supplier')
         
-        if 'add_product_bp' not in app.blueprints:
-            app.register_blueprint(add_product_bp, url_prefix='/supplier')
-            print("✅ [Registry]: تم تسجيل 'add_product_bp'")
-        
-        if 'edit_product_bp' not in app.blueprints:
-            app.register_blueprint(edit_product_bp, url_prefix='/supplier')
-            print("✅ [Registry]: تم تسجيل 'edit_product_bp'")
+        print("✅ [Registry]: تم تسجيل موديول 'منتجاتي' بنجاح.")
             
     except Exception as e:
         print(f"❌ [Registry]: خطأ في تسجيل suppliers_product: {e}")
