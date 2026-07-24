@@ -24,7 +24,7 @@ from .financials_db import OrderFinancial
 from .orders_db import Order
 from .order_items_db import OrderItem
 from .product_db import Product 
-from .product_supplier_map import ProductSupplierMapping  # الموديل الجديد للربط
+from .product_supplier_map import ProductSupplierMapping  # ✅ الموديل الجديد للربط
 from .sync_log import SyncLog
 
 # القائمة المصدرة (Export Registry)
@@ -32,13 +32,12 @@ __all__ = [
     'db',
     'AdminStaff',
     'AdminUser',
-    # ❌ تم إزالة 'ExchangeRate',
     'Marketer',
     'Order',
     'OrderItem',
     'OrderFinancial',
     'Product',
-    'ProductSupplierMapping',  # تمت الإضافة
+    'ProductSupplierMapping',  # ✅ تمت الإضافة
     'Supplier',
     'SupplierProfile',
     'SupplierStaff',
