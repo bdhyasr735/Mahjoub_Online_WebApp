@@ -37,7 +37,7 @@ def create_app():
     db.init_app(app)
     
     # ============================================================
-    # ✅ إعادة بناء الجداول (Drop & Create) مع CASCADE
+    # ✅ إنشاء الجداول (بدون Drop & Create في الإنتاج)
     # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
@@ -54,23 +54,15 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
-        # ✅ حذف جميع الجداول مع CASCADE (لتجاوز مشكلة التبعيات)
-        print("🔄 [DB]: جاري حذف جميع الجداول مع CASCADE...")
-        try:
-            # استخدام SQL خام لحذف جميع الجداول مع CASCADE
-            from sqlalchemy import text
-            db.session.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
-            db.session.commit()
-            print("✅ [DB]: تم حذف وإعادة إنشاء الـ Schema بنجاح.")
-        except Exception as e:
-            print(f"⚠️ [DB]: فشل حذف الـ Schema: {e}")
-            print("🔄 [DB]: محاولة الحذف باستخدام db.drop_all()...")
-            db.drop_all()
-            print("✅ [DB]: تم حذف جميع الجداول باستخدام db.drop_all().")
-        
-        print("🔄 [DB]: جاري إنشاء الجداول من جديد...")
-        db.create_all()
-        print("✅ [DB]: تم إنشاء جميع الجداول بنجاح.")
+        # ✅ إنشاء الجداول فقط (بدون حذف في الإنتاج)
+        if os.environ.get('FLASK_ENV') != 'production':
+            print("🔄 [DB]: جاري إنشاء الجداول...")
+            db.create_all()
+            print("✅ [DB]: تم إنشاء جميع الجداول بنجاح.")
+        else:
+            print("🔄 [DB]: جاري إنشاء الجداول في بيئة الإنتاج...")
+            db.create_all()
+            print("✅ [DB]: تم إنشاء جميع الجداول بنجاح.")
 
         # ✅ زراعة المالك "علي محجوب"
         if not AdminUser.query.filter_by(username='ali_mahjoub').first():
@@ -119,9 +111,12 @@ def create_app():
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
         user_type = session.get('user_type')
-        if user_type == 'admin': return db.session.get(AdminUser, int(user_id))
-        elif user_type == 'supplier': return db.session.get(Supplier, int(user_id))
-        elif user_type == 'staff': return db.session.get(SupplierStaff, int(user_id))
+        if user_type == 'admin': 
+            return db.session.get(AdminUser, int(user_id))
+        elif user_type == 'supplier': 
+            return db.session.get(Supplier, int(user_id))
+        elif user_type == 'staff': 
+            return db.session.get(SupplierStaff, int(user_id))
         return db.session.get(AdminUser, int(user_id)) or db.session.get(Supplier, int(user_id)) or db.session.get(SupplierStaff, int(user_id))
 
     @login_manager.unauthorized_handler
@@ -151,10 +146,19 @@ def create_app():
         pass
 
     # ============================================================
-    # ✅ تسجيل الموديولات ديناميكياً (بدون إضافة يدوية)
+    # ✅ تسجيل الموديولات ديناميكياً
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin']
+    
+    # ✅ تأكد من وجود مجلد suppliers_product
+    suppliers_product_path = os.path.join(apps_dir, 'suppliers_product')
+    if os.path.exists(suppliers_product_path):
+        print(f"✅ [Registry]: تم العثور على مجلد suppliers_product")
+        registry_file = os.path.join(suppliers_product_path, 'registry.py')
+        if os.path.exists(registry_file):
+            print(f"✅ [Registry]: تم العثور على registry.py في suppliers_product")
+    
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
@@ -178,9 +182,6 @@ def create_app():
                                     ADMIN_MODULES[item] = mod_data
                     except Exception as e:
                         print(f"❌ [Registry]: خطأ في تسجيل موديول {item}: {e}")
-
-    # ✅ هنا تم حذف الإضافة اليدوية
-    # SUPPLIER_MODULES['suppliers_dashboard'] = { ... } ❌ حذف
 
     # ============================================================
     # ✅ إضافة فلتر Jinja لتوليد CSRF token داخل القوالب
