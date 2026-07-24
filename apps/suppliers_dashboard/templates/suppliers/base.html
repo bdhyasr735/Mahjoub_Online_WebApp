@@ -1,3 +1,4 @@
+<!-- 📂 apps/suppliers_dashboard/templates/suppliers/base.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -84,6 +85,16 @@
         .flash-messages { position: fixed; top: 80px; left: 20px; z-index: 2000; width: 350px; max-width: calc(100% - 40px); }
         .flash-messages .alert { border-radius: var(--radius); box-shadow: var(--shadow-md); border-right: 4px solid var(--mahjoub-gold); }
         
+        /* ✅ تحسين عرض الموديولات في القائمة الجانبية */
+        .nav-section-title {
+            color: rgba(255,255,255,0.3);
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 8px 16px 4px;
+            margin-top: 4px;
+        }
+        
         @media (max-width: 992px) {
             .sidebar { right: calc(-1 * var(--sidebar-width)); box-shadow: none; }
             .sidebar.active { right: 0; box-shadow: 4px 0 30px rgba(0,0,0,0.3); }
@@ -104,6 +115,7 @@
             <span class="sidebar-brand">بوابة المورد</span>
         </div>
         <nav class="nav-menu">
+            <!-- ✅ الرابط الأساسي: لوحة التحكم -->
             <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'suppliers_dashboard.dashboard' %}active{% endif %}">
                 <i class="fas fa-home"></i> <span>الرئيسية</span>
             </a>
