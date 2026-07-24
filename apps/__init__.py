@@ -66,7 +66,7 @@ def create_app():
             db.session.commit()
             print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
         
-        # ✅ زراعة مورد تجريبي (مع التحقق من عدم التكرار)
+        # ✅ زراعة مورد تجريبي
         try:
             existing_supplier = Supplier.query.filter_by(username='test_supplier').first()
             if not existing_supplier:
@@ -81,7 +81,6 @@ def create_app():
                 db.session.add(test_supplier)
                 db.session.flush()
                 
-                # ✅ التحقق من عدم وجود محفظة مكررة
                 existing_wallet = SupplierWallet.query.filter_by(supplier_id=test_supplier.id).first()
                 if not existing_wallet:
                     wallet = SupplierWallet(
