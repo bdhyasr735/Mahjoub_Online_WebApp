@@ -64,7 +64,6 @@ class ProductRestAPI:
                 
                 if response.status_code in [200, 201]:
                     data = response.json()
-                    # ✅ استخراج رابط الصورة من الاستجابة
                     image_url = (
                         data.get('url') or 
                         data.get('fileUrl') or 
@@ -231,12 +230,6 @@ class ProductRestAPI:
 # ✅ للاختبار المباشر
 if __name__ == "__main__":
     api = ProductRestAPI()
-    
-    # ✅ اختبار رفع صورة (إذا كان لديك صورة)
-    # with open("test.jpg", "rb") as f:
-    #     image_data = f.read()
-    #     url = api.upload_image(image_data, "test.jpg")
-    #     print(f"رابط الصورة: {url}")
     
     # ✅ اختبار إنشاء منتج
     test_payload = {
