@@ -12,7 +12,7 @@ MODULE_NAME = "منتجاتي"
 MODULE_ICON = "fas fa-boxes"
 SHOW_IN_SUPPLIER = True
 
-# ✅ تعريف الـ Blueprint أولاً
+# ✅ تعريف الـ Blueprint
 suppliers_product_bp = Blueprint(
     'suppliers_product_bp',
     __name__,
@@ -37,9 +37,9 @@ def register_module(app):
         # ✅ التحقق من وجود الـ Blueprint قبل التسجيل
         if 'suppliers_product_bp' not in app.blueprints:
             app.register_blueprint(bp, url_prefix='/supplier')
-            print("✅ [Registry]: تم تسجيل 'suppliers_product'")
+            print("✅ [Registry]: تم تسجيل 'suppliers_product_bp'")
         else:
-            print("ℹ️ [Registry]: 'suppliers_product' مسجل مسبقاً")
+            print("ℹ️ [Registry]: 'suppliers_product_bp' مسجل مسبقاً")
         
         if 'add_product_bp' not in app.blueprints:
             app.register_blueprint(add_product_bp, url_prefix='/supplier')
@@ -64,32 +64,54 @@ def register_module(app):
 # ============================================================
 # ✅ دالة للحصول على إحصائيات المنتجات للمورد
 # ============================================================
+
 def get_module_stats(supplier_id):
+    """
+    جلب إحصائيات منتجات المورد
+    
+    Args:
+        supplier_id: معرف المورد
+    
+    Returns:
+        dict: {
+            'total': int,
+            'published': int,
+            'draft': int,
+            'rejected': int,
+            'archived': int,
+            'has_products': bool
+        }
+    """
     from apps.models.product_supplier_map import ProductSupplierMapping
-    from apps.services.product_sync_service import ProductSyncService
-    import os
+    from apps.suppliers_product.services.product_sync_service import supplier_product
     
     try:
-        mappings = ProductSupplierMapping.query.filter_by(
-            supplier_id=supplier_id,
-            status='active'
-        ).all()
+        # جلب العلاقات من الخدمة
+        mappings = supplier_product.get_supplier_mappings(supplier_id)
         
-        product_qids = [m.product_qid for m in mappings]
-        total_products = len(product_qids)
+        if not mappings:
+            return {
+                'total': 0,
+                'published': 0,
+                'draft': 0,
+                'rejected': 0,
+                'archived': 0,
+                'has_products': False
+            }
         
-        sync_service = ProductSyncService()
-        
+        total_products = len(mappings)
         published = 0
         draft = 0
         rejected = 0
         archived = 0
         
-        for qid in product_qids:
-            product = sync_service.fetch_product_by_qid(qid)
+        # جلب بيانات كل منتج من قمرة
+        for mapping in mappings:
+            qid = mapping.get('qid')
+            product = supplier_product.fetch_product_by_qid(qid)
             if product:
                 status = product.get('status', '').upper()
-                if status == 'PUBLISHED':
+                if status in ['PUBLISHED', 'ACTIVE']:
                     published += 1
                 elif status == 'DRAFT':
                     draft += 1
@@ -122,14 +144,26 @@ def get_module_stats(supplier_id):
 # ============================================================
 # ✅ دالة للحصول على رابط الموديول
 # ============================================================
+
 def get_module_link():
+    """الحصول على رابط الصفحة الرئيسية للموديول"""
     return url_for('suppliers_product_bp.products')
 
 
 # ============================================================
 # ✅ دالة للحصول على بيانات الموديول للعرض في لوحة التحكم
 # ============================================================
+
 def get_dashboard_card(supplier_id):
+    """
+    الحصول على بيانات البطاقة لعرضها في لوحة التحكم
+    
+    Args:
+        supplier_id: معرف المورد
+    
+    Returns:
+        dict: بيانات البطاقة
+    """
     stats = get_module_stats(supplier_id)
     
     return {
@@ -141,3 +175,62 @@ def get_dashboard_card(supplier_id):
         'badge': stats['total'],
         'subtitle': f"{stats['published']} منشور، {stats['draft']} قيد المراجعة"
     }
+
+
+# ============================================================
+# ✅ دالة للحصول على قائمة منتجات المورد (للاستخدام السريع)
+# ============================================================
+
+def get_supplier_products(supplier_id):
+    """
+    جلب قائمة منتجات المورد مع بياناتها
+    
+    Args:
+        supplier_id: معرف المورد
+    
+    Returns:
+        list: قائمة المنتجات
+    """
+    from apps.suppliers_product.services.product_sync_service import supplier_product
+    
+    try:
+        # جلب العلاقات
+        mappings = supplier_product.get_supplier_mappings(supplier_id)
+        
+        products = []
+        for mapping in mappings:
+            qid = mapping.get('qid')
+            product = supplier_product.fetch_product_by_qid(qid)
+            if product:
+                products.append({
+                    'qid': qid,
+                    'title': product.get('title'),
+                    'price': product.get('price'),
+                    'status': product.get('status'),
+                    'created_at': mapping.get('created_at'),
+                    'mapping_id': mapping.get('id')
+                })
+        
+        return products
+        
+    except Exception as e:
+        print(f"❌ خطأ في get_supplier_products: {e}")
+        return []
+
+
+# ============================================================
+# ✅ تصدير الدوال الأساسية
+# ============================================================
+
+__all__ = [
+    'MODULE_NAME',
+    'MODULE_ICON',
+    'SHOW_IN_SUPPLIER',
+    'LINKS',
+    'suppliers_product_bp',
+    'register_module',
+    'get_module_stats',
+    'get_module_link',
+    'get_dashboard_card',
+    'get_supplier_products'
+]
