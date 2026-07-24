@@ -8,7 +8,7 @@
 from apps.extensions import db
 
 # 1. الموديلات الأساسية (مستقلة، لا تعتمد على موديلات أخرى)
-from .supplier_db import Supplier  # ✅ هذا يسمح باستيراد Supplier مباشرة
+from .supplier_db import Supplier
 from .admin_db import AdminUser
 from .marketer_db import Marketer
 
@@ -35,7 +35,7 @@ __all__ = [
     'OrderFinancial',
     'Product',
     'ProductSupplierMapping',
-    'Supplier',          # ✅ موجود
+    'Supplier',
     'SupplierProfile',
     'SupplierStaff',
     'SupplierWallet',
