@@ -53,8 +53,8 @@ class Supplier(db.Model, UserMixin):
     # الربط مع الموظفين
     staff_members = db.relationship('SupplierStaff', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
     
-    # الربط مع منتجات قمرة (ProductSupplierMapping)
-    product_mappings = db.relationship('ProductSupplierMapping', backref='supplier', lazy='dynamic')
+    # ✅ الربط مع منتجات قمرة (ProductSupplierMapping) - باستخدام back_populates لتجنب التعارض
+    product_mappings = db.relationship('ProductSupplierMapping', back_populates='supplier', lazy='dynamic')
 
     # --- نظام التشفير ---
     @staticmethod
