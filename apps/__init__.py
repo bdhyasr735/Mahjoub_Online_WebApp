@@ -37,7 +37,7 @@ def create_app():
     db.init_app(app)
     
     # ============================================================
-    # ✅ إنشاء الجداول (بدون Drop & Create في الإنتاج)
+    # ✅ إنشاء الجداول
     # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
@@ -54,15 +54,9 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
-        # ✅ إنشاء الجداول فقط (بدون حذف في الإنتاج)
-        if os.environ.get('FLASK_ENV') != 'production':
-            print("🔄 [DB]: جاري إنشاء الجداول...")
-            db.create_all()
-            print("✅ [DB]: تم إنشاء جميع الجداول بنجاح.")
-        else:
-            print("🔄 [DB]: جاري إنشاء الجداول في بيئة الإنتاج...")
-            db.create_all()
-            print("✅ [DB]: تم إنشاء جميع الجداول بنجاح.")
+        print("🔄 [DB]: جاري إنشاء الجداول...")
+        db.create_all()
+        print("✅ [DB]: تم إنشاء جميع الجداول بنجاح.")
 
         # ✅ زراعة المالك "علي محجوب"
         if not AdminUser.query.filter_by(username='ali_mahjoub').first():
@@ -72,7 +66,7 @@ def create_app():
             db.session.commit()
             print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
         
-        # ✅ زراعة مورد تجريبي (اختياري)
+        # ✅ زراعة مورد تجريبي
         if not Supplier.query.filter_by(username='test_supplier').first():
             test_supplier = Supplier(
                 username='test_supplier',
@@ -85,7 +79,6 @@ def create_app():
             db.session.add(test_supplier)
             db.session.flush()
             
-            # ✅ إنشاء محفظة للمورد التجريبي
             wallet = SupplierWallet(
                 supplier_id=test_supplier.id,
                 wallet_code=f"MAH-WEL963{test_supplier.id}",
@@ -146,45 +139,60 @@ def create_app():
         pass
 
     # ============================================================
-    # ✅ تسجيل الموديولات ديناميكياً
+    # ✅ تسجيل الموديولات ديناميكياً (تلقائي)
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'admin', 'data']
     
-    # ✅ تأكد من وجود مجلد suppliers_product
-    suppliers_product_path = os.path.join(apps_dir, 'suppliers_product')
-    if os.path.exists(suppliers_product_path):
-        print(f"✅ [Registry]: تم العثور على مجلد suppliers_product")
-        registry_file = os.path.join(suppliers_product_path, 'registry.py')
-        if os.path.exists(registry_file):
-            print(f"✅ [Registry]: تم العثور على registry.py في suppliers_product")
+    print("🔄 [Registry]: جارٍ البحث عن الموديولات...")
     
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
             item_path = os.path.join(apps_dir, item)
-            if os.path.isdir(item_path) and item not in ignored_dirs:
-                registry_file = os.path.join(item_path, 'registry.py')
-                if os.path.exists(registry_file):
-                    try:
-                        module = importlib.import_module(f"apps.{item}.registry")
-                        if hasattr(module, 'register_module'):
-                            module.register_module(app)
-                            module_links = getattr(module, 'LINKS', {})
-                            if module_links:
-                                mod_data = {
-                                    "display_name": getattr(module, 'MODULE_NAME', item.replace('_', ' ').capitalize()),
-                                    "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
-                                    "links": module_links,
-                                }
-                                if getattr(module, 'SHOW_IN_SUPPLIER', False):
-                                    SUPPLIER_MODULES[item] = mod_data
-                                else:
-                                    ADMIN_MODULES[item] = mod_data
-                    except Exception as e:
-                        print(f"❌ [Registry]: خطأ في تسجيل موديول {item}: {e}")
+            
+            if not os.path.isdir(item_path) or item in ignored_dirs:
+                continue
+                
+            registry_file = os.path.join(item_path, 'registry.py')
+            if os.path.exists(registry_file):
+                try:
+                    print(f"🔍 [Registry]: جارٍ تحميل موديول '{item}'...")
+                    module = importlib.import_module(f"apps.{item}.registry")
+                    
+                    if hasattr(module, 'register_module'):
+                        module.register_module(app)
+                        print(f"✅ [Registry]: تم تسجيل موديول '{item}' بنجاح.")
+                    else:
+                        print(f"⚠️ [Registry]: الموديول '{item}' لا يحتوي على register_module")
+                    
+                    module_links = getattr(module, 'LINKS', {})
+                    if module_links:
+                        mod_data = {
+                            "display_name": getattr(module, 'MODULE_NAME', item.replace('_', ' ').capitalize()),
+                            "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
+                            "links": module_links,
+                        }
+                        if getattr(module, 'SHOW_IN_SUPPLIER', False):
+                            SUPPLIER_MODULES[item] = mod_data
+                            print(f"   📌 [Supplier]: تمت إضافة '{mod_data['display_name']}' إلى قائمة الموردين")
+                        else:
+                            ADMIN_MODULES[item] = mod_data
+                            print(f"   📌 [Admin]: تمت إضافة '{mod_data['display_name']}' إلى قائمة الإدارة")
+                            
+                except ImportError as e:
+                    print(f"❌ [Registry]: خطأ في استيراد موديول '{item}': {e}")
+                except Exception as e:
+                    print(f"❌ [Registry]: خطأ في تسجيل موديول '{item}': {e}")
+
+    print(f"✅ [Registry]: تم تسجيل {len(ADMIN_MODULES)} موديول للإدارة و {len(SUPPLIER_MODULES)} موديول للموردين.")
+    
+    # ✅ طباعة الـ Blueprints المسجلة للتأكد
+    print("\n📋 [Blueprints] المسجلة:")
+    for bp_name in app.blueprints:
+        print(f"  - {bp_name}")
 
     # ============================================================
-    # ✅ إضافة فلتر Jinja لتوليد CSRF token داخل القوالب
+    # ✅ إضافة فلتر Jinja
     # ============================================================
     @app.context_processor
     def inject_vars():
@@ -195,8 +203,16 @@ def create_app():
                 alt_endpoint = f"{endpoint}_bp" if not endpoint.endswith('_bp') else endpoint.replace('_bp', '')
                 try: 
                     return url_for(alt_endpoint, **values)
-                except BuildError: 
+                except BuildError:
+                    # ✅ محاولة البحث في الـ Blueprints المسجلة
+                    for bp_name in app.blueprints:
+                        try:
+                            test_endpoint = f"{bp_name}.{endpoint.split('.')[-1] if '.' in endpoint else endpoint}"
+                            return url_for(test_endpoint, **values)
+                        except:
+                            continue
                     return '#'
+        
         return dict(
             csrf_token=generate_csrf,
             registered_modules=ADMIN_MODULES,
