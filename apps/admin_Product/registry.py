@@ -5,7 +5,6 @@ MODULE_NAME = "إدارة المنتجات"
 MODULE_ICON = "fa-boxes"
 SHOW_IN_SUPPLIER = False
 
-# ✅ الروابط الأساسية
 LINKS = {
     "admin_product_bp.manage_products": "📦 إدارة المنتجات",
     "admin_product_bp.add_product": "➕ إضافة منتج",
@@ -14,77 +13,43 @@ LINKS = {
 
 
 def register_module(app):
-    """تسجيل موديول إدارة المنتجات في لوحة التحكم"""
     try:
-        # ✅ استيراد داخل الدالة يكسر دائرة الاستيراد
         from apps.admin_Product.routes import admin_product_bp
-        
-        # ✅ تسجيل Blueprint المنتجات
         if 'admin_product_bp' not in app.blueprints:
             app.register_blueprint(admin_product_bp, url_prefix='/admin')
-            print("✅ [Registry]: تم تسجيل موديول إدارة المنتجات بنجاح.")
-        else:
-            print("ℹ️ [Registry]: admin_product_bp مسجل مسبقاً")
-            
-    except ImportError as e:
-        print(f"❌ [Registry]: خطأ في استيراد admin_product: {e}")
+            print("✅ [Registry]: تم تسجيل موديول إدارة المنتجات.")
     except Exception as e:
         print(f"❌ [Registry]: خطأ في تسجيل admin_product: {e}")
-    
     return app
 
 
 def get_module_stats():
-    """جلب إحصائيات المنتجات (للوحة التحكم)"""
     try:
         from apps.services.product_sync_service import product_sync
-        products = product_sync.fetch_products(page=1, limit=1)
+        products = product_sync.fetch_all_products_paginated(limit=100)
         
-        total = products.get('pagination', {}).get('total', 0)
-        
-        # ✅ جلب إحصائيات أكثر تفصيلاً
-        all_products = product_sync.fetch_all_products_paginated(limit=100)
-        active = 0
-        draft = 0
-        archived = 0
-        
-        for p in all_products:
+        stats = {'total': len(products), 'active': 0, 'draft': 0, 'archived': 0}
+        for p in products:
             status = p.get('status', '').upper()
             if status in ['ACTIVE', 'PUBLISHED']:
-                active += 1
+                stats['active'] += 1
             elif status == 'DRAFT':
-                draft += 1
+                stats['draft'] += 1
             elif status == 'ARCHIVED':
-                archived += 1
-        
-        return {
-            'total': len(all_products),
-            'active': active,
-            'draft': draft,
-            'archived': archived,
-            'has_products': len(all_products) > 0
-        }
-    except Exception as e:
-        print(f"❌ خطأ في get_module_stats: {e}")
-        return {
-            'total': 0,
-            'active': 0,
-            'draft': 0,
-            'archived': 0,
-            'has_products': False
-        }
+                stats['archived'] += 1
+        stats['has_products'] = stats['total'] > 0
+        return stats
+    except:
+        return {'total': 0, 'active': 0, 'draft': 0, 'archived': 0, 'has_products': False}
 
 
 def get_module_link():
-    """الحصول على رابط الموديول"""
     from flask import url_for
     return url_for('admin_product_bp.manage_products')
 
 
 def get_dashboard_card():
-    """الحصول على بيانات البطاقة للوحة التحكم"""
     stats = get_module_stats()
-    
     return {
         'title': MODULE_NAME,
         'icon': MODULE_ICON,
@@ -96,17 +61,7 @@ def get_dashboard_card():
     }
 
 
-# ============================================================
-# ✅ تصدير الدوال الأساسية
-# ============================================================
-
 __all__ = [
-    'MODULE_NAME',
-    'MODULE_ICON',
-    'SHOW_IN_SUPPLIER',
-    'LINKS',
-    'register_module',
-    'get_module_stats',
-    'get_module_link',
-    'get_dashboard_card'
+    'MODULE_NAME', 'MODULE_ICON', 'SHOW_IN_SUPPLIER', 'LINKS',
+    'register_module', 'get_module_stats', 'get_module_link', 'get_dashboard_card'
 ]
