@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/services/product_ident_mutation.py
+# 📂 apps/services/product_ident_mutation.graphql.py
 
 from typing import Dict, List, Optional, Any
 from .graphql_client import QomrahGraphQLClient
