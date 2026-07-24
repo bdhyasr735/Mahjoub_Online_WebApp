@@ -25,16 +25,22 @@ def register_module(app):
         if 'suppliers_dashboard' not in app.blueprints:
             app.register_blueprint(suppliers_dashboard_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'suppliers_dashboard'")
+        else:
+            print("ℹ️ [Registry]: 'suppliers_dashboard' مسجل مسبقاً")
         
         # ✅ تسجيل Blueprint الإعدادات
         if 'suppliers_settings' not in app.blueprints:
             app.register_blueprint(settings_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'suppliers_settings'")
+        else:
+            print("ℹ️ [Registry]: 'suppliers_settings' مسجل مسبقاً")
         
         # ✅ تسجيل Blueprint المحفظة
         if 'suppliers_wallet' not in app.blueprints:
             app.register_blueprint(wallet_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'suppliers_wallet'")
+        else:
+            print("ℹ️ [Registry]: 'suppliers_wallet' مسجل مسبقاً")
             
     except ImportError as e:
         print(f"❌ [Registry]: خطأ في استيراد Blueprint: {e}")
