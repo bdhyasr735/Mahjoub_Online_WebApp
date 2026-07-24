@@ -583,7 +583,39 @@
             }
         });
 
-        // ===== تحديث الإشعارات =====
+        // ===== تحديث الإشعارات من الخادم =====
+        function fetchNotifications() {
+            // ✅ هنا يمكنك استدعاء API حقيقي لجلب الإشعارات
+            // مثال: fetch('/api/notifications').then(res => res.json()).then(data => updateNotifications(data))
+            
+            // 👇 للإشعارات الوهمية (للاختبار)
+            const sampleNotifications = [
+                {
+                    id: 1,
+                    message: 'تم قبول منتجك "سماعات لاسلكية" للنشر',
+                    time: 'منذ 5 دقائق',
+                    icon: 'fas fa-check-circle',
+                    read: false
+                },
+                {
+                    id: 2,
+                    message: 'لديك طلب جديد برقم #ORD-2024-001',
+                    time: 'منذ ساعة',
+                    icon: 'fas fa-shopping-cart',
+                    read: false
+                },
+                {
+                    id: 3,
+                    message: 'تم تحديث سياسة الشحن للمتجر',
+                    time: 'منذ 3 ساعات',
+                    icon: 'fas fa-truck',
+                    read: true
+                }
+            ];
+            updateNotifications(sampleNotifications);
+        }
+
+        // ===== تحديث واجهة الإشعارات =====
         function updateNotifications(notifications) {
             const list = document.getElementById('notificationList');
             const badge = document.getElementById('notiBadge');
@@ -622,6 +654,8 @@
 
         function markAsRead(id) {
             console.log('تم تحديد الإشعار كـ مقروء:', id);
+            // ✅ هنا يمكن إرسال طلب إلى الخادم لتحديث الحالة
+            // fetch('/api/notifications/read', { method: 'POST', body: JSON.stringify({id: id}) })
         }
 
         function markAllRead() {
@@ -630,34 +664,16 @@
                 item.classList.remove('unread');
             });
             document.getElementById('notiBadge').style.display = 'none';
+            // ✅ هنا يمكن إرسال طلب إلى الخادم لتحديث الكل
+            // fetch('/api/notifications/read-all', { method: 'POST' })
         }
 
-        // ===== تحميل إشعارات وهمية =====
+        // ===== تحميل الإشعارات عند تحميل الصفحة =====
         document.addEventListener('DOMContentLoaded', function() {
-            const sampleNotifications = [
-                {
-                    id: 1,
-                    message: 'تم قبول منتجك "سماعات لاسلكية" للنشر',
-                    time: 'منذ 5 دقائق',
-                    icon: 'fas fa-check-circle',
-                    read: false
-                },
-                {
-                    id: 2,
-                    message: 'لديك طلب جديد برقم #ORD-2024-001',
-                    time: 'منذ ساعة',
-                    icon: 'fas fa-shopping-cart',
-                    read: false
-                },
-                {
-                    id: 3,
-                    message: 'تم تحديث سياسة الشحن للمتجر',
-                    time: 'منذ 3 ساعات',
-                    icon: 'fas fa-truck',
-                    read: true
-                }
-            ];
-            updateNotifications(sampleNotifications);
+            fetchNotifications();
+            
+            // ✅ تحديث الإشعارات كل 30 ثانية (اختياري)
+            setInterval(fetchNotifications, 30000);
         });
     </script>
     
