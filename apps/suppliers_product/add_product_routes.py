@@ -6,7 +6,7 @@ from flask_login import login_required, current_user
 from apps.models.supplier_db import Supplier
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.extensions import db
-from apps.services.product_sync_service import ProductSyncService  # ✅ استخدام GraphQL
+from apps.services.product_sync_service import ProductSyncService
 import os
 import traceback
 import base64
@@ -117,9 +117,9 @@ def save_product():
         # ✅ إنشاء كائن GraphQL
         sync_service = ProductSyncService()
         
-        # ✅ الخطوة 1: إنشاء المنتج فارغاً
-        print("🔄 جاري إنشاء المنتج في قمرة...")
-        result = sync_service.create_product()
+        # ✅ الخطوة 1: إنشاء المنتج بالاسم فقط
+        print(f"🔄 جاري إنشاء المنتج: {name}")
+        result = sync_service.create_product(name)
         
         if not result.get('success'):
             flash(f'❌ فشل إنشاء المنتج: {result.get("message")}', 'danger')
@@ -130,16 +130,22 @@ def save_product():
         
         # ✅ الخطوة 2: تحديث معلومات المنتج
         print("🔄 جاري تحديث معلومات المنتج...")
-        sync_service.update_product_info(qid, name, description, 'DRAFT')
+        if not sync_service.update_product_info(qid, name, description, 'DRAFT'):
+            flash('❌ فشل تحديث معلومات المنتج', 'danger')
+            return redirect(url_for('add_product_bp.add_product'))
         
         # ✅ الخطوة 3: تحديث السعر
         print("🔄 جاري تحديث السعر...")
-        sync_service.update_product_pricing(qid, float(cost_price))
+        if not sync_service.update_product_pricing(qid, float(cost_price)):
+            flash('❌ فشل تحديث سعر المنتج', 'danger')
+            return redirect(url_for('add_product_bp.add_product'))
         
         # ✅ الخطوة 4: تحديث الصور
         if image_base64:
             print("🔄 جاري تحديث الصور...")
-            sync_service.update_product_images(qid, [image_base64])
+            if not sync_service.update_product_images(qid, [image_base64]):
+                flash('❌ فشل تحديث صور المنتج', 'danger')
+                return redirect(url_for('add_product_bp.add_product'))
         
         # ✅ الخطوة 5: حفظ الربط في قاعدة البيانات المحلية
         mapping = ProductSupplierMapping(
