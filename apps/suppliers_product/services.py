@@ -5,7 +5,7 @@ from apps.services.product_sync_service import ProductSyncService as QumraSyncSe
 from apps.services.product_mapping_service import product_mapping
 from apps.services.product_ident_mutation import product_ident
 from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models import Supplier
+from apps.models import Supplier  # ✅ استيراد صحيح
 from apps.suppliers_product.helpers import compress_image
 import logging
 import time
