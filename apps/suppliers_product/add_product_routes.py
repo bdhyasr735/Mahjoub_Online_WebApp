@@ -117,35 +117,41 @@ def save_product():
         # ✅ إنشاء كائن GraphQL
         sync_service = ProductSyncService()
         
-        # ✅ إنشاء المنتج مع الصورة كـ base64
-        product_data = {
-            'title': name,
-            'description': description,
-            'price': float(cost_price),
-            'quantity': 0,
-            'images': [image_base64],  # ✅ base64
-            'status': 'DRAFT'
-        }
+        # ✅ الخطوة 1: إنشاء المنتج فارغاً
+        print("🔄 جاري إنشاء المنتج في قمرة...")
+        result = sync_service.create_product()
         
-        print("🔄 جاري إنشاء المنتج في قمرة عبر GraphQL...")
-        result = sync_service.create_product(product_data)
-        
-        if result.get('success'):
-            # ✅ حفظ الربط في قاعدة البيانات المحلية
-            mapping = ProductSupplierMapping(
-                product_qid=result['qid'],
-                supplier_id=supplier_id,
-                status='active'
-            )
-            db.session.add(mapping)
-            db.session.commit()
-            
-            flash('✅ تم إضافة المنتج بنجاح، سيراجعه فريق الإدارة', 'success')
-            return redirect(url_for('suppliers_product_bp.products'))
-        else:
-            error_msg = result.get('message', 'خطأ غير معروف')
-            flash(f'❌ فشل إضافة المنتج: {error_msg}', 'danger')
+        if not result.get('success'):
+            flash(f'❌ فشل إنشاء المنتج: {result.get("message")}', 'danger')
             return redirect(url_for('add_product_bp.add_product'))
+        
+        qid = result['qid']
+        print(f"✅ تم إنشاء المنتج بـ QID: {qid}")
+        
+        # ✅ الخطوة 2: تحديث معلومات المنتج
+        print("🔄 جاري تحديث معلومات المنتج...")
+        sync_service.update_product_info(qid, name, description, 'DRAFT')
+        
+        # ✅ الخطوة 3: تحديث السعر
+        print("🔄 جاري تحديث السعر...")
+        sync_service.update_product_pricing(qid, float(cost_price))
+        
+        # ✅ الخطوة 4: تحديث الصور
+        if image_base64:
+            print("🔄 جاري تحديث الصور...")
+            sync_service.update_product_images(qid, [image_base64])
+        
+        # ✅ الخطوة 5: حفظ الربط في قاعدة البيانات المحلية
+        mapping = ProductSupplierMapping(
+            product_qid=qid,
+            supplier_id=supplier_id,
+            status='active'
+        )
+        db.session.add(mapping)
+        db.session.commit()
+        
+        flash('✅ تم إضافة المنتج بنجاح، سيراجعه فريق الإدارة', 'success')
+        return redirect(url_for('suppliers_product_bp.products'))
         
     except Exception as e:
         error_details = traceback.format_exc()
