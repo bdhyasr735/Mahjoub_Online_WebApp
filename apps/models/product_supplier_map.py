@@ -38,8 +38,8 @@ class ProductSupplierMapping(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقة مع المورد
-    supplier = db.relationship('Supplier', backref='product_mappings', lazy='joined')
+    # ✅ العلاقة مع المورد (باستخدام back_populates بدلاً من backref)
+    supplier = db.relationship('Supplier', back_populates='product_mappings', lazy='joined')
 
     # --- نظام التشفير ---
     @staticmethod
