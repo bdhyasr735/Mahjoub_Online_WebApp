@@ -34,7 +34,7 @@ def register_module(app):
         app.register_blueprint(edit_product_bp, url_prefix='/supplier')
         
         print("✅ [Registry]: تم تسجيل موديول 'منتجاتي' بنجاح.")
-        print("   📌 Blueprints: suppliers_product_bp, add_product_bp, edit_product_bp")
+        print("    📌 Blueprints: suppliers_product_bp, add_product_bp, edit_product_bp")
         
     except ImportError as e:
         print(f"❌ [Registry]: خطأ في استيراد routes: {e}")
@@ -48,7 +48,9 @@ def get_module_stats(supplier_id):
     """جلب إحصائيات المنتجات للمورد (للوحة التحكم)"""
     try:
         from apps.suppliers_product.services import get_product_stats
-        return get_product_stats(supplier_id)
+        stats = get_product_stats(supplier_id)
+        stats['has_products'] = stats.get('total', 0) > 0
+        return stats
     except Exception as e:
         print(f"❌ خطأ في get_module_stats: {e}")
         return {
