@@ -13,7 +13,6 @@ from apps.extensions import db
 from .supplier_db import Supplier
 from .admin_db import AdminUser
 from .marketer_db import Marketer
-# ❌ تم إزالة .exchange_db import ExchangeRate
 
 # 2. الموديلات التابعة (تعتمد على الموديلات الأساسية عبر ForeignKeys)
 from .admin_staff_db import AdminStaff
@@ -24,7 +23,7 @@ from .financials_db import OrderFinancial
 from .orders_db import Order
 from .order_items_db import OrderItem
 from .product_db import Product 
-from .product_supplier_map import ProductSupplierMapping  # ✅ الموديل الجديد للربط
+from .product_supplier_map import ProductSupplierMapping
 from .sync_log import SyncLog
 
 # القائمة المصدرة (Export Registry)
@@ -37,7 +36,7 @@ __all__ = [
     'OrderItem',
     'OrderFinancial',
     'Product',
-    'ProductSupplierMapping',  # ✅ تمت الإضافة
+    'ProductSupplierMapping',
     'Supplier',
     'SupplierProfile',
     'SupplierStaff',
