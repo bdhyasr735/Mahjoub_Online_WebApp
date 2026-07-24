@@ -1,4 +1,4 @@
-<!-- apps/suppliers_product/templates/includes/_product_stats.html -->
+<!-- apps/suppliers_product/templates/suppliers/includes/_product_stats.html -->
 <div class="row g-3 mb-4" id="productStats">
     {% set total = products|length if products else 0 %}
     {% set published = products|selectattr('status', 'equalto', 'PUBLISHED')|list|length if products else 0 %}
