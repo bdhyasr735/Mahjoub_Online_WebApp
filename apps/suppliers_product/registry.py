@@ -3,6 +3,7 @@
 
 from flask import url_for
 from apps.suppliers_product.routes import suppliers_product_bp, add_product_bp, edit_product_bp
+from apps.models import Supplier  # ✅ استيراد صحيح
 
 MODULE_NAME = "منتجاتي"
 MODULE_ICON = "fas fa-boxes"
@@ -33,7 +34,7 @@ def register_module(app):
             print("ℹ️ [Registry]: 'edit_product_bp' مسجل مسبقاً")
             
     except Exception as e:
-        print(f"❌ [Registry]: خطأ في تسجيل: {e}")
+        print(f"❌ [Registry]: خطأ في تسجيل موديول suppliers_product: {e}")
     
     return app
 
@@ -64,7 +65,6 @@ def get_dashboard_card(supplier_id):
     """الحصول على بيانات البطاقة للوحة التحكم"""
     stats = get_module_stats(supplier_id)
     
-    # التأكد من وجود stats['total']
     total = stats.get('total', 0)
     published = stats.get('published', 0)
     draft = stats.get('draft', 0)
