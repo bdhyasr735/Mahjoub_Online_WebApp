@@ -1,350 +1,257 @@
 # coding: utf-8
-# 📂 apps/services/update_product_data.py
+# 📂 apps/services/product_media_extras.graphql.py
 
 from typing import Dict, List, Optional, Any
 from .graphql_client import QomrahGraphQLClient
+import base64
+import os
 
 
 # ============================================================
-# 📋 MUTATIONS - تحويرات تحديث المنتجات
+# 📋 QUERIES - استعلامات الوسائط
 # ============================================================
 
-# 1️⃣ تحديث المعلومات الأساسية
-UPDATE_PRODUCT_INFO_MUTATION = """
-mutation UpdateProductInfo($qid: String!, $input: UpdateProductInfoInput!) {
-    updateProductInfo(qid: $qid, input: $input) {
+# 1️⃣ جلب وسائط المنتج
+GET_PRODUCT_MEDIA_QUERY = """
+query GetProductMedia($qid: String!) {
+    findProductByQid(qid: $qid) {
         id
         qid
         title
-        slug
-        description
-        status
-        updatedAt
-    }
-}
-"""
-
-# 2️⃣ تحديث حالة المنتج
-UPDATE_PRODUCT_STATUS_MUTATION = """
-mutation UpdateProductStatus($qid: String!, $status: String!) {
-    updateProductStatus(qid: $qid, status: $status) {
-        id
-        qid
-        status
-        publishedAt
-        updatedAt
-    }
-}
-"""
-
-# 3️⃣ تحديث تسعير المنتج
-UPDATE_PRODUCT_PRICING_MUTATION = """
-mutation UpdateProductPricing($qid: String!, $price: Float!, $compareAtPrice: Float) {
-    updateProductPricing(qid: $qid, price: $price, compareAtPrice: $compareAtPrice) {
-        id
-        qid
-        price
-        compareAtPrice
-        updatedAt
-    }
-}
-"""
-
-# 4️⃣ تحديث أبعاد المنتج
-UPDATE_PRODUCT_DIMENSIONS_MUTATION = """
-mutation UpdateProductDimensions($qid: String!, $dimensions: DimensionsInput!) {
-    updateProductDimensions(qid: $qid, dimensions: $dimensions) {
-        id
-        qid
-        dimensions {
-            length
-            width
-            height
-            unit
-        }
-        updatedAt
-    }
-}
-"""
-
-# 5️⃣ تحديث وزن المنتج
-UPDATE_PRODUCT_WEIGHT_MUTATION = """
-mutation UpdateProductWeight($qid: String!, $weight: Float!, $unit: String) {
-    updateProductWeight(qid: $qid, weight: $weight, unit: $unit) {
-        id
-        qid
-        weight
-        unit
-        updatedAt
-    }
-}
-"""
-
-# 6️⃣ تحديث تعريف المنتج (SKU, Barcode, etc.)
-UPDATE_PRODUCT_IDENTIFICATION_MUTATION = """
-mutation UpdateProductIdentification($qid: String!, $identification: IdentificationInput!) {
-    updateProductIdentification(qid: $qid, identification: $identification) {
-        id
-        qid
-        identification {
-            sku
-            barcode
-            barcodeType
-            hsCode
-            countryOfOrigin
-            mpn
-        }
-        updatedAt
-    }
-}
-"""
-
-# 7️⃣ تحديث وصف المنتج
-UPDATE_PRODUCT_DESCRIPTION_MUTATION = """
-mutation UpdateProductDescription($qid: String!, $description: String!) {
-    updateProductDescription(qid: $qid, description: $description) {
-        id
-        qid
-        description
-        updatedAt
-    }
-}
-"""
-
-# 8️⃣ تحديث SEO للمنتج
-UPDATE_PRODUCT_SEO_MUTATION = """
-mutation UpdateProductSEO($qid: String!, $seo: SEOInput!) {
-    updateProductSEO(qid: $qid, seo: $seo) {
-        id
-        qid
-        seo {
+        images {
+            _id
+            fileUrl
             title
             description
-            keywords
-            image
-            canonicalUrl
+            mimetype
+            sizeInKB
+            sizeInMB
+            createdAt
         }
-        updatedAt
-    }
-}
-"""
-
-# 9️⃣ تحديث صور المنتج (استبدال كامل)
-UPDATE_PRODUCT_IMAGES_MUTATION = """
-mutation UpdateProductImages($qid: String!, $images: [String!]!) {
-    updateProductImages(qid: $qid, images: $images) {
-        id
-        qid
-        images
-        updatedAt
-    }
-}
-"""
-
-# 🔟 تحديث صور المنتج (إضافة/حذف)
-UPDATE_PRODUCT_IMAGES_ADVANCED_MUTATION = """
-mutation UpdateProductImagesAdvanced($qid: String!, $newImages: [String!]!, $removedImages: [String!]) {
-    updateProductImagesAdvanced(qid: $qid, newImages: $newImages, removedImages: $removedImages) {
-        id
-        qid
-        images
-        updatedAt
-    }
-}
-"""
-
-# 1️⃣1️⃣ تحديث مجموعات المنتج
-UPDATE_PRODUCT_COLLECTION_MUTATION = """
-mutation UpdateProductCollection($qid: String!, $collectionQids: [String!]!) {
-    updateProductCollection(qid: $qid, collectionQids: $collectionQids) {
-        id
-        qid
-        collections {
-            id
-            qid
+        media {
+            _id
+            fileUrl
             title
-            slug
+            description
+            type
+            mimetype
+            sizeInKB
+            sizeInMB
+            createdAt
         }
-        updatedAt
     }
 }
 """
 
-# 1️⃣2️⃣ تحديث فاريانتات المنتج (دفعة واحدة)
-UPDATE_PRODUCT_VARIANTS_MUTATION = """
-mutation UpdateProductVariants($qid: String!, $variants: [VariantInput!]!) {
-    updateProductVariants(qid: $qid, variants: $variants) {
+# 2️⃣ جلب وسائط الفاريانت
+GET_VARIANT_MEDIA_QUERY = """
+query GetVariantMedia($variantQid: String!) {
+    findVariantById(variantQid: $variantQid) {
         id
         qid
-        variants {
-            id
-            qid
-            price
-            quantity
-            sku
+        name
+        images {
+            _id
+            fileUrl
+            title
+            description
+            mimetype
+            sizeInKB
+            sizeInMB
+        }
+        media {
+            _id
+            fileUrl
+            title
+            description
+            type
+            mimetype
+            sizeInKB
+            sizeInMB
+        }
+    }
+}
+"""
+
+# 3️⃣ جلب جميع وسائط المنتج (مفصلة)
+GET_ALL_PRODUCT_MEDIA_QUERY = """
+query GetAllProductMedia($qid: String!) {
+    findProductByQid(qid: $qid) {
+        id
+        qid
+        title
+        media {
+            _id
+            fileUrl
+            file
+            path
+            title
+            description
+            type
+            mimetype
+            sizeInKB
+            sizeInMB
+            compressedSizeInKB
+            compressedSizeInMB
+            width
+            height
+            alt
+            sortOrder
+            isFeatured
+            createdAt
             updatedAt
         }
-        updatedAt
     }
 }
 """
 
-# 1️⃣3️⃣ تحديث فاريانتات المنتج (تحديث فردي)
-UPDATE_VARIANT_PRICING_MUTATION = """
-mutation UpdateVariantPricing($variantQid: String!, $price: Float!, $compareAtPrice: Float) {
-    updateVariantPricing(variantQid: $variantQid, price: $price, compareAtPrice: $compareAtPrice) {
-        id
-        qid
-        price
-        compareAtPrice
-        updatedAt
-    }
-}
-"""
 
-# 1️⃣4️⃣ تحديث وسائط الفاريانت
-UPDATE_VARIANT_MEDIA_MUTATION = """
-mutation UpdateVariantMedia($variantQid: String!, $media: [String!]!) {
-    updateVariantMedia(variantQid: $variantQid, media: $media) {
-        id
-        qid
-        media
-        updatedAt
-    }
-}
-"""
+# ============================================================
+# ✏️ MUTATIONS - تحويرات الوسائط
+# ============================================================
 
-# 1️⃣5️⃣ تحديث كمية الفاريانت
-UPDATE_VARIANT_QUANTITY_MUTATION = """
-mutation UpdateVariantQuantity($variantQid: String!, $quantity: Int!) {
-    updateVariantQuantity(variantQid: $variantQid, quantity: $quantity) {
-        id
-        qid
-        quantity
-        updatedAt
-    }
-}
-"""
-
-# 1️⃣6️⃣ حذف فاريانت
-REMOVE_VARIANT_MUTATION = """
-mutation RemoveVariant($variantQid: String!) {
-    removeVariantById(variantQid: $variantQid)
-}
-"""
-
-# 1️⃣7️⃣ تحديث فاريانتات متعددة دفعة واحدة
-BULK_VARIANT_UPDATE_MUTATION = """
-mutation BulkVariantUpdate($variants: [VariantUpdateInput!]!) {
-    bulkVariantUpdate(variants: $variants) {
-        id
-        qid
-        price
-        quantity
-        updatedAt
-    }
-}
-"""
-
-# 1️⃣8️⃣ تحديث حالة منتجات متعددة
-BULK_UPDATE_PRODUCTS_STATUS_MUTATION = """
-mutation BulkUpdateProductsStatus($qids: [String!]!, $status: String!) {
-    bulkUpdateProductsStatus(qids: $qids, status: $status) {
-        id
-        qid
-        status
-        updatedAt
-    }
-}
-"""
-
-# 1️⃣9️⃣ حذف منتج
-DELETE_PRODUCT_MUTATION = """
-mutation DeleteProduct($qid: String!) {
-    deleteProduct(qid: $qid)
-}
-"""
-
-# 2️⃣0️⃣ حذف منتجات متعددة
-BULK_DELETE_PRODUCTS_MUTATION = """
-mutation BulkDeleteProduct($qids: [String!]!) {
-    bulkDeleteProduct(qids: $qids)
-}
-"""
-
-# 2️⃣1️⃣ إنشاء منتج
-CREATE_PRODUCT_MUTATION = """
-mutation CreateProduct($input: CreateProductInput!) {
-    createProduct(input: $input) {
-        id
-        qid
-        title
-        slug
-        price
-        status
-        description
-        createdAt
-    }
-}
-"""
-
-# 2️⃣2️⃣ التحقق من توفر الـ Slug
-CHECK_PRODUCT_SLUG_MUTATION = """
-mutation CheckProductSlug($slug: String!) {
-    checkProductSlug(slug: $slug) {
+# 4️⃣ رفع ملف (صورة/فيديو)
+UPLOAD_FILE_MUTATION = """
+mutation UploadFile($file: String!, $filename: String!, $title: String, $description: String) {
+    uploadFile(file: $file, filename: $filename, title: $title, description: $description) {
         success
         message
-        available
+        data {
+            _id
+            fileUrl
+            file
+            path
+            mimetype
+            sizeInKB
+            sizeInMB
+            title
+            description
+            createdAt
+        }
     }
 }
 """
 
-# 2️⃣3️⃣ تحديث كامل للمنتج (جميع الحقول دفعة واحدة)
-UPDATE_PRODUCT_COMPLETE_MUTATION = """
-mutation UpdateProductComplete($qid: String!, $input: UpdateProductCompleteInput!) {
-    updateProductComplete(qid: $qid, input: $input) {
-        id
-        qid
-        title
-        slug
-        description
-        status
-        price
-        compareAtPrice
-        weight
-        dimensions {
-            length
-            width
-            height
-            unit
-        }
-        identification {
-            sku
-            barcode
-            barcodeType
-            hsCode
-            countryOfOrigin
-            mpn
-        }
-        images
-        collections {
-            id
-            qid
-            title
-        }
-        seo {
+# 5️⃣ رفع ملفات متعددة
+UPLOAD_MULTIPLE_FILES_MUTATION = """
+mutation UploadMultipleFiles($files: [FileInput!]!) {
+    uploadMultipleFiles(files: $files) {
+        success
+        message
+        data {
+            _id
+            fileUrl
+            file
+            path
+            mimetype
+            sizeInKB
+            sizeInMB
             title
             description
-            keywords
-            image
-            canonicalUrl
+            createdAt
         }
-        variants {
-            id
-            qid
-            price
-            quantity
-            sku
+    }
+}
+"""
+
+# 6️⃣ حذف ملف
+DELETE_FILE_MUTATION = """
+mutation DeleteFile($fileId: String!) {
+    deleteFile(fileId: $fileId) {
+        success
+        message
+    }
+}
+"""
+
+# 7️⃣ تحديث معلومات الملف
+UPDATE_FILE_INFO_MUTATION = """
+mutation UpdateFileInfo($fileId: String!, $title: String, $description: String, $alt: String) {
+    updateFileInfo(fileId: $fileId, title: $title, description: $description, alt: $alt) {
+        success
+        message
+        data {
+            _id
+            fileUrl
+            title
+            description
+            alt
+            updatedAt
+        }
+    }
+}
+"""
+
+# 8️⃣ إضافة صورة للمنتج
+ADD_PRODUCT_IMAGE_MUTATION = """
+mutation AddProductImage($qid: String!, $imageUrl: String!) {
+    addProductImage(qid: $qid, imageUrl: $imageUrl) {
+        id
+        qid
+        images {
+            _id
+            fileUrl
+        }
+        updatedAt
+    }
+}
+"""
+
+# 9️⃣ إزالة صورة من المنتج
+REMOVE_PRODUCT_IMAGE_MUTATION = """
+mutation RemoveProductImage($qid: String!, $imageId: String!) {
+    removeProductImage(qid: $qid, imageId: $imageId) {
+        id
+        qid
+        images {
+            _id
+            fileUrl
+        }
+        updatedAt
+    }
+}
+"""
+
+# 🔟 إضافة وسائط للمنتج
+ADD_PRODUCT_MEDIA_MUTATION = """
+mutation AddProductMedia($qid: String!, $mediaUrls: [String!]!) {
+    addProductMedia(qid: $qid, mediaUrls: $mediaUrls) {
+        id
+        qid
+        media {
+            _id
+            fileUrl
+        }
+        updatedAt
+    }
+}
+"""
+
+# 1️⃣1️⃣ إزالة وسائط من المنتج
+REMOVE_PRODUCT_MEDIA_MUTATION = """
+mutation RemoveProductMedia($qid: String!, $mediaIds: [String!]!) {
+    removeProductMedia(qid: $qid, mediaIds: $mediaIds) {
+        id
+        qid
+        media {
+            _id
+            fileUrl
+        }
+        updatedAt
+    }
+}
+"""
+
+# 1️⃣2️⃣ تحديث ترتيب صور المنتج
+REORDER_PRODUCT_IMAGES_MUTATION = """
+mutation ReorderProductImages($qid: String!, $imageIds: [String!]!) {
+    reorderProductImages(qid: $qid, imageIds: $imageIds) {
+        id
+        qid
+        images {
+            _id
+            fileUrl
+            sortOrder
         }
         updatedAt
     }
@@ -353,627 +260,386 @@ mutation UpdateProductComplete($qid: String!, $input: UpdateProductCompleteInput
 
 
 # ============================================================
-# 🚀 SERVICE CLASS - خدمة تحديث المنتجات
+# 🚀 SERVICE CLASS - خدمة الوسائط
 # ============================================================
 
-class ProductUpdateService:
+class ProductMediaService:
     """
-    خدمة تحديث المنتجات
-    تحتوي على جميع عمليات التحديث للمنتجات والفاريانتات
+    خدمة إدارة وسائط المنتجات
+    تحتوي على جميع عمليات رفع، حذف، وتحديث الصور والملفات
     """
     
     def __init__(self):
         self.client = QomrahGraphQLClient()
     
     # ============================================================
-    # 📝 PRODUCT UPDATES - تحديثات المنتج
+    # 📤 FILE UPLOAD - رفع الملفات
     # ============================================================
     
-    def update_product_info(self, qid: str, title: str = None,
-                           description: str = None, status: str = None,
-                           **kwargs) -> Optional[Dict]:
+    def upload_file(self, file_data: bytes, filename: str,
+                   title: str = None, description: str = None,
+                   file_type: str = None) -> Optional[Dict]:
         """
-        تحديث معلومات المنتج الأساسية
+        رفع ملف (صورة/فيديو/مستند)
         
         Args:
-            qid: معرف المنتج
-            title: الاسم الجديد (اختياري)
-            description: الوصف الجديد (اختياري)
-            status: الحالة الجديدة (اختياري)
-            **kwargs: حقول إضافية (slug, tags, etc.)
+            file_data: بيانات الملف (bytes)
+            filename: اسم الملف
+            title: عنوان الملف (اختياري)
+            description: وصف الملف (اختياري)
+            file_type: نوع الملف (image, video, document)
         
         Returns:
-            Dict: بيانات المنتج المحدث
+            Dict: بيانات الملف المرفوع
         """
-        input_data = {}
+        try:
+            # تحديد نوع الملف
+            if not file_type:
+                ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'jpg'
+                if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']:
+                    file_type = 'image'
+                elif ext in ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv']:
+                    file_type = 'video'
+                else:
+                    file_type = 'document'
+            
+            # تحويل الملف إلى base64
+            file_base64 = base64.b64encode(file_data).decode('utf-8')
+            
+            # إعداد الملف للرفع
+            if file_type == 'image':
+                file_string = f"data:image/{ext};base64,{file_base64}" if ext else f"data:image/jpeg;base64,{file_base64}"
+            else:
+                file_string = file_base64
+            
+            variables = {
+                "file": file_string,
+                "filename": filename
+            }
+            if title:
+                variables["title"] = title
+            if description:
+                variables["description"] = description
+            
+            print(f"🔄 جاري رفع الملف: {filename}")
+            result = self.client.execute_query(UPLOAD_FILE_MUTATION, variables)
+            
+            if result:
+                upload_result = result.get('uploadFile', {})
+                if upload_result.get('success'):
+                    data = upload_result.get('data', {})
+                    print(f"✅ تم رفع الملف بنجاح: {data.get('fileUrl')}")
+                    return data
+                else:
+                    print(f"❌ فشل رفع الملف: {upload_result.get('message')}")
+                    return None
+            return None
+            
+        except Exception as e:
+            print(f"❌ خطأ في upload_file: {e}")
+            return None
+    
+    def upload_multiple_files(self, files: List[Dict]) -> List[Dict]:
+        """
+        رفع ملفات متعددة
+        
+        Args:
+            files: قائمة بالملفات [{file_data: bytes, filename: str, title: str}]
+        
+        Returns:
+            List[Dict]: قائمة بيانات الملفات المرفوعة
+        """
+        uploaded_files = []
+        for file_data in files:
+            result = self.upload_file(
+                file_data['file_data'],
+                file_data['filename'],
+                file_data.get('title'),
+                file_data.get('description')
+            )
+            if result:
+                uploaded_files.append(result)
+        return uploaded_files
+    
+    # ============================================================
+    # 📋 GET MEDIA - جلب الوسائط
+    # ============================================================
+    
+    def get_product_media(self, product_qid: str) -> Dict:
+        """
+        جلب جميع وسائط المنتج
+        
+        Args:
+            product_qid: معرف المنتج
+        
+        Returns:
+            Dict: {images: List, media: List}
+        """
+        result = self.client.execute_query(GET_PRODUCT_MEDIA_QUERY, {"qid": product_qid})
+        if result:
+            product = result.get('findProductByQid', {})
+            return {
+                'images': product.get('images', []),
+                'media': product.get('media', [])
+            }
+        return {'images': [], 'media': []}
+    
+    def get_variant_media(self, variant_qid: str) -> Dict:
+        """
+        جلب وسائط الفاريانت
+        
+        Args:
+            variant_qid: معرف الفاريانت
+        
+        Returns:
+            Dict: {images: List, media: List}
+        """
+        result = self.client.execute_query(GET_VARIANT_MEDIA_QUERY, {"variantQid": variant_qid})
+        if result:
+            variant = result.get('findVariantById', {})
+            return {
+                'images': variant.get('images', []),
+                'media': variant.get('media', [])
+            }
+        return {'images': [], 'media': []}
+    
+    def get_all_product_media(self, product_qid: str) -> List[Dict]:
+        """
+        جلب جميع وسائط المنتج (مفصلة)
+        
+        Args:
+            product_qid: معرف المنتج
+        
+        Returns:
+            List[Dict]: قائمة مفصلة بالوسائط
+        """
+        result = self.client.execute_query(GET_ALL_PRODUCT_MEDIA_QUERY, {"qid": product_qid})
+        if result:
+            product = result.get('findProductByQid', {})
+            return product.get('media', [])
+        return []
+    
+    # ============================================================
+    # 🗑️ DELETE MEDIA - حذف الوسائط
+    # ============================================================
+    
+    def delete_file(self, file_id: str) -> bool:
+        """
+        حذف ملف
+        
+        Args:
+            file_id: معرف الملف
+        
+        Returns:
+            bool: نجاح أو فشل العملية
+        """
+        result = self.client.execute_query(DELETE_FILE_MUTATION, {"fileId": file_id})
+        if result:
+            delete_result = result.get('deleteFile', {})
+            return delete_result.get('success', False)
+        return False
+    
+    def update_file_info(self, file_id: str, title: str = None,
+                        description: str = None, alt: str = None) -> Optional[Dict]:
+        """
+        تحديث معلومات الملف
+        
+        Args:
+            file_id: معرف الملف
+            title: العنوان الجديد
+            description: الوصف الجديد
+            alt: النص البديل للصورة
+        
+        Returns:
+            Dict: بيانات الملف المحدثة
+        """
+        variables = {"fileId": file_id}
         if title is not None:
-            input_data["title"] = title
+            variables["title"] = title
         if description is not None:
-            input_data["description"] = description
-        if status is not None:
-            input_data["status"] = status
-        if kwargs.get('slug'):
-            input_data["slug"] = kwargs.get('slug')
-        if kwargs.get('tags'):
-            input_data["tags"] = kwargs.get('tags')
+            variables["description"] = description
+        if alt is not None:
+            variables["alt"] = alt
         
-        if not input_data:
-            print("⚠️ لا توجد بيانات للتحديث")
-            return None
-        
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_INFO_MUTATION,
-            {"qid": qid, "input": input_data}
-        )
-        return result.get('updateProductInfo') if result else None
+        result = self.client.execute_query(UPDATE_FILE_INFO_MUTATION, variables)
+        if result:
+            update_result = result.get('updateFileInfo', {})
+            return update_result.get('data') if update_result.get('success') else None
+        return None
     
-    def update_product_status(self, qid: str, status: str) -> Optional[Dict]:
+    # ============================================================
+    # 🖼️ PRODUCT IMAGES - صور المنتج
+    # ============================================================
+    
+    def add_product_image(self, product_qid: str, image_url: str) -> Optional[Dict]:
         """
-        تحديث حالة المنتج
+        إضافة صورة للمنتج
         
         Args:
-            qid: معرف المنتج
-            status: الحالة الجديدة (ACTIVE, INACTIVE, DRAFT, ARCHIVED)
-        
-        Returns:
-            Dict: بيانات الحالة المحدثة
-        """
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_STATUS_MUTATION,
-            {"qid": qid, "status": status}
-        )
-        return result.get('updateProductStatus') if result else None
-    
-    def update_product_pricing(self, qid: str, price: float,
-                              compare_at_price: float = None) -> Optional[Dict]:
-        """
-        تحديث تسعير المنتج
-        
-        Args:
-            qid: معرف المنتج
-            price: السعر الجديد
-            compare_at_price: السعر المقارن (اختياري)
-        
-        Returns:
-            Dict: بيانات التسعير المحدثة
-        """
-        variables = {"qid": qid, "price": price}
-        if compare_at_price is not None:
-            variables["compareAtPrice"] = compare_at_price
-        
-        result = self.client.execute_query(UPDATE_PRODUCT_PRICING_MUTATION, variables)
-        return result.get('updateProductPricing') if result else None
-    
-    def update_product_dimensions(self, qid: str, length: float,
-                                 width: float, height: float,
-                                 unit: str = 'cm') -> Optional[Dict]:
-        """
-        تحديث أبعاد المنتج
-        
-        Args:
-            qid: معرف المنتج
-            length: الطول
-            width: العرض
-            height: الارتفاع
-            unit: الوحدة (cm, m, in)
-        
-        Returns:
-            Dict: بيانات الأبعاد المحدثة
-        """
-        dimensions = {
-            "length": length,
-            "width": width,
-            "height": height,
-            "unit": unit
-        }
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_DIMENSIONS_MUTATION,
-            {"qid": qid, "dimensions": dimensions}
-        )
-        return result.get('updateProductDimensions') if result else None
-    
-    def update_product_weight(self, qid: str, weight: float,
-                             unit: str = 'kg') -> Optional[Dict]:
-        """
-        تحديث وزن المنتج
-        
-        Args:
-            qid: معرف المنتج
-            weight: الوزن
-            unit: الوحدة (kg, g, lb, oz)
-        
-        Returns:
-            Dict: بيانات الوزن المحدثة
-        """
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_WEIGHT_MUTATION,
-            {"qid": qid, "weight": weight, "unit": unit}
-        )
-        return result.get('updateProductWeight') if result else None
-    
-    def update_product_identification(self, qid: str, sku: str = None,
-                                     barcode: str = None,
-                                     barcode_type: str = None,
-                                     hs_code: str = None,
-                                     country_of_origin: str = None,
-                                     mpn: str = None) -> Optional[Dict]:
-        """
-        تحديث بيانات تعريف المنتج
-        
-        Args:
-            qid: معرف المنتج
-            sku: رقم SKU
-            barcode: الباركود
-            barcode_type: نوع الباركود
-            hs_code: رمز HS
-            country_of_origin: بلد المنشأ
-            mpn: رقم MPN
-        
-        Returns:
-            Dict: بيانات التعريف المحدثة
-        """
-        identification = {}
-        if sku is not None:
-            identification["sku"] = sku
-        if barcode is not None:
-            identification["barcode"] = barcode
-        if barcode_type is not None:
-            identification["barcodeType"] = barcode_type
-        if hs_code is not None:
-            identification["hsCode"] = hs_code
-        if country_of_origin is not None:
-            identification["countryOfOrigin"] = country_of_origin
-        if mpn is not None:
-            identification["mpn"] = mpn
-        
-        if not identification:
-            print("⚠️ لا توجد بيانات تعريف للتحديث")
-            return None
-        
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_IDENTIFICATION_MUTATION,
-            {"qid": qid, "identification": identification}
-        )
-        return result.get('updateProductIdentification') if result else None
-    
-    def update_product_description(self, qid: str, description: str) -> Optional[Dict]:
-        """
-        تحديث وصف المنتج
-        
-        Args:
-            qid: معرف المنتج
-            description: النص الجديد للوصف
-        
-        Returns:
-            Dict: بيانات الوصف المحدثة
-        """
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_DESCRIPTION_MUTATION,
-            {"qid": qid, "description": description}
-        )
-        return result.get('updateProductDescription') if result else None
-    
-    def update_product_seo(self, qid: str, title: str = None,
-                          description: str = None, keywords: str = None,
-                          image: str = None, canonical_url: str = None) -> Optional[Dict]:
-        """
-        تحديث SEO للمنتج
-        
-        Args:
-            qid: معرف المنتج
-            title: عنوان SEO
-            description: وصف SEO
-            keywords: كلمات مفتاحية
-            image: صورة SEO
-            canonical_url: الرابط الأساسي
-        
-        Returns:
-            Dict: بيانات SEO المحدثة
-        """
-        seo = {}
-        if title is not None:
-            seo["title"] = title
-        if description is not None:
-            seo["description"] = description
-        if keywords is not None:
-            seo["keywords"] = keywords
-        if image is not None:
-            seo["image"] = image
-        if canonical_url is not None:
-            seo["canonicalUrl"] = canonical_url
-        
-        if not seo:
-            print("⚠️ لا توجد بيانات SEO للتحديث")
-            return None
-        
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_SEO_MUTATION,
-            {"qid": qid, "seo": seo}
-        )
-        return result.get('updateProductSEO') if result else None
-    
-    def update_product_images(self, qid: str, images: List[str]) -> Optional[Dict]:
-        """
-        تحديث صور المنتج (استبدال كامل)
-        
-        Args:
-            qid: معرف المنتج
-            images: قائمة روابط الصور الجديدة
-        
-        Returns:
-            Dict: بيانات الصور المحدثة
-        """
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_IMAGES_MUTATION,
-            {"qid": qid, "images": images}
-        )
-        return result.get('updateProductImages') if result else None
-    
-    def update_product_images_advanced(self, qid: str,
-                                      new_images: List[str],
-                                      removed_images: List[str] = None) -> Optional[Dict]:
-        """
-        تحديث صور المنتج (إضافة وحذف)
-        
-        Args:
-            qid: معرف المنتج
-            new_images: قائمة الصور الجديدة للإضافة
-            removed_images: قائمة الصور للحذف
-        
-        Returns:
-            Dict: بيانات الصور المحدثة
-        """
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_IMAGES_ADVANCED_MUTATION,
-            {"qid": qid, "newImages": new_images, "removedImages": removed_images or []}
-        )
-        return result.get('updateProductImagesAdvanced') if result else None
-    
-    def update_product_collection(self, qid: str,
-                                 collection_qids: List[str]) -> Optional[Dict]:
-        """
-        تحديث مجموعات المنتج
-        
-        Args:
-            qid: معرف المنتج
-            collection_qids: قائمة معرفات المجموعات
-        
-        Returns:
-            Dict: بيانات المجموعات المحدثة
-        """
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_COLLECTION_MUTATION,
-            {"qid": qid, "collectionQids": collection_qids}
-        )
-        return result.get('updateProductCollection') if result else None
-    
-    def update_product_variants(self, qid: str,
-                               variants: List[Dict]) -> Optional[Dict]:
-        """
-        تحديث فاريانتات المنتج (دفعة واحدة)
-        
-        Args:
-            qid: معرف المنتج
-            variants: قائمة بيانات الفاريانتات
-        
-        Returns:
-            Dict: بيانات الفاريانتات المحدثة
-        """
-        result = self.client.execute_query(
-            UPDATE_PRODUCT_VARIANTS_MUTATION,
-            {"qid": qid, "variants": variants}
-        )
-        return result.get('updateProductVariants') if result else None
-    
-    def update_product_complete(self, qid: str, input_data: Dict) -> Optional[Dict]:
-        """
-        تحديث كامل للمنتج (جميع الحقول دفعة واحدة)
-        
-        Args:
-            qid: معرف المنتج
-            input_data: جميع بيانات التحديث
+            product_qid: معرف المنتج
+            image_url: رابط الصورة
         
         Returns:
             Dict: بيانات المنتج المحدثة
         """
         result = self.client.execute_query(
-            UPDATE_PRODUCT_COMPLETE_MUTATION,
-            {"qid": qid, "input": input_data}
+            ADD_PRODUCT_IMAGE_MUTATION,
+            {"qid": product_qid, "imageUrl": image_url}
         )
-        return result.get('updateProductComplete') if result else None
+        return result.get('addProductImage') if result else None
     
-    # ============================================================
-    # 🎨 VARIANT UPDATES - تحديثات الفاريانتات
-    # ============================================================
-    
-    def update_variant_pricing(self, variant_qid: str, price: float,
-                              compare_at_price: float = None) -> Optional[Dict]:
+    def remove_product_image(self, product_qid: str, image_id: str) -> Optional[Dict]:
         """
-        تحديث تسعير الفاريانت
+        إزالة صورة من المنتج
         
         Args:
-            variant_qid: معرف الفاريانت
-            price: السعر الجديد
-            compare_at_price: السعر المقارن (اختياري)
+            product_qid: معرف المنتج
+            image_id: معرف الصورة
         
         Returns:
-            Dict: بيانات التسعير المحدثة
-        """
-        variables = {"variantQid": variant_qid, "price": price}
-        if compare_at_price is not None:
-            variables["compareAtPrice"] = compare_at_price
-        
-        result = self.client.execute_query(UPDATE_VARIANT_PRICING_MUTATION, variables)
-        return result.get('updateVariantPricing') if result else None
-    
-    def update_variant_media(self, variant_qid: str, media: List[str]) -> Optional[Dict]:
-        """
-        تحديث وسائط الفاريانت
-        
-        Args:
-            variant_qid: معرف الفاريانت
-            media: قائمة روابط الوسائط
-        
-        Returns:
-            Dict: بيانات الوسائط المحدثة
+            Dict: بيانات المنتج المحدثة
         """
         result = self.client.execute_query(
-            UPDATE_VARIANT_MEDIA_MUTATION,
-            {"variantQid": variant_qid, "media": media}
+            REMOVE_PRODUCT_IMAGE_MUTATION,
+            {"qid": product_qid, "imageId": image_id}
         )
-        return result.get('updateVariantMedia') if result else None
+        return result.get('removeProductImage') if result else None
     
-    def update_variant_quantity(self, variant_qid: str, quantity: int) -> Optional[Dict]:
+    def add_product_media(self, product_qid: str, media_urls: List[str]) -> Optional[Dict]:
         """
-        تحديث كمية الفاريانت
+        إضافة وسائط للمنتج
         
         Args:
-            variant_qid: معرف الفاريانت
-            quantity: الكمية الجديدة
+            product_qid: معرف المنتج
+            media_urls: قائمة روابط الوسائط
         
         Returns:
-            Dict: بيانات الكمية المحدثة
+            Dict: بيانات المنتج المحدثة
         """
         result = self.client.execute_query(
-            UPDATE_VARIANT_QUANTITY_MUTATION,
-            {"variantQid": variant_qid, "quantity": quantity}
+            ADD_PRODUCT_MEDIA_MUTATION,
+            {"qid": product_qid, "mediaUrls": media_urls}
         )
-        return result.get('updateVariantQuantity') if result else None
+        return result.get('addProductMedia') if result else None
     
-    def remove_variant(self, variant_qid: str) -> bool:
+    def remove_product_media(self, product_qid: str, media_ids: List[str]) -> Optional[Dict]:
         """
-        حذف فاريانت
+        إزالة وسائط من المنتج
         
         Args:
-            variant_qid: معرف الفاريانت
+            product_qid: معرف المنتج
+            media_ids: قائمة معرفات الوسائط
         
         Returns:
-            bool: نجاح أو فشل العملية
-        """
-        result = self.client.execute_query(REMOVE_VARIANT_MUTATION, {"variantQid": variant_qid})
-        return result.get('removeVariantById', False) if result else False
-    
-    def bulk_variant_update(self, variants: List[Dict]) -> Optional[List[Dict]]:
-        """
-        تحديث فاريانتات متعددة دفعة واحدة
-        
-        Args:
-            variants: قائمة بيانات الفاريانتات
-        
-        Returns:
-            List[Dict]: قائمة الفاريانتات المحدثة
-        """
-        result = self.client.execute_query(BULK_VARIANT_UPDATE_MUTATION, {"variants": variants})
-        return result.get('bulkVariantUpdate', []) if result else []
-    
-    # ============================================================
-    # 🗑️ DELETE OPERATIONS - عمليات الحذف
-    # ============================================================
-    
-    def delete_product(self, qid: str) -> bool:
-        """
-        حذف منتج
-        
-        Args:
-            qid: معرف المنتج
-        
-        Returns:
-            bool: نجاح أو فشل العملية
-        """
-        result = self.client.execute_query(DELETE_PRODUCT_MUTATION, {"qid": qid})
-        return result.get('deleteProduct', False) if result else False
-    
-    def bulk_delete_products(self, qids: List[str]) -> bool:
-        """
-        حذف منتجات متعددة
-        
-        Args:
-            qids: قائمة معرفات المنتجات
-        
-        Returns:
-            bool: نجاح أو فشل العملية
-        """
-        result = self.client.execute_query(BULK_DELETE_PRODUCTS_MUTATION, {"qids": qids})
-        return result.get('bulkDeleteProduct', False) if result else False
-    
-    def bulk_update_products_status(self, qids: List[str], status: str) -> Optional[List[Dict]]:
-        """
-        تحديث حالة منتجات متعددة
-        
-        Args:
-            qids: قائمة معرفات المنتجات
-            status: الحالة الجديدة
-        
-        Returns:
-            List[Dict]: قائمة المنتجات المحدثة
+            Dict: بيانات المنتج المحدثة
         """
         result = self.client.execute_query(
-            BULK_UPDATE_PRODUCTS_STATUS_MUTATION,
-            {"qids": qids, "status": status}
+            REMOVE_PRODUCT_MEDIA_MUTATION,
+            {"qid": product_qid, "mediaIds": media_ids}
         )
-        return result.get('bulkUpdateProductsStatus', []) if result else []
+        return result.get('removeProductMedia') if result else None
     
-    # ============================================================
-    # ✏️ CREATE OPERATIONS - عمليات الإنشاء
-    # ============================================================
-    
-    def create_product(self, title: str, description: str = "",
-                      price: float = 0.0, status: str = "DRAFT",
-                      images: List[str] = None, **kwargs) -> Optional[Dict]:
+    def reorder_product_images(self, product_qid: str, image_ids: List[str]) -> Optional[Dict]:
         """
-        إنشاء منتج جديد
+        تحديث ترتيب صور المنتج
         
         Args:
-            title: اسم المنتج
-            description: وصف المنتج
-            price: السعر
-            status: الحالة (DRAFT, ACTIVE, INACTIVE, ARCHIVED)
-            images: قائمة روابط الصور
-            **kwargs: حقول إضافية (sku, weight, dimensions, seo, etc.)
+            product_qid: معرف المنتج
+            image_ids: قائمة معرفات الصور بالترتيب الجديد
         
         Returns:
-            Dict: بيانات المنتج الجديد
+            Dict: بيانات المنتج المحدثة
         """
-        input_data = {
-            "title": title,
-            "description": description,
-            "price": price,
-            "status": status
+        result = self.client.execute_query(
+            REORDER_PRODUCT_IMAGES_MUTATION,
+            {"qid": product_qid, "imageIds": image_ids}
+        )
+        return result.get('reorderProductImages') if result else None
+    
+    # ============================================================
+    # 🔄 BULK OPERATIONS - عمليات دفعة واحدة
+    # ============================================================
+    
+    def upload_and_add_images(self, product_qid: str,
+                             image_files: List[Dict]) -> List[str]:
+        """
+        رفع صور وإضافتها للمنتج
+        
+        Args:
+            product_qid: معرف المنتج
+            image_files: قائمة ملفات الصور [{file_data: bytes, filename: str}]
+        
+        Returns:
+            List[str]: قائمة روابط الصور المرفوعة
+        """
+        uploaded_urls = []
+        
+        for image_file in image_files:
+            # رفع الصورة
+            file_data = self.upload_file(
+                image_file['file_data'],
+                image_file['filename'],
+                title=image_file.get('title'),
+                description=image_file.get('description')
+            )
+            
+            if file_data and file_data.get('fileUrl'):
+                # إضافة الصورة للمنتج
+                self.add_product_image(product_qid, file_data['fileUrl'])
+                uploaded_urls.append(file_data['fileUrl'])
+        
+        return uploaded_urls
+    
+    def get_product_images_urls(self, product_qid: str) -> List[str]:
+        """
+        جلب روابط صور المنتج فقط
+        
+        Args:
+            product_qid: معرف المنتج
+        
+        Returns:
+            List[str]: قائمة روابط الصور
+        """
+        media = self.get_product_media(product_qid)
+        return [img.get('fileUrl') for img in media.get('images', []) if img.get('fileUrl')]
+    
+    def get_media_stats(self, product_qid: str) -> Dict:
+        """
+        الحصول على إحصائيات وسائط المنتج
+        
+        Args:
+            product_qid: معرف المنتج
+        
+        Returns:
+            Dict: {totalImages, totalMedia, totalSize, averageSize}
+        """
+        media = self.get_product_media(product_qid)
+        images = media.get('images', [])
+        all_media = media.get('media', [])
+        
+        total_size = 0
+        for img in images:
+            total_size += img.get('sizeInKB', 0)
+        for m in all_media:
+            total_size += m.get('sizeInKB', 0)
+        
+        total_items = len(images) + len(all_media)
+        
+        return {
+            'totalImages': len(images),
+            'totalMedia': len(all_media),
+            'totalItems': total_items,
+            'totalSizeKB': total_size,
+            'totalSizeMB': total_size / 1024 if total_size > 0 else 0,
+            'averageSizeKB': total_size / total_items if total_items > 0 else 0
         }
-        
-        if images:
-            input_data["images"] = images
-        if kwargs.get('sku'):
-            input_data["sku"] = kwargs.get('sku')
-        if kwargs.get('weight'):
-            input_data["weight"] = kwargs.get('weight')
-        if kwargs.get('dimensions'):
-            input_data["dimensions"] = kwargs.get('dimensions')
-        if kwargs.get('seo'):
-            input_data["seo"] = kwargs.get('seo')
-        if kwargs.get('quantity'):
-            input_data["quantity"] = kwargs.get('quantity')
-        if kwargs.get('tags'):
-            input_data["tags"] = kwargs.get('tags')
-        
-        result = self.client.execute_query(CREATE_PRODUCT_MUTATION, {"input": input_data})
-        return result.get('createProduct') if result else None
-    
-    def check_product_slug(self, slug: str) -> Dict:
-        """
-        التحقق من توفر الـ Slug
-        
-        Args:
-            slug: الاسم المختصر للتحقق
-        
-        Returns:
-            Dict: {success, message, available}
-        """
-        result = self.client.execute_query(CHECK_PRODUCT_SLUG_MUTATION, {"slug": slug})
-        return result.get('checkProductSlug', {}) if result else {}
-    
-    # ============================================================
-    # 🔄 COMPLETE SYNC - مزامنة كاملة
-    # ============================================================
-    
-    def sync_product_complete(self, qid: str, data: Dict) -> bool:
-        """
-        مزامنة كاملة للمنتج (جميع الحقول)
-        
-        Args:
-            qid: معرف المنتج
-            data: جميع بيانات المنتج
-        
-        Returns:
-            bool: نجاح أو فشل العملية
-        """
-        try:
-            success = True
-            
-            # تحديث المعلومات الأساسية
-            if 'title' in data or 'description' in data or 'status' in data:
-                info = {}
-                if 'title' in data:
-                    info['title'] = data['title']
-                if 'description' in data:
-                    info['description'] = data['description']
-                if 'status' in data:
-                    info['status'] = data['status']
-                if 'slug' in data:
-                    info['slug'] = data['slug']
-                if 'tags' in data:
-                    info['tags'] = data['tags']
-                if info:
-                    if not self.update_product_info(qid, **info):
-                        success = False
-            
-            # تحديث السعر
-            if 'price' in data:
-                if not self.update_product_pricing(qid, data['price'], data.get('compare_at_price')):
-                    success = False
-            
-            # تحديث الصور
-            if 'images' in data:
-                if not self.update_product_images(qid, data['images']):
-                    success = False
-            
-            # تحديث الأبعاد
-            if 'dimensions' in data:
-                dims = data['dimensions']
-                if not self.update_product_dimensions(qid, dims['length'], dims['width'], dims['height'], dims.get('unit', 'cm')):
-                    success = False
-            
-            # تحديث الوزن
-            if 'weight' in data:
-                if not self.update_product_weight(qid, data['weight'], data.get('weight_unit', 'kg')):
-                    success = False
-            
-            # تحديث التعريف
-            if 'sku' in data or 'barcode' in data:
-                ident = {}
-                if 'sku' in data:
-                    ident['sku'] = data['sku']
-                if 'barcode' in data:
-                    ident['barcode'] = data['barcode']
-                if 'barcode_type' in data:
-                    ident['barcodeType'] = data['barcode_type']
-                if 'hs_code' in data:
-                    ident['hsCode'] = data['hs_code']
-                if 'country_of_origin' in data:
-                    ident['countryOfOrigin'] = data['country_of_origin']
-                if 'mpn' in data:
-                    ident['mpn'] = data['mpn']
-                if ident:
-                    if not self.update_product_identification(qid, **ident):
-                        success = False
-            
-            # تحديث SEO
-            if 'seo' in data:
-                if not self.update_product_seo(qid, **data['seo']):
-                    success = False
-            
-            # تحديث المجموعات
-            if 'collections' in data:
-                if not self.update_product_collection(qid, data['collections']):
-                    success = False
-            
-            # تحديث الفاريانتات
-            if 'variants' in data:
-                if not self.update_product_variants(qid, data['variants']):
-                    success = False
-            
-            return success
-            
-        except Exception as e:
-            print(f"❌ خطأ في sync_product_complete: {e}")
-            return False
 
 
 # ============================================================
 # 🚀 SINGLETON INSTANCE
 # ============================================================
 
-product_update = ProductUpdateService()
+product_media = ProductMediaService()
 
 
 # ============================================================
@@ -981,31 +647,20 @@ product_update = ProductUpdateService()
 # ============================================================
 
 __all__ = [
-    'UPDATE_PRODUCT_INFO_MUTATION',
-    'UPDATE_PRODUCT_STATUS_MUTATION',
-    'UPDATE_PRODUCT_PRICING_MUTATION',
-    'UPDATE_PRODUCT_DIMENSIONS_MUTATION',
-    'UPDATE_PRODUCT_WEIGHT_MUTATION',
-    'UPDATE_PRODUCT_IDENTIFICATION_MUTATION',
-    'UPDATE_PRODUCT_DESCRIPTION_MUTATION',
-    'UPDATE_PRODUCT_SEO_MUTATION',
-    'UPDATE_PRODUCT_IMAGES_MUTATION',
-    'UPDATE_PRODUCT_IMAGES_ADVANCED_MUTATION',
-    'UPDATE_PRODUCT_COLLECTION_MUTATION',
-    'UPDATE_PRODUCT_VARIANTS_MUTATION',
-    'UPDATE_VARIANT_PRICING_MUTATION',
-    'UPDATE_VARIANT_MEDIA_MUTATION',
-    'UPDATE_VARIANT_QUANTITY_MUTATION',
-    'REMOVE_VARIANT_MUTATION',
-    'BULK_VARIANT_UPDATE_MUTATION',
-    'BULK_UPDATE_PRODUCTS_STATUS_MUTATION',
-    'DELETE_PRODUCT_MUTATION',
-    'BULK_DELETE_PRODUCTS_MUTATION',
-    'CREATE_PRODUCT_MUTATION',
-    'CHECK_PRODUCT_SLUG_MUTATION',
-    'UPDATE_PRODUCT_COMPLETE_MUTATION',
-    'ProductUpdateService',
-    'product_update'
+    'GET_PRODUCT_MEDIA_QUERY',
+    'GET_VARIANT_MEDIA_QUERY',
+    'GET_ALL_PRODUCT_MEDIA_QUERY',
+    'UPLOAD_FILE_MUTATION',
+    'UPLOAD_MULTIPLE_FILES_MUTATION',
+    'DELETE_FILE_MUTATION',
+    'UPDATE_FILE_INFO_MUTATION',
+    'ADD_PRODUCT_IMAGE_MUTATION',
+    'REMOVE_PRODUCT_IMAGE_MUTATION',
+    'ADD_PRODUCT_MEDIA_MUTATION',
+    'REMOVE_PRODUCT_MEDIA_MUTATION',
+    'REORDER_PRODUCT_IMAGES_MUTATION',
+    'ProductMediaService',
+    'product_media'
 ]
 
 
@@ -1014,15 +669,10 @@ __all__ = [
 # ============================================================
 
 if __name__ == "__main__":
-    service = ProductUpdateService()
+    service = ProductMediaService()
     
-    # مثال: إنشاء منتج جديد
-    # product = service.create_product(
-    #     title="منتج جديد",
-    #     description="وصف المنتج",
-    #     price=99.99,
-    #     status="DRAFT"
-    # )
-    # print(f"✅ تم إنشاء المنتج: {product}")
+    # جلب وسائط منتج
+    # media = service.get_product_media("product_qid_here")
+    # print(f"✅ الصور: {len(media.get('images', []))}")
     
-    print("✅ Product Update Service ready!")
+    print("✅ Product Media Extras Service ready!")
