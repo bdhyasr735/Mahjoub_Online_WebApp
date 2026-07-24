@@ -37,18 +37,32 @@ def register_module(app):
 def get_module_stats():
     """جلب إحصائيات المنتجات (للوحة التحكم)"""
     try:
-        from apps.services.product_sync_service import ProductSyncService
-        sync_service = ProductSyncService()
-        products = sync_service.fetch_products(page=1, limit=1)
+        from apps.services.product_sync_service import product_sync
+        products = product_sync.fetch_products(page=1, limit=1)
         
         total = products.get('pagination', {}).get('total', 0)
         
+        # ✅ جلب إحصائيات أكثر تفصيلاً
+        all_products = product_sync.fetch_all_products_paginated(limit=100)
+        active = 0
+        draft = 0
+        archived = 0
+        
+        for p in all_products:
+            status = p.get('status', '').upper()
+            if status in ['ACTIVE', 'PUBLISHED']:
+                active += 1
+            elif status == 'DRAFT':
+                draft += 1
+            elif status == 'ARCHIVED':
+                archived += 1
+        
         return {
-            'total': total,
-            'active': 0,
-            'draft': 0,
-            'pending': 0,
-            'has_products': total > 0
+            'total': len(all_products),
+            'active': active,
+            'draft': draft,
+            'archived': archived,
+            'has_products': len(all_products) > 0
         }
     except Exception as e:
         print(f"❌ خطأ في get_module_stats: {e}")
@@ -56,7 +70,7 @@ def get_module_stats():
             'total': 0,
             'active': 0,
             'draft': 0,
-            'pending': 0,
+            'archived': 0,
             'has_products': False
         }
 
