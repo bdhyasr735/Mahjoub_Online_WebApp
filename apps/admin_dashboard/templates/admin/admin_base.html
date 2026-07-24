@@ -201,10 +201,12 @@
             <span class="brand-text">محجوب أونلاين | سوقك الذكي</span>
         </div>
         <nav class="nav-menu">
+            <!-- ✅ الإحصائيات (رئيسي) -->
             <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="nav-link-custom {{ 'active' if request.endpoint == 'admin_dashboard_bp.dashboard' }}">
                 <i class="fas fa-chart-line"></i> <span>الإحصائيات</span>
             </a>
             
+            <!-- ✅ الموديولات المسجلة ديناميكياً -->
             {% if registered_modules %}
                 {% for mod_name, module in registered_modules.items() %}
                     <div class="nav-item mt-2">
@@ -307,6 +309,25 @@
                         if (chevron) chevron.classList.add('rotated');
                     }
                 }
+            });
+        });
+
+        // ===== منع إغلاق القائمة عند النقر على الرابط =====
+        document.querySelectorAll('.dropdown-content a').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                // لا نمنع الانتقال للرابط
+                // فقط نغلق القائمة بعد النقر
+                setTimeout(function() {
+                    const parent = link.closest('.nav-item');
+                    if (parent) {
+                        const drop = parent.querySelector('.dropdown-content');
+                        const chevron = parent.querySelector('.fa-chevron-down');
+                        if (drop && window.innerWidth < 992) {
+                            drop.style.display = 'none';
+                            if (chevron) chevron.classList.remove('rotated');
+                        }
+                    }
+                }, 200);
             });
         });
     </script>
