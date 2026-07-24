@@ -4,130 +4,6 @@
 {% block title %}تعديل المنتج | محجوب{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="d-flex align-items-center mb-4">
-        <div class="bg-white p-3 rounded-circle shadow-sm me-3" style="border: 2px solid var(--dark-purple, #2d0b36);">
-            <i class="fas fa-edit fa-2x" style="color: var(--dark-purple, #2d0b36);"></i>
-        </div>
-        <div>
-            <h3 class="fw-bold text-dark mb-0">تعديل المنتج</h3>
-            <p class="text-muted mb-0">✏️ تحديث بيانات المنتج</p>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <form method="POST" action="{{ url_for('edit_product_bp.update_product', qid=product.qid) }}" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-
-                        <!-- ✅ اسم المنتج -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-tag text-muted me-1"></i> اسم المنتج <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" name="name" class="form-control form-control-lg" value="{{ product.title }}" required>
-                        </div>
-
-                        <!-- ✅ الوصف -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-align-right text-muted me-1"></i> الوصف
-                            </label>
-                            <textarea name="description" class="form-control" rows="4">{{ product.description if product.description else '' }}</textarea>
-                        </div>
-
-                        <!-- ✅ السعر والكمية -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-money-bill-wave text-muted me-1"></i> السعر (SAR) <span class="text-danger">*</span>
-                                </label>
-                                <input type="number" name="price" class="form-control" value="{{ product.pricing.price if product.pricing and product.pricing.price else 0 }}" step="0.01" min="0" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-boxes text-muted me-1"></i> الكمية
-                                </label>
-                                <input type="number" name="quantity" class="form-control" value="{{ product.quantity if product.quantity is not none else 0 }}" min="0">
-                            </div>
-                        </div>
-
-                        <!-- ✅ SKU (للقراءة فقط) -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-barcode text-muted me-1"></i> SKU
-                            </label>
-                            <input type="text" class="form-control" value="{{ product.ident.sku if product.ident and product.ident.sku else '---' }}" readonly disabled>
-                            <small class="text-muted">🔒 لا يمكن تعديل SKU</small>
-                        </div>
-
-                        <!-- ✅ صورة المنتج -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-image text-muted me-1"></i> صورة المنتج
-                            </label>
-                            {% if product.images and product.images|length > 0 %}
-                                <div class="mb-2">
-                                    <img src="{{ product.images[0].fileUrl }}" alt="{{ product.title }}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef;">
-                                </div>
-                            {% endif %}
-                            <input type="file" name="image" class="form-control" accept="image/*">
-                            <small class="text-muted">اتركه فارغاً للحفاظ على الصورة الحالية</small>
-                        </div>
-
-                        <!-- ✅ حالة المنتج -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-info-circle text-muted me-1"></i> حالة المنتج
-                            </label>
-                            <div>
-                                <span class="badge 
-                                    {% if product.status == 'PUBLISHED' %}bg-success
-                                    {% elif product.status == 'DRAFT' %}bg-warning text-dark
-                                    {% elif product.status == 'REJECTED' %}bg-danger
-                                    {% elif product.status == 'ARCHIVED' %}bg-secondary
-                                    {% else %}bg-light text-dark{% endif %}">
-                                    {% if product.status == 'PUBLISHED' %}
-                                        <i class="fas fa-check-circle me-1"></i> منشور
-                                    {% elif product.status == 'DRAFT' %}
-                                        <i class="fas fa-clock me-1"></i> قيد المراجعة
-                                    {% elif product.status == 'REJECTED' %}
-                                        <i class="fas fa-times-circle me-1"></i> مرفوض
-                                    {% elif product.status == 'ARCHIVED' %}
-                                        <i class="fas fa-archive me-1"></i> مؤرشف
-                                    {% else %}
-                                        {{ product.status }}
-                                    {% endif %}
-                                </span>
-                            </div>
-                            <small class="text-muted">لا يمكن تغيير الحالة من هنا</small>
-                        </div>
-
-                        <!-- ✅ معلومات إضافية -->
-                        <div class="alert alert-info border-0 rounded-4">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <small>سيتم مراجعة التعديلات من قبل الإدارة قبل النشر</small>
-                        </div>
-
-                        <!-- ✅ أزرار الإجراء -->
-                        <div class="d-flex gap-2 mt-3">
-                            <button type="submit" class="btn btn-custom px-5 py-2" id="submitBtn">
-                                <i class="fas fa-save me-2"></i> حفظ التغييرات
-                            </button>
-                            <a href="{{ url_for('suppliers_product_bp.products') }}" class="btn btn-outline-secondary px-4 py-2">
-                                <i class="fas fa-arrow-right me-1"></i> رجوع
-                            </a>
-                        </div>
-
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
     .btn-custom {
         background-color: var(--dark-purple, #2d0b36);
@@ -151,13 +27,351 @@
         opacity: 1;
         cursor: not-allowed;
     }
+    .image-preview {
+        max-width: 150px;
+        max-height: 150px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+    }
+    .preview-container {
+        position: relative;
+        display: inline-block;
+    }
+    .btn-remove-image {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .upload-area {
+        border: 2px dashed #dee2e6;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: #f8f9fa;
+    }
+    .upload-area:hover {
+        border-color: var(--dark-purple, #2d0b36);
+        background: #f8f5fa;
+    }
+    .upload-area.dragover {
+        border-color: var(--dark-purple, #2d0b36);
+        background: #f0ecf3;
+    }
 </style>
 
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center mb-4">
+        <div class="bg-white p-3 rounded-circle shadow-sm me-3" style="border: 2px solid var(--dark-purple, #2d0b36);">
+            <i class="fas fa-edit fa-2x" style="color: var(--dark-purple, #2d0b36);"></i>
+        </div>
+        <div>
+            <h3 class="fw-bold text-dark mb-0">تعديل المنتج</h3>
+            <p class="text-muted mb-0">✏️ تحديث بيانات المنتج</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <form id="editProductForm" enctype="multipart/form-data">
+                        
+                        <!-- ✅ اسم المنتج -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-tag text-muted me-1"></i> اسم المنتج <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="title" id="productTitle" 
+                                   class="form-control form-control-lg" 
+                                   value="{{ product.title if product else '' }}" 
+                                   required>
+                        </div>
+
+                        <!-- ✅ الوصف -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-align-right text-muted me-1"></i> الوصف
+                            </label>
+                            <textarea name="description" id="productDescription" 
+                                      class="form-control" rows="4">{{ product.description if product and product.description else '' }}</textarea>
+                        </div>
+
+                        <!-- ✅ السعر والكمية -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-money-bill-wave text-muted me-1"></i> السعر (SAR) <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" name="price" id="productPrice" 
+                                       class="form-control" 
+                                       value="{{ product.price if product and product.price else 0 }}" 
+                                       step="0.01" min="0" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-boxes text-muted me-1"></i> الكمية
+                                </label>
+                                <input type="number" name="quantity" id="productQuantity" 
+                                       class="form-control" 
+                                       value="{{ product.quantity if product and product.quantity is not none else 0 }}" 
+                                       min="0">
+                            </div>
+                        </div>
+
+                        <!-- ✅ SKU والوزن -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-barcode text-muted me-1"></i> SKU
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" name="sku" id="productSku" 
+                                           class="form-control" 
+                                           value="{{ product.identification.sku if product and product.identification and product.identification.sku else '' }}">
+                                    <button type="button" class="btn btn-outline-secondary" id="generateSkuBtn">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-weight-scale text-muted me-1"></i> الوزن (كجم)
+                                </label>
+                                <input type="number" name="weight" id="productWeight" 
+                                       class="form-control" 
+                                       value="{{ product.weight if product and product.weight else '' }}" 
+                                       step="0.01" min="0">
+                            </div>
+                        </div>
+
+                        <!-- ✅ الحالة -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-circle text-muted me-1"></i> الحالة
+                            </label>
+                            <select name="status" id="productStatus" class="form-select">
+                                <option value="DRAFT" {% if product and product.status == 'DRAFT' %}selected{% endif %}>مسودة</option>
+                                <option value="ACTIVE" {% if product and product.status == 'ACTIVE' %}selected{% endif %}>نشط</option>
+                                <option value="INACTIVE" {% if product and product.status == 'INACTIVE' %}selected{% endif %}>غير نشط</option>
+                                <option value="ARCHIVED" {% if product and product.status == 'ARCHIVED' %}selected{% endif %}>مؤرشف</option>
+                            </select>
+                        </div>
+
+                        <!-- ✅ صورة المنتج -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-image text-muted me-1"></i> صورة المنتج
+                            </label>
+                            
+                            {% if product and product.images and product.images|length > 0 %}
+                            <div class="mb-2" id="currentImageContainer">
+                                <div class="preview-container">
+                                    <img src="{{ product.images[0].fileUrl }}" 
+                                         alt="{{ product.title }}" 
+                                         class="image-preview">
+                                    <button type="button" class="btn-remove-image" onclick="removeCurrentImage()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <input type="hidden" name="current_image_id" value="{{ product.images[0]._id }}">
+                            </div>
+                            {% endif %}
+
+                            <div class="upload-area" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt fa-2x" style="color: var(--dark-purple, #2d0b36);"></i>
+                                <p class="mb-0">اسحب صورة جديدة أو اضغط للاختيار</p>
+                                <small class="text-muted">jpg, png, gif, webp - حد أقصى 5MB</small>
+                                <input type="file" name="image" id="imageInput" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="image-preview mt-2" id="imagePreview" style="display: none;">
+                                <div class="preview-container">
+                                    <img id="previewImage" src="#" alt="معاينة الصورة" class="image-preview">
+                                    <button type="button" class="btn-remove-image" onclick="removeNewImage()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ✅ أزرار الإجراء -->
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="submit" class="btn btn-custom px-5 py-2" id="submitBtn">
+                                <i class="fas fa-save me-2"></i> حفظ التغييرات
+                            </button>
+                            <a href="{{ url_for('suppliers_product_bp.products') }}" class="btn btn-outline-secondary px-4 py-2">
+                                <i class="fas fa-arrow-right me-1"></i> رجوع
+                            </a>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-    document.getElementById('productForm')?.addEventListener('submit', function(e) {
-        const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
+    // ============================================================
+    // ✅ رفع الصورة
+    // ============================================================
+    const uploadArea = document.getElementById('uploadArea');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+
+    uploadArea.addEventListener('click', function(e) {
+        if (!e.target.closest('.btn-remove-image')) {
+            imageInput.click();
+        }
     });
+
+    imageInput.addEventListener('change', function(e) {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                imagePreview.style.display = 'block';
+                // إخفاء الصورة الحالية
+                const currentContainer = document.getElementById('currentImageContainer');
+                if (currentContainer) {
+                    currentContainer.style.display = 'none';
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            imageInput.files = files;
+            imageInput.dispatchEvent(new Event('change'));
+        }
+    });
+
+    function removeCurrentImage() {
+        const container = document.getElementById('currentImageContainer');
+        if (container) {
+            container.style.display = 'none';
+        }
+    }
+
+    function removeNewImage() {
+        imageInput.value = '';
+        imagePreview.style.display = 'none';
+        previewImage.src = '#';
+        const currentContainer = document.getElementById('currentImageContainer');
+        if (currentContainer) {
+            currentContainer.style.display = 'block';
+        }
+    }
+
+    // ============================================================
+    // ✅ توليد SKU تلقائي
+    // ============================================================
+    document.getElementById('generateSkuBtn').addEventListener('click', function() {
+        const skuInput = document.getElementById('productSku');
+        const prefix = 'PRD';
+        const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        skuInput.value = `${prefix}-${random}`;
+    });
+
+    // ============================================================
+    // ✅ إرسال النموذج (AJAX)
+    // ============================================================
+    document.getElementById('editProductForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
+
+        const qid = '{{ product.qid if product else "" }}';
+        const formData = new FormData(this);
+
+        fetch(`/supplier/api/edit-product/${qid}`, {
+            method: 'PUT',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ ' + data.message, 'success');
+                setTimeout(() => {
+                    window.location.href = '{{ url_for("suppliers_product_bp.products") }}';
+                }, 1500);
+            } else {
+                showToast('❌ ' + data.message, 'danger');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التغييرات';
+            }
+        })
+        .catch(error => {
+            showToast('❌ خطأ في الاتصال بالخادم', 'danger');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التغييرات';
+        });
+    });
+
+    // ✅ Toast notifications
+    function showToast(message, type = 'info') {
+        const colors = {
+            success: 'bg-success text-white',
+            danger: 'bg-danger text-white',
+            warning: 'bg-warning text-dark',
+            info: 'bg-info text-dark'
+        };
+        
+        const toastContainer = document.querySelector('.toast-container') || (() => {
+            const container = document.createElement('div');
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(container);
+            return container;
+        })();
+        
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center border-0 ${colors[type] || colors.info} show`;
+        toast.role = 'alert';
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
 </script>
+
 {% endblock %}
