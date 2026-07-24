@@ -66,27 +66,39 @@ def create_app():
             db.session.commit()
             print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
         
-        # ✅ زراعة مورد تجريبي
-        if not Supplier.query.filter_by(username='test_supplier').first():
-            test_supplier = Supplier(
-                username='test_supplier',
-                trade_name='متجر تجريبي',
-                owner_name='محمد التجريبي',
-                phone='0500000000',
-                status='active'
-            )
-            test_supplier.set_password('123')
-            db.session.add(test_supplier)
-            db.session.flush()
-            
-            wallet = SupplierWallet(
-                supplier_id=test_supplier.id,
-                wallet_code=f"MAH-WEL963{test_supplier.id}",
-                balance_sar=1000.00
-            )
-            db.session.add(wallet)
-            db.session.commit()
-            print("✅ [Seed]: تم زرع مورد تجريبي test_supplier / 123")
+        # ✅ زراعة مورد تجريبي (مع التحقق من عدم التكرار)
+        try:
+            existing_supplier = Supplier.query.filter_by(username='test_supplier').first()
+            if not existing_supplier:
+                test_supplier = Supplier(
+                    username='test_supplier',
+                    trade_name='متجر تجريبي',
+                    owner_name='محمد التجريبي',
+                    phone='0500000000',
+                    status='active'
+                )
+                test_supplier.set_password('123')
+                db.session.add(test_supplier)
+                db.session.flush()
+                
+                # ✅ التحقق من عدم وجود محفظة مكررة
+                existing_wallet = SupplierWallet.query.filter_by(supplier_id=test_supplier.id).first()
+                if not existing_wallet:
+                    wallet = SupplierWallet(
+                        supplier_id=test_supplier.id,
+                        wallet_code=f"MAH-WEL963{test_supplier.id}",
+                        balance_sar=1000.00
+                    )
+                    db.session.add(wallet)
+                    db.session.commit()
+                    print("✅ [Seed]: تم زرع مورد تجريبي test_supplier / 123")
+                else:
+                    print("ℹ️ [Seed]: المحفظة موجودة بالفعل للمورد التجريبي")
+            else:
+                print("ℹ️ [Seed]: المورد التجريبي موجود بالفعل")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [Seed]: خطأ في زراعة البيانات التجريبية: {e}")
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
