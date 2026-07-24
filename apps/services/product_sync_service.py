@@ -198,27 +198,13 @@ class ProductSyncService:
         return []
 
     # ============================================================
-    # ✅ إنشاء منتج (باستخدام GraphQL الصحيح)
+    # ✅ إنشاء منتج (بدون بيانات - ثم تحديث)
     # ============================================================
-    def create_product(self, product_data: dict) -> dict:
-        """إنشاء منتج جديد في قمرة باستخدام GraphQL Mutation الصحيحة"""
+    def create_product(self, product_data: dict = None) -> dict:
+        """إنشاء منتج جديد في قمرة (بدون بيانات)"""
         mutation = """
-        mutation createProduct(
-            $title: String!,
-            $description: String,
-            $price: Float,
-            $quantity: Int,
-            $images: [String!],
-            $status: String
-        ) {
-            createProduct(
-                title: $title,
-                description: $description,
-                price: $price,
-                quantity: $quantity,
-                images: $images,
-                status: $status
-            ) {
+        mutation {
+            createProduct {
                 _id
                 title
                 slug
@@ -227,21 +213,11 @@ class ProductSyncService:
         }
         """
         
-        variables = {
-            "title": product_data.get('title', ''),
-            "description": product_data.get('description', ''),
-            "price": float(product_data.get('price', 0)),
-            "quantity": int(product_data.get('quantity', 0)),
-            "images": product_data.get('images', []),
-            "status": product_data.get('status', 'DRAFT')
-        }
-        
-        result = self.client.execute_query(mutation, variables)
+        result = self.client.execute_query(mutation, {})
         
         if result:
             data = result.get('data', {}).get('createProduct', {})
             if data:
-                # ✅ الحصول على _id أو qid من الاستجابة
                 qid = data.get('_id') or data.get('qid')
                 return {
                     'success': True,
@@ -249,18 +225,94 @@ class ProductSyncService:
                     'message': 'تم إنشاء المنتج بنجاح',
                     'data': data
                 }
-            else:
-                return {
-                    'success': False,
-                    'message': 'فشل إنشاء المنتج',
-                    'qid': None
-                }
-        else:
-            return {
-                'success': False,
-                'message': 'فشل الاتصال بقمرة',
-                'qid': None
+        
+        return {
+            'success': False,
+            'message': 'فشل إنشاء المنتج',
+            'qid': None
+        }
+
+    # ============================================================
+    # ✅ تحديث معلومات المنتج
+    # ============================================================
+    def update_product_info(self, qid: str, title: str, description: str = "", status: str = "DRAFT"):
+        """تحديث معلومات المنتج"""
+        mutation = """
+        mutation($id: String!, $info: UpdateProductInfo!) {
+            updateProductInfo(id: $id, updateProductInfoInput: $info) {
+                success
+                message
             }
+        }
+        """
+        
+        variables = {
+            "id": qid,
+            "info": {
+                "title": title,
+                "description": description,
+                "status": status
+            }
+        }
+        
+        result = self.client.execute_query(mutation, variables)
+        
+        if result:
+            update_result = result.get('data', {}).get('updateProductInfo', {})
+            return update_result.get('success', False)
+        return False
+
+    # ============================================================
+    # ✅ تحديث سعر المنتج
+    # ============================================================
+    def update_product_pricing(self, qid: str, price: float):
+        """تحديث سعر المنتج"""
+        mutation = """
+        mutation($id: ID!, $pricing: PricingInput!) {
+            updateProductPricing(id: $id, pricing: $pricing) {
+                success
+                message
+            }
+        }
+        """
+        
+        variables = {
+            "id": qid,
+            "pricing": {"price": price}
+        }
+        
+        result = self.client.execute_query(mutation, variables)
+        
+        if result:
+            update_result = result.get('data', {}).get('updateProductPricing', {})
+            return update_result.get('success', False)
+        return False
+
+    # ============================================================
+    # ✅ تحديث صور المنتج
+    # ============================================================
+    def update_product_images(self, qid: str, images: list):
+        """تحديث صور المنتج"""
+        mutation = """
+        mutation($id: ID!, $images: [String!]!) {
+            updateProductImages(id: $id, data: $images) {
+                success
+                message
+            }
+        }
+        """
+        
+        variables = {
+            "id": qid,
+            "images": images
+        }
+        
+        result = self.client.execute_query(mutation, variables)
+        
+        if result:
+            update_result = result.get('data', {}).get('updateProductImages', {})
+            return update_result.get('success', False)
+        return False
 
     # ============================================================
     # ✅ تحديث حالة المنتج
@@ -303,7 +355,7 @@ class ProductSyncService:
         return False
 
     # ============================================================
-    # ✅ تحديث بيانات المنتج
+    # ✅ تحديث بيانات المنتج (شامل)
     # ============================================================
     def update_product_data(self, qid: str, **kwargs):
         """تحديث بيانات المنتج في قمرة"""
