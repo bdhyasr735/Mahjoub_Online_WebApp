@@ -15,13 +15,16 @@ def register_module(app):
     try:
         from apps.suppliers_product.routes import suppliers_product_bp, add_product_bp, edit_product_bp
         
-        # ✅ تسجيل جميع الـ Blueprints مباشرة بدون شروط
+        # ✅ تسجيل جميع الـ Blueprints مباشرة
         app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
         app.register_blueprint(add_product_bp, url_prefix='/supplier')
         app.register_blueprint(edit_product_bp, url_prefix='/supplier')
         
         print("✅ [Registry]: تم تسجيل موديول 'منتجاتي' بنجاح.")
+        print("   📌 Blueprints المسجلة: suppliers_product_bp, add_product_bp, edit_product_bp")
             
+    except ImportError as e:
+        print(f"❌ [Registry]: خطأ في استيراد routes: {e}")
     except Exception as e:
         print(f"❌ [Registry]: خطأ في تسجيل suppliers_product: {e}")
     
@@ -32,7 +35,8 @@ def get_module_stats(supplier_id):
     try:
         from apps.suppliers_product.services import get_product_stats
         return get_product_stats(supplier_id)
-    except:
+    except Exception as e:
+        print(f"❌ خطأ في get_module_stats: {e}")
         return {'total': 0, 'published': 0, 'draft': 0, 'rejected': 0, 'archived': 0, 'has_products': False}
 
 
