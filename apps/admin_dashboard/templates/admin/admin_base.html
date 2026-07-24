@@ -32,6 +32,7 @@
             font-style: normal;
         }
 
+        /* ===== القائمة الجانبية ===== */
         .sidebar { 
             width: var(--sidebar-width); 
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); 
@@ -47,15 +48,29 @@
         .sidebar::-webkit-scrollbar { width: 4px; }
         .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
         
+        /* ===== الشعار ===== */
         .logo-container { 
             padding: 30px 10px; 
             text-align: center; 
             border-bottom: 1px solid rgba(212, 175, 55, 0.3); 
         }
-        .sidebar-logo { width: 70px; filter: brightness(0) invert(1); }
-        .brand-text { color: var(--mahjoub-gold); font-size: 0.9rem; margin-top: 10px; display: block; }
+        .sidebar-logo { 
+            width: 70px; 
+            height: 70px;
+            object-fit: contain;
+            filter: brightness(0) invert(1); 
+            transition: transform 0.3s;
+        }
+        .sidebar-logo:hover { transform: scale(1.05); }
+        .brand-text { 
+            color: var(--mahjoub-gold); 
+            font-size: 0.9rem; 
+            margin-top: 10px; 
+            display: block; 
+        }
         .nav-menu { padding: 20px 15px; }
         
+        /* ===== الروابط ===== */
         .nav-link-custom { 
             display: flex; 
             align-items: center; 
@@ -73,6 +88,7 @@
         }
         .nav-link-custom i { width: 20px; text-align: center; }
         
+        /* ===== القوائم المنسدلة ===== */
         .dropdown-content { 
             display: none; 
             list-style: none; 
@@ -106,11 +122,14 @@
             transform: rotate(180deg);
         }
         
+        /* ===== المحتوى الرئيسي ===== */
         .main-wrapper { 
             margin-right: var(--sidebar-width); 
             transition: 0.3s; 
+            min-height: 100vh;
         }
         
+        /* ===== الشريط العلوي ===== */
         .top-navbar { 
             background: #fff; 
             padding: 15px 30px; 
@@ -118,6 +137,9 @@
             justify-content: space-between; 
             align-items: center; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+            position: sticky;
+            top: 0;
+            z-index: 1040;
         }
         
         .royal-focus:focus {
@@ -126,16 +148,52 @@
             outline: none;
         }
 
+        /* ===== شارة الإدارة ===== */
+        .admin-badge {
+            background: linear-gradient(135deg, var(--royal-purple), var(--deep-black));
+            color: var(--mahjoub-gold);
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        /* ===== رسائل الفلاش ===== */
+        .flash-messages {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            z-index: 2000;
+            width: 350px;
+            max-width: calc(100% - 40px);
+        }
+        .flash-messages .alert {
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-right: 4px solid var(--mahjoub-gold);
+        }
+
+        /* ===== التجاوب ===== */
         @media (max-width: 992px) { 
             .sidebar { right: -280px; } 
             .sidebar.active { right: 0; } 
             .main-wrapper { margin-right: 0; } 
+            .top-navbar { padding: 12px 16px; }
+        }
+
+        @media (max-width: 576px) {
+            .top-navbar { padding: 10px 12px; }
+            .sidebar { width: 260px; }
+            .admin-badge span { display: none; }
+            .flash-messages { width: calc(100% - 24px); left: 12px; top: 70px; }
         }
     </style>
 
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- ===== القائمة الجانبية ===== -->
     <aside class="sidebar" id="sidebar">
         <div class="logo-container">
             <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" class="sidebar-logo" alt="MAHJOUB">
@@ -178,15 +236,32 @@
         </nav>
     </aside>
 
+    <!-- ===== المحتوى الرئيسي ===== -->
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
             <button class="btn btn-outline-dark d-lg-none" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i>
             </button>
-            <div class="d-flex align-items-center gap-3 ms-auto">
-                <span class="badge bg-warning text-dark px-3 py-2 shadow-xs">بيئة التحكم السيادية</span>
+            <div class="admin-badge">
+                <i class="fas fa-crown me-1"></i>
+                <span>بيئة التحكم السيادية</span>
             </div>
         </header>
+
+        <!-- ===== رسائل الفلاش ===== -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
         <section class="p-4">
             {% block content %}{% endblock %}
         </section>
@@ -194,6 +269,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ===== تبديل القوائم المنسدلة =====
         function toggleSub(el) {
             let drop = el.nextElementSibling;
             if(!drop) return;
@@ -205,11 +281,22 @@
             }
         }
         
+        // ===== تبديل القائمة الجانبية في الموبايل =====
         function toggleSidebar() { 
             document.getElementById('sidebar').classList.toggle('active'); 
         }
 
-        // ✅ فتح القائمة النشطة تلقائياً
+        // ===== إغلاق القائمة عند النقر خارجها =====
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.querySelector('.btn-outline-dark');
+            if (window.innerWidth < 992 && sidebar && toggleBtn &&
+                !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // ===== فتح القائمة النشطة تلقائياً =====
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.dropdown-content').forEach(function(drop) {
                 if (drop.querySelector('.active-link')) {
