@@ -3,14 +3,12 @@
 
 """
 مركز التحكم في الموديلات (Model Registry)
-تنبيه: الترتيب هنا حيوي جداً لتجنب تداخل الـ Mappers. 
-تم فصل الموديلات الأساسية عن التابعة التي تحتوي على ForeignKeys.
 """
 
 from apps.extensions import db
 
 # 1. الموديلات الأساسية (مستقلة، لا تعتمد على موديلات أخرى)
-from .supplier_db import Supplier
+from .supplier_db import Supplier  # ✅ هذا يسمح باستيراد Supplier مباشرة
 from .admin_db import AdminUser
 from .marketer_db import Marketer
 
@@ -37,7 +35,7 @@ __all__ = [
     'OrderFinancial',
     'Product',
     'ProductSupplierMapping',
-    'Supplier',
+    'Supplier',          # ✅ موجود
     'SupplierProfile',
     'SupplierStaff',
     'SupplierWallet',
