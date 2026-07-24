@@ -5,7 +5,7 @@ from apps.services.product_sync_service import ProductSyncService as QumraSyncSe
 from apps.services.product_mapping_service import product_mapping
 from apps.services.product_ident_mutation import product_ident
 from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models import Supplier  # ✅ تم التصحيح
+from apps.models import Supplier
 from apps.suppliers_product.helpers import compress_image
 import logging
 import time
@@ -65,7 +65,27 @@ class SupplierProductService:
             if url:
                 product_data['images'] = [url]
 
-        return self.qumra.create_product(**product_data, supplier_id=supplier_id)
+        # ✅ إضافة supplier_id إلى create_product
+        result = self.qumra.create_product(**product_data, supplier_id=supplier_id)
+        
+        # ✅ إذا نجح الإنشاء، تأكد من ربط المنتج بالمورد
+        if result and result.get('success'):
+            qid = result.get('qid')
+            if qid:
+                # ✅ التحقق من وجود الربط
+                existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+                if not existing_mapping:
+                    mapping = ProductSupplierMapping(
+                        product_qid=qid,
+                        supplier_id=supplier_id,
+                        status='active'
+                    )
+                    from apps.extensions import db
+                    db.session.add(mapping)
+                    db.session.commit()
+                    logger.info(f"✅ تم ربط المنتج {qid} بالمورد {supplier_id}")
+        
+        return result
 
     # ====== UPDATE ======
     def update_product(self, qid, supplier_id, data):
