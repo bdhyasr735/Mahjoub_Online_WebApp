@@ -2,229 +2,292 @@
 # 📂 apps/services/product_mapping_service.py
 
 from typing import Dict, List, Optional, Any
-from .graphql_client import QomrahGraphQLClient
-import json
-import os
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
+from apps.extensions import db
+from apps.models.product_supplier_map import ProductSupplierMapping
+from apps.models.supplier import Supplier
+from .graphql_client import QomrahGraphQLClient
 
 
 class ProductMappingService:
     """
     خدمة إدارة علاقات الربط بين المورد المحلي ومنتج قمرة
-    
-    التخزين المحلي:
-    - معرف المورد (Supplier ID / Local ID)
-    - معرف المنتج في قمرة (QID)
-    - بيانات إضافية: تاريخ الإنشاء، آخر تحديث، الحالة
+    باستخدام قاعدة البيانات (SQLAlchemy)
     """
     
-    def __init__(self, storage_file: str = None):
+    def __init__(self):
         self.client = QomrahGraphQLClient()
-        
-        # تحديد ملف التخزين
-        if storage_file is None:
-            # استخدام مجلد البيانات
-            data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
-            os.makedirs(data_dir, exist_ok=True)
-            storage_file = os.path.join(data_dir, 'product_mappings.json')
-        
-        self.storage_file = storage_file
-        self._mappings = None
-        self._load_mappings()
-    
-    # ============================================================
-    # 💾 STORAGE - التخزين المحلي
-    # ============================================================
-    
-    def _load_mappings(self):
-        """تحميل العلاقات من ملف التخزين"""
-        if os.path.exists(self.storage_file):
-            try:
-                with open(self.storage_file, 'r', encoding='utf-8') as f:
-                    self._mappings = json.load(f)
-                print(f"✅ تم تحميل {len(self._mappings)} علاقة من الملف")
-            except Exception as e:
-                print(f"⚠️ خطأ في تحميل الملف: {e}")
-                self._mappings = {}
-        else:
-            self._mappings = {}
-            self._save_mappings()
-    
-    def _save_mappings(self):
-        """حفظ العلاقات في ملف التخزين"""
-        try:
-            os.makedirs(os.path.dirname(self.storage_file), exist_ok=True)
-            with open(self.storage_file, 'w', encoding='utf-8') as f:
-                json.dump(self._mappings, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"❌ خطأ في حفظ الملف: {e}")
-            return False
     
     # ============================================================
     # 🔗 MAPPING OPERATIONS - عمليات الربط
     # ============================================================
     
-    def add_mapping(self, local_id: str, qid: str, 
-                   supplier_name: str = None, metadata: Dict = None) -> bool:
+    def add_mapping(self, product_qid: str, supplier_id: int,
+                   status: str = 'active', internal_notes: str = None) -> Dict:
         """
-        إضافة علاقة ربط جديدة
+        إضافة علاقة ربط جديدة في قاعدة البيانات
         
         Args:
-            local_id: معرف المورد في النظام المحلي
-            qid: معرف المنتج في قمرة
-            supplier_name: اسم المورد (اختياري)
-            metadata: بيانات إضافية (اختياري)
+            product_qid: معرف المنتج في قمرة
+            supplier_id: معرف المورد في النظام المحلي
+            status: حالة الربط (active, inactive, pending)
+            internal_notes: ملاحظات إدارية (مشفر)
         
         Returns:
-            bool: نجاح أو فشل العملية
+            Dict: {success: bool, message: str, data: dict}
         """
-        if local_id in self._mappings:
-            print(f"⚠️ العلاقة موجودة بالفعل للمورد {local_id}")
-            return False
-        
-        # التحقق من وجود المنتج في قمرة
-        product = self.client.get_product_by_qid(qid)
-        if not product:
-            print(f"❌ المنتج {qid} غير موجود في قمرة")
-            return False
-        
-        # إضافة العلاقة
-        self._mappings[local_id] = {
-            'qid': qid,
-            'supplier_name': supplier_name,
-            'product_title': product.get('title'),
-            'product_status': product.get('status'),
-            'metadata': metadata or {},
-            'created_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat()
-        }
-        
-        return self._save_mappings()
-    
-    def get_qid(self, local_id: str) -> Optional[str]:
-        """
-        استرجاع QID بناءً على معرف المورد المحلي
-        
-        Args:
-            local_id: معرف المورد في النظام المحلي
-        
-        Returns:
-            str: QID المنتج في قمرة أو None
-        """
-        mapping = self._mappings.get(local_id)
-        return mapping.get('qid') if mapping else None
-    
-    def get_mapping(self, local_id: str) -> Optional[Dict]:
-        """
-        استرجاع العلاقة الكاملة لمورد
-        
-        Args:
-            local_id: معرف المورد في النظام المحلي
-        
-        Returns:
-            Dict: بيانات العلاقة أو None
-        """
-        return self._mappings.get(local_id)
-    
-    def get_local_id(self, qid: str) -> Optional[str]:
-        """
-        استرجاع معرف المورد المحلي بناءً على QID
-        
-        Args:
-            qid: معرف المنتج في قمرة
-        
-        Returns:
-            str: معرف المورد المحلي أو None
-        """
-        for local_id, mapping in self._mappings.items():
-            if mapping.get('qid') == qid:
-                return local_id
-        return None
-    
-    def update_mapping(self, local_id: str, 
-                      qid: str = None, 
-                      supplier_name: str = None,
-                      metadata: Dict = None) -> bool:
-        """
-        تحديث علاقة ربط موجودة
-        
-        Args:
-            local_id: معرف المورد في النظام المحلي
-            qid: معرف المنتج الجديد في قمرة (اختياري)
-            supplier_name: اسم المورد الجديد (اختياري)
-            metadata: بيانات إضافية جديدة (اختياري)
-        
-        Returns:
-            bool: نجاح أو فشل العملية
-        """
-        if local_id not in self._mappings:
-            print(f"❌ العلاقة غير موجودة للمورد {local_id}")
-            return False
-        
-        mapping = self._mappings[local_id]
-        
-        if qid is not None:
+        try:
+            # التحقق من وجود المورد
+            supplier = Supplier.query.get(supplier_id)
+            if not supplier:
+                return {
+                    'success': False,
+                    'message': f'المورد {supplier_id} غير موجود',
+                    'data': None
+                }
+            
+            # التحقق من عدم وجود ربط مكرر
+            existing = ProductSupplierMapping.query.filter_by(
+                product_qid=product_qid
+            ).first()
+            if existing:
+                return {
+                    'success': False,
+                    'message': f'المنتج {product_qid} مرتبط بالفعل بالمورد {existing.supplier_id}',
+                    'data': None
+                }
+            
             # التحقق من وجود المنتج في قمرة
-            product = self.client.get_product_by_qid(qid)
+            product = self.client.get_product_by_qid(product_qid)
             if not product:
-                print(f"❌ المنتج {qid} غير موجود في قمرة")
-                return False
-            mapping['qid'] = qid
-            mapping['product_title'] = product.get('title')
-            mapping['product_status'] = product.get('status')
-        
-        if supplier_name is not None:
-            mapping['supplier_name'] = supplier_name
-        
-        if metadata is not None:
-            mapping['metadata'].update(metadata)
-        
-        mapping['updated_at'] = datetime.now().isoformat()
-        
-        return self._save_mappings()
+                return {
+                    'success': False,
+                    'message': f'المنتج {product_qid} غير موجود في قمرة',
+                    'data': None
+                }
+            
+            # إنشاء الربط
+            mapping = ProductSupplierMapping(
+                product_qid=product_qid,
+                supplier_id=supplier_id,
+                status=status
+            )
+            
+            if internal_notes:
+                mapping.internal_notes = internal_notes
+            
+            db.session.add(mapping)
+            db.session.commit()
+            
+            return {
+                'success': True,
+                'message': 'تم إضافة الربط بنجاح',
+                'data': {
+                    'id': mapping.id,
+                    'product_qid': mapping.product_qid,
+                    'supplier_id': mapping.supplier_id,
+                    'status': mapping.status,
+                    'created_at': mapping.created_at.isoformat() if mapping.created_at else None
+                }
+            }
+            
+        except IntegrityError:
+            db.session.rollback()
+            return {
+                'success': False,
+                'message': 'الربط موجود مسبقاً',
+                'data': None
+            }
+        except Exception as e:
+            db.session.rollback()
+            return {
+                'success': False,
+                'message': f'خطأ: {str(e)}',
+                'data': None
+            }
     
-    def delete_mapping(self, local_id: str) -> bool:
+    def get_qid(self, supplier_id: int, status: str = 'active') -> List[str]:
+        """
+        استرجاع QIDs بناءً على معرف المورد المحلي
+        
+        Args:
+            supplier_id: معرف المورد في النظام المحلي
+            status: حالة الربط (active, inactive, pending)
+        
+        Returns:
+            List[str]: قائمة QIDs المنتجات في قمرة
+        """
+        mappings = ProductSupplierMapping.query.filter_by(
+            supplier_id=supplier_id,
+            status=status
+        ).all()
+        
+        return [m.product_qid for m in mappings]
+    
+    def get_mapping_by_qid(self, product_qid: str) -> Optional[Dict]:
+        """
+        استرجاع علاقة الربط بناءً على QID
+        
+        Args:
+            product_qid: معرف المنتج في قمرة
+        
+        Returns:
+            Dict: بيانات الربط أو None
+        """
+        mapping = ProductSupplierMapping.query.filter_by(
+            product_qid=product_qid
+        ).first()
+        
+        if not mapping:
+            return None
+        
+        return {
+            'id': mapping.id,
+            'product_qid': mapping.product_qid,
+            'supplier_id': mapping.supplier_id,
+            'supplier_name': mapping.supplier.name if mapping.supplier else None,
+            'status': mapping.status,
+            'internal_notes': mapping.internal_notes,
+            'created_at': mapping.created_at.isoformat() if mapping.created_at else None,
+            'updated_at': mapping.updated_at.isoformat() if mapping.updated_at else None
+        }
+    
+    def get_mapping_by_supplier(self, supplier_id: int) -> List[Dict]:
+        """
+        استرجاع جميع علاقات الربط لمورد معين
+        
+        Args:
+            supplier_id: معرف المورد في النظام المحلي
+        
+        Returns:
+            List[Dict]: قائمة العلاقات
+        """
+        mappings = ProductSupplierMapping.query.filter_by(
+            supplier_id=supplier_id
+        ).all()
+        
+        return [{
+            'id': m.id,
+            'product_qid': m.product_qid,
+            'status': m.status,
+            'created_at': m.created_at.isoformat() if m.created_at else None
+        } for m in mappings]
+    
+    def update_mapping_status(self, product_qid: str, status: str) -> Dict:
+        """
+        تحديث حالة الربط
+        
+        Args:
+            product_qid: معرف المنتج في قمرة
+            status: الحالة الجديدة (active, inactive, pending)
+        
+        Returns:
+            Dict: {success: bool, message: str}
+        """
+        mapping = ProductSupplierMapping.query.filter_by(
+            product_qid=product_qid
+        ).first()
+        
+        if not mapping:
+            return {
+                'success': False,
+                'message': f'الربط غير موجود للمنتج {product_qid}'
+            }
+        
+        mapping.status = status
+        mapping.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return {
+            'success': True,
+            'message': f'تم تحديث حالة الربط إلى {status}'
+        }
+    
+    def update_internal_notes(self, product_qid: str, notes: str) -> Dict:
+        """
+        تحديث الملاحظات الداخلية (مشفر)
+        
+        Args:
+            product_qid: معرف المنتج في قمرة
+            notes: الملاحظات الجديدة
+        
+        Returns:
+            Dict: {success: bool, message: str}
+        """
+        mapping = ProductSupplierMapping.query.filter_by(
+            product_qid=product_qid
+        ).first()
+        
+        if not mapping:
+            return {
+                'success': False,
+                'message': f'الربط غير موجود للمنتج {product_qid}'
+            }
+        
+        mapping.internal_notes = notes
+        mapping.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return {
+            'success': True,
+            'message': 'تم تحديث الملاحظات بنجاح'
+        }
+    
+    def delete_mapping(self, product_qid: str) -> Dict:
         """
         حذف علاقة ربط
         
         Args:
-            local_id: معرف المورد في النظام المحلي
+            product_qid: معرف المنتج في قمرة
         
         Returns:
-            bool: نجاح أو فشل العملية
+            Dict: {success: bool, message: str}
         """
-        if local_id not in self._mappings:
-            print(f"❌ العلاقة غير موجودة للمورد {local_id}")
-            return False
+        mapping = ProductSupplierMapping.query.filter_by(
+            product_qid=product_qid
+        ).first()
         
-        del self._mappings[local_id]
-        return self._save_mappings()
+        if not mapping:
+            return {
+                'success': False,
+                'message': f'الربط غير موجود للمنتج {product_qid}'
+            }
+        
+        db.session.delete(mapping)
+        db.session.commit()
+        
+        return {
+            'success': True,
+            'message': 'تم حذف الربط بنجاح'
+        }
     
     # ============================================================
     # 🔍 VERIFICATION - التحقق من العلاقات
     # ============================================================
     
-    def verify_mapping(self, local_id: str) -> Dict:
+    def verify_mapping(self, product_qid: str) -> Dict:
         """
         التحقق من صحة العلاقة (وجود المنتج في قمرة)
         
         Args:
-            local_id: معرف المورد في النظام المحلي
+            product_qid: معرف المنتج في قمرة
         
         Returns:
             Dict: {valid: bool, product: dict, message: str}
         """
-        mapping = self._mappings.get(local_id)
+        mapping = ProductSupplierMapping.query.filter_by(
+            product_qid=product_qid
+        ).first()
+        
         if not mapping:
             return {
                 'valid': False,
                 'product': None,
-                'message': f'العلاقة غير موجودة للمورد {local_id}'
+                'message': f'الربط غير موجود للمنتج {product_qid}'
             }
         
-        qid = mapping.get('qid')
-        product = self.client.get_product_by_qid(qid)
+        product = self.client.get_product_by_qid(product_qid)
         
         if product:
             return {
@@ -236,7 +299,7 @@ class ProductMappingService:
             return {
                 'valid': False,
                 'product': None,
-                'message': f'المنتج {qid} غير موجود في قمرة'
+                'message': f'المنتج {product_qid} غير موجود في قمرة'
             }
     
     def verify_all_mappings(self) -> Dict:
@@ -246,17 +309,21 @@ class ProductMappingService:
         Returns:
             Dict: {total: int, valid: int, invalid: int, details: List}
         """
+        mappings = ProductSupplierMapping.query.all()
+        
         results = {
-            'total': len(self._mappings),
+            'total': len(mappings),
             'valid': 0,
             'invalid': 0,
             'details': []
         }
         
-        for local_id in self._mappings:
-            result = self.verify_mapping(local_id)
+        for mapping in mappings:
+            result = self.verify_mapping(mapping.product_qid)
             results['details'].append({
-                'local_id': local_id,
+                'id': mapping.id,
+                'product_qid': mapping.product_qid,
+                'supplier_id': mapping.supplier_id,
                 'valid': result['valid'],
                 'message': result['message']
             })
@@ -268,90 +335,45 @@ class ProductMappingService:
         return results
     
     # ============================================================
-    # 📊 GET ALL MAPPINGS - جلب جميع العلاقات
+    # 📊 STATISTICS - إحصائيات
     # ============================================================
-    
-    def get_all_mappings(self) -> Dict[str, Dict]:
-        """
-        جلب جميع العلاقات
-        
-        Returns:
-            Dict: جميع العلاقات {local_id: mapping_data}
-        """
-        return self._mappings
-    
-    def get_mappings_by_supplier(self, supplier_name: str) -> List[Dict]:
-        """
-        جلب العلاقات حسب اسم المورد
-        
-        Args:
-            supplier_name: اسم المورد
-        
-        Returns:
-            List[Dict]: قائمة العلاقات
-        """
-        results = []
-        for local_id, mapping in self._mappings.items():
-            if mapping.get('supplier_name') == supplier_name:
-                results.append({
-                    'local_id': local_id,
-                    **mapping
-                })
-        return results
-    
-    def get_mappings_by_status(self, status: str) -> List[Dict]:
-        """
-        جلب العلاقات حسب حالة المنتج
-        
-        Args:
-            status: حالة المنتج (ACTIVE, INACTIVE, DRAFT, ARCHIVED)
-        
-        Returns:
-            List[Dict]: قائمة العلاقات
-        """
-        results = []
-        for local_id, mapping in self._mappings.items():
-            if mapping.get('product_status') == status:
-                results.append({
-                    'local_id': local_id,
-                    **mapping
-                })
-        return results
     
     def get_stats(self) -> Dict:
         """
         الحصول على إحصائيات العلاقات
         
         Returns:
-            Dict: {total, by_supplier, by_status, created_today}
+            Dict: {total, by_status, by_supplier, total_suppliers}
         """
+        mappings = ProductSupplierMapping.query.all()
+        
         stats = {
-            'total': len(self._mappings),
-            'by_supplier': {},
+            'total': len(mappings),
             'by_status': {},
-            'created_today': 0
+            'by_supplier': {},
+            'total_suppliers': 0
         }
         
-        today = datetime.now().date().isoformat()
+        supplier_ids = set()
         
-        for mapping in self._mappings.values():
-            # حسب المورد
-            supplier = mapping.get('supplier_name', 'unknown')
-            stats['by_supplier'][supplier] = stats['by_supplier'].get(supplier, 0) + 1
-            
+        for mapping in mappings:
             # حسب الحالة
-            status = mapping.get('product_status', 'unknown')
+            status = mapping.status
             stats['by_status'][status] = stats['by_status'].get(status, 0) + 1
             
-            # تم إنشاؤها اليوم
-            created_at = mapping.get('created_at', '')
-            if created_at.startswith(today):
-                stats['created_today'] += 1
+            # حسب المورد
+            supplier_id = mapping.supplier_id
+            supplier_ids.add(supplier_id)
+            
+            supplier_name = mapping.supplier.name if mapping.supplier else f'ID:{supplier_id}'
+            stats['by_supplier'][supplier_name] = stats['by_supplier'].get(supplier_name, 0) + 1
+        
+        stats['total_suppliers'] = len(supplier_ids)
         
         return stats
     
     # ============================================================
-    # 🔄 SYNC OPERATIONS - مزامنة العلاقات
+    # 🔄 SYNC - مزامنة العلاقات
     # ============================================================
     
     def sync_mappings(self) -> Dict:
@@ -361,36 +383,35 @@ class ProductMappingService:
         Returns:
             Dict: {total: int, updated: int, failed: int, details: List}
         """
+        mappings = ProductSupplierMapping.query.all()
+        
         results = {
-            'total': len(self._mappings),
+            'total': len(mappings),
             'updated': 0,
             'failed': 0,
             'details': []
         }
         
-        for local_id, mapping in self._mappings.items():
-            qid = mapping.get('qid')
-            product = self.client.get_product_by_qid(qid)
+        for mapping in mappings:
+            product = self.client.get_product_by_qid(mapping.product_qid)
             
             if product:
-                mapping['product_title'] = product.get('title')
-                mapping['product_status'] = product.get('status')
-                mapping['updated_at'] = datetime.now().isoformat()
                 results['updated'] += 1
                 results['details'].append({
-                    'local_id': local_id,
+                    'id': mapping.id,
+                    'product_qid': mapping.product_qid,
                     'status': 'updated',
-                    'message': 'تم التحديث'
+                    'message': 'المنتج موجود في قمرة'
                 })
             else:
                 results['failed'] += 1
                 results['details'].append({
-                    'local_id': local_id,
+                    'id': mapping.id,
+                    'product_qid': mapping.product_qid,
                     'status': 'failed',
-                    'message': f'المنتج {qid} غير موجود'
+                    'message': f'المنتج غير موجود في قمرة'
                 })
         
-        self._save_mappings()
         return results
     
     # ============================================================
@@ -404,27 +425,66 @@ class ProductMappingService:
         Returns:
             Dict: {deleted: int, details: List}
         """
+        mappings = ProductSupplierMapping.query.all()
+        
         results = {
             'deleted': 0,
             'details': []
         }
         
-        to_delete = []
-        for local_id in self._mappings:
-            result = self.verify_mapping(local_id)
-            if not result['valid']:
-                to_delete.append(local_id)
+        for mapping in mappings:
+            product = self.client.get_product_by_qid(mapping.product_qid)
+            
+            if not product:
                 results['details'].append({
-                    'local_id': local_id,
-                    'message': result['message']
+                    'id': mapping.id,
+                    'product_qid': mapping.product_qid,
+                    'message': f'المنتج غير موجود في قمرة'
                 })
+                db.session.delete(mapping)
+                results['deleted'] += 1
         
-        for local_id in to_delete:
-            del self._mappings[local_id]
-            results['deleted'] += 1
-        
-        self._save_mappings()
+        db.session.commit()
         return results
+    
+    # ============================================================
+    # 🔍 SEARCH - البحث
+    # ============================================================
+    
+    def search_by_supplier_name(self, supplier_name: str) -> List[Dict]:
+        """
+        البحث عن العلاقات حسب اسم المورد
+        
+        Args:
+            supplier_name: اسم المورد (جزئي)
+        
+        Returns:
+            List[Dict]: قائمة العلاقات
+        """
+        mappings = ProductSupplierMapping.query.join(Supplier).filter(
+            Supplier.name.contains(supplier_name)
+        ).all()
+        
+        return [{
+            'id': m.id,
+            'product_qid': m.product_qid,
+            'supplier_id': m.supplier_id,
+            'supplier_name': m.supplier.name if m.supplier else None,
+            'status': m.status,
+            'created_at': m.created_at.isoformat() if m.created_at else None
+        } for m in mappings]
+    
+    def search_by_product_qid(self, product_qid: str) -> Optional[Dict]:
+        """
+        البحث عن علاقة حسب QID
+        
+        Args:
+            product_qid: معرف المنتج في قمرة
+        
+        Returns:
+            Dict: بيانات العلاقة
+        """
+        return self.get_mapping_by_qid(product_qid)
 
 
 # ============================================================
@@ -442,29 +502,3 @@ __all__ = [
     'ProductMappingService',
     'product_mapping'
 ]
-
-
-# ============================================================
-# 🧪 TEST - اختبار سريع
-# ============================================================
-
-if __name__ == "__main__":
-    service = ProductMappingService()
-    
-    # ✅ مثال: إضافة علاقة جديدة
-    # service.add_mapping(
-    #     local_id="SUP-001",
-    #     qid="qmr_123456",
-    #     supplier_name="المورد الأول",
-    #     metadata={"category": "electronics", "priority": 1}
-    # )
-    
-    # ✅ مثال: استرجاع QID
-    # qid = service.get_qid("SUP-001")
-    # print(f"QID: {qid}")
-    
-    # ✅ مثال: إحصائيات
-    stats = service.get_stats()
-    print(f"📊 الإحصائيات: {stats}")
-    
-    print("✅ Product Mapping Service ready!")
