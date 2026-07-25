@@ -135,7 +135,7 @@
     {# ============================================
     الإحصائيات
     ============================================ #}
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-4" id="productStats">
         <div class="col-md-3 col-6">
             <div class="stats-card">
                 <div class="d-flex justify-content-between align-items-center">
@@ -230,9 +230,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         resultsContainer.innerHTML = newResults.innerHTML;
                     }
                     // ✅ تحديث الإحصائيات
-                    const newStats = doc.querySelector('.row.g-3.mb-4');
+                    const newStats = doc.querySelector('#productStats');
                     if (newStats) {
-                        const oldStats = document.querySelector('.row.g-3.mb-4');
+                        const oldStats = document.querySelector('#productStats');
                         if (oldStats) oldStats.outerHTML = newStats.outerHTML;
                     }
                     // ✅ تحديث أعداد الفلتر
