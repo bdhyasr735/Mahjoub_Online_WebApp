@@ -1,3 +1,4 @@
+# coding: utf-8
 # apps/suppliers_product/add_product_services.py
 
 import logging
