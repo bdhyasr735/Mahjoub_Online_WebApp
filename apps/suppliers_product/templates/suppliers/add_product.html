@@ -6,7 +6,7 @@
 
 {% block content %}
 
-{# ✅ CSS مخصص (نفس CSS في add_product.html) #}
+{# ✅ CSS مخصص #}
 <style>
     :root { --dark-purple: #2d0b36; }
     .upload-area {
@@ -45,6 +45,7 @@
         margin-top: 10px;
         border: 2px solid var(--dark-purple, #2d0b36);
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        object-fit: cover;
     }
     .image-preview {
         display: none;
@@ -123,6 +124,19 @@
     }
 </style>
 
+{# ✅ استخراج بيانات المنتج بأمان #}
+{% set prod = product.product if product and product.product else product %}
+{% set prod_qid = prod.qid or product.qid or '' %}
+{% set prod_name = prod.name or prod.title or '' %}
+{% set prod_desc = prod.description or '' %}
+{% set prod_price = prod.price or 0 %}
+{% set prod_qty = prod.quantity or 0 %}
+{% set prod_sku = prod.sku or (prod.identification.sku if prod.identification else '') %}
+{% set prod_weight = prod.weight or 0 %}
+{% set prod_status = prod.status or 'DRAFT' %}
+{% set prod_images = prod.images or [] %}
+{% set first_image_url = prod_images[0].url or prod_images[0] if prod_images|length > 0 else (product.image or '') %}
+
 {# ✅ المحتوى الرئيسي #}
 <div class="container-fluid py-4">
     
@@ -133,7 +147,7 @@
         </div>
         <div>
             <h3 class="fw-bold text-dark mb-0">تعديل المنتج</h3>
-            <p class="text-muted mb-0">✏️ قم بتعديل بيانات المنتج</p>
+            <p class="text-muted mb-0">✏️ قم بتحديث بيانات المنتج الحالية</p>
         </div>
     </div>
 
@@ -148,7 +162,7 @@
                 </div>
                 <div class="card-body p-4">
 
-                    <form method="POST" action="{{ url_for('edit_product_bp.api_update_product', qid=product.qid) }}" 
+                    <form method="POST" action="{{ url_for('edit_product_bp.api_update_product', qid=prod_qid) }}" 
                           enctype="multipart/form-data" id="productForm" novalidate>
                         
                         <!-- ✅ اسم المنتج -->
@@ -160,7 +174,7 @@
                             <input type="text" name="title" id="productTitle"
                                    class="form-control form-control-lg" 
                                    placeholder="أدخل اسم المنتج..."
-                                   value="{{ product.name or product.title or '' }}"
+                                   value="{{ prod_name }}"
                                    required
                                    minlength="3"
                                    maxlength="255">
@@ -176,9 +190,9 @@
                                       class="form-control" 
                                       rows="3"
                                       placeholder="وصف المنتج (اختياري)"
-                                      maxlength="2000">{{ product.description or '' }}</textarea>
+                                      maxlength="2000">{{ prod_desc }}</textarea>
                             <small class="text-muted">
-                                <span id="charCount">{{ product.description|length or 0 }}</span> / 2000 حرف
+                                <span id="charCount">{{ prod_desc|length }}</span> / 2000 حرف
                             </small>
                         </div>
 
@@ -194,7 +208,7 @@
                                        placeholder="مثال: 99.99"
                                        step="0.01"
                                        min="0"
-                                       value="{{ product.price or 0 }}"
+                                       value="{{ prod_price }}"
                                        required>
                                 <div class="invalid-feedback">يرجى إدخال سعر صحيح</div>
                             </div>
@@ -206,7 +220,7 @@
                                        class="form-control form-control-lg" 
                                        placeholder="مثال: 10"
                                        min="0"
-                                       value="{{ product.quantity or 0 }}">
+                                       value="{{ prod_qty }}">
                             </div>
                         </div>
 
@@ -220,7 +234,7 @@
                                        class="form-control" 
                                        placeholder="SKU (اختياري)"
                                        maxlength="50"
-                                       value="{{ product.sku or '' }}">
+                                       value="{{ prod_sku }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold text-dark" for="productWeight">
@@ -231,7 +245,7 @@
                                        placeholder="مثال: 0.5"
                                        step="0.01"
                                        min="0"
-                                       value="{{ product.weight or 0 }}">
+                                       value="{{ prod_weight }}">
                             </div>
                         </div>
 
@@ -241,9 +255,9 @@
                                 <i class="fas fa-circle text-muted me-1"></i> الحالة
                             </label>
                             <select name="status" id="productStatus" class="form-select">
-                                <option value="DRAFT" {% if product.status == 'DRAFT' %}selected{% endif %}>📝 مسودة</option>
-                                <option value="PUBLISHED" {% if product.status == 'PUBLISHED' %}selected{% endif %}>✅ منشور</option>
-                                <option value="ARCHIVED" {% if product.status == 'ARCHIVED' %}selected{% endif %}>📦 مؤرشف</option>
+                                <option value="DRAFT" {% if prod_status == 'DRAFT' %}selected{% endif %}>📝 مسودة</option>
+                                <option value="PUBLISHED" {% if prod_status == 'PUBLISHED' %}selected{% endif %}>✅ منشور</option>
+                                <option value="ARCHIVED" {% if prod_status == 'ARCHIVED' %}selected{% endif %}>📦 مؤرشف</option>
                             </select>
                         </div>
 
@@ -253,18 +267,20 @@
                                 <i class="fas fa-image text-muted me-1"></i> صورة المنتج
                             </label>
                             <div class="upload-area" id="uploadArea">
-                                <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                                <h5 class="mt-3 fw-bold">اسحب الصورة هنا أو اضغط للاختيار</h5>
-                                <p class="text-muted small">jpg, png, gif, webp - حد أقصى 5MB</p>
+                                <i class="fas fa-cloud-upload-alt upload-icon" {% if first_image_url %}style="display: none;"{% endif %}></i>
+                                <h5 class="mt-3 fw-bold" {% if first_image_url %}style="display: none;"{% endif %}>اسحب الصورة هنا أو اضغط للاختيار</h5>
+                                <p class="text-muted small" {% if first_image_url %}style="display: none;"{% endif %}>jpg, png, gif, webp - حد أقصى 5MB</p>
+                                
                                 <input type="file" name="image" id="imageInput" accept="image/*" style="display: none;">
-                                <div class="image-preview {% if product.image %}show{% endif %}" id="imagePreview">
+                                
+                                <div class="image-preview {% if first_image_url %}show{% endif %}" id="imagePreview">
                                     <div class="preview-container">
-                                        <img id="previewImage" src="{{ product.image or '#' }}" alt="معاينة الصورة" class="preview-img">
+                                        <img id="previewImage" src="{{ first_image_url or '#' }}" alt="معاينة الصورة" class="preview-img">
                                         <button type="button" class="btn-remove-image" onclick="removeImage()">✕</button>
                                     </div>
                                 </div>
                             </div>
-                            <small class="text-muted" id="fileNameDisplay"></small>
+                            <small class="text-muted mt-2 d-block" id="fileNameDisplay"></small>
                         </div>
 
                         <!-- ✅ أزرار الإجراء -->
@@ -288,11 +304,11 @@
     </div>
 </div>
 
-{# ✅ JavaScript (نفس JavaScript في add_product.html) #}
+{# ✅ JavaScript المعالج #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
-    // ✅ عداد الأحرف
+    // ✅ عداد الأحرف للوصف
     const description = document.getElementById('productDescription');
     const charCount = document.getElementById('charCount');
     if (description && charCount) {
@@ -302,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ✅ رفع الصورة
+    // ✅ إدارة رفع ومعاينة الصور
     const uploadArea = document.getElementById('uploadArea');
     const imageInput = document.getElementById('imageInput');
     const imagePreview = document.getElementById('imagePreview');
@@ -370,7 +386,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fileNameDisplay.textContent = '';
     };
 
-    // ✅ إرسال النموذج
+    // ✅ إرسال النموذج عبر AJAX
     document.getElementById('productForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -386,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const formData = new FormData(this);
 
-        fetch('{{ url_for("edit_product_bp.api_update_product", qid=product.qid) }}', {
+        fetch('{{ url_for("edit_product_bp.api_update_product", qid=prod_qid) }}', {
             method: 'POST',
             body: formData
         })
@@ -411,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ✅ إشعارات
+    // ✅ نظام الإشعارات (Toast)
     window.showToast = function(message, type = 'info') {
         const colors = {
             success: '#28a745',
@@ -439,7 +455,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => toast.remove(), 4000);
     };
 
-    // ✅ إضافة CSS للإشعارات
+    // ✅ إضافة حركة الإشعارات CSS
     const style = document.createElement('style');
     style.textContent = `
         @keyframes slideInUp {
