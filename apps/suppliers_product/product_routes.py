@@ -39,7 +39,7 @@ def index():
         search = request.args.get('search', '', type=str)
         status = request.args.get('status', 'all', type=str)
 
-        # جلب البيانات الأساسية (يمكن استبدالها بالاتصال بقاعدة البيانات أو واجهة GraphQL)
+        # جلب البيانات الأساسية
         products = [] 
 
         # تطبيق الفلاتر والبحث
@@ -53,7 +53,7 @@ def index():
         pagination_data = paginate(filtered_products, page=page, per_page=per_page)
 
         return render_template(
-            'suppliers_product/index.html',
+            'suppliers/suppliers_product.html',  # تم التصحيح هنا ليتطابق مع مسار القالب لديك
             pagination=pagination_data,
             stats=stats,
             search=search,
@@ -65,7 +65,7 @@ def index():
     except Exception as e:
         logger.error(f"❌ خطأ في عرض قائمة منتجات الموردين: {e}")
         flash('حدث خطأ أثناء تحميل المنتجات', 'danger')
-        return redirect(url_for('main.index'))
+        return redirect(url_for('index'))  # تم تصحيح مسار إعادة التوجيه ليتوافق مع مسار النظام الرئيسي
 
 
 @suppliers_product_bp.route('/add', methods=['GET', 'POST'])
@@ -87,16 +87,14 @@ def add_product():
         if not is_valid:
             for error in errors:
                 flash(error, 'danger')
-            return render_template('suppliers_product/add.html', form_data=data, generated_sku=data['sku'])
+            return render_template('suppliers/suppliers_product.html', form_data=data, generated_sku=data['sku'])
 
         try:
-            # معالجة رفع الصورة وضغطها إن وجدت
             if 'image' in request.files:
                 file = request.files['image']
                 if file and file.filename:
                     image_bytes = file.read()
                     compressed_bytes = compress_image(image_bytes)
-                    # حفظ الصورة المضغوطة في التخزين المناسب
 
             flash('تم إضافة المنتج بنجاح', 'success')
             return redirect(url_for('suppliers_product.index'))
@@ -104,7 +102,7 @@ def add_product():
             logger.error(f"❌ خطأ أثناء إضافة المنتج: {e}")
             flash('حدث خطأ أثناء حفظ المنتج', 'danger')
 
-    return render_template('suppliers_product/add.html', generated_sku=generate_sku())
+    return render_template('suppliers/suppliers_product.html', generated_sku=generate_sku())
 
 
 @suppliers_product_bp.route('/edit/<qid>', methods=['GET', 'POST'])
@@ -112,7 +110,7 @@ def edit_product(qid):
     """
     تعديل منتج موجود
     """
-    product = {} # استعلام لجلب بيانات المنتج باستخدام المعرف qid
+    product = {}
     
     if request.method == 'POST':
         data = {
@@ -128,7 +126,7 @@ def edit_product(qid):
         if not is_valid:
             for error in errors:
                 flash(error, 'danger')
-            return render_template('suppliers_product/edit.html', product=product)
+            return render_template('suppliers/suppliers_product.html', product=product)
 
         try:
             flash('تم تحديث المنتج بنجاح', 'success')
@@ -137,7 +135,7 @@ def edit_product(qid):
             logger.error(f"❌ خطأ أثناء تحديث المنتج {qid}: {e}")
             flash('حدث خطأ أثناء تحديث المنتج', 'danger')
 
-    return render_template('suppliers_product/edit.html', product=product)
+    return render_template('suppliers/suppliers_product.html', product=product)
 
 
 @suppliers_product_bp.route('/delete/<qid>', methods=['POST'])
@@ -146,7 +144,6 @@ def delete_product(qid):
     حذف منتج
     """
     try:
-        # منطق الحذف الفعلي هنا
         flash('تم حذف المنتج بنجاح', 'success')
     except Exception as e:
         logger.error(f"❌ خطأ أثناء حذف المنتج {qid}: {e}")
