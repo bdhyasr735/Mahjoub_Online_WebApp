@@ -35,11 +35,11 @@ def index():
     """
     try:
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_per', 20, type=int)
+        per_page = request.args.get('per_page', 20, type=int)  # تصحيح الخطأ الإملائي per_per إلى per_page
         search = request.args.get('search', '', type=str)
         status = request.args.get('status', 'all', type=str)
 
-        # جلب البيانات الأساسية
+        # جلب البيانات الأساسية (يمكن استبدالها لاحقاً بالاستعلام الفعلي من قاعدة البيانات أو GraphQL)
         products = [] 
 
         # تطبيق الفلاتر والبحث
@@ -48,14 +48,21 @@ def index():
 
         # حساب الإحصائيات
         stats = get_product_stats_from_list(products)
+        
+        # استخراج القيم بشكل فردي لتتوافق مع القالب
+        total_products = stats.get('total', 0) if isinstance(stats, dict) else len(products)
+        active_products = stats.get('active', 0) if isinstance(stats, dict) else 0
+        draft_products = stats.get('draft', 0) if isinstance(stats, dict) else 0
 
         # تطبيق الترقيم
         pagination_data = paginate(filtered_products, page=page, per_page=per_page)
 
         return render_template(
-            'suppliers/suppliers_product.html',  # تم التصحيح هنا ليتطابق مع مسار القالب لديك
-            pagination=pagination_data,
-            stats=stats,
+            'suppliers/suppliers_product.html',
+            products=pagination_data,  # تم تمريرها باسم products لتعمل مع products.items في القالب
+            total_products=total_products,
+            active_products=active_products,
+            draft_products=draft_products,
             search=search,
             current_status=status,
             get_status_badge=get_status_badge,
@@ -65,7 +72,7 @@ def index():
     except Exception as e:
         logger.error(f"❌ خطأ في عرض قائمة منتجات الموردين: {e}")
         flash('حدث خطأ أثناء تحميل المنتجات', 'danger')
-        return redirect(url_for('index'))  # تم تصحيح مسار إعادة التوجيه ليتوافق مع مسار النظام الرئيسي
+        return redirect(url_for('suppliers_product.index'))
 
 
 @suppliers_product_bp.route('/add', methods=['GET', 'POST'])
