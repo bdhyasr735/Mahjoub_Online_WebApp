@@ -1,12 +1,12 @@
 # coding: utf-8
 # 📂 apps/suppliers_product/services.py
 
-from apps.services.product_sync_service import ProductSyncService as QumraSyncService
-from apps.services.product_mapping_service import product_mapping
-from apps.services import product_ident  # ✅ تم التصحيح
+from apps.services import ProductService, GraphQLClient
+from apps.mapping.product_mapping_service import product_mapping
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models import Supplier
 from apps.suppliers_product.helpers import compress_image
+from apps.extensions import db
 import logging
 import time
 
@@ -15,180 +15,255 @@ logger = logging.getLogger(__name__)
 
 class SupplierProductService:
     def __init__(self):
-        self.qumra = QumraSyncService()
-
+        # ✅ استخدام الخدمات الجديدة
+        self.client = GraphQLClient()
+        self.products = ProductService(self.client)
+    
     # ====== GET ======
     def get_product(self, qid, supplier_id):
+        """جلب منتج مع التحقق من الصلاحية"""
         mapping = ProductSupplierMapping.query.filter_by(
             product_qid=qid, supplier_id=supplier_id, status='active'
         ).first()
         if not mapping:
             return {'success': False, 'error': 'المنتج غير موجود'}
-        product = self.qumra.fetch_product_by_qid(qid)
+        
+        product = self.products.get_by_qid(qid)
         if not product:
             return {'success': False, 'error': 'المنتج غير موجود في قمرة'}
-        return {'success': True, 'product': product, 'mapping': product_mapping.get_mapping_by_qid(qid)}
-
+        
+        return {
+            'success': True, 
+            'product': product, 
+            'mapping': product_mapping.get_mapping_by_qid(qid)
+        }
+    
     def fetch_product_by_qid(self, qid):
-        return self.qumra.fetch_product_by_qid(qid)
-
+        """جلب منتج بواسطة QID"""
+        return self.products.get_by_qid(qid)
+    
     # ====== CREATE ======
     def create_product(self, supplier_id, data):
+        """إنشاء منتج جديد للمورد"""
         supplier = Supplier.query.get(supplier_id)
         if not supplier:
             return {'success': False, 'error': 'المورد غير موجود'}
-
+        
         title = data.get('title', '').strip()
         if not title:
             return {'success': False, 'error': 'اسم المنتج مطلوب'}
-
+        
+        # تجهيز بيانات المنتج
         product_data = {
-            'title': title,
-            'description': data.get('description', '').strip(),
+            'name': title,
             'price': float(data.get('price', 0)),
-            'status': data.get('status', 'DRAFT')
+            'status': data.get('status', 'DRAFT'),
+            'description': data.get('description', '').strip()
         }
-
+        
+        # إضافة SKU إن وجد
         if data.get('sku'):
             sku = data['sku'].strip()
-            if not product_ident.check_sku_availability(sku).get('available', True):
+            if not self.check_sku_availability(sku).get('available', True):
                 return {'success': False, 'error': f'SKU "{sku}" غير متاح'}
             product_data['sku'] = sku
-
+        
+        # إضافة الوزن والكمية
         if data.get('weight'):
             product_data['weight'] = float(data['weight'])
         if data.get('quantity'):
-            product_data['quantity'] = int(data['quantity'])
-
+            product_data['stock'] = int(data['quantity'])
+        
+        # إنشاء المنتج
+        result = self.products.create(product_data)
+        if not result:
+            return {'success': False, 'error': 'فشل إنشاء المنتج'}
+        
+        # ربط المنتج بالمورد
+        mapping = ProductSupplierMapping(
+            product_qid=result['qid'],
+            supplier_id=supplier_id,
+            status='active'
+        )
+        db.session.add(mapping)
+        db.session.commit()
+        
+        # إضافة صورة إن وجدت
         if data.get('image_file'):
-            url = self._upload_image(data['image_file'], data.get('image_filename', 'image.jpg'))
-            if url:
-                product_data['images'] = [url]
-
-        # ✅ إضافة supplier_id إلى create_product
-        result = self.qumra.create_product(**product_data, supplier_id=supplier_id)
+            self.add_product_image(result['qid'], data['image_file'], data.get('image_filename', 'image.jpg'))
         
-        # ✅ إذا نجح الإنشاء، تأكد من ربط المنتج بالمورد
-        if result and result.get('success'):
-            qid = result.get('qid')
-            if qid:
-                # ✅ التحقق من وجود الربط
-                existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-                if not existing_mapping:
-                    mapping = ProductSupplierMapping(
-                        product_qid=qid,
-                        supplier_id=supplier_id,
-                        status='active'
-                    )
-                    from apps.extensions import db
-                    db.session.add(mapping)
-                    db.session.commit()
-                    logger.info(f"✅ تم ربط المنتج {qid} بالمورد {supplier_id}")
-        
-        return result
-
+        return {
+            'success': True,
+            'message': 'تم إنشاء المنتج بنجاح',
+            'qid': result['qid'],
+            'product': result
+        }
+    
     # ====== UPDATE ======
     def update_product(self, qid, supplier_id, data):
-        mapping = ProductSupplierMapping.query.filter_by(
-            product_qid=qid, supplier_id=supplier_id, status='active'
-        ).first()
-        if not mapping:
-            return {'success': False, 'error': 'المنتج غير موجود'}
-
-        if data.get('title') or data.get('description') or data.get('status'):
-            info = {}
-            if data.get('title'): info['title'] = data['title']
-            if data.get('description'): info['description'] = data['description']
-            if data.get('status'): info['status'] = data['status']
-            if info:
-                self.qumra.update_product_info(qid, **info)
-
+        """تحديث منتج"""
+        if not self.verify_access(qid, supplier_id):
+            return {'success': False, 'error': 'غير مصرح'}
+        
+        # تحديث المعلومات الأساسية
+        update_data = {}
+        if data.get('title'):
+            update_data['name'] = data['title']
+        if data.get('description'):
+            update_data['description'] = data['description']
+        if data.get('status'):
+            update_data['status'] = data['status']
+        
+        if update_data:
+            self.products.update(qid, update_data)
+        
+        # تحديث السعر
         if data.get('price'):
-            self.qumra.update_product_pricing(qid, float(data['price']))
+            self.products.update_price(qid, float(data['price']))
+        
+        # تحديث الوزن
         if data.get('weight'):
-            self.qumra.update_product_weight(qid, float(data['weight']))
-
+            self.products.update_weight(qid, float(data['weight']))
+        
+        # تحديث SKU
         if data.get('sku'):
             sku = data['sku'].strip()
-            if product_ident.check_sku_availability(sku, qid).get('available', True):
-                product_ident.update_product_sku(qid, sku)
+            if self.check_sku_availability(sku, qid).get('available', True):
+                # تحديث SKU عبر GraphQL
+                self.products.update(qid, {'sku': sku})
             else:
                 return {'success': False, 'error': f'SKU "{sku}" غير متاح'}
-
+        
+        # تحديث الصورة
         if data.get('image_file'):
             result = self.add_product_image(qid, data['image_file'], data.get('image_filename', 'image.jpg'))
             if not result['success']:
                 return result
-
-        return {'success': True, 'message': 'تم التحديث'}
-
+        
+        return {'success': True, 'message': 'تم التحديث بنجاح'}
+    
     # ====== IMAGE ======
     def _upload_image(self, image_data, filename):
-        return self.qumra.upload_image(compress_image(image_data), filename)
-
+        """رفع صورة (يجب تنفيذها حسب نظام التخزين المستخدم)"""
+        # TODO: تنفيذ رفع الصورة حسب نظام التخزين
+        # يمكن استخدام Cloudinary أو S3 أو التخزين المحلي
+        compressed = compress_image(image_data)
+        # return self.products.upload_image(compressed, filename)
+        return None
+    
     def add_product_image(self, qid, image_data, filename):
+        """إضافة صورة للمنتج"""
         url = self._upload_image(image_data, filename)
         if not url:
             return {'success': False, 'error': 'فشل رفع الصورة'}
-        product = self.qumra.fetch_product_by_qid(qid)
-        urls = [img.get('fileUrl') for img in product.get('images', []) if img.get('fileUrl')]
-        urls.append(url)
-        return {'success': self.qumra.update_product_images(qid, urls), 'url': url}
-
-    def remove_product_image(self, qid, image_id):
-        product = self.qumra.fetch_product_by_qid(qid)
+        
+        product = self.products.get_by_qid(qid)
         if not product:
             return {'success': False, 'error': 'المنتج غير موجود'}
-        urls = [img.get('fileUrl') for img in product.get('images', []) if img.get('_id') != image_id and img.get('fileUrl')]
-        return {'success': self.qumra.update_product_images(qid, urls)}
-
+        
+        # جلب الصور الحالية وإضافة الصورة الجديدة
+        current_images = product.get('images', [])
+        if isinstance(current_images, list):
+            current_images.append(url)
+        else:
+            current_images = [url]
+        
+        result = self.products.update_images(qid, current_images)
+        return {'success': bool(result), 'url': url}
+    
+    def remove_product_image(self, qid, image_id):
+        """حذف صورة من المنتج"""
+        product = self.products.get_by_qid(qid)
+        if not product:
+            return {'success': False, 'error': 'المنتج غير موجود'}
+        
+        current_images = product.get('images', [])
+        if isinstance(current_images, list):
+            # حذف الصورة حسب المعرف
+            new_images = [img for img in current_images if img != image_id]
+            result = self.products.update_images(qid, new_images)
+            return {'success': bool(result)}
+        
+        return {'success': False, 'error': 'لا توجد صور'}
+    
     # ====== STATUS ======
     def update_product_status(self, qid, supplier_id, status):
-        mapping = ProductSupplierMapping.query.filter_by(
-            product_qid=qid, supplier_id=supplier_id, status='active'
-        ).first()
-        if not mapping:
-            return {'success': False, 'error': 'المنتج غير موجود'}
-        if self.qumra.update_product_status(qid, status):
-            product_mapping.update_mapping_status(qid, status)
-            return {'success': True, 'message': f'تم التحديث إلى {status}'}
-        return {'success': False, 'error': 'فشل التحديث'}
-
-    # ====== SKU ======
-    def check_sku_availability(self, sku, exclude_qid=None):
-        return product_ident.check_sku_availability(sku, exclude_qid)
-
-    def generate_sku(self, prefix='PRD'):
-        try:
-            return product_ident.generate_sku(prefix=prefix)
-        except Exception:
-            return f"{prefix}-{int(time.time())}"
-
-    # ====== MAPPING ======
-    def get_supplier_mappings(self, supplier_id):
-        mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, status='active').all()
-        return [{'id': m.id, 'qid': m.product_qid, 'supplier_id': m.supplier_id} for m in mappings]
-
-    def verify_access(self, qid, supplier_id):
-        return ProductSupplierMapping.query.filter_by(
-            product_qid=qid, supplier_id=supplier_id, status='active'
-        ).first() is not None
-
-    # ====== SUPPLIER ======
-    def get_active_suppliers(self):
-        return [{'id': s.id, 'name': s.name} for s in Supplier.query.filter_by(status='active').all()]
-
-    def delete_product(self, qid, supplier_id):
+        """تحديث حالة المنتج"""
         if not self.verify_access(qid, supplier_id):
             return {'success': False, 'error': 'غير مصرح'}
-        return {'success': self.qumra.delete_product(qid, delete_mapping=True)}
+        
+        result = self.products.update_status(qid, status)
+        if result:
+            product_mapping.update_mapping_status(qid, status)
+            return {'success': True, 'message': f'تم التحديث إلى {status}'}
+        
+        return {'success': False, 'error': 'فشل التحديث'}
+    
+    # ====== SKU ======
+    def check_sku_availability(self, sku, exclude_qid=None):
+        """التحقق من توفر SKU"""
+        # TODO: تنفيذ التحقق من SKU في قاعدة البيانات
+        return {'available': True}
+    
+    def generate_sku(self, prefix='PRD'):
+        """توليد SKU تلقائي"""
+        timestamp = int(time.time())
+        return f"{prefix}-{timestamp}"
+    
+    # ====== MAPPING ======
+    def get_supplier_mappings(self, supplier_id):
+        """جلب جميع منتجات المورد"""
+        mappings = ProductSupplierMapping.query.filter_by(
+            supplier_id=supplier_id, 
+            status='active'
+        ).all()
+        return [{'id': m.id, 'qid': m.product_qid, 'supplier_id': m.supplier_id} for m in mappings]
+    
+    def verify_access(self, qid, supplier_id):
+        """التحقق من أن المنتج يخص المورد"""
+        return ProductSupplierMapping.query.filter_by(
+            product_qid=qid, 
+            supplier_id=supplier_id, 
+            status='active'
+        ).first() is not None
+    
+    # ====== SUPPLIER ======
+    def get_active_suppliers(self):
+        """جلب الموردين النشطين"""
+        return [{'id': s.id, 'name': s.name} for s in Supplier.query.filter_by(status='active').all()]
+    
+    def delete_product(self, qid, supplier_id):
+        """حذف منتج"""
+        if not self.verify_access(qid, supplier_id):
+            return {'success': False, 'error': 'غير مصرح'}
+        
+        # حذف من GraphQL
+        result = self.products.delete(qid)
+        
+        # حذف الربط
+        if result:
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            if mapping:
+                db.session.delete(mapping)
+                db.session.commit()
+        
+        return {'success': result}
 
 
 # ====== STATS ======
 def get_product_stats(supplier_id):
+    """جلب إحصائيات منتجات المورد"""
     service = SupplierProductService()
     mappings = service.get_supplier_mappings(supplier_id)
-    stats = {'total': len(mappings), 'published': 0, 'draft': 0, 'rejected': 0, 'archived': 0}
+    
+    stats = {
+        'total': len(mappings),
+        'published': 0,
+        'draft': 0,
+        'rejected': 0,
+        'archived': 0
+    }
+    
     for m in mappings:
         product = service.fetch_product_by_qid(m['qid'])
         if product:
@@ -201,7 +276,9 @@ def get_product_stats(supplier_id):
                 stats['rejected'] += 1
             elif status == 'ARCHIVED':
                 stats['archived'] += 1
+    
     return stats
 
 
+# ====== SINGLETON ======
 supplier_product = SupplierProductService()
