@@ -24,7 +24,7 @@ suppliers_product_bp = Blueprint(
     __name__,
     template_folder='templates',
     static_folder='static',
-    url_prefix='/suppliers/products'
+    url_prefix='/supplier/product'
 )
 
 
