@@ -1,17 +1,14 @@
-<!-- apps/suppliers_product/templates/suppliers/add_product.html -->
+<!-- apps/suppliers_product/templates/suppliers/edit_product.html -->
 
 {% extends "suppliers/base.html" %}
 
-{% block title %}إضافة منتج جديد | محجوب أونلاين{% endblock %}
+{% block title %}تعديل منتج | محجوب أونلاين{% endblock %}
 
 {% block content %}
 
-{# ✅ CSS مخصص #}
+{# ✅ CSS مخصص (نفس CSS في add_product.html) #}
 <style>
-    :root {
-        --dark-purple: #2d0b36;
-    }
-    
+    :root { --dark-purple: #2d0b36; }
     .upload-area {
         border: 2px dashed #dee2e6;
         border-radius: 16px;
@@ -84,12 +81,10 @@
         position: relative;
         display: inline-block;
     }
-    
     .form-control:focus, .form-select:focus {
         border-color: var(--dark-purple, #2d0b36);
         box-shadow: 0 0 0 0.25rem rgba(45, 11, 54, 0.15);
     }
-    
     .btn-custom {
         background-color: var(--dark-purple, #2d0b36);
         color: #fff;
@@ -107,46 +102,24 @@
         cursor: not-allowed;
         transform: none;
     }
-    
     .form-label .required {
         color: #dc3545;
         margin-right: 4px;
     }
-    
     .card {
         border-radius: 16px;
         overflow: hidden;
     }
-    
     .card-header {
         background: linear-gradient(135deg, #f8f5fa 0%, #fff 100%);
         border-bottom: 2px solid rgba(45, 11, 54, 0.05);
     }
-    
-    /* ✅ Toast container */
-    .toast-container {
-        z-index: 9999;
-    }
-    
-    /* ✅ استجابة للشاشات الصغيرة */
+    .toast-container { z-index: 9999; }
     @media (max-width: 576px) {
-        .upload-area {
-            padding: 20px 15px;
-        }
-        .upload-area .upload-icon {
-            font-size: 2rem;
-        }
-        .upload-area img.preview-img {
-            max-width: 150px;
-            max-height: 150px;
-        }
-        .btn-remove-image {
-            width: 28px;
-            height: 28px;
-            font-size: 14px;
-            top: -10px;
-            right: -10px;
-        }
+        .upload-area { padding: 20px 15px; }
+        .upload-area .upload-icon { font-size: 2rem; }
+        .upload-area img.preview-img { max-width: 150px; max-height: 150px; }
+        .btn-remove-image { width: 28px; height: 28px; font-size: 14px; top: -10px; right: -10px; }
     }
 </style>
 
@@ -156,11 +129,11 @@
     <!-- ✅ رأس الصفحة -->
     <div class="d-flex align-items-center mb-4">
         <div class="bg-white p-3 rounded-circle shadow-sm me-3" style="border: 2px solid var(--dark-purple, #2d0b36);">
-            <i class="fas fa-plus-circle fa-2x" style="color: var(--dark-purple, #2d0b36);"></i>
+            <i class="fas fa-edit fa-2x" style="color: var(--dark-purple, #2d0b36);"></i>
         </div>
         <div>
-            <h3 class="fw-bold text-dark mb-0">إضافة منتج جديد</h3>
-            <p class="text-muted mb-0">📦 أضف منتجاً جديداً ليتم ربطه بموردك</p>
+            <h3 class="fw-bold text-dark mb-0">تعديل المنتج</h3>
+            <p class="text-muted mb-0">✏️ قم بتعديل بيانات المنتج</p>
         </div>
     </div>
 
@@ -175,7 +148,7 @@
                 </div>
                 <div class="card-body p-4">
 
-                    <form method="POST" action="{{ url_for('add_product_bp.api_add_product') }}" 
+                    <form method="POST" action="{{ url_for('edit_product_bp.api_update_product', qid=product.qid) }}" 
                           enctype="multipart/form-data" id="productForm" novalidate>
                         
                         <!-- ✅ اسم المنتج -->
@@ -187,6 +160,7 @@
                             <input type="text" name="title" id="productTitle"
                                    class="form-control form-control-lg" 
                                    placeholder="أدخل اسم المنتج..."
+                                   value="{{ product.name or product.title or '' }}"
                                    required
                                    minlength="3"
                                    maxlength="255">
@@ -202,9 +176,9 @@
                                       class="form-control" 
                                       rows="3"
                                       placeholder="وصف المنتج (اختياري)"
-                                      maxlength="2000"></textarea>
+                                      maxlength="2000">{{ product.description or '' }}</textarea>
                             <small class="text-muted">
-                                <span id="charCount">0</span> / 2000 حرف
+                                <span id="charCount">{{ product.description|length or 0 }}</span> / 2000 حرف
                             </small>
                         </div>
 
@@ -220,6 +194,7 @@
                                        placeholder="مثال: 99.99"
                                        step="0.01"
                                        min="0"
+                                       value="{{ product.price or 0 }}"
                                        required>
                                 <div class="invalid-feedback">يرجى إدخال سعر صحيح</div>
                             </div>
@@ -231,7 +206,7 @@
                                        class="form-control form-control-lg" 
                                        placeholder="مثال: 10"
                                        min="0"
-                                       value="0">
+                                       value="{{ product.quantity or 0 }}">
                             </div>
                         </div>
 
@@ -241,15 +216,11 @@
                                 <label class="form-label fw-bold text-dark" for="productSku">
                                     <i class="fas fa-barcode text-muted me-1"></i> SKU
                                 </label>
-                                <div class="input-group">
-                                    <input type="text" name="sku" id="productSku"
-                                           class="form-control" 
-                                           placeholder="SKU (اختياري)"
-                                           maxlength="50">
-                                    <button type="button" class="btn btn-outline-secondary" id="generateSkuBtn" title="توليد SKU تلقائي">
-                                        <i class="fas fa-sync"></i>
-                                    </button>
-                                </div>
+                                <input type="text" name="sku" id="productSku"
+                                       class="form-control" 
+                                       placeholder="SKU (اختياري)"
+                                       maxlength="50"
+                                       value="{{ product.sku or '' }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold text-dark" for="productWeight">
@@ -259,7 +230,8 @@
                                        class="form-control" 
                                        placeholder="مثال: 0.5"
                                        step="0.01"
-                                       min="0">
+                                       min="0"
+                                       value="{{ product.weight or 0 }}">
                             </div>
                         </div>
 
@@ -269,9 +241,9 @@
                                 <i class="fas fa-circle text-muted me-1"></i> الحالة
                             </label>
                             <select name="status" id="productStatus" class="form-select">
-                                <option value="DRAFT">📝 مسودة</option>
-                                <option value="PUBLISHED">✅ منشور</option>
-                                <option value="ARCHIVED">📦 مؤرشف</option>
+                                <option value="DRAFT" {% if product.status == 'DRAFT' %}selected{% endif %}>📝 مسودة</option>
+                                <option value="PUBLISHED" {% if product.status == 'PUBLISHED' %}selected{% endif %}>✅ منشور</option>
+                                <option value="ARCHIVED" {% if product.status == 'ARCHIVED' %}selected{% endif %}>📦 مؤرشف</option>
                             </select>
                         </div>
 
@@ -285,9 +257,9 @@
                                 <h5 class="mt-3 fw-bold">اسحب الصورة هنا أو اضغط للاختيار</h5>
                                 <p class="text-muted small">jpg, png, gif, webp - حد أقصى 5MB</p>
                                 <input type="file" name="image" id="imageInput" accept="image/*" style="display: none;">
-                                <div class="image-preview" id="imagePreview">
+                                <div class="image-preview {% if product.image %}show{% endif %}" id="imagePreview">
                                     <div class="preview-container">
-                                        <img id="previewImage" src="#" alt="معاينة الصورة" class="preview-img">
+                                        <img id="previewImage" src="{{ product.image or '#' }}" alt="معاينة الصورة" class="preview-img">
                                         <button type="button" class="btn-remove-image" onclick="removeImage()">✕</button>
                                     </div>
                                 </div>
@@ -298,14 +270,14 @@
                         <!-- ✅ أزرار الإجراء -->
                         <div class="d-flex flex-wrap gap-2 mt-3">
                             <button type="submit" class="btn btn-custom px-5 py-2" id="submitBtn">
-                                <i class="fas fa-save me-2"></i> حفظ المنتج
+                                <i class="fas fa-save me-2"></i> تحديث المنتج
                             </button>
                             <a href="{{ url_for('suppliers_product_bp.products') }}" class="btn btn-outline-secondary px-4 py-2">
                                 <i class="fas fa-arrow-right me-1"></i> رجوع
                             </a>
-                            <button type="reset" class="btn btn-outline-danger px-4 py-2">
-                                <i class="fas fa-undo me-1"></i> إعادة تعيين
-                            </button>
+                            <a href="{{ url_for('suppliers_product_bp.products') }}" class="btn btn-outline-danger px-4 py-2">
+                                <i class="fas fa-times me-1"></i> إلغاء
+                            </a>
                         </div>
 
                     </form>
@@ -316,30 +288,21 @@
     </div>
 </div>
 
-{# ✅ JavaScript #}
+{# ✅ JavaScript (نفس JavaScript في add_product.html) #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
-    // ============================================================
-    // ✅ عداد الأحرف للوصف
-    // ============================================================
+    // ✅ عداد الأحرف
     const description = document.getElementById('productDescription');
     const charCount = document.getElementById('charCount');
-    
     if (description && charCount) {
         description.addEventListener('input', function() {
             charCount.textContent = this.value.length;
-            if (this.value.length > 1900) {
-                charCount.style.color = '#dc3545';
-            } else {
-                charCount.style.color = '';
-            }
+            charCount.style.color = this.value.length > 1900 ? '#dc3545' : '';
         });
     }
 
-    // ============================================================
     // ✅ رفع الصورة
-    // ============================================================
     const uploadArea = document.getElementById('uploadArea');
     const imageInput = document.getElementById('imageInput');
     const imagePreview = document.getElementById('imagePreview');
@@ -355,21 +318,17 @@ document.addEventListener('DOMContentLoaded', function() {
     imageInput.addEventListener('change', function(e) {
         const file = this.files[0];
         if (file) {
-            // ✅ التحقق من حجم الملف (5MB)
             if (file.size > 5 * 1024 * 1024) {
                 showToast('❌ حجم الصورة كبير جداً. الحد الأقصى 5MB', 'danger');
                 this.value = '';
                 return;
             }
-            
-            // ✅ التحقق من نوع الملف
             const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             if (!allowedTypes.includes(file.type)) {
-                showToast('❌ نوع الملف غير مدعوم. يرجى استخدام jpg, png, gif, webp', 'danger');
+                showToast('❌ نوع الملف غير مدعوم', 'danger');
                 this.value = '';
                 return;
             }
-            
             const reader = new FileReader();
             reader.onload = function(e) {
                 previewImage.src = e.target.result;
@@ -383,17 +342,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ✅ Drag and Drop
     uploadArea.addEventListener('dragover', function(e) {
         e.preventDefault();
         this.classList.add('dragover');
     });
-
     uploadArea.addEventListener('dragleave', function(e) {
         e.preventDefault();
         this.classList.remove('dragover');
     });
-
     uploadArea.addEventListener('drop', function(e) {
         e.preventDefault();
         this.classList.remove('dragover');
@@ -404,7 +360,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ✅ حذف الصورة
     window.removeImage = function() {
         imageInput.value = '';
         imagePreview.classList.remove('show');
@@ -415,36 +370,10 @@ document.addEventListener('DOMContentLoaded', function() {
         fileNameDisplay.textContent = '';
     };
 
-    // ============================================================
-    // ✅ توليد SKU تلقائي
-    // ============================================================
-    document.getElementById('generateSkuBtn').addEventListener('click', function() {
-        const skuInput = document.getElementById('productSku');
-        const title = document.getElementById('productTitle').value.trim() || 'PRD';
-        const prefix = title.substring(0, 3).toUpperCase() || 'PRD';
-        const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        skuInput.value = prefix + '-' + random;
-        skuInput.dispatchEvent(new Event('input'));
-    });
-
-    // ✅ توليد SKU تلقائياً عند كتابة الاسم
-    document.getElementById('productTitle').addEventListener('blur', function() {
-        const skuInput = document.getElementById('productSku');
-        if (!skuInput.value.trim()) {
-            const title = this.value.trim() || 'PRD';
-            const prefix = title.substring(0, 3).toUpperCase() || 'PRD';
-            const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-            skuInput.value = prefix + '-' + random;
-        }
-    });
-
-    // ============================================================
-    // ✅ التحقق من صحة النموذج
-    // ============================================================
+    // ✅ إرسال النموذج
     document.getElementById('productForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // ✅ التحقق من صحة النموذج
         if (!this.checkValidity()) {
             this.classList.add('was-validated');
             showToast('❌ يرجى تعبئة جميع الحقول المطلوبة', 'warning');
@@ -453,38 +382,36 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري التحديث...';
 
         const formData = new FormData(this);
 
-        fetch('{{ url_for("add_product_bp.api_add_product") }}', {
+        fetch('{{ url_for("edit_product_bp.api_update_product", qid=product.qid) }}', {
             method: 'POST',
             body: formData
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast('✅ ' + (data.message || 'تم إضافة المنتج بنجاح'), 'success');
+                showToast('✅ ' + (data.message || 'تم تحديث المنتج بنجاح'), 'success');
                 setTimeout(function() {
                     window.location.href = '{{ url_for("suppliers_product_bp.products") }}';
                 }, 1500);
             } else {
-                showToast('❌ ' + (data.message || 'فشل إضافة المنتج'), 'danger');
+                showToast('❌ ' + (data.message || 'فشل تحديث المنتج'), 'danger');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ المنتج';
+                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> تحديث المنتج';
             }
         })
         .catch(function(error) {
             console.error('❌ خطأ:', error);
             showToast('❌ خطأ في الاتصال بالخادم', 'danger');
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ المنتج';
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> تحديث المنتج';
         });
     });
 
-    // ============================================================
-    // ✅ إشعارات (Toast)
-    // ============================================================
+    // ✅ إشعارات
     window.showToast = function(message, type = 'info') {
         const colors = {
             success: '#28a745',
@@ -492,9 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
             warning: '#ffc107',
             info: '#0d6efd'
         };
-        
         document.querySelectorAll('.custom-toast').forEach(el => el.remove());
-        
         const toast = document.createElement('div');
         toast.className = 'custom-toast position-fixed bottom-0 end-0 p-3';
         toast.style.zIndex = '9999';
@@ -514,9 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => toast.remove(), 4000);
     };
 
-    // ============================================================
     // ✅ إضافة CSS للإشعارات
-    // ============================================================
     const style = document.createElement('style');
     style.textContent = `
         @keyframes slideInUp {
@@ -532,9 +455,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-// ============================================================
-// ✅ دالة showToast للاستخدام من أي مكان
-// ============================================================
 window.showToast = window.showToast || function(message, type) {
     console.log(message, type);
 };
