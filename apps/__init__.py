@@ -37,7 +37,7 @@ def create_app():
     db.init_app(app)
     
     # ============================================================
-    # ✅ إنشاء الجداول
+    # ✅ إنشاء الجداول وزراعة البيانات الأولية
     # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
@@ -103,10 +103,6 @@ def create_app():
     login_manager.init_app(app)
     csrf.init_app(app)
     
-    # ✅ استثناء CSRF لبوابة الموردين
-    from apps.suppliers_auth_portal.routes import suppliers_bp
-    csrf.exempt(suppliers_bp)
-    
     limiter.init_app(app)
 
     @login_manager.user_loader
@@ -138,7 +134,7 @@ def create_app():
     @login_manager.unauthorized_handler
     def unauthorized():
         if request.path.startswith('/admin'):
-            return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x'))
+            return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
         return redirect(url_for('suppliers_auth.login'))
 
     # إعداد السياسة الأمنية (CSP)
@@ -154,20 +150,48 @@ def create_app():
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
 
+    # ============================================================
+    # ✅ تسجيل البوابات الأساسية يدوياً (بوابة المصادقة الرئيسية، الموردين، GraphQL، والصفحة الرئيسية)
+    # ============================================================
+    
+    # 1. مسار الصفحة الرئيسية للتوجيه الآمن وتجنب 404
+    @app.route('/')
+    def index():
+        return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
+
+    # 2. بوابة المصادقة الإدارية
+    try:
+        from apps.auth_portal.routes import auth_portal
+        app.register_blueprint(auth_portal)
+        print("✅ [Portal]: تم تسجيل بوابة المصادقة الإدارية بنجاح.")
+    except Exception as e:
+        print(f"❌ [Portal]: خطأ في تسجيل بوابة المصادقة الإدارية: {e}")
+
+    # 3. بوابة ومسارات الموردين مع استثناء CSRF
+    try:
+        from apps.suppliers_auth_portal.routes import suppliers_bp
+        app.register_blueprint(suppliers_bp)
+        csrf.exempt(suppliers_bp)
+        print("✅ [Portal]: تم تسجيل بوابة الموردين بنجاح.")
+    except Exception as e:
+        print(f"❌ [Portal]: خطأ في تسجيل بوابة الموردين: {e}")
+
+    # 4. مسارات GraphQL
     try:
         from apps.admin.graphql_routes import graphql_bp 
         app.register_blueprint(graphql_bp)
-        csrf.exempt(graphql_bp) 
+        csrf.exempt(graphql_bp)
+        print("✅ [Portal]: تم تسجيل GraphQL بنجاح.")
     except ImportError:
         pass
 
     # ============================================================
-    # ✅ تسجيل الموديولات ديناميكياً (تلقائي)
+    # ✅ تسجيل باقي الموديولات تلقائياً عبر ملفات registry.py
     # ============================================================
     apps_dir = app.root_path
-    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data']
+    ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin']
     
-    print("🔄 [Registry]: جارٍ البحث عن الموديولات...")
+    print("🔄 [Registry]: جارٍ البحث عن الموديولات الإضافية...")
     
     if os.path.exists(apps_dir):
         for item in os.listdir(apps_dir):
@@ -215,7 +239,7 @@ def create_app():
         print(f"  - {bp_name}")
 
     # ============================================================
-    # ✅ إضافة فلتر Jinja
+    # ✅ إضافة فلاتر وسياق Jinja
     # ============================================================
     @app.context_processor
     def inject_vars():
