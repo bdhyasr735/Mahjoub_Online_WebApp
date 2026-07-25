@@ -87,7 +87,6 @@
         opacity: 0.3;
     }
 
-    /* ✅ Toast container */
     .toast-container {
         z-index: 9999;
     }
@@ -96,9 +95,7 @@
 {# ✅ المحتوى الرئيسي #}
 <div class="container-fluid py-4">
     
-    {# ============================================
-    رأس الصفحة
-    ============================================ #}
+    {# رأس الصفحة #}
     <div class="row align-items-center mb-4">
         <div class="col-md-4">
             <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="btn-back d-block mb-2">
@@ -112,7 +109,7 @@
             </h6>
         </div>
         
-        {# ✅ شريط البحث #}
+        {# شريط البحث #}
         <div class="col-md-4 search-wrapper">
             <i class="fas fa-search"></i>
             <input type="text" name="search" id="searchInput" class="form-control shadow-sm" 
@@ -121,7 +118,7 @@
                    autocomplete="off">
         </div>
 
-        {# ✅ أزرار الإجراءات #}
+        {# أزرار الإجراءات #}
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
             <a href="{{ url_for('add_product_bp.add_product_page') }}" class="btn btn-success px-4 shadow-sm">
                 <i class="fas fa-plus me-1"></i> إضافة منتج
@@ -132,9 +129,7 @@
         </div>
     </div>
 
-    {# ============================================
-    الإحصائيات
-    ============================================ #}
+    {# الإحصائيات #}
     <div class="row g-3 mb-4" id="productStats">
         <div class="col-md-3 col-6">
             <div class="stats-card">
@@ -182,35 +177,24 @@
         </div>
     </div>
 
-    {# ============================================
-    الفلاتر
-    ============================================ #}
+    {# الفلاتر #}
     {% include 'suppliers/includes/_product_filters.html' %}
 
-    {# ============================================
-    جدول المنتجات
-    ============================================ #}
+    {# جدول المنتجات #}
     <div id="results-container">
         {% include 'suppliers/includes/_table_products.html' %}
     </div>
 
 </div>
 
-{# ============================================
-سكريبتات الصفحة
-============================================ #}
+{# سكريبتات الصفحة #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
-    // ============================================
-    // ✅ عناصر الصفحة
-    // ============================================
     const searchInput = document.getElementById('searchInput');
     const resultsContainer = document.getElementById('results-container');
     
-    // ============================================
-    // ✅ البحث المباشر
-    // ============================================
+    // البحث المباشر
     if (searchInput) {
         let timeout = null;
         searchInput.addEventListener('keyup', function() {
@@ -229,13 +213,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (newResults && resultsContainer) {
                         resultsContainer.innerHTML = newResults.innerHTML;
                     }
-                    // ✅ تحديث الإحصائيات
                     const newStats = doc.querySelector('#productStats');
                     if (newStats) {
                         const oldStats = document.querySelector('#productStats');
                         if (oldStats) oldStats.outerHTML = newStats.outerHTML;
                     }
-                    // ✅ تحديث أعداد الفلتر
                     const newFilters = doc.querySelector('.filter-tabs');
                     if (newFilters) {
                         const oldFilters = document.querySelector('.filter-tabs');
@@ -247,9 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ============================================
-    // ✅ حذف المنتج
-    // ============================================
+    // حذف المنتج
     document.addEventListener('click', function(e) {
         const deleteBtn = e.target.closest('.delete-product');
         if (deleteBtn) {
@@ -291,9 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ============================================
-    // ✅ تحديث حالة المنتج
-    // ============================================
+    // تحديث حالة المنتج
     document.addEventListener('change', function(e) {
         const statusSelect = e.target.closest('.product-status-select');
         if (statusSelect) {
@@ -342,17 +320,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ============================================
-    // ✅ دوال مساعدة
-    // ============================================
-    
     function updateProductCount(delta) {
         const countEl = document.querySelector('.text-muted.mt-2');
         if (countEl) {
             const current = parseInt(countEl.textContent.match(/\d+/)?.[0] || 0);
             countEl.textContent = `عدد المنتجات الحالية: ${current + delta}`;
         }
-        // تحديث إحصائيات البطاقات
         const totalEl = document.querySelector('.stats-card .number');
         if (totalEl) {
             const current = parseInt(totalEl.textContent || 0);
@@ -393,9 +366,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ============================================
-    // ✅ Toast notifications
-    // ============================================
     window.showToast = function(message, type = 'info') {
         const colors = {
             success: '#28a745',
@@ -404,7 +374,6 @@ document.addEventListener('DOMContentLoaded', function() {
             info: '#0d6efd'
         };
         
-        // إزالة الإشعارات القديمة
         document.querySelectorAll('.custom-toast').forEach(el => el.remove());
         
         const toast = document.createElement('div');
@@ -413,8 +382,8 @@ document.addEventListener('DOMContentLoaded', function() {
         toast.style.animation = 'slideInUp 0.4s ease';
         toast.innerHTML = `
             <div class="toast show border-0 shadow-lg" role="alert" 
-                 style="border-right: 4px solid ${colors[type] || colors.info}; 
-                        background: white; border-radius: 12px; min-width: 280px;">
+                   style="border-right: 4px solid ${colors[type] || colors.info}; 
+                          background: white; border-radius: 12px; min-width: 280px;">
                 <div class="toast-body d-flex align-items-center gap-2 p-3">
                     <span>${message}</span>
                     <button type="button" class="btn-close btn-close-sm ms-2" 
@@ -427,9 +396,6 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => toast.remove(), 4000);
     };
 
-    // ============================================
-    // ✅ إضافة CSS للإشعارات
-    // ============================================
     const style = document.createElement('style');
     style.textContent = `
         @keyframes slideInUp {
@@ -445,9 +411,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-// ============================================
-// ✅ دالة goToPage (يتم استدعاؤها من HTML)
-// ============================================
 window.goToPage = function(page) {
     if (page) {
         const search = document.getElementById('searchInput')?.value || '';
@@ -460,9 +423,6 @@ window.goToPage = function(page) {
     }
 };
 
-// ============================================
-// ✅ دالة applyFilter (يتم استدعاؤها من HTML)
-// ============================================
 window.applyFilter = function(filter, btn) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
