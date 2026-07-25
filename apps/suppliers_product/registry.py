@@ -9,10 +9,10 @@ MODULE_NAME = "إدارة المنتجات"
 MODULE_ICON = "fas fa-box-open"
 SHOW_IN_SUPPLIER = True
 
-# ✅ الروابط التي تظهر في القائمة الجانبية للمورد
+# ✅ الروابط التي تظهر في القائمة الجانبية للمورد (تم عكس المفتاح والقيمة لتتوافق مع نظام المنصة)
 LINKS = {
-    'suppliers_product_bp.products': '📦 قائمة المنتجات',
-    'add_product_bp.add_product_page': '➕ إضافة منتج جديد'
+    '📦 قائمة المنتجات': 'suppliers_product_bp.products',
+    '➕ إضافة منتج جديد': 'add_product_bp.add_product_page'
 }
 
 
