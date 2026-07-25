@@ -247,20 +247,29 @@ def create_app():
             try: 
                 return url_for(endpoint, **values)
             except BuildError:
-                alt_endpoint = f"{endpoint}_bp" if not endpoint.endswith('_bp') else endpoint.replace('_bp', '')
-                try: 
-                    return url_for(alt_endpoint, **values)
+                pass
+            
+            alt_endpoint = f"{endpoint}_bp" if not endpoint.endswith('_bp') else endpoint.replace('_bp', '')
+            try: 
+                return url_for(alt_endpoint, **values)
+            except BuildError:
+                pass
+                
+            for bp_name in app.blueprints:
+                try:
+                    if '.' not in endpoint:
+                        test_endpoint = f"{bp_name}.{endpoint}"
+                    else:
+                        base_action = endpoint.split('.')[-1]
+                        test_endpoint = f"{bp_name}.{base_action}"
+                    
+                    return url_for(test_endpoint, **values)
                 except BuildError:
-                    for bp_name in app.blueprints:
-                        try:
-                            if '.' not in endpoint:
-                                test_endpoint = f"{bp_name}.{endpoint}"
-                            else:
-                                test_endpoint = endpoint
-                            return url_for(test_endpoint, **values)
-                        except:
-                            continue
-                    return '#'
+                    continue
+                except Exception:
+                    continue
+                    
+            return '#'
         
         return dict(
             csrf_token=generate_csrf,
