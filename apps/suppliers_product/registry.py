@@ -22,7 +22,8 @@ def register_module(app):
         from apps.suppliers_product.product_routes import suppliers_product_bp
         
         if 'suppliers_product' not in app.blueprints:
-            app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
+            # تم إزالة url_prefix من هنا حتى لا تتكرر البادئة (المسار معرّف بالكامل داخل الـ Blueprint)
+            app.register_blueprint(suppliers_product_bp)
             
         print("✅ [Registry]: تم تسجيل موديول suppliers_product بنجاح")
             
