@@ -94,7 +94,14 @@ def add_product():
         if not is_valid:
             for error in errors:
                 flash(error, 'danger')
-            return render_template('suppliers/suppliers_product.html', form_data=data, generated_sku=data['sku'])
+            return render_template(
+                'suppliers/suppliers_product.html',
+                form_data=data,
+                generated_sku=data['sku'],
+                get_status_badge=get_status_badge,
+                get_status_text=get_status_text,
+                format_price=format_price
+            )
 
         try:
             if 'image' in request.files:
@@ -109,7 +116,13 @@ def add_product():
             logger.error(f"❌ خطأ أثناء إضافة المنتج: {e}")
             flash('حدث خطأ أثناء حفظ المنتج', 'danger')
 
-    return render_template('suppliers/suppliers_product.html', generated_sku=generate_sku())
+    return render_template(
+        'suppliers/suppliers_product.html',
+        generated_sku=generate_sku(),
+        get_status_badge=get_status_badge,
+        get_status_text=get_status_text,
+        format_price=format_price
+    )
 
 
 @suppliers_product_bp.route('/edit/<qid>', methods=['GET', 'POST'])
@@ -133,7 +146,13 @@ def edit_product(qid):
         if not is_valid:
             for error in errors:
                 flash(error, 'danger')
-            return render_template('suppliers/suppliers_product.html', product=product)
+            return render_template(
+                'suppliers/suppliers_product.html',
+                product=product,
+                get_status_badge=get_status_badge,
+                get_status_text=get_status_text,
+                format_price=format_price
+            )
 
         try:
             flash('تم تحديث المنتج بنجاح', 'success')
@@ -142,7 +161,13 @@ def edit_product(qid):
             logger.error(f"❌ خطأ أثناء تحديث المنتج {qid}: {e}")
             flash('حدث خطأ أثناء تحديث المنتج', 'danger')
 
-    return render_template('suppliers/suppliers_product.html', product=product)
+    return render_template(
+        'suppliers/suppliers_product.html',
+        product=product,
+        get_status_badge=get_status_badge,
+        get_status_text=get_status_text,
+        format_price=format_price
+    )
 
 
 @suppliers_product_bp.route('/delete/<qid>', methods=['POST'])
