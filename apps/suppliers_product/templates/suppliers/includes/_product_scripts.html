@@ -1,139 +1,355 @@
-<!-- apps/suppliers_product/templates/suppliers/includes/_product_scripts.html -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        
-        // ✅ عناصر الصفحة
-        const searchInput = document.getElementById('searchInput');
-        const resultsContainer = document.getElementById('results-container');
+// apps/suppliers_product/templates/suppliers/includes/_product_scripts.js
 
-        // ✅ البحث
-        if (searchInput) {
-            let timeout = null;
-            searchInput.addEventListener('keyup', function() {
-                clearTimeout(timeout);
-                const query = this.value.trim();
-                timeout = setTimeout(() => {
-                    const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
-                    fetch(`{{ url_for('suppliers_product_bp.products') }}?search=${encodeURIComponent(query)}&filter=${filter}`, {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    })
-                    .then(res => res.text())
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const newResults = doc.getElementById('results-container');
-                        if (newResults) {
-                            resultsContainer.innerHTML = newResults.innerHTML;
-                        }
-                        // ✅ تحديث الإحصائيات
-                        const newStats = doc.querySelector('.row.g-3.mb-4');
-                        if (newStats) {
-                            const oldStats = document.querySelector('.row.g-3.mb-4');
-                            if (oldStats) oldStats.outerHTML = newStats.outerHTML;
-                        }
-                        // ✅ تحديث أعداد الفلتر
-                        const newFilters = doc.querySelector('.filter-tabs');
-                        if (newFilters) {
-                            const oldFilters = document.querySelector('.filter-tabs');
-                            if (oldFilters) oldFilters.outerHTML = newFilters.outerHTML;
-                        }
-                    })
-                    .catch(err => console.error("خطأ في البحث:", err));
-                }, 400);
-            });
-        }
-
-        // ✅ فلتر المنتجات
-        window.applyFilter = function(filter, btn) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const search = document.getElementById('searchInput')?.value || '';
-            fetch(`{{ url_for('suppliers_product_bp.products') }}?filter=${filter}&search=${encodeURIComponent(search)}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(res => res.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const newResults = doc.getElementById('results-container');
-                if (newResults) {
-                    resultsContainer.innerHTML = newResults.innerHTML;
-                }
-                // ✅ تحديث الإحصائيات
-                const newStats = doc.querySelector('.row.g-3.mb-4');
-                if (newStats) {
-                    const oldStats = document.querySelector('.row.g-3.mb-4');
-                    if (oldStats) oldStats.outerHTML = newStats.outerHTML;
-                }
-                // ✅ تحديث أعداد الفلتر
-                const newFilters = doc.querySelector('.filter-tabs');
-                if (newFilters) {
-                    const oldFilters = document.querySelector('.filter-tabs');
-                    if (oldFilters) oldFilters.outerHTML = newFilters.outerHTML;
-                }
-            })
-            .catch(err => console.error("خطأ في الفلتر:", err));
-        };
-
-        // ✅ التنقل بين الصفحات
-        window.goToPage = function(page) {
-            if (page) {
-                const search = document.getElementById('searchInput')?.value || '';
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // ============================================
+    // عناصر الصفحة
+    // ============================================
+    const searchInput = document.getElementById('searchInput');
+    const resultsContainer = document.getElementById('results-container');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    
+    // ============================================
+    // البحث المباشر (Live Search)
+    // ============================================
+    if (searchInput) {
+        let timeout = null;
+        searchInput.addEventListener('keyup', function() {
+            clearTimeout(timeout);
+            const query = this.value.trim();
+            timeout = setTimeout(() => {
                 const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
-                window.location.href = `?page=${page}&search=${encodeURIComponent(search)}&filter=${filter}`;
-            }
-        };
-
-        // ✅ نسخ الرابط
-        window.copyProductLink = function(qid) {
-            const url = `{{ request.host_url }}supplier/product/${qid}`;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(url).then(() => {
-                    showToast('✅ تم نسخ الرابط بنجاح!', 'success');
-                }).catch(() => {
-                    fallbackCopy(url);
-                });
-            } else {
-                fallbackCopy(url);
-            }
-        };
-
-        function fallbackCopy(text) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            textarea.remove();
-            showToast('✅ تم نسخ الرابط بنجاح!', 'success');
-        }
-
-        // ✅ عرض الإشعارات
-        function showToast(message, type = 'info') {
-            const colors = {
-                success: '#28a745',
-                info: '#0d6efd',
-                warning: '#ffc107',
-                danger: '#dc3545'
-            };
-            
-            const toast = document.createElement('div');
-            toast.className = 'position-fixed bottom-0 end-0 p-3';
-            toast.style.zIndex = '9999';
-            toast.innerHTML = `
-                <div class="toast show border-0 shadow-lg" role="alert" style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px;">
-                    <div class="toast-body d-flex align-items-center gap-2">
-                        <span>${message}</span>
-                        <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-
+                fetchWithFilters(query, filter);
+            }, 400);
+        });
+    }
+    
+    // ============================================
+    // فلتر المنتجات
+    // ============================================
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const filter = this.dataset.filter || 'all';
+            const search = searchInput?.value || '';
+            applyFilter(filter, this);
+        });
     });
-</script>
+    
+    // ============================================
+    // دوال رئيسية
+    // ============================================
+    
+    /**
+     * تطبيق الفلتر
+     */
+    window.applyFilter = function(filter, btn) {
+        // تحديث الفلتر النشط
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        
+        const search = searchInput?.value || '';
+        fetchWithFilters(search, filter);
+    };
+    
+    /**
+     * جلب البيانات مع الفلاتر
+     */
+    function fetchWithFilters(search, filter) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('search', search);
+        url.searchParams.set('filter', filter);
+        url.searchParams.set('page', 1);
+        
+        fetch(url.toString(), {
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Network response was not ok');
+            return res.text();
+        })
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // ✅ تحديث جدول المنتجات
+            const newResults = doc.getElementById('results-container');
+            if (newResults && resultsContainer) {
+                resultsContainer.innerHTML = newResults.innerHTML;
+            }
+            
+            // ✅ تحديث الإحصائيات
+            const newStats = doc.querySelector('.row.g-3.mb-4');
+            if (newStats) {
+                const oldStats = document.querySelector('.row.g-3.mb-4');
+                if (oldStats) oldStats.outerHTML = newStats.outerHTML;
+            }
+            
+            // ✅ تحديث أعداد الفلتر
+            const newFilters = doc.querySelector('.filter-tabs');
+            if (newFilters) {
+                const oldFilters = document.querySelector('.filter-tabs');
+                if (oldFilters) oldFilters.outerHTML = newFilters.outerHTML;
+            }
+            
+            // ✅ تحديث عنوان الصفحة
+            const newTitle = doc.querySelector('title');
+            if (newTitle) {
+                document.title = newTitle.textContent;
+            }
+            
+            // ✅ إعادة تفعيل الـ Tooltips
+            if (typeof bootstrap !== 'undefined') {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+            }
+            
+            // ✅ تحديث URL (بدون إعادة تحميل)
+            const newUrl = new URL(url);
+            newUrl.searchParams.set('search', search);
+            newUrl.searchParams.set('filter', filter);
+            if (window.history && window.history.pushState) {
+                window.history.pushState({}, '', newUrl.toString());
+            }
+            
+        })
+        .catch(err => {
+            console.error("❌ خطأ في جلب البيانات:", err);
+            showToast('❌ حدث خطأ في تحميل البيانات', 'danger');
+        });
+    }
+    
+    // ============================================
+    // التنقل بين الصفحات
+    // ============================================
+    window.goToPage = function(page) {
+        if (page) {
+            const search = searchInput?.value || '';
+            const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', page);
+            url.searchParams.set('search', search);
+            url.searchParams.set('filter', filter);
+            window.location.href = url.toString();
+        }
+    };
+    
+    // ============================================
+    // نسخ الرابط
+    // ============================================
+    window.copyProductLink = function(qid) {
+        const url = `${window.location.origin}/supplier/product/${qid}`;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url)
+                .then(() => showToast('✅ تم نسخ الرابط بنجاح!', 'success'))
+                .catch(() => fallbackCopy(url));
+        } else {
+            fallbackCopy(url);
+        }
+    };
+    
+    function fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        textarea.style.left = '-9999px';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+            document.execCommand('copy');
+            showToast('✅ تم نسخ الرابط بنجاح!', 'success');
+        } catch (err) {
+            showToast('❌ فشل نسخ الرابط', 'danger');
+        }
+        
+        textarea.remove();
+    }
+    
+    // ============================================
+    // حذف المنتج (مع تأكيد)
+    // ============================================
+    window.deleteProduct = function(qid) {
+        if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.')) {
+            return;
+        }
+        
+        const url = `/api/edit-product/${qid}`;
+        fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ تم حذف المنتج بنجاح', 'success');
+                // إعادة تحميل القائمة بعد 1.5 ثانية
+                setTimeout(() => {
+                    const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
+                    const search = searchInput?.value || '';
+                    fetchWithFilters(search, filter);
+                }, 1500);
+            } else {
+                showToast('❌ فشل الحذف: ' + (data.message || 'خطأ غير معروف'), 'danger');
+            }
+        })
+        .catch(err => {
+            console.error('❌ خطأ في الحذف:', err);
+            showToast('❌ حدث خطأ أثناء حذف المنتج', 'danger');
+        });
+    };
+    
+    // ============================================
+    // تحديث حالة المنتج (Publish / Draft)
+    // ============================================
+    window.updateProductStatus = function(qid, status) {
+        const url = `/api/edit-product/${qid}/status`;
+        fetch(url, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ تم تحديث حالة المنتج بنجاح', 'success');
+                setTimeout(() => {
+                    const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
+                    const search = searchInput?.value || '';
+                    fetchWithFilters(search, filter);
+                }, 1000);
+            } else {
+                showToast('❌ فشل التحديث: ' + (data.message || 'خطأ غير معروف'), 'danger');
+            }
+        })
+        .catch(err => {
+            console.error('❌ خطأ في تحديث الحالة:', err);
+            showToast('❌ حدث خطأ أثناء تحديث الحالة', 'danger');
+        });
+    };
+    
+    // ============================================
+    // عرض الإشعارات (Toast)
+    // ============================================
+    window.showToast = function(message, type = 'info') {
+        // إزالة الإشعارات القديمة
+        document.querySelectorAll('.custom-toast').forEach(el => el.remove());
+        
+        const colors = {
+            success: '#28a745',
+            info: '#0d6efd',
+            warning: '#ffc107',
+            danger: '#dc3545'
+        };
+        
+        const toast = document.createElement('div');
+        toast.className = 'custom-toast position-fixed bottom-0 end-0 p-3';
+        toast.style.zIndex = '9999';
+        toast.style.animation = 'slideInUp 0.4s ease';
+        toast.innerHTML = `
+            <div class="toast show border-0 shadow-lg" role="alert" 
+                 style="border-right: 4px solid ${colors[type] || colors.info}; 
+                        background: white; border-radius: 12px; min-width: 280px;">
+                <div class="toast-body d-flex align-items-center gap-2 p-3">
+                    <span>${message}</span>
+                    <button type="button" class="btn-close btn-close-sm ms-2" 
+                            data-bs-dismiss="toast" 
+                            onclick="this.closest('.custom-toast').remove()"></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        // إزالة تلقائية بعد 4 ثوان
+        setTimeout(() => {
+            if (toast.parentNode) toast.remove();
+        }, 4000);
+    };
+    
+    // ============================================
+    // معالجة زر "رجوع" في المتصفح
+    // ============================================
+    window.addEventListener('popstate', function(event) {
+        const params = new URLSearchParams(window.location.search);
+        const search = params.get('search') || '';
+        const filter = params.get('filter') || 'all';
+        const page = params.get('page') || 1;
+        
+        if (searchInput) searchInput.value = search;
+        
+        // تحديث الفلتر النشط
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.filter === filter);
+        });
+        
+        // جلب البيانات
+        fetchWithFilters(search, filter);
+    });
+    
+    // ============================================
+    // إعادة تحميل البيانات عند العودة إلى الصفحة
+    // ============================================
+    if (document.visibilityState === 'visible') {
+        // الصفحة مرئية
+    }
+    
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            // تحديث البيانات عند العودة للصفحة
+            const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
+            const search = searchInput?.value || '';
+            fetchWithFilters(search, filter);
+        }
+    });
+    
+    // ============================================
+    // تفعيل الـ Tooltips
+    // ============================================
+    if (typeof bootstrap !== 'undefined') {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+    }
+    
+    // ============================================
+    // معالجة الأخطاء العامة
+    // ============================================
+    console.log('✅ تم تحميل سكريبتات المنتجات بنجاح');
+});
+
+// ============================================
+// CSS للإشعارات
+// ============================================
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    .custom-toast .toast {
+        min-width: 280px;
+        max-width: 400px;
+    }
+    .custom-toast .btn-close {
+        font-size: 0.6rem;
+        padding: 0.5rem;
+    }
+`;
+document.head.appendChild(style);
