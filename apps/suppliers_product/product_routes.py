@@ -2,6 +2,7 @@
 # 📂 apps/suppliers_product/product_routes.py
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+import math
 from .helpers import (
     paginate,
     filter_by_search,
@@ -29,55 +30,103 @@ suppliers_product_bp = Blueprint(
 
 
 class PaginationWrapper:
-    """مساعد آمن لتغليف نتائج الترقيم وضمان توفر خاصية items للقالب"""
+    """مساعد ذكي لتغليف الترقيم وتوفير كافة الخصائص المطلوبة للقالب الديناميكي"""
     def __init__(self, items, page=1, per_page=20, total=0):
-        if hasattr(items, 'items'):
+        self.total = total if total > 0 else (len(items) if isinstance(items, list) else 0)
+        self.per_page = per_page if per_page > 0 else 20
+        self.pages = math.ceil(self.total / self.per_page) if self.per_page > 0 else 1
+        self.current_page = max(1, min(page, self.pages)) if self.pages > 0 else 1
+        
+        # تقسيم العناصر إذا كانت القائمة كاملة
+        if isinstance(items, (list, tuple)):
+            start_idx = (self.current_page - 1) * self.per_page
+            end_idx = start_idx + self.per_page
+            self.items = items[start_idx:end_idx]
+        elif hasattr(items, 'items'):
             self.items = items.items
-        elif isinstance(items, (list, tuple)):
-            self.items = items
         else:
             self.items = []
-        self.page = page
-        self.per_page = per_page
-        self.total = total if total > 0 else len(self.items)
+
+        self.has_prev = self.current_page > 1
+        self.has_next = self.current_page < self.pages
+        self.prev_page = self.current_page - 1 if self.has_prev else None
+        self.next_page = self.current_page + 1 if self.has_next else None
+        
+        self.start = ((self.current_page - 1) * self.per_page) + 1 if self.total > 0 else 0
+        self.end = min(self.current_page * self.per_page, self.total)
+        
+        # توليد قائمة أرقام الصفحات مع النقاط (...)
+        self.pages_list = self._generate_pages_list()
+
+    def _generate_pages_list(self):
+        if self.pages <= 7:
+            return list(range(1, self.pages + 1))
+        
+        pages = []
+        pages.append(1)
+        
+        if self.current_page > 3:
+            pages.append('...')
+            
+        start = max(2, self.current_page - 1)
+        end = min(self.pages - 1, self.current_page + 1)
+        
+        for i in range(start, end + 1):
+            pages.append(i)
+            
+        if self.current_page < self.pages - 2:
+            pages.append('...')
+            
+        if self.pages > 1:
+            pages.append(self.pages)
+            
+        return pages
 
 
 @suppliers_product_bp.route('/')
 def index():
     """
-    عرض قائمة منتجات الموردين مع دعم الترقيم، البحث، والتصفية حسب الحالة
+    عرض قائمة منتجات الموردين مع دعم الترقيم، البحث الديناميكي، والتصفية
     """
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
     search = request.args.get('search', '', type=str)
-    status = request.args.get('status', 'all', type=str)
-
-    # جلب البيانات الأساسية
-    products = [] 
-
-    # تطبيق الفلاتر والبحث
-    filtered_products = filter_by_search(products, search)
-    filtered_products = filter_by_status(filtered_products, status)
-
-    # حساب الإحصائيات
-    stats = get_product_stats_from_list(products)
     
-    total_products = stats.get('total', 0) if isinstance(stats, dict) else len(products)
-    active_products = stats.get('active', 0) if isinstance(stats, dict) else 0
-    draft_products = stats.get('draft', 0) if isinstance(stats, dict) else 0
+    # دعم كل من معاملات filter و status للتوافق التام
+    current_filter = request.args.get('filter') or request.args.get('status', 'all', type=str)
 
-    # تطبيق الترقيم وتغليفه بأمان لتوافق القالب
-    raw_pagination = paginate(filtered_products, page=page, per_page=per_page)
-    pagination_data = PaginationWrapper(raw_pagination, page=page, per_page=per_page, total=len(filtered_products))
+    # جلب البيانات الأساسية للمنتجات (يمكن استبدالها بالاستعلام الفعلي من قاعدة البيانات)
+    products_list = []  
+
+    # حساب العدادات لكل حالة لتغذية أزرار الفلتر
+    search_filtered_for_counts = filter_by_search(products_list, search)
+    
+    counts = {
+        'all': len(search_filtered_for_counts),
+        'active': len([p for p in search_filtered_for_counts if p.get('status') == 'ACTIVE']),
+        'inactive': len([p for p in search_filtered_for_counts if p.get('status') == 'INACTIVE']),
+        'out_of_stock': len([p for p in search_filtered_for_counts if p.get('quantity', 0) == 0])
+    }
+
+    # تطبيق البحث والتصفية الأساسية
+    filtered_products = filter_by_search(products_list, search)
+    
+    if current_filter == 'active':
+        filtered_products = [p for p in filtered_products if p.get('status') == 'ACTIVE']
+    elif current_filter == 'inactive':
+        filtered_products = [p for p in filtered_products if p.get('status') == 'INACTIVE']
+    elif current_filter == 'out_of_stock':
+        filtered_products = [p for p in filtered_products if p.get('quantity', 0) == 0]
+
+    # تغليف النتائج بنظام الترقيم المطور
+    pagination_data = PaginationWrapper(filtered_products, page=page, per_page=per_page)
 
     return render_template(
         'suppliers/suppliers_product.html',
         products=pagination_data,
-        total_products=total_products,
-        active_products=active_products,
-        draft_products=draft_products,
+        counts=counts,
         search=search,
-        current_status=status,
+        current_filter=current_filter,
         get_status_badge=get_status_badge,
         get_status_text=get_status_text,
         format_price=format_price
@@ -179,14 +228,21 @@ def edit_product(qid):
     )
 
 
-@suppliers_product_bp.route('/delete/<qid>', methods=['POST'])
+@suppliers_product_bp.route('/delete/<qid>', methods=['POST', 'DELETE'])
 def delete_product(qid):
     """
-    حذف منتج
+    حذف منتج (يدعم الطلبات العادية وطلبات الـ AJAX)
     """
     try:
+        # منطق الحذف الفعلي هنا
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'تم حذف المنتج بنجاح'})
+            
         flash('تم حذف المنتج بنجاح', 'success')
     except Exception as e:
         logger.error(f"❌ خطأ أثناء حذف المنتج {qid}: {e}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': str(e)}), 400
         flash('حدث خطأ أثناء حذف المنتج', 'danger')
+        
     return redirect(url_for('suppliers_product.index'))
