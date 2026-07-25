@@ -4,7 +4,8 @@
 from flask import Blueprint, render_template, flash
 from flask_login import login_required
 from apps.extensions import db
-from apps.models import Supplier, SupplierWallet, WalletTransaction
+from apps.models.supplier_db import Supplier
+from apps.models.wallet_db import SupplierWallet, WalletTransaction
 from sqlalchemy import func
 
 admin_dashboard_bp = Blueprint(
