@@ -2,14 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}القيادة المركزية | MAHJOUB{% endblock %}</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/tailwindcss-cdn@3.4.10/tailwindcss.min.js"></script>
     
     <style>
         :root { 
@@ -17,16 +15,9 @@
             --deep-black: #08020d; 
             --mahjoub-gold: #D4AF37; 
             --sidebar-width: 280px; 
-            --royal-purple-accent: #6b21a8;
-            --royal-purple-light: #f3e8ff;
         }
         body { font-family: 'Cairo', sans-serif !important; background-color: #f4f7f6; margin: 0; }
         
-        i.fas, i.far, i.fab, .fa, .fas, .far, .fab {
-            font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
-            font-style: normal;
-        }
-
         .sidebar { 
             width: var(--sidebar-width); 
             background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%); 
@@ -36,7 +27,6 @@
             top: 0; 
             z-index: 1050; 
             transition: all 0.3s; 
-            box-shadow: 2px 0 10px rgba(0,0,0,0.3); 
             overflow-y: auto; 
         }
         .sidebar::-webkit-scrollbar { width: 4px; }
@@ -52,9 +42,7 @@
             height: 70px;
             object-fit: contain;
             filter: brightness(0) invert(1); 
-            transition: transform 0.3s;
         }
-        .sidebar-logo:hover { transform: scale(1.05); }
         .brand-text { 
             color: var(--mahjoub-gold); 
             font-size: 0.9rem; 
@@ -78,40 +66,6 @@
             background: rgba(212, 175, 55, 0.2); 
             color: var(--mahjoub-gold); 
         }
-        .nav-link-custom i { width: 20px; text-align: center; }
-        
-        .dropdown-content { 
-            display: none; 
-            list-style: none; 
-            padding-right: 25px; 
-            margin: 5px 0; 
-        }
-        .dropdown-content a { 
-            color: rgba(255,255,255,0.8); 
-            display: block; 
-            padding: 8px 10px; 
-            font-size: 0.9rem; 
-            text-decoration: none; 
-            border-radius: 5px; 
-            transition: 0.2s; 
-        }
-        .dropdown-content a:hover { 
-            color: var(--mahjoub-gold); 
-            background: rgba(255,255,255,0.05); 
-        }
-        .dropdown-content a.active-link {
-            color: var(--mahjoub-gold);
-            background: rgba(212, 175, 55, 0.15);
-            font-weight: 600;
-        }
-        
-        .nav-link-custom .fa-chevron-down {
-            transition: transform 0.3s;
-            margin-right: auto;
-        }
-        .nav-link-custom .fa-chevron-down.rotated {
-            transform: rotate(180deg);
-        }
         
         .main-wrapper { 
             margin-right: var(--sidebar-width); 
@@ -131,12 +85,6 @@
             z-index: 1040;
         }
         
-        .royal-focus:focus {
-            border-color: var(--royal-purple-accent) !important;
-            box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.15) !important;
-            outline: none;
-        }
-
         .admin-badge {
             background: linear-gradient(135deg, var(--royal-purple), var(--deep-black));
             color: var(--mahjoub-gold);
@@ -147,35 +95,12 @@
             border: 1px solid rgba(212, 175, 55, 0.2);
         }
 
-        .flash-messages {
-            position: fixed;
-            top: 80px;
-            left: 20px;
-            z-index: 2000;
-            width: 350px;
-            max-width: calc(100% - 40px);
-        }
-        .flash-messages .alert {
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            border-right: 4px solid var(--mahjoub-gold);
-        }
-
         @media (max-width: 992px) { 
             .sidebar { right: -280px; } 
             .sidebar.active { right: 0; } 
             .main-wrapper { margin-right: 0; } 
-            .top-navbar { padding: 12px 16px; }
-        }
-
-        @media (max-width: 576px) {
-            .top-navbar { padding: 10px 12px; }
-            .sidebar { width: 260px; }
-            .admin-badge span { display: none; }
-            .flash-messages { width: calc(100% - 24px); left: 12px; top: 70px; }
         }
     </style>
-
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -200,11 +125,11 @@
                             </div>
                             <i class="fas fa-chevron-down"></i>
                         </div>
-                        <ul class="dropdown-content">
+                        <ul class="dropdown-content" style="display:none; list-style:none; padding-right:25px;">
                             {% for endpoint, label in module.links.items() %}
                                 <li>
-                                    <a href="{{ url_for(endpoint) }}" class="{{ 'active-link' if request.endpoint == endpoint }}">
-                                        <i class="fas fa-angle-right me-2"></i> {{ label }}
+                                    <a href="{{ url_for(endpoint) }}" class="d-block py-1 text-white-50 text-decoration-none">
+                                        <i class="fas fa-angle-left me-2"></i> {{ label }}
                                     </a>
                                 </li>
                             {% endfor %}
@@ -231,19 +156,6 @@
             </div>
         </header>
 
-        <div class="flash-messages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        </div>
-
         <section class="p-4">
             {% block content %}{% endblock %}
         </section>
@@ -254,41 +166,15 @@
         function toggleSub(el) {
             let drop = el.nextElementSibling;
             if(!drop) return;
-            let isOpen = drop.style.display === "block";
-            drop.style.display = isOpen ? "none" : "block";
+            drop.style.display = drop.style.display === "block" ? "none" : "block";
             let chevron = el.querySelector('.fa-chevron-down');
-            if(chevron) {
-                chevron.classList.toggle('rotated');
-            }
+            if(chevron) chevron.classList.toggle('rotated');
         }
         
         function toggleSidebar() { 
             document.getElementById('sidebar').classList.toggle('active'); 
         }
-
-        document.addEventListener('click', function(e) {
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.btn-outline-dark');
-            if (window.innerWidth < 992 && sidebar && toggleBtn &&
-                !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-                sidebar.classList.remove('active');
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.dropdown-content').forEach(function(drop) {
-                if (drop.querySelector('.active-link')) {
-                    drop.style.display = 'block';
-                    let parent = drop.previousElementSibling;
-                    if (parent) {
-                        let chevron = parent.querySelector('.fa-chevron-down');
-                        if (chevron) chevron.classList.add('rotated');
-                    }
-                }
-            });
-        });
     </script>
-
     {% block extra_js %}{% endblock %}
 </body>
 </html>
