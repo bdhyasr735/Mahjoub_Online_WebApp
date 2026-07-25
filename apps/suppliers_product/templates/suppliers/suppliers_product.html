@@ -1,439 +1,135 @@
 <!-- 📂 apps/suppliers_product/templates/suppliers/suppliers_product.html -->
+{% extends "layouts/base.html" %}
 
-{% extends "suppliers/base.html" %}
-
-{% block title %}منتجاتي | محجوب أونلاين{% endblock %}
+{% block title %}إدارة المنتجات{% endblock %}
 
 {% block content %}
-
-{# ✅ CSS مخصص #}
-<style>
-    :root {
-        --dark-purple: #2d0b36;
-        --accent-gold: #c5a059;
-    }
-    
-    .btn-custom {
-        background-color: var(--dark-purple);
-        color: #fff;
-        border: none;
-        transition: all 0.3s ease;
-    }
-    .btn-custom:hover {
-        background-color: #4a1558;
-        color: #fff;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(45, 11, 54, 0.3);
-    }
-    
-    .btn-back {
-        color: var(--dark-purple);
-        text-decoration: none;
-        font-weight: 500;
-        transition: 0.3s;
-    }
-    .btn-back:hover {
-        color: #000;
-        padding-right: 5px;
-    }
-    
-    .search-wrapper {
-        position: relative;
-    }
-    .search-wrapper .fa-search {
-        position: absolute;
-        right: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #9ca3af;
-        z-index: 5;
-    }
-    .search-wrapper .form-control {
-        padding-right: 44px;
-        border-radius: 12px;
-        border: 2px solid #f0ecf3;
-        transition: all 0.3s ease;
-        height: 48px;
-    }
-    .search-wrapper .form-control:focus {
-        border-color: var(--dark-purple);
-        box-shadow: 0 0 0 4px rgba(45, 11, 54, 0.08);
-    }
-
-    .stats-card {
-        background: white;
-        border-radius: 12px;
-        padding: 16px 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        border-right: 4px solid var(--dark-purple);
-        transition: 0.3s;
-        height: 100%;
-    }
-    .stats-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    }
-    .stats-card .number {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--dark-purple);
-    }
-    .stats-card .label {
-        font-size: 13px;
-        color: #6b7280;
-    }
-    .stats-card .icon {
-        font-size: 28px;
-        opacity: 0.3;
-    }
-
-    .toast-container {
-        z-index: 9999;
-    }
-</style>
-
-{# ✅ المحتوى الرئيسي #}
 <div class="container-fluid py-4">
-    
-    {# رأس الصفحة #}
-    <div class="row align-items-center mb-4">
-        <div class="col-md-4">
-            <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="btn-back d-block mb-2">
-                <i class="fas fa-arrow-right me-1"></i> رجوع للوحة التحكم
+    <!-- رأس الصفحة وإحصائيات المنتجات -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <numbers class="numbers">
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold">إجمالي المنتجات</p>
+                                <h5 class="font-weight-bolder mb-0">{{ total_products }}</h5>
+                            </numbers>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-primary shadow-primary text-center border-radius-md">
+                                <i class="fas fa-box text-lg opacity-10" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <numbers class="numbers">
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold">المنتجات المنشورة</p>
+                                <h5 class="font-weight-bolder mb-0">{{ active_products }}</h5>
+                            </numbers>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-success shadow-success text-center border-radius-md">
+                                <i class="fas fa-check-circle text-lg opacity-10" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <numbers class="numbers">
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold">المسودات</p>
+                                <h5 class="font-weight-bolder mb-0">{{ draft_products }}</h5>
+                            </numbers>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-warning shadow-warning text-center border-radius-md">
+                                <i class="fas fa-file-alt text-lg opacity-10" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول عرض المنتجات وأدوات البحث -->
+    <div class="card">
+        <div class="card-header pb-0 px-3 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">قائمة منتجات المورد</h6>
+            <a href="{{ url_for('add_product_bp.add_product_page') }}" class="btn bg-gradient-dark btn-sm mb-0">
+                <i class="fas fa-plus me-2"></i> رفع منتج جديد
             </a>
-            <h3 class="fw-bold mb-0 text-dark">
-                <i class="fas fa-boxes text-muted me-2"></i> منتجاتي
-            </h3>
-            <h6 class="text-muted mt-2">
-                عدد المنتجات الحالية: {{ products.total if products else 0 }}
-            </h6>
         </div>
-        
-        {# شريط البحث #}
-        <div class="col-md-4 search-wrapper">
-            <i class="fas fa-search"></i>
-            <input type="text" name="search" id="searchInput" class="form-control shadow-sm" 
-                   placeholder="ابحث عن منتج بالاسم أو SKU..." 
-                   value="{{ search_query or '' }}"
-                   autocomplete="off">
-        </div>
-
-        {# أزرار الإجراءات #}
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <a href="{{ url_for('add_product_bp.add_product_page') }}" class="btn btn-success px-4 shadow-sm">
-                <i class="fas fa-plus me-1"></i> إضافة منتج
-            </a>
-            <button type="button" class="btn btn-custom px-4 shadow-sm" onclick="window.location.reload()">
-                <i class="fas fa-sync-alt me-1"></i> تحديث
-            </button>
-        </div>
-    </div>
-
-    {# الإحصائيات #}
-    <div class="row g-3 mb-4" id="productStats">
-        <div class="col-md-3 col-6">
-            <div class="stats-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="number">{{ total_products|default(0) }}</div>
-                        <div class="label">📦 إجمالي المنتجات</div>
-                    </div>
-                    <i class="fas fa-box icon"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="stats-card" style="border-right-color: #28a745;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="number" style="color:#28a745;">{{ active_products|default(0) }}</div>
-                        <div class="label">✅ منشور</div>
-                    </div>
-                    <i class="fas fa-check-circle icon" style="color:#28a745;"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="stats-card" style="border-right-color: #ffc107;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="number" style="color:#ffc107;">{{ draft_products|default(0) }}</div>
-                        <div class="label">⏳ قيد المراجعة</div>
-                    </div>
-                    <i class="fas fa-pencil-alt icon" style="color:#ffc107;"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="stats-card" style="border-right-color: #6c757d;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="number" style="color:#6c757d;">{{ total_suppliers|default(0) }}</div>
-                        <div class="label">🏢 عدد الموردين</div>
-                    </div>
-                    <i class="fas fa-building icon" style="color:#6c757d;"></i>
-                </div>
+        <div class="card-body px-0 pt-0 pb-2">
+            <div class="table-responsive p-0">
+                <table class="table align-items-center mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">المنتج</th>
+                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">السعر</th>
+                            <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">الحالة</th>
+                            <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">الكمية</th>
+                            <th class="text-secondary opacity-7"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if products.items %}
+                            {% for item in products.items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex px-2 py-1">
+                                        <div>
+                                            <img src="{{ item.product.images[0].url if item.product.images else url_for('static', filename='img/default-product.png') }}" class="avatar avatar-sm me-3" alt="product">
+                                        </div>
+                                        <div class="d-flex flex-column justify-content-center">
+                                            <h6 class="mb-0 text-sm">{{ item.title }}</h6>
+                                            <p class="text-xs text-secondary mb-0">SKU: {{ item.product.sku }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <p class="text-xs font-weight-bold mb-0">{{ item.product.price }} ر.س</p>
+                                </td>
+                                <td class="align-middle text-center text-sm">
+                                    <span class="badge badge-sm bg-gradient-{{ 'success' if item.product.status == 'PUBLISHED' else 'secondary' }}">
+                                        {{ item.product.status }}
+                                    </span>
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="text-secondary text-xs font-weight-bold">{{ item.product.quantity }}</span>
+                                </td>
+                                <td class="align-middle text-end">
+                                    <a href="#" class="text-secondary font-weight-bold text-xs" data-toggle="tooltip" data-original-title="تعديل المنتج">
+                                        تعديل
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <p class="text-secondary mb-0">لا توجد منتجات مضافة حتى الآن.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-
-    {# الفلاتر #}
-    {% include 'suppliers/includes/_product_filters.html' %}
-
-    {# جدول المنتجات #}
-    <div id="results-container">
-        {% include 'suppliers/includes/_table_products.html' %}
-    </div>
-
 </div>
-
-{# سكريبتات الصفحة #}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    
-    const searchInput = document.getElementById('searchInput');
-    const resultsContainer = document.getElementById('results-container');
-    
-    // البحث المباشر
-    if (searchInput) {
-        let timeout = null;
-        searchInput.addEventListener('keyup', function() {
-            clearTimeout(timeout);
-            const query = this.value.trim();
-            timeout = setTimeout(() => {
-                const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
-                fetch(`{{ url_for('suppliers_product_bp.products') }}?search=${encodeURIComponent(query)}&filter=${filter}`, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(res => res.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const newResults = doc.getElementById('results-container');
-                    if (newResults && resultsContainer) {
-                        resultsContainer.innerHTML = newResults.innerHTML;
-                    }
-                    const newStats = doc.querySelector('#productStats');
-                    if (newStats) {
-                        const oldStats = document.querySelector('#productStats');
-                        if (oldStats) oldStats.outerHTML = newStats.outerHTML;
-                    }
-                    const newFilters = doc.querySelector('.filter-tabs');
-                    if (newFilters) {
-                        const oldFilters = document.querySelector('.filter-tabs');
-                        if (oldFilters) oldFilters.outerHTML = newFilters.outerHTML;
-                    }
-                })
-                .catch(err => console.error("❌ خطأ في البحث:", err));
-            }, 400);
-        });
-    }
-
-    // حذف المنتج
-    document.addEventListener('click', function(e) {
-        const deleteBtn = e.target.closest('.delete-product');
-        if (deleteBtn) {
-            e.preventDefault();
-            const qid = deleteBtn.dataset.qid;
-            const row = deleteBtn.closest('tr');
-            
-            if (confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.')) {
-                fetch(`/api/edit-product/${qid}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        if (row) {
-                            row.style.transition = 'all 0.3s ease';
-                            row.style.opacity = '0';
-                            row.style.transform = 'translateX(-20px)';
-                            setTimeout(() => {
-                                row.remove();
-                                updateProductCount(-1);
-                                updateFilterCounts();
-                            }, 300);
-                        }
-                        showToast('✅ تم حذف المنتج بنجاح', 'success');
-                    } else {
-                        showToast('❌ ' + (data.message || 'فشل الحذف'), 'danger');
-                    }
-                })
-                .catch(err => {
-                    console.error('❌ خطأ في الحذف:', err);
-                    showToast('❌ حدث خطأ أثناء حذف المنتج', 'danger');
-                });
-            }
-        }
-    });
-
-    // تحديث حالة المنتج
-    document.addEventListener('change', function(e) {
-        const statusSelect = e.target.closest('.product-status-select');
-        if (statusSelect) {
-            const qid = statusSelect.dataset.qid;
-            const status = statusSelect.value;
-            
-            fetch(`/api/edit-product/${qid}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ status: status })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('✅ تم تحديث الحالة بنجاح', 'success');
-                    const badge = statusSelect.closest('td').querySelector('.badge');
-                    if (badge) {
-                        const statusMap = {
-                            'PUBLISHED': 'bg-success',
-                            'DRAFT': 'bg-warning text-dark',
-                            'REJECTED': 'bg-danger',
-                            'ARCHIVED': 'bg-secondary'
-                        };
-                        badge.className = `badge ${statusMap[status] || 'bg-light text-dark'} rounded-pill px-3 py-2`;
-                        const statusText = {
-                            'PUBLISHED': '✅ منشور',
-                            'DRAFT': '⏳ مراجعة',
-                            'REJECTED': '❌ مرفوض',
-                            'ARCHIVED': '📦 مؤرشف'
-                        };
-                        badge.innerHTML = statusText[status] || status;
-                    }
-                    updateFilterCounts();
-                } else {
-                    showToast('❌ ' + (data.message || 'فشل التحديث'), 'danger');
-                    location.reload();
-                }
-            })
-            .catch(err => {
-                console.error('❌ خطأ في تحديث الحالة:', err);
-                showToast('❌ حدث خطأ أثناء تحديث الحالة', 'danger');
-            });
-        }
-    });
-
-    function updateProductCount(delta) {
-        const countEl = document.querySelector('.text-muted.mt-2');
-        if (countEl) {
-            const current = parseInt(countEl.textContent.match(/\d+/)?.[0] || 0);
-            countEl.textContent = `عدد المنتجات الحالية: ${current + delta}`;
-        }
-        const totalEl = document.querySelector('.stats-card .number');
-        if (totalEl) {
-            const current = parseInt(totalEl.textContent || 0);
-            totalEl.textContent = current + delta;
-        }
-    }
-    
-    function updateFilterCounts() {
-        const rows = document.querySelectorAll('#productsTable tbody tr:not(:last-child)');
-        let total = 0, published = 0, draft = 0, rejected = 0, archived = 0;
-        
-        rows.forEach(row => {
-            if (row.style.display !== 'none') {
-                total++;
-                const statusBadge = row.querySelector('td:nth-child(7) .badge');
-                if (statusBadge) {
-                    const statusText = statusBadge.textContent.trim();
-                    if (statusText.includes('منشور')) published++;
-                    else if (statusText.includes('مراجعة')) draft++;
-                    else if (statusText.includes('مرفوض')) rejected++;
-                    else if (statusText.includes('مؤرشف')) archived++;
-                }
-            }
-        });
-        
-        const filterBtns = document.querySelectorAll('.filter-btn');
-        filterBtns.forEach(btn => {
-            const filter = btn.dataset.filter;
-            const badge = btn.querySelector('.badge-count');
-            if (!badge) return;
-            switch(filter) {
-                case 'all': badge.textContent = total; break;
-                case 'published': badge.textContent = published; break;
-                case 'draft': badge.textContent = draft; break;
-                case 'rejected': badge.textContent = rejected; break;
-                case 'archived': badge.textContent = archived; break;
-            }
-        });
-    }
-
-    window.showToast = function(message, type = 'info') {
-        const colors = {
-            success: '#28a745',
-            danger: '#dc3545',
-            warning: '#ffc107',
-            info: '#0d6efd'
-        };
-        
-        document.querySelectorAll('.custom-toast').forEach(el => el.remove());
-        
-        const toast = document.createElement('div');
-        toast.className = 'custom-toast position-fixed bottom-0 end-0 p-3';
-        toast.style.zIndex = '9999';
-        toast.style.animation = 'slideInUp 0.4s ease';
-        toast.innerHTML = `
-            <div class="toast show border-0 shadow-lg" role="alert" 
-                   style="border-right: 4px solid ${colors[type] || colors.info}; 
-                          background: white; border-radius: 12px; min-width: 280px;">
-                <div class="toast-body d-flex align-items-center gap-2 p-3">
-                    <span>${message}</span>
-                    <button type="button" class="btn-close btn-close-sm ms-2" 
-                            data-bs-dismiss="toast" 
-                            onclick="this.closest('.custom-toast').remove()"></button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    };
-
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideInUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .custom-toast .toast {
-            min-width: 280px;
-            max-width: 400px;
-        }
-    `;
-    document.head.appendChild(style);
-
-});
-
-window.goToPage = function(page) {
-    if (page) {
-        const search = document.getElementById('searchInput')?.value || '';
-        const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
-        const url = new URL(window.location.href);
-        url.searchParams.set('page', page);
-        url.searchParams.set('search', search);
-        url.searchParams.set('filter', filter);
-        window.location.href = url.toString();
-    }
-};
-
-window.applyFilter = function(filter, btn) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    
-    const search = document.getElementById('searchInput')?.value || '';
-    const url = new URL(window.location.href);
-    url.searchParams.set('filter', filter);
-    url.searchParams.set('search', search);
-    url.searchParams.set('page', 1);
-    window.location.href = url.toString();
-};
-</script>
-
 {% endblock %}
