@@ -1,1 +1,490 @@
+# ============================================
+# 1. استعلام جلب جميع المنتجات
+# ============================================
+query FindAllProducts($input: GetAllProductsInput) {
+  findAllProducts(input: $input) {
+    id
+    qid
+    name
+    description
+    handle
+    status
+    isActive
+    isAvailable
+    isDigital
+    isPhysical
+    isGiftCard
+    isTaxable
+    createdAt
+    updatedAt
+    publishedAt
+    price
+    compareAtPrice
+    costPerItem
+    currency
+    taxClass
+    taxRate
+    quantity
+    inventory {
+      id
+      quantity
+      available
+      reserved
+      location
+      warehouse
+    }
+    sku
+    barcode
+    weight
+    weightUnit
+    images {
+      id
+      url
+      altText
+      width
+      height
+      size
+      position
+      createdAt
+    }
+    mainImage {
+      id
+      url
+      altText
+      width
+      height
+    }
+    media {
+      id
+      url
+      altText
+      type
+      position
+      createdAt
+    }
+    options {
+      id
+      qid
+      name
+      position
+      values {
+        id
+        value
+        position
+        hexCode
+        image {
+          url
+          altText
+        }
+      }
+    }
+    variants {
+      id
+      qid
+      sku
+      barcode
+      price
+      compareAtPrice
+      costPerItem
+      quantity
+      weight
+      weightUnit
+      position
+      isActive
+      isAvailable
+      options {
+        id
+        name
+        value
+        position
+      }
+      image {
+        id
+        url
+        altText
+        width
+        height
+      }
+      inventory {
+        id
+        quantity
+        available
+        reserved
+        location
+        warehouse
+      }
+    }
+    collections {
+      id
+      qid
+      name
+      description
+      handle
+      image {
+        url
+        altText
+      }
+    }
+    category {
+      id
+      qid
+      name
+      handle
+      description
+      image {
+        url
+      }
+    }
+    categories {
+      id
+      qid
+      name
+      handle
+    }
+    brand {
+      id
+      qid
+      name
+      logo {
+        url
+        altText
+      }
+    }
+    ratings {
+      average
+      count
+      stars
+    }
+    shipping {
+      weight
+      weightUnit
+      length
+      width
+      height
+      dimensionUnit
+      requiresShipping
+      shippingClass
+    }
+    seo {
+      title
+      description
+      keywords
+      image {
+        url
+      }
+    }
+    translations {
+      locale
+      name
+      description
+      seoTitle
+      seoDescription
+    }
+    metafields {
+      id
+      namespace
+      key
+      value
+      type
+    }
+    relatedProducts {
+      id
+      qid
+      name
+      price
+      mainImage {
+        url
+        altText
+      }
+    }
+    recommendedProducts {
+      id
+      qid
+      name
+      price
+      mainImage {
+        url
+        altText
+      }
+    }
+    discounts {
+      id
+      type
+      value
+      minQuantity
+      maxQuantity
+    }
+    availability {
+      isAvailable
+      availableDate
+      preorder
+      preorderDate
+    }
+  }
+}
 
+# ============================================
+# 2. استعلام جلب منتج بواسطة QID
+# ============================================
+query FindProductByQid($qid: String!) {
+  findProductByQid(qid: $qid) {
+    id
+    qid
+    name
+    description
+    handle
+    status
+    isActive
+    isAvailable
+    isDigital
+    isPhysical
+    isGiftCard
+    isTaxable
+    createdAt
+    updatedAt
+    publishedAt
+    price
+    compareAtPrice
+    costPerItem
+    currency
+    taxClass
+    taxRate
+    quantity
+    inventory {
+      id
+      quantity
+      available
+      reserved
+      location
+      warehouse
+    }
+    sku
+    barcode
+    weight
+    weightUnit
+    images {
+      id
+      url
+      altText
+      width
+      height
+      size
+      position
+      createdAt
+    }
+    mainImage {
+      id
+      url
+      altText
+      width
+      height
+    }
+    media {
+      id
+      url
+      altText
+      type
+      position
+      createdAt
+    }
+    options {
+      id
+      qid
+      name
+      position
+      values {
+        id
+        value
+        position
+        hexCode
+        image {
+          url
+          altText
+        }
+      }
+    }
+    variants {
+      id
+      qid
+      sku
+      barcode
+      price
+      compareAtPrice
+      costPerItem
+      quantity
+      weight
+      weightUnit
+      position
+      isActive
+      isAvailable
+      options {
+        id
+        name
+        value
+        position
+      }
+      image {
+        id
+        url
+        altText
+        width
+        height
+      }
+      inventory {
+        id
+        quantity
+        available
+        reserved
+        location
+        warehouse
+      }
+    }
+    collections {
+      id
+      qid
+      name
+      description
+      handle
+      image {
+        url
+        altText
+      }
+    }
+    category {
+      id
+      qid
+      name
+      handle
+      description
+      image {
+        url
+      }
+    }
+    categories {
+      id
+      qid
+      name
+      handle
+    }
+    brand {
+      id
+      qid
+      name
+      logo {
+        url
+        altText
+      }
+    }
+    ratings {
+      average
+      count
+      stars
+    }
+    shipping {
+      weight
+      weightUnit
+      length
+      width
+      height
+      dimensionUnit
+      requiresShipping
+      shippingClass
+    }
+    seo {
+      title
+      description
+      keywords
+      image {
+        url
+      }
+    }
+    translations {
+      locale
+      name
+      description
+      seoTitle
+      seoDescription
+    }
+    metafields {
+      id
+      namespace
+      key
+      value
+      type
+    }
+    relatedProducts {
+      id
+      qid
+      name
+      price
+      mainImage {
+        url
+        altText
+      }
+    }
+    recommendedProducts {
+      id
+      qid
+      name
+      price
+      mainImage {
+        url
+        altText
+      }
+    }
+    discounts {
+      id
+      type
+      value
+      minQuantity
+      maxQuantity
+    }
+    availability {
+      isAvailable
+      availableDate
+      preorder
+      preorderDate
+    }
+  }
+}
+
+# ============================================
+# 3. استعلام جلب حالة المنتج
+# ============================================
+query FindProductStatus {
+  findProductStatus {
+    id
+    qid
+    name
+    status
+    isActive
+    isAvailable
+    isPublished
+    isDraft
+    isArchived
+    createdAt
+    updatedAt
+  }
+}
+
+# ============================================
+# 4. استعلام جلب المنتجات الأكثر مشاهدة
+# ============================================
+query FindTopViewedProducts {
+  FindTopViewedProducts {
+    id
+    qid
+    name
+    price
+    compareAtPrice
+    views
+    mainImage {
+      url
+      altText
+    }
+    ratings {
+      average
+      count
+    }
+  }
+}
