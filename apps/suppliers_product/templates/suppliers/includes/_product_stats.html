@@ -1,68 +1,263 @@
 <!-- apps/suppliers_product/templates/suppliers/includes/_product_stats.html -->
+
 <div class="row g-3 mb-4" id="productStats">
-    {% set total = stats.total if stats and stats.total is defined else (products|length if products else 0) %}
-    {% set published = stats.published if stats and stats.published is defined else (products|selectattr('status', 'equalto', 'PUBLISHED')|list|length if products else 0) %}
-    {% set draft = stats.draft if stats and stats.draft is defined else (products|selectattr('status', 'equalto', 'DRAFT')|list|length if products else 0) %}
-    {% set rejected = stats.rejected if stats and stats.rejected is defined else (products|selectattr('status', 'equalto', 'REJECTED')|list|length if products else 0) %}
-    {% set archived = stats.archived if stats and stats.archived is defined else (products|selectattr('status', 'equalto', 'ARCHIVED')|list|length if products else 0) %}
+    {# ✅ استخراج الإحصائيات من stats أو حسابها من المنتجات #}
+    {% set total = stats.total if stats and stats.total is defined else (products.items|length if products and products.items else 0) %}
+    {% set published = stats.published if stats and stats.published is defined else 0 %}
+    {% set draft = stats.draft if stats and stats.draft is defined else 0 %}
+    {% set rejected = stats.rejected if stats and stats.rejected is defined else 0 %}
+    {% set archived = stats.archived if stats and stats.archived is defined else 0 %}
+    {% set pending = stats.pending if stats and stats.pending is defined else 0 %}
     
-    <div class="col-md-3 col-6">
-        <div class="stat-card">
+    {# ✅ إذا لم تكن الإحصائيات موجودة، نحسبها من المنتجات #}
+    {% if not stats %}
+        {% set items = products.items if products and products.items else products %}
+        {% if items %}
+            {% set published = items|selectattr('product', 'defined')|selectattr('product.status', 'equalto', 'PUBLISHED')|list|length if items else 0 %}
+            {% set draft = items|selectattr('product', 'defined')|selectattr('product.status', 'equalto', 'DRAFT')|list|length if items else 0 %}
+            {% set rejected = items|selectattr('product', 'defined')|selectattr('product.status', 'equalto', 'REJECTED')|list|length if items else 0 %}
+            {% set archived = items|selectattr('product', 'defined')|selectattr('product.status', 'equalto', 'ARCHIVED')|list|length if items else 0 %}
+        {% endif %}
+    {% endif %}
+    
+    {# ✅ البطاقة 1: إجمالي المنتجات #}
+    <div class="col-md-2 col-6 col-xl-2">
+        <div class="stat-card total">
             <div class="stat-number">{{ total }}</div>
-            <div class="stat-label">📦 إجمالي المنتجات</div>
+            <div class="stat-label">
+                <i class="fas fa-boxes me-1"></i> إجمالي المنتجات
+            </div>
         </div>
     </div>
-    <div class="col-md-3 col-6">
+    
+    {# ✅ البطاقة 2: منشور #}
+    <div class="col-md-2 col-6 col-xl-2">
         <div class="stat-card published">
-            <div class="stat-number" style="color: #28a745;">{{ published }}</div>
-            <div class="stat-label">✅ منشور</div>
+            <div class="stat-number" style="color: #28a745;">
+                {{ published }}
+            </div>
+            <div class="stat-label">
+                <i class="fas fa-check-circle me-1 text-success"></i> منشور
+            </div>
         </div>
     </div>
-    <div class="col-md-3 col-6">
+    
+    {# ✅ البطاقة 3: قيد المراجعة #}
+    <div class="col-md-2 col-6 col-xl-2">
         <div class="stat-card draft">
-            <div class="stat-number" style="color: #ffc107;">{{ draft }}</div>
-            <div class="stat-label">⏳ قيد المراجعة</div>
+            <div class="stat-number" style="color: #ffc107;">
+                {{ draft }}
+            </div>
+            <div class="stat-label">
+                <i class="fas fa-clock me-1 text-warning"></i> قيد المراجعة
+            </div>
         </div>
     </div>
-    <div class="col-md-3 col-6">
+    
+    {# ✅ البطاقة 4: مرفوض #}
+    <div class="col-md-2 col-6 col-xl-2">
         <div class="stat-card rejected">
-            <div class="stat-number" style="color: #dc3545;">{{ rejected }}</div>
-            <div class="stat-label">❌ مرفوض</div>
+            <div class="stat-number" style="color: #dc3545;">
+                {{ rejected }}
+            </div>
+            <div class="stat-label">
+                <i class="fas fa-times-circle me-1 text-danger"></i> مرفوض
+            </div>
+        </div>
+    </div>
+    
+    {# ✅ البطاقة 5: مؤرشف #}
+    <div class="col-md-2 col-6 col-xl-2">
+        <div class="stat-card archived">
+            <div class="stat-number" style="color: #6c757d;">
+                {{ archived }}
+            </div>
+            <div class="stat-label">
+                <i class="fas fa-archive me-1 text-secondary"></i> مؤرشف
+            </div>
+        </div>
+    </div>
+    
+    {# ✅ البطاقة 6: قيد الانتظار (اختياري) #}
+    <div class="col-md-2 col-6 col-xl-2">
+        <div class="stat-card pending">
+            <div class="stat-number" style="color: #0d6efd;">
+                {{ pending }}
+            </div>
+            <div class="stat-label">
+                <i class="fas fa-hourglass-half me-1 text-primary"></i> قيد الانتظار
+            </div>
         </div>
     </div>
 </div>
 
+{# ✅ JavaScript لتحديث الإحصائيات ديناميكياً #}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ✅ تحديث الإحصائيات عند تغيير الفلتر
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                setTimeout(updateStats, 300);
+            });
+        });
+        
+        // ✅ تحديث الإحصائيات عند البحث
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                setTimeout(updateStats, 500);
+            });
+        }
+    });
+    
+    function updateStats() {
+        const rows = document.querySelectorAll('#productsTable tbody tr:not(:last-child)');
+        let total = 0, published = 0, draft = 0, rejected = 0, archived = 0;
+        
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                total++;
+                const statusBadge = row.querySelector('td:nth-child(7) .badge');
+                if (statusBadge) {
+                    const statusText = statusBadge.textContent.trim();
+                    if (statusText.includes('منشور')) published++;
+                    else if (statusText.includes('مراجعة')) draft++;
+                    else if (statusText.includes('مرفوض')) rejected++;
+                    else if (statusText.includes('مؤرشف')) archived++;
+                }
+            }
+        });
+        
+        // ✅ تحديث الأرقام
+        const statNumbers = document.querySelectorAll('.stat-number');
+        if (statNumbers.length >= 6) {
+            statNumbers[0].textContent = total;
+            statNumbers[1].textContent = published;
+            statNumbers[2].textContent = draft;
+            statNumbers[3].textContent = rejected;
+            statNumbers[4].textContent = archived;
+        }
+        
+        // ✅ تحديث العدادات في الواجهة (اختياري)
+        const countElements = document.querySelectorAll('.product-count');
+        if (countElements.length) {
+            countElements[0].textContent = total;
+        }
+    }
+</script>
+
+{# ✅ CSS #}
 <style>
     .stat-card {
         background: white;
         border-radius: 16px;
-        padding: 18px 20px;
+        padding: 18px 16px;
         box-shadow: 0 2px 12px rgba(0,0,0,0.06);
         border-right: 4px solid var(--dark-purple, #2d0b36);
         transition: all 0.3s ease;
         height: 100%;
+        cursor: default;
+        position: relative;
+        overflow: hidden;
     }
+    
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 100%);
+        pointer-events: none;
+    }
+    
     .stat-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
     }
+    
     .stat-card .stat-number {
-        font-size: 1.8rem;
+        font-size: 2rem;
         font-weight: 800;
         color: var(--dark-purple, #2d0b36);
         line-height: 1.2;
         transition: all 0.3s ease;
+        font-feature-settings: "tnum";
+        letter-spacing: -0.5px;
     }
+    
     .stat-card:hover .stat-number {
         transform: scale(1.05);
     }
+    
     .stat-card .stat-label {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         color: #9ca3af;
         font-weight: 500;
+        margin-top: 4px;
+        letter-spacing: 0.3px;
     }
-    .stat-card.published { border-right-color: #28a745; }
-    .stat-card.draft { border-right-color: #ffc107; }
-    .stat-card.rejected { border-right-color: #dc3545; }
-    .stat-card.archived { border-right-color: #6c757d; }
+    
+    .stat-card .stat-label i {
+        font-size: 0.9rem;
+    }
+    
+    /* ✅ ألوان البطاقات */
+    .stat-card.total { 
+        border-right-color: var(--dark-purple, #2d0b36); 
+    }
+    .stat-card.published { 
+        border-right-color: #28a745; 
+    }
+    .stat-card.draft { 
+        border-right-color: #ffc107; 
+    }
+    .stat-card.rejected { 
+        border-right-color: #dc3545; 
+    }
+    .stat-card.archived { 
+        border-right-color: #6c757d; 
+    }
+    .stat-card.pending { 
+        border-right-color: #0d6efd; 
+    }
+    
+    /* ✅ تأثير خلفية عند التحميل */
+    .stat-card .stat-number.loading {
+        animation: pulse 1.2s ease-in-out infinite;
+        color: #ccc;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+    
+    /* ✅ استجابة للشاشات الصغيرة */
+    @media (max-width: 768px) {
+        .stat-card {
+            padding: 14px 12px;
+            border-radius: 12px;
+        }
+        .stat-card .stat-number {
+            font-size: 1.4rem;
+        }
+        .stat-card .stat-label {
+            font-size: 0.7rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .stat-card .stat-number {
+            font-size: 1.2rem;
+        }
+        .stat-card .stat-label {
+            font-size: 0.65rem;
+        }
+        .stat-card .stat-label i {
+            display: none;
+        }
+    }
 </style>
