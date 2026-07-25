@@ -18,8 +18,8 @@ LINKS = {
 def register_module(app):
     """تسجيل تطبيق منتجات المورد والـ Blueprints الخاصة به"""
     try:
-        # ✅ الاستيراد المحلي داخل الدالة لمنع Circular Import
-        from apps.suppliers_product.routes import (
+        # ✅ التصحيح هنا: استيراد من product_routes بدلاً من routes
+        from apps.suppliers_product.product_routes import (
             suppliers_product_bp,
             add_product_bp,
             edit_product_bp
