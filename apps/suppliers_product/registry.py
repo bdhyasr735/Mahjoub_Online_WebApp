@@ -3,17 +3,16 @@
 
 """
 مخزن تسجيل موديول إدارة منتجات الموردين
-يحتوي على بيانات التعريف والروابط الخاصة بالقائمة الجانبية للنظام.
 """
 
-# تعريف بيانات الموديول والقائمة الجانبية
-MODULE_METADATA = {
-    "title": "إدارة المنتجات",
-    "icon": "fas fa-box-open",
-    "links": {
-        "suppliers_product_bp.products": "عرض المنتجات",
-        "add_product_bp.add_product_page": "إضافة منتج جديد"
-    }
+# المتغيرات التي يبحث عنها محمل النظام في apps/__init__.py
+MODULE_NAME = "إدارة المنتجات"
+MODULE_ICON = "fas fa-box-open"
+SHOW_IN_SUPPLIER = True  # ليظهر في قائمة الموردين
+
+LINKS = {
+    "suppliers_product_bp.products": "عرض المنتجات",
+    "add_product_bp.add_product_page": "إضافة منتج جديد"
 }
 
 def register_module(app):
