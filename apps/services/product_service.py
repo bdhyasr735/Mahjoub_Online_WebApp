@@ -9,21 +9,18 @@ from graphql_client import GraphQLClient
 class VariantService:
     """خدمة لإدارة متغيرات المنتجات"""
     
-    def __init__(self, client: GraphQLClient):
+    def __init__(self, client: GraphQLClient, queries_path: str = 'apps/services/variant_queries.graphql'):
         self.client = client
         
-        with open('variant_queries.graphql', 'r') as f:
-            self.queries = f.read()
+        try:
+            with open(queries_path, 'r', encoding='utf-8') as f:
+                self.queries = f.read()
+        except FileNotFoundError:
+            self.queries = ""
     
     def get_variants_by_product(self, product_id: str) -> List[Dict]:
         """
         جلب جميع متغيرات المنتج
-        
-        Args:
-            product_id: معرف المنتج
-            
-        Returns:
-            قائمة المتغيرات
         """
         query = """
         query FindAllVariantsByProductId($productId: ID!) {
@@ -88,12 +85,6 @@ class VariantService:
     def get_variant_by_id(self, variant_id: str) -> Optional[Dict]:
         """
         جلب متغير بواسطة ID
-        
-        Args:
-            variant_id: معرف المتغير
-            
-        Returns:
-            بيانات المتغير
         """
         query = """
         query FindVariantById($id: ID!) {
@@ -158,12 +149,6 @@ class VariantService:
     def get_variant_by_sku(self, sku: str) -> Optional[Dict]:
         """
         جلب متغير بواسطة SKU
-        
-        Args:
-            sku: رقم التخزين
-        
-        Returns:
-            بيانات المتغير
         """
         query = """
         query FindVariantBySku($sku: String!) {
@@ -205,12 +190,6 @@ class VariantService:
     def get_variants_inventory(self, product_id: str) -> List[Dict]:
         """
         جلب مخزون متغيرات المنتج
-        
-        Args:
-            product_id: معرف المنتج
-            
-        Returns:
-            قائمة المتغيرات مع المخزون
         """
         query = """
         query GetVariantsInventory($productId: ID!) {
@@ -241,12 +220,6 @@ class VariantService:
     def get_variants_prices(self, product_id: str) -> List[Dict]:
         """
         جلب أسعار متغيرات المنتج
-        
-        Args:
-            product_id: معرف المنتج
-            
-        Returns:
-            قائمة المتغيرات مع الأسعار
         """
         query = """
         query GetVariantsPrices($productId: ID!) {
@@ -272,13 +245,6 @@ class VariantService:
     def get_variant_by_options(self, product_id: str, options: Dict[str, str]) -> Optional[Dict]:
         """
         جلب متغير حسب الخيارات (مثل: اللون والحجم)
-        
-        Args:
-            product_id: معرف المنتج
-            options: خيارات المتغير {'Color': 'Red', 'Size': 'XL'}
-            
-        Returns:
-            بيانات المتغير
         """
         variants = self.get_variants_by_product(product_id)
         
@@ -292,12 +258,6 @@ class VariantService:
     def get_available_variants(self, product_id: str) -> List[Dict]:
         """
         جلب المتغيرات المتاحة للبيع فقط
-        
-        Args:
-            product_id: معرف المنتج
-            
-        Returns:
-            قائمة المتغيرات المتاحة
         """
         variants = self.get_variants_by_product(product_id)
         return [v for v in variants if v.get('isAvailable') and v.get('quantity', 0) > 0]
