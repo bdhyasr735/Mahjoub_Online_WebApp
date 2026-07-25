@@ -2,10 +2,8 @@
 
 """
 مخزن تسجيل موديول إدارة منتجات الموردين
-يحتوي على بيانات التعريف والروابط الخاصة بالقائمة الجانبية للنظام.
 """
 
-# تعريف بيانات الموديول
 MODULE_METADATA = {
     "title": "إدارة المنتجات",
     "icon": "fas fa-box-open",
@@ -17,7 +15,7 @@ MODULE_METADATA = {
 
 def register_module(app):
     """
-    دالة تسجيل الموديول وبلوبرنت المنتجات داخل التطبيق الرئيسي
+    دالة تسجيل الموديول وبلوبرنت المنتجات بالمسار الصحيح الكامل
     """
-    from .routes import suppliers_product_bp
+    from apps.suppliers_product.routes import suppliers_product_bp
     app.register_blueprint(suppliers_product_bp)
