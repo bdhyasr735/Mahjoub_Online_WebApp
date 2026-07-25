@@ -35,7 +35,7 @@ def index():
     """
     try:
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)  # تصحيح الخطأ الإملائي per_per إلى per_page
+        per_page = request.args.get('per_page', 20, type=int)
         search = request.args.get('search', '', type=str)
         status = request.args.get('status', 'all', type=str)
 
