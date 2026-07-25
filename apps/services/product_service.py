@@ -1,201 +1,21 @@
 """
-خدمة المنتجات - Product Service
+خدمة المتغيرات - Variant Service
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from graphql_client import GraphQLClient
 
 
-class ProductService:
-    """خدمة لإدارة المنتجات"""
+class VariantService:
+    """خدمة لإدارة متغيرات المنتجات"""
     
     def __init__(self, client: GraphQLClient):
         self.client = client
         
-        # تحميل استعلامات المنتج
-        with open('product_queries.graphql', 'r') as f:
+        with open('variant_queries.graphql', 'r') as f:
             self.queries = f.read()
     
-    def get_all_products(self, input_data: Optional[Dict] = None) -> List[Dict]:
-        """
-        جلب جميع المنتجات
-        
-        Args:
-            input_data: مدخلات البحث والترشيح
-            
-        Returns:
-            قائمة المنتجات
-        """
-        query = """
-        query FindAllProducts($input: GetAllProductsInput) {
-          findAllProducts(input: $input) {
-            id
-            qid
-            name
-            description
-            price
-            compareAtPrice
-            quantity
-            sku
-            status
-            isActive
-            isAvailable
-            mainImage {
-              url
-              altText
-            }
-            variants {
-              id
-              sku
-              price
-              quantity
-              options {
-                name
-                value
-              }
-            }
-            inventory {
-              quantity
-              available
-              reserved
-            }
-            collections {
-              id
-              name
-            }
-          }
-        }
-        """
-        
-        variables = {"input": input_data or {}}
-        result = self.client.execute(query, variables)
-        return result.get('findAllProducts', [])
-    
-    def get_product_by_qid(self, qid: str) -> Optional[Dict]:
-        """
-        جلب منتج بواسطة QID
-        
-        Args:
-            qid: المعرف الفريد للمنتج
-            
-        Returns:
-            بيانات المنتج
-        """
-        query = """
-        query FindProductByQid($qid: String!) {
-          findProductByQid(qid: $qid) {
-            id
-            qid
-            name
-            description
-            price
-            compareAtPrice
-            costPerItem
-            currency
-            sku
-            barcode
-            quantity
-            status
-            isActive
-            isAvailable
-            mainImage {
-              id
-              url
-              altText
-              width
-              height
-            }
-            images {
-              id
-              url
-              altText
-              position
-            }
-            options {
-              id
-              name
-              values {
-                id
-                value
-                hexCode
-                image {
-                  url
-                }
-              }
-            }
-            variants {
-              id
-              sku
-              price
-              compareAtPrice
-              quantity
-              isAvailable
-              options {
-                name
-                value
-              }
-              image {
-                url
-                altText
-              }
-              inventory {
-                quantity
-                available
-                reserved
-                location
-              }
-            }
-            collections {
-              id
-              name
-              handle
-            }
-            category {
-              id
-              name
-              handle
-            }
-            brand {
-              id
-              name
-              logo {
-                url
-              }
-            }
-            ratings {
-              average
-              count
-            }
-            inventory {
-              quantity
-              available
-              reserved
-              location
-              warehouse
-            }
-            seo {
-              title
-              description
-            }
-            translations {
-              locale
-              name
-              description
-            }
-            metafields {
-              namespace
-              key
-              value
-            }
-          }
-        }
-        """
-        
-        variables = {"qid": qid}
-        result = self.client.execute(query, variables)
-        return result.get('findProductByQid')
-    
-    def get_product_variants(self, product_id: str) -> List[Dict]:
+    def get_variants_by_product(self, product_id: str) -> List[Dict]:
         """
         جلب جميع متغيرات المنتج
         
@@ -221,11 +41,15 @@ class ProductService:
             position
             isActive
             isAvailable
+            isDefault
+            
             options {
               id
               name
               value
+              position
             }
+            
             image {
               id
               url
@@ -233,12 +57,25 @@ class ProductService:
               width
               height
             }
+            
             inventory {
               id
               quantity
               available
               reserved
               location
+              warehouse
+            }
+            
+            product {
+              id
+              qid
+              name
+              price
+              mainImage {
+                url
+                altText
+              }
             }
           }
         }
@@ -248,23 +85,49 @@ class ProductService:
         result = self.client.execute(query, variables)
         return result.get('findAllVariantsByProductId', [])
     
-    def get_product_inventory(self, product_id: str) -> Dict:
+    def get_variant_by_id(self, variant_id: str) -> Optional[Dict]:
         """
-        جلب مخزون المنتج
+        جلب متغير بواسطة ID
         
         Args:
-            product_id: معرف المنتج
+            variant_id: معرف المتغير
             
         Returns:
-            بيانات المخزون
+            بيانات المتغير
         """
         query = """
-        query GetProductInventory($productId: ID!) {
-          findProductByQid(qid: $productId) {
+        query FindVariantById($id: ID!) {
+          findVariantById(id: $id) {
             id
             qid
-            name
+            sku
+            barcode
+            price
+            compareAtPrice
+            costPerItem
             quantity
+            weight
+            weightUnit
+            position
+            isActive
+            isAvailable
+            isDefault
+            
+            options {
+              id
+              name
+              value
+              position
+            }
+            
+            image {
+              id
+              url
+              altText
+              width
+              height
+            }
+            
             inventory {
               id
               quantity
@@ -273,21 +136,99 @@ class ProductService:
               location
               warehouse
             }
-            variants {
+            
+            product {
               id
-              sku
+              qid
+              name
+              price
+              mainImage {
+                url
+                altText
+              }
+            }
+          }
+        }
+        """
+        
+        variables = {"id": variant_id}
+        result = self.client.execute(query, variables)
+        return result.get('findVariantById')
+    
+    def get_variant_by_sku(self, sku: str) -> Optional[Dict]:
+        """
+        جلب متغير بواسطة SKU
+        
+        Args:
+            sku: رقم التخزين
+        
+        Returns:
+            بيانات المتغير
+        """
+        query = """
+        query FindVariantBySku($sku: String!) {
+          findVariantBySku(sku: $sku) {
+            id
+            qid
+            sku
+            barcode
+            price
+            compareAtPrice
+            quantity
+            isAvailable
+            options {
+              name
+              value
+            }
+            image {
+              url
+              altText
+            }
+            inventory {
               quantity
-              isAvailable
-              options {
-                name
-                value
-              }
-              inventory {
-                quantity
-                available
-                reserved
-                location
-              }
+              available
+              location
+            }
+            product {
+              id
+              name
+              price
+            }
+          }
+        }
+        """
+        
+        variables = {"sku": sku}
+        result = self.client.execute(query, variables)
+        return result.get('findVariantBySku')
+    
+    def get_variants_inventory(self, product_id: str) -> List[Dict]:
+        """
+        جلب مخزون متغيرات المنتج
+        
+        Args:
+            product_id: معرف المنتج
+            
+        Returns:
+            قائمة المتغيرات مع المخزون
+        """
+        query = """
+        query GetVariantsInventory($productId: ID!) {
+          findAllVariantsByProductId(productId: $productId) {
+            id
+            sku
+            quantity
+            isAvailable
+            inventory {
+              id
+              quantity
+              available
+              reserved
+              location
+            }
+            options {
+              name
+              value
             }
           }
         }
@@ -295,198 +236,68 @@ class ProductService:
         
         variables = {"productId": product_id}
         result = self.client.execute(query, variables)
-        return result.get('findProductByQid', {})
+        return result.get('findAllVariantsByProductId', [])
     
-    def get_product_colors_and_prices(self, qid: str) -> Dict:
+    def get_variants_prices(self, product_id: str) -> List[Dict]:
         """
-        جلب ألوان وأسعار المنتج
+        جلب أسعار متغيرات المنتج
         
         Args:
-            qid: المعرف الفريد للمنتج
+            product_id: معرف المنتج
             
         Returns:
-            بيانات الألوان والأسعار
+            قائمة المتغيرات مع الأسعار
         """
         query = """
-        query GetProductColorsAndPrices($qid: String!) {
-          findProductByQid(qid: $qid) {
+        query GetVariantsPrices($productId: ID!) {
+          findAllVariantsByProductId(productId: $productId) {
             id
-            qid
-            name
+            sku
             price
             compareAtPrice
+            costPerItem
             currency
             options {
-              id
               name
-              values {
-                id
-                value
-                hexCode
-                image {
-                  url
-                  altText
-                }
-              }
-            }
-            variants {
-              id
-              sku
-              price
-              compareAtPrice
-              quantity
-              isAvailable
-              options {
-                name
-                value
-              }
-              image {
-                url
-                altText
-              }
-              inventory {
-                quantity
-                available
-              }
+              value
             }
           }
         }
         """
         
-        variables = {"qid": qid}
+        variables = {"productId": product_id}
         result = self.client.execute(query, variables)
-        return result.get('findProductByQid', {})
+        return result.get('findAllVariantsByProductId', [])
     
-    def get_top_viewed_products(self) -> List[Dict]:
+    def get_variant_by_options(self, product_id: str, options: Dict[str, str]) -> Optional[Dict]:
         """
-        جلب المنتجات الأكثر مشاهدة
-        
-        Returns:
-            قائمة المنتجات الأكثر مشاهدة
-        """
-        query = """
-        query FindTopViewedProducts {
-          FindTopViewedProducts {
-            id
-            qid
-            name
-            price
-            compareAtPrice
-            views
-            mainImage {
-              url
-              altText
-            }
-            ratings {
-              average
-              count
-            }
-          }
-        }
-        """
-        
-        result = self.client.execute(query, {})
-        return result.get('FindTopViewedProducts', [])
-    
-    def get_product_status(self) -> List[Dict]:
-        """
-        جلب حالة المنتجات
-        
-        Returns:
-            قائمة حالات المنتجات
-        """
-        query = """
-        query FindProductStatus {
-          findProductStatus {
-            id
-            qid
-            name
-            status
-            isActive
-            isAvailable
-            isPublished
-            isDraft
-            isArchived
-            createdAt
-            updatedAt
-          }
-        }
-        """
-        
-        result = self.client.execute(query, {})
-        return result.get('findProductStatus', [])
-    
-    def search_products(self, search_term: str, limit: int = 20) -> List[Dict]:
-        """
-        البحث عن المنتجات
+        جلب متغير حسب الخيارات (مثل: اللون والحجم)
         
         Args:
-            search_term: مصطلح البحث
-            limit: عدد النتائج
+            product_id: معرف المنتج
+            options: خيارات المتغير {'Color': 'Red', 'Size': 'XL'}
             
         Returns:
-            قائمة المنتجات
+            بيانات المتغير
         """
-        return self.get_all_products({
-            "search": search_term,
-            "limit": limit,
-            "isActive": True
-        })
+        variants = self.get_variants_by_product(product_id)
+        
+        for variant in variants:
+            variant_options = {opt['name']: opt['value'] for opt in variant.get('options', [])}
+            if all(variant_options.get(k) == v for k, v in options.items()):
+                return variant
+        
+        return None
     
-    def get_products_by_collection(self, collection_id: str) -> List[Dict]:
+    def get_available_variants(self, product_id: str) -> List[Dict]:
         """
-        جلب منتجات مجموعة معينة
+        جلب المتغيرات المتاحة للبيع فقط
         
         Args:
-            collection_id: معرف المجموعة
+            product_id: معرف المنتج
             
         Returns:
-            قائمة المنتجات
+            قائمة المتغيرات المتاحة
         """
-        query = """
-        query FindAllProductsForCollection($id: ID!) {
-          findAllProductsForCollection(id: $id) {
-            id
-            qid
-            name
-            description
-            price
-            compareAtPrice
-            mainImage {
-              url
-              altText
-            }
-            variants {
-              id
-              price
-              sku
-              quantity
-            }
-            inventory {
-              quantity
-              available
-            }
-          }
-        }
-        """
-        
-        variables = {"id": collection_id}
-        result = self.client.execute(query, variables)
-        return result.get('findAllProductsForCollection', [])
-    
-    def get_products_by_price_range(self, min_price: float, max_price: float) -> List[Dict]:
-        """
-        جلب منتجات حسب نطاق السعر
-        
-        Args:
-            min_price: أقل سعر
-            max_price: أعلى سعر
-            
-        Returns:
-            قائمة المنتجات
-        """
-        return self.get_all_products({
-            "minPrice": min_price,
-            "maxPrice": max_price,
-            "isActive": True
-        })
+        variants = self.get_variants_by_product(product_id)
+        return [v for v in variants if v.get('isAvailable') and v.get('quantity', 0) > 0]
