@@ -14,10 +14,11 @@ LINKS = {
     'add_product_bp.add_product_page': '➕ رفع منتج جديد'
 }
 
+
 def register_module(app):
     """تسجيل تطبيق منتجات المورد والـ Blueprints الخاصة به"""
     try:
-        # ✅ الاستيراد المحلي داخل الدالة لمنع الدخول في Circular Import أثناء إقلاع التطبيق
+        # ✅ الاستيراد المحلي داخل الدالة لمنع Circular Import
         from apps.suppliers_product.routes import (
             suppliers_product_bp,
             add_product_bp,
@@ -32,6 +33,8 @@ def register_module(app):
 
         if 'edit_product_bp' not in app.blueprints:
             app.register_blueprint(edit_product_bp, url_prefix='/supplier')
+            
+        print("✅ [Registry]: تم تسجيل موديول suppliers_product بنجاح")
             
     except Exception as e:
         print(f"❌ [Registry]: خطأ في تسجيل موديول suppliers_product: {e}")
