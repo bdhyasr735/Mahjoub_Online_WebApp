@@ -1,0 +1,4 @@
+apps/suppliers_product/product_services.py
+apps/suppliers_product/product_routes.py
+apps/suppliers_product/templates/suppliers/add_product.html
+add_product_services.py
