@@ -3,8 +3,23 @@
 
 from flask import Blueprint, render_template, request, session, abort, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
-from apps.suppliers_product.services import supplier_product, get_product_stats
-from apps.suppliers_product.helpers import paginate, filter_by_search
+from apps.suppliers_product.services import (
+    get_supplier_mappings,
+    fetch_product_by_qid,
+    get_active_suppliers,
+    get_product,
+    verify_access,
+    create_product,
+    update_product,
+    update_product_status,
+    delete_product,
+    add_product_image,
+    remove_product_image,
+    check_sku_availability,
+    generate_sku,
+    get_product_stats
+)
+from apps.suppliers_product.helpers import paginate, filter_by_search, filter_by_status, get_product_stats_from_list
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,7 +30,10 @@ add_product_bp = Blueprint('add_product_bp', __name__, template_folder='template
 edit_product_bp = Blueprint('edit_product_bp', __name__, template_folder='templates')
 
 
-# ====== PRODUCTS ======
+# ============================================
+# قائمة المنتجات
+# ============================================
+
 @suppliers_product_bp.route('/products', methods=['GET'])
 @login_required
 def products():
@@ -27,44 +45,98 @@ def products():
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
         search = request.args.get('search', '').strip()
+        filter_status = request.args.get('filter', 'all').strip()
         page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
 
-        mappings = supplier_product.get_supplier_mappings(supplier_id)
+        # ✅ جلب الـ mappings للمورد
+        mappings = get_supplier_mappings(supplier_id)
+        
+        # ✅ جلب بيانات المنتجات من GraphQL
         products = []
         for m in mappings:
-            product = supplier_product.fetch_product_by_qid(m['qid'])
+            product = fetch_product_by_qid(m['qid'])
             if product:
                 product_title = product.get('name') or product.get('title') or 'منتج بدون اسم'
                 products.append({
-                    'qid': m['qid'], 
-                    'title': product_title, 
-                    'product': product, 
-                    'mapping': m
+                    'qid': m['qid'],
+                    'title': product_title,
+                    'product': product,
+                    'mapping': m,
+                    'status': product.get('status', 'DRAFT'),
+                    'sku': product.get('sku', ''),
+                    'quantity': product.get('quantity', 0),
+                    'price': product.get('price', 0),
+                    'images': product.get('images', [])
                 })
 
+        # ✅ فلترة حسب البحث
         products = filter_by_search(products, search, 'title')
-        paginated = paginate(products, page)
+        
+        # ✅ فلترة حسب الحالة
+        if filter_status != 'all':
+            products = filter_by_status(products, filter_status)
+        
+        # ✅ ترقيم الصفحات
+        paginated = paginate(products, page, per_page)
+        
+        # ✅ إحصائيات المنتجات
         stats = get_product_stats(supplier_id)
 
+        # ✅ إذا كان طلب AJAX
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return render_template('suppliers/includes/_table_products.html', products=paginated)
+            return render_template(
+                'suppliers/includes/_table_products.html',
+                products=paginated,
+                pagination=paginated,
+                filter_status=filter_status
+            )
 
+        # ✅ عرض الصفحة الكاملة
         return render_template(
             'suppliers/suppliers_product.html',
             products=paginated,
-            suppliers=supplier_product.get_active_suppliers(),
+            pagination=paginated,
+            suppliers=get_active_suppliers(),
             total_products=stats['total'],
             active_products=stats['published'],
             draft_products=stats['draft'],
-            total_suppliers=len(supplier_product.get_active_suppliers()),
-            search_query=search
+            rejected_products=stats['rejected'],
+            archived_products=stats['archived'],
+            pending_products=stats['pending'],
+            total_suppliers=len(get_active_suppliers()),
+            search_query=search,
+            filter_status=filter_status
         )
+        
     except Exception as e:
         logger.error(f"❌ خطأ في products: {e}")
-        return render_template('suppliers/suppliers_product.html', products={'items': [], 'total': 0})
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return render_template(
+                'suppliers/includes/_table_products.html',
+                products={'items': [], 'total': 0},
+                pagination={'items': [], 'total': 0, 'pages': 1}
+            )
+        return render_template(
+            'suppliers/suppliers_product.html',
+            products={'items': [], 'total': 0},
+            pagination={'items': [], 'total': 0, 'pages': 1},
+            total_products=0,
+            active_products=0,
+            draft_products=0,
+            rejected_products=0,
+            archived_products=0,
+            pending_products=0,
+            total_suppliers=0,
+            search_query='',
+            filter_status='all'
+        )
 
 
-# ====== ADD PRODUCT ======
+# ============================================
+# إضافة منتج
+# ============================================
+
 @add_product_bp.route('/add-product', methods=['GET'])
 @login_required
 def add_product_page():
@@ -72,7 +144,12 @@ def add_product_page():
     try:
         if session.get('user_type') not in ['supplier', 'staff']:
             abort(403)
-        return render_template('suppliers/add_product.html', suppliers=supplier_product.get_active_suppliers())
+            
+        return render_template(
+            'suppliers/add_product.html',
+            suppliers=get_active_suppliers()
+        )
+        
     except Exception as e:
         logger.error(f"❌ خطأ في add_product_page: {e}")
         flash('❌ حدث خطأ في تحميل صفحة الإضافة', 'danger')
@@ -92,6 +169,7 @@ def api_add_product():
         if not supplier_id:
             return jsonify({'success': False, 'message': 'المورد مطلوب'}), 400
 
+        # ✅ جمع البيانات
         data = {
             'title': request.form.get('title', '').strip(),
             'description': request.form.get('description', '').strip(),
@@ -102,16 +180,26 @@ def api_add_product():
             'quantity': request.form.get('quantity', '').strip(),
         }
 
+        # ✅ التحقق من صحة البيانات
         if not data['title']:
             return jsonify({'success': False, 'message': 'اسم المنتج مطلوب'}), 400
+        
+        if not data['price']:
+            return jsonify({'success': False, 'message': 'السعر مطلوب'}), 400
 
+        # ✅ معالجة الصورة
         image = request.files.get('image')
         if image and image.filename:
             data['image_file'] = image.read()
             data['image_filename'] = image.filename
 
-        result = supplier_product.create_product(supplier_id, data)
-        return jsonify(result), 201 if result['success'] else 400
+        # ✅ إنشاء المنتج
+        result = create_product(supplier_id, data)
+        
+        if result['success']:
+            return jsonify(result), 201
+        else:
+            return jsonify(result), 400
 
     except Exception as e:
         logger.error(f"❌ خطأ في api_add_product: {e}")
@@ -127,8 +215,10 @@ def api_check_sku():
         sku = data.get('sku', '').strip() if data else ''
         if not sku:
             return jsonify({'success': False, 'message': 'SKU مطلوب'}), 400
-        result = supplier_product.check_sku_availability(sku)
+            
+        result = check_sku_availability(sku)
         return jsonify({'success': True, 'data': result})
+        
     except Exception as e:
         logger.error(f"❌ خطأ في api_check_sku: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -141,14 +231,18 @@ def api_generate_sku():
     try:
         data = request.get_json()
         prefix = data.get('prefix', 'PRD') if data else 'PRD'
-        sku = supplier_product.generate_sku(prefix)
+        sku = generate_sku(prefix)
         return jsonify({'success': True, 'data': {'sku': sku}})
+        
     except Exception as e:
         logger.error(f"❌ خطأ في api_generate_sku: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# ====== EDIT PRODUCT ======
+# ============================================
+# تعديل منتج
+# ============================================
+
 @edit_product_bp.route('/edit-product/<qid>', methods=['GET'])
 @login_required
 def edit_product_page(qid):
@@ -159,16 +253,18 @@ def edit_product_page(qid):
             abort(403)
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
-        result = supplier_product.get_product(qid, supplier_id)
+        result = get_product(qid, supplier_id)
 
         if not result['success']:
-            flash(result['error'], 'danger')
+            flash(result.get('error', 'المنتج غير موجود'), 'danger')
             return redirect(url_for('suppliers_product_bp.products'))
 
-        return render_template('suppliers/edit_product.html',
+        return render_template(
+            'suppliers/edit_product.html',
             product=result['product'],
             mapping=result['mapping']
         )
+        
     except Exception as e:
         logger.error(f"❌ خطأ في edit_product_page: {e}")
         flash('❌ حدث خطأ في تحميل صفحة التعديل', 'danger')
@@ -186,6 +282,7 @@ def update_product(qid):
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
 
+        # ✅ جمع البيانات
         data = {
             'title': request.form.get('title', '').strip(),
             'description': request.form.get('description', '').strip(),
@@ -196,15 +293,17 @@ def update_product(qid):
             'quantity': request.form.get('quantity', '').strip(),
         }
 
+        # ✅ معالجة الصورة
         image = request.files.get('image')
         if image and image.filename:
             data['image_file'] = image.read()
             data['image_filename'] = image.filename
 
-        result = supplier_product.update_product(qid, supplier_id, data)
+        # ✅ تحديث المنتج
+        result = update_product(qid, supplier_id, data)
 
         if result['success']:
-            flash(result['message'], 'success')
+            flash(result.get('message', 'تم تحديث المنتج بنجاح'), 'success')
         else:
             flash(result.get('error', 'فشل تحديث المنتج'), 'danger')
 
@@ -226,7 +325,8 @@ def api_update_product(qid):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
-        
+
+        # ✅ معالجة البيانات (FormData أو JSON)
         if request.content_type and 'multipart/form-data' in request.content_type:
             data = {
                 'title': request.form.get('title', '').strip(),
@@ -244,7 +344,8 @@ def api_update_product(qid):
         else:
             data = request.get_json() or {}
 
-        result = supplier_product.update_product(qid, supplier_id, data)
+        # ✅ تحديث المنتج
+        result = update_product(qid, supplier_id, data)
 
         if result['success']:
             return jsonify(result), 200
@@ -272,7 +373,7 @@ def api_update_status(qid):
         if not status:
             return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
 
-        result = supplier_product.update_product_status(qid, supplier_id, status)
+        result = update_product_status(qid, supplier_id, status)
 
         if result['success']:
             return jsonify(result), 200
@@ -295,7 +396,7 @@ def api_upload_image(qid):
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
 
-        if not supplier_product.verify_access(qid, supplier_id):
+        if not verify_access(qid, supplier_id):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
         if 'image' not in request.files:
@@ -305,7 +406,7 @@ def api_upload_image(qid):
         if not file or not file.filename:
             return jsonify({'success': False, 'message': 'ملف غير صالح'}), 400
 
-        result = supplier_product.add_product_image(qid, file.read(), file.filename)
+        result = add_product_image(qid, file.read(), file.filename)
 
         if result['success']:
             return jsonify(result), 200
@@ -328,10 +429,10 @@ def api_remove_image(qid, image_id):
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
 
-        if not supplier_product.verify_access(qid, supplier_id):
+        if not verify_access(qid, supplier_id):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        result = supplier_product.remove_product_image(qid, image_id)
+        result = remove_product_image(qid, image_id)
 
         if result['success']:
             return jsonify(result), 200
@@ -354,10 +455,10 @@ def api_delete_product(qid):
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
 
-        if not supplier_product.verify_access(qid, supplier_id):
+        if not verify_access(qid, supplier_id):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        result = supplier_product.delete_product(qid, supplier_id)
+        result = delete_product(qid, supplier_id)
 
         if result['success']:
             return jsonify(result), 200
