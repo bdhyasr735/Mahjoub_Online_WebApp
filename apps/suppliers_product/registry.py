@@ -9,10 +9,10 @@ MODULE_NAME = "إدارة المنتجات"
 MODULE_ICON = "fas fa-box"
 SHOW_IN_SUPPLIER = True
 
-# ✅ هيكل القائمة المنسدلة الفرعية (Dropdown Links)
+# ✅ مطابقة أسماء الـ Endpoints تماماً لما هو موجود في routes.py
 LINKS = {
     'suppliers_product_bp.products': '📦 قائمة المنتجات',
-    'add_product_bp.add_product': '➕ رفع منتج جديد'
+    'add_product_bp.add_product_page': '➕ رفع منتج جديد'
 }
 
 
