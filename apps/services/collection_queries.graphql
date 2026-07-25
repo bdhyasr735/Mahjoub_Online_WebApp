@@ -1,8 +1,6 @@
 # ============================================
-# استعلامات المجموعات - Collection Queries
+# 9. استعلام جلب جميع المجموعات
 # ============================================
-
-# 1. جلب جميع المجموعات
 query FindAllCollections {
   findAllCollections {
     id
@@ -18,11 +16,8 @@ query FindAllCollections {
       height
     }
     productsCount
-    isActive
-    isFeatured
     createdAt
     updatedAt
-    
     products {
       id
       qid
@@ -48,7 +43,9 @@ query FindAllCollections {
   }
 }
 
-# 2. جلب مجموعة بواسطة QID
+# ============================================
+# 10. استعلام جلب مجموعة بواسطة QID
+# ============================================
 query FindCollectionByQid($id: ID!) {
   findCollectionByQid(id: $id) {
     id
@@ -64,11 +61,8 @@ query FindCollectionByQid($id: ID!) {
       height
     }
     productsCount
-    isActive
-    isFeatured
     createdAt
     updatedAt
-    
     products {
       id
       qid
@@ -90,7 +84,9 @@ query FindCollectionByQid($id: ID!) {
   }
 }
 
-# 3. جلب منتجات مجموعة معينة
+# ============================================
+# 11. استعلام جلب منتجات مجموعة معينة
+# ============================================
 query FindAllProductsForCollection($id: ID!) {
   findAllProductsForCollection(id: $id) {
     id
@@ -105,7 +101,6 @@ query FindAllProductsForCollection($id: ID!) {
     status
     isActive
     isAvailable
-    
     mainImage {
       id
       url
@@ -113,7 +108,6 @@ query FindAllProductsForCollection($id: ID!) {
       width
       height
     }
-    
     images {
       id
       url
@@ -122,7 +116,6 @@ query FindAllProductsForCollection($id: ID!) {
       height
       position
     }
-    
     variants {
       id
       sku
@@ -139,13 +132,11 @@ query FindAllProductsForCollection($id: ID!) {
         available
       }
     }
-    
     category {
       id
       name
       handle
     }
-    
     brand {
       id
       name
@@ -153,50 +144,13 @@ query FindAllProductsForCollection($id: ID!) {
         url
       }
     }
-    
     ratings {
       average
       count
     }
-    
     inventory {
       quantity
       available
     }
-  }
-}
-
-# 4. جلب المجموعات المميزة
-query FindFeaturedCollections {
-  findFeaturedCollections {
-    id
-    qid
-    name
-    description
-    handle
-    image {
-      url
-      altText
-    }
-    productsCount
-    isFeatured
-  }
-}
-
-# 5. جلب المجموعات النشطة
-query FindActiveCollections {
-  findActiveCollections {
-    id
-    qid
-    name
-    description
-    handle
-    image {
-      url
-      altText
-    }
-    productsCount
-    isActive
-    createdAt
   }
 }
