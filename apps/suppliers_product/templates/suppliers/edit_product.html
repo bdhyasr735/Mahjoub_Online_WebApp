@@ -249,7 +249,7 @@
                             </div>
                         </div>
 
-                        <!-- ✅ الحالة (متوافقة مع add_product) -->
+                        <!-- ✅ الحالة -->
                         <div class="mb-3">
                             <label class="form-label fw-bold" for="productStatus">
                                 <i class="fas fa-circle text-muted me-1"></i> الحالة
@@ -471,10 +471,10 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
 
-        const qid = '{{ product.qid or "" }}';
+        const qid = '{{ prod_qid }}';
         const formData = new FormData(this);
 
-        fetch('{{ url_for("edit_product_bp.api_update_product", qid=product.qid) }}', {
+        fetch('{{ url_for("edit_product_bp.api_update_product", qid=prod_qid) }}', {
             method: 'PUT',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
