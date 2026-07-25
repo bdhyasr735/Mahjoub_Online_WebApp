@@ -5,6 +5,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ====== بيانات الموديول للتسجيل التلقائي في السيدبار ======
+MODULE_NAME = "إدارة المنتجات"
+icon = "fas fa-box-open"
+
+links = {
+    "suppliers_product_bp.products": "قائمة المنتجات",
+    "add_product_bp.add_product_page": "إضافة منتج جديد"
+}
+
 
 class SupplierProductRegistry:
     """مسجل المكونات والإضافات لمنتجات الموردين"""
