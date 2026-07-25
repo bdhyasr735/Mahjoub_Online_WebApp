@@ -1,7 +1,7 @@
 <!-- 📂 apps/suppliers_product/templates/suppliers/includes/_table_products.html -->
 
 <div class="table-responsive">
-    <table class="table table-hover align-middle">
+    <table class="table table-hover align-middle" id="productsTable">
         <thead class="table-light">
             <tr>
                 <th style="width: 50px;">#</th>
@@ -15,41 +15,60 @@
             </tr>
         </thead>
         <tbody>
-            {% if products and products|length > 0 %}
-                {% for product in products %}
-                {% set prod_qty = product.quantity if product is mapping and product.quantity is defined else (product.stock if product is mapping and product.stock is defined else 0) %}
+            {% if products and products.items and products.items|length > 0 %}
+                {% for product in products.items %}
+                {# استخراج الكمية من GraphQL product #}
+                {% set prod_qty = product.product.quantity if product.product and product.product.quantity is defined else (product.quantity if product.quantity is defined else 0) %}
+                {# استخراج السعر #}
+                {% set prod_price = product.product.price if product.product and product.product.price is defined else (product.price if product.price is defined else 0) %}
+                {# استخراج SKU #}
+                {% set prod_sku = product.product.sku if product.product and product.product.sku is defined else (product.sku if product.sku is defined else '---') %}
+                {# استخراج الحالة #}
+                {% set prod_status = product.product.status if product.product and product.product.status is defined else (product.status if product.status is defined else 'DRAFT') %}
+                {# استخراج الصور #}
+                {% set prod_images = product.product.images if product.product and product.product.images is defined else (product.images if product.images is defined else []) %}
+                {# استخراج الاسم #}
+                {% set prod_name = product.title if product.title is defined else (product.product.name if product.product and product.product.name is defined else 'منتج بدون اسم') %}
+                {# استخراج الوصف #}
+                {% set prod_desc = product.product.description if product.product and product.product.description is defined else (product.description if product.description is defined else '') %}
+                {# QID #}
+                {% set prod_qid = product.qid if product.qid is defined else (product.product.qid if product.product and product.product.qid is defined else '') %}
+                
                 <tr>
                     <td>{{ loop.index + ((pagination.current_page - 1) * pagination.per_page if pagination else 0) }}</td>
                     <td>
-                        {% if product.images and product.images|length > 0 %}
-                            <img src="{{ product.images[0].fileUrl if product.images[0] is mapping else product.images[0] }}" alt="{{ product.title or product.name }}" 
-                                 style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                        {% if prod_images and prod_images|length > 0 %}
+                            {% set first_image = prod_images[0] %}
+                            {% if first_image is mapping %}
+                                <img src="{{ first_image.url or first_image.fileUrl }}" 
+                                     alt="{{ prod_name }}" 
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"
+                                     onerror="this.src='{{ url_for('static', filename='images/no-image.png') }}'">
+                            {% else %}
+                                <img src="{{ first_image }}" 
+                                     alt="{{ prod_name }}" 
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"
+                                     onerror="this.src='{{ url_for('static', filename='images/no-image.png') }}'">
+                            {% endif %}
                         {% else %}
-                            <div style="width: 50px; height: 50px; background: #f8f5fa; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-image text-muted" style="opacity: 0.3;"></i>
+                            <div style="width: 50px; height: 50px; background: #f8f5fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #dee2e6;">
+                                <i class="fas fa-image text-muted" style="opacity: 0.3; font-size: 18px;"></i>
                             </div>
                         {% endif %}
                     </td>
                     <td>
-                        <strong>{{ product.title or product.name }}</strong>
-                        {% if product.description %}
-                            <br><small class="text-muted">{{ product.description|striptags|truncate(50) }}</small>
+                        <strong>{{ prod_name }}</strong>
+                        {% if prod_desc %}
+                            <br><small class="text-muted">{{ prod_desc|striptags|truncate(50) }}</small>
                         {% endif %}
                     </td>
                     <td>
-                        <code class="small">
-                            {% if product.ident and product.ident.sku %}
-                                {{ product.ident.sku }}
-                            {% elif product.sku %}
-                                {{ product.sku }}
-                            {% else %}
-                                ---
-                            {% endif %}
+                        <code class="small bg-light p-1 rounded">
+                            {{ prod_sku }}
                         </code>
                     </td>
                     <td>
-                        <span class="fw-bold">
-                            {% set prod_price = product.pricing.price if product.pricing and product.pricing.price is defined else (product.price if product.price is defined else 0) %}
+                        <span class="fw-bold text-primary">
                             {{ "%.2f"|format(prod_price|float) }}
                         </span>
                     </td>
@@ -57,25 +76,26 @@
                         <span class="badge 
                             {% if prod_qty > 10 %}bg-success
                             {% elif prod_qty > 0 %}bg-warning text-dark
-                            {% else %}bg-danger{% endif %}">
+                            {% else %}bg-danger{% endif %}
+                            rounded-pill px-3 py-2">
                             {{ prod_qty }}
                         </span>
                     </td>
                     <td>
-                        {% set prod_status = product.status if product.status is defined else 'DRAFT' %}
                         <span class="badge 
-                            {% if prod_status == 'PUBLISHED' %}bg-success
-                            {% elif prod_status == 'DRAFT' %}bg-warning text-dark
-                            {% elif prod_status == 'REJECTED' %}bg-danger
-                            {% elif prod_status == 'ARCHIVED' %}bg-secondary
-                            {% else %}bg-light text-dark{% endif %}">
-                            {% if prod_status == 'PUBLISHED' %}
+                            {% if prod_status == 'PUBLISHED' or prod_status == 'published' %}bg-success
+                            {% elif prod_status == 'DRAFT' or prod_status == 'draft' %}bg-warning text-dark
+                            {% elif prod_status == 'REJECTED' or prod_status == 'rejected' %}bg-danger
+                            {% elif prod_status == 'ARCHIVED' or prod_status == 'archived' %}bg-secondary
+                            {% else %}bg-light text-dark{% endif %}
+                            rounded-pill px-3 py-2">
+                            {% if prod_status == 'PUBLISHED' or prod_status == 'published' %}
                                 <i class="fas fa-check-circle me-1"></i> منشور
-                            {% elif prod_status == 'DRAFT' %}
+                            {% elif prod_status == 'DRAFT' or prod_status == 'draft' %}
                                 <i class="fas fa-clock me-1"></i> مراجعة
-                            {% elif prod_status == 'REJECTED' %}
+                            {% elif prod_status == 'REJECTED' or prod_status == 'rejected' %}
                                 <i class="fas fa-times-circle me-1"></i> مرفوض
-                            {% elif prod_status == 'ARCHIVED' %}
+                            {% elif prod_status == 'ARCHIVED' or prod_status == 'archived' %}
                                 <i class="fas fa-archive me-1"></i> مؤرشف
                             {% else %}
                                 {{ prod_status }}
@@ -83,25 +103,40 @@
                         </span>
                     </td>
                     <td>
-                        <div class="btn-group btn-group-sm">
-                            <a href="{{ url_for('edit_product_bp.edit_product_page', qid=product.qid) }}" 
-                               class="btn btn-outline-warning" title="تعديل المنتج">
+                        <div class="btn-group btn-group-sm" role="group">
+                            {% if prod_qid %}
+                            <a href="{{ url_for('edit_product_bp.edit_product_page', qid=prod_qid) }}" 
+                               class="btn btn-outline-warning" 
+                               title="تعديل المنتج"
+                               data-bs-toggle="tooltip">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <button class="btn btn-outline-secondary" onclick="copyProductLink('{{ product.qid }}')" title="نسخ الرابط">
+                            <button class="btn btn-outline-secondary" 
+                                    onclick="copyProductLink('{{ prod_qid }}')" 
+                                    title="نسخ الرابط"
+                                    data-bs-toggle="tooltip">
                                 <i class="fas fa-copy"></i>
                             </button>
+                            <button class="btn btn-outline-danger" 
+                                    onclick="deleteProduct('{{ prod_qid }}')" 
+                                    title="حذف المنتج"
+                                    data-bs-toggle="tooltip">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                            {% else %}
+                            <span class="text-muted small">لا يوجد QID</span>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
                 {% endfor %}
             {% else %}
                 <tr>
-                    <td colspan="8" class="text-center py-4">
-                        <i class="fas fa-box-open fa-3x text-muted mb-3 d-block" style="opacity: 0.3;"></i>
+                    <td colspan="8" class="text-center py-5">
+                        <i class="fas fa-box-open fa-4x text-muted mb-3 d-block" style="opacity: 0.2;"></i>
                         <h5 class="text-muted">لا توجد منتجات</h5>
                         <p class="text-muted small">لم تقم بإضافة أي منتجات حتى الآن</p>
-                        <a href="{{ url_for('add_product_bp.add_product_page') }}" class="btn btn-custom btn-sm">
+                        <a href="{{ url_for('add_product_bp.add_product_page') }}" class="btn btn-custom btn-sm mt-2">
                             <i class="fas fa-plus me-1"></i> إضافة منتج
                         </a>
                     </td>
@@ -143,15 +178,22 @@
 </div>
 {% endif %}
 
+<!-- ✅ JavaScript -->
 <script>
+    // ✅ الانتقال إلى صفحة معينة
     function goToPage(page) {
         if (page) {
             const search = document.getElementById('searchInput')?.value || '';
             const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
-            window.location.href = `?page=${page}&search=${encodeURIComponent(search)}&filter=${filter}`;
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', page);
+            if (search) url.searchParams.set('search', search);
+            if (filter !== 'all') url.searchParams.set('filter', filter);
+            window.location.href = url.toString();
         }
     }
     
+    // ✅ نسخ رابط المنتج
     function copyProductLink(qid) {
         const url = `{{ request.host_url }}supplier/product/${qid}`;
         if (navigator.clipboard) {
@@ -165,6 +207,7 @@
         }
     }
     
+    // ✅ نسخ احتياطي
     function fallbackCopy(text) {
         const textarea = document.createElement('textarea');
         textarea.value = text;
@@ -177,6 +220,33 @@
         showToast('✅ تم نسخ الرابط بنجاح!', 'success');
     }
     
+    // ✅ حذف المنتج
+    function deleteProduct(qid) {
+        if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟')) return;
+        
+        fetch(`/api/edit-product/${qid}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ تم حذف المنتج بنجاح', 'success');
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast('❌ فشل الحذف: ' + (data.message || 'خطأ غير معروف'), 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('❌ حدث خطأ أثناء الحذف', 'danger');
+        });
+    }
+    
+    // ✅ عرض إشعار (Toast)
     function showToast(message, type = 'info') {
         const colors = {
             success: '#28a745',
@@ -185,23 +255,52 @@
             danger: '#dc3545'
         };
         
+        // حذف الإشعارات القديمة
+        document.querySelectorAll('.custom-toast').forEach(el => el.remove());
+        
         const toast = document.createElement('div');
-        toast.className = 'position-fixed bottom-0 end-0 p-3';
+        toast.className = 'custom-toast position-fixed bottom-0 end-0 p-3';
         toast.style.zIndex = '9999';
+        toast.style.animation = 'slideInUp 0.5s ease';
         toast.innerHTML = `
-            <div class="toast show border-0 shadow-lg" role="alert" style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px;">
-                <div class="toast-body d-flex align-items-center gap-2">
+            <div class="toast show border-0 shadow-lg" role="alert" 
+                 style="border-right: 4px solid ${colors[type] || colors.info}; 
+                        background: white; border-radius: 12px; min-width: 280px;">
+                <div class="toast-body d-flex align-items-center gap-2 p-3">
                     <span>${message}</span>
-                    <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+                    <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast" 
+                            onclick="this.closest('.custom-toast').remove()"></button>
                 </div>
             </div>
         `;
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+        setTimeout(() => toast.remove(), 4000);
     }
+    
+    // ✅ تفعيل الـ Tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        if (typeof bootstrap !== 'undefined') {
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+    });
 </script>
 
+<!-- ✅ CSS -->
 <style>
+    @keyframes slideInUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
     .btn-custom {
         background-color: var(--dark-purple, #2d0b36);
         color: #fff;
@@ -214,15 +313,46 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(45, 11, 54, 0.3);
     }
+    
     .table th {
         font-weight: 600;
         color: #495057;
         border-bottom: 2px solid #dee2e6;
+        font-size: 0.85rem;
+        white-space: nowrap;
     }
+    
     .table td {
         vertical-align: middle;
+        font-size: 0.9rem;
     }
+    
     .table-hover tbody tr:hover {
-        background-color: rgba(45, 11, 54, 0.02);
+        background-color: rgba(45, 11, 54, 0.03);
+        transition: background-color 0.2s ease;
+    }
+    
+    .page-item.active .page-link {
+        background-color: var(--dark-purple, #2d0b36);
+        border-color: var(--dark-purple, #2d0b36);
+    }
+    
+    .page-link {
+        color: var(--dark-purple, #2d0b36);
+    }
+    
+    .page-link:hover {
+        color: #4a1558;
+    }
+    
+    code {
+        font-size: 0.75rem;
+        background-color: #f8f9fa;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    
+    .badge {
+        font-weight: 500;
     }
 </style>
