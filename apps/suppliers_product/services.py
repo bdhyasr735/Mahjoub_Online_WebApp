@@ -2,7 +2,6 @@
 # 📂 apps/suppliers_product/services.py
 
 from apps.services import ProductService, GraphQLClient
-from apps.mapping.product_mapping_service import product_mapping
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models import Supplier
 from apps.suppliers_product.helpers import compress_image
@@ -35,7 +34,7 @@ class SupplierProductService:
         return {
             'success': True, 
             'product': product, 
-            'mapping': product_mapping.get_mapping_by_qid(qid)
+            'mapping': mapping.to_dict()
         }
     
     def fetch_product_by_qid(self, qid):
@@ -129,7 +128,6 @@ class SupplierProductService:
         if data.get('sku'):
             sku = data['sku'].strip()
             if self.check_sku_availability(sku, qid).get('available', True):
-                # تحديث SKU عبر GraphQL
                 self.products.update(qid, {'sku': sku})
             else:
                 return {'success': False, 'error': f'SKU "{sku}" غير متاح'}
@@ -145,10 +143,7 @@ class SupplierProductService:
     # ====== IMAGE ======
     def _upload_image(self, image_data, filename):
         """رفع صورة (يجب تنفيذها حسب نظام التخزين المستخدم)"""
-        # TODO: تنفيذ رفع الصورة حسب نظام التخزين
-        # يمكن استخدام Cloudinary أو S3 أو التخزين المحلي
         compressed = compress_image(image_data)
-        # return self.products.upload_image(compressed, filename)
         return None
     
     def add_product_image(self, qid, image_data, filename):
@@ -161,7 +156,6 @@ class SupplierProductService:
         if not product:
             return {'success': False, 'error': 'المنتج غير موجود'}
         
-        # جلب الصور الحالية وإضافة الصورة الجديدة
         current_images = product.get('images', [])
         if isinstance(current_images, list):
             current_images.append(url)
@@ -179,7 +173,6 @@ class SupplierProductService:
         
         current_images = product.get('images', [])
         if isinstance(current_images, list):
-            # حذف الصورة حسب المعرف
             new_images = [img for img in current_images if img != image_id]
             result = self.products.update_images(qid, new_images)
             return {'success': bool(result)}
@@ -194,7 +187,10 @@ class SupplierProductService:
         
         result = self.products.update_status(qid, status)
         if result:
-            product_mapping.update_mapping_status(qid, status)
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid, supplier_id=supplier_id).first()
+            if mapping:
+                mapping.status = status.lower()
+                db.session.commit()
             return {'success': True, 'message': f'تم التحديث إلى {status}'}
         
         return {'success': False, 'error': 'فشل التحديث'}
@@ -202,7 +198,6 @@ class SupplierProductService:
     # ====== SKU ======
     def check_sku_availability(self, sku, exclude_qid=None):
         """التحقق من توفر SKU"""
-        # TODO: تنفيذ التحقق من SKU في قاعدة البيانات
         return {'available': True}
     
     def generate_sku(self, prefix='PRD'):
@@ -237,12 +232,10 @@ class SupplierProductService:
         if not self.verify_access(qid, supplier_id):
             return {'success': False, 'error': 'غير مصرح'}
         
-        # حذف من GraphQL
         result = self.products.delete(qid)
         
-        # حذف الربط
         if result:
-            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid, supplier_id=supplier_id).first()
             if mapping:
                 db.session.delete(mapping)
                 db.session.commit()
