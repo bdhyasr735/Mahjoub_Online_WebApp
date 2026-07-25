@@ -59,7 +59,7 @@ def index():
 
         return render_template(
             'suppliers/suppliers_product.html',
-            products=pagination_data,  # تم تمريرها باسم products لتعمل مع products.items في القالب
+            products=pagination_data,
             total_products=total_products,
             active_products=active_products,
             draft_products=draft_products,
@@ -95,7 +95,7 @@ def add_product():
             for error in errors:
                 flash(error, 'danger')
             return render_template(
-                'suppliers/suppliers_product.html',
+                'suppliers/add_product.html',
                 form_data=data,
                 generated_sku=data['sku'],
                 get_status_badge=get_status_badge,
@@ -117,7 +117,7 @@ def add_product():
             flash('حدث خطأ أثناء حفظ المنتج', 'danger')
 
     return render_template(
-        'suppliers/suppliers_product.html',
+        'suppliers/add_product.html',
         generated_sku=generate_sku(),
         get_status_badge=get_status_badge,
         get_status_text=get_status_text,
@@ -147,7 +147,7 @@ def edit_product(qid):
             for error in errors:
                 flash(error, 'danger')
             return render_template(
-                'suppliers/suppliers_product.html',
+                'suppliers/edit_product.html',
                 product=product,
                 get_status_badge=get_status_badge,
                 get_status_text=get_status_text,
@@ -162,7 +162,7 @@ def edit_product(qid):
             flash('حدث خطأ أثناء تحديث المنتج', 'danger')
 
     return render_template(
-        'suppliers/suppliers_product.html',
+        'suppliers/edit_product.html',
         product=product,
         get_status_badge=get_status_badge,
         get_status_text=get_status_text,
