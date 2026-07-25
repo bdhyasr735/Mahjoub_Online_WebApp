@@ -1,1 +1,156 @@
+# ============================================
+# 9. استعلام جلب جميع المجموعات
+# ============================================
+query FindAllCollections {
+  findAllCollections {
+    id
+    qid
+    name
+    description
+    handle
+    image {
+      id
+      url
+      altText
+      width
+      height
+    }
+    productsCount
+    createdAt
+    updatedAt
+    products {
+      id
+      qid
+      name
+      description
+      price
+      compareAtPrice
+      mainImage {
+        url
+        altText
+      }
+      images {
+        url
+        altText
+      }
+      variants {
+        id
+        price
+        sku
+        quantity
+      }
+    }
+  }
+}
 
+# ============================================
+# 10. استعلام جلب مجموعة بواسطة QID
+# ============================================
+query FindCollectionByQid($id: ID!) {
+  findCollectionByQid(id: $id) {
+    id
+    qid
+    name
+    description
+    handle
+    image {
+      id
+      url
+      altText
+      width
+      height
+    }
+    productsCount
+    createdAt
+    updatedAt
+    products {
+      id
+      qid
+      name
+      description
+      price
+      compareAtPrice
+      mainImage {
+        url
+        altText
+      }
+      variants {
+        id
+        price
+        sku
+        quantity
+      }
+    }
+  }
+}
+
+# ============================================
+# 11. استعلام جلب منتجات مجموعة معينة
+# ============================================
+query FindAllProductsForCollection($id: ID!) {
+  findAllProductsForCollection(id: $id) {
+    id
+    qid
+    name
+    description
+    price
+    compareAtPrice
+    currency
+    sku
+    quantity
+    status
+    isActive
+    isAvailable
+    mainImage {
+      id
+      url
+      altText
+      width
+      height
+    }
+    images {
+      id
+      url
+      altText
+      width
+      height
+      position
+    }
+    variants {
+      id
+      sku
+      price
+      compareAtPrice
+      quantity
+      isAvailable
+      image {
+        url
+        altText
+      }
+      inventory {
+        quantity
+        available
+      }
+    }
+    category {
+      id
+      name
+      handle
+    }
+    brand {
+      id
+      name
+      logo {
+        url
+      }
+    }
+    ratings {
+      average
+      count
+    }
+    inventory {
+      quantity
+      available
+    }
+  }
+}
