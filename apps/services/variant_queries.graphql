@@ -1,1 +1,146 @@
+# ============================================
+# 5. استعلام جلب جميع المتغيرات لمنتج
+# ============================================
+query FindAllVariantsByProductId($productId: ID!) {
+  findAllVariantsByProductId(productId: $productId) {
+    id
+    qid
+    sku
+    barcode
+    price
+    compareAtPrice
+    costPerItem
+    quantity
+    weight
+    weightUnit
+    position
+    isActive
+    isAvailable
+    options {
+      id
+      name
+      value
+      position
+    }
+    image {
+      id
+      url
+      altText
+      width
+      height
+    }
+    inventory {
+      id
+      quantity
+      available
+      reserved
+      location
+      warehouse
+    }
+    product {
+      id
+      qid
+      name
+      mainImage {
+        url
+        altText
+      }
+    }
+  }
+}
 
+# ============================================
+# 6. استعلام جلب متغير بواسطة ID
+# ============================================
+query FindVariantById($id: ID!) {
+  findVariantById(id: $id) {
+    id
+    qid
+    sku
+    barcode
+    price
+    compareAtPrice
+    costPerItem
+    quantity
+    weight
+    weightUnit
+    position
+    isActive
+    isAvailable
+    options {
+      id
+      name
+      value
+      position
+    }
+    image {
+      id
+      url
+      altText
+      width
+      height
+    }
+    inventory {
+      id
+      quantity
+      available
+      reserved
+      location
+      warehouse
+    }
+    product {
+      id
+      qid
+      name
+      price
+      mainImage {
+        url
+        altText
+      }
+    }
+  }
+}
+
+# ============================================
+# 7. استعلام جلب خيار بواسطة QID
+# ============================================
+query FindOptionByQid($qid: String!) {
+  findOptionByQid(qid: $qid) {
+    id
+    qid
+    name
+    position
+    values {
+      id
+      value
+      position
+      hexCode
+      image {
+        url
+        altText
+      }
+    }
+  }
+}
+
+# ============================================
+# 8. استعلام جلب جميع خيارات المنتج
+# ============================================
+query FindAllOptionsForProduct($qid: String!) {
+  findAllOptionsForProduct(qid: $qid) {
+    id
+    qid
+    name
+    position
+    values {
+      id
+      value
+      position
+      hexCode
+      image {
+        url
+        altText
+      }
+    }
+  }
+}
