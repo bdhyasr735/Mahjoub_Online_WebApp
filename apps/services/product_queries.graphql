@@ -1,8 +1,6 @@
 # ============================================
-# استعلامات المنتج - Product Queries
+# 1. استعلام جلب جميع المنتجات
 # ============================================
-
-# 1. جلب جميع المنتجات
 query FindAllProducts($input: GetAllProductsInput) {
   findAllProducts(input: $input) {
     id
@@ -17,6 +15,9 @@ query FindAllProducts($input: GetAllProductsInput) {
     isPhysical
     isGiftCard
     isTaxable
+    createdAt
+    updatedAt
+    publishedAt
     price
     compareAtPrice
     costPerItem
@@ -24,14 +25,6 @@ query FindAllProducts($input: GetAllProductsInput) {
     taxClass
     taxRate
     quantity
-    sku
-    barcode
-    weight
-    weightUnit
-    createdAt
-    updatedAt
-    publishedAt
-    
     inventory {
       id
       quantity
@@ -40,7 +33,10 @@ query FindAllProducts($input: GetAllProductsInput) {
       location
       warehouse
     }
-    
+    sku
+    barcode
+    weight
+    weightUnit
     images {
       id
       url
@@ -51,7 +47,6 @@ query FindAllProducts($input: GetAllProductsInput) {
       position
       createdAt
     }
-    
     mainImage {
       id
       url
@@ -59,7 +54,6 @@ query FindAllProducts($input: GetAllProductsInput) {
       width
       height
     }
-    
     media {
       id
       url
@@ -68,7 +62,6 @@ query FindAllProducts($input: GetAllProductsInput) {
       position
       createdAt
     }
-    
     options {
       id
       qid
@@ -85,7 +78,6 @@ query FindAllProducts($input: GetAllProductsInput) {
         }
       }
     }
-    
     variants {
       id
       qid
@@ -100,14 +92,12 @@ query FindAllProducts($input: GetAllProductsInput) {
       position
       isActive
       isAvailable
-      
       options {
         id
         name
         value
         position
       }
-      
       image {
         id
         url
@@ -115,7 +105,6 @@ query FindAllProducts($input: GetAllProductsInput) {
         width
         height
       }
-      
       inventory {
         id
         quantity
@@ -125,7 +114,6 @@ query FindAllProducts($input: GetAllProductsInput) {
         warehouse
       }
     }
-    
     collections {
       id
       qid
@@ -137,7 +125,6 @@ query FindAllProducts($input: GetAllProductsInput) {
         altText
       }
     }
-    
     category {
       id
       qid
@@ -148,7 +135,12 @@ query FindAllProducts($input: GetAllProductsInput) {
         url
       }
     }
-    
+    categories {
+      id
+      qid
+      name
+      handle
+    }
     brand {
       id
       qid
@@ -158,13 +150,21 @@ query FindAllProducts($input: GetAllProductsInput) {
         altText
       }
     }
-    
     ratings {
       average
       count
       stars
     }
-    
+    shipping {
+      weight
+      weightUnit
+      length
+      width
+      height
+      dimensionUnit
+      requiresShipping
+      shippingClass
+    }
     seo {
       title
       description
@@ -173,7 +173,6 @@ query FindAllProducts($input: GetAllProductsInput) {
         url
       }
     }
-    
     translations {
       locale
       name
@@ -181,7 +180,6 @@ query FindAllProducts($input: GetAllProductsInput) {
       seoTitle
       seoDescription
     }
-    
     metafields {
       id
       namespace
@@ -189,7 +187,6 @@ query FindAllProducts($input: GetAllProductsInput) {
       value
       type
     }
-    
     relatedProducts {
       id
       qid
@@ -200,7 +197,6 @@ query FindAllProducts($input: GetAllProductsInput) {
         altText
       }
     }
-    
     recommendedProducts {
       id
       qid
@@ -211,10 +207,25 @@ query FindAllProducts($input: GetAllProductsInput) {
         altText
       }
     }
+    discounts {
+      id
+      type
+      value
+      minQuantity
+      maxQuantity
+    }
+    availability {
+      isAvailable
+      availableDate
+      preorder
+      preorderDate
+    }
   }
 }
 
-# 2. جلب منتج بواسطة QID
+# ============================================
+# 2. استعلام جلب منتج بواسطة QID
+# ============================================
 query FindProductByQid($qid: String!) {
   findProductByQid(qid: $qid) {
     id
@@ -229,6 +240,9 @@ query FindProductByQid($qid: String!) {
     isPhysical
     isGiftCard
     isTaxable
+    createdAt
+    updatedAt
+    publishedAt
     price
     compareAtPrice
     costPerItem
@@ -236,14 +250,6 @@ query FindProductByQid($qid: String!) {
     taxClass
     taxRate
     quantity
-    sku
-    barcode
-    weight
-    weightUnit
-    createdAt
-    updatedAt
-    publishedAt
-    
     inventory {
       id
       quantity
@@ -252,7 +258,10 @@ query FindProductByQid($qid: String!) {
       location
       warehouse
     }
-    
+    sku
+    barcode
+    weight
+    weightUnit
     images {
       id
       url
@@ -263,7 +272,6 @@ query FindProductByQid($qid: String!) {
       position
       createdAt
     }
-    
     mainImage {
       id
       url
@@ -271,7 +279,6 @@ query FindProductByQid($qid: String!) {
       width
       height
     }
-    
     media {
       id
       url
@@ -280,7 +287,6 @@ query FindProductByQid($qid: String!) {
       position
       createdAt
     }
-    
     options {
       id
       qid
@@ -297,7 +303,6 @@ query FindProductByQid($qid: String!) {
         }
       }
     }
-    
     variants {
       id
       qid
@@ -312,14 +317,12 @@ query FindProductByQid($qid: String!) {
       position
       isActive
       isAvailable
-      
       options {
         id
         name
         value
         position
       }
-      
       image {
         id
         url
@@ -327,7 +330,6 @@ query FindProductByQid($qid: String!) {
         width
         height
       }
-      
       inventory {
         id
         quantity
@@ -337,7 +339,6 @@ query FindProductByQid($qid: String!) {
         warehouse
       }
     }
-    
     collections {
       id
       qid
@@ -349,7 +350,6 @@ query FindProductByQid($qid: String!) {
         altText
       }
     }
-    
     category {
       id
       qid
@@ -360,7 +360,12 @@ query FindProductByQid($qid: String!) {
         url
       }
     }
-    
+    categories {
+      id
+      qid
+      name
+      handle
+    }
     brand {
       id
       qid
@@ -370,13 +375,21 @@ query FindProductByQid($qid: String!) {
         altText
       }
     }
-    
     ratings {
       average
       count
       stars
     }
-    
+    shipping {
+      weight
+      weightUnit
+      length
+      width
+      height
+      dimensionUnit
+      requiresShipping
+      shippingClass
+    }
     seo {
       title
       description
@@ -385,7 +398,6 @@ query FindProductByQid($qid: String!) {
         url
       }
     }
-    
     translations {
       locale
       name
@@ -393,7 +405,6 @@ query FindProductByQid($qid: String!) {
       seoTitle
       seoDescription
     }
-    
     metafields {
       id
       namespace
@@ -401,7 +412,6 @@ query FindProductByQid($qid: String!) {
       value
       type
     }
-    
     relatedProducts {
       id
       qid
@@ -412,10 +422,35 @@ query FindProductByQid($qid: String!) {
         altText
       }
     }
+    recommendedProducts {
+      id
+      qid
+      name
+      price
+      mainImage {
+        url
+        altText
+      }
+    }
+    discounts {
+      id
+      type
+      value
+      minQuantity
+      maxQuantity
+    }
+    availability {
+      isAvailable
+      availableDate
+      preorder
+      preorderDate
+    }
   }
 }
 
-# 3. جلب حالة المنتج
+# ============================================
+# 3. استعلام جلب حالة المنتج
+# ============================================
 query FindProductStatus {
   findProductStatus {
     id
@@ -432,7 +467,9 @@ query FindProductStatus {
   }
 }
 
-# 4. جلب المنتجات الأكثر مشاهدة
+# ============================================
+# 4. استعلام جلب المنتجات الأكثر مشاهدة
+# ============================================
 query FindTopViewedProducts {
   FindTopViewedProducts {
     id
@@ -448,113 +485,6 @@ query FindTopViewedProducts {
     ratings {
       average
       count
-    }
-  }
-}
-
-# 5. جلب جميع المتغيرات لمنتج
-query FindAllVariantsByProductId($productId: ID!) {
-  findAllVariantsByProductId(productId: $productId) {
-    id
-    qid
-    sku
-    barcode
-    price
-    compareAtPrice
-    costPerItem
-    quantity
-    weight
-    weightUnit
-    position
-    isActive
-    isAvailable
-    
-    options {
-      id
-      name
-      value
-      position
-    }
-    
-    image {
-      id
-      url
-      altText
-      width
-      height
-    }
-    
-    inventory {
-      id
-      quantity
-      available
-      reserved
-      location
-      warehouse
-    }
-    
-    product {
-      id
-      qid
-      name
-      mainImage {
-        url
-        altText
-      }
-    }
-  }
-}
-
-# 6. جلب متغير بواسطة ID
-query FindVariantById($id: ID!) {
-  findVariantById(id: $id) {
-    id
-    qid
-    sku
-    barcode
-    price
-    compareAtPrice
-    costPerItem
-    quantity
-    weight
-    weightUnit
-    position
-    isActive
-    isAvailable
-    
-    options {
-      id
-      name
-      value
-      position
-    }
-    
-    image {
-      id
-      url
-      altText
-      width
-      height
-    }
-    
-    inventory {
-      id
-      quantity
-      available
-      reserved
-      location
-      warehouse
-    }
-    
-    product {
-      id
-      qid
-      name
-      price
-      mainImage {
-        url
-        altText
-      }
     }
   }
 }
