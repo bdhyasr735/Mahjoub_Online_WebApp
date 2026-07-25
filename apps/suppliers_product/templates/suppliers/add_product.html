@@ -1,18 +1,26 @@
 <!-- apps/suppliers_product/templates/suppliers/add_product.html -->
+
 {% extends "suppliers/base.html" %}
 
 {% block title %}إضافة منتج جديد | محجوب أونلاين{% endblock %}
 
 {% block content %}
+
+{# ✅ CSS مخصص #}
 <style>
+    :root {
+        --dark-purple: #2d0b36;
+    }
+    
     .upload-area {
         border: 2px dashed #dee2e6;
         border-radius: 16px;
-        padding: 40px;
+        padding: 40px 20px;
         text-align: center;
         transition: all 0.3s ease;
         cursor: pointer;
         background: #f8f9fa;
+        position: relative;
     }
     .upload-area:hover {
         border-color: var(--dark-purple, #2d0b36);
@@ -21,44 +29,67 @@
     .upload-area.dragover {
         border-color: var(--dark-purple, #2d0b36);
         background: #f0ecf3;
+        transform: scale(1.02);
     }
-    .upload-area img {
+    .upload-area .upload-icon {
+        font-size: 3rem;
+        color: var(--dark-purple, #2d0b36);
+        opacity: 0.5;
+        transition: all 0.3s ease;
+    }
+    .upload-area:hover .upload-icon {
+        opacity: 0.8;
+        transform: translateY(-5px);
+    }
+    .upload-area img.preview-img {
         max-width: 200px;
         max-height: 200px;
         border-radius: 12px;
         margin-top: 10px;
+        border: 2px solid var(--dark-purple, #2d0b36);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
     .image-preview {
         display: none;
         margin-top: 15px;
+        position: relative;
     }
     .image-preview.show {
         display: block;
     }
     .btn-remove-image {
         position: absolute;
-        top: -10px;
-        right: -10px;
+        top: -12px;
+        right: -12px;
         background: #dc3545;
         color: white;
         border: none;
         border-radius: 50%;
-        width: 30px;
-        height: 30px;
+        width: 32px;
+        height: 32px;
         cursor: pointer;
-        font-size: 16px;
+        font-size: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+        z-index: 10;
+    }
+    .btn-remove-image:hover {
+        transform: scale(1.1);
+        background: #c82333;
     }
     .preview-container {
         position: relative;
         display: inline-block;
     }
-    .form-control:focus {
+    
+    .form-control:focus, .form-select:focus {
         border-color: var(--dark-purple, #2d0b36);
-        box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.15);
+        box-shadow: 0 0 0 0.25rem rgba(45, 11, 54, 0.15);
     }
+    
     .btn-custom {
         background-color: var(--dark-purple, #2d0b36);
         color: #fff;
@@ -71,8 +102,55 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(45, 11, 54, 0.3);
     }
+    .btn-custom:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .form-label .required {
+        color: #dc3545;
+        margin-right: 4px;
+    }
+    
+    .card {
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #f8f5fa 0%, #fff 100%);
+        border-bottom: 2px solid rgba(45, 11, 54, 0.05);
+    }
+    
+    /* ✅ Toast container */
+    .toast-container {
+        z-index: 9999;
+    }
+    
+    /* ✅ استجابة للشاشات الصغيرة */
+    @media (max-width: 576px) {
+        .upload-area {
+            padding: 20px 15px;
+        }
+        .upload-area .upload-icon {
+            font-size: 2rem;
+        }
+        .upload-area img.preview-img {
+            max-width: 150px;
+            max-height: 150px;
+        }
+        .btn-remove-image {
+            width: 28px;
+            height: 28px;
+            font-size: 14px;
+            top: -10px;
+            right: -10px;
+        }
+    }
 </style>
 
+{# ✅ المحتوى الرئيسي #}
 <div class="container-fluid py-4">
     
     <!-- ✅ رأس الصفحة -->
@@ -90,39 +168,52 @@
         <div class="col-lg-8 mx-auto">
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-white border-0 pt-4 pb-0">
-                    <h5 class="fw-bold"><i class="fas fa-box me-2" style="color: var(--dark-purple, #2d0b36);"></i> بيانات المنتج</h5>
+                    <h5 class="fw-bold">
+                        <i class="fas fa-box me-2" style="color: var(--dark-purple, #2d0b36);"></i> 
+                        بيانات المنتج
+                    </h5>
                 </div>
                 <div class="card-body p-4">
 
-                    <form method="POST" action="{{ url_for('add_product_bp.api_add_product') }}" enctype="multipart/form-data" id="productForm">
+                    <form method="POST" action="{{ url_for('add_product_bp.api_add_product') }}" 
+                          enctype="multipart/form-data" id="productForm" novalidate>
                         
                         <!-- ✅ اسم المنتج -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">
-                                <i class="fas fa-tag text-muted me-1"></i> اسم المنتج <span class="text-danger">*</span>
+                            <label class="form-label fw-bold text-dark" for="productTitle">
+                                <i class="fas fa-tag text-muted me-1"></i> اسم المنتج 
+                                <span class="required">*</span>
                             </label>
                             <input type="text" name="title" id="productTitle"
                                    class="form-control form-control-lg" 
                                    placeholder="أدخل اسم المنتج..."
-                                   required>
+                                   required
+                                   minlength="3"
+                                   maxlength="255">
+                            <div class="invalid-feedback">يرجى إدخال اسم المنتج (3 أحرف على الأقل)</div>
                         </div>
 
                         <!-- ✅ الوصف -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">
+                            <label class="form-label fw-bold text-dark" for="productDescription">
                                 <i class="fas fa-align-left text-muted me-1"></i> الوصف
                             </label>
                             <textarea name="description" id="productDescription"
                                       class="form-control" 
                                       rows="3"
-                                      placeholder="وصف المنتج (اختياري)"></textarea>
+                                      placeholder="وصف المنتج (اختياري)"
+                                      maxlength="2000"></textarea>
+                            <small class="text-muted">
+                                <span id="charCount">0</span> / 2000 حرف
+                            </small>
                         </div>
 
                         <!-- ✅ السعر والكمية -->
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">
-                                    <i class="fas fa-money-bill-wave text-muted me-1"></i> السعر <span class="text-danger">*</span>
+                                <label class="form-label fw-bold text-dark" for="productPrice">
+                                    <i class="fas fa-money-bill-wave text-muted me-1"></i> السعر (SAR)
+                                    <span class="required">*</span>
                                 </label>
                                 <input type="number" name="price" id="productPrice"
                                        class="form-control form-control-lg" 
@@ -130,9 +221,10 @@
                                        step="0.01"
                                        min="0"
                                        required>
+                                <div class="invalid-feedback">يرجى إدخال سعر صحيح</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">
+                                <label class="form-label fw-bold text-dark" for="productQuantity">
                                     <i class="fas fa-boxes text-muted me-1"></i> الكمية
                                 </label>
                                 <input type="number" name="quantity" id="productQuantity"
@@ -146,20 +238,21 @@
                         <!-- ✅ SKU والوزن -->
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">
+                                <label class="form-label fw-bold text-dark" for="productSku">
                                     <i class="fas fa-barcode text-muted me-1"></i> SKU
                                 </label>
                                 <div class="input-group">
                                     <input type="text" name="sku" id="productSku"
                                            class="form-control" 
-                                           placeholder="SKU (اختياري)">
-                                    <button type="button" class="btn btn-outline-secondary" id="generateSkuBtn">
+                                           placeholder="SKU (اختياري)"
+                                           maxlength="50">
+                                    <button type="button" class="btn btn-outline-secondary" id="generateSkuBtn" title="توليد SKU تلقائي">
                                         <i class="fas fa-sync"></i>
                                     </button>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">
+                                <label class="form-label fw-bold text-dark" for="productWeight">
                                     <i class="fas fa-weight-scale text-muted me-1"></i> الوزن (كجم)
                                 </label>
                                 <input type="number" name="weight" id="productWeight"
@@ -172,13 +265,13 @@
 
                         <!-- ✅ الحالة -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">
+                            <label class="form-label fw-bold text-dark" for="productStatus">
                                 <i class="fas fa-circle text-muted me-1"></i> الحالة
                             </label>
                             <select name="status" id="productStatus" class="form-select">
-                                <option value="DRAFT">مسودة</option>
-                                <option value="ACTIVE">نشط</option>
-                                <option value="INACTIVE">غير نشط</option>
+                                <option value="DRAFT">📝 مسودة</option>
+                                <option value="PUBLISHED">✅ منشور</option>
+                                <option value="ARCHIVED">📦 مؤرشف</option>
                             </select>
                         </div>
 
@@ -188,27 +281,31 @@
                                 <i class="fas fa-image text-muted me-1"></i> صورة المنتج
                             </label>
                             <div class="upload-area" id="uploadArea">
-                                <i class="fas fa-cloud-upload-alt fa-3x" style="color: var(--dark-purple, #2d0b36);"></i>
-                                <h5 class="mt-3">اسحب الصورة هنا أو اضغط للاختيار</h5>
-                                <p class="text-muted">jpg, png, gif, webp - حد أقصى 5MB</p>
+                                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                <h5 class="mt-3 fw-bold">اسحب الصورة هنا أو اضغط للاختيار</h5>
+                                <p class="text-muted small">jpg, png, gif, webp - حد أقصى 5MB</p>
                                 <input type="file" name="image" id="imageInput" accept="image/*" style="display: none;">
                                 <div class="image-preview" id="imagePreview">
                                     <div class="preview-container">
-                                        <img id="previewImage" src="#" alt="معاينة الصورة">
-                                        <button type="button" class="btn-remove-image" onclick="removeImage()">×</button>
+                                        <img id="previewImage" src="#" alt="معاينة الصورة" class="preview-img">
+                                        <button type="button" class="btn-remove-image" onclick="removeImage()">✕</button>
                                     </div>
                                 </div>
                             </div>
+                            <small class="text-muted" id="fileNameDisplay"></small>
                         </div>
 
                         <!-- ✅ أزرار الإجراء -->
-                        <div class="d-flex gap-2 mt-3">
+                        <div class="d-flex flex-wrap gap-2 mt-3">
                             <button type="submit" class="btn btn-custom px-5 py-2" id="submitBtn">
                                 <i class="fas fa-save me-2"></i> حفظ المنتج
                             </button>
                             <a href="{{ url_for('suppliers_product_bp.products') }}" class="btn btn-outline-secondary px-4 py-2">
                                 <i class="fas fa-arrow-right me-1"></i> رجوع
                             </a>
+                            <button type="reset" class="btn btn-outline-danger px-4 py-2">
+                                <i class="fas fa-undo me-1"></i> إعادة تعيين
+                            </button>
                         </div>
 
                     </form>
@@ -219,8 +316,27 @@
     </div>
 </div>
 
-<!-- ✅ JavaScript -->
+{# ✅ JavaScript #}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // ============================================================
+    // ✅ عداد الأحرف للوصف
+    // ============================================================
+    const description = document.getElementById('productDescription');
+    const charCount = document.getElementById('charCount');
+    
+    if (description && charCount) {
+        description.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+            if (this.value.length > 1900) {
+                charCount.style.color = '#dc3545';
+            } else {
+                charCount.style.color = '';
+            }
+        });
+    }
+
     // ============================================================
     // ✅ رفع الصورة
     // ============================================================
@@ -228,6 +344,7 @@
     const imageInput = document.getElementById('imageInput');
     const imagePreview = document.getElementById('imagePreview');
     const previewImage = document.getElementById('previewImage');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
 
     uploadArea.addEventListener('click', function(e) {
         if (!e.target.closest('.btn-remove-image')) {
@@ -238,18 +355,35 @@
     imageInput.addEventListener('change', function(e) {
         const file = this.files[0];
         if (file) {
+            // ✅ التحقق من حجم الملف (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('❌ حجم الصورة كبير جداً. الحد الأقصى 5MB', 'danger');
+                this.value = '';
+                return;
+            }
+            
+            // ✅ التحقق من نوع الملف
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showToast('❌ نوع الملف غير مدعوم. يرجى استخدام jpg, png, gif, webp', 'danger');
+                this.value = '';
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 previewImage.src = e.target.result;
                 imagePreview.classList.add('show');
-                uploadArea.querySelector('i').style.display = 'none';
+                uploadArea.querySelector('.upload-icon').style.display = 'none';
                 uploadArea.querySelector('h5').style.display = 'none';
                 uploadArea.querySelector('p').style.display = 'none';
+                fileNameDisplay.textContent = '📎 ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
             };
             reader.readAsDataURL(file);
         }
     });
 
+    // ✅ Drag and Drop
     uploadArea.addEventListener('dragover', function(e) {
         e.preventDefault();
         this.classList.add('dragover');
@@ -270,30 +404,52 @@
         }
     });
 
-    function removeImage() {
+    // ✅ حذف الصورة
+    window.removeImage = function() {
         imageInput.value = '';
         imagePreview.classList.remove('show');
         previewImage.src = '#';
-        uploadArea.querySelector('i').style.display = 'block';
+        uploadArea.querySelector('.upload-icon').style.display = 'block';
         uploadArea.querySelector('h5').style.display = 'block';
         uploadArea.querySelector('p').style.display = 'block';
-    }
+        fileNameDisplay.textContent = '';
+    };
 
     // ============================================================
     // ✅ توليد SKU تلقائي
     // ============================================================
     document.getElementById('generateSkuBtn').addEventListener('click', function() {
         const skuInput = document.getElementById('productSku');
-        const prefix = 'PRD';
+        const title = document.getElementById('productTitle').value.trim() || 'PRD';
+        const prefix = title.substring(0, 3).toUpperCase() || 'PRD';
         const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
         skuInput.value = prefix + '-' + random;
+        skuInput.dispatchEvent(new Event('input'));
+    });
+
+    // ✅ توليد SKU تلقائياً عند كتابة الاسم
+    document.getElementById('productTitle').addEventListener('blur', function() {
+        const skuInput = document.getElementById('productSku');
+        if (!skuInput.value.trim()) {
+            const title = this.value.trim() || 'PRD';
+            const prefix = title.substring(0, 3).toUpperCase() || 'PRD';
+            const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+            skuInput.value = prefix + '-' + random;
+        }
     });
 
     // ============================================================
-    // ✅ إرسال النموذج (AJAX)
+    // ✅ التحقق من صحة النموذج
     // ============================================================
     document.getElementById('productForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        // ✅ التحقق من صحة النموذج
+        if (!this.checkValidity()) {
+            this.classList.add('was-validated');
+            showToast('❌ يرجى تعبئة جميع الحقول المطلوبة', 'warning');
+            return;
+        }
         
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
@@ -308,47 +464,80 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast('✅ ' + data.message, 'success');
+                showToast('✅ ' + (data.message || 'تم إضافة المنتج بنجاح'), 'success');
                 setTimeout(function() {
                     window.location.href = '{{ url_for("suppliers_product_bp.products") }}';
                 }, 1500);
             } else {
-                showToast('❌ ' + data.message, 'danger');
+                showToast('❌ ' + (data.message || 'فشل إضافة المنتج'), 'danger');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ المنتج';
             }
         })
         .catch(function(error) {
+            console.error('❌ خطأ:', error);
             showToast('❌ خطأ في الاتصال بالخادم', 'danger');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ المنتج';
         });
     });
 
-    // ✅ Toast notifications
-    function showToast(message, type) {
-        var colors = {
-            success: 'bg-success text-white',
-            danger: 'bg-danger text-white',
-            warning: 'bg-warning text-dark',
-            info: 'bg-info text-dark'
+    // ============================================================
+    // ✅ إشعارات (Toast)
+    // ============================================================
+    window.showToast = function(message, type = 'info') {
+        const colors = {
+            success: '#28a745',
+            danger: '#dc3545',
+            warning: '#ffc107',
+            info: '#0d6efd'
         };
         
-        var toastContainer = document.querySelector('.toast-container');
-        if (!toastContainer) {
-            toastContainer = document.createElement('div');
-            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
-            document.body.appendChild(toastContainer);
+        document.querySelectorAll('.custom-toast').forEach(el => el.remove());
+        
+        const toast = document.createElement('div');
+        toast.className = 'custom-toast position-fixed bottom-0 end-0 p-3';
+        toast.style.zIndex = '9999';
+        toast.style.animation = 'slideInUp 0.4s ease';
+        toast.innerHTML = `
+            <div class="toast show border-0 shadow-lg" role="alert" 
+                 style="border-right: 4px solid ${colors[type] || colors.info}; 
+                        background: white; border-radius: 12px; min-width: 280px;">
+                <div class="toast-body d-flex align-items-center gap-2 p-3">
+                    <span>${message}</span>
+                    <button type="button" class="btn-close btn-close-sm ms-2" 
+                            onclick="this.closest('.custom-toast').remove()"></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    };
+
+    // ============================================================
+    // ✅ إضافة CSS للإشعارات
+    // ============================================================
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
-        
-        var toast = document.createElement('div');
-        toast.className = 'toast align-items-center border-0 ' + (colors[type] || colors.info) + ' show';
-        toast.role = 'alert';
-        toast.innerHTML = '<div class="d-flex"><div class="toast-body">' + message + '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
-        
-        toastContainer.appendChild(toast);
-        setTimeout(function() { toast.remove(); }, 4000);
-    }
+        .custom-toast .toast {
+            min-width: 280px;
+            max-width: 400px;
+        }
+    `;
+    document.head.appendChild(style);
+
+});
+
+// ============================================================
+// ✅ دالة showToast للاستخدام من أي مكان
+// ============================================================
+window.showToast = window.showToast || function(message, type) {
+    console.log(message, type);
+};
 </script>
 
 {% endblock %}
