@@ -38,8 +38,14 @@ def products():
         filter_status = request.args.get('filter', 'all')
         page = request.args.get('page', 1, type=int)
         
+        # 1. جلب الروابط وتطبيق الترقيم على مستوى المعرفات أولاً لرفع الكفاءة
+        all_mappings = supplier_product.get_supplier_mappings(supplier_id)
+        paginated_mappings = paginate(all_mappings, page)
+        
+        current_page_items = paginated_mappings.get('items', paginated_mappings)
+        
         products_list = []
-        for m in supplier_product.get_supplier_mappings(supplier_id):
+        for m in current_page_items:
             p = supplier_product.fetch_product_by_qid(m['qid'])
             if p:
                 products_list.append({
