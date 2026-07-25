@@ -220,7 +220,25 @@ def api_update_product(qid):
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
-        data = request.get_json() or {}
+        
+        # دعم استقبال البيانات سواء كانت عبر FormData أو JSON
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            data = {
+                'title': request.form.get('title', '').strip(),
+                'description': request.form.get('description', '').strip(),
+                'price': request.form.get('price', '').strip(),
+                'status': request.form.get('status', 'DRAFT'),
+                'sku': request.form.get('sku', '').strip(),
+                'weight': request.form.get('weight', '').strip(),
+                'quantity': request.form.get('quantity', '').strip(),
+            }
+            image = request.files.get('image')
+            if image and image.filename:
+                data['image_file'] = image.read()
+                data['image_filename'] = image.filename
+        else:
+            data = request.get_json() or {}
+
         result = supplier_product.update_product(qid, supplier_id, data)
 
         if result['success']:
