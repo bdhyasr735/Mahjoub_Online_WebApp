@@ -1,10 +1,10 @@
 <!-- apps/suppliers_product/templates/suppliers/includes/_product_stats.html -->
 <div class="row g-3 mb-4" id="productStats">
-    {% set total = products|length if products else 0 %}
-    {% set published = products|selectattr('status', 'equalto', 'PUBLISHED')|list|length if products else 0 %}
-    {% set draft = products|selectattr('status', 'equalto', 'DRAFT')|list|length if products else 0 %}
-    {% set rejected = products|selectattr('status', 'equalto', 'REJECTED')|list|length if products else 0 %}
-    {% set archived = products|selectattr('status', 'equalto', 'ARCHIVED')|list|length if products else 0 %}
+    {% set total = stats.total if stats and stats.total is defined else (products|length if products else 0) %}
+    {% set published = stats.published if stats and stats.published is defined else (products|selectattr('status', 'equalto', 'PUBLISHED')|list|length if products else 0) %}
+    {% set draft = stats.draft if stats and stats.draft is defined else (products|selectattr('status', 'equalto', 'DRAFT')|list|length if products else 0) %}
+    {% set rejected = stats.rejected if stats and stats.rejected is defined else (products|selectattr('status', 'equalto', 'REJECTED')|list|length if products else 0) %}
+    {% set archived = stats.archived if stats and stats.archived is defined else (products|selectattr('status', 'equalto', 'ARCHIVED')|list|length if products else 0) %}
     
     <div class="col-md-3 col-6">
         <div class="stat-card">
@@ -51,6 +51,10 @@
         font-weight: 800;
         color: var(--dark-purple, #2d0b36);
         line-height: 1.2;
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover .stat-number {
+        transform: scale(1.05);
     }
     .stat-card .stat-label {
         font-size: 0.85rem;
@@ -61,12 +65,4 @@
     .stat-card.draft { border-right-color: #ffc107; }
     .stat-card.rejected { border-right-color: #dc3545; }
     .stat-card.archived { border-right-color: #6c757d; }
-    
-    /* ✅ تأثيرات إضافية */
-    .stat-card .stat-number {
-        transition: all 0.3s ease;
-    }
-    .stat-card:hover .stat-number {
-        transform: scale(1.05);
-    }
 </style>
