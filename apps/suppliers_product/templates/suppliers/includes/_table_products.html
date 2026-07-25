@@ -17,11 +17,12 @@
         <tbody>
             {% if products and products|length > 0 %}
                 {% for product in products %}
+                {% set prod_qty = product.quantity if product is mapping and product.quantity is defined else (product.stock if product is mapping and product.stock is defined else 0) %}
                 <tr>
                     <td>{{ loop.index + ((pagination.current_page - 1) * pagination.per_page if pagination else 0) }}</td>
                     <td>
                         {% if product.images and product.images|length > 0 %}
-                            <img src="{{ product.images[0].fileUrl }}" alt="{{ product.title }}" 
+                            <img src="{{ product.images[0].fileUrl if product.images[0] is mapping else product.images[0] }}" alt="{{ product.title or product.name }}" 
                                  style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
                         {% else %}
                             <div style="width: 50px; height: 50px; background: #f8f5fa; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
@@ -30,42 +31,54 @@
                         {% endif %}
                     </td>
                     <td>
-                        <strong>{{ product.title }}</strong>
+                        <strong>{{ product.title or product.name }}</strong>
                         {% if product.description %}
                             <br><small class="text-muted">{{ product.description|striptags|truncate(50) }}</small>
                         {% endif %}
                     </td>
                     <td>
-                        <code class="small">{{ product.ident.sku if product.ident and product.ident.sku else '---' }}</code>
+                        <code class="small">
+                            {% if product.ident and product.ident.sku %}
+                                {{ product.ident.sku }}
+                            {% elif product.sku %}
+                                {{ product.sku }}
+                            {% else %}
+                                ---
+                            {% endif %}
+                        </code>
                     </td>
                     <td>
-                        <span class="fw-bold">{{ "%.2f"|format(product.pricing.price if product.pricing and product.pricing.price else 0) }}</span>
-                    </td>
-                    <td>
-                        <span class="badge 
-                            {% if product.quantity > 10 %}bg-success
-                            {% elif product.quantity > 0 %}bg-warning text-dark
-                            {% else %}bg-danger{% endif %}">
-                            {{ product.quantity if product.quantity is not none else 0 }}
+                        <span class="fw-bold">
+                            {% set prod_price = product.pricing.price if product.pricing and product.pricing.price is defined else (product.price if product.price is defined else 0) %}
+                            {{ "%.2f"|format(prod_price|float) }}
                         </span>
                     </td>
                     <td>
                         <span class="badge 
-                            {% if product.status == 'PUBLISHED' %}bg-success
-                            {% elif product.status == 'DRAFT' %}bg-warning text-dark
-                            {% elif product.status == 'REJECTED' %}bg-danger
-                            {% elif product.status == 'ARCHIVED' %}bg-secondary
+                            {% if prod_qty > 10 %}bg-success
+                            {% elif prod_qty > 0 %}bg-warning text-dark
+                            {% else %}bg-danger{% endif %}">
+                            {{ prod_qty }}
+                        </span>
+                    </td>
+                    <td>
+                        {% set prod_status = product.status if product.status is defined else 'DRAFT' %}
+                        <span class="badge 
+                            {% if prod_status == 'PUBLISHED' %}bg-success
+                            {% elif prod_status == 'DRAFT' %}bg-warning text-dark
+                            {% elif prod_status == 'REJECTED' %}bg-danger
+                            {% elif prod_status == 'ARCHIVED' %}bg-secondary
                             {% else %}bg-light text-dark{% endif %}">
-                            {% if product.status == 'PUBLISHED' %}
+                            {% if prod_status == 'PUBLISHED' %}
                                 <i class="fas fa-check-circle me-1"></i> منشور
-                            {% elif product.status == 'DRAFT' %}
+                            {% elif prod_status == 'DRAFT' %}
                                 <i class="fas fa-clock me-1"></i> مراجعة
-                            {% elif product.status == 'REJECTED' %}
+                            {% elif prod_status == 'REJECTED' %}
                                 <i class="fas fa-times-circle me-1"></i> مرفوض
-                            {% elif product.status == 'ARCHIVED' %}
+                            {% elif prod_status == 'ARCHIVED' %}
                                 <i class="fas fa-archive me-1"></i> مؤرشف
                             {% else %}
-                                {{ product.status }}
+                                {{ prod_status }}
                             {% endif %}
                         </span>
                     </td>
