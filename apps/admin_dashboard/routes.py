@@ -4,17 +4,16 @@
 from flask import Blueprint, render_template, flash
 from flask_login import login_required
 from apps.extensions import db
-from apps.models import Supplier, SupplierWallet, WalletTransaction, Product, Order
+from apps.models import Supplier, SupplierWallet, WalletTransaction
 from sqlalchemy import func
 
-# 1. تعريف الـ Blueprint
 admin_dashboard_bp = Blueprint(
     'admin_dashboard_bp', 
     __name__, 
     template_folder='templates'
 )
 
-# 2. مسار لوحة التحكم
+
 @admin_dashboard_bp.route('/dashboard', methods=['GET'])
 @login_required
 def dashboard():
@@ -31,14 +30,30 @@ def dashboard():
         # ✅ عدد الموردين
         supplier_count = db.session.query(func.count(Supplier.id)).scalar() or 0
         
-        # ✅ عدد المنتجات
-        product_count = db.session.query(func.count(Product.id)).scalar() or 0
+        # ✅ عدد المنتجات (معالج آمن)
+        try:
+            from apps.models.product_db import Product
+            product_count = db.session.query(func.count(Product.id)).scalar() or 0
+        except:
+            product_count = 0
         
-        # ✅ عدد الطلبات
-        order_count = db.session.query(func.count(Order.id)).scalar() or 0
-        
-        # ✅ إجمالي الإيرادات (مجموع total_amount من الطلبات)
-        total_revenue = db.session.query(func.sum(Order.total_amount)).scalar() or 0.0
+        # ✅ عدد الطلبات والإيرادات (معالج آمن)
+        try:
+            from apps.models.orders_db import Order
+            order_count = db.session.query(func.count(Order.id)).scalar() or 0
+            
+            # ✅ محاولة جلب الإيرادات
+            if hasattr(Order, 'total_amount'):
+                total_revenue = db.session.query(func.sum(Order.total_amount)).scalar() or 0.0
+            elif hasattr(Order, 'total'):
+                total_revenue = db.session.query(func.sum(Order.total)).scalar() or 0.0
+            elif hasattr(Order, 'total_price'):
+                total_revenue = db.session.query(func.sum(Order.total_price)).scalar() or 0.0
+            else:
+                total_revenue = 0.0
+        except:
+            order_count = 0
+            total_revenue = 0.0
         
         # ✅ آخر 10 معاملات مالية
         recent_transactions = WalletTransaction.query.order_by(
@@ -62,7 +77,6 @@ def dashboard():
         print(f"❌ [Dashboard Error]: {str(e)}")
         flash("حدث خطأ أثناء تحميل بيانات لوحة التحكم، يرجى المحاولة لاحقاً.", "danger")
         
-        # ✅ القيم الافتراضية في حالة الخطأ
         return render_template('admin/dashboard.html', 
                                total_suppliers=0, 
                                total_products=0,
