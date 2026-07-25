@@ -1,184 +1,492 @@
-# apps/services/product_service.py
+"""
+خدمة المنتجات - Product Service
+"""
 
-from typing import Dict, Any, Optional, List
-from .graphql_client import GraphQLClient
+from typing import List, Optional, Dict, Any
+from graphql_client import GraphQLClient
 
 
 class ProductService:
+    """خدمة لإدارة المنتجات"""
+    
     def __init__(self, client: GraphQLClient):
         self.client = client
+        
+        # تحميل استعلامات المنتج
+        with open('product_queries.graphql', 'r') as f:
+            self.queries = f.read()
     
-    # ========== الاستعلامات ==========
-    
-    def get_all(self) -> List[Dict]:
+    def get_all_products(self, input_data: Optional[Dict] = None) -> List[Dict]:
+        """
+        جلب جميع المنتجات
+        
+        Args:
+            input_data: مدخلات البحث والترشيح
+            
+        Returns:
+            قائمة المنتجات
+        """
         query = """
-        query {
-            findAllProducts {
-                id qid name price status description images
-                createdAt updatedAt
+        query FindAllProducts($input: GetAllProductsInput) {
+          findAllProducts(input: $input) {
+            id
+            qid
+            name
+            description
+            price
+            compareAtPrice
+            quantity
+            sku
+            status
+            isActive
+            isAvailable
+            mainImage {
+              url
+              altText
             }
+            variants {
+              id
+              sku
+              price
+              quantity
+              options {
+                name
+                value
+              }
+            }
+            inventory {
+              quantity
+              available
+              reserved
+            }
+            collections {
+              id
+              name
+            }
+          }
         }
         """
-        return self.client.execute(query).get('findAllProducts', [])
+        
+        variables = {"input": input_data or {}}
+        result = self.client.execute(query, variables)
+        return result.get('findAllProducts', [])
     
-    def get_by_qid(self, qid: str) -> Optional[Dict]:
+    def get_product_by_qid(self, qid: str) -> Optional[Dict]:
+        """
+        جلب منتج بواسطة QID
+        
+        Args:
+            qid: المعرف الفريد للمنتج
+            
+        Returns:
+            بيانات المنتج
+        """
         query = """
-        query($qid: String!) {
-            findProductByQid(qid: $qid) {
-                id qid name price status description
-                images weight
-                dimensions { length width height }
-                seo { title description keywords }
-                collections { id name }
-                variants { id qid name price sku }
-                options { id name values }
-                createdAt updatedAt
+        query FindProductByQid($qid: String!) {
+          findProductByQid(qid: $qid) {
+            id
+            qid
+            name
+            description
+            price
+            compareAtPrice
+            costPerItem
+            currency
+            sku
+            barcode
+            quantity
+            status
+            isActive
+            isAvailable
+            mainImage {
+              id
+              url
+              altText
+              width
+              height
             }
+            images {
+              id
+              url
+              altText
+              position
+            }
+            options {
+              id
+              name
+              values {
+                id
+                value
+                hexCode
+                image {
+                  url
+                }
+              }
+            }
+            variants {
+              id
+              sku
+              price
+              compareAtPrice
+              quantity
+              isAvailable
+              options {
+                name
+                value
+              }
+              image {
+                url
+                altText
+              }
+              inventory {
+                quantity
+                available
+                reserved
+                location
+              }
+            }
+            collections {
+              id
+              name
+              handle
+            }
+            category {
+              id
+              name
+              handle
+            }
+            brand {
+              id
+              name
+              logo {
+                url
+              }
+            }
+            ratings {
+              average
+              count
+            }
+            inventory {
+              quantity
+              available
+              reserved
+              location
+              warehouse
+            }
+            seo {
+              title
+              description
+            }
+            translations {
+              locale
+              name
+              description
+            }
+            metafields {
+              namespace
+              key
+              value
+            }
+          }
         }
         """
-        return self.client.execute(query, {'qid': qid}).get('findProductByQid')
+        
+        variables = {"qid": qid}
+        result = self.client.execute(query, variables)
+        return result.get('findProductByQid')
     
-    def get_status(self, qid: str) -> Optional[Dict]:
+    def get_product_variants(self, product_id: str) -> List[Dict]:
+        """
+        جلب جميع متغيرات المنتج
+        
+        Args:
+            product_id: معرف المنتج
+            
+        Returns:
+            قائمة المتغيرات
+        """
         query = """
-        query($qid: String!) {
-            findProductStatus(qid: $qid) {
-                id status publishedAt
+        query FindAllVariantsByProductId($productId: ID!) {
+          findAllVariantsByProductId(productId: $productId) {
+            id
+            qid
+            sku
+            barcode
+            price
+            compareAtPrice
+            costPerItem
+            quantity
+            weight
+            weightUnit
+            position
+            isActive
+            isAvailable
+            options {
+              id
+              name
+              value
             }
+            image {
+              id
+              url
+              altText
+              width
+              height
+            }
+            inventory {
+              id
+              quantity
+              available
+              reserved
+              location
+            }
+          }
         }
         """
-        return self.client.execute(query, {'qid': qid}).get('findProductStatus')
+        
+        variables = {"productId": product_id}
+        result = self.client.execute(query, variables)
+        return result.get('findAllVariantsByProductId', [])
     
-    def get_top_viewed(self, limit: int = 10) -> List[Dict]:
+    def get_product_inventory(self, product_id: str) -> Dict:
+        """
+        جلب مخزون المنتج
+        
+        Args:
+            product_id: معرف المنتج
+            
+        Returns:
+            بيانات المخزون
+        """
         query = """
-        query($limit: Int!) {
-            FindTopViewedProducts(limit: $limit) {
-                id qid name price views images
+        query GetProductInventory($productId: ID!) {
+          findProductByQid(qid: $productId) {
+            id
+            qid
+            name
+            quantity
+            inventory {
+              id
+              quantity
+              available
+              reserved
+              location
+              warehouse
             }
+            variants {
+              id
+              sku
+              quantity
+              isAvailable
+              options {
+                name
+                value
+              }
+              inventory {
+                quantity
+                available
+                reserved
+                location
+              }
+            }
+          }
         }
         """
-        return self.client.execute(query, {'limit': limit}).get('FindTopViewedProducts', [])
+        
+        variables = {"productId": product_id}
+        result = self.client.execute(query, variables)
+        return result.get('findProductByQid', {})
     
-    # ========== التحويرات ==========
-    
-    def create(self, input_data: Dict) -> Optional[Dict]:
+    def get_product_colors_and_prices(self, qid: str) -> Dict:
+        """
+        جلب ألوان وأسعار المنتج
+        
+        Args:
+            qid: المعرف الفريد للمنتج
+            
+        Returns:
+            بيانات الألوان والأسعار
+        """
         query = """
-        mutation($input: CreateProductInput!) {
-            createProduct(input: $input) {
-                id qid name price status createdAt
+        query GetProductColorsAndPrices($qid: String!) {
+          findProductByQid(qid: $qid) {
+            id
+            qid
+            name
+            price
+            compareAtPrice
+            currency
+            options {
+              id
+              name
+              values {
+                id
+                value
+                hexCode
+                image {
+                  url
+                  altText
+                }
+              }
             }
+            variants {
+              id
+              sku
+              price
+              compareAtPrice
+              quantity
+              isAvailable
+              options {
+                name
+                value
+              }
+              image {
+                url
+                altText
+              }
+              inventory {
+                quantity
+                available
+              }
+            }
+          }
         }
         """
-        return self.client.execute(query, {'input': input_data}).get('createProduct')
+        
+        variables = {"qid": qid}
+        result = self.client.execute(query, variables)
+        return result.get('findProductByQid', {})
     
-    def update(self, qid: str, input_data: Dict) -> Optional[Dict]:
+    def get_top_viewed_products(self) -> List[Dict]:
+        """
+        جلب المنتجات الأكثر مشاهدة
+        
+        Returns:
+            قائمة المنتجات الأكثر مشاهدة
+        """
         query = """
-        mutation($qid: String!, $input: UpdateProductInfoInput!) {
-            updateProductInfo(qid: $qid, input: $input) {
-                id qid name price updatedAt
+        query FindTopViewedProducts {
+          FindTopViewedProducts {
+            id
+            qid
+            name
+            price
+            compareAtPrice
+            views
+            mainImage {
+              url
+              altText
             }
+            ratings {
+              average
+              count
+            }
+          }
         }
         """
-        return self.client.execute(query, {'qid': qid, 'input': input_data}).get('updateProductInfo')
+        
+        result = self.client.execute(query, {})
+        return result.get('FindTopViewedProducts', [])
     
-    def update_status(self, qid: str, status: str) -> Optional[Dict]:
+    def get_product_status(self) -> List[Dict]:
+        """
+        جلب حالة المنتجات
+        
+        Returns:
+            قائمة حالات المنتجات
+        """
         query = """
-        mutation($qid: String!, $status: String!) {
-            updateProductStatus(qid: $qid, status: $status) {
-                id qid status updatedAt
-            }
+        query FindProductStatus {
+          findProductStatus {
+            id
+            qid
+            name
+            status
+            isActive
+            isAvailable
+            isPublished
+            isDraft
+            isArchived
+            createdAt
+            updatedAt
+          }
         }
         """
-        return self.client.execute(query, {'qid': qid, 'status': status}).get('updateProductStatus')
+        
+        result = self.client.execute(query, {})
+        return result.get('findProductStatus', [])
     
-    def update_price(self, qid: str, price: float, compare_at_price: float = None) -> Optional[Dict]:
+    def search_products(self, search_term: str, limit: int = 20) -> List[Dict]:
+        """
+        البحث عن المنتجات
+        
+        Args:
+            search_term: مصطلح البحث
+            limit: عدد النتائج
+            
+        Returns:
+            قائمة المنتجات
+        """
+        return self.get_all_products({
+            "search": search_term,
+            "limit": limit,
+            "isActive": True
+        })
+    
+    def get_products_by_collection(self, collection_id: str) -> List[Dict]:
+        """
+        جلب منتجات مجموعة معينة
+        
+        Args:
+            collection_id: معرف المجموعة
+            
+        Returns:
+            قائمة المنتجات
+        """
         query = """
-        mutation($qid: String!, $price: Float!, $compareAtPrice: Float) {
-            updateProductPricing(qid: $qid, price: $price, compareAtPrice: $compareAtPrice) {
-                id qid price compareAtPrice updatedAt
+        query FindAllProductsForCollection($id: ID!) {
+          findAllProductsForCollection(id: $id) {
+            id
+            qid
+            name
+            description
+            price
+            compareAtPrice
+            mainImage {
+              url
+              altText
             }
+            variants {
+              id
+              price
+              sku
+              quantity
+            }
+            inventory {
+              quantity
+              available
+            }
+          }
         }
         """
-        variables = {'qid': qid, 'price': price}
-        if compare_at_price is not None:
-            variables['compareAtPrice'] = compare_at_price
-        return self.client.execute(query, variables).get('updateProductPricing')
+        
+        variables = {"id": collection_id}
+        result = self.client.execute(query, variables)
+        return result.get('findAllProductsForCollection', [])
     
-    def update_images(self, qid: str, images: List[str]) -> Optional[Dict]:
-        query = """
-        mutation($qid: String!, $images: [String!]!) {
-            updateProductImages(qid: $qid, images: $images) {
-                id qid images updatedAt
-            }
-        }
+    def get_products_by_price_range(self, min_price: float, max_price: float) -> List[Dict]:
         """
-        return self.client.execute(query, {'qid': qid, 'images': images}).get('updateProductImages')
-    
-    def update_seo(self, qid: str, seo: Dict) -> Optional[Dict]:
-        query = """
-        mutation($qid: String!, $seo: SEOInput!) {
-            updateProductSEO(qid: $qid, seo: $seo) {
-                id qid seo { title description keywords } updatedAt
-            }
-        }
+        جلب منتجات حسب نطاق السعر
+        
+        Args:
+            min_price: أقل سعر
+            max_price: أعلى سعر
+            
+        Returns:
+            قائمة المنتجات
         """
-        return self.client.execute(query, {'qid': qid, 'seo': seo}).get('updateProductSEO')
-    
-    def update_dimensions(self, qid: str, dimensions: Dict) -> Optional[Dict]:
-        query = """
-        mutation($qid: String!, $dimensions: DimensionsInput!) {
-            updateProductDimensions(qid: $qid, dimensions: $dimensions) {
-                id qid dimensions { length width height } updatedAt
-            }
-        }
-        """
-        return self.client.execute(query, {'qid': qid, 'dimensions': dimensions}).get('updateProductDimensions')
-    
-    def update_weight(self, qid: str, weight: float) -> Optional[Dict]:
-        query = """
-        mutation($qid: String!, $weight: Float!) {
-            updateProductWeight(qid: $qid, weight: $weight) {
-                id qid weight updatedAt
-            }
-        }
-        """
-        return self.client.execute(query, {'qid': qid, 'weight': weight}).get('updateProductWeight')
-    
-    def update_description(self, qid: str, description: str) -> Optional[Dict]:
-        query = """
-        mutation($qid: String!, $description: String!) {
-            updateProductDescription(qid: $qid, description: $description) {
-                id qid description updatedAt
-            }
-        }
-        """
-        return self.client.execute(query, {'qid': qid, 'description': description}).get('updateProductDescription')
-    
-    def update_collections(self, qid: str, collection_qids: List[str]) -> Optional[Dict]:
-        query = """
-        mutation($qid: String!, $collectionQids: [String!]!) {
-            updateProductCollection(qid: $qid, collectionQids: $collectionQids) {
-                id qid collections { id name }
-            }
-        }
-        """
-        return self.client.execute(query, {'qid': qid, 'collectionQids': collection_qids}).get('updateProductCollection')
-    
-    def delete(self, qid: str) -> bool:
-        query = "mutation($qid: String!) { deleteProduct(qid: $qid) }"
-        result = self.client.execute(query, {'qid': qid})
-        return result.get('deleteProduct', False) if result else False
-    
-    def bulk_delete(self, qids: List[str]) -> bool:
-        query = "mutation($qids: [String!]!) { bulkDeleteProduct(qids: $qids) }"
-        result = self.client.execute(query, {'qids': qids})
-        return result.get('bulkDeleteProduct', False) if result else False
-    
-    def bulk_update_status(self, qids: List[str], status: str) -> List[Dict]:
-        query = """
-        mutation($qids: [String!]!, $status: String!) {
-            bulkUpdateProductsStatus(qids: $qids, status: $status) {
-                id qid status updatedAt
-            }
-        }
-        """
-        return self.client.execute(query, {'qids': qids, 'status': status}).get('bulkUpdateProductsStatus', [])
+        return self.get_all_products({
+            "minPrice": min_price,
+            "maxPrice": max_price,
+            "isActive": True
+        })
