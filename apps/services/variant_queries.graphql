@@ -1,146 +1,189 @@
-# ============================================
-# 5. استعلام جلب جميع المتغيرات لمنتج
-# ============================================
-query FindAllVariantsByProductId($productId: ID!) {
-  findAllVariantsByProductId(productId: $productId) {
-    id
-    qid
-    sku
-    barcode
-    price
-    compareAtPrice
-    costPerItem
-    quantity
-    weight
-    weightUnit
-    position
-    isActive
-    isAvailable
-    options {
-      id
-      name
-      value
-      position
-    }
-    image {
-      id
-      url
-      altText
-      width
-      height
-    }
-    inventory {
-      id
-      quantity
-      available
-      reserved
-      location
-      warehouse
-    }
-    product {
-      id
-      qid
-      name
-      mainImage {
-        url
-        altText
-      }
-    }
-  }
-}
+"""
+خدمة المتغيرات والخيارات - Variant Service
+"""
 
-# ============================================
-# 6. استعلام جلب متغير بواسطة ID
-# ============================================
-query FindVariantById($id: ID!) {
-  findVariantById(id: $id) {
-    id
-    qid
-    sku
-    barcode
-    price
-    compareAtPrice
-    costPerItem
-    quantity
-    weight
-    weightUnit
-    position
-    isActive
-    isAvailable
-    options {
-      id
-      name
-      value
-      position
-    }
-    image {
-      id
-      url
-      altText
-      width
-      height
-    }
-    inventory {
-      id
-      quantity
-      available
-      reserved
-      location
-      warehouse
-    }
-    product {
-      id
-      qid
-      name
-      price
-      mainImage {
-        url
-        altText
-      }
-    }
-  }
-}
+from typing import List, Optional, Dict, Any
+from graphql_client import GraphQLClient
 
-# ============================================
-# 7. استعلام جلب خيار بواسطة QID
-# ============================================
-query FindOptionByQid($qid: String!) {
-  findOptionByQid(qid: $qid) {
-    id
-    qid
-    name
-    position
-    values {
-      id
-      value
-      position
-      hexCode
-      image {
-        url
-        altText
-      }
-    }
-  }
-}
 
-# ============================================
-# 8. استعلام جلب جميع خيارات المنتج
-# ============================================
-query FindAllOptionsForProduct($qid: String!) {
-  findAllOptionsForProduct(qid: $qid) {
-    id
-    qid
-    name
-    position
-    values {
-      id
-      value
-      position
-      hexCode
-      image {
-        url
-        altText
-      }
-    }
-  }
-}
+class VariantService:
+    """خدمة لإدارة متغيرات وخيارات المنتجات"""
+    
+    def __init__(self, client: GraphQLClient, queries_path: str = 'apps/services/variant_queries.graphql'):
+        self.client = client
+        try:
+            with open(queries_path, 'r', encoding='utf-8') as f:
+                self.queries = f.read()
+        except FileNotFoundError:
+            self.queries = ""
+    
+    def get_variants_by_product(self, product_id: str) -> List[Dict[str, Any]]:
+        """
+        جلب جميع متغيرات المنتج باستخدام استعلام FindAllVariantsByProductId
+        """
+        query = """
+        query FindAllVariantsByProductId($productId: ID!) {
+          findAllVariantsByProductId(productId: $productId) {
+            id
+            qid
+            sku
+            barcode
+            price
+            compareAtPrice
+            costPerItem
+            quantity
+            weight
+            weightUnit
+            position
+            isActive
+            isAvailable
+            options {
+              id
+              name
+              value
+              position
+            }
+            image {
+              id
+              url
+              altText
+              width
+              height
+            }
+            inventory {
+              id
+              quantity
+              available
+              reserved
+              location
+              warehouse
+            }
+            product {
+              id
+              qid
+              name
+              mainImage {
+                url
+                altText
+              }
+            }
+          }
+        }
+        """
+        variables = {"productId": product_id}
+        result = self.client.execute(query, variables)
+        return result.get('findAllVariantsByProductId', [])
+    
+    def get_variant_by_id(self, variant_id: str) -> Optional[Dict[str, Any]]:
+        """
+        جلب متغير بواسطة ID باستخدام استعلام FindVariantById
+        """
+        query = """
+        query FindVariantById($id: ID!) {
+          findVariantById(id: $id) {
+            id
+            qid
+            sku
+            barcode
+            price
+            compareAtPrice
+            costPerItem
+            quantity
+            weight
+            weightUnit
+            position
+            isActive
+            isAvailable
+            options {
+              id
+              name
+              value
+              position
+            }
+            image {
+              id
+              url
+              altText
+              width
+              height
+            }
+            inventory {
+              id
+              quantity
+              available
+              reserved
+              location
+              warehouse
+            }
+            product {
+              id
+              qid
+              name
+              price
+              mainImage {
+                url
+                altText
+              }
+            }
+          }
+        }
+        """
+        variables = {"id": variant_id}
+        result = self.client.execute(query, variables)
+        return result.get('findVariantById')
+    
+    def get_option_by_qid(self, qid: str) -> Optional[Dict[str, Any]]:
+        """
+        جلب خيار بواسطة QID باستخدام استعلام FindOptionByQid
+        """
+        query = """
+        query FindOptionByQid($qid: String!) {
+          findOptionByQid(qid: $qid) {
+            id
+            qid
+            name
+            position
+            values {
+              id
+              value
+              position
+              hexCode
+              image {
+                url
+                altText
+              }
+            }
+          }
+        }
+        """
+        variables = {"qid": qid}
+        result = self.client.execute(query, variables)
+        return result.get('findOptionByQid')
+
+    def get_all_options_for_product(self, qid: str) -> List[Dict[str, Any]]:
+        """
+        جلب جميع خيارات المنتج باستخدام استعلام FindAllOptionsForProduct
+        """
+        query = """
+        query FindAllOptionsForProduct($qid: String!) {
+          findAllOptionsForProduct(qid: $qid) {
+            id
+            qid
+            name
+            position
+            values {
+              id
+              value
+              position
+              hexCode
+              image {
+                url
+                altText
+              }
+            }
+          }
+        }
+        """
+        variables = {"qid": qid}
+        result = self.client.execute(query, variables)
+        return result.get('findAllOptionsForProduct', [])
