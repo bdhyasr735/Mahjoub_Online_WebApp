@@ -1,9 +1,11 @@
+# coding: utf-8
 # apps/suppliers_product/add_product_routes.py
 
 import os
 import uuid
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app
 from werkzeug.utils import secure_filename
+from apps.suppliers_product.add_product_services import AddProductService
 
 # تعريف الـ Blueprint الخاص بإضافة المنتجات
 add_product_bp = Blueprint('add_product_bp', __name__, template_folder='templates')
@@ -26,45 +28,24 @@ def add_product_page():
 
 @add_product_bp.route('/api/add', methods=['POST'])
 def api_add_product():
-    """معالجة طلب إضافة منتج جديد (دعم AJAX والنموذج العادي)"""
+    """معالجة طلب إضافة منتج جديد باستخدام طبقة الخدمات (AddProductService)"""
     try:
-        # استلام البيانات من الطلب (FormData)
-        title = request.form.get('title', '').strip()
-        description = request.form.get('description', '').strip()
-        price = request.form.get('price')
-        quantity = request.form.get('quantity', 0)
-        sku = request.form.get('sku', '').strip()
-        weight = request.form.get('weight', 0)
-        status = request.form.get('status', 'DRAFT')
+        # تجميع بيانات النموذج في قاموس موحد
+        product_data = {
+            'title': request.form.get('title', '').strip(),
+            'name': request.form.get('title', '').strip(),
+            'description': request.form.get('description', '').strip(),
+            'price': request.form.get('price'),
+            'quantity': request.form.get('quantity', 0),
+            'sku': request.form.get('sku', '').strip(),
+            'weight': request.form.get('weight', 0),
+            'status': request.form.get('status', 'DRAFT')
+        }
 
-        # التحقق من الحقول الإلزامية
-        if not title:
-            return jsonify({'success': False, 'message': 'اسم المنتج مطلوب'}), 400
-        
-        if price is None or price == '':
-            return jsonify({'success': False, 'message': 'سعر المنتج مطلوب'}), 400
-
-        try:
-            price = float(price)
-            if price < 0:
-                raise ValueError()
-        except ValueError:
-            return jsonify({'success': False, 'message': 'سعر المنتج غير صالح'}), 400
-
-        try:
-            quantity = int(quantity) if quantity else 0
-        except ValueError:
-            quantity = 0
-
-        try:
-            weight = float(weight) if weight else 0.0
-        except ValueError:
-            weight = 0.0
-
-        # توليد معرف فريد للمنتج (QID) أو SKU افتراضي إذا لم يوجد
-        prod_qid = f"PROD_{uuid.uuid4().hex[:8].upper()}"
-        if not sku:
-            sku = f"SKU_{uuid.uuid4().hex[:6].upper()}"
+        # التحقق من صحة البيانات باستخدام طبقة الخدمة
+        validation_errors = AddProductService.validate_product_data(product_data)
+        if validation_errors:
+            return jsonify({'success': False, 'message': validation_errors[0]}), 400
 
         # معالجة رفع الصورة إن وجدت
         image_url = ''
@@ -88,28 +69,13 @@ def api_add_product():
                 else:
                     return jsonify({'success': False, 'message': 'نوع الملف غير مدعوم. يرجى رفع صورة صالحة'}), 400
 
-        # بناء كائن المنتج الجديد
-        new_product = {
-            "qid": prod_qid,
-            "name": title,
-            "description": description,
-            "price": price,
-            "quantity": quantity,
-            "sku": sku,
-            "weight": weight,
-            "status": status,
-            "images": [{"url": image_url}] if image_url else []
-        }
+        # استدعاء طبقة الخدمة لإنشاء وتجهيز المنتج النهائي
+        service_result = AddProductService.create_product(product_data, image_url)
 
-        # تسجيل العمليات في السجلات
-        current_app.logger.info(f"تم إضافة المنتج بنجاح: {prod_qid} - {title}")
+        return jsonify(service_result), 200
 
-        return jsonify({
-            'success': True,
-            'message': 'تم إضافة المنتج بنجاح',
-            'product': new_product
-        }), 200
-
+    except ValueError as ve:
+        return jsonify({'success': False, 'message': str(ve)}), 400
     except Exception as e:
         current_app.logger.error(f"خطأ أثناء إضافة المنتج: {str(e)}")
         return jsonify({
