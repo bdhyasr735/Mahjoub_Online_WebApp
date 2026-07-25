@@ -1,28 +1,34 @@
 # coding: utf-8
 # 📂 apps/suppliers_product/registry.py
 
-from flask import Blueprint
+"""
+تسجيل تطبيق إدارة منتجات المورد في المنصة
+"""
 
-# تعريف الـ Blueprint الخاص بالموديول
-supplier_product_bp = Blueprint(
-    'supplier_product_bp',
-    __name__,
-    template_folder='templates',
-    static_folder='static',
-    url_prefix='/supplier/products'
-)
+MODULE_NAME = "إدارة المنتجات"
+MODULE_ICON = "fas fa-box"
+SHOW_IN_SUPPLIER = True
 
-# بيانات التسجيل في الشريط الجانبي
-MODULE_NAME = 'إدارة المنتجات'
-MODULE_ICON = 'fas fa-box'
-SHOW_IN_SUPPLIER = True  # يجب أن تكون True لكي تظهر للموردين
-
-# الروابط التي ستظهر في القائمة الجانبية للموديول
+# ✅ مفتاح الـ endpoint أولاً، ثم النص الظاهري ثانياً (مطابق للمحفظة)
 LINKS = {
-    'قائمة المنتجات': 'supplier_product_bp.list_products',
-    'إضافة منتج جديد': 'add_product_bp.add_product_page', # أو الرابط المناسب داخل الموديول
+    'supplier_product_bp.list_products': '📦 قائمة المنتجات'
 }
 
+
 def register_module(app):
-    """تسجيل الـ Blueprint في التطبيق الرئيسي"""
-    app.register_blueprint(supplier_product_bp)
+    """تسجيل تطبيق منتجات المورد في التطبيق الرئيسي"""
+    try:
+        from apps.suppliers_product.routes import supplier_product_bp
+        
+        if 'supplier_product_bp' not in app.blueprints:
+            app.register_blueprint(supplier_product_bp, url_prefix='/supplier')
+            print("✅ [Registry]: تم تسجيل 'supplier_product_bp' بنجاح.")
+        else:
+            print("ℹ️ [Registry]: 'supplier_product_bp' مسجل مسبقاً.")
+            
+    except ImportError as e:
+        print(f"❌ [Registry]: خطأ في استيراد suppliers_product: {e}")
+    except Exception as e:
+        print(f"❌ [Registry]: خطأ في تسجيل suppliers_product: {e}")
+    
+    return app
