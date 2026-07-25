@@ -180,7 +180,6 @@
 
 <!-- ✅ JavaScript -->
 <script>
-    // ✅ الانتقال إلى صفحة معينة
     function goToPage(page) {
         if (page) {
             const search = document.getElementById('searchInput')?.value || '';
@@ -193,7 +192,6 @@
         }
     }
     
-    // ✅ نسخ رابط المنتج
     function copyProductLink(qid) {
         const url = `{{ request.host_url }}supplier/product/${qid}`;
         if (navigator.clipboard) {
@@ -207,7 +205,6 @@
         }
     }
     
-    // ✅ نسخ احتياطي
     function fallbackCopy(text) {
         const textarea = document.createElement('textarea');
         textarea.value = text;
@@ -220,7 +217,6 @@
         showToast('✅ تم نسخ الرابط بنجاح!', 'success');
     }
     
-    // ✅ حذف المنتج
     function deleteProduct(qid) {
         if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟')) return;
         
@@ -246,7 +242,6 @@
         });
     }
     
-    // ✅ عرض إشعار (Toast)
     function showToast(message, type = 'info') {
         const colors = {
             success: '#28a745',
@@ -255,7 +250,6 @@
             danger: '#dc3545'
         };
         
-        // حذف الإشعارات القديمة
         document.querySelectorAll('.custom-toast').forEach(el => el.remove());
         
         const toast = document.createElement('div');
@@ -277,11 +271,10 @@
         setTimeout(() => toast.remove(), 4000);
     }
     
-    // ✅ تفعيل الـ Tooltips
     document.addEventListener('DOMContentLoaded', function() {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         if (typeof bootstrap !== 'undefined') {
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
         }
