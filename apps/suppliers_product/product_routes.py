@@ -33,46 +33,41 @@ def index():
     """
     عرض قائمة منتجات الموردين مع دعم الترقيم، البحث، والتصفية حسب الحالة
     """
-    try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
-        search = request.args.get('search', '', type=str)
-        status = request.args.get('status', 'all', type=str)
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    search = request.args.get('search', '', type=str)
+    status = request.args.get('status', 'all', type=str)
 
-        # جلب البيانات الأساسية (يمكن استبدالها لاحقاً بالاستعلام الفعلي من قاعدة البيانات أو GraphQL)
-        products = [] 
+    # جلب البيانات الأساسية (يمكن استبدالها لاحقاً بالاستعلام الفعلي من قاعدة البيانات أو GraphQL)
+    products = [] 
 
-        # تطبيق الفلاتر والبحث
-        filtered_products = filter_by_search(products, search)
-        filtered_products = filter_by_status(filtered_products, status)
+    # تطبيق الفلاتر والبحث
+    filtered_products = filter_by_search(products, search)
+    filtered_products = filter_by_status(filtered_products, status)
 
-        # حساب الإحصائيات
-        stats = get_product_stats_from_list(products)
-        
-        # استخراج القيم بشكل فردي لتتوافق مع القالب
-        total_products = stats.get('total', 0) if isinstance(stats, dict) else len(products)
-        active_products = stats.get('active', 0) if isinstance(stats, dict) else 0
-        draft_products = stats.get('draft', 0) if isinstance(stats, dict) else 0
+    # حساب الإحصائيات
+    stats = get_product_stats_from_list(products)
+    
+    # استخراج القيم بشكل فردي لتتوافق مع القالب
+    total_products = stats.get('total', 0) if isinstance(stats, dict) else len(products)
+    active_products = stats.get('active', 0) if isinstance(stats, dict) else 0
+    draft_products = stats.get('draft', 0) if isinstance(stats, dict) else 0
 
-        # تطبيق الترقيم
-        pagination_data = paginate(filtered_products, page=page, per_page=per_page)
+    # تطبيق الترقيم
+    pagination_data = paginate(filtered_products, page=page, per_page=per_page)
 
-        return render_template(
-            'suppliers/suppliers_product.html',
-            products=pagination_data,
-            total_products=total_products,
-            active_products=active_products,
-            draft_products=draft_products,
-            search=search,
-            current_status=status,
-            get_status_badge=get_status_badge,
-            get_status_text=get_status_text,
-            format_price=format_price
-        )
-    except Exception as e:
-        logger.error(f"❌ خطأ في عرض قائمة منتجات الموردين: {e}")
-        flash('حدث خطأ أثناء تحميل المنتجات', 'danger')
-        return redirect(url_for('suppliers_product.index'))
+    return render_template(
+        'suppliers/suppliers_product.html',
+        products=pagination_data,
+        total_products=total_products,
+        active_products=active_products,
+        draft_products=draft_products,
+        search=search,
+        current_status=status,
+        get_status_badge=get_status_badge,
+        get_status_text=get_status_text,
+        format_price=format_price
+    )
 
 
 @suppliers_product_bp.route('/add', methods=['GET', 'POST'])
