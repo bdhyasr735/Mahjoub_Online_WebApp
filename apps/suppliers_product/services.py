@@ -224,8 +224,19 @@ class SupplierProductService:
     
     # ====== SUPPLIER ======
     def get_active_suppliers(self):
-        """جلب الموردين النشطين"""
-        return [{'id': s.id, 'name': s.name} for s in Supplier.query.filter_by(status='active').all()]
+        """جلب الموردين النشطين (معالج لتجنب خطأ الحقل غير الموجود)"""
+        suppliers = Supplier.query.filter_by(status='active').all()
+        result = []
+        for s in suppliers:
+            supplier_name = (
+                getattr(s, 'name', None) or 
+                getattr(s, 'store_name', None) or 
+                getattr(s, 'supplier_name', None) or 
+                getattr(s, 'username', None) or 
+                f"مورد #{s.id}"
+            )
+            result.append({'id': s.id, 'name': supplier_name})
+        return result
     
     def delete_product(self, qid, supplier_id):
         """حذف منتج"""
