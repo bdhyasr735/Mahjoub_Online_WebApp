@@ -1,287 +1,287 @@
-<!-- apps/suppliers_product/templates/suppliers/includes/_product_filters.html -->
+<!-- apps/suppliers_product/templates/suppliers/includes/_product_scripts.html -->
 
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="filter-tabs" id="filterTabs">
-            {# ✅ حساب الإحصائيات من المنتجات #}
-            {% set items = products.items if products and products.items is defined else products %}
-            {% set total = items|length if items else 0 %}
-            
-            {# ✅ حساب حسب الحالة مع دعم هيكل GraphQL #}
-            {% if items %}
-                {% set published = items|selectattr('product', 'defined')|selectattr('product.status', 'equalto', 'PUBLISHED')|list|length + items|selectattr('status', 'defined')|selectattr('status', 'equalto', 'PUBLISHED')|list|length if items else 0 %}
-                {% set draft = items|selectattr('product', 'defined')|selectattr('product.status', 'equalto', 'DRAFT')|list|length + items|selectattr('status', 'defined')|selectattr('status', 'equalto', 'DRAFT')|list|length if items else 0 %}
-                {% set rejected = items|selectattr('product', 'defined')|selectattr('product.status', 'equalto', 'REJECTED')|list|length + items|selectattr('status', 'defined')|selectattr('status', 'equalto', 'REJECTED')|list|length if items else 0 %}
-                {% set archived = items|selectattr('product', 'defined')|selectattr('product.status', 'equalto', 'ARCHIVED')|list|length + items|selectattr('status', 'defined')|selectattr('status', 'equalto', 'ARCHIVED')|list|length if items else 0 %}
-            {% else %}
-                {% set published = 0 %}
-                {% set draft = 0 %}
-                {% set rejected = 0 %}
-                {% set archived = 0 %}
-            {% endif %}
-            
-            {# ✅ الكل #}
-            <button class="filter-btn active" data-filter="all" onclick="applyFilter('all', this)">
-                <i class="fas fa-th-list me-1"></i> الكل
-                <span class="badge-count">{{ total }}</span>
-            </button>
-            
-            {# ✅ منشور #}
-            <button class="filter-btn" data-filter="published" onclick="applyFilter('published', this)">
-                <i class="fas fa-check-circle me-1" style="color: #28a745;"></i> منشور
-                <span class="badge-count">{{ published }}</span>
-            </button>
-            
-            {# ✅ قيد المراجعة #}
-            <button class="filter-btn" data-filter="draft" onclick="applyFilter('draft', this)">
-                <i class="fas fa-clock me-1" style="color: #ffc107;"></i> قيد المراجعة
-                <span class="badge-count">{{ draft }}</span>
-            </button>
-            
-            {# ✅ مرفوض #}
-            <button class="filter-btn" data-filter="rejected" onclick="applyFilter('rejected', this)">
-                <i class="fas fa-times-circle me-1" style="color: #dc3545;"></i> مرفوض
-                <span class="badge-count">{{ rejected }}</span>
-            </button>
-            
-            {# ✅ مؤرشف #}
-            <button class="filter-btn" data-filter="archived" onclick="applyFilter('archived', this)">
-                <i class="fas fa-archive me-1" style="color: #6c757d;"></i> مؤرشف
-                <span class="badge-count">{{ archived }}</span>
-            </button>
-        </div>
-    </div>
-</div>
-
-{# ✅ CSS #}
-<style>
-    .filter-tabs {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        background: white;
-        padding: 12px 16px;
-        border-radius: 16px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-        border: 1px solid rgba(45, 11, 54, 0.05);
-        transition: all 0.3s ease;
-    }
-    
-    .filter-tabs .filter-btn {
-        padding: 8px 20px;
-        border-radius: 50px;
-        border: 2px solid #f0ecf3;
-        background: white;
-        color: #6c757d;
-        font-weight: 600;
-        font-size: 0.85rem;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        user-select: none;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    /* ✅ تأثير الـ ripple عند النقر */
-    .filter-tabs .filter-btn::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        background: rgba(45, 11, 54, 0.1);
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-        transition: width 0.4s ease, height 0.4s ease;
-    }
-    
-    .filter-tabs .filter-btn:active::after {
-        width: 200px;
-        height: 200px;
-    }
-    
-    .filter-tabs .filter-btn:hover {
-        border-color: var(--dark-purple, #2d0b36);
-        color: var(--dark-purple, #2d0b36);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(45, 11, 54, 0.1);
-    }
-    
-    .filter-tabs .filter-btn.active {
-        background: var(--dark-purple, #2d0b36);
-        color: white;
-        border-color: var(--dark-purple, #2d0b36);
-        box-shadow: 0 4px 15px rgba(45, 11, 54, 0.25);
-        transform: translateY(-2px);
-    }
-    
-    .filter-tabs .filter-btn.active:hover {
-        background: #4a1558;
-        border-color: #4a1558;
-        box-shadow: 0 6px 20px rgba(45, 11, 54, 0.35);
-    }
-    
-    .filter-tabs .filter-btn .badge-count {
-        background: rgba(0, 0, 0, 0.08);
-        padding: 1px 10px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        margin-right: 4px;
-        transition: all 0.3s ease;
-        min-width: 20px;
-        text-align: center;
-    }
-    
-    .filter-tabs .filter-btn.active .badge-count {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-    }
-    
-    .filter-tabs .filter-btn .badge-count:empty {
-        display: none;
-    }
-    
-    /* ✅ أيقونات الحالات */
-    .filter-tabs .filter-btn[data-filter="published"] i {
-        color: #28a745;
-    }
-    .filter-tabs .filter-btn[data-filter="draft"] i {
-        color: #ffc107;
-    }
-    .filter-tabs .filter-btn[data-filter="rejected"] i {
-        color: #dc3545;
-    }
-    .filter-tabs .filter-btn[data-filter="archived"] i {
-        color: #6c757d;
-    }
-    
-    .filter-tabs .filter-btn.active[data-filter="published"] i {
-        color: white;
-    }
-    .filter-tabs .filter-btn.active[data-filter="draft"] i {
-        color: white;
-    }
-    .filter-tabs .filter-btn.active[data-filter="rejected"] i {
-        color: white;
-    }
-    .filter-tabs .filter-btn.active[data-filter="archived"] i {
-        color: white;
-    }
-    
-    /* ✅ تصميم متجاوب */
-    @media (max-width: 768px) {
-        .filter-tabs {
-            padding: 10px 12px;
-            gap: 6px;
-            border-radius: 12px;
-        }
-        .filter-tabs .filter-btn {
-            padding: 6px 14px;
-            font-size: 0.78rem;
-            gap: 4px;
-        }
-        .filter-tabs .filter-btn .badge-count {
-            padding: 1px 8px;
-            font-size: 0.6rem;
-            min-width: 16px;
-        }
-    }
-    
-    @media (max-width: 576px) {
-        .filter-tabs {
-            padding: 8px 10px;
-            gap: 4px;
-            border-radius: 10px;
-        }
-        .filter-tabs .filter-btn {
-            padding: 5px 10px;
-            font-size: 0.7rem;
-            gap: 3px;
-            border-width: 1.5px;
-        }
-        .filter-tabs .filter-btn .badge-count {
-            padding: 0 6px;
-            font-size: 0.55rem;
-            min-width: 14px;
-        }
-        .filter-tabs .filter-btn i {
-            font-size: 0.7rem;
-        }
-    }
-    
-    /* ✅ وضع مظلم (اختياري) */
-    @media (prefers-color-scheme: dark) {
-        .filter-tabs {
-            background: #1a1a2e;
-            border-color: rgba(255, 255, 255, 0.05);
-        }
-        .filter-tabs .filter-btn {
-            background: rgba(255, 255, 255, 0.05);
-            color: #adb5bd;
-            border-color: rgba(255, 255, 255, 0.08);
-        }
-        .filter-tabs .filter-btn:hover {
-            border-color: var(--dark-purple, #6c3b7a);
-            color: white;
-        }
-        .filter-tabs .filter-btn.active {
-            background: var(--dark-purple, #2d0b36);
-            color: white;
-        }
-    }
-</style>
-
-{# ✅ JavaScript لتحديث أعداد الفلاتر ديناميكياً #}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // ✅ تحديث أعداد الفلاتر بعد تغيير الجدول
-        const observer = new MutationObserver(function() {
-            updateFilterCounts();
-        });
-        
-        const resultsContainer = document.getElementById('results-container');
-        if (resultsContainer) {
-            observer.observe(resultsContainer, { childList: true, subtree: true });
-        }
-    });
+document.addEventListener('DOMContentLoaded', function() {
     
-    function updateFilterCounts() {
-        const rows = document.querySelectorAll('#productsTable tbody tr:not(:last-child)');
-        let total = 0, published = 0, draft = 0, rejected = 0, archived = 0;
+    // ============================================
+    // عناصر الصفحة
+    // ============================================
+    const searchInput = document.getElementById('searchInput');
+    const resultsContainer = document.getElementById('results-container');
+    
+    // ============================================
+    // دالة موحدة لجلب البيانات (لتجنب التكرار)
+    // ============================================
+    function fetchProducts(search, filter) {
+        const url = new URL('{{ url_for("suppliers_product.index") }}');
+        if (search) url.searchParams.set('search', search);
+        if (filter && filter !== 'all') url.searchParams.set('filter', filter);
         
-        rows.forEach(row => {
-            if (row.style.display !== 'none') {
-                total++;
-                const statusBadge = row.querySelector('td:nth-child(7) .badge');
-                if (statusBadge) {
-                    const statusText = statusBadge.textContent.trim();
-                    if (statusText.includes('منشور')) published++;
-                    else if (statusText.includes('مراجعة')) draft++;
-                    else if (statusText.includes('مرفوض')) rejected++;
-                    else if (statusText.includes('مؤرشف')) archived++;
-                }
+        fetch(url.toString(), {
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
             }
-        });
-        
-        // ✅ تحديث أعداد الفلاتر
-        const filterBtns = document.querySelectorAll('.filter-btn');
-        filterBtns.forEach(btn => {
-            const filter = btn.dataset.filter;
-            const badge = btn.querySelector('.badge-count');
-            if (!badge) return;
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Network response was not ok');
+            return res.text();
+        })
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
             
-            switch(filter) {
-                case 'all': badge.textContent = total; break;
-                case 'published': badge.textContent = published; break;
-                case 'draft': badge.textContent = draft; break;
-                case 'rejected': badge.textContent = rejected; break;
-                case 'archived': badge.textContent = archived; break;
+            // ✅ تحديث جدول المنتجات
+            const newResults = doc.getElementById('results-container');
+            if (newResults && resultsContainer) {
+                resultsContainer.innerHTML = newResults.innerHTML;
             }
+            
+            // ✅ تحديث الإحصائيات
+            const newStats = doc.querySelector('.row.g-3.mb-4');
+            if (newStats) {
+                const oldStats = document.querySelector('.row.g-3.mb-4');
+                if (oldStats) oldStats.outerHTML = newStats.outerHTML;
+            }
+            
+            // ✅ تحديث أعداد الفلتر
+            const newFilters = doc.querySelector('.filter-tabs');
+            if (newFilters) {
+                const oldFilters = document.querySelector('.filter-tabs');
+                if (oldFilters) oldFilters.outerHTML = newFilters.outerHTML;
+            }
+            
+            // ✅ إعادة تفعيل الـ Tooltips
+            if (typeof bootstrap !== 'undefined') {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+            }
+        })
+        .catch(err => {
+            console.error("❌ خطأ في جلب البيانات:", err);
+            showToast('❌ حدث خطأ في تحميل البيانات', 'danger');
         });
     }
+    
+    // ============================================
+    // ✅ البحث المباشر (Live Search)
+    // ============================================
+    if (searchInput) {
+        let timeout = null;
+        searchInput.addEventListener('keyup', function() {
+            clearTimeout(timeout);
+            const query = this.value.trim();
+            timeout = setTimeout(() => {
+                const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
+                fetchProducts(query, filter);
+            }, 400);
+        });
+    }
+
+    // ============================================
+    // ✅ فلتر المنتجات
+    // ============================================
+    window.applyFilter = function(filter, btn) {
+        // تحديث الفلتر النشط
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        
+        const search = searchInput?.value || '';
+        fetchProducts(search, filter);
+    };
+
+    // ============================================
+    // ✅ التنقل بين الصفحات
+    // ============================================
+    window.goToPage = function(page) {
+        if (page) {
+            const search = searchInput?.value || '';
+            const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', page);
+            url.searchParams.set('search', search);
+            url.searchParams.set('filter', filter);
+            window.location.href = url.toString();
+        }
+    };
+
+    // ============================================
+    // ✅ نسخ الرابط
+    // ============================================
+    window.copyProductLink = function(qid) {
+        const url = `{{ request.host_url }}supplier/product/${qid}`;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url)
+                .then(() => showToast('✅ تم نسخ الرابط بنجاح!', 'success'))
+                .catch(() => fallbackCopy(url));
+        } else {
+            fallbackCopy(url);
+        }
+    };
+
+    function fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        textarea.style.left = '-9999px';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+            document.execCommand('copy');
+            showToast('✅ تم نسخ الرابط بنجاح!', 'success');
+        } catch (err) {
+            showToast('❌ فشل نسخ الرابط', 'danger');
+        }
+        
+        textarea.remove();
+    }
+
+    // ============================================
+    // ✅ حذف المنتج
+    // ============================================
+    window.deleteProduct = function(qid) {
+        if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.')) {
+            return;
+        }
+        
+        fetch(`/api/edit-product/${qid}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ تم حذف المنتج بنجاح', 'success');
+                setTimeout(() => {
+                    const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
+                    const search = searchInput?.value || '';
+                    fetchProducts(search, filter);
+                }, 1500);
+            } else {
+                showToast('❌ فشل الحذف: ' + (data.message || 'خطأ غير معروف'), 'danger');
+            }
+        })
+        .catch(err => {
+            console.error('❌ خطأ في الحذف:', err);
+            showToast('❌ حدث خطأ أثناء حذف المنتج', 'danger');
+        });
+    };
+
+    // ============================================
+    // ✅ تحديث حالة المنتج
+    // ============================================
+    window.updateProductStatus = function(qid, status) {
+        fetch(`/api/edit-product/${qid}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✅ تم تحديث حالة المنتج بنجاح', 'success');
+                setTimeout(() => {
+                    const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
+                    const search = searchInput?.value || '';
+                    fetchProducts(search, filter);
+                }, 1000);
+            } else {
+                showToast('❌ فشل التحديث: ' + (data.message || 'خطأ غير معروف'), 'danger');
+            }
+        })
+        .catch(err => {
+            console.error('❌ خطأ في تحديث الحالة:', err);
+            showToast('❌ حدث خطأ أثناء تحديث الحالة', 'danger');
+        });
+    };
+
+    // ============================================
+    // ✅ عرض الإشعارات (Toast)
+    // ============================================
+    window.showToast = function(message, type = 'info') {
+        // إزالة الإشعارات القديمة
+        document.querySelectorAll('.custom-toast').forEach(el => el.remove());
+        
+        const colors = {
+            success: '#28a745',
+            info: '#0d6efd',
+            warning: '#ffc107',
+            danger: '#dc3545'
+        };
+        
+        const toast = document.createElement('div');
+        toast.className = 'custom-toast position-fixed bottom-0 end-0 p-3';
+        toast.style.zIndex = '9999';
+        toast.style.animation = 'slideInUp 0.4s ease';
+        toast.innerHTML = `
+            <div class="toast show border-0 shadow-lg" role="alert" 
+                 style="border-right: 4px solid ${colors[type] || colors.info}; 
+                        background: white; border-radius: 12px; min-width: 280px;">
+                <div class="toast-body d-flex align-items-center gap-2 p-3">
+                    <span>${message}</span>
+                    <button type="button" class="btn-close btn-close-sm ms-2" 
+                            data-bs-dismiss="toast" 
+                            onclick="this.closest('.custom-toast').remove()"></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentNode) toast.remove();
+        }, 4000);
+    };
+
+    // ============================================
+    // ✅ معالجة زر "رجوع" في المتصفح
+    // ============================================
+    window.addEventListener('popstate', function(event) {
+        const params = new URLSearchParams(window.location.search);
+        const search = params.get('search') || '';
+        const filter = params.get('filter') || 'all';
+        
+        if (searchInput) searchInput.value = search;
+        
+        // تحديث الفلتر النشط
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.filter === filter);
+        });
+        
+        fetchProducts(search, filter);
+    });
+
+    console.log('✅ تم تحميل سكريبتات المنتجات بنجاح');
+});
+
+// ============================================
+// CSS للإشعارات
+// ============================================
+(function addToastStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .custom-toast .toast {
+            min-width: 280px;
+            max-width: 400px;
+        }
+        .custom-toast .btn-close {
+            font-size: 0.6rem;
+            padding: 0.5rem;
+        }
+    `;
+    document.head.appendChild(style);
+})();
 </script>
