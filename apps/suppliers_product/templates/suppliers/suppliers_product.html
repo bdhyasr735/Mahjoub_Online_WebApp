@@ -12,10 +12,10 @@
                 <div class="card-body p-3">
                     <div class="row">
                         <div class="col-8">
-                            <numbers class="numbers">
+                            <div class="numbers">
                                 <p class="text-sm mb-0 text-uppercase font-weight-bold">إجمالي المنتجات</p>
                                 <h5 class="font-weight-bolder mb-0">{{ total_products }}</h5>
-                            </numbers>
+                            </div>
                         </div>
                         <div class="col-4 text-end">
                             <div class="icon icon-shape bg-gradient-primary shadow-primary text-center border-radius-md">
@@ -31,10 +31,10 @@
                 <div class="card-body p-3">
                     <div class="row">
                         <div class="col-8">
-                            <numbers class="numbers">
+                            <div class="numbers">
                                 <p class="text-sm mb-0 text-uppercase font-weight-bold">المنتجات المنشورة</p>
                                 <h5 class="font-weight-bolder mb-0">{{ active_products }}</h5>
-                            </numbers>
+                            </div>
                         </div>
                         <div class="col-4 text-end">
                             <div class="icon icon-shape bg-gradient-success shadow-success text-center border-radius-md">
@@ -50,10 +50,10 @@
                 <div class="card-body p-3">
                     <div class="row">
                         <div class="col-8">
-                            <numbers class="numbers">
+                            <div class="numbers">
                                 <p class="text-sm mb-0 text-uppercase font-weight-bold">المسودات</p>
                                 <h5 class="font-weight-bolder mb-0">{{ draft_products }}</h5>
-                            </numbers>
+                            </div>
                         </div>
                         <div class="col-4 text-end">
                             <div class="icon icon-shape bg-gradient-warning shadow-warning text-center border-radius-md">
@@ -70,7 +70,8 @@
     <div class="card">
         <div class="card-header pb-0 px-3 d-flex justify-content-between align-items-center">
             <h6 class="mb-0">قائمة منتجات المورد</h6>
-            <a href="{{ url_for('add_product_bp.add_product_page') }}" class="btn bg-gradient-dark btn-sm mb-0">
+            <!-- تم تصحيح مسار زر الإضافة ليطابق الـ Blueprint الصحيح -->
+            <a href="{{ url_for('suppliers_product.add_product') }}" class="btn bg-gradient-dark btn-sm mb-0">
                 <i class="fas fa-plus me-2"></i> رفع منتج جديد
             </a>
         </div>
@@ -96,26 +97,25 @@
                                             <img src="{{ item.product.images[0].url if item.product.images else url_for('static', filename='img/default-product.png') }}" class="avatar avatar-sm me-3" alt="product">
                                         </div>
                                         <div class="d-flex flex-column justify-content-center">
-                                            <!-- تم التصحيح هنا لاستدعاء عنوان المنتج بشكل صحيح -->
                                             <h6 class="mb-0 text-sm">{{ item.product.title }}</h6>
                                             <p class="text-xs text-secondary mb-0">SKU: {{ item.product.sku }}</p>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <p class="text-xs font-weight-bold mb-0">{{ item.product.price }} ر.س</p>
+                                    <p class="text-xs font-weight-bold mb-0">{{ format_price(item.product.price) }}</p>
                                 </td>
                                 <td class="align-middle text-center text-sm">
                                     <span class="badge badge-sm bg-gradient-{{ 'success' if item.product.status == 'PUBLISHED' else 'secondary' }}">
-                                        {{ item.product.status }}
+                                        {{ get_status_text(item.product.status) }}
                                     </span>
                                 </td>
                                 <td class="align-middle text-center">
                                     <span class="text-secondary text-xs font-weight-bold">{{ item.product.quantity }}</span>
                                 </td>
                                 <td class="align-middle text-end">
-                                    <!-- تم ربط زر التعديل بالمسار الصحيح وتمرير معرف المنتج (qid) -->
-                                    <a href="{{ url_for('edit_product_bp.edit_product_page', qid=item.product.qid) }}" class="text-secondary font-weight-bold text-xs" data-toggle="tooltip" data-original-title="تعديل المنتج">
+                                    <!-- تم تصحيح مسار زر التعديل ليطابق الـ Blueprint الصحيح وتمرير المعرف -->
+                                    <a href="{{ url_for('suppliers_product.edit_product', qid=item.product.qid) }}" class="text-secondary font-weight-bold text-xs" data-toggle="tooltip" data-original-title="تعديل المنتج">
                                         تعديل
                                     </a>
                                 </td>
