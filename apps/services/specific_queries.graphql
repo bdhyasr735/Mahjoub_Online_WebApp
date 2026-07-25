@@ -1,1 +1,160 @@
+# ============================================
+# 12. استعلام جلب المخزون فقط
+# ============================================
+query GetProductInventory($productId: ID!) {
+  findProductByQid(qid: $productId) {
+    id
+    qid
+    name
+    quantity
+    inventory {
+      id
+      quantity
+      available
+      reserved
+      location
+      warehouse
+    }
+    variants {
+      id
+      sku
+      price
+      quantity
+      isAvailable
+      options {
+        name
+        value
+      }
+      inventory {
+        id
+        quantity
+        available
+        reserved
+        location
+        warehouse
+      }
+    }
+  }
+}
 
+# ============================================
+# 13. استعلام جلب الألوان والأسعار فقط
+# ============================================
+query GetProductColorsAndPrices($qid: String!) {
+  findProductByQid(qid: $qid) {
+    id
+    qid
+    name
+    price
+    compareAtPrice
+    currency
+    options {
+      id
+      name
+      values {
+        id
+        value
+        hexCode
+        image {
+          url
+          altText
+        }
+      }
+    }
+    variants {
+      id
+      sku
+      price
+      compareAtPrice
+      quantity
+      isAvailable
+      options {
+        name
+        value
+      }
+      image {
+        url
+        altText
+      }
+      inventory {
+        quantity
+        available
+      }
+    }
+  }
+}
+
+# ============================================
+# 14. استعلام جلب الأسعار فقط
+# ============================================
+query GetProductPrices($productId: ID!) {
+  findProductByQid(qid: $productId) {
+    id
+    qid
+    name
+    price
+    compareAtPrice
+    costPerItem
+    currency
+    taxRate
+    variants {
+      id
+      sku
+      price
+      compareAtPrice
+      costPerItem
+      quantity
+    }
+    discounts {
+      id
+      type
+      value
+      minQuantity
+    }
+  }
+}
+
+# ============================================
+# 15. استعلام جلب الصور والمكتبة فقط
+# ============================================
+query GetProductMedia($productId: ID!) {
+  findProductByQid(qid: $productId) {
+    id
+    qid
+    name
+    mainImage {
+      id
+      url
+      altText
+      width
+      height
+    }
+    images {
+      id
+      url
+      altText
+      width
+      height
+      position
+    }
+    media {
+      id
+      url
+      altText
+      type
+      position
+      createdAt
+    }
+    variants {
+      id
+      image {
+        url
+        altText
+      }
+      options {
+        name
+        value
+      }
+    }
+  }
+}
