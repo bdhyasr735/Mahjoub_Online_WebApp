@@ -23,12 +23,18 @@ class ProductService:
             findProductByQid(qid: $qid) {
                 id
                 qid
+                title
                 name
+                sku
                 description
                 price
                 compareAtPrice
                 status
                 isActive
+                quantity
+                images {
+                    url
+                }
             }
         }
         """
