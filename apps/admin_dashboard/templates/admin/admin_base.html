@@ -204,7 +204,7 @@
                             {% for endpoint, label in module.links.items() %}
                                 <li>
                                     <a href="{{ url_for(endpoint) }}" class="{{ 'active-link' if request.endpoint == endpoint }}">
-                                        <i class="fas fa-angle-left me-2"></i> {{ label }}
+                                        <i class="fas fa-angle-right me-2"></i> {{ label }}
                                     </a>
                                 </li>
                             {% endfor %}
