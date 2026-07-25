@@ -1,73 +1,30 @@
 # coding: utf-8
-# 📂 apps/admin_Product/registry.py
+# 📂 apps/admin_dashboard/registry.py
 
 from flask import url_for
 
-MODULE_NAME = "إدارة المنتجات"
-MODULE_ICON = "fa-boxes"
+MODULE_NAME = "لوحة التحكم الرئيسية"
+MODULE_ICON = "fa-tachometer-alt"
 SHOW_IN_SUPPLIER = False
 
 LINKS = {
-    "admin_product_bp.manage_products": "📦 إدارة المنتجات",
-    "admin_product_bp.add_product": "➕ إضافة منتج",
-    "admin_product_bp.review_products": "📋 مراجعة المنتجات"
+    "admin_dashboard_bp.dashboard": "📊 الرئيسية"
 }
-
 
 def register_module(app):
     try:
-        from apps.admin_Product.routes import admin_product_bp
-        if 'admin_product_bp' not in app.blueprints:
-            app.register_blueprint(admin_product_bp, url_prefix='/admin')
-            print("✅ [Registry]: تم تسجيل موديول إدارة المنتجات.")
+        from apps.admin_dashboard.routes import admin_dashboard_bp
+        if 'admin_dashboard_bp' not in app.blueprints:
+            app.register_blueprint(admin_dashboard_bp, url_prefix='/admin')
+            print("✅ [Registry]: تم تسجيل موديول لوحة التحكم الرئيسية بنجاح.")
     except Exception as e:
-        print(f"❌ [Registry]: خطأ في تسجيل admin_product: {e}")
+        print(f"❌ [Registry]: خطأ في تسجيل admin_dashboard: {e}")
     return app
 
-
-def get_module_stats():
-    """جلب إحصائيات المنتجات"""
-    try:
-        from apps.services import ProductService, GraphQLClient
-        
-        client = GraphQLClient()
-        products_service = ProductService(client)
-        products = products_service.get_all()
-        
-        stats = {'total': len(products), 'active': 0, 'draft': 0, 'archived': 0}
-        for p in products:
-            status = p.get('status', '').upper()
-            if status in ['ACTIVE', 'PUBLISHED']:
-                stats['active'] += 1
-            elif status == 'DRAFT':
-                stats['draft'] += 1
-            elif status == 'ARCHIVED':
-                stats['archived'] += 1
-        stats['has_products'] = stats['total'] > 0
-        return stats
-    except Exception as e:
-        print(f"❌ خطأ في get_module_stats: {e}")
-        return {'total': 0, 'active': 0, 'draft': 0, 'archived': 0, 'has_products': False}
-
-
 def get_module_link():
-    return url_for('admin_product_bp.manage_products')
-
-
-def get_dashboard_card():
-    stats = get_module_stats()
-    return {
-        'title': MODULE_NAME,
-        'icon': MODULE_ICON,
-        'link': get_module_link(),
-        'stats': stats,
-        'color': 'blue',
-        'badge': stats.get('total', 0),
-        'subtitle': f"{stats.get('active', 0)} نشط، {stats.get('draft', 0)} مسودة"
-    }
-
+    return url_for('admin_dashboard_bp.dashboard')
 
 __all__ = [
     'MODULE_NAME', 'MODULE_ICON', 'SHOW_IN_SUPPLIER', 'LINKS',
-    'register_module', 'get_module_stats', 'get_module_link', 'get_dashboard_card'
+    'register_module', 'get_module_link'
 ]
