@@ -34,7 +34,13 @@ def products():
         for m in mappings:
             product = supplier_product.fetch_product_by_qid(m['qid'])
             if product:
-                products.append({'qid': m['qid'], 'product': product, 'mapping': m})
+                product_title = product.get('name') or product.get('title') or 'منتج بدون اسم'
+                products.append({
+                    'qid': m['qid'], 
+                    'title': product_title, 
+                    'product': product, 
+                    'mapping': m
+                })
 
         products = filter_by_search(products, search, 'title')
         paginated = paginate(products, page)
@@ -221,7 +227,6 @@ def api_update_product(qid):
 
         supplier_id = current_user.supplier_id if user_type == 'staff' else current_user.id
         
-        # دعم استقبال البيانات سواء كانت عبر FormData أو JSON
         if request.content_type and 'multipart/form-data' in request.content_type:
             data = {
                 'title': request.form.get('title', '').strip(),
