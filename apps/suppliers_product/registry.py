@@ -1,18 +1,18 @@
 # coding: utf-8
 # 📂 apps/suppliers_product/registry.py
 
-from flask import Blueprint
-import logging
+"""
+تسجيل تطبيق منتجات المورد في المنصة
+"""
 
-logger = logging.getLogger(__name__)
-
-# ====== بيانات الموديول للتسجيل التلقائي في السيدبار ======
 MODULE_NAME = "إدارة المنتجات"
-icon = "fas fa-box-open"
+MODULE_ICON = "fas fa-box-open"
+SHOW_IN_SUPPLIER = True
 
-links = {
-    "suppliers_product_bp.products": "قائمة المنتجات",
-    "add_product_bp.add_product_page": "إضافة منتج جديد"
+# ✅ الروابط التي تظهر في القائمة الجانبية للمورد
+LINKS = {
+    'suppliers_product_bp.products': '📦 قائمة المنتجات',
+    'add_product_bp.add_product_page': '➕ إضافة منتج جديد'
 }
 
 
@@ -25,7 +25,6 @@ class SupplierProductRegistry:
     def register(self, name, component):
         """تسجيل مكون جديد"""
         self._components[name] = component
-        logger.info(f"تم تسجيل المكون: {name}")
 
     def get(self, name):
         """جلب مكون مسجل"""
@@ -41,22 +40,27 @@ supplier_product_registry = SupplierProductRegistry()
 
 
 def register_module(app):
-    """الدالة التي يبحث عنها مصنع الموديولات لتسجيل الـ Blueprints والمسارات"""
+    """تسجيل تطبيق منتجات المورد في التطبيق الرئيسي"""
     try:
-        # استيراد الـ Blueprints الخاصة بالمنتجات من ملف المسارات
         from apps.suppliers_product.routes import (
             suppliers_product_bp, 
             add_product_bp, 
             edit_product_bp
         )
         
-        # تسجيل الـ Blueprints في التطبيق الرئيسي
-        app.register_blueprint(suppliers_product_bp)
-        app.register_blueprint(add_product_bp)
-        app.register_blueprint(edit_product_bp)
+        # تسجيل الـ Blueprints إذا لم تكن مسجلة مسبقاً
+        if 'suppliers_product_bp' not in app.blueprints:
+            app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
+        if 'add_product_bp' not in app.blueprints:
+            app.register_blueprint(add_product_bp, url_prefix='/supplier')
+        if 'edit_product_bp' not in app.blueprints:
+            app.register_blueprint(edit_product_bp, url_prefix='/supplier')
+            
+        print("✅ [Registry]: تم تسجيل 'suppliers_product' بنجاح.")
         
-        logger.info("✅ تم تسجيل موديول 'suppliers_product' بنجاح.")
-        return True
+    except ImportError as e:
+        print(f"❌ [Registry]: خطأ في استيراد suppliers_product: {e}")
     except Exception as e:
-        logger.error(f"❌ فشل تسجيل موديول 'suppliers_product': {e}")
-        return False
+        print(f"❌ [Registry]: خطأ في تسجيل suppliers_product: {e}")
+    
+    return app
