@@ -1,4 +1,4 @@
-{% extends 'admin/admin_base.html' %}
+{% extends 'admin_base.html' %}
 
 {% block title %}لوحة القيادة المركزية | محجوب أونلاين{% endblock %}
 
@@ -14,76 +14,138 @@
         </button>
     </div>
 
+    <!-- ====== البطاقات الإحصائية ====== -->
     <div class="row g-4">
-        <div class="col-xl-4 col-md-6">
+        <!-- عدد الموردين -->
+        <div class="col-xl-3 col-md-6">
             <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
                 <div class="d-flex align-items-center mb-3">
                     <div class="p-3 rounded-3" style="background: rgba(212, 175, 55, 0.1); color: var(--mahjoub-gold);">
                         <i class="fas fa-users fa-lg"></i>
                     </div>
-                    <div class="ms-3"><h6 class="text-muted mb-0">إجمالي الموردين</h6></div>
+                    <div class="ms-3"><h6 class="text-muted mb-0">الموردين</h6></div>
                 </div>
                 <h3 class="fw-bold mb-0">{{ total_suppliers | default(0) }}</h3>
             </div>
         </div>
 
-        <div class="col-xl-4 col-md-6">
+        <!-- عدد المنتجات -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 rounded-3" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
+                        <i class="fas fa-boxes fa-lg"></i>
+                    </div>
+                    <div class="ms-3"><h6 class="text-muted mb-0">المنتجات</h6></div>
+                </div>
+                <h3 class="fw-bold mb-0">{{ total_products | default(0) }}</h3>
+            </div>
+        </div>
+
+        <!-- عدد الطلبات -->
+        <div class="col-xl-3 col-md-6">
             <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
                 <div class="d-flex align-items-center mb-3">
                     <div class="p-3 rounded-3" style="background: rgba(46, 204, 113, 0.1); color: #27ae60;">
-                        <i class="fas fa-wallet fa-lg"></i>
+                        <i class="fas fa-shopping-cart fa-lg"></i>
                     </div>
-                    <div class="ms-3"><h6 class="text-muted mb-0">الأرصدة المركزية</h6></div>
+                    <div class="ms-3"><h6 class="text-muted mb-0">الطلبات</h6></div>
                 </div>
-                <div class="d-flex flex-column gap-1">
-                    <h5 class="fw-bold mb-0">{{ "{:,.2f}".format(total_balance_sar | default(0) | float) }} <small class="text-muted">ر.س</small></h5>
-                    <h5 class="fw-bold mb-0">{{ "{:,.2f}".format(total_balance_yer | default(0) | float) }} <small class="text-muted">ر.ي</small></h5>
-                    <h5 class="fw-bold mb-0 text-dark">{{ "{:,.2f}".format(total_balance_usd | default(0) | float) }} <small class="text-muted">د.أ</small></h5>
+                <h3 class="fw-bold mb-0">{{ total_orders | default(0) }}</h3>
+            </div>
+        </div>
+
+        <!-- إجمالي الإيرادات -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="p-3 rounded-3" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c;">
+                        <i class="fas fa-coins fa-lg"></i>
+                    </div>
+                    <div class="ms-3"><h6 class="text-muted mb-0">إجمالي الإيرادات</h6></div>
+                </div>
+                <h5 class="fw-bold mb-0">{{ "{:,.2f}".format(total_revenue | default(0) | float) }} <small class="text-muted">ر.س</small></h5>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== الأرصدة ====== -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
+                <h5 class="fw-bold mb-3"><i class="fas fa-wallet me-2" style="color: var(--mahjoub-gold);"></i>الأرصدة المركزية</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3" style="background: #f8f9fa;">
+                            <small class="text-muted">ر.س (ريال سعودي)</small>
+                            <h4 class="fw-bold mb-0">{{ "{:,.2f}".format(total_balance_sar | default(0) | float) }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3" style="background: #f8f9fa;">
+                            <small class="text-muted">ر.ي (ريال يمني)</small>
+                            <h4 class="fw-bold mb-0">{{ "{:,.2f}".format(total_balance_yer | default(0) | float) }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3" style="background: #f8f9fa;">
+                            <small class="text-muted">د.أ (دولار أمريكي)</small>
+                            <h4 class="fw-bold mb-0">{{ "{:,.2f}".format(total_balance_usd | default(0) | float) }}</h4>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- ====== آخر العمليات ====== -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card p-4 shadow-sm border-0" style="border-radius: 15px;">
-                <h5 class="fw-bold mb-3">آخر العمليات المالية</h5>
+                <h5 class="fw-bold mb-3"><i class="fas fa-clock me-2" style="color: var(--mahjoub-gold);"></i>آخر العمليات المالية</h5>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <thead style="background: var(--royal-purple); color: white;">
                             <tr>
-                                <th>رقم العملية</th>
+                                <th>#</th>
                                 <th>القيمة</th>
+                                <th>العملة</th>
                                 <th>النوع</th>
                                 <th>التاريخ</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for tx in recent_transactions %}
-                            <tr>
-                                <td><code>#{{ tx.voucher_number or tx.id or '---' }}</code></td>
-                                <td class="fw-bold">
-                                    {{ "{:,.2f}".format(tx.amount | float if tx.amount else 0) }} 
-                                    {{ tx.currency or '---' }}
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark">
-                                        {{ tx.trans_type | replace('_', ' ') | title if tx.trans_type else 'غير محدد' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    {% if tx.created_at and tx.created_at is not string %}
-                                        {{ tx.created_at.strftime('%Y-%m-%d %H:%M') }}
-                                    {% else %}
-                                        ---
-                                    {% endif %}
-                                </td>
-                            </tr>
+                            {% if recent_transactions %}
+                                {% for tx in recent_transactions %}
+                                <tr>
+                                    <td><code>#{{ tx.id or loop.index }}</code></td>
+                                    <td class="fw-bold">{{ "{:,.2f}".format(tx.amount | float if tx.amount else 0) }}</td>
+                                    <td>{{ tx.currency or 'SAR' }}</td>
+                                    <td>
+                                        <span class="badge {% if tx.trans_type == 'deposit' %}bg-success{% elif tx.trans_type == 'withdraw' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ tx.trans_type | replace('_', ' ') | title if tx.trans_type else 'غير محدد' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if tx.created_at %}
+                                            {% if tx.created_at is string %}
+                                                {{ tx.created_at }}
+                                            {% else %}
+                                                {{ tx.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                            {% endif %}
+                                        {% else %}
+                                            ---
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
                             {% else %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-3">لا توجد عمليات مالية مسجلة حالياً</td>
-                            </tr>
-                            {% endfor %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">
+                                        <i class="fas fa-info-circle me-2"></i> لا توجد عمليات مالية مسجلة حالياً
+                                    </td>
+                                </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
