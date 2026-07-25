@@ -6,14 +6,12 @@ import os
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
 from flask_login import login_required
-from apps.services.product_sync_service import ProductSyncService
+from apps.services import ProductService, GraphQLClient
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
 
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
-
-GRAPHQL_TOKEN = os.environ.get('QUMRA_API_KEY', 'YOUR_ADMIN_API_TOKEN')
 
 
 # ============================================================
@@ -29,14 +27,18 @@ def manage_products():
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
             return redirect(url_for('admin_dashboard_bp.dashboard'))
         
-        page = request.args.get('page', 1, type=int)
         search_query = request.args.get('title', '', type=str)
         
-        sync_service = ProductSyncService()
-        response_data = sync_service.fetch_products(page=page, limit=20, title=search_query)
+        # ✅ استخدام الخدمة الجديدة
+        client = GraphQLClient()
+        products_service = ProductService(client)
         
-        products = response_data.get("data", [])
-        pagination = response_data.get("pagination", {"currentPage": page, "totalPages": 1, "limit": 20})
+        # جلب جميع المنتجات
+        products = products_service.get_all()
+        
+        # فلترة حسب البحث
+        if search_query:
+            products = [p for p in products if search_query.lower() in p.get('name', '').lower()]
         
         # ✅ جلب الموردين للمنتجات
         for product in products:
@@ -53,7 +55,7 @@ def manage_products():
             'admin/admin_Product.html',
             products=products,
             search_title=search_query,
-            pagination=pagination
+            pagination={"currentPage": 1, "totalPages": 1, "limit": len(products)}
         )
     except Exception as e:
         print(f"❌ خطأ في manage_products: {e}")
@@ -62,7 +64,7 @@ def manage_products():
             'admin/admin_Product.html',
             products=[],
             search_title=request.args.get('title', ''),
-            pagination={"currentPage": 1, "totalPages": 1, "limit": 20}
+            pagination={"currentPage": 1, "totalPages": 1, "limit": 0}
         )
 
 
@@ -79,9 +81,10 @@ def review_products():
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
             return redirect(url_for('admin_dashboard_bp.dashboard'))
         
-        sync_service = ProductSyncService()
-        response_data = sync_service.fetch_products(page=1, limit=100)
-        all_products = response_data.get("data", [])
+        # ✅ استخدام الخدمة الجديدة
+        client = GraphQLClient()
+        products_service = ProductService(client)
+        all_products = products_service.get_all()
         
         draft_products = [p for p in all_products if p.get('status') == 'DRAFT']
         
@@ -135,8 +138,10 @@ def change_product_status(qid):
         if new_status not in valid_statuses:
             return jsonify({'success': False, 'message': 'حالة غير صالحة'}), 400
         
-        sync_service = ProductSyncService()
-        result = sync_service.update_product_status(qid, new_status)
+        # ✅ استخدام الخدمة الجديدة
+        client = GraphQLClient()
+        products_service = ProductService(client)
+        result = products_service.update_status(qid, new_status)
         
         if result:
             # ✅ تحديث الحالة في قاعدة البيانات المحلية
@@ -177,8 +182,10 @@ def delete_product(qid):
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        sync_service = ProductSyncService()
-        result = sync_service.delete_product(qid)
+        # ✅ استخدام الخدمة الجديدة
+        client = GraphQLClient()
+        products_service = ProductService(client)
+        result = products_service.delete(qid)
         
         if result:
             # ✅ حذف الربط من قاعدة البيانات المحلية
@@ -211,9 +218,10 @@ def get_stats():
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        sync_service = ProductSyncService()
-        response_data = sync_service.fetch_products(page=1, limit=100)
-        all_products = response_data.get("data", [])
+        # ✅ استخدام الخدمة الجديدة
+        client = GraphQLClient()
+        products_service = ProductService(client)
+        all_products = products_service.get_all()
         
         stats = {
             'total': len(all_products),
@@ -238,23 +246,24 @@ def get_stats():
 @admin_product_bp.route('/sync-products', methods=['POST'])
 @login_required
 def sync_products():
+    """مزامنة المنتجات من قمرة"""
     try:
         user_type = session.get('user_type')
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        sync_service = ProductSyncService()
-        raw_data = sync_service.fetch_products(page=1, limit=50)
+        # ✅ استخدام الخدمة الجديدة
+        client = GraphQLClient()
+        products_service = ProductService(client)
+        products = products_service.get_all()
         
-        if not raw_data or "data" not in raw_data:
-            flash("تعذر جلب المنتجات من الخادم الخارجي أثناء المزامنة.", "danger")
-            return redirect(url_for('admin_product_bp.manage_products'))
-
-        count = len(raw_data.get("data", []))
-        flash(f"✅ تمت مزامنة البيانات بنجاح وجلب {count} منتجاً.", "success")
+        if products:
+            flash(f'✅ تمت المزامنة بنجاح وجلب {len(products)} منتجاً.', 'success')
+        else:
+            flash('ℹ️ لا توجد منتجات جديدة للمزامنة', 'info')
         
     except Exception as e:
-        flash(f"❌ حدث خطأ أثناء الاتصال بالمزامنة: {str(e)}", "danger")
+        flash(f'❌ حدث خطأ أثناء المزامنة: {str(e)}', 'danger')
 
     return redirect(url_for('admin_product_bp.manage_products'))
 
@@ -270,21 +279,50 @@ def add_product():
         flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
         return redirect(url_for('admin_dashboard_bp.dashboard'))
     
-    sync_service = ProductSyncService()
     suppliers = Supplier.query.filter_by(status='active').all()
-    all_collections = sync_service.fetch_collections() if hasattr(sync_service, 'fetch_collections') else []
-
+    
     if request.method == 'POST':
         try:
-            flash("✅ تم إضافة المنتج بنجاح.", "success")
+            # ✅ استخدام الخدمة الجديدة
+            client = GraphQLClient()
+            products_service = ProductService(client)
+            
+            product_data = {
+                'name': request.form.get('title', ''),
+                'price': float(request.form.get('price', 0)),
+                'status': request.form.get('status', 'DRAFT'),
+                'description': request.form.get('description', '')
+            }
+            
+            if request.form.get('sku'):
+                product_data['sku'] = request.form.get('sku')
+            
+            result = products_service.create(product_data)
+            
+            if result:
+                # ربط المنتج بالمورد
+                supplier_id = request.form.get('supplier_id')
+                if supplier_id:
+                    mapping = ProductSupplierMapping(
+                        product_qid=result['qid'],
+                        supplier_id=int(supplier_id),
+                        status='active'
+                    )
+                    db.session.add(mapping)
+                    db.session.commit()
+                
+                flash('✅ تم إضافة المنتج بنجاح.', 'success')
+            else:
+                flash('❌ فشل إضافة المنتج', 'danger')
+                
             return redirect(url_for('admin_product_bp.manage_products'))
+            
         except Exception as e:
-            flash(f"❌ حدث خطأ: {str(e)}", "danger")
+            flash(f'❌ حدث خطأ: {str(e)}', 'danger')
 
     return render_template(
         'admin/admin_add_product.html',
-        suppliers=suppliers,
-        all_collections=all_collections
+        suppliers=suppliers
     )
 
 
@@ -294,30 +332,22 @@ def add_product():
 @admin_product_bp.route('/products/edit', methods=['GET'])
 @login_required
 def edit_product():
-    """عرض صفحة تعديل المنتج مع ربط المورد والمجموعات"""
+    """عرض صفحة تعديل المنتج"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
         return redirect(url_for('admin_dashboard_bp.dashboard'))
     
-    raw_qid = request.args.get('qid')
-    
-    if raw_qid:
-        if raw_qid.startswith('qid=qid='):
-            qid = raw_qid.replace('qid=qid=', 'qid://')
-        elif raw_qid.startswith('qid='):
-            qid = raw_qid.replace('qid=', '')
-        else:
-            qid = raw_qid
-    else:
-        qid = None
+    qid = request.args.get('qid')
     
     if not qid:
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
     
-    sync_service = ProductSyncService()
-    product = sync_service.fetch_product_by_qid(qid)
+    # ✅ استخدام الخدمة الجديدة
+    client = GraphQLClient()
+    products_service = ProductService(client)
+    product = products_service.get_by_qid(qid)
 
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
@@ -330,13 +360,9 @@ def edit_product():
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     assigned_supplier_id = mapping.supplier_id if mapping else None
 
-    # ✅ جلب المجموعات من Qumra
-    all_collections = sync_service.fetch_collections() if hasattr(sync_service, 'fetch_collections') else []
-
     return render_template(
         'admin/admin_edit_product.html',
         product=product,
-        all_collections=all_collections,
         suppliers=suppliers,
         assigned_supplier_id=assigned_supplier_id
     )
@@ -348,7 +374,7 @@ def edit_product():
 @admin_product_bp.route('/products/save-sync', methods=['POST'])
 @login_required
 def save_sync_product():
-    """معالجة وحفظ البيانات وتحديث الصور، المتغيرات، المجموعات، وربط المورد"""
+    """معالجة وحفظ البيانات"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         return jsonify({"status": "error", "message": "غير مصرح"}), 403
@@ -360,7 +386,6 @@ def save_sync_product():
 
         # ---- البيانات الأساسية ----
         title = request.form.get('title', '')
-        slug = request.form.get('slug', '')
         description = request.form.get('description', '')
         status = request.form.get('status', 'DRAFT')
         sku = request.form.get('sku', '')
@@ -369,96 +394,34 @@ def save_sync_product():
         # ---- الأسعار ----
         try:
             price = float(request.form.get('price', 0))
-            cost_price = float(request.form.get('cost_price', 0))
-            compare_at_price = float(request.form.get('compare_at_price', 0))
         except ValueError:
-            price, cost_price, compare_at_price = 0.0, 0.0, 0.0
+            price = 0.0
 
-        try:
-            quantity = int(request.form.get('quantity', 0))
-            weight_val = float(request.form.get('weight', 0))
-        except ValueError:
-            quantity, weight_val = 0, 0.0
-
-        # ---- تجميع البيانات ----
-        info = {"title": title, "slug": slug, "status": status}
-        pricing = {
-            "price": price,
-            "compareAtPrice": compare_at_price,
-            "costPrice": cost_price
+        # ---- تحديث المنتج ----
+        client = GraphQLClient()
+        products_service = ProductService(client)
+        
+        update_data = {
+            'name': title,
+            'price': price,
+            'status': status,
+            'description': description
         }
-        dims = {"length": 0, "width": 0, "height": 0, "unit": "cm"}
-        weight = {"value": weight_val, "unit": "kg"}
-        ident = {"sku": sku}
-
-        # ---- المجموعات ----
-        collection_ids = json.loads(request.form.get('collection_ids', '[]') or '[]')
         
-        # ---- المتغيرات ----
-        variants_raw = request.form.get('variants', '')
-        variants = []
+        if sku:
+            update_data['sku'] = sku
         
-        if variants_raw:
-            try:
-                parsed_variants = json.loads(variants_raw)
-                for v in parsed_variants:
-                    variants.append({
-                        "quantity": int(v.get("quantity", 0)),
-                        "pricing": {"price": float(v.get("price", 0.0))}
-                    })
-            except Exception:
-                variants = []
-        else:
-            var_prices = request.form.getlist('variant_price[]')
-            var_qtys = request.form.getlist('variant_qty[]')
-            
-            for i in range(max(len(var_qtys), len(var_prices))):
-                try:
-                    v_price = float(var_prices[i]) if i < len(var_prices) and var_prices[i] else 0.0
-                except ValueError:
-                    v_price = 0.0
-                try:
-                    v_qty = int(var_qtys[i]) if i < len(var_qtys) and var_qtys[i] else 0
-                except ValueError:
-                    v_qty = 0
+        result = products_service.update(qid, update_data)
 
-                variants.append({
-                    "quantity": v_qty,
-                    "pricing": {"price": v_price}
-                })
-
-        # ---- الصور ----
-        removed_images = json.loads(request.form.get('removed_images', '[]') or '[]')
-        new_images = request.files.getlist('images')
-
-        # ---- مزامنة مع Qumra ----
-        sync_service = ProductSyncService()
-        
-        success = sync_service.update_product_data(
-            qid=qid,
-            info=info,
-            pricing=pricing,
-            dims=dims,
-            weight=weight,
-            ident=ident,
-            desc=description,
-            supplier_id=supplier_id,
-            collection_ids=collection_ids,
-            variants=variants,
-            removed_images=removed_images,
-            new_images=new_images,
-            quantity=quantity
-        )
-
-        if not success:
-            return jsonify({"status": "error", "message": "فشل حفظ وتحديث التعديلات على الخادم المركزي."}), 500
+        if not result:
+            return jsonify({"status": "error", "message": "فشل حفظ التعديلات."}), 500
 
         # ---- ربط المنتج بالمورد ----
         if supplier_id:
             try:
                 supplier_id_int = int(supplier_id)
-                
                 supplier = Supplier.query.get(supplier_id_int)
+                
                 if not supplier:
                     return jsonify({
                         "status": "error",
@@ -491,20 +454,10 @@ def save_sync_product():
                     "status": "error",
                     "message": f"فشل ربط المنتج بالمورد: {str(db_err)}"
                 }), 500
-        else:
-            # ❌ إلغاء الربط إذا لم يتم اختيار مورد
-            try:
-                mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-                if mapping:
-                    db.session.delete(mapping)
-                    db.session.commit()
-            except Exception as db_err:
-                db.session.rollback()
-                print(f"❌ خطأ في إلغاء ربط المورد: {db_err}")
 
         return jsonify({
             "status": "success", 
-            "message": "تم حفظ المنتج ومزامنته بنجاح!"
+            "message": "تم حفظ المنتج بنجاح!"
         })
 
     except Exception as e:
