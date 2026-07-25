@@ -1,25 +1,28 @@
 # coding: utf-8
 # 📂 apps/suppliers_product/registry.py
 
-"""
-مخزن تسجيل موديول إدارة منتجات الموردين
-"""
+from flask import Blueprint
 
-MODULE_NAME = "إدارة المنتجات"
-MODULE_ICON = "fas fa-box-open"
-SHOW_IN_SUPPLIER = True  # ليظهر في قائمة الموردين الجانبية
+# تعريف الـ Blueprint الخاص بالموديول
+supplier_product_bp = Blueprint(
+    'supplier_product_bp',
+    __name__,
+    template_folder='templates',
+    static_folder='static',
+    url_prefix='/supplier/products'
+)
 
+# بيانات التسجيل في الشريط الجانبي
+MODULE_NAME = 'إدارة المنتجات'
+MODULE_ICON = 'fas fa-box'
+SHOW_IN_SUPPLIER = True  # يجب أن تكون True لكي تظهر للموردين
+
+# الروابط التي ستظهر في القائمة الجانبية للموديول
 LINKS = {
-    "suppliers_product_bp.products": "عرض المنتجات",
-    "add_product_bp.add_product_page": "إضافة منتج جديد"
+    'قائمة المنتجات': 'supplier_product_bp.list_products',
+    'إضافة منتج جديد': 'add_product_bp.add_product_page', # أو الرابط المناسب داخل الموديول
 }
 
 def register_module(app):
-    """
-    دالة تسجيل البلوبرنتات الخاصة بالموديول تلقائياً عبر محمل النظام
-    """
-    from apps.suppliers_product.routes import suppliers_product_bp, add_product_bp, edit_product_bp
-    
-    app.register_blueprint(suppliers_product_bp)
-    app.register_blueprint(add_product_bp)
-    app.register_blueprint(edit_product_bp)
+    """تسجيل الـ Blueprint في التطبيق الرئيسي"""
+    app.register_blueprint(supplier_product_bp)
