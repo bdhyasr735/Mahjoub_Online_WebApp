@@ -96,7 +96,8 @@
                                             <img src="{{ item.product.images[0].url if item.product.images else url_for('static', filename='img/default-product.png') }}" class="avatar avatar-sm me-3" alt="product">
                                         </div>
                                         <div class="d-flex flex-column justify-content-center">
-                                            <h6 class="mb-0 text-sm">{{ item.title }}</h6>
+                                            <!-- تم التصحيح هنا لاستدعاء عنوان المنتج بشكل صحيح -->
+                                            <h6 class="mb-0 text-sm">{{ item.product.title }}</h6>
                                             <p class="text-xs text-secondary mb-0">SKU: {{ item.product.sku }}</p>
                                         </div>
                                     </div>
@@ -113,7 +114,8 @@
                                     <span class="text-secondary text-xs font-weight-bold">{{ item.product.quantity }}</span>
                                 </td>
                                 <td class="align-middle text-end">
-                                    <a href="#" class="text-secondary font-weight-bold text-xs" data-toggle="tooltip" data-original-title="تعديل المنتج">
+                                    <!-- تم ربط زر التعديل بالمسار الصحيح وتمرير معرف المنتج (qid) -->
+                                    <a href="{{ url_for('edit_product_bp.edit_product_page', qid=item.product.qid) }}" class="text-secondary font-weight-bold text-xs" data-toggle="tooltip" data-original-title="تعديل المنتج">
                                         تعديل
                                     </a>
                                 </td>
