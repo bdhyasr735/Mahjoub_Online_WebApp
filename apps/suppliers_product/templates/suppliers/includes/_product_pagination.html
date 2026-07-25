@@ -1,31 +1,148 @@
 <!-- apps/suppliers_product/templates/suppliers/includes/_product_pagination.html -->
+
 {% if pagination and pagination.pages > 1 %}
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <div class="text-muted small">
-        عرض {{ pagination.start }} - {{ pagination.end }} من {{ pagination.total }} منتج
+<div class="d-flex flex-wrap justify-content-between align-items-center mt-3">
+    
+    {# ✅ معلومات العرض #}
+    <div class="text-muted small mb-2 mb-md-0">
+        <i class="fas fa-list-ul me-1"></i>
+        عرض <span class="fw-bold">{{ pagination.start }}</span> - 
+        <span class="fw-bold">{{ pagination.end }}</span> 
+        من <span class="fw-bold">{{ pagination.total }}</span> منتج
+        <span class="text-muted">({{ pagination.pages }} صفحات)</span>
     </div>
-    <nav>
+    
+    {# ✅ أزرار الترقيم #}
+    <nav aria-label="التنقل بين صفحات المنتجات">
         <ul class="pagination pagination-sm mb-0">
+            
+            {# ✅ زر الصفحة الأولى #}
             <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="goToPage({{ pagination.prev_page or 1 }})">
+                <a class="page-link" href="#" onclick="goToPage(1)" 
+                   title="الصفحة الأولى" aria-label="الصفحة الأولى">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+            </li>
+            
+            {# ✅ زر الصفحة السابقة #}
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="#" onclick="goToPage({{ pagination.prev_page or 1 }})" 
+                   title="الصفحة السابقة" aria-label="الصفحة السابقة">
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </li>
+            
+            {# ✅ أرقام الصفحات #}
             {% for page in pagination.pages_list %}
                 {% if page == '...' %}
-                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">…</span>
+                    </li>
                 {% else %}
                     <li class="page-item {% if page == pagination.current_page %}active{% endif %}">
-                        <a class="page-link" href="#" onclick="goToPage({{ page }})">{{ page }}</a>
+                        <a class="page-link" href="#" onclick="goToPage({{ page }})" 
+                           aria-label="الصفحة {{ page }}"
+                           aria-current="{% if page == pagination.current_page %}page{% endif %}">
+                            {{ page }}
+                        </a>
                     </li>
                 {% endif %}
             {% endfor %}
+            
+            {# ✅ زر الصفحة التالية #}
             <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="goToPage({{ pagination.next_page or pagination.pages }})">
+                <a class="page-link" href="#" onclick="goToPage({{ pagination.next_page or pagination.pages }})" 
+                   title="الصفحة التالية" aria-label="الصفحة التالية">
                     <i class="fas fa-chevron-left"></i>
                 </a>
             </li>
+            
+            {# ✅ زر الصفحة الأخيرة #}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="#" onclick="goToPage({{ pagination.pages }})" 
+                   title="الصفحة الأخيرة" aria-label="الصفحة الأخيرة">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+            </li>
+            
         </ul>
     </nav>
 </div>
+
+{# ✅ CSS #}
+<style>
+    .pagination .page-link {
+        border-radius: 8px;
+        margin: 0 2px;
+        color: var(--dark-purple, #2d0b36);
+        border: none;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+        background: transparent;
+    }
+    
+    .pagination .page-link:hover {
+        background-color: rgba(45, 11, 54, 0.08);
+        color: var(--dark-purple, #2d0b36);
+        transform: translateY(-1px);
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: var(--dark-purple, #2d0b36);
+        color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(45, 11, 54, 0.3);
+    }
+    
+    .pagination .page-item.active .page-link:hover {
+        background-color: #4a1558;
+        transform: translateY(-1px);
+    }
+    
+    .pagination .page-item.disabled .page-link {
+        color: #adb5bd;
+        cursor: not-allowed;
+        background: transparent;
+    }
+    
+    .pagination .page-item.disabled .page-link:hover {
+        transform: none;
+        background: transparent;
+    }
+    
+    .pagination .page-item:first-child .page-link,
+    .pagination .page-item:last-child .page-link {
+        border-radius: 8px;
+    }
+    
+    /* ✅ استجابة للشاشات الصغيرة */
+    @media (max-width: 576px) {
+        .pagination .page-link {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+        }
+        
+        .pagination .page-item:first-child .page-link,
+        .pagination .page-item:last-child .page-link {
+            padding: 4px 8px;
+        }
+        
+        .text-muted.small {
+            font-size: 0.7rem !important;
+        }
+    }
+    
+    @media (max-width: 400px) {
+        .pagination .page-link {
+            padding: 3px 6px;
+            font-size: 0.7rem;
+        }
+        
+        .pagination .page-item:first-child .page-link,
+        .pagination .page-item:last-child .page-link {
+            padding: 3px 6px;
+        }
+    }
+</style>
 {% endif %}
