@@ -488,3 +488,25 @@ query FindTopViewedProducts {
     }
   }
 }
+
+# ============================================
+# 5. تعديل بيانات منتج (Mutation)
+# ============================================
+mutation UpdateProduct($input: UpdateProductInput!) {
+  updateProduct(input: $input) {
+    id
+    qid
+    name
+    description
+    price
+    compareAtPrice
+    costPerItem
+    status
+    isActive
+    isAvailable
+    quantity
+    sku
+    barcode
+    updatedAt
+  }
+}
