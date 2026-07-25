@@ -28,6 +28,20 @@ suppliers_product_bp = Blueprint(
 )
 
 
+class PaginationWrapper:
+    """مساعد آمن لتغليف نتائج الترقيم وضمان توفر خاصية items للقالب"""
+    def __init__(self, items, page=1, per_page=20, total=0):
+        if hasattr(items, 'items'):
+            self.items = items.items
+        elif isinstance(items, (list, tuple)):
+            self.items = items
+        else:
+            self.items = []
+        self.page = page
+        self.per_page = per_page
+        self.total = total if total > 0 else len(self.items)
+
+
 @suppliers_product_bp.route('/')
 def index():
     """
@@ -38,7 +52,7 @@ def index():
     search = request.args.get('search', '', type=str)
     status = request.args.get('status', 'all', type=str)
 
-    # جلب البيانات الأساسية (يمكن استبدالها لاحقاً بالاستعلام الفعلي من قاعدة البيانات أو GraphQL)
+    # جلب البيانات الأساسية
     products = [] 
 
     # تطبيق الفلاتر والبحث
@@ -48,13 +62,13 @@ def index():
     # حساب الإحصائيات
     stats = get_product_stats_from_list(products)
     
-    # استخراج القيم بشكل فردي لتتوافق مع القالب
     total_products = stats.get('total', 0) if isinstance(stats, dict) else len(products)
     active_products = stats.get('active', 0) if isinstance(stats, dict) else 0
     draft_products = stats.get('draft', 0) if isinstance(stats, dict) else 0
 
-    # تطبيق الترقيم
-    pagination_data = paginate(filtered_products, page=page, per_page=per_page)
+    # تطبيق الترقيم وتغليفه بأمان لتوافق القالب
+    raw_pagination = paginate(filtered_products, page=page, per_page=per_page)
+    pagination_data = PaginationWrapper(raw_pagination, page=page, per_page=per_page, total=len(filtered_products))
 
     return render_template(
         'suppliers/suppliers_product.html',
