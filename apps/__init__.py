@@ -167,12 +167,12 @@ def create_app():
     except Exception as e:
         print(f"❌ [Portal]: خطأ في تسجيل بوابة المصادقة الإدارية: {e}")
 
-    # 3. بوابة ومسارات الموردين مع استثناء CSRF
+    # 3. بوابة ومسارات الموردين مع استثناء CSRF وبادئة المسار
     try:
         from apps.suppliers_auth_portal.routes import suppliers_bp
-        app.register_blueprint(suppliers_bp)
+        app.register_blueprint(suppliers_bp, url_prefix='/supplier')
         csrf.exempt(suppliers_bp)
-        print("✅ [Portal]: تم تسجيل بوابة الموردين بنجاح.")
+        print("✅ [Portal]: تم تسجيل بوابة الموردين بنجاح تحت المسار /supplier.")
     except Exception as e:
         print(f"❌ [Portal]: خطأ في تسجيل بوابة الموردين: {e}")
 
@@ -268,7 +268,7 @@ def create_app():
                     continue
                 except Exception:
                     continue
-                    
+                
             return '#'
         
         return dict(
