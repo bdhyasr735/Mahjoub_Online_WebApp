@@ -1,6 +1,7 @@
 # coding: utf-8
 # 📂 apps/suppliers_product/registry.py
 
+from flask import Blueprint
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,3 +38,25 @@ class SupplierProductRegistry:
 
 # ====== SINGLETON ======
 supplier_product_registry = SupplierProductRegistry()
+
+
+def register_module(app):
+    """الدالة التي يبحث عنها مصنع الموديولات لتسجيل الـ Blueprints والمسارات"""
+    try:
+        # استيراد الـ Blueprints الخاصة بالمنتجات من ملف المسارات
+        from apps.suppliers_product.routes import (
+            suppliers_product_bp, 
+            add_product_bp, 
+            edit_product_bp
+        )
+        
+        # تسجيل الـ Blueprints في التطبيق الرئيسي
+        app.register_blueprint(suppliers_product_bp)
+        app.register_blueprint(add_product_bp)
+        app.register_blueprint(edit_product_bp)
+        
+        logger.info("✅ تم تسجيل موديول 'suppliers_product' بنجاح.")
+        return True
+    except Exception as e:
+        logger.error(f"❌ فشل تسجيل موديول 'suppliers_product': {e}")
+        return False
