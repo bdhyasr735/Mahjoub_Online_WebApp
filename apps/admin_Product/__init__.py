@@ -1,17 +1,38 @@
 # coding: utf-8
-# 📂 apps/admin_Product/routes/__init__.py
+# 📂 apps/admin_Product/__init__.py
 
-from flask import Blueprint
+"""
+موديول إدارة المنتجات
+يتضمن:
+- عرض المنتجات
+- إضافة/تعديل/حذف
+- مراجعة المنتجات
+- مزامنة مع GraphQL
+"""
 
-# إنشاء Blueprint الرئيسي
-admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
+# استيراد الـ Blueprint من routes
+from .routes import admin_product_bp
 
-# استيراد جميع الـ Routes
-from . import products
-from . import sync
-from . import reviews
-from . import crud
-from . import stats
+# استيراد دوال التسجيل من registry
+from .registry import (
+    MODULE_NAME,
+    MODULE_ICON,
+    SHOW_IN_SUPPLIER,
+    LINKS,
+    register_module,
+    get_module_stats,
+    get_module_link,
+    get_dashboard_card
+)
 
-# ✅ تصدير الـ Blueprint فقط
-__all__ = ['admin_product_bp']
+__all__ = [
+    'admin_product_bp',
+    'MODULE_NAME',
+    'MODULE_ICON',
+    'SHOW_IN_SUPPLIER',
+    'LINKS',
+    'register_module',
+    'get_module_stats',
+    'get_module_link',
+    'get_dashboard_card'
+]
