@@ -20,6 +20,12 @@
                     <i class="fas fa-info-circle me-2"></i>
                     <small>سيتم جلب جميع المنتجات وتحديث البيانات في النظام.</small>
                 </div>
+
+                <!-- 🚨 حاوية عرض أخطاء Render التحليلية ديناميكياً -->
+                <div id="syncErrorBox" class="alert alert-danger border-0 rounded-3 py-2 mt-3 d-none">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="syncErrorText" class="small fw-semibold"></span>
+                </div>
             </div>
             <div class="modal-footer border-0 pb-4 pt-0">
                 <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">
@@ -62,11 +68,15 @@
     document.addEventListener('DOMContentLoaded', function() {
         const syncForm = document.querySelector('#syncModal form');
         const syncBtn = document.getElementById('syncConfirmBtn');
+        const errorBox = document.getElementById('syncErrorBox');
+        const errorText = document.getElementById('syncErrorText');
         
         if (syncForm) {
             syncForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
+                // إخفاء أي خطأ سابق وإظهار حالة التحميل
+                if (errorBox) errorBox.classList.add('d-none');
                 if (syncBtn) {
                     syncBtn.disabled = true;
                     syncBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري المزامنة...';
@@ -92,12 +102,19 @@
                         alert(data.message);
                         window.location.reload();
                     } else {
-                        alert(data.message || '❌ حدث خطأ أثناء المزامنة');
+                        // 🛠️ عرض رسالة الخطأ التحليلية القادمة من ريندر مباشرة داخل المودال
+                        if (errorBox && errorText) {
+                            errorText.textContent = data.message || '❌ حدث خطأ غير معروف أثناء المزامنة';
+                            errorBox.classList.remove('d-none');
+                        }
                         resetButton();
                     }
                 } catch (error) {
                     console.error("خطأ في المزامنة:", error);
-                    alert('❌ تعذر الاتصال بالسيرفر، تأكد من الصلاحيات أو اتصال الإنترنت.');
+                    if (errorBox && errorText) {
+                        errorText.textContent = '❌ تعذر الاتصال بالسيرفر أو انتهت مهلة الطلب (Timeout).';
+                        errorBox.classList.remove('d-none');
+                    }
                     resetButton();
                 }
             });
@@ -114,6 +131,7 @@
         if (syncModal) {
             syncModal.addEventListener('hidden.bs.modal', function() {
                 resetButton();
+                if (errorBox) errorBox.classList.add('d-none'); // إخفاء صندوق الخطأ عند إغلاق النافذة
             });
         }
     });
