@@ -8,7 +8,10 @@ def get_all_products(self, input_data: dict = None) -> list:
             data {
                 qid
                 title
-                price
+                pricing {
+                    price
+                    compareAtPrice
+                }
                 status
             }
         }
