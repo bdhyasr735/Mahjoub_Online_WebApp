@@ -29,7 +29,6 @@ class GraphQLClient:
         """
         تنفيذ استعلام GraphQL وإرجاع النتيجة.
         """
-        # بناء الـ payload
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
@@ -40,7 +39,6 @@ class GraphQLClient:
         headers = self.headers.copy()
         if operation_name:
             headers["x-apollo-operation-name"] = operation_name
-        # ✅ إذا لم يكن هناك operation_name، استخدم الافتراضي
         elif "x-apollo-operation-name" not in headers:
             headers["x-apollo-operation-name"] = "FindAllProducts"
         
@@ -72,7 +70,6 @@ class GraphQLClient:
             bool: True إذا كان الاتصال ناجحاً، False إذا فشل.
         """
         try:
-            # استعلام بسيط لاختبار الاتصال
             query = """
             query {
                 __typename
