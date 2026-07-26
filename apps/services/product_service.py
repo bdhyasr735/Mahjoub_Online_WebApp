@@ -1,66 +1,116 @@
-def sync_products(self, external_products: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    مزامنة قائمة المنتجات الواردة إلى النظام بطلب واحد أو بذاكرة مؤقتة لتجنب انهيار السيرفر.
-    """
-    synced_count = 0
-    created_count = 0
-    updated_count = 0
-    errors = []
+# coding: utf-8
+# 📦 خدمة المنتجات - منصة محجوب أونلاين 2026
 
-    # 1. جلب جميع المنتجات الموجودة مرة واحدة مسبقاً لتجنب الطلبات المتكررة
-    try:
-        existing_list = self.get_all() or []
-        existing_map = {str(p.get('qid') or p.get('id', '')): p for p in existing_list}
-    except Exception as e:
-        return {
-            "success": False,
-            "syncedCount": 0,
-            "createdCount": 0,
-            "updatedCount": 0,
-            "errors": [{"product": "Bulk Fetch", "error": str(e)}]
-        }
+import os
+from apps.services.graphql_client import GraphQLClient
 
-    for item in external_products:
+
+class ProductService:
+    """خدمة إدارة المنتجات متصلة بملف الاستعلامات الخارجي product_queries.graphql"""
+    
+    def __init__(self):
+        self.client = GraphQLClient()
+        
+        # قراءة ملف product_queries.graphql الخارجي تلقائياً من نفس المجلد
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.query_file_path = os.path.join(current_dir, 'product_queries.graphql')
+        
         try:
-            qid = str(item.get('qid') or item.get('id', ''))
-            if not qid:
-                continue
-            
-            product_input = {
-                "name": item.get('name'),
-                "description": item.get('description', ''),
-                "price": float(item.get('price', 0.0)),
-                "sku": item.get('sku', '') or '',
-                "quantity": int(item.get('quantity', 0)),
-                "status": item.get('status', 'PUBLISHED')
-            }
+            with open(self.query_file_path, 'r', encoding='utf-8') as f:
+                self.queries_content = f.read()
+        except FileNotFoundError:
+            print(f"⚠️ [ProductService]: لم يتم العثور على ملف الاستعلامات في المسار: {self.query_file_path}")
+            self.queries_content = ""
 
-            # 2. التحقق محلياً من وجود المنتج بدلاً من إرسال طلب شبكي لكل عنصر
-            if qid in existing_map:
-                result = self.update(qid, product_input)
-                if not result:
-                    raise ValueError(f"فشل تحديث المنتج ذو المعرف {qid}")
-                updated_count += 1
-            else:
-                product_input["qid"] = qid
-                result = self.create(product_input)
-                if not result:
-                    raise ValueError(f"فشل إنشاء المنتج الجديد ذو المعرف {qid}")
-                created_count += 1
-            
-            synced_count += 1
-            
-        except Exception as e:
-            errors.append({
-                "product": item.get('name', 'Unknown'),
-                "qid": item.get('qid', ''),
-                "error": str(e)
-            })
+    def get_all_products(self, input_data: dict = None) -> list:
+        """جلب جميع المنتجات بكافة تفاصيلها المعرفة في الملف الخارجي"""
+        if not self.queries_content:
+            return []
 
-    return {
-        "success": len(errors) == 0,
-        "syncedCount": synced_count,
-        "createdCount": created_count,
-        "updatedCount": updated_count,
-        "errors": errors
-    }
+        variables = {"input": input_data or {}}
+        
+        data = self.client.execute(
+            query=self.queries_content,
+            variables=variables,
+            operation_name="FindAllProducts"
+        )
+        
+        if data and "findAllProducts" in data:
+            return data["findAllProducts"]
+        return []
+
+    def get_product_by_qid(self, qid: str) -> dict:
+        """جلب منتج معين بواسطة الـ Qid"""
+        if not self.queries_content:
+            return None
+
+        variables = {"qid": qid}
+        data = self.client.execute(
+            query=self.queries_content,
+            variables=variables,
+            operation_name="FindProductByQid"
+        )
+        
+        if data and "findProductByQid" in data:
+            return data["findProductByQid"]
+        return None
+
+    def get_product_status(self) -> list:
+        """جلب حالة المنتجات"""
+        if not self.queries_content:
+            return []
+
+        data = self.client.execute(
+            query=self.queries_content,
+            operation_name="FindProductStatus"
+        )
+        
+        if data and "findProductStatus" in data:
+            return data["findProductStatus"]
+        return []
+
+    def get_top_viewed_products(self) -> list:
+        """جلب المنتجات الأكثر مشاهدة"""
+        if not self.queries_content:
+            return []
+
+        data = self.client.execute(
+            query=self.queries_content,
+            operation_name="FindTopViewedProducts"
+        )
+        
+        if data and "FindTopViewedProducts" in data:
+            return data["FindTopViewedProducts"]
+        return []
+
+    def create_product_data(self, input_data: dict) -> dict:
+        """إنشاء منتج جديد عبر الـ Mutation الموجودة في الملف"""
+        if not self.queries_content:
+            return None
+
+        variables = {"input": input_data}
+        data = self.client.execute(
+            query=self.queries_content,
+            variables=variables,
+            operation_name="CreateProduct"
+        )
+        
+        if data and "createProduct" in data:
+            return data["createProduct"]
+        return {}
+
+    def update_product_data(self, input_data: dict) -> dict:
+        """تعديل بيانات منتج عبر الـ Mutation الموجودة في الملف"""
+        if not self.queries_content:
+            return None
+
+        variables = {"input": input_data}
+        data = self.client.execute(
+            query=self.queries_content,
+            variables=variables,
+            operation_name="UpdateProduct"
+        )
+        
+        if data and "updateProduct" in data:
+            return data["updateProduct"]
+        return {}
