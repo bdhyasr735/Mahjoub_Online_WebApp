@@ -1,0 +1,197 @@
+{% extends "admin/base.html" %}
+
+{% block title %}مراجعة المنتجات{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">📋 مراجعة المنتجات</h1>
+        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة
+        </a>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ total_count }}</h3>
+                    <small>⏳ قيد المراجعة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ total_published }}</h3>
+                    <small>✅ منشور</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ total_rejected }}</h3>
+                    <small>❌ مرفوض</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ total_count + total_published + total_rejected }}</h3>
+                    <small>📦 المجموع</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <i class="fas fa-clock"></i> المنتجات المنتظرة المراجعة
+            <span class="badge bg-warning ms-2">{{ total_count }}</span>
+        </div>
+        <div class="card-body">
+            {% if products %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>الصورة</th>
+                            <th>الاسم</th>
+                            <th>السعر</th>
+                            <th>المورد</th>
+                            <th>تاريخ الإنشاء</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        {% set p_name = product.title or product.name or 'منتج بدون اسم' %}
+                        {% set p_img = (product.mainImage.url if product.mainImage else none) or (product.images[0].fileUrl if product.images else none) or url_for('static', filename='images/default.png') %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <img src="{{ p_img }}" 
+                                     alt="{{ p_name }}"
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"
+                                     onerror="this.src='{{ url_for('static', filename='images/default.png') }}'">
+                            </td>
+                            <td>
+                                <strong>{{ p_name }}</strong>
+                                <br>
+                                <small class="text-muted">QID: {{ product.qid or product.id }}</small>
+                            </td>
+                            <td class="text-primary fw-bold">
+                                {{ "%.2f"|format(product.price|float or 0) }} ر.س
+                            </td>
+                            <td>
+                                {% if product.supplier_name %}
+                                <span class="badge bg-info">{{ product.supplier_name }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">غير مرتبط</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ product.createdAt|datetime if product.createdAt else '-' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-success" onclick="changeStatus('{{ product.qid or product.id }}', 'PUBLISHED')">
+                                        <i class="fas fa-check"></i> قبول
+                                    </button>
+                                    <button class="btn btn-danger" onclick="changeStatus('{{ product.qid or product.id }}', 'REJECTED')">
+                                        <i class="fas fa-times"></i> رفض
+                                    </button>
+                                    <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-success text-center py-4">
+                <i class="fas fa-check-circle fa-2x mb-3" style="display:block;"></i>
+                <h5>🎉 لا توجد منتجات تنتظر المراجعة</h5>
+                <p class="text-muted">جميع المنتجات تمت مراجعتها</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// الحصول على CSRF Token
+const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+
+function changeStatus(qid, status) {
+    const statusNames = {
+        'PUBLISHED': 'نشر',
+        'REJECTED': 'رفض',
+        'DRAFT': 'إعادة للمراجعة'
+    };
+    
+    if (!confirm(`هل أنت متأكد من ${statusNames[status]} هذا المنتج؟`)) {
+        return;
+    }
+    
+    fetch(`{{ url_for('admin_product_bp.change_product_status', qid='') }}${qid}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', '✅ ' + data.message);
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showToast('error', '❌ ' + (data.message || 'فشل تغيير الحالة'));
+        }
+    })
+    .catch(error => {
+        showToast('error', '❌ حدث خطأ: ' + error);
+    });
+}
+
+function showToast(type, message) {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#0d6efd'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show border-0 shadow-lg" role="alert" 
+             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <span>${message}</span>
+                <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
+</script>
+
+<style>
+.card {
+    border: none;
+    border-radius: 12px;
+}
+</style>
+{% endblock %}
