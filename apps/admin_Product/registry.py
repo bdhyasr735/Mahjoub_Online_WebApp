@@ -11,7 +11,7 @@ MODULE_ICON = "fa-boxes"
 SHOW_IN_SUPPLIER = False
 
 LINKS = {
-    "admin_product_bp.manage_products": "📦 إدارة المنتجات",
+    "admin_product_bp.manage_products_view": "📦 إدارة المنتجات",  # ✅ تم التعديل: إضافة _view
     "admin_product_bp.add_product": "➕ إضافة منتج",
     "admin_product_bp.review_products": "📋 مراجعة المنتجات"
 }
@@ -73,7 +73,7 @@ def get_module_stats():
 def get_module_link():
     """الحصول على رابط الموديول"""
     try:
-        return url_for('admin_product_bp.manage_products')
+        return url_for('admin_product_bp.manage_products_view')  # ✅ تم التعديل: إضافة _view
     except Exception as e:
         print(f"❌ [Registry Link Error]: {e}")
         return '#'
