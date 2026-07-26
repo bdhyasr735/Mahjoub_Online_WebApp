@@ -1,3 +1,6 @@
+# coding: utf-8
+# 📂 apps/services/graphql_client.py
+
 import os
 import requests
 from typing import Dict, Any, Optional
@@ -47,3 +50,23 @@ class GraphQLClient:
         
         except requests.exceptions.RequestException as e:
             raise Exception(f"فشل الاتصال بـ GraphQL: {str(e)}")
+    
+    def test_connection(self) -> bool:
+        """
+        اختبار الاتصال بـ GraphQL API.
+        
+        Returns:
+            bool: True إذا كان الاتصال ناجحاً، False إذا فشل.
+        """
+        try:
+            # استعلام بسيط لاختبار الاتصال
+            query = """
+            query {
+                __typename
+            }
+            """
+            result = self.execute(query)
+            return result is not None
+        except Exception as e:
+            print(f"❌ [GraphQLClient]: فشل اختبار الاتصال: {e}")
+            return False
