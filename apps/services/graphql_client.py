@@ -34,7 +34,7 @@ class GraphQLClient:
             payload["variables"] = variables
         if operation_name:
             payload["operationName"] = operation_name
-            # ✅ تحديث header مع اسم العملية
+            # تحديث header مع اسم العملية
             self.headers["x-apollo-operation-name"] = operation_name
         
         try:
