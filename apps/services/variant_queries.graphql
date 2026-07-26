@@ -3,7 +3,7 @@
 """
 
 from typing import List, Optional, Dict, Any
-from graphql_client import GraphQLClient
+from .graphql_client import GraphQLClient
 
 
 class VariantService:
@@ -23,56 +23,60 @@ class VariantService:
         """
         query = """
         query FindAllVariantsByProductId($productId: ID!) {
-          findAllVariantsByProductId(productId: $productId) {
-            id
-            qid
-            sku
-            barcode
-            price
-            compareAtPrice
-            costPerItem
-            quantity
-            weight
-            weightUnit
-            position
-            isActive
-            isAvailable
-            options {
-              id
-              name
-              value
-              position
+            findAllVariantsByProductId(productId: $productId) {
+                id
+                qid
+                sku
+                barcode
+                price
+                compareAtPrice
+                costPerItem
+                quantity
+                weight
+                weightUnit
+                position
+                isActive
+                isAvailable
+                options {
+                    id
+                    name
+                    value
+                    position
+                }
+                image {
+                    id
+                    url
+                    altText
+                    width
+                    height
+                }
+                inventory {
+                    id
+                    quantity
+                    available
+                    reserved
+                    location
+                    warehouse
+                }
+                product {
+                    id
+                    qid
+                    name
+                    mainImage {
+                        url
+                        altText
+                    }
+                }
             }
-            image {
-              id
-              url
-              altText
-              width
-              height
-            }
-            inventory {
-              id
-              quantity
-              available
-              reserved
-              location
-              warehouse
-            }
-            product {
-              id
-              qid
-              name
-              mainImage {
-                url
-                altText
-              }
-            }
-          }
         }
         """
         variables = {"productId": product_id}
-        result = self.client.execute(query, variables)
-        return result.get('findAllVariantsByProductId', [])
+        try:
+            result = self.client.execute(query, variables, operation_name="FindAllVariantsByProductId")
+            return result.get('findAllVariantsByProductId', []) if result else []
+        except Exception as e:
+            print(f"❌ [VariantService]: خطأ في جلب متغيرات المنتج {product_id}: {e}")
+            return []
     
     def get_variant_by_id(self, variant_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -80,57 +84,61 @@ class VariantService:
         """
         query = """
         query FindVariantById($id: ID!) {
-          findVariantById(id: $id) {
-            id
-            qid
-            sku
-            barcode
-            price
-            compareAtPrice
-            costPerItem
-            quantity
-            weight
-            weightUnit
-            position
-            isActive
-            isAvailable
-            options {
-              id
-              name
-              value
-              position
+            findVariantById(id: $id) {
+                id
+                qid
+                sku
+                barcode
+                price
+                compareAtPrice
+                costPerItem
+                quantity
+                weight
+                weightUnit
+                position
+                isActive
+                isAvailable
+                options {
+                    id
+                    name
+                    value
+                    position
+                }
+                image {
+                    id
+                    url
+                    altText
+                    width
+                    height
+                }
+                inventory {
+                    id
+                    quantity
+                    available
+                    reserved
+                    location
+                    warehouse
+                }
+                product {
+                    id
+                    qid
+                    name
+                    price
+                    mainImage {
+                        url
+                        altText
+                    }
+                }
             }
-            image {
-              id
-              url
-              altText
-              width
-              height
-            }
-            inventory {
-              id
-              quantity
-              available
-              reserved
-              location
-              warehouse
-            }
-            product {
-              id
-              qid
-              name
-              price
-              mainImage {
-                url
-                altText
-              }
-            }
-          }
         }
         """
         variables = {"id": variant_id}
-        result = self.client.execute(query, variables)
-        return result.get('findVariantById')
+        try:
+            result = self.client.execute(query, variables, operation_name="FindVariantById")
+            return result.get('findVariantById') if result else None
+        except Exception as e:
+            print(f"❌ [VariantService]: خطأ في جلب المتغير {variant_id}: {e}")
+            return None
     
     def get_option_by_qid(self, qid: str) -> Optional[Dict[str, Any]]:
         """
@@ -138,27 +146,31 @@ class VariantService:
         """
         query = """
         query FindOptionByQid($qid: String!) {
-          findOptionByQid(qid: $qid) {
-            id
-            qid
-            name
-            position
-            values {
-              id
-              value
-              position
-              hexCode
-              image {
-                url
-                altText
-              }
+            findOptionByQid(qid: $qid) {
+                id
+                qid
+                name
+                position
+                values {
+                    id
+                    value
+                    position
+                    hexCode
+                    image {
+                        url
+                        altText
+                    }
+                }
             }
-          }
         }
         """
         variables = {"qid": qid}
-        result = self.client.execute(query, variables)
-        return result.get('findOptionByQid')
+        try:
+            result = self.client.execute(query, variables, operation_name="FindOptionByQid")
+            return result.get('findOptionByQid') if result else None
+        except Exception as e:
+            print(f"❌ [VariantService]: خطأ في جلب الخيار {qid}: {e}")
+            return None
 
     def get_all_options_for_product(self, qid: str) -> List[Dict[str, Any]]:
         """
@@ -166,24 +178,28 @@ class VariantService:
         """
         query = """
         query FindAllOptionsForProduct($qid: String!) {
-          findAllOptionsForProduct(qid: $qid) {
-            id
-            qid
-            name
-            position
-            values {
-              id
-              value
-              position
-              hexCode
-              image {
-                url
-                altText
-              }
+            findAllOptionsForProduct(qid: $qid) {
+                id
+                qid
+                name
+                position
+                values {
+                    id
+                    value
+                    position
+                    hexCode
+                    image {
+                        url
+                        altText
+                    }
+                }
             }
-          }
         }
         """
         variables = {"qid": qid}
-        result = self.client.execute(query, variables)
-        return result.get('findAllOptionsForProduct', [])
+        try:
+            result = self.client.execute(query, variables, operation_name="FindAllOptionsForProduct")
+            return result.get('findAllOptionsForProduct', []) if result else []
+        except Exception as e:
+            print(f"❌ [VariantService]: خطأ في جلب خيارات المنتج {qid}: {e}")
+            return []
