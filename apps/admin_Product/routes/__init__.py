@@ -11,6 +11,9 @@ from . import sync
 from . import reviews
 from . import crud
 from . import stats
-from . import products  # ✅ هذا صحيح
+
+# ✅ استيراد products.py بشكل مختلف
+import importlib
+products_module = importlib.import_module('.products', package='apps.admin_Product.routes')
 
 __all__ = ['admin_product_bp']
