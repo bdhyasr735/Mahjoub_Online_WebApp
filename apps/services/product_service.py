@@ -1,263 +1,161 @@
+# coding: utf-8
+# 📂 apps/services/product_service.py
+
 """
-خدمة المتغيرات - Variant Service
+خدمة المنتجات - Product Service
 """
 
-from typing import List, Optional, Dict
-from graphql_client import GraphQLClient
+from typing import List, Optional, Dict, Any
+from .graphql_client import GraphQLClient
 
 
-class VariantService:
-    """خدمة لإدارة متغيرات المنتجات"""
+class ProductService:
+    """خدمة لإدارة المنتجات والبحث فيها عبر GraphQL"""
     
-    def __init__(self, client: GraphQLClient, queries_path: str = 'apps/services/variant_queries.graphql'):
+    def __init__(self, client: GraphQLClient):
         self.client = client
-        
-        try:
-            with open(queries_path, 'r', encoding='utf-8') as f:
-                self.queries = f.read()
-        except FileNotFoundError:
-            self.queries = ""
     
-    def get_variants_by_product(self, product_id: str) -> List[Dict]:
+    # ========== الاستعلامات (Queries) ==========
+    
+    def get_product_by_id(self, product_id: str) -> Optional[Dict[str, Any]]:
         """
-        جلب جميع متغيرات المنتج
+        جلب تفاصيل المنتج بواسطة المعرف (ID)
         """
         query = """
-        query FindAllVariantsByProductId($productId: ID!) {
-          findAllVariantsByProductId(productId: $productId) {
+        query FindProductById($id: ID!) {
+          findProductById(id: $id) {
             id
             qid
-            sku
-            barcode
+            name
+            description
             price
             compareAtPrice
             costPerItem
+            sku
+            barcode
             quantity
-            weight
-            weightUnit
-            position
             isActive
             isAvailable
-            isDefault
             
-            options {
-              id
-              name
-              value
-              position
-            }
-            
-            image {
+            mainImage {
               id
               url
               altText
-              width
-              height
             }
             
-            inventory {
+            media {
               id
-              quantity
-              available
-              reserved
-              location
-              warehouse
+              url
+              altText
             }
             
-            product {
+            categories {
               id
-              qid
               name
-              price
-              mainImage {
-                url
-                altText
-              }
             }
+            
+            variants {
+              id
+              sku
+              price
+              quantity
+            }
+            
+            createdAt
+            updatedAt
           }
         }
         """
         
-        variables = {"productId": product_id}
-        result = self.client.execute(query, variables)
-        return result.get('findAllVariantsByProductId', [])
-    
-    def get_variant_by_id(self, variant_id: str) -> Optional[Dict]:
+        variables = {"id": product_id}
+        result = self.client.execute(query, variables) or {}
+        return result.get('findProductById')
+
+    def get_product_by_qid(self, qid: str) -> Optional[Dict[str, Any]]:
         """
-        جلب متغير بواسطة ID
+        جلب تفاصيل المنتج بواسطة QID
         """
         query = """
-        query FindVariantById($id: ID!) {
-          findVariantById(id: $id) {
+        query FindProductByQid($qid: String!) {
+          findProductByQid(qid: $qid) {
             id
             qid
-            sku
-            barcode
+            name
+            description
             price
-            compareAtPrice
-            costPerItem
+            sku
             quantity
-            weight
-            weightUnit
-            position
             isActive
             isAvailable
-            isDefault
-            
-            options {
-              id
-              name
-              value
-              position
-            }
-            
-            image {
-              id
+            mainImage {
               url
               altText
-              width
-              height
-            }
-            
-            inventory {
-              id
-              quantity
-              available
-              reserved
-              location
-              warehouse
-            }
-            
-            product {
-              id
-              qid
-              name
-              price
-              mainImage {
-                url
-                altText
-              }
             }
           }
         }
         """
         
-        variables = {"id": variant_id}
-        result = self.client.execute(query, variables)
-        return result.get('findVariantById')
-    
-    def get_variant_by_sku(self, sku: str) -> Optional[Dict]:
+        variables = {"qid": qid}
+        result = self.client.execute(query, variables) or {}
+        return result.get('findProductByQid')
+
+    def get_all_products(self, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
         """
-        جلب متغير بواسطة SKU
+        جلب قائمة المنتجات مع دعم التقسيم (Pagination)
         """
         query = """
-        query FindVariantBySku($sku: String!) {
-          findVariantBySku(sku: $sku) {
+        query FindAllProducts($limit: Int, $offset: Int) {
+          findAllProducts(limit: $limit, offset: $offset) {
             id
             qid
-            sku
-            barcode
+            name
             price
-            compareAtPrice
+            sku
             quantity
+            isActive
             isAvailable
-            options {
-              name
-              value
-            }
-            image {
+            mainImage {
               url
-              altText
-            }
-            inventory {
-              quantity
-              available
-              location
-            }
-            product {
-              id
-              name
-              price
             }
           }
         }
         """
         
-        variables = {"sku": sku}
-        result = self.client.execute(query, variables)
-        return result.get('findVariantBySku')
-    
-    def get_variants_inventory(self, product_id: str) -> List[Dict]:
+        variables = {"limit": limit, "offset": offset}
+        result = self.client.execute(query, variables) or {}
+        return result.get('findAllProducts', [])
+
+    # ========== التحويرات (Mutations) ==========
+
+    def update_product_price(self, product_id: str, price: float) -> Optional[Dict[str, Any]]:
         """
-        جلب مخزون متغيرات المنتج
-        """
-        query = """
-        query GetVariantsInventory($productId: ID!) {
-          findAllVariantsByProductId(productId: $productId) {
-            id
-            sku
-            quantity
-            isAvailable
-            inventory {
-              id
-              quantity
-              available
-              reserved
-              location
-            }
-            options {
-              name
-              value
-            }
-          }
-        }
-        """
-        
-        variables = {"productId": product_id}
-        result = self.client.execute(query, variables)
-        return result.get('findAllVariantsByProductId', [])
-    
-    def get_variants_prices(self, product_id: str) -> List[Dict]:
-        """
-        جلب أسعار متغيرات المنتج
+        تحديث سعر المنتج الأساسي
         """
         query = """
-        query GetVariantsPrices($productId: ID!) {
-          findAllVariantsByProductId(productId: $productId) {
+        mutation UpdateProductPrice($id: ID!, $price: Float!) {
+          updateProductPrice(id: $id, price: $price) {
             id
-            sku
+            qid
             price
-            compareAtPrice
-            costPerItem
-            currency
-            options {
-              name
-              value
-            }
+            updatedAt
           }
         }
         """
         
-        variables = {"productId": product_id}
-        result = self.client.execute(query, variables)
-        return result.get('findAllVariantsByProductId', [])
-    
-    def get_variant_by_options(self, product_id: str, options: Dict[str, str]) -> Optional[Dict]:
+        variables = {"id": product_id, "price": price}
+        result = self.client.execute(query, variables) or {}
+        return result.get('updateProductPrice')
+
+    def delete_product(self, product_id: str) -> bool:
         """
-        جلب متغير حسب الخيارات (مثل: اللون والحجم)
+        حذف منتج بواسطة المعرف
         """
-        variants = self.get_variants_by_product(product_id)
+        query = """
+        mutation RemoveProductById($id: ID!) {
+          removeProductById(id: $id)
+        }
+        """
         
-        for variant in variants:
-            variant_options = {opt['name']: opt['value'] for opt in variant.get('options', [])}
-            if all(variant_options.get(k) == v for k, v in options.items()):
-                return variant
-        
-        return None
-    
-    def get_available_variants(self, product_id: str) -> List[Dict]:
-        """
-        جلب المتغيرات المتاحة للبيع فقط
-        """
-        variants = self.get_variants_by_product(product_id)
-        return [v for v in variants if v.get('isAvailable') and v.get('quantity', 0) > 0]
+        variables = {"id": product_id}
+        result = self.client.execute(query, variables) or {}
+        return result.get('removeProductById', False)
