@@ -1,148 +1,73 @@
-<!-- 📂 apps/admin_Product/templates/admin/includes/_sync_modal.html -->
-<div class="modal fade" id="syncModal" tabindex="-1" aria-labelledby="syncModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header border-0 pt-4 pb-0" style="background: transparent;">
-                <h5 class="modal-title fw-bold" id="syncModalLabel" style="color: var(--dark-purple, #2d0b36);">
-                    <i class="fas fa-sync-alt me-2 text-warning" style="color: var(--mahjoub-gold, #D4AF37) !important;"></i> 
-                    مزامنة المنتجات
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body px-4 pb-2">
-                <div class="text-center mb-3">
-                    <i class="fas fa-cloud-upload-alt fa-3x text-muted" style="opacity: 0.3;"></i>
-                </div>
-                <p class="text-muted text-center">
-                    سيتم الآن جلب أحدث المنتجات وتحديث المخزون والبيانات عبر الاتصال السحابي.
-                </p>
-                <div class="alert alert-info border-0 rounded-3 py-2">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <small>سيتم جلب جميع المنتجات وتحديث البيانات في النظام.</small>
-                </div>
-
-                <!-- 🚨 حاوية عرض أخطاء Render التحليلية ديناميكياً -->
-                <div id="syncErrorBox" class="alert alert-danger border-0 rounded-3 py-2 mt-3 d-none">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <span id="syncErrorText" class="small fw-semibold"></span>
-                </div>
-            </div>
-            <div class="modal-footer border-0 pb-4 pt-0">
-                <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i> إلغاء
-                </button>
-                <form action="{{ url_for('admin_product_bp.sync_products') }}" method="POST" class="d-inline">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-custom px-4 rounded-pill" id="syncConfirmBtn">
-                        <i class="fas fa-cloud-download-alt me-1"></i> بدء المزامنة الآن
-                    </button>
-                </form>
-            </div>
+<!-- نافذة المزامنة المنبثقة -->
+<div id="syncModal" style="display:none;">
+    <div style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        text-align: center;
+        min-width: 320px;
+        max-width: 90%;
+        z-index: 10000;
+    ">
+        <!-- أيقونة التحميل -->
+        <div class="spinner-border text-primary" style="width: 3.5rem; height: 3.5rem;" role="status">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+        
+        <h4 class="mt-3">🔄 جاري المزامنة</h4>
+        <p class="text-muted">يرجى الانتظار، جلب البيانات من الخادم...</p>
+        
+        <!-- شريط التقدم -->
+        <div class="progress mt-3" style="height: 8px; border-radius: 10px; overflow: hidden;">
+            <div 
+                class="progress-bar progress-bar-striped progress-bar-animated" 
+                style="width: 100%; background: linear-gradient(90deg, #007bff, #00d4ff);"
+            ></div>
+        </div>
+        
+        <!-- رسائل المزامنة (تظهر بعد الانتهاء) -->
+        <div id="syncResult" style="display:none; margin-top: 15px;">
+            <div id="syncMessage" class="alert" style="margin-bottom: 0;"></div>
+            <div id="syncDetails" style="font-size: 14px; color: #6c757d; margin-top: 10px;"></div>
         </div>
     </div>
 </div>
 
-<style>
-    .btn-custom {
-        background: linear-gradient(135deg, var(--dark-purple, #2d0b36) 0%, #4a1558 100%);
-        color: #fff;
-        border: none;
-        transition: all 0.3s ease;
-        font-weight: 600;
-    }
-    .btn-custom:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(45, 11, 54, 0.3);
-        color: #fff;
-    }
-    .btn-custom:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-    .modal-content {
-        border: 1px solid rgba(212, 175, 55, 0.15);
-    }
-</style>
-
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const syncForm = document.querySelector('#syncModal form');
-        const syncBtn = document.getElementById('syncConfirmBtn');
-        const errorBox = document.getElementById('syncErrorBox');
-        const errorText = document.getElementById('syncErrorText');
-        
-        if (syncForm) {
-            syncForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                // إخفاء أي خطأ سابق وإظهار حالة التحميل
-                if (errorBox) errorBox.classList.add('d-none');
-                if (syncBtn) {
-                    syncBtn.disabled = true;
-                    syncBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري المزامنة...';
-                }
+// يمكن استخدام هذه الدوال لتحديث المحتوى ديناميكياً من الـ AJAX
+function updateSyncProgress(message, percentage) {
+    const progressBar = document.querySelector('#syncModal .progress-bar');
+    const progressText = document.querySelector('#syncModal .progress-text');
+    
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+        progressBar.setAttribute('aria-valuenow', percentage);
+    }
+    
+    if (progressText) {
+        progressText.textContent = message;
+    }
+}
 
-                try {
-                    const formData = new FormData(syncForm);
-                    const response = await fetch(syncForm.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-
-                    const data = await response.json();
-                    
-                    if (response.ok && data.success) {
-                        const modalEl = document.getElementById('syncModal');
-                        const modal = bootstrap.Modal.getInstance(modalEl);
-                        if (modal) modal.hide();
-
-                        // بناء رسالة نجاح تفصيلية تتضمن الأعداد المزامنة
-                        let successMsg = data.message || 'تمت المزامنة بنجاح!';
-                        if (data.syncedCount !== undefined) {
-                            successMsg += ` (تمت مزامنة: ${data.syncedCount} | جديد: ${data.createdCount || 0} | محدث: ${data.updatedCount || 0})`;
-                        }
-
-                        alert(successMsg);
-                        window.location.reload();
-                    } else {
-                        // 🛠️ عرض رسالة الخطأ التحليلية
-                        if (errorBox && errorText) {
-                            let detailedError = data.message || '❌ حدث خطأ غير معروف أثناء المزامنة';
-                            if (data.errors && data.errors.length > 0) {
-                                detailedError += ` - التفاصيل: ${data.errors.map(err => err.error).join(', ')}`;
-                            }
-                            errorText.textContent = detailedError;
-                            errorBox.classList.remove('d-none');
-                        }
-                        resetButton();
-                    }
-                } catch (error) {
-                    console.error("خطأ في المزامنة:", error);
-                    if (errorBox && errorText) {
-                        errorText.textContent = '❌ تعذر الاتصال بالسيرفر أو انتهت مهلة الطلب (Timeout).';
-                        errorBox.classList.remove('d-none');
-                    }
-                    resetButton();
-                }
-            });
-        }
-        
-        function resetButton() {
-            if (syncBtn) {
-                syncBtn.disabled = false;
-                syncBtn.innerHTML = '<i class="fas fa-cloud-download-alt me-1"></i> بدء المزامنة الآن';
-            }
-        }
-        
-        const syncModal = document.getElementById('syncModal');
-        if (syncModal) {
-            syncModal.addEventListener('hidden.bs.modal', function() {
-                resetButton();
-                if (errorBox) errorBox.classList.add('d-none');
-            });
-        }
-    });
+function showSyncResult(success, message, details) {
+    const resultDiv = document.getElementById('syncResult');
+    const messageDiv = document.getElementById('syncMessage');
+    const detailsDiv = document.getElementById('syncDetails');
+    
+    resultDiv.style.display = 'block';
+    messageDiv.className = `alert alert-${success ? 'success' : 'danger'}`;
+    messageDiv.textContent = message;
+    
+    if (details) {
+        detailsDiv.textContent = details;
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+}
 </script>
