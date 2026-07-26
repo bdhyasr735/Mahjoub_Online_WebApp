@@ -180,14 +180,21 @@ def create_app():
     # ============================================================
     @app.route('/m7jb_test_connection')
     def test_graphql_connection():
-        client = GraphQLClient()
-        success = client.test_connection()
-        sample_data = client.execute("{ __typename }")
-        return jsonify({
-            "connection_status": success,
-            "endpoint": client.endpoint,
-            "introspection_result": sample_data
-        })
+        """اختبار الاتصال بـ GraphQL API"""
+        try:
+            client = GraphQLClient()
+            success = client.test_connection()
+            return jsonify({
+                "connection_status": success,
+                "endpoint": client.endpoint,
+                "message": "✅ الاتصال ناجح" if success else "❌ فشل الاتصال"
+            })
+        except Exception as e:
+            return jsonify({
+                "connection_status": False,
+                "error": str(e),
+                "message": f"❌ خطأ: {str(e)}"
+            }), 500
 
     # ============================================================
     # ✅ تسجيل البوابات الأساسية يدوياً
