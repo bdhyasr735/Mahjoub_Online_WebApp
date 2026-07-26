@@ -241,7 +241,7 @@ def get_stats():
 
 
 # ============================================================
-# ✅ مزامنة المنتجات
+# ✅ مزامنة المنتجات (محدثة لدعم طلبات AJAX)
 # ============================================================
 @admin_product_bp.route('/sync-products', methods=['POST'])
 @login_required
@@ -258,14 +258,24 @@ def sync_products():
         products = products_service.get_all()
         
         if products:
-            flash(f'✅ تمت المزامنة بنجاح وجلب {len(products)} منتجاً.', 'success')
+            return jsonify({
+                'success': True,
+                'message': f'✅ تمت المزامنة بنجاح وجلب {len(products)} منتجاً.',
+                'count': len(products)
+            })
         else:
-            flash('ℹ️ لا توجد منتجات جديدة للمزامنة', 'info')
+            return jsonify({
+                'success': True,
+                'message': 'ℹ️ لا توجد منتجات جديدة للمزامنة',
+                'count': 0
+            })
         
     except Exception as e:
-        flash(f'❌ حدث خطأ أثناء المزامنة: {str(e)}', 'danger')
-
-    return redirect(url_for('admin_product_bp.manage_products'))
+        print(f"❌ خطأ أثناء المزامنة: {e}")
+        return jsonify({
+            'success': False, 
+            'message': f'❌ حدث خطأ أثناء المزامنة: {str(e)}'
+        }), 500
 
 
 # ============================================================
