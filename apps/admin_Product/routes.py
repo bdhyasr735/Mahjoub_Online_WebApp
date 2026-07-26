@@ -32,7 +32,6 @@ def manage_products():
         client = GraphQLClient()
         products_service = ProductService(client)
         
-        # ملاحظة أداءية: يفضل تمرير search_query للخدمة مباشرة إذا كانت تدعم البحث لتجنب جلب كافة المنتجات
         products = products_service.get_all()
         
         if search_query:
@@ -102,7 +101,7 @@ def review_products():
         total_rejected = len([p for p in all_products if p.get('status') == 'REJECTED'])
         
         return render_template(
-            'admin/admin_review_products.html',  # تم تصحيح اسم القالب لتفادي TemplateNotFound
+            'admin/admin_review_products.html',
             products=draft_products,
             total_count=total_draft,
             total_published=total_published,
@@ -139,7 +138,6 @@ def change_product_status(qid):
         result = products_service.update_status(qid, new_status)
         
         if result:
-            # ✅ تصحيح المشكلة: عدم تعديل حالة الربط التشغيلية بحالة المنتج، بل تحديث تاريخ التعديل فقط
             mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
             if mapping:
                 mapping.updated_at = datetime.utcnow()
@@ -233,9 +231,9 @@ def get_stats():
 
 
 # ============================================================
-# ✅ مزامنة المنتجات
+# ✅ مزامنة المنتجات (تم تصحيح المسار ليطابق بقية المسارات)
 # ============================================================
-@admin_product_bp.route('/sync-products', methods=['POST'])
+@admin_product_bp.route('/products/sync-products', methods=['POST'])
 @login_required
 def sync_products():
     """مزامنة المنتجات"""
@@ -287,7 +285,6 @@ def add_product():
             client = GraphQLClient()
             products_service = ProductService(client)
             
-            # ✅ تأمين تحليل السعر لتجنب ValueError
             raw_price = request.form.get('price')
             price_val = float(raw_price) if raw_price else 0.0
             
