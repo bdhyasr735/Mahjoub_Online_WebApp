@@ -23,21 +23,31 @@ class ProductService:
             self.queries_content = ""
 
     def get_all_products(self, input_data: dict = None) -> list:
-        """جلب جميع المنتجات بكافة تفاصيلها المعرفة في الملف الخارجي"""
+        """جلب جميع المنتجات"""
         if not self.queries_content:
             return []
 
-        variables = {"input": input_data or {}}
+        # ✅ استعلام مبسط بدون input
+        query = """
+        query {
+            findAllProducts {
+                id
+                qid
+                name
+                price
+                status
+            }
+        }
+        """
         
-        data = self.client.execute(
-            query=self.queries_content,
-            variables=variables,
-            operation_name="FindAllProducts"
-        )
-        
-        if data and "findAllProducts" in data:
-            return data["findAllProducts"]
-        return []
+        try:
+            data = self.client.execute(query)
+            if data and "findAllProducts" in data:
+                return data["findAllProducts"]
+            return []
+        except Exception as e:
+            print(f"❌ [ProductService]: خطأ في جلب المنتجات: {e}")
+            return []
 
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج معين بواسطة الـ Qid"""
