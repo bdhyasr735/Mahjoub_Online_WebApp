@@ -75,19 +75,29 @@ function syncProducts() {
         updateSyncProgress('جاري الاتصال بالخادم...', 25);
     }
     
-    // الحصول على CSRF Token
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+    // ✅ الحصول على CSRF Token من input المخفي
+    const csrfInput = document.querySelector('input[name="csrf_token"]');
+    const csrfToken = csrfInput ? csrfInput.value : '';
     
-    // إرسال طلب المزامنة
-    fetch('{{ url_for("admin_product_bp.sync_products") }}', {
+    console.log('CSRF Token:', csrfToken); // للتحقق
+    
+    // ✅ إرسال طلب المزامنة مع credentials
+    fetch('/admin/products/sync', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken,
             'X-Requested-With': 'XMLHttpRequest'
-        }
+        },
+        credentials: 'same-origin' // ✅ مهم! لإرسال الكوكيز
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         // ✅ تحديث التقدم
         if (typeof updateSyncProgress === 'function') {
@@ -115,10 +125,11 @@ function syncProducts() {
         }
     })
     .catch(error => {
+        console.error('Fetch Error:', error);
         if (typeof showSyncResult === 'function') {
-            showSyncResult(false, '❌ حدث خطأ في الاتصال: ' + error);
+            showSyncResult(false, '❌ حدث خطأ في الاتصال: ' + error.message);
         } else {
-            showToast('error', '❌ حدث خطأ في الاتصال: ' + error);
+            showToast('error', '❌ حدث خطأ في الاتصال: ' + error.message);
         }
     })
     .finally(() => {
