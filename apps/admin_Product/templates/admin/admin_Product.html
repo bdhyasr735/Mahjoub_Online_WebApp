@@ -4,10 +4,11 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">📦 إدارة المنتجات</h1>
-        <div>
-            <a href="{{ url_for('admin_product_bp.add_product') }}" class="btn btn-success me-2">
+    <!-- رأس الصفحة -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">📦 إدارة المنتجات</h1>
+        <div class="d-flex gap-2 mt-2 mt-sm-0">
+            <a href="{{ url_for('admin_product_bp.add_product') }}" class="btn btn-success">
                 <i class="fas fa-plus"></i> إضافة منتج
             </a>
             <button 
@@ -20,36 +21,44 @@
         </div>
     </div>
 
-    <!-- شريط البحث -->
-    <div class="card mb-4 shadow-sm">
+    <!-- شريط البحث المباشر -->
+    <div class="card mb-4 shadow-sm border-0">
         <div class="card-body">
-            <form method="GET" class="row g-3">
+            <div class="row g-3">
                 <div class="col-md-8">
-                    <input 
-                        type="text" 
-                        name="title" 
-                        class="form-control" 
-                        placeholder="🔍 بحث عن منتج..." 
-                        value="{{ search_title or '' }}"
-                    >
+                    <div class="position-relative">
+                        <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                        <input 
+                            type="text" 
+                            id="searchInput"
+                            name="title" 
+                            class="form-control ps-5" 
+                            placeholder="🔍 ابحث عن منتج بالاسم أو الوصف..." 
+                            value="{{ search_title or '' }}"
+                            autofocus
+                        >
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="submit" class="btn btn-primary w-100" id="searchBtn">
                         <i class="fas fa-search"></i> بحث
                     </button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
+    <!-- رسائل الخطأ -->
     {% if error %}
-    <div class="alert alert-danger">
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <strong>❌ خطأ:</strong> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {% endif %}
 
-    <div class="card shadow-sm">
-        <div class="card-body">
+    <!-- جدول المنتجات -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
             <div id="productsTableContainer">
                 {% include "admin/includes/_table_products.html" %}
             </div>
@@ -57,10 +66,49 @@
     </div>
 </div>
 
-<!-- النافذة المنبثقة للمزامنة -->
+<!-- نافذة المزامنة المنبثقة -->
 {% include "admin/includes/_sync_modal.html" %}
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ بحث فوري عند الكتابة (تأخير 500ms)
+    const searchInput = document.getElementById('searchInput');
+    let searchTimeout = null;
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                performSearch(this.value);
+            }, 500);
+        });
+
+        // ✅ البحث عند الضغط على Enter
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(searchTimeout);
+                performSearch(this.value);
+            }
+        });
+    }
+
+    // ✅ البحث عند الضغط على زر البحث
+    document.getElementById('searchBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        const input = document.getElementById('searchInput');
+        if (input) performSearch(input.value);
+    });
+
+    function performSearch(query) {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('title', query);
+        currentUrl.searchParams.set('page', '1');
+        window.location.href = currentUrl.toString();
+    }
+});
+
+// ✅ دالة المزامنة المحسّنة
 function syncProducts() {
     const button = document.getElementById('syncButton');
     const modal = document.getElementById('syncModal');
@@ -70,18 +118,16 @@ function syncProducts() {
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
     modal.style.display = 'block';
     
-    // ✅ تحديث التقدم
+    // تحديث التقدم
     if (typeof updateSyncProgress === 'function') {
         updateSyncProgress('جاري الاتصال بالخادم...', 25);
     }
     
-    // ✅ الحصول على CSRF Token من input المخفي
+    // الحصول على CSRF Token
     const csrfInput = document.querySelector('input[name="csrf_token"]');
     const csrfToken = csrfInput ? csrfInput.value : '';
     
-    console.log('CSRF Token:', csrfToken); // للتحقق
-    
-    // ✅ إرسال طلب المزامنة مع credentials
+    // إرسال طلب المزامنة
     fetch('/admin/products/sync', {
         method: 'POST',
         headers: {
@@ -89,23 +135,20 @@ function syncProducts() {
             'X-CSRFToken': csrfToken,
             'X-Requested-With': 'XMLHttpRequest'
         },
-        credentials: 'same-origin' // ✅ مهم! لإرسال الكوكيز
+        credentials: 'same-origin'
     })
     .then(response => {
-        console.log('Status:', response.status);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
-        // ✅ تحديث التقدم
         if (typeof updateSyncProgress === 'function') {
             updateSyncProgress('جاري معالجة البيانات...', 75);
         }
         
         if (data.success) {
-            // ✅ استخدام showSyncResult إذا كانت موجودة
             if (typeof showSyncResult === 'function') {
                 showSyncResult(true, '✅ ' + (data.message || 'تمت المزامنة بنجاح'), 
                     `تمت مزامنة ${data.syncedCount || 0} منتج`);
@@ -133,7 +176,6 @@ function syncProducts() {
         }
     })
     .finally(() => {
-        // إعادة تفعيل الزر
         button.disabled = false;
         button.innerHTML = '<i class="fas fa-sync"></i> مزامنة الآن';
         setTimeout(() => {
@@ -142,7 +184,7 @@ function syncProducts() {
     });
 }
 
-// دالة showToast (متطابقة مع الموجودة في _table_products.html)
+// ✅ دالة showToast المحسّنة
 function showToast(type, message) {
     const colors = {
         success: '#28a745',
@@ -156,7 +198,7 @@ function showToast(type, message) {
     toast.style.zIndex = '9999';
     toast.innerHTML = `
         <div class="toast show border-0 shadow-lg" role="alert" 
-             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
+             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 280px;">
             <div class="toast-body d-flex align-items-center gap-2">
                 <span>${message}</span>
                 <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
@@ -164,11 +206,12 @@ function showToast(type, message) {
         </div>
     `;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3500);
+    setTimeout(() => toast.remove(), 4000);
 }
 </script>
 
 <style>
+/* تحسينات إضافية */
 #syncModal {
     display: none;
     position: fixed;
@@ -205,6 +248,22 @@ function showToast(type, message) {
 .card {
     border: none;
     border-radius: 12px;
+}
+
+/* أيقونة البحث داخل الحقل */
+.position-relative .form-control {
+    padding-left: 2.5rem;
+}
+
+/* تحسين التجاوب */
+@media (max-width: 576px) {
+    .d-flex.gap-2 {
+        flex-wrap: wrap;
+    }
+    .btn {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+    }
 }
 </style>
 {% endblock %}
