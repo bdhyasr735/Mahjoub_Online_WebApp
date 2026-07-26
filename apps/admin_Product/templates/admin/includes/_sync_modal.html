@@ -1,3 +1,4 @@
+<!-- 📂 apps/admin_Product/templates/admin/includes/_sync_modal.html -->
 <!-- نافذة المزامنة المنبثقة -->
 <div id="syncModal" style="display:none;">
     <div style="
@@ -7,7 +8,7 @@
         transform: translate(-50%, -50%);
         background: white;
         padding: 40px;
-        border-radius: 15px;
+        border-radius: 16px;
         box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         text-align: center;
         min-width: 320px;
@@ -26,31 +27,25 @@
         <div class="progress mt-3" style="height: 8px; border-radius: 10px; overflow: hidden;">
             <div 
                 class="progress-bar progress-bar-striped progress-bar-animated" 
-                style="width: 100%; background: linear-gradient(90deg, #007bff, #00d4ff);"
+                style="width: 100%; background: linear-gradient(90deg, #6c5ce7, #00d4ff);"
             ></div>
         </div>
         
         <!-- رسائل المزامنة (تظهر بعد الانتهاء) -->
         <div id="syncResult" style="display:none; margin-top: 15px;">
-            <div id="syncMessage" class="alert" style="margin-bottom: 0;"></div>
+            <div id="syncMessage" class="alert" style="margin-bottom: 0; border-radius: 10px;"></div>
             <div id="syncDetails" style="font-size: 14px; color: #6c757d; margin-top: 10px;"></div>
         </div>
     </div>
 </div>
 
 <script>
-// يمكن استخدام هذه الدوال لتحديث المحتوى ديناميكياً من الـ AJAX
 function updateSyncProgress(message, percentage) {
     const progressBar = document.querySelector('#syncModal .progress-bar');
-    const progressText = document.querySelector('#syncModal .progress-text');
-    
     if (progressBar) {
         progressBar.style.width = percentage + '%';
         progressBar.setAttribute('aria-valuenow', percentage);
-    }
-    
-    if (progressText) {
-        progressText.textContent = message;
+        progressBar.textContent = percentage + '%';
     }
 }
 
@@ -61,7 +56,7 @@ function showSyncResult(success, message, details) {
     
     resultDiv.style.display = 'block';
     messageDiv.className = `alert alert-${success ? 'success' : 'danger'}`;
-    messageDiv.textContent = message;
+    messageDiv.innerHTML = message;
     
     if (details) {
         detailsDiv.textContent = details;
