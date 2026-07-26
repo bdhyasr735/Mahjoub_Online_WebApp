@@ -1,5 +1,8 @@
 <!-- 📂 apps/admin_Product/templates/admin/includes/_table_products.html -->
 <div class="table-responsive">
+    <!-- حقل مخفي لضمان نجاح طلبات الحذف عبر الـ AJAX -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <table class="table table-hover align-middle shadow-sm rounded">
         <thead class="table-light">
             <tr>
@@ -118,11 +121,13 @@ function deleteProduct(qid) {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
     }
     
+    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+
     fetch(`/admin/products/delete/${qid}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name="csrf_token"]')?.value || ''
+            'X-CSRFToken': csrfToken
         }
     })
     .then(res => res.json())
