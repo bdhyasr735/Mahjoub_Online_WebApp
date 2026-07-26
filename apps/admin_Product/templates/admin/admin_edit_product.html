@@ -1,538 +1,102 @@
-{% extends "admin/admin_base.html" %}
-{% block title %}تعديل المنتج | القيادة المركزية{% endblock %}
+{% extends "admin/base.html" %}
+
+{% block title %}تعديل المنتج: {{ product.name }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-  <h2 class="fw-bold mb-4 text-dark">
-    <i class="fas fa-edit me-2 text-primary"></i> تعديل المنتج
-  </h2>
-
-  <div class="card shadow-sm mb-4 border-0">
-    <div class="card-header" style="background-color: var(--royal-purple); color: var(--mahjoub-gold);">
-      <i class="fas fa-box-open me-2"></i> بيانات المنتج
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">✏️ تعديل المنتج: {{ product.name }}</h1>
+        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة
+        </a>
     </div>
-    <div class="card-body">
-      <form id="editProductForm" method="POST" enctype="multipart/form-data" action="{{ url_for('admin_product_bp.save_sync_product') }}">
+
+    <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}">
         <input type="hidden" name="qid" value="{{ product.qid }}">
-
-        <!-- ✅ فقرة العنوان -->
-        <div class="mb-3">
-          <label class="form-label fw-bold text-dark">العنوان</label>
-          <input type="text" class="form-control shadow-sm" name="title" value="{{ product.title }}" required>
-        </div>
-
-        <!-- ✅ فقرة الرابط -->
-        <div class="mb-3">
-          <label class="form-label fw-bold text-dark">الرابط (Slug)</label>
-          <input type="text" class="form-control shadow-sm" name="slug" value="{{ product.slug }}">
-        </div>
-
-        <!-- ✅ فقرة الوصف -->
-        <div class="mb-3">
-          <label class="form-label fw-bold text-dark">الوصف</label>
-          <textarea class="form-control shadow-sm" name="description" rows="5">{{ product.description }}</textarea>
-        </div>
-
-        <!-- ✅ فقرة السعر والكمية - مع إضافة سعر التكلفة -->
-        <div class="row">
-          <div class="col-md-3 mb-3">
-            <label class="form-label fw-bold text-dark">SKU</label>
-            <input type="text" class="form-control shadow-sm" name="sku" value="{{ product.ident.sku if product.ident else '' }}">
-          </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label fw-bold text-dark">💰 السعر (SAR)</label>
-            <input type="number" step="0.01" class="form-control shadow-sm" name="price" value="{{ product.pricing.price if product.pricing else 0 }}" required>
-          </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label fw-bold text-dark">💲 سعر التكلفة (SAR)</label>
-            <input type="number" step="0.01" class="form-control shadow-sm" name="cost_price" value="{{ product.pricing.costPrice if product.pricing and product.pricing.costPrice else 0 }}">
-          </div>
-          <div class="col-md-3 mb-3">
-            <label class="form-label fw-bold text-dark">🏷️ السعر قبل الخصم (SAR)</label>
-            <input type="number" step="0.01" class="form-control shadow-sm" name="compare_at_price" value="{{ product.pricing.compareAtPrice if product.pricing else 0 }}">
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold text-dark">📦 الكمية</label>
-            <input type="number" class="form-control shadow-sm" name="quantity" value="{{ product.quantity if product.quantity else 0 }}" required>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold text-dark">⚖️ الوزن (كجم)</label>
-            <input type="number" step="0.01" class="form-control shadow-sm" name="weight" value="{{ product.weight.value if product.weight else 0 }}">
-          </div>
-        </div>
-
-        <!-- ✅ فقرة المتغيرات - تم إزالة SKU -->
-        <h5 class="mt-4 fw-bold text-dark"><i class="fas fa-layer-group me-2"></i> المتغيرات (Variants)</h5>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle shadow-sm rounded">
-            <thead class="table-light">
-              <tr>
-                <th>#</th>
-                <th>💰 السعر (SAR)</th>
-                <th>📦 الكمية</th>
-                <th style="width: 50px;">🗑️</th>
-              </tr>
-            </thead>
-            <tbody id="variantsContainer">
-              {% if product.variants %}
-                {% for v in product.variants %}
-                <tr class="variant-row">
-                  <td class="text-center variant-index">{{ loop.index }}</td>
-                  <td>
-                    <input type="number" step="0.01" class="form-control form-control-sm variant-price" 
-                           name="variant_price[]" value="{{ v.pricing.price if v.pricing else 0 }}" required>
-                  </td>
-                  <td>
-                    <input type="number" class="form-control form-control-sm variant-qty" 
-                           name="variant_qty[]" value="{{ v.quantity if v.quantity else 0 }}" required>
-                  </td>
-                  <td class="text-center">
-                    <button type="button" class="btn btn-danger btn-sm remove-variant" title="حذف المتغير">
-                      <i class="fas fa-times"></i>
-                    </button>
-                  </td>
-                </tr>
-                {% endfor %}
-              {% else %}
-                <tr class="variant-row">
-                  <td class="text-center variant-index">1</td>
-                  <td>
-                    <input type="number" step="0.01" class="form-control form-control-sm variant-price" 
-                           name="variant_price[]" value="0" required>
-                  </td>
-                  <td>
-                    <input type="number" class="form-control form-control-sm variant-qty" 
-                           name="variant_qty[]" value="0" required>
-                  </td>
-                  <td class="text-center">
-                    <button type="button" class="btn btn-danger btn-sm remove-variant" title="حذف المتغير">
-                      <i class="fas fa-times"></i>
-                    </button>
-                  </td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- ✅ زر إضافة متغير جديد -->
-        <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="addVariantBtn">
-          <i class="fas fa-plus me-2"></i> إضافة متغير جديد
-        </button>
-
-        <!-- ✅ قالب المتغير الجديد -->
-        <template id="variantTemplate">
-          <tr class="variant-row">
-            <td class="text-center variant-index"></td>
-            <td>
-              <input type="number" step="0.01" class="form-control form-control-sm variant-price" 
-                     name="variant_price[]" value="0" required>
-            </td>
-            <td>
-              <input type="number" class="form-control form-control-sm variant-qty" 
-                     name="variant_qty[]" value="0" required>
-            </td>
-            <td class="text-center">
-              <button type="button" class="btn btn-danger btn-sm remove-variant" title="حذف المتغير">
-                <i class="fas fa-times"></i>
-              </button>
-            </td>
-          </tr>
-        </template>
-
-        <!-- ✅ فقرة المورد -->
-        <div class="mb-3">
-          <label class="form-label fw-bold text-dark">🏢 المورد</label>
-          <select class="form-select shadow-sm" id="supplierSelect" name="supplier_id">
-            <option value="">اختر المورد...</option>
-            {% for s in suppliers %}
-              <option value="{{ s.id }}" {% if assigned_supplier_id == s.id %}selected{% endif %}>
-                {{ s.trade_name if s.trade_name else s.username }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <!-- ✅ فقرة المجموعات - قائمة منسدلة مع بحث احترافي -->
-        <div class="mb-3">
-          <label class="form-label fw-bold text-dark">📂 المجموعات</label>
-          
-          <!-- حقل البحث عن المجموعات -->
-          <div class="position-relative">
-            <input type="text" id="collectionSearchInput" 
-                   class="form-control shadow-sm" 
-                   placeholder="🔍 ابحث عن مجموعة..."
-                   autocomplete="off">
-            <div id="collectionSearchResults" class="position-absolute w-100 bg-white border rounded shadow-lg mt-1 d-none" 
-                 style="max-height: 200px; overflow-y: auto; z-index: 1000;">
-            </div>
-          </div>
-          
-          <!-- المجموعات المحددة -->
-          <div id="selectedCollectionsContainer" class="mt-2 d-flex flex-wrap gap-2">
-            {% for c in all_collections %}
-              {% if c.qid in product.collections|map(attribute='qid') %}
-              <span class="collection-tag bg-purple-100 text-purple-700 px-3 py-1 rounded-pill d-inline-flex align-items-center gap-2 border border-purple-200" 
-                    data-qid="{{ c.qid }}">
-                <i class="fas fa-tag"></i>
-                <span>{{ c.title }}</span>
-                <button type="button" class="btn-close btn-close-sm remove-collection" 
-                        style="font-size: 10px;" aria-label="إزالة"></button>
-              </span>
-              {% endif %}
-            {% endfor %}
-          </div>
-          
-          <!-- حقل مخفي لقائمة المجموعات المحددة -->
-          <input type="hidden" name="collection_ids" id="selectedCollectionsInput" 
-                 value='{{ product.collections|map(attribute='qid')|list|tojson }}'>
-        </div>
-
-        <!-- ✅ فقرة الصور -->
-        <div class="mb-3">
-          <label class="form-label fw-bold text-dark">🖼️ الصور</label>
-          <input type="file" class="form-control shadow-sm" name="images" multiple accept="image/*">
-          <div class="mt-2 d-flex flex-wrap gap-2">
-            {% if product.images %}
-              {% for img in product.images %}
-                <div class="position-relative">
-                  <img src="{{ img.fileUrl }}" alt="صورة المنتج" class="border rounded shadow-sm" 
-                       style="width:100px;height:100px;object-fit:cover;">
-                  <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 remove-image" 
-                          style="border-radius: 50%; padding: 2px 6px; font-size: 12px;" 
-                          data-image-id="{{ img._id }}">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-              {% endfor %}
-            {% else %}
-              <p class="text-muted">لا توجد صور لهذا المنتج</p>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <!-- معلومات المنتج الرئيسية -->
+        {% include "admin/partials/_product_main_info.html" %}
+        
+        <!-- المتغيرات والـ Meta -->
+        {% include "admin/partials/_product_meta_variants.html" %}
+        
+        <!-- أزرار الإجراءات -->
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> حفظ التغييرات
+            </button>
+            <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> إلغاء
+            </a>
+            {% if product.status|upper != 'ARCHIVED' %}
+            <button type="button" class="btn btn-danger" onclick="deleteProduct('{{ product.qid }}', '{{ product.name }}')">
+                <i class="fas fa-trash"></i> حذف/أرشفة
+            </button>
             {% endif %}
-          </div>
-          <input type="hidden" name="removed_images" id="removedImages" value="[]">
         </div>
-
-        <!-- ✅ أزرار الحفظ والعودة -->
-        <div class="d-flex gap-2 mt-3">
-          <button type="submit" class="btn btn-custom px-4 shadow-sm" id="saveProductBtn">
-            <i class="fas fa-save me-2"></i> حفظ التعديلات
-          </button>
-          <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-secondary px-4 shadow-sm">
-            <i class="fas fa-arrow-right me-2"></i> العودة للقائمة
-          </a>
-        </div>
-
-      </form>
-    </div>
-  </div>
+    </form>
 </div>
 
-<!-- ✅ CSS إضافي -->
-<style>
-  .btn-custom {
-    background: linear-gradient(135deg, #6f2b7a, #2d0b36);
-    color: #ffd700 !important;
-    border: none;
-    transition: all 0.3s ease;
-  }
-  .btn-custom:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(111, 43, 122, 0.4);
-    color: #ffed4a !important;
-  }
-  .variant-row td {
-    vertical-align: middle;
-  }
-  .variant-index {
-    font-weight: 600;
-    color: #6f2b7a;
-  }
-  
-  .collection-tag {
-    animation: fadeIn 0.3s ease;
-    font-size: 0.9rem;
-  }
-  
-  .collection-tag .btn-close {
-    width: 0.6rem;
-    height: 0.6rem;
-    background-size: 0.6rem;
-  }
-  
-  #collectionSearchResults .search-result-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-bottom: 1px solid #f3f4f6;
-  }
-  
-  #collectionSearchResults .search-result-item:hover {
-    background-color: #f3e8ff;
-  }
-  
-  #collectionSearchResults .search-result-item:last-child {
-    border-bottom: none;
-  }
-  
-  #collectionSearchResults .search-result-item .badge-check {
-    color: #7c3aed;
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
-  }
-</style>
-
-<!-- ✅ JavaScript -->
 <script>
-  $(document).ready(function() {
-    // تفعيل Select2 للموردين
-    $('#supplierSelect').select2({
-      placeholder: "ابحث واختر المورد...",
-      allowClear: true,
-      width: '100%',
-      language: { noResults: function() { return "لا توجد نتائج"; } }
-    });
-
-    // ============================================
-    // ✅ نظام البحث عن المجموعات الاحترافي
-    // ============================================
-    
-    const allCollections = {{ all_collections|tojson }};
-    const searchInput = document.getElementById('collectionSearchInput');
-    const resultsContainer = document.getElementById('collectionSearchResults');
-    const selectedContainer = document.getElementById('selectedCollectionsContainer');
-    const hiddenInput = document.getElementById('selectedCollectionsInput');
-    
-    // الحصول على المجموعات المحددة مسبقاً
-    let selectedQids = [];
-    try {
-      const currentValue = hiddenInput.value;
-      if (currentValue) {
-        selectedQids = JSON.parse(currentValue);
-      }
-    } catch (e) {
-      selectedQids = [];
-    }
-    
-    // تحديث الحقل المخفي
-    function updateHiddenInput() {
-      hiddenInput.value = JSON.stringify(selectedQids);
-    }
-    
-    // إضافة مجموعة
-    function addCollection(qid, title) {
-      if (!selectedQids.includes(qid)) {
-        selectedQids.push(qid);
-        updateHiddenInput();
-        
-        // إضافة العلامة
-        const tag = document.createElement('span');
-        tag.className = 'collection-tag bg-purple-100 text-purple-700 px-3 py-1 rounded-pill d-inline-flex align-items-center gap-2 border border-purple-200';
-        tag.dataset.qid = qid;
-        tag.innerHTML = `
-          <i class="fas fa-tag"></i>
-          <span>${title}</span>
-          <button type="button" class="btn-close btn-close-sm remove-collection" 
-                  style="font-size: 10px;" aria-label="إزالة"></button>
-        `;
-        selectedContainer.appendChild(tag);
-        
-        // إخفاء النتائج
-        resultsContainer.classList.add('d-none');
-        searchInput.value = '';
-      }
-    }
-    
-    // إزالة مجموعة
-    function removeCollection(qid) {
-      selectedQids = selectedQids.filter(id => id !== qid);
-      updateHiddenInput();
-      
-      const tag = selectedContainer.querySelector(`[data-qid="${qid}"]`);
-      if (tag) {
-        tag.remove();
-      }
-    }
-    
-    // البحث عن المجموعات
-    searchInput.addEventListener('input', function() {
-      const query = this.value.trim().toLowerCase();
-      
-      if (!query) {
-        resultsContainer.classList.add('d-none');
+function deleteProduct(qid, name) {
+    if (!confirm(`⚠️ هل أنت متأكد من حذف/أرشفة المنتج "${name}"؟`)) {
         return;
-      }
-      
-      const filtered = allCollections.filter(c => 
-        c.title.toLowerCase().includes(query) && !selectedQids.includes(c.qid)
-      );
-      
-      if (filtered.length === 0) {
-        resultsContainer.innerHTML = `
-          <div class="search-result-item text-center text-muted py-2">
-            <i class="fas fa-search"></i> لا توجد نتائج
-          </div>
-        `;
-      } else {
-        resultsContainer.innerHTML = filtered.map(c => `
-          <div class="search-result-item d-flex justify-content-between align-items-center" data-qid="${c.qid}" data-title="${c.title}">
-            <span><i class="fas fa-tag text-purple-500 me-2"></i> ${c.title}</span>
-            <span class="badge bg-purple-100 text-purple-700 rounded-pill px-2 py-1">
-              <i class="fas fa-plus"></i> إضافة
-            </span>
-          </div>
-        `).join('');
-        
-        // إضافة حدث النقر لكل نتيجة
-        resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
-          item.addEventListener('click', function() {
-            const qid = this.dataset.qid;
-            const title = this.dataset.title;
-            addCollection(qid, title);
-          });
-        });
-      }
-      
-      resultsContainer.classList.remove('d-none');
-    });
-    
-    // إغلاق النتائج عند النقر خارجها
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('#collectionSearchInput') && !e.target.closest('#collectionSearchResults')) {
-        resultsContainer.classList.add('d-none');
-      }
-    });
-    
-    // تفعيل زر الإزالة في العلامات
-    selectedContainer.addEventListener('click', function(e) {
-      const removeBtn = e.target.closest('.remove-collection');
-      if (removeBtn) {
-        const tag = removeBtn.closest('.collection-tag');
-        if (tag) {
-          const qid = tag.dataset.qid;
-          removeCollection(qid);
-        }
-      }
-    });
-
-    // ✅ إضافة متغير جديد
-    $('#addVariantBtn').on('click', function() {
-      const template = document.getElementById('variantTemplate');
-      const clone = template.content.cloneNode(true);
-      document.getElementById('variantsContainer').appendChild(clone);
-      updateVariantIndices();
-    });
-
-    // ✅ حذف متغير
-    $(document).on('click', '.remove-variant', function() {
-      const rows = document.querySelectorAll('.variant-row');
-      if (rows.length <= 1) {
-        alert('لا يمكن حذف المتغير الوحيد. يمكنك تعديل قيمته بدلاً من ذلك.');
-        return;
-      }
-      if (confirm('هل أنت متأكد من حذف هذا المتغير؟')) {
-        $(this).closest('.variant-row').remove();
-        updateVariantIndices();
-      }
-    });
-
-    // ✅ تحديث أرقام المتغيرات
-    function updateVariantIndices() {
-      document.querySelectorAll('.variant-row').forEach((row, index) => {
-        row.querySelector('.variant-index').textContent = index + 1;
-      });
     }
-
-    // ✅ إزالة صورة
-    let removedImages = [];
-    $(document).on('click', '.remove-image', function() {
-      const imgId = $(this).data('image-id');
-      if (imgId) {
-        removedImages.push(imgId);
-        $('#removedImages').val(JSON.stringify(removedImages));
-        $(this).closest('.position-relative').remove();
-      }
-    });
-
-    // ✅ معالجة إرسال النموذج
-    $('#editProductForm').on('submit', function(e) {
-      e.preventDefault();
-      
-      const formData = new FormData(this);
-      
-      // جمع بيانات المتغيرات (بدون SKU)
-      const variants = [];
-      document.querySelectorAll('.variant-row').forEach(function(row) {
-        const price = row.querySelector('.variant-price').value;
-        const qty = row.querySelector('.variant-qty').value;
-        variants.push({
-          price: parseFloat(price) || 0,
-          quantity: parseInt(qty) || 0
-        });
-      });
-      formData.append('variants', JSON.stringify(variants));
-      
-      // تحديث الحقل المخفي للمجموعات قبل الإرسال
-      updateHiddenInput();
-      
-      // إظهار مؤشر التحميل
-      const btn = $('#saveProductBtn');
-      const originalText = btn.html();
-      btn.html('<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...');
-      btn.prop('disabled', true);
-      
-      $.ajax({
-        url: $(this).attr('action'),
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-          if (response.status === 'success') {
-            Swal.fire({
-              icon: 'success',
-              title: 'تم الحفظ بنجاح!',
-              text: response.message,
-              confirmButtonColor: '#6f2b7a'
-            });
-          } else {
-            Swal.fire({
-              icon: 'error',
-              title: 'خطأ!',
-              text: response.message || 'حدث خطأ أثناء حفظ البيانات.',
-              confirmButtonColor: '#d9534f'
-            });
-          }
-        },
-        error: function(xhr) {
-          let errorMsg = 'حدث خطأ في الاتصال بالخادم.';
-          if (xhr.responseJSON && xhr.responseJSON.message) {
-            errorMsg = xhr.responseJSON.message;
-          }
-          Swal.fire({
-            icon: 'error',
-            title: 'خطأ!',
-            text: errorMsg,
-            confirmButtonColor: '#d9534f'
-          });
-        },
-        complete: function() {
-          btn.html(originalText);
-          btn.prop('disabled', false);
+    
+    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+    
+    fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
         }
-      });
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', '✅ ' + data.message);
+            setTimeout(() => window.location.href = '{{ url_for("admin_product_bp.manage_products") }}', 1500);
+        } else {
+            showToast('error', '❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        showToast('error', '❌ حدث خطأ: ' + error);
     });
-  });
+}
+
+function showToast(type, message) {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#0d6efd'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show border-0 shadow-lg" role="alert" 
+             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <span>${message}</span>
+                <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
 </script>
 
-<!-- ✅ إضافة SweetAlert2 و Select2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
+<style>
+.card {
+    border: none;
+    border-radius: 12px;
+}
+</style>
 {% endblock %}
