@@ -1,240 +1,131 @@
-<!-- القسم الأول: البيانات الأساسية والوصف -->
-<div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-[var(--royal-purple-light)]">
+<!-- 📂 apps/admin_Product/templates/admin/partials/_product_main_info.html -->
+<!-- معلومات المنتج الرئيسية -->
 
-  <!-- عنوان القسم -->
-  <h2 class="text-lg font-bold text-[var(--royal-midnight-900)] mb-4 flex items-center gap-2 border-b pb-3 border-[var(--royal-purple-light)]">
-    <i class="fa-solid fa-circle-info text-[var(--royal-purple-accent)]"></i> البيانات الأساسية للقطعة والوصف
-  </h2>
-
-  <div class="space-y-4">
-
-    <!-- فقرة اسم المنتج -->
-    <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">اسم المنتج (title)</label>
-      <input type="text" name="title" 
-             value="{{ product.title if product.title else (product.info.title if product.info and product.info.title else '') }}" 
-             class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition" 
-             placeholder="أدخل اسم المنتج هنا..." required>
+<div class="row">
+    <!-- الاسم -->
+    <div class="col-md-6 mb-3">
+        <label for="productName" class="form-label fw-bold">
+            <i class="fas fa-tag text-primary me-1"></i> اسم المنتج *
+        </label>
+        <input type="text" 
+               id="productName" 
+               name="title" 
+               class="form-control form-control-lg" 
+               value="{{ product.name or '' }}"
+               placeholder="أدخل اسم المنتج..."
+               required>
     </div>
-
-    <!-- فقرة النبذة المختصرة -->
-    <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">نبذة مختصرة (subtitle / summary)</label>
-      <input type="text" name="subtitle" 
-             value="{{ product.subtitle if product.subtitle else (product.info.subtitle if product.info and product.info.subtitle else '') }}" 
-             class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition" 
-             placeholder="وصف قصير يظهر تحت عنوان المنتج...">
-    </div>
-
-    <!-- فقرة الوصف التفصيلي -->
-    <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">وصف المنتج التفصيلي (description)</label>
-
-      <!-- أدوات التحرير -->
-      <div class="flex flex-wrap items-center gap-1 bg-gray-50 border border-b-0 rounded-t-xl p-2 border-gray-200">
-        <!-- أزرار التنسيق -->
-        <button type="button" onclick="formatText('bold')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="تثخين الخط"><i class="fa-solid fa-bold text-xs"></i></button>
-        <button type="button" onclick="formatText('italic')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="خط مائل"><i class="fa-solid fa-italic text-xs"></i></button>
-        <button type="button" onclick="formatText('underline')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="خط تحتي"><i class="fa-solid fa-underline text-xs"></i></button>
-
-        <!-- محاذاة -->
-        <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
-        <button type="button" onclick="formatText('justifyRight')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="محاذاة لليمين"><i class="fa-solid fa-align-right text-xs"></i></button>
-        <button type="button" onclick="formatText('justifyCenter')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="توسيط"><i class="fa-solid fa-align-center text-xs"></i></button>
-        <button type="button" onclick="formatText('justifyLeft')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="محاذاة لليسار"><i class="fa-solid fa-align-left text-xs"></i></button>
-
-        <!-- قوائم -->
-        <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
-        <button type="button" onclick="formatText('insertUnorderedList')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="قائمة نقطية"><i class="fa-solid fa-list-ul text-xs"></i></button>
-        <button type="button" onclick="formatText('insertOrderedList')" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="قائمة رقمية"><i class="fa-solid fa-list-ol text-xs"></i></button>
-
-        <!-- روابط وألوان -->
-        <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
-        <button type="button" onclick="openLinkModal()" class="p-1.5 hover:bg-gray-200 rounded text-gray-700 w-8 h-8 flex items-center justify-center transition cursor-pointer" title="إدراج رابط"><i class="fa-solid fa-link text-xs"></i></button>
-        <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
-        <div class="flex items-center gap-1 mr-auto">
-          <span class="text-xs text-gray-500">لون النص:</span>
-          <button type="button" onclick="formatTextColor('#0f071a')" class="w-4 h-4 rounded-full bg-[#0f071a] border border-gray-300 cursor-pointer" title="ملكي داكن"></button>
-          <button type="button" onclick="formatTextColor('#6b21a8')" class="w-4 h-4 rounded-full bg-[#6b21a8] border border-gray-300 cursor-pointer" title="بنفسجي ملكي"></button>
-          <button type="button" onclick="formatTextColor('#dc2626')" class="w-4 h-4 rounded-full bg-red-600 border border-gray-300 cursor-pointer" title="أحمر"></button>
-          <button type="button" onclick="formatTextColor('#2563eb')" class="w-4 h-4 rounded-full bg-blue-600 border border-gray-300 cursor-pointer" title="أزرق"></button>
+    
+    <!-- السعر -->
+    <div class="col-md-3 mb-3">
+        <label for="productPrice" class="form-label fw-bold">
+            <i class="fas fa-dollar-sign text-success me-1"></i> السعر *
+        </label>
+        <div class="input-group">
+            <input type="number" 
+                   id="productPrice" 
+                   name="price" 
+                   class="form-control" 
+                   step="0.01" 
+                   min="0"
+                   value="{{ product.price or 0 }}"
+                   required>
+            <span class="input-group-text">ر.س</span>
         </div>
-      </div>
-
-      <!-- صندوق التحرير -->
-      <div id="productDescriptionEditor" contenteditable="true" 
-           class="w-full min-h-[180px] max-h-[350px] overflow-y-auto px-4 py-3 border border-t-0 rounded-b-xl royal-focus outline-none bg-white transition text-sm leading-relaxed" dir="auto">
-        {% if product.description %}
-          {{ product.description | safe }}
-        {% elif product.info and product.info.description %}
-          {{ product.info.description | safe }}
-        {% else %}
-          <p>أدخل تفاصيل ومميزات المنتج هنا...</p>
-        {% endif %}
-      </div>
-      <input type="hidden" name="description" id="hiddenDescription">
     </div>
-
-    <!-- ✅ فقرة SKU والسعر والكمية (معدلة مع سعر التكلفة) -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4">
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">الرقم التسلسلي (SKU)</label>
-        <input type="text" name="sku" 
-               value="{{ product.ident.sku if product.ident and product.ident.sku else '' }}" 
-               class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition"
-               placeholder="أدخل SKU إن وجد">
-        <small class="text-xs text-gray-500">SKU اختياري للمنتج الرئيسي</small>
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">💰 السعر (SAR)</label>
-        <input type="number" step="0.01" name="price" 
-               value="{{ product.pricing.price if product.pricing and product.pricing.price else 0 }}" 
-               class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition"
-               required>
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">💲 سعر التكلفة (SAR)</label>
-        <input type="number" step="0.01" name="cost_price" 
-               value="{{ product.pricing.costPrice if product.pricing and product.pricing.costPrice else 0 }}" 
-               class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition"
-               placeholder="سعر التكلفة">
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">📦 الكمية</label>
-        <input type="number" name="quantity" 
-               value="{{ product.quantity if product.quantity else 0 }}" 
-               class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition"
-               required>
-      </div>
+    
+    <!-- SKU -->
+    <div class="col-md-3 mb-3">
+        <label for="productSku" class="form-label fw-bold">
+            <i class="fas fa-barcode text-info me-1"></i> SKU
+        </label>
+        <input type="text" 
+               id="productSku" 
+               name="sku" 
+               class="form-control" 
+               value="{{ product.sku or '' }}"
+               placeholder="رمز المنتج">
     </div>
-
-    <!-- ✅ سعر قبل الخصم والوزن -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">🏷️ سعر قبل الخصم (SAR)</label>
-        <input type="number" step="0.01" name="compare_at_price" 
-               value="{{ product.pricing.compareAtPrice if product.pricing and product.pricing.compareAtPrice else 0 }}" 
-               class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition"
-               placeholder="السعر الأصلي قبل الخصم">
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1">⚖️ الوزن (كجم)</label>
-        <input type="number" step="0.01" name="weight" 
-               value="{{ product.weight.value if product.weight and product.weight.value else 0 }}" 
-               class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition"
-               placeholder="وزن المنتج بالكيلوجرام">
-      </div>
-    </div>
-
-    <!-- ✅ حالة المنتج -->
-    <div>
-      <label class="block text-sm font-semibold text-gray-700 mb-1">حالة المنتج</label>
-      <select name="status" class="w-full px-4 py-2 border rounded-xl royal-focus outline-none transition">
-        <option value="DRAFT" {% if product.status == 'DRAFT' or not product.status %}selected{% endif %}>📝 مسودة</option>
-        <option value="PUBLISHED" {% if product.status == 'PUBLISHED' %}selected{% endif %}>✅ منشور</option>
-        <option value="ARCHIVED" {% if product.status == 'ARCHIVED' %}selected{% endif %}>📦 مؤرشف</option>
-      </select>
-    </div>
-
-  </div>
 </div>
 
-<!-- ✅ JavaScript للتعامل مع المحرر -->
-<script>
-  // تحديث حقل الوصف المخفي قبل إرسال النموذج
-  document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('editProductForm');
-    if (form) {
-      form.addEventListener('submit', function() {
-        const editor = document.getElementById('productDescriptionEditor');
-        const hidden = document.getElementById('hiddenDescription');
-        if (editor && hidden) {
-          hidden.value = editor.innerHTML;
-        }
-      });
-    }
-  });
+<div class="row">
+    <!-- الوصف -->
+    <div class="col-12 mb-3">
+        <label for="productDescription" class="form-label fw-bold">
+            <i class="fas fa-align-left text-secondary me-1"></i> الوصف
+        </label>
+        <textarea id="productDescription" 
+                  name="description" 
+                  class="form-control" 
+                  rows="4"
+                  placeholder="وصف المنتج...">{{ product.description or '' }}</textarea>
+    </div>
+</div>
 
-  // دوال تنسيق النص
-  function formatText(command) {
-    document.execCommand(command, false, null);
-    document.getElementById('productDescriptionEditor').focus();
-  }
+<div class="row">
+    <!-- الحالة -->
+    <div class="col-md-6 mb-3">
+        <label for="productStatus" class="form-label fw-bold">
+            <i class="fas fa-circle text-warning me-1"></i> الحالة
+        </label>
+        <select id="productStatus" name="status" class="form-select">
+            <option value="DRAFT" {% if product.status|upper == 'DRAFT' %}selected{% endif %}>
+                ⏳ مسودة
+            </option>
+            <option value="PUBLISHED" {% if product.status|upper == 'PUBLISHED' %}selected{% endif %}>
+                ✅ منشور
+            </option>
+            <option value="REJECTED" {% if product.status|upper == 'REJECTED' %}selected{% endif %}>
+                ❌ مرفوض
+            </option>
+            <option value="ARCHIVED" {% if product.status|upper == 'ARCHIVED' %}selected{% endif %}>
+                📦 مؤرشف
+            </option>
+        </select>
+    </div>
+    
+    <!-- المورد -->
+    <div class="col-md-6 mb-3">
+        <label for="supplierId" class="form-label fw-bold">
+            <i class="fas fa-store text-purple me-1"></i> المورد
+        </label>
+        <select id="supplierId" name="supplier_id" class="form-select">
+            <option value="">-- غير مرتبط --</option>
+            {% for supplier in suppliers %}
+            <option value="{{ supplier.id }}" {% if assigned_supplier_id == supplier.id %}selected{% endif %}>
+                {{ supplier.trade_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
 
-  function formatTextColor(color) {
-    document.execCommand('foreColor', false, color);
-    document.getElementById('productDescriptionEditor').focus();
-  }
+<!-- معلومات إضافية (للقراءة فقط) -->
+{% if product and product.qid %}
+<div class="row mt-3 pt-3 border-top">
+    <div class="col-md-4">
+        <small class="text-muted">
+            <i class="fas fa-fingerprint me-1"></i> QID: {{ product.qid }}
+        </small>
+    </div>
+    <div class="col-md-4">
+        <small class="text-muted">
+            <i class="fas fa-calendar-plus me-1"></i> تاريخ الإنشاء: 
+            {{ product.createdAt|datetime if product.createdAt else '-' }}
+        </small>
+    </div>
+    <div class="col-md-4">
+        <small class="text-muted">
+            <i class="fas fa-calendar-edit me-1"></i> آخر تحديث: 
+            {{ product.updatedAt|datetime if product.updatedAt else '-' }}
+        </small>
+    </div>
+</div>
+{% endif %}
 
-  // إدراج رابط
-  function openLinkModal() {
-    const url = prompt('أدخل رابط URL:', 'https://');
-    if (url) {
-      document.execCommand('createLink', false, url);
-      document.getElementById('productDescriptionEditor').focus();
-    }
-  }
-
-  // معالجة اختصارات لوحة المفاتيح
-  document.addEventListener('keydown', function(e) {
-    const editor = document.getElementById('productDescriptionEditor');
-    if (document.activeElement === editor) {
-      if (e.ctrlKey && e.key === 'b') {
-        e.preventDefault();
-        formatText('bold');
-      } else if (e.ctrlKey && e.key === 'i') {
-        e.preventDefault();
-        formatText('italic');
-      } else if (e.ctrlKey && e.key === 'u') {
-        e.preventDefault();
-        formatText('underline');
-      }
-    }
-  });
-</script>
-
-<!-- ✅ CSS إضافي -->
 <style>
-  .royal-focus {
-    border-color: #d1d5db;
-    transition: all 0.2s ease;
-  }
-  
-  .royal-focus:focus {
-    border-color: #6b21a8;
-    box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
-  }
-  
-  #productDescriptionEditor {
-    min-height: 180px;
-    max-height: 350px;
-    overflow-y: auto;
-    line-height: 1.8;
-  }
-  
-  #productDescriptionEditor:focus {
-    border-color: #6b21a8;
-    box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
-  }
-  
-  #productDescriptionEditor ul,
-  #productDescriptionEditor ol {
-    padding-right: 1.5rem;
-    margin: 0.5rem 0;
-  }
-  
-  #productDescriptionEditor ul {
-    list-style-type: disc;
-  }
-  
-  #productDescriptionEditor ol {
-    list-style-type: decimal;
-  }
-  
-  #productDescriptionEditor blockquote {
-    border-right: 3px solid #6b21a8;
-    padding-right: 1rem;
-    margin: 0.5rem 0;
-    color: #4b5563;
-  }
+.form-label {
+    font-weight: 600;
+    color: #2d0b36;
+}
 </style>
