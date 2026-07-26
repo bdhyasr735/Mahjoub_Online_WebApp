@@ -3,7 +3,7 @@
 
 import logging
 from typing import Optional
-from apps.services.graphql_client import GraphQLClient  # مسار الاستيراد الصحيح
+from apps.services.graphql_client import GraphQLClient
 
 logger = logging.getLogger(__name__)
 
