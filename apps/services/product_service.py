@@ -8,8 +8,15 @@ from apps.services.graphql_client import GraphQLClient
 class ProductService:
     """خدمة إدارة المنتجات متصلة بملف الاستعلامات الخارجي product_queries.graphql"""
     
-    def __init__(self):
-        self.client = GraphQLClient()
+    def __init__(self, client=None):
+        """
+        تهيئة خدمة المنتجات
+        
+        Args:
+            client (GraphQLClient, optional): عميل GraphQL. إذا لم يتم توفيره، يتم إنشاء عميل جديد.
+        """
+        # ✅ استخدام العميل الممرر أو إنشاء عميل جديد
+        self.client = client if client else GraphQLClient()
         
         # قراءة ملف product_queries.graphql الخارجي تلقائياً من نفس المجلد
         current_dir = os.path.dirname(os.path.abspath(__file__))
