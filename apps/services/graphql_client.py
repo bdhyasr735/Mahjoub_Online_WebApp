@@ -1,53 +1,49 @@
-# coding: utf-8
+import os
 import requests
-from typing import Optional, Dict, Any
-from config import Config
+from typing import Dict, Any, Optional
 
 class GraphQLClient:
-    def __init__(self, endpoint: Optional[str] = None, api_key: Optional[str] = None):
-        self.endpoint = endpoint or Config.QUMRA_API_URL
-        self.api_key = api_key or Config.QUMRA_API_KEY
-        
-    def get_headers(self) -> Dict[str, str]:
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-        if self.api_key:
-            token = self.api_key.strip()
-            if not token.lower().startswith("bearer "):
-                headers["Authorization"] = f"Bearer {token}"
-            else:
-                headers["Authorization"] = token
-        return headers
+    """
+    عميل GraphQL للاتصال بـ API الخاص بـ Qumra.
+    يقرأ التوكن من متغير البيئة QUMRA_API_KEY.
+    """
     
-    def execute(self, query: str, variables: Optional[Dict[str, Any]] = None, operation_name: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """تنفيذ استعلام مع دعم تحديد اسم العملية (operationName) لملفات الـ GraphQL المتعددة"""
+    def __init__(self):
+        self.endpoint = "https://mahjoub.online/admin/graphql"
+        self.api_key = os.environ.get("QUMRA_API_KEY")
+        
+        if not self.api_key:
+            raise ValueError("QUMRA_API_KEY غير موجود في متغيرات البيئة!")
+        
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+    
+    def execute(self, query: str, variables: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        تنفيذ استعلام GraphQL وإرجاع النتيجة.
+        """
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
-        if operation_name:
-            payload["operationName"] = operation_name
-            
-        headers = self.get_headers()
         
         try:
             response = requests.post(
                 self.endpoint,
                 json=payload,
-                headers=headers,
+                headers=self.headers,
                 timeout=30
             )
+            response.raise_for_status()
+            data = response.json()
             
-            if response.status_code == 200:
-                result = response.json()
-                if "errors" in result:
-                    print(f"❌ [GraphQL Errors]: {result['errors']}")
-                return result.get("data")
-            else:
-                print(f"❌ [HTTP Error {response.status_code}]: {response.text}")
-                return None
-                
+            # التحقق من وجود أخطاء في GraphQL
+            if "errors" in data:
+                error_messages = [err.get("message", "خطأ غير معروف") for err in data["errors"]]
+                raise Exception(f"أخطاء GraphQL: {', '.join(error_messages)}")
+            
+            return data.get("data", {})
+        
         except requests.exceptions.RequestException as e:
-            print(f"❌ [Connection Exception]: {e}")
-            return None
+            raise Exception(f"فشل الاتصال بـ GraphQL: {str(e)}")
