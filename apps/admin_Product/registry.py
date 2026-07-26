@@ -37,7 +37,6 @@ def get_module_stats():
     """جلب إحصائيات المنتجات"""
     try:
         from apps.services import services
-        # استخدام الخدمة المركزية لجلب المنتجات
         products = services.products.get_all_products() or []
         
         stats = {
