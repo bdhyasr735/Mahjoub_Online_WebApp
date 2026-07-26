@@ -159,7 +159,7 @@
         
         <nav class="nav-menu">
             <!-- Dashboard -->
-            <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" 
+            <a href="{{ safe_url_for('admin_dashboard_bp.dashboard') }}" 
                class="nav-link-custom {{ 'active' if request.endpoint == 'admin_dashboard_bp.dashboard' }}">
                 <i class="fas fa-chart-line"></i> <span>الإحصائيات</span>
             </a>
@@ -178,7 +178,7 @@
                         <ul class="dropdown-content">
                             {% for endpoint, label in module.links.items() %}
                                 <li>
-                                    <a href="{{ url_for(endpoint) }}" 
+                                    <a href="{{ safe_url_for(endpoint) }}" 
                                        class="{{ 'active-link' if request.endpoint == endpoint }}">
                                         <i class="fas fa-angle-left me-2"></i> {{ label }}
                                     </a>
@@ -192,7 +192,7 @@
             <hr class="text-white my-3 opacity-25">
             
             <!-- Logout -->
-            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link-custom text-danger">
+            <a href="{{ safe_url_for('auth_portal.logout') }}" class="nav-link-custom text-danger">
                 <i class="fas fa-sign-out-alt"></i> <span>خروج آمن</span>
             </a>
         </nav>
