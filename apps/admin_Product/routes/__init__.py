@@ -11,6 +11,9 @@ from . import sync
 from . import reviews
 from . import crud
 from . import stats
-from . import products
+
+# ✅ استيراد products.py وتسجيل الـ Route
+from .products import register_products_route
+register_products_route(admin_product_bp)
 
 __all__ = ['admin_product_bp']
