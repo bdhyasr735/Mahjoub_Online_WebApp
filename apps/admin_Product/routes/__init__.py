@@ -7,10 +7,12 @@ from flask import Blueprint
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
 # استيراد جميع الـ Routes
-from . import products
 from . import sync
 from . import reviews
 from . import crud
 from . import stats
+
+# ✅ استيراد products.py مباشرة
+from .products import manage_products
 
 __all__ = ['admin_product_bp']
