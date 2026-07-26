@@ -21,7 +21,7 @@
     </div>
 
     <!-- شريط البحث -->
-    <div class="card mb-4">
+    <div class="card mb-4 shadow-sm">
         <div class="card-body">
             <form method="GET" class="row g-3">
                 <div class="col-md-8">
@@ -48,7 +48,7 @@
     </div>
     {% endif %}
 
-    <div class="card">
+    <div class="card shadow-sm">
         <div class="card-body">
             <div id="productsTableContainer">
                 {% include "admin/includes/_table_products.html" %}
@@ -70,76 +70,66 @@ function syncProducts() {
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
     modal.style.display = 'block';
     
+    // الحصول على CSRF Token
+    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+    
     // إرسال طلب المزامنة
     fetch('{{ url_for("admin_product_bp.sync_products") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // تحديث الجدول بالبيانات الجديدة
-            showMessage('✅ ' + data.message, 'success');
-            // إعادة تحميل الصفحة بعد 1.5 ثانية لعرض البيانات المحدثة
+            showToast('success', '✅ ' + (data.message || 'تمت المزامنة بنجاح'));
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
         } else {
-            showMessage('❌ ' + data.message, 'danger');
+            showToast('error', '❌ ' + (data.message || 'فشلت المزامنة'));
         }
     })
     .catch(error => {
-        showMessage('❌ حدث خطأ في الاتصال: ' + error, 'danger');
+        showToast('error', '❌ حدث خطأ في الاتصال: ' + error);
     })
     .finally(() => {
         // إعادة تفعيل الزر
         button.disabled = false;
         button.innerHTML = '<i class="fas fa-sync"></i> مزامنة الآن';
-        // إخفاء النافذة بعد 2 ثانية
         setTimeout(() => {
             modal.style.display = 'none';
         }, 2000);
     });
 }
 
-function showMessage(text, type) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.role = 'alert';
-    alertDiv.innerHTML = `
-        ${text}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+// دالة showToast (متطابقة مع الموجودة في _table_products.html)
+function showToast(type, message) {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#0d6efd'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show border-0 shadow-lg" role="alert" 
+             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <span>${message}</span>
+                <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
     `;
-    
-    const container = document.querySelector('.container-fluid');
-    container.insertBefore(alertDiv, container.firstChild);
-    
-    // إخفاء الرسالة بعد 5 ثوانٍ
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
-        }
-    }, 5000);
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
 }
-
-// تحديث الإحصائيات كل 30 ثانية (اختياري)
-setInterval(() => {
-    fetch('{{ url_for("admin_product_bp.get_stats") }}')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // تحديث البادج في العنوان إذا وجد
-                const badge = document.querySelector('.badge.bg-primary');
-                if (badge) {
-                    badge.textContent = data.stats.total;
-                }
-            }
-        })
-        .catch(() => {});
-}, 30000);
 </script>
 
 <style>
@@ -155,14 +145,13 @@ setInterval(() => {
     backdrop-filter: blur(5px);
 }
 
-/* تنسيق شريط التقدم في المودال */
 #syncModal .spinner-border {
     width: 3rem;
     height: 3rem;
 }
 
 #syncModal .progress {
-    height: 10px;
+    height: 8px;
     border-radius: 10px;
     overflow: hidden;
 }
@@ -177,25 +166,9 @@ setInterval(() => {
     100% { transform: translateX(100%); }
 }
 
-/* تنسيق الجدول */
-.table th {
-    background: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-.table img {
-    object-fit: cover;
-    border-radius: 8px;
-}
-
-/* تنسيق البادج */
-.badge {
-    padding: 5px 12px;
-    font-size: 12px;
+.card {
+    border: none;
+    border-radius: 12px;
 }
 </style>
 {% endblock %}
