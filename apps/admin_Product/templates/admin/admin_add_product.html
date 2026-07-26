@@ -1,536 +1,133 @@
-<!-- 📂 apps/admin_Product/templates/admin/admin_add_product.html -->
-{% extends "admin/admin_base.html" %}
+<!-- 📂 apps/admin_Product/templates/admin/partials/_product_meta_variants.html -->
+<!-- بيانات المتغيرات والـ Meta للمنتج -->
 
-{% block content %}
-<!-- 🎨 1. Dynamic Styling (Encapsulated inside the block with Theme Registry fallback values) -->
-<style>
-    :root { 
-        --deep-purple: {{ theme.deep_purple if theme and theme.deep_purple else '#2d144d' }}; 
-        --royal-accent: {{ theme.royal_accent if theme and theme.royal_accent else '#4b0082' }}; 
-        --gold-accent: {{ theme.gold_accent if theme and theme.gold_accent else '#d4af37' }};
-        --royal-bg: {{ theme.royal_bg if theme and theme.royal_bg else '#f8f7fc' }};
-    }
-
-    body {
-        background-color: var(--royal-bg);
-    }
-
-    .text-purple {
-        color: var(--royal-accent) !important;
-    }
-
-    .card { 
-        border: none; 
-        border-radius: 16px; 
-        box-shadow: 0 4px 20px rgba(45, 20, 77, 0.05); 
-        margin-bottom: 25px; 
-        padding: 25px; 
-        background: #ffffff;
-        transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 4px;
-        height: 100%;
-        background: transparent;
-        transition: background 0.3s ease;
-    }
-
-    .card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(75, 0, 130, 0.08);
-    }
-
-    .card:hover::before {
-        background: var(--royal-accent);
-    }
-
-    .section-title { 
-        color: var(--deep-purple); 
-        font-weight: 700; 
-        border-bottom: 2px solid #f0edf5; 
-        padding-bottom: 12px; 
-        margin-bottom: 20px; 
-        font-size: 1.2rem;
-        display: flex;
-        align-items: center;
-    }
-
-    .section-title i {
-        color: var(--royal-accent);
-        margin-left: 10px;
-        transition: transform 0.3s ease;
-    }
-
-    .card:hover .section-title i {
-        transform: scale(1.15);
-    }
-
-    .field-paragraph {
-        background: #faf8fd;
-        padding: 18px 20px;
-        border-radius: 12px;
-        border: 1px solid #eee8f5;
-        margin-bottom: 15px;
-        transition: border-color 0.3s, background-color 0.3s;
-    }
-
-    .field-paragraph:focus-within {
-        border-color: var(--royal-accent);
-        background-color: #ffffff;
-    }
-
-    .image-zone { 
-        border: 2px dashed #d0c5e2; 
-        padding: 30px; 
-        text-align: center; 
-        cursor: pointer; 
-        border-radius: 12px; 
-        transition: all 0.3s ease; 
-        background: #faf8fd;
-    }
-    
-    .image-zone:hover, .image-zone.dragover { 
-        border-color: var(--royal-accent); 
-        background: #f5f0fc; 
-        transform: scale(1.005);
-    }
-
-    .img-preview-card {
-        transition: all 0.3s ease;
-    }
-
-    .img-preview-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 15px rgba(45, 20, 77, 0.15) !important;
-    }
-
-    .ck-editor__editable_inline {
-        min-height: 220px;
-        border-radius: 0 0 12px 12px !important;
-        border-color: #d0c5e2 !important;
-        padding: 15px !important;
-    }
-    
-    .ck.ck-toolbar {
-        border-radius: 12px 12px 0 0 !important;
-        background-color: #f8f5fc !important;
-        border-color: #d0c5e2 !important;
-    }
-
-    .form-control, .form-select {
-        border-radius: 10px;
-        border: 1px solid #d0c5e2;
-        padding: 10px 14px;
-        transition: all 0.25s ease;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: var(--royal-accent);
-        box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.12);
-    }
-
-    .choices__inner {
-        border-radius: 10px !important;
-        border: 1px solid #d0c5e2 !important;
-        background-color: #ffffff !important;
-        padding: 6px 10px !important;
-        min-height: 45px !important;
-        transition: all 0.25s ease;
-    }
-
-    .choices.is-focused .choices__inner {
-        border-color: var(--royal-accent) !important;
-        box-shadow: 0 0 0 0.2rem rgba(75, 0, 130, 0.12);
-    }
-
-    .choices__list--multiple .choices__item {
-        background-color: var(--deep-purple) !important;
-        border: 1px solid var(--deep-purple) !important;
-        border-radius: 6px !important;
-    }
-
-    .btn-royal {
-        background-color: var(--deep-purple);
-        color: #ffffff;
-        border: none;
-        border-radius: 12px;
-        transition: all 0.3s ease;
-    }
-
-    .btn-royal:hover {
-        background-color: var(--royal-accent);
-        color: #ffffff;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(75, 0, 130, 0.25);
-    }
-</style>
-
-<!-- 📦 2. External Styling and Assets -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
-<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
-
-<!-- 🏗️ 3. Main Form Structure -->
-<div class="container py-4" dir="rtl" style="max-width: 1100px;">
-    <!-- Top Action Bar -->
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
-        <h3 class="fw-bold m-0" style="color: var(--deep-purple);">
-            <i class="fas fa-plus-circle text-purple me-1"></i> إضافة منتج جديد
-        </h3>
-        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-outline-secondary px-4 shadow-sm" style="border-radius: 10px; transition: 0.2s;">
-            <i class="fas fa-arrow-right ms-1"></i> العودة للقائمة
-        </a>
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-layer-group text-info me-2"></i> المتغيرات (Variants)
+        </h5>
     </div>
-
-    <form id="addProductForm" onsubmit="saveNewProduct(event)">
-        <div class="row">
-            <!-- العمود الأيمن الرئيسي (8 أعمدة) -->
-            <div class="col-lg-8">
-                <!-- Section 1: البيانات الأساسية والوصف -->
-                <div class="card">
-                    <h5 class="section-title"><i class="fas fa-info-circle"></i> 1. البيانات الأساسية والوصف</h5>
-                    
-                    <div class="field-paragraph">
-                        <label class="form-label fw-bold text-dark mb-2">اسم المنتج الرئيسي <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-lg" id="title" oninput="autoGenerateSlug(this.value)" placeholder="مثال: مطحنة قهوة احترافية..." required>
-                    </div>
-
-                    <div class="field-paragraph">
-                        <label class="form-label fw-bold text-dark mb-2">رابط المنتج (Slug)</label>
-                        <input type="text" class="form-control text-start" dir="ltr" id="slug" placeholder="product-url-slug">
-                    </div>
-
-                    <div class="field-paragraph mb-0">
-                        <label class="form-label fw-bold text-dark mb-2">وصف المنتج الاحترافي</label>
-                        <textarea id="editor">{{ product.description if product and product.description else '' }}</textarea>
-                    </div>
-                </div>
-
-                <!-- Section 2: معرض الصور -->
-                <div class="card">
-                    <h5 class="section-title"><i class="fas fa-images"></i> 2. معرض صور المنتج</h5>
-                    
-                    <div class="image-zone mb-3" id="dropZone" onclick="document.getElementById('imageInput').click()">
-                        <i class="fas fa-cloud-upload-alt fa-3x mb-2" style="color: var(--royal-accent);"></i>
-                        <p class="mb-1 fw-bold text-dark fs-5">انقر هنا لرفع الصور أو قم بسحبها وإفلاتها</p>
-                        <span class="small text-secondary">يمكنك اختيار أكثر من صورة بوضوح وسرعة عالية</span>
-                        <input type="file" id="imageInput" class="d-none" multiple accept="image/*" onchange="handleFileSelect(this.files)">
-                    </div>
-
-                    <div class="field-paragraph mb-0">
-                        <label class="form-label fw-bold text-dark small mb-3">الصور المختارة للرفع:</label>
-                        <div class="row g-3" id="imageGallery"></div>
-                    </div>
-                </div>
-
-                <!-- Section 3: الأسعار والمخزون -->
-                <div class="card">
-                    <h5 class="section-title"><i class="fas fa-tags"></i> 3. الأسعار والمخزون</h5>
-                    
-                    <div class="field-paragraph">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label small fw-bold">سعر التكلفة</label>
-                                <input type="number" step="0.01" class="form-control" id="original_price" value="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label small fw-bold">السعر قبل الخصم</label>
-                                <input type="number" step="0.01" class="form-control" id="compare_at_price" value="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label small fw-bold text-purple">السعر النهائي <span class="text-danger">*</span></label>
-                                <input type="number" step="0.01" class="form-control fw-bold text-purple" id="price" value="0" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="field-paragraph mb-0">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">رمز التخزين (SKU)</label>
-                                <input type="text" class="form-control text-start" dir="ltr" id="sku" placeholder="SKU-1001">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">الكمية المتاحة</label>
-                                <input type="number" class="form-control" id="quantity" value="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">الوزن (كجم)</label>
-                                <input type="number" step="0.1" class="form-control" id="weight" value="0">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 4: خيارات المنتج والمتغيرات -->
-                <div class="card">
-                    <div class="d-flex justify-content-between align-items-center section-title border-bottom-0 pb-0 mb-3">
-                        <h5 class="m-0 fw-bold" style="color: var(--deep-purple);"><i class="fas fa-list-ul"></i> 4. متغيرات المنتج (Variants)</h5>
-                        <button type="button" class="btn btn-sm btn-royal px-3" style="border-radius: 8px;" onclick="addVariantRow()">+ إضافة نوع</button>
-                    </div>
-                    
-                    <div class="field-paragraph mb-0 p-2">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>الخيارات (حجم/لون)</th>
-                                        <th>السعر</th>
-                                        <th>الكمية</th>
-                                        <th>SKU</th>
-                                        <th class="text-center" style="width: 60px;">حذف</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="variantsTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- العمود الأيسر للإعدادات والنشر (4 أعمدة) -->
-            <div class="col-lg-4">
-                <div class="card sticky-top" style="top: 20px;">
-                    <h5 class="section-title"><i class="fas fa-sliders-h"></i> 5. إعدادات النشر والتصنيف</h5>
-                    
-                    <div class="field-paragraph">
-                        <label class="form-label fw-bold mb-2">حالة المنتج</label>
-                        <select class="form-select" id="status">
-                            <option value="ACTIVE" selected>نشط (معروض)</option>
-                            <option value="DRAFT">مسودة (مخفي)</option>
-                        </select>
-                    </div>
-
-                    <div class="field-paragraph">
-                        <label class="form-label fw-bold mb-2">المورد المسؤول</label>
-                        <select class="form-select" id="supplier-select">
-                            <option value="">اختر المورد...</option>
-                            {% for sup in suppliers %}
-                            <option value="{{ sup.id }}">{{ sup.trade_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="field-paragraph mb-4">
-                        <label class="form-label fw-bold mb-2">المجموعات والتصنيفات</label>
-                        <select class="form-select" id="collections-select" multiple>
-                            {% for col in all_collections %}
-                            <option value="{{ col.qid }}">{{ col.title }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <button type="submit" class="btn btn-royal btn-lg w-100 shadow py-3 fw-bold fs-5" id="saveBtn">
-                        <i class="fas fa-paper-plane me-2"></i> حفظ وإنشاء المنتج
-                    </button>
-                </div>
-            </div>
+    <div class="card-body">
+        {% if product and product.variants and product.variants|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>SKU</th>
+                        <th>السعر</th>
+                        <th>الكمية</th>
+                        <th>الخيارات</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for variant in product.variants %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><code>{{ variant.sku or '-' }}</code></td>
+                        <td class="text-primary">{{ variant.price or 0 }} ر.س</td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if variant.quantity|int > 0 else 'bg-danger' }}">
+                                {{ variant.quantity or 0 }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if variant.options %}
+                                {% for opt in variant.options %}
+                                <span class="badge bg-secondary me-1">{{ opt.name }}: {{ opt.value }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if variant.isActive else 'bg-secondary' }}">
+                                {{ 'نشط' if variant.isActive else 'غير نشط' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </form>
+        <small class="text-muted">إجمالي المتغيرات: {{ product.variants|length }}</small>
+        {% else %}
+        <div class="text-center py-3 text-muted">
+            <i class="fas fa-cubes fa-2x mb-2 d-block"></i>
+            <p>لا توجد متغيرات لهذا المنتج</p>
+        </div>
+        {% endif %}
+    </div>
 </div>
 
-<!-- ⚡ 4. Client Side Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-<script>
-    let editorInstance = null;
-    let collectionsChoices = null;
-    let supplierChoices = null;
-    let uploadedFilesList = [];
-
-    document.addEventListener("DOMContentLoaded", function() {
-        // 1. Classic CKEditor Initialization
-        const editorElement = document.querySelector('#editor');
-        if (editorElement) {
-            ClassicEditor.create(editorElement, { language: 'ar' })
-                .then(editor => { editorInstance = editor; })
-                .catch(error => console.error("CKEditor initialization error:", error));
-        }
-
-        // 2. Choices.js Dropdowns Initialization
-        const supplierSelect = document.getElementById('supplier-select');
-        if (supplierSelect) {
-            supplierChoices = new Choices(supplierSelect, { removeItemButton: true, searchEnabled: true, placeholderValue: 'اختر المورد...' });
-        }
-
-        const collectionsSelect = document.getElementById('collections-select');
-        if (collectionsSelect) {
-            collectionsChoices = new Choices(collectionsSelect, { removeItemButton: true, searchEnabled: true, placeholderValue: 'اختر المجموعات...' });
-        }
-
-        // 3. Track manual input for slug
-        const slugInput = document.getElementById('slug');
-        if (slugInput) {
-            slugInput.addEventListener('input', function() {
-                this.dataset.manual = "true";
-            });
-        }
-
-        // 4. Drag and Drop events for Image Zone
-        const dropZone = document.getElementById('dropZone');
-        if (dropZone) {
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, preventDefaults, false);
-            });
-
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-            });
-
-            dropZone.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                if (dt && dt.files) {
-                    handleFileSelect(dt.files);
-                }
-            }, false);
-        }
-    });
-
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    // Auto generate slug unless user typed manually
-    function autoGenerateSlug(text) {
-        const slugInput = document.getElementById('slug');
-        if (slugInput && slugInput.dataset.manual !== "true") {
-            slugInput.value = text.trim()
-                .toLowerCase()
-                .replace(/[\s\W-]+/g, '-');
-        }
-    }
-
-    // Process uploaded files with unique references
-    function handleFileSelect(files) {
-        const gallery = document.getElementById('imageGallery');
-        if (!files) return;
-
-        Array.from(files).forEach((file) => {
-            uploadedFilesList.push(file);
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const colDiv = document.createElement('div');
-                colDiv.className = 'col-md-4 col-6 position-relative';
-                
-                colDiv.innerHTML = `
-                    <div class="card img-preview-card border shadow-sm p-2 h-100 text-center bg-light mb-0" style="border-radius: 10px;">
-                        <div class="ratio ratio-1x1 bg-white rounded overflow-hidden mb-2">
-                            <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
-                        </div>
-                        <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 w-100 remove-btn">
-                            <i class="fas fa-trash-alt me-1"></i> إزالة
-                        </button>
-                    </div>
-                `;
-
-                // Bind remove action directly to file reference
-                colDiv.querySelector('.remove-btn').onclick = function() {
-                    uploadedFilesList = uploadedFilesList.filter(f => f !== file);
-                    colDiv.remove();
-                };
-
-                gallery.appendChild(colDiv);
-            };
-            reader.readAsDataURL(file);
-        });
-
-        // Reset file input element
-        const imageInput = document.getElementById('imageInput');
-        if (imageInput) imageInput.value = '';
-    }
-
-    function addVariantRow(data = {}) {
-        const tbody = document.getElementById('variantsTableBody');
-        if (!tbody) return;
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><input type="text" class="form-control variant-name" value="${data.name || ''}" placeholder="حجم/لون"></td>
-            <td><input type="number" step="0.01" class="form-control variant-price" value="${data.price || 0}"></td>
-            <td><input type="number" class="form-control variant-qty" value="${data.quantity || 0}"></td>
-            <td><input type="text" class="form-control variant-sku" value="${data.sku || ''}"></td>
-            <td class="text-center"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="fas fa-times"></i></button></td>
-        `;
-        tbody.appendChild(row);
-    }
-
-    async function saveNewProduct(event) {
-        event.preventDefault();
+<div class="card shadow-sm">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-code text-secondary me-2"></i> البيانات الوصفية (Meta)
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">العنوان (SEO)</label>
+                <p class="form-control-plaintext">{{ product.seo.title or '-' }}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">الوصف (SEO)</label>
+                <p class="form-control-plaintext">{{ product.seo.description or '-' }}</p>
+            </div>
+        </div>
         
-        const saveBtn = document.getElementById('saveBtn');
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ وإنشاء المنتج...';
-
-        const formData = new FormData();
-        formData.append('title', document.getElementById('title').value);
-        formData.append('slug', document.getElementById('slug').value);
-        formData.append('description', editorInstance ? editorInstance.getData() : '');
-        formData.append('status', document.getElementById('status').value);
-        formData.append('supplier_id', supplierChoices ? supplierChoices.getValue(true) : document.getElementById('supplier-select').value);
-        formData.append('sku', document.getElementById('sku').value);
-        formData.append('quantity', document.getElementById('quantity').value);
-        formData.append('weight', document.getElementById('weight').value);
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">الكلمات المفتاحية</label>
+                <p class="form-control-plaintext">{{ product.seo.keywords or '-' }}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">العلامات (Tags)</label>
+                <p class="form-control-plaintext">{{ product.tags|join(', ') if product.tags else '-' }}</p>
+            </div>
+        </div>
         
-        formData.append('original_price', document.getElementById('original_price').value);
-        formData.append('compare_at_price', document.getElementById('compare_at_price').value);
-        formData.append('price', document.getElementById('price').value);
+        <div class="row">
+            <div class="col-12">
+                <label class="form-label fw-bold">التصنيفات</label>
+                {% if product.categories and product.categories|length > 0 %}
+                    {% for cat in product.categories %}
+                    <span class="badge bg-primary me-1">{{ cat.name }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="text-muted">-</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 
-        // Fetch selected collection values safely via Choices.js or native select
-        const selectedCols = collectionsChoices 
-            ? collectionsChoices.getValue(true) 
-            : Array.from(document.getElementById('collections-select').selectedOptions).map(opt => opt.value);
-            
-        formData.append('collection_ids', JSON.stringify(selectedCols));
+<!-- معلومات إضافية عن المجموعات -->
+{% if product and product.collections and product.collections|length > 0 %}
+<div class="card shadow-sm mt-3">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-folder-open text-warning me-2"></i> المجموعات
+        </h5>
+    </div>
+    <div class="card-body">
+        {% for collection in product.collections %}
+        <span class="badge bg-warning text-dark me-1">
+            <i class="fas fa-folder me-1"></i> {{ collection.name }}
+        </span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
-        const variants = [];
-        document.querySelectorAll('#variantsTableBody tr').forEach(row => {
-            variants.push({
-                name: row.querySelector('.variant-name').value,
-                price: parseFloat(row.querySelector('.variant-price').value || 0),
-                quantity: parseInt(row.querySelector('.variant-qty').value || 0),
-                sku: row.querySelector('.variant-sku').value
-            });
-        });
-        formData.append('variants', JSON.stringify(variants));
-
-        // Append all images from memory array
-        uploadedFilesList.forEach(file => {
-            formData.append('images', file);
-        });
-
-        try {
-            const response = await fetch("{{ url_for('admin_product_bp.save_sync_product') }}", {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else "" }}'
-                }
-            });
-            const result = await response.json();
-            
-            if (response.ok && result.status === 'success') {
-                alert('✅ ' + result.message);
-                window.location.href = "{{ url_for('admin_product_bp.manage_products') }}";
-            } else {
-                alert('⚠️ تعذر الحفظ: ' + (result.message || "حدث خطأ أثناء حفظ المنتج."));
-            }
-        } catch (error) {
-            console.error("AJAX/Fetch Error Connection:", error);
-            alert("❌ خطأ: لم نتمكن من الاتصال بالسيرفر لحفظ البيانات.");
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i> حفظ وإنشاء المنتج';
-        }
-    }
-</script>
-{% endblock %}
+<style>
+.form-control-plaintext {
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+</style>
