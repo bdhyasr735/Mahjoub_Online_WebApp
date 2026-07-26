@@ -70,6 +70,11 @@ function syncProducts() {
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
     modal.style.display = 'block';
     
+    // ✅ تحديث التقدم
+    if (typeof updateSyncProgress === 'function') {
+        updateSyncProgress('جاري الاتصال بالخادم...', 25);
+    }
+    
     // الحصول على CSRF Token
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
     
@@ -84,17 +89,37 @@ function syncProducts() {
     })
     .then(response => response.json())
     .then(data => {
+        // ✅ تحديث التقدم
+        if (typeof updateSyncProgress === 'function') {
+            updateSyncProgress('جاري معالجة البيانات...', 75);
+        }
+        
         if (data.success) {
-            showToast('success', '✅ ' + (data.message || 'تمت المزامنة بنجاح'));
+            // ✅ استخدام showSyncResult إذا كانت موجودة
+            if (typeof showSyncResult === 'function') {
+                showSyncResult(true, '✅ ' + (data.message || 'تمت المزامنة بنجاح'), 
+                    `تمت مزامنة ${data.syncedCount || 0} منتج`);
+            } else {
+                showToast('success', '✅ ' + (data.message || 'تمت المزامنة بنجاح'));
+            }
+            
             setTimeout(() => {
                 window.location.reload();
-            }, 1500);
+            }, 2000);
         } else {
-            showToast('error', '❌ ' + (data.message || 'فشلت المزامنة'));
+            if (typeof showSyncResult === 'function') {
+                showSyncResult(false, '❌ ' + (data.message || 'فشلت المزامنة'));
+            } else {
+                showToast('error', '❌ ' + (data.message || 'فشلت المزامنة'));
+            }
         }
     })
     .catch(error => {
-        showToast('error', '❌ حدث خطأ في الاتصال: ' + error);
+        if (typeof showSyncResult === 'function') {
+            showSyncResult(false, '❌ حدث خطأ في الاتصال: ' + error);
+        } else {
+            showToast('error', '❌ حدث خطأ في الاتصال: ' + error);
+        }
     })
     .finally(() => {
         // إعادة تفعيل الزر
@@ -102,7 +127,7 @@ function syncProducts() {
         button.innerHTML = '<i class="fas fa-sync"></i> مزامنة الآن';
         setTimeout(() => {
             modal.style.display = 'none';
-        }, 2000);
+        }, 3000);
     });
 }
 
