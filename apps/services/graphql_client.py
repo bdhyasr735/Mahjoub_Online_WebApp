@@ -1,62 +1,256 @@
 # coding: utf-8
-# 📂 apps/services/graphql_client.py
+# 📂 apps/services/product_service.py
 
-import requests
-import os
-import logging
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-from typing import Dict, Any, Optional
-
-# إعدادات الجلسة مع آلية إعادة المحاولة تلقائياً
-_session = requests.Session()
-_retry_strategy = Retry(
-    total=3,
-    backoff_factor=1,
-    status_forcelist=[429, 500, 502, 503, 504],
-    allowed_methods=["POST"]
-)
-_session.mount("https://", HTTPAdapter(max_retries=_retry_strategy))
-_session.mount("http://", HTTPAdapter(max_retries=_retry_strategy))
+from typing import List, Optional, Dict
+from graphql_client import GraphQLClient
 
 
-class GraphQLClient:
-    """عميل GraphQL متطور - يدعم التنفيذ وإدارة التوثيق"""
+class VariantService:
+    """خدمة لإدارة متغيرات المنتجات"""
     
-    def __init__(self, endpoint: str = None, api_key: str = None):
-        self.endpoint = endpoint or os.environ.get('GRAPHQL_ENDPOINT', 'https://mahjoub.online/admin/graphql')
-        self.api_key = api_key or os.environ.get('QUMRA_API_KEY')
-        
-    def _get_headers(self) -> Dict:
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
+    def __init__(self, client: GraphQLClient):
+        self.client = client
+    
+    def get_variants_by_product(self, product_id: str) -> List[Dict]:
+        """
+        جلب جميع متغيرات المنتج
+        """
+        query = """
+        query FindAllVariantsByProductId($productId: ID!) {
+          findAllVariantsByProductId(productId: $productId) {
+            id
+            qid
+            sku
+            barcode
+            price
+            compareAtPrice
+            costPerItem
+            quantity
+            weight
+            weightUnit
+            position
+            isActive
+            isAvailable
+            isDefault
+            
+            options {
+              id
+              name
+              value
+              position
+            }
+            
+            image {
+              id
+              url
+              altText
+              width
+              height
+            }
+            
+            inventory {
+              id
+              quantity
+              available
+              reserved
+              location
+              warehouse
+            }
+            
+            product {
+              id
+              qid
+              name
+              price
+              mainImage {
+                url
+                altText
+              }
+            }
+          }
         }
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-        return headers
+        """
+        
+        variables = {"productId": product_id}
+        result = self.client.execute(query, variables) or {}
+        return result.get('findAllVariantsByProductId', [])
     
-    def execute(self, query: str, variables: Optional[Dict] = None) -> Optional[Dict]:
-        """تنفيذ أي استعلام أو تعديل GraphQL"""
-        try:
-            response = _session.post(
-                self.endpoint,
-                json={'query': query, 'variables': variables or {}},
-                headers=self._get_headers(),
-                timeout=30
-            )
+    def get_variant_by_id(self, variant_id: str) -> Optional[Dict]:
+        """
+        جلب متغير بواسطة ID
+        """
+        query = """
+        query FindVariantById($id: ID!) {
+          findVariantById(id: $id) {
+            id
+            qid
+            sku
+            barcode
+            price
+            compareAtPrice
+            costPerItem
+            quantity
+            weight
+            weightUnit
+            position
+            isActive
+            isAvailable
+            isDefault
             
-            if response.status_code != 200:
-                logging.error(f"HTTP {response.status_code}: {response.text[:200]}")
-                return None
-                
-            result = response.json()
-            if 'errors' in result:
-                logging.error(f"GraphQL Errors: {result['errors']}")
-                return None
-                
-            return result.get('data', {})
+            options {
+              id
+              name
+              value
+              position
+            }
             
-        except Exception as e:
-            logging.error(f"Request failed: {str(e)}")
-            return None
+            image {
+              id
+              url
+              altText
+              width
+              height
+            }
+            
+            inventory {
+              id
+              quantity
+              available
+              reserved
+              location
+              warehouse
+            }
+            
+            product {
+              id
+              qid
+              name
+              price
+              mainImage {
+                url
+                altText
+              }
+            }
+          }
+        }
+        """
+        
+        variables = {"id": variant_id}
+        result = self.client.execute(query, variables) or {}
+        return result.get('findVariantById')
+    
+    def get_variant_by_sku(self, sku: str) -> Optional[Dict]:
+        """
+        جلب متغير بواسطة SKU
+        """
+        query = """
+        query FindVariantBySku($sku: String!) {
+          findVariantBySku(sku: $sku) {
+            id
+            qid
+            sku
+            barcode
+            price
+            compareAtPrice
+            quantity
+            isAvailable
+            options {
+              name
+              value
+            }
+            image {
+              url
+              altText
+            }
+            inventory {
+              quantity
+              available
+              location
+            }
+            product {
+              id
+              name
+              price
+            }
+          }
+        }
+        """
+        
+        variables = {"sku": sku}
+        result = self.client.execute(query, variables) or {}
+        return result.get('findVariantBySku')
+    
+    def get_variants_inventory(self, product_id: str) -> List[Dict]:
+        """
+        جلب مخزون متغيرات المنتج
+        """
+        query = """
+        query GetVariantsInventory($productId: ID!) {
+          findAllVariantsByProductId(productId: $productId) {
+            id
+            sku
+            quantity
+            isAvailable
+            inventory {
+              id
+              quantity
+              available
+              reserved
+              location
+            }
+            options {
+              name
+              value
+            }
+          }
+        }
+        """
+        
+        variables = {"productId": product_id}
+        result = self.client.execute(query, variables) or {}
+        return result.get('findAllVariantsByProductId', [])
+    
+    def get_variants_prices(self, product_id: str) -> List[Dict]:
+        """
+        جلب أسعار متغيرات المنتج
+        """
+        query = """
+        query GetVariantsPrices($productId: ID!) {
+          findAllVariantsByProductId(productId: $productId) {
+            id
+            sku
+            price
+            compareAtPrice
+            costPerItem
+            currency
+            options {
+              name
+              value
+            }
+          }
+        }
+        """
+        
+        variables = {"productId": product_id}
+        result = self.client.execute(query, variables) or {}
+        return result.get('findAllVariantsByProductId', [])
+    
+    def get_variant_by_options(self, product_id: str, options: Dict[str, str]) -> Optional[Dict]:
+        """
+        جلب متغير حسب الخيارات (مثل: اللون والحجم)
+        """
+        variants = self.get_variants_by_product(product_id)
+        
+        for variant in variants:
+            variant_options = {opt['name']: opt['value'] for opt in variant.get('options', [])}
+            if all(variant_options.get(k) == v for k, v in options.items()):
+                return variant
+        
+        return None
+    
+    def get_available_variants(self, product_id: str) -> List[Dict]:
+        """
+        جلب المتغيرات المتاحة للبيع فقط
+        """
+        variants = self.get_variants_by_product(product_id)
+        return [v for v in variants if v.get('isAvailable') and v.get('quantity', 0) > 0]
