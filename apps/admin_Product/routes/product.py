@@ -2,17 +2,14 @@
 # 📂 apps/admin_Product/routes/products.py
 # عرض قائمة المنتجات
 
-from flask import render_template, request, redirect, url_for, flash, session
+from flask import render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_required
-from apps.admin_Product.routes import admin_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_db import Supplier
 
 
-@admin_product_bp.route('/products', methods=['GET'])
-@login_required
-def manage_products():
+def manage_products_view():
     """عرض قائمة المنتجات مع دعم الترقيم والبحث"""
     try:
         user_type = session.get('user_type')
@@ -57,3 +54,10 @@ def manage_products():
             search_title=request.args.get('title', ''),
             pagination={"currentPage": 1, "totalPages": 1, "limit": 0}
         )
+
+
+# ✅ تسجيل الـ Route يدوياً بعد إنشاء الـ Blueprint
+def register_products_route(bp):
+    """تسجيل Route المنتجات على Blueprint معين"""
+    bp.add_url_rule('/products', view_func=manage_products_view, methods=['GET'])
+    return bp
