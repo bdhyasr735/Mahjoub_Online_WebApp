@@ -3,6 +3,9 @@
 
 import json
 import os
+import functools
+import traceback
+import logging
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
 from flask_login import login_required
@@ -11,7 +14,37 @@ from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
 
+logger = logging.getLogger(__name__)
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
+
+
+def analyze_render_error(route_func):
+    """
+    مزيّن (Decorator) متقدم لتحليل أخطاء سيرفر Render وإرجاع التفاصيل التقنية بدقة وسجلات واضحة.
+    """
+    @functools.wraps(route_func)
+    def wrapper(*args, **kwargs):
+        try:
+            return route_func(*args, **kwargs)
+        except Exception as e:
+            error_type = type(e).__name__
+            error_message = str(e)
+            tb_details = traceback.format_exc()
+            
+            print(f"\n================ 🚨 RENDER ERROR TRACEBACK ================")
+            print(f"📍 المسار أو الدالة: {route_func.__name__}")
+            print(f"🔴 نوع الخطأ: {error_type}")
+            print(f"💬 التفاصيل: {error_message}")
+            print(f"🛠️ التتبع البرمجي:\n{tb_details}")
+            print(f"===========================================================\n")
+            
+            return jsonify({
+                "success": False,
+                "error_type": error_type,
+                "message": f"❌ خطأ في Render [{error_type}]: {error_message}"
+            }), 500
+            
+    return wrapper
 
 
 # ============================================================
@@ -223,38 +256,31 @@ def get_stats():
 
 
 # ============================================================
-# ✅ مزامنة المنتجات
+# ✅ مزامنة المنتجات (مع تحليل الأخطاء المتقدم لبيئة Render)
 # ============================================================
 @admin_product_bp.route('/products/sync-products', methods=['POST'])
 @login_required
+@analyze_render_error
 def sync_products():
-    """مزامنة المنتجات"""
-    try:
-        user_type = session.get('user_type')
-        if user_type != 'admin':
-            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
-        
-        products = services.products.get_all()
-        
-        if products:
-            return jsonify({
-                'success': True,
-                'message': f'✅ تمت المزامنة بنجاح وجلب {len(products)} منتجاً.',
-                'count': len(products)
-            })
-        else:
-            return jsonify({
-                'success': True,
-                'message': 'ℹ️ لا توجد منتجات جديدة للمزامنة',
-                'count': 0
-            })
-        
-    except Exception as e:
-        print(f"❌ خطأ أثناء المزامنة: {e}")
+    """مزامنة المنتجات مع رصد الأخطاء وتحليلها بدقة"""
+    user_type = session.get('user_type')
+    if user_type != 'admin':
+        return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+    
+    products = services.products.get_all()
+    
+    if products:
         return jsonify({
-            'success': False, 
-            'message': f'❌ حدث خطأ أثناء المزامنة: {str(e)}'
-        }), 500
+            'success': True,
+            'message': f'✅ تمت المزامنة بنجاح وجلب {len(products)} منتجاً.',
+            'count': len(products)
+        })
+    else:
+        return jsonify({
+            'success': True,
+            'message': 'ℹ️ لا توجد منتجات جديدة للمزامنة',
+            'count': 0
+        })
 
 
 # ============================================================
