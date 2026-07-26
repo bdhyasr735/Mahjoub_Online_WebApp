@@ -1,11 +1,7 @@
 <!-- 📂 apps/admin_Product/templates/admin/includes/_sync_modal.html -->
 <!-- نافذة المزامنة المنبثقة -->
-<div id="syncModal" style="display:none;">
+<div id="syncModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center;">
     <div style="
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
         background: white;
         padding: 40px;
         border-radius: 16px;
@@ -13,7 +9,7 @@
         text-align: center;
         min-width: 320px;
         max-width: 90%;
-        z-index: 10000;
+        width: 400px;
     ">
         <!-- أيقونة التحميل -->
         <div class="spinner-border text-primary" style="width: 3.5rem; height: 3.5rem;" role="status">
