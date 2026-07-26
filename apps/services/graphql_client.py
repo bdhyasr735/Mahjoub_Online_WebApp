@@ -21,15 +21,21 @@ class GraphQLClient:
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
+            "x-apollo-operation-name": "FindAllProducts",  # ✅ إضافة لتجنب CSRF
+            "apollo-require-preflight": "true"             # ✅ إضافة لتجنب CSRF
         }
     
-    def execute(self, query: str, variables: Optional[Dict] = None) -> Dict[str, Any]:
+    def execute(self, query: str, variables: Optional[Dict] = None, operation_name: Optional[str] = None) -> Dict[str, Any]:
         """
         تنفيذ استعلام GraphQL وإرجاع النتيجة.
         """
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
+        if operation_name:
+            payload["operationName"] = operation_name
+            # ✅ تحديث header مع اسم العملية
+            self.headers["x-apollo-operation-name"] = operation_name
         
         try:
             response = requests.post(
