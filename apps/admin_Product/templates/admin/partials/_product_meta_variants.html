@@ -1,310 +1,133 @@
-<!-- القسم الرابع: متغيرات المنتج (Variants) -->
-<div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-[var(--royal-purple-light)]">
+<!-- 📂 apps/admin_Product/templates/admin/partials/_product_meta_variants.html -->
+<!-- بيانات المتغيرات والـ Meta للمنتج -->
 
-  <!-- عنوان القسم + زر إضافة -->
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 border-b pb-3 border-[var(--royal-purple-light)]">
-    <h2 class="text-lg font-bold text-[var(--royal-midnight-900)] flex items-center gap-2">
-      <i class="fa-solid fa-boxes-stacked text-[var(--royal-purple-accent)]"></i> متغيرات المنتج (Variants)
-    </h2>
-    <button type="button" id="addVariantBtn" 
-            class="bg-[var(--royal-midnight-800)] hover:bg-[var(--royal-midnight-900)] text-white text-sm px-4 py-2 rounded-xl font-semibold transition flex items-center gap-1 cursor-pointer shadow-xs">
-      <i class="fa-solid fa-plus"></i> إضافة متغير جديد
-    </button>
-  </div>
-
-  <!-- ✅ جدول المتغيرات (بدون SKU) -->
-  <div class="overflow-x-auto">
-    <table class="w-full text-right border-collapse min-w-[400px]">
-      <thead>
-        <tr class="bg-[var(--royal-midnight-800)]/5 text-gray-700 text-sm">
-          <th class="p-3 border-b">#</th>
-          <th class="p-3 border-b">💰 السعر</th>
-          <th class="p-3 border-b">📊 الكمية</th>
-          <th class="p-3 border-b text-center">🗑️ حذف</th>
-        </tr>
-      </thead>
-      <tbody id="variantsTableBody" class="text-sm">
-        {% if product.variants and product.variants|length > 0 %}
-          {% for var in product.variants %}
-          <tr class="variant-row">
-            <td class="p-2 border-b text-center variant-index">{{ loop.index }}</td>
-            <!-- ✅ تم إزالة عمود SKU -->
-            <td class="p-2 border-b">
-              <input type="number" step="0.01" name="variant_price[]" 
-                     value="{{ var.pricing.price if var.pricing and var.pricing.price is defined else 0 }}" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-price" 
-                     placeholder="0.00" required>
-            </td>
-            <td class="p-2 border-b">
-              <input type="number" step="1" name="variant_qty[]" 
-                     value="{{ var.quantity if var.quantity is defined else 0 }}" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-qty" 
-                     placeholder="0" required>
-            </td>
-            <td class="p-2 border-b text-center">
-              <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer transition hover:scale-110" title="حذف المتغير">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </td>
-          </tr>
-          {% endfor %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-layer-group text-info me-2"></i> المتغيرات (Variants)
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if product and product.variants and product.variants|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>SKU</th>
+                        <th>السعر</th>
+                        <th>الكمية</th>
+                        <th>الخيارات</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for variant in product.variants %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><code>{{ variant.sku or '-' }}</code></td>
+                        <td class="text-primary">{{ variant.price or 0 }} ر.س</td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if variant.quantity|int > 0 else 'bg-danger' }}">
+                                {{ variant.quantity or 0 }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if variant.options %}
+                                {% for opt in variant.options %}
+                                <span class="badge bg-secondary me-1">{{ opt.name }}: {{ opt.value }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if variant.isActive else 'bg-secondary' }}">
+                                {{ 'نشط' if variant.isActive else 'غير نشط' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <small class="text-muted">إجمالي المتغيرات: {{ product.variants|length }}</small>
         {% else %}
-          <!-- ✅ صف فارغ لإضافة أول متغير (بدون SKU) -->
-          <tr class="variant-row">
-            <td class="p-2 border-b text-center variant-index">1</td>
-            <td class="p-2 border-b">
-              <input type="number" step="0.01" name="variant_price[]" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-price" 
-                     placeholder="0.00" required>
-            </td>
-            <td class="p-2 border-b">
-              <input type="number" step="1" name="variant_qty[]" 
-                     class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-qty" 
-                     placeholder="0" required>
-            </td>
-            <td class="p-2 border-b text-center">
-              <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer transition hover:scale-110" title="حذف المتغير">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </td>
-          </tr>
+        <div class="text-center py-3 text-muted">
+            <i class="fas fa-cubes fa-2x mb-2 d-block"></i>
+            <p>لا توجد متغيرات لهذا المنتج</p>
+        </div>
         {% endif %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- ✅ قالب المتغير الجديد (مخفي) -->
-  <template id="variantTemplate">
-    <tr class="variant-row">
-      <td class="p-2 border-b text-center variant-index"></td>
-      <td class="p-2 border-b">
-        <input type="number" step="0.01" name="variant_price[]" 
-               class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-price" 
-               placeholder="0.00" required>
-      </td>
-      <td class="p-2 border-b">
-        <input type="number" step="1" name="variant_qty[]" 
-               class="w-full px-3 py-1.5 border rounded-xl royal-focus outline-none transition text-left variant-qty" 
-               placeholder="0" required>
-      </td>
-      <td class="p-2 border-b text-center">
-        <button type="button" class="text-red-500 hover:text-red-700 remove-variant p-2 cursor-pointer transition hover:scale-110" title="حذف المتغير">
-          <i class="fa-solid fa-trash"></i>
-        </button>
-      </td>
-    </tr>
-  </template>
-
-  <!-- ✅ ملاحظة توضيحية -->
-  <p class="text-xs text-gray-500 mt-3 flex items-center gap-1">
-    <i class="fa-solid fa-info-circle"></i>
-    <span>ملاحظة: المتغيرات لا تحتوي على SKU منفصل. يمكنك استخدام حقل SKU الرئيسي للمنتج.</span>
-  </p>
-
+    </div>
 </div>
 
-<!-- ✅ JavaScript للتعامل مع المتغيرات -->
-<script>
-  (function() {
-    'use strict';
-
-    // تحديث أرقام المتغيرات
-    function updateVariantIndices() {
-      const rows = document.querySelectorAll('#variantsTableBody .variant-row');
-      rows.forEach((row, index) => {
-        const indexCell = row.querySelector('.variant-index');
-        if (indexCell) {
-          indexCell.textContent = index + 1;
-        }
-      });
-    }
-
-    // إضافة متغير جديد
-    const addBtn = document.getElementById('addVariantBtn');
-    if (addBtn) {
-      addBtn.addEventListener('click', function() {
-        const template = document.getElementById('variantTemplate');
-        const tbody = document.getElementById('variantsTableBody');
+<div class="card shadow-sm">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-code text-secondary me-2"></i> البيانات الوصفية (Meta)
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">العنوان (SEO)</label>
+                <p class="form-control-plaintext">{{ product.seo.title or '-' }}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">الوصف (SEO)</label>
+                <p class="form-control-plaintext">{{ product.seo.description or '-' }}</p>
+            </div>
+        </div>
         
-        if (template && tbody) {
-          const clone = template.content.cloneNode(true);
-          tbody.appendChild(clone);
-          updateVariantIndices();
-          
-          // التركيز على الحقل الأول في الصف الجديد
-          const newRow = tbody.lastElementChild;
-          const firstInput = newRow.querySelector('input');
-          if (firstInput) {
-            setTimeout(() => firstInput.focus(), 100);
-          }
-        }
-      });
-    }
-
-    // حذف متغير
-    document.addEventListener('click', function(e) {
-      const removeBtn = e.target.closest('.remove-variant');
-      if (removeBtn) {
-        const row = removeBtn.closest('.variant-row');
-        const tbody = document.getElementById('variantsTableBody');
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">الكلمات المفتاحية</label>
+                <p class="form-control-plaintext">{{ product.seo.keywords or '-' }}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">العلامات (Tags)</label>
+                <p class="form-control-plaintext">{{ product.tags|join(', ') if product.tags else '-' }}</p>
+            </div>
+        </div>
         
-        if (row && tbody) {
-          // التأكد من وجود على الأقل صف واحد
-          if (tbody.querySelectorAll('.variant-row').length <= 1) {
-            // عرض تنبيه بدلاً من الحذف
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm flex items-center gap-2';
-            alertDiv.innerHTML = `
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              <span>لا يمكن حذف المتغير الوحيد. يمكنك تعديل قيمته بدلاً من ذلك.</span>
-            `;
-            
-            // إزالة أي تنبيه سابق
-            const existingAlert = row.closest('div')?.querySelector('.bg-yellow-50');
-            if (existingAlert) existingAlert.remove();
-            
-            // إضافة التنبيه قبل الجدول
-            const container = row.closest('.overflow-x-auto');
-            if (container) {
-              container.parentNode.insertBefore(alertDiv, container);
-              setTimeout(() => {
-                alertDiv.remove();
-              }, 3000);
-            }
-            return;
-          }
-          
-          if (confirm('هل أنت متأكد من حذف هذا المتغير؟')) {
-            row.remove();
-            updateVariantIndices();
-          }
-        }
-      }
-    });
+        <div class="row">
+            <div class="col-12">
+                <label class="form-label fw-bold">التصنيفات</label>
+                {% if product.categories and product.categories|length > 0 %}
+                    {% for cat in product.categories %}
+                    <span class="badge bg-primary me-1">{{ cat.name }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="text-muted">-</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 
-    // ✅ جمع بيانات المتغيرات عند إرسال النموذج
-    function collectVariantsData() {
-      const variants = [];
-      const rows = document.querySelectorAll('#variantsTableBody .variant-row');
-      
-      rows.forEach(row => {
-        const priceInput = row.querySelector('.variant-price');
-        const qtyInput = row.querySelector('.variant-qty');
-        
-        if (priceInput && qtyInput) {
-          const price = parseFloat(priceInput.value) || 0;
-          const quantity = parseInt(qtyInput.value) || 0;
-          
-          variants.push({
-            price: price,
-            quantity: quantity
-          });
-        }
-      });
-      
-      return variants;
-    }
+<!-- معلومات إضافية عن المجموعات -->
+{% if product and product.collections and product.collections|length > 0 %}
+<div class="card shadow-sm mt-3">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-folder-open text-warning me-2"></i> المجموعات
+        </h5>
+    </div>
+    <div class="card-body">
+        {% for collection in product.collections %}
+        <span class="badge bg-warning text-dark me-1">
+            <i class="fas fa-folder me-1"></i> {{ collection.name }}
+        </span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
-    // ✅ إضافة حقل مخفي للـ variants عند إرسال النموذج
-    const form = document.getElementById('editProductForm');
-    if (form) {
-      form.addEventListener('submit', function(e) {
-        const variants = collectVariantsData();
-        // إزالة أي حقل سابق
-        const existingField = form.querySelector('input[name="variants_json"]');
-        if (existingField) {
-          existingField.remove();
-        }
-        
-        // إضافة الحقل الجديد
-        const hiddenField = document.createElement('input');
-        hiddenField.type = 'hidden';
-        hiddenField.name = 'variants_json';
-        hiddenField.value = JSON.stringify(variants);
-        form.appendChild(hiddenField);
-        
-        // ✅ تحديث حقول المتغيرات العادية للتأكد من وجود قيم
-        const priceInputs = form.querySelectorAll('input[name="variant_price[]"]');
-        const qtyInputs = form.querySelectorAll('input[name="variant_qty[]"]');
-        
-        priceInputs.forEach(input => {
-          if (!input.value || input.value === '') {
-            input.value = '0';
-          }
-        });
-        
-        qtyInputs.forEach(input => {
-          if (!input.value || input.value === '') {
-            input.value = '0';
-          }
-        });
-      });
-    }
-
-    // ✅ تحديث الأرقام عند تحميل الصفحة
-    document.addEventListener('DOMContentLoaded', function() {
-      updateVariantIndices();
-    });
-
-  })();
-</script>
-
-<!-- ✅ CSS إضافي -->
 <style>
-  .variant-row {
-    transition: all 0.2s ease;
-  }
-  
-  .variant-row:hover {
-    background-color: rgba(107, 33, 168, 0.03);
-  }
-  
-  .variant-row input {
-    transition: all 0.2s ease;
-    background-color: #fafafa;
-  }
-  
-  .variant-row input:focus {
-    background-color: white;
-    border-color: #6b21a8;
-    box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
-  }
-  
-  .variant-row .remove-variant {
-    opacity: 0.6;
-    transition: all 0.2s ease;
-  }
-  
-  .variant-row:hover .remove-variant {
-    opacity: 1;
-  }
-  
-  .variant-index {
-    font-weight: 600;
-    color: #6b21a8;
-    font-size: 0.85rem;
-  }
-  
-  .bg-yellow-50 {
-    background-color: #fefce8;
-  }
-  
-  .border-yellow-200 {
-    border-color: #fde68a;
-  }
-  
-  .text-yellow-800 {
-    color: #92400e;
-  }
-  
-  /* تحسين مظهر الأرقام */
-  input[type="number"] {
-    -moz-appearance: textfield;
-  }
-  
-  input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
+.form-control-plaintext {
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
 </style>
