@@ -21,27 +21,34 @@ class GraphQLClient:
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "x-apollo-operation-name": "FindAllProducts",  # ✅ إضافة لتجنب CSRF
-            "apollo-require-preflight": "true"             # ✅ إضافة لتجنب CSRF
+            "x-apollo-operation-name": "FindAllProducts",  # ✅ لتجنب CSRF
+            "apollo-require-preflight": "true"             # ✅ لتجنب CSRF
         }
     
     def execute(self, query: str, variables: Optional[Dict] = None, operation_name: Optional[str] = None) -> Dict[str, Any]:
         """
         تنفيذ استعلام GraphQL وإرجاع النتيجة.
         """
+        # بناء الـ payload
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
         if operation_name:
             payload["operationName"] = operation_name
-            # تحديث header مع اسم العملية
-            self.headers["x-apollo-operation-name"] = operation_name
+        
+        # ✅ نسخ الـ headers لتجنب تعديل الـ original
+        headers = self.headers.copy()
+        if operation_name:
+            headers["x-apollo-operation-name"] = operation_name
+        # ✅ إذا لم يكن هناك operation_name، استخدم الافتراضي
+        elif "x-apollo-operation-name" not in headers:
+            headers["x-apollo-operation-name"] = "FindAllProducts"
         
         try:
             response = requests.post(
                 self.endpoint,
                 json=payload,
-                headers=self.headers,
+                headers=headers,
                 timeout=30
             )
             response.raise_for_status()
