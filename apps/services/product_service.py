@@ -40,7 +40,8 @@ class ProductService:
         variables = {"input": input_data or {}}
         
         try:
-            data = self.client.execute(query, variables)
+            # ✅ تمرير operation_name لتجنب CSRF
+            data = self.client.execute(query, variables, operation_name="FindAllProducts")
             if data and "findAllProducts" in data:
                 return data["findAllProducts"]
             return []
@@ -66,7 +67,8 @@ class ProductService:
         variables = {"qid": qid}
         
         try:
-            data = self.client.execute(query, variables)
+            # ✅ تمرير operation_name لتجنب CSRF
+            data = self.client.execute(query, variables, operation_name="FindProductByQid")
             if data and "findProductByQid" in data:
                 return data["findProductByQid"]
             return None
@@ -89,7 +91,8 @@ class ProductService:
         """
         
         try:
-            data = self.client.execute(query)
+            # ✅ تمرير operation_name لتجنب CSRF
+            data = self.client.execute(query, operation_name="FindProductStatus")
             if data and "findProductStatus" in data:
                 return data["findProductStatus"]
             return []
@@ -112,7 +115,8 @@ class ProductService:
         """
         
         try:
-            data = self.client.execute(query)
+            # ✅ تمرير operation_name لتجنب CSRF
+            data = self.client.execute(query, operation_name="FindTopViewedProducts")
             if data and "FindTopViewedProducts" in data:
                 return data["FindTopViewedProducts"]
             return []
@@ -137,7 +141,8 @@ class ProductService:
         variables = {"input": input_data}
         
         try:
-            data = self.client.execute(query, variables)
+            # ✅ تمرير operation_name لتجنب CSRF
+            data = self.client.execute(query, variables, operation_name="CreateProduct")
             if data and "createProduct" in data:
                 return data["createProduct"]
             return {}
@@ -162,7 +167,8 @@ class ProductService:
         variables = {"input": input_data}
         
         try:
-            data = self.client.execute(query, variables)
+            # ✅ تمرير operation_name لتجنب CSRF
+            data = self.client.execute(query, variables, operation_name="UpdateProduct")
             if data and "updateProduct" in data:
                 return data["updateProduct"]
             return {}
