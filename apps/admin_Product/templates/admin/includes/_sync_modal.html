@@ -94,7 +94,7 @@
 
                     const data = await response.json();
                     
-                    if (data.success) {
+                    if (response.ok && data.success) {
                         const modalEl = document.getElementById('syncModal');
                         const modal = bootstrap.Modal.getInstance(modalEl);
                         if (modal) modal.hide();
