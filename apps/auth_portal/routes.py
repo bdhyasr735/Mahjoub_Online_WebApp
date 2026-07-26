@@ -19,21 +19,33 @@ auth_portal = Blueprint(
 LOGIN_PATH = os.environ.get('ADMIN_LOGIN_PATH', '/m7jb_sovereign_hq_v2_99x')
 
 def get_admin_dashboard_url():
-    """دالة ذكية للبحث عن مسار لوحة التحكم الصحيح وتجنب أخطاء البناء"""
-    possible_endpoints = [
-        'admin_dashboard_bp.dashboard',
-        'admin_dashboard.dashboard',
-        'admin.dashboard',
-        'dashboard',
-        'admin_dashboard_bp.index',
-        'admin.index'
-    ]
-    for endpoint in possible_endpoints:
-        try:
-            return url_for(endpoint)
-        except BuildError:
-            continue
-    return '/'
+    """دالة ذكية للبحث عن مسار لوحة التحكم الصحيح"""
+    # ✅ محاولة العثور على مسار dashboard
+    try:
+        return url_for('admin_dashboard_bp.dashboard')
+    except BuildError:
+        pass
+    
+    # ✅ محاولة العثور على مسار admin_dashboard
+    try:
+        return url_for('admin_dashboard.dashboard')
+    except BuildError:
+        pass
+    
+    # ✅ محاولة العثور على مسار admin.index
+    try:
+        return url_for('admin.index')
+    except BuildError:
+        pass
+    
+    # ✅ محاولة العثور على مسار dashboard
+    try:
+        return url_for('dashboard')
+    except BuildError:
+        pass
+    
+    # ✅ مسار احتياطي
+    return '/admin/dashboard'
 
 @auth_portal.route(LOGIN_PATH, methods=['GET', 'POST'])
 def login():
@@ -65,6 +77,7 @@ def login():
         # 4. معالجة الدخول
         if user and user.is_active:
             login_user(user, remember=True)
+            session['user_id'] = user.id  # ✅ تأكد من تعيين user_id
             session['user_type'] = user_type
             
             flash(f'مرحباً بك يا {user.role}.', 'success')
