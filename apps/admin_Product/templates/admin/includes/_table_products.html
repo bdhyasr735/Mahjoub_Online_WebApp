@@ -17,13 +17,13 @@
         </thead>
         <tbody>
             {% for product in products %}
-            <tr>
+            <tr id="product-row-{{ product.qid }}">
                 <td>{{ loop.index }}</td>
                 <td>
-                    <img src="{{ product.images[0].fileUrl if product.images else '/static/images/default.png' }}"
+                    <img src="{{ product.images[0].fileUrl if product.images else url_for('static', filename='images/default.png') }}"
                          alt="{{ product.title }}"
                          style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
-                         onerror="this.src='/static/images/default.png'">
+                         onerror="this.src='{{ url_for('static', filename='images/default.png') }}'">
                 </td>
                 <td class="fw-bold text-truncate" style="max-width: 200px;">
                     {{ product.title }}
@@ -66,8 +66,9 @@
                            class="btn btn-outline-primary" title="تعديل المنتج">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <button type="button" class="btn btn-outline-danger" 
-                                onclick="deleteProduct('{{ product.qid }}')" title="حذف المنتج">
+                        <button type="button" class="btn btn-outline-danger delete-btn" 
+                                data-delete-url="{{ url_for('admin_product_bp.delete_product', qid=product.qid) }}" 
+                                title="حذف المنتج">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -110,47 +111,45 @@
 </nav>
 {% endif %}
 
-<!-- ✅ JavaScript للحذف -->
+<!-- ✅ JavaScript للحذف الديناميكي -->
 <script>
-function deleteProduct(qid) {
-    if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء!')) return;
-    
-    const btn = event?.target?.closest('button');
-    if (btn) {
+document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const deleteUrl = this.getAttribute('data-delete-url');
+        if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء!')) return;
+        
+        const btn = this;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-    }
-    
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+        
+        const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
 
-    fetch(`/admin/products/delete/${qid}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast('success', '✅ ' + data.message);
-            setTimeout(() => window.location.reload(), 1500);
-        } else {
-            showToast('error', '❌ ' + data.message);
-            if (btn) {
+        fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('success', '✅ ' + (data.message || 'تم حذف المنتج بنجاح'));
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast('error', '❌ ' + (data.message || 'فشل الحذف'));
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-trash"></i>';
             }
-        }
-    })
-    .catch(err => {
-        showToast('error', '❌ حدث خطأ: ' + err.message);
-        if (btn) {
+        })
+        .catch(err => {
+            showToast('error', '❌ حدث خطأ في الاتصال: ' + err.message);
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-trash"></i>';
-        }
+        });
     });
-}
+});
 
 function showToast(type, message) {
     const colors = {
