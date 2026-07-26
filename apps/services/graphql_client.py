@@ -25,7 +25,6 @@ class GraphQLClient:
         
         if self.api_key:
             token = self.api_key.strip()
-            # التعامل الذكي في حال كان المفتاح مسبوقاً بكلمة Bearer أو لا
             if not token.lower().startswith("bearer "):
                 headers["Authorization"] = f"Bearer {token}"
             else:
@@ -63,3 +62,20 @@ class GraphQLClient:
         except requests.exceptions.RequestException as e:
             print(f"❌ [Connection Exception]: {e}")
             return None
+
+    def test_connection(self) -> bool:
+        """
+        ✅ دالة جديدة لاختبار الاتصال والتحقق من صحة المصادقة قبل العمليات الكبرى
+        """
+        # استعلام خفيف جداً مدعوم في معظم خوادم GraphQL للاستعلام عن نوع البيانات الجذرية
+        introspection_query = "{ __typename }"
+        
+        print("🔄 [GraphQLClient]: جاري اختبار الاتصال بالمنصة...")
+        data = self.execute(introspection_query)
+        
+        if data is not None:
+            print("✅ [GraphQLClient]: تم الاتصال بنجاح والتحقق من صحة المصادقة.")
+            return True
+        else:
+            print("❌ [GraphQLClient]: فشل الاتصال أو تأكيد المفتاح، يرجى التحقق من الرابط والمفتاح.")
+            return False
