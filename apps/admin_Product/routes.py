@@ -267,20 +267,31 @@ def sync_products():
     if user_type != 'admin':
         return jsonify({'success': False, 'message': 'غير مصرح'}), 403
     
-    products = services.products.get_all()
+    # 1. جلب المنتجات من المصدر الخارجي أو السيرفر
+    external_products = services.products.get_all()
     
-    if products:
+    if not external_products:
         return jsonify({
             'success': True,
-            'message': f'✅ تمت المزامنة بنجاح وجلب {len(products)} منتجاً.',
-            'count': len(products)
+            'message': 'ℹ️ لا توجد منتجات للمزامنة',
+            'count': 0
+        })
+    
+    # 2. تنفيذ المزامنة والـ Upsert الفعلي عبر الخدمة المركزية
+    sync_result = services.products.sync_products(external_products)
+    
+    if sync_result.get('success'):
+        return jsonify({
+            'success': True,
+            'message': f"✅ تمت المزامنة بنجاح: تم إنشاء {sync_result.get('createdCount', 0)} وتحديث {sync_result.get('updatedCount', 0)} منتجاً.",
+            'stats': sync_result
         })
     else:
         return jsonify({
-            'success': True,
-            'message': 'ℹ️ لا توجد منتجات جديدة للمزامنة',
-            'count': 0
-        })
+            'success': False,
+            'message': '❌ فشلت عملية المزامنة',
+            'errors': sync_result.get('errors', [])
+        }), 500
 
 
 # ============================================================
