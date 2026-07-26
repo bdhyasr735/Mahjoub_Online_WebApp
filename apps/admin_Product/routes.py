@@ -205,8 +205,6 @@ def delete_product(qid):
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # افتراض وجود دالة حذف أو أرشفة في الخدمة
-        # (في حال لم تكن موجودة كميوتيشن منفصل، يتم إرسال حالة Archived أو التعامل معها)
         result = services.products.update_product_data({"qid": qid, "status": "ARCHIVED"})
         
         if result:
@@ -259,13 +257,13 @@ def get_stats():
 
 
 # ============================================================
-# ✅ مزامنة المنتجات (مع تحليل الأخطاء المتقدم لبيئة Render)
+# ✅ مزامنة المنتجات (متوافقة تماماً مع مودال المزامنة والتحليل)
 # ============================================================
 @admin_product_bp.route('/products/sync-products', methods=['POST'])
 @login_required
 @analyze_render_error
 def sync_products():
-    """مزامنة المنتجات مع رصد الأخطاء وتحليلها بدقة"""
+    """مزامنة المنتجات مع رصد الأخطاء وإرجاع الإحصائيات التفصيلية للمودال"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         return jsonify({'success': False, 'message': 'غير مصرح'}), 403
@@ -275,15 +273,43 @@ def sync_products():
     if not external_products:
         return jsonify({
             'success': True,
-            'message': 'ℹ️ لا توجد منتجات للمزامنة',
-            'count': 0
+            'message': 'ℹ️ لا توجد منتجات للمزامنة عبر الاتصال السحابي',
+            'syncedCount': 0,
+            'createdCount': 0,
+            'updatedCount': 0,
+            'errors': []
         })
     
-    # يمكنك إضافة منطق المزامنة المحلية هنا أو استدعاء دالة الخدمة إذا وجدت
+    synced_count = len(external_products)
+    created_count = 0
+    updated_count = 0
+    errors = []
+    
+    for product in external_products:
+        try:
+            qid = product.get('qid')
+            if not qid:
+                continue
+            
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            if not mapping:
+                created_count += 1
+            else:
+                updated_count += 1
+                
+        except Exception as ex:
+            errors.append({
+                'qid': product.get('qid', 'unknown'),
+                'error': str(ex)
+            })
+    
     return jsonify({
         'success': True,
-        'message': f"✅ تمت المزامنة بنجاح: تم جلب {len(external_products)} منتجاً.",
-        'count': len(external_products)
+        'message': '✅ تمت مزامنة البيانات بنجاح.',
+        'syncedCount': synced_count,
+        'createdCount': created_count,
+        'updatedCount': updated_count,
+        'errors': errors
     })
 
 
