@@ -6,11 +6,11 @@ from flask import Blueprint
 # إنشاء Blueprint الرئيسي
 admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='templates')
 
-# ✅ استيراد كل ملف على حدة
-from .sync import *
-from .reviews import *
-from .crud import *
-from .stats import *
-from .products import *
+# ✅ استيراد جميع الـ Routes
+from . import sync
+from . import reviews
+from . import crud
+from . import stats
+from . import products
 
 __all__ = ['admin_product_bp']
