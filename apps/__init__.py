@@ -133,9 +133,34 @@ def create_app():
 
     @login_manager.unauthorized_handler
     def unauthorized():
-        if request.path.startswith('/admin'):
-            return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
-        return redirect(url_for('suppliers_auth.login'))
+        if request.path.startswith('/supplier'):
+            return redirect(url_for('suppliers_auth.login'))
+        return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
+
+    # ============================================================
+    # 🔒 حماية الروابط والتحقق من التسجيل (حماية منطقية للبوابات)
+    # ============================================================
+    @app.before_request
+    def protect_routes():
+        path = request.path
+        
+        # استثناء الملفات الثابتة، مسارات المصادقة، والـ GraphQL لضمان عدم تأثر العرض والتصميم والاتصال
+        exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico']
+        if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
+            return
+
+        # التحقق من مسارات الموردين
+        if path.startswith('/supplier'):
+            if 'user_id' not in session or session.get('user_type') not in ['supplier', 'staff']:
+                return redirect(url_for('suppliers_auth.login'))
+                
+        # التحقق من باقي المسارات الإدارية واللوحات
+        elif path.startswith('/admin') or path.startswith('/dashboard') or not ('user_id' in session):
+            # إذا لم يكن مسجلاً، يتم تحويله إلى بوابة الإدارة الرئيسية بشكل منطقي
+            if 'user_id' not in session:
+                admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+                if not path.startswith(admin_login_path):
+                    return redirect(admin_login_path)
 
     # إعداد السياسة الأمنية (CSP)
     talisman.init_app(app, 
@@ -151,7 +176,7 @@ def create_app():
     )
 
     # ============================================================
-    # ✅ تسجيل البوابات الأساسية يدوياً (بوابة المصادقة الرئيسية، الموردين، GraphQL، والصفحة الرئيسية)
+    # ✅ تسجيل البوابات الأساسية يدوياً
     # ============================================================
     
     # 1. مسار الصفحة الرئيسية للتوجيه الآمن وتجنب 404
