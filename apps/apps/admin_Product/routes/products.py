@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/admin_product/routes/products.py
+# 📂 apps/admin_Product/routes/products.py
 # عرض قائمة المنتجات
 
 from flask import render_template, request, redirect, url_for, flash, session, current_app
