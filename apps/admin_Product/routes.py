@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, url_for, redirect, flash, session
 from flask_login import login_required
-from apps.services import ProductService, GraphQLClient
+from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
@@ -15,7 +15,7 @@ admin_product_bp = Blueprint('admin_product_bp', __name__, template_folder='temp
 
 
 # ============================================================
-# ✅ عرض قائمة المنتجات
+# ✅ عرض قائمة المنتجات (تظهر كل المنتجات: مرتبطة أو غير مرتبطة بمورد)
 # ============================================================
 @admin_product_bp.route('/products', methods=['GET'])
 @login_required
@@ -30,15 +30,13 @@ def manage_products():
         search_query = request.args.get('title', '', type=str)
         page = request.args.get('page', 1, type=int)
         
-        client = GraphQLClient()
-        products_service = ProductService(client)
-        
-        products = products_service.get_all()
+        # جلب جميع المنتجات من السيرفر عبر الخدمة المركزية
+        products = services.products.get_all()
         
         if search_query:
             products = [p for p in products if search_query.lower() in p.get('name', '').lower()]
         
-        # ✅ جلب الموردين للمنتجات
+        # ✅ ربط الموردين إن وجدوا، وإذا لم يوجد مورد يظهر المنتج كـ "غير مرتبط" دون حذفه
         for product in products:
             mapping = ProductSupplierMapping.query.filter_by(
                 product_qid=product.get('qid')
@@ -46,8 +44,10 @@ def manage_products():
             if mapping:
                 supplier = Supplier.query.get(mapping.supplier_id)
                 product['supplier_name'] = supplier.trade_name if supplier else 'غير معروف'
+                product['supplier_id'] = mapping.supplier_id
             else:
                 product['supplier_name'] = 'غير مرتبط'
+                product['supplier_id'] = None
         
         return render_template(
             'admin/admin_Product.html',
@@ -79,10 +79,7 @@ def review_products():
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
             return redirect(url_for('admin_dashboard_bp.dashboard'))
         
-        client = GraphQLClient()
-        products_service = ProductService(client)
-        all_products = products_service.get_all()
-        
+        all_products = services.products.get_all()
         draft_products = [p for p in all_products if p.get('status') == 'DRAFT']
         
         for product in draft_products:
@@ -134,9 +131,7 @@ def change_product_status(qid):
         if new_status not in valid_statuses:
             return jsonify({'success': False, 'message': 'حالة غير صالحة'}), 400
         
-        client = GraphQLClient()
-        products_service = ProductService(client)
-        result = products_service.update_status(qid, new_status)
+        result = services.products.update_status(qid, new_status)
         
         if result:
             mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
@@ -176,9 +171,7 @@ def delete_product(qid):
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        client = GraphQLClient()
-        products_service = ProductService(client)
-        result = products_service.delete(qid)
+        result = services.products.delete(qid)
         
         if result:
             mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
@@ -210,9 +203,7 @@ def get_stats():
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        client = GraphQLClient()
-        products_service = ProductService(client)
-        all_products = products_service.get_all()
+        all_products = services.products.get_all()
         
         stats = {
             'total': len(all_products),
@@ -243,9 +234,7 @@ def sync_products():
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        client = GraphQLClient()
-        products_service = ProductService(client)
-        products = products_service.get_all()
+        products = services.products.get_all()
         
         if products:
             return jsonify({
@@ -283,9 +272,6 @@ def add_product():
     
     if request.method == 'POST':
         try:
-            client = GraphQLClient()
-            products_service = ProductService(client)
-            
             raw_price = request.form.get('price')
             price_val = float(raw_price) if raw_price else 0.0
             
@@ -299,7 +285,7 @@ def add_product():
             if request.form.get('sku'):
                 product_data['sku'] = request.form.get('sku')
             
-            result = products_service.create(product_data)
+            result = services.products.create(product_data)
             
             if result and 'qid' in result:
                 supplier_id = request.form.get('supplier_id')
@@ -345,9 +331,7 @@ def edit_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
     
-    client = GraphQLClient()
-    products_service = ProductService(client)
-    product = products_service.get_by_qid(qid)
+    product = services.products.get_by_qid(qid)
 
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
@@ -392,9 +376,6 @@ def save_sync_product():
         except ValueError:
             price = 0.0
 
-        client = GraphQLClient()
-        products_service = ProductService(client)
-        
         update_data = {
             'name': title,
             'price': price,
@@ -405,7 +386,7 @@ def save_sync_product():
         if sku:
             update_data['sku'] = sku
         
-        result = products_service.update(qid, update_data)
+        result = services.products.update(qid, update_data)
 
         if not result:
             return jsonify({"status": "error", "message": "فشل حفظ التعديلات."}), 500
