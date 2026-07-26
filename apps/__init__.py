@@ -154,13 +154,23 @@ def create_app():
         if path.startswith('/supplier'):
             if 'user_id' not in session or session.get('user_type') not in ['supplier', 'staff']:
                 return redirect(url_for('suppliers_auth.login'))
-                
-        # التحقق من باقي المسارات الإدارية واللوحات
-        elif path.startswith('/admin') or path.startswith('/dashboard') or not ('user_id' in session):
+        
+        # 🔒 حماية جميع مسارات /admin و /dashboard
+        if path.startswith('/admin') or path.startswith('/dashboard'):
             if 'user_id' not in session:
                 admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-                if not path.startswith(admin_login_path):
-                    return redirect(admin_login_path)
+                return redirect(admin_login_path)
+            
+            # ✅ التحقق من صلاحية المستخدم
+            user_type = session.get('user_type')
+            if user_type not in ['admin', 'staff']:
+                return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
+        
+        # حماية أي مسار آخر يتطلب تسجيل دخول
+        if 'user_id' not in session:
+            admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+            if not path.startswith(admin_login_path):
+                return redirect(admin_login_path)
 
     # إعداد السياسة الأمنية (CSP)
     talisman.init_app(app, 
