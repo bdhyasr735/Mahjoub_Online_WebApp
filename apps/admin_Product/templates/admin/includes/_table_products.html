@@ -17,22 +17,26 @@
         </thead>
         <tbody>
             {% for product in products %}
-            <tr id="product-row-{{ product.qid }}">
+            {% set p_name = product.title or product.name or 'منتج بدون اسم' %}
+            {% set p_img = (product.mainImage.url if product.mainImage and product.mainImage.url else none) or (product.images[0].fileUrl if product.images else none) or url_for('static', filename='images/default.png') %}
+            {% set p_price = product.price if product.price is defined and product.price is not none else (product.pricing.price if product.pricing and product.pricing.price else 0) %}
+            
+            <tr id="product-row-{{ product.qid or product.id }}">
                 <td>{{ loop.index }}</td>
                 <td>
-                    <img src="{{ product.images[0].fileUrl if product.images else url_for('static', filename='images/default.png') }}"
-                         alt="{{ product.title }}"
+                    <img src="{{ p_img }}"
+                         alt="{{ p_name }}"
                          style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
                          onerror="this.src='{{ url_for('static', filename='images/default.png') }}'">
                 </td>
                 <td class="fw-bold text-truncate" style="max-width: 200px;">
-                    {{ product.title }}
+                    {{ p_name }}
                     {% if product.description %}
                     <br><small class="text-muted">{{ product.description|striptags|truncate(40) }}</small>
                     {% endif %}
                 </td>
                 <td class="text-primary fw-bold">
-                    {{ "%.2f"|format(product.pricing.price if product.pricing and product.pricing.price else 0) }} ر.س
+                    {{ "%.2f"|format(p_price|float) }} ر.س
                 </td>
                 <td>
                     <span class="badge {{ 'bg-success' if product.quantity|int > 0 else 'bg-danger' }}">
@@ -62,12 +66,12 @@
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm">
-                        <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid) }}"
+                        <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}"
                            class="btn btn-outline-primary" title="تعديل المنتج">
                             <i class="fas fa-edit"></i>
                         </a>
                         <button type="button" class="btn btn-outline-danger delete-btn" 
-                                data-delete-url="{{ url_for('admin_product_bp.delete_product', qid=product.qid) }}" 
+                                data-delete-url="{{ url_for('admin_product_bp.delete_product', qid=product.qid or product.id) }}" 
                                 title="حذف المنتج">
                             <i class="fas fa-trash"></i>
                         </button>
