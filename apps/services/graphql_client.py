@@ -1,44 +1,33 @@
 # coding: utf-8
-# 🌐 عميل الاتصال بـ GraphQL - منصة محجوب أونلاين 2026
-
 import requests
 from typing import Optional, Dict, Any
 from config import Config
 
-
 class GraphQLClient:
-    """عميل الاتصال بـ GraphQL API لمتجر محجوب أونلاين"""
-    
     def __init__(self, endpoint: Optional[str] = None, api_key: Optional[str] = None):
         self.endpoint = endpoint or Config.QUMRA_API_URL
         self.api_key = api_key or Config.QUMRA_API_KEY
         
-        if not self.api_key:
-            print("⚠️ [GraphQLClient]: تحذير: مفتاح المصادقة QUMRA_API_KEY غير موجود!")
-    
     def get_headers(self) -> Dict[str, str]:
-        """إعداد الترويسات (Headers) المطلوبة للاتصال مع توثيق الـ Bearer"""
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
-        
         if self.api_key:
             token = self.api_key.strip()
             if not token.lower().startswith("bearer "):
                 headers["Authorization"] = f"Bearer {token}"
             else:
                 headers["Authorization"] = token
-                
         return headers
     
-    def execute(self, query: str, variables: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
-        """
-        تنفيذ استعلام أو عملية تعديل (Query / Mutation) عبر GraphQL
-        """
+    def execute(self, query: str, variables: Optional[Dict[str, Any]] = None, operation_name: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """تنفيذ استعلام مع دعم تحديد اسم العملية (operationName) لملفات الـ GraphQL المتعددة"""
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
+        if operation_name:
+            payload["operationName"] = operation_name
             
         headers = self.get_headers()
         
@@ -62,19 +51,3 @@ class GraphQLClient:
         except requests.exceptions.RequestException as e:
             print(f"❌ [Connection Exception]: {e}")
             return None
-
-    def test_connection(self) -> bool:
-        """
-        ✅ دالة جديدة لاختبار الاتصال والتحقق من صحة المصادقة قبل العمليات الكبرى
-        """
-        introspection_query = "{ __typename }"
-        
-        print("🔄 [GraphQLClient]: جاري اختبار الاتصال بالمنصة...")
-        data = self.execute(introspection_query)
-        
-        if data is not None:
-            print("✅ [GraphQLClient]: تم الاتصال بنجاح والتحقق من صحة المصادقة.")
-            return True
-        else:
-            print("❌ [GraphQLClient]: فشل الاتصال أو تأكيد المفتاح، يرجى التحقق من الرابط والمفتاح.")
-            return False
