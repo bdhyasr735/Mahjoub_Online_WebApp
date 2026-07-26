@@ -11,8 +11,6 @@ from . import sync
 from . import reviews
 from . import crud
 from . import stats
-
-# ✅ استيراد products.py مباشرة
-from .products import manage_products
+from . import products  # ✅ هذا صحيح
 
 __all__ = ['admin_product_bp']
