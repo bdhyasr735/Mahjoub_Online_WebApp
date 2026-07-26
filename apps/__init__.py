@@ -145,32 +145,40 @@ def create_app():
     def protect_routes():
         path = request.path
         
-        # استثناء الملفات الثابتة، مسارات المصادقة، والـ GraphQL لضمان عدم تأثر العرض والتصميم والاتصال
+        # استثناء الملفات الثابتة، مسارات المصادقة، والـ GraphQL
         exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection']
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
 
-        # التحقق من مسارات الموردين
-        if path.startswith('/supplier'):
-            if 'user_id' not in session or session.get('user_type') not in ['supplier', 'staff']:
-                return redirect(url_for('suppliers_auth.login'))
-        
-        # 🔒 حماية جميع مسارات /admin و /dashboard
-        if path.startswith('/admin') or path.startswith('/dashboard'):
-            if 'user_id' not in session:
-                admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-                return redirect(admin_login_path)
-            
-            # ✅ التحقق من صلاحية المستخدم
+        # ✅ إذا كان المستخدم مسجلاً دخول، لا تعيد التوجيه
+        if 'user_id' in session:
             user_type = session.get('user_type')
-            if user_type not in ['admin', 'staff']:
-                return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
+            # التحقق من صلاحية المستخدم للمسارات الإدارية
+            if path.startswith('/admin') or path.startswith('/dashboard'):
+                if user_type in ['admin', 'staff']:
+                    return  # مسموح
+                else:
+                    return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
+            # التحقق من صلاحية المستخدم لمسارات الموردين
+            if path.startswith('/supplier'):
+                if user_type in ['supplier', 'staff']:
+                    return  # مسموح
+                else:
+                    return redirect(url_for('suppliers_auth.login'))
+            return  # مسموح لبقية المسارات
+
+        # 🔒 غير مسجل دخول → إعادة توجيه
+        if path.startswith('/supplier'):
+            return redirect(url_for('suppliers_auth.login'))
         
-        # حماية أي مسار آخر يتطلب تسجيل دخول
-        if 'user_id' not in session:
+        if path.startswith('/admin') or path.startswith('/dashboard'):
             admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
-            if not path.startswith(admin_login_path):
-                return redirect(admin_login_path)
+            return redirect(admin_login_path)
+        
+        # حماية أي مسار آخر
+        admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
+        if not path.startswith(admin_login_path):
+            return redirect(admin_login_path)
 
     # إعداد السياسة الأمنية (CSP)
     talisman.init_app(app, 
