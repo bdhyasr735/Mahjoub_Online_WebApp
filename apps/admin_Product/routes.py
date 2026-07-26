@@ -29,14 +29,12 @@ def manage_products():
         
         search_query = request.args.get('title', '', type=str)
         
-        # ✅ استخدام الخدمة الجديدة
         client = GraphQLClient()
         products_service = ProductService(client)
         
-        # جلب جميع المنتجات
+        # ملاحظة أداءية: يفضل تمرير search_query للخدمة مباشرة إذا كانت تدعم البحث لتجنب جلب كافة المنتجات
         products = products_service.get_all()
         
-        # فلترة حسب البحث
         if search_query:
             products = [p for p in products if search_query.lower() in p.get('name', '').lower()]
         
@@ -81,7 +79,6 @@ def review_products():
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
             return redirect(url_for('admin_dashboard_bp.dashboard'))
         
-        # ✅ استخدام الخدمة الجديدة
         client = GraphQLClient()
         products_service = ProductService(client)
         all_products = products_service.get_all()
@@ -100,13 +97,12 @@ def review_products():
                 product['supplier_name'] = 'غير مرتبط'
                 product['supplier_id'] = None
         
-        # ✅ إحصائيات
         total_draft = len(draft_products)
         total_published = len([p for p in all_products if p.get('status') == 'PUBLISHED'])
         total_rejected = len([p for p in all_products if p.get('status') == 'REJECTED'])
         
         return render_template(
-            'admin/min_review_products.html',
+            'admin/admin_review_products.html',  # تم تصحيح اسم القالب لتفادي TemplateNotFound
             products=draft_products,
             total_count=total_draft,
             total_published=total_published,
@@ -131,23 +127,22 @@ def change_product_status(qid):
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        data = request.get_json()
+        data = request.get_json() or {}
         new_status = data.get('status', '').upper()
         
         valid_statuses = ['PUBLISHED', 'REJECTED', 'DRAFT', 'ARCHIVED']
         if new_status not in valid_statuses:
             return jsonify({'success': False, 'message': 'حالة غير صالحة'}), 400
         
-        # ✅ استخدام الخدمة الجديدة
         client = GraphQLClient()
         products_service = ProductService(client)
         result = products_service.update_status(qid, new_status)
         
         if result:
-            # ✅ تحديث الحالة في قاعدة البيانات المحلية
+            # ✅ تصحيح المشكلة: عدم تعديل حالة الربط التشغيلية بحالة المنتج، بل تحديث تاريخ التعديل فقط
             mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
             if mapping:
-                mapping.status = new_status.lower()
+                mapping.updated_at = datetime.utcnow()
                 db.session.commit()
             
             status_names = {
@@ -163,7 +158,7 @@ def change_product_status(qid):
                 'status': new_status
             })
         else:
-            return jsonify({'success': False, 'message': '❌ فشل تغيير الحالة في قمرة'}), 500
+            return jsonify({'success': False, 'message': '❌ فشل تغيير الحالة في السيرفر'}), 500
             
     except Exception as e:
         print(f"❌ خطأ في change_product_status: {e}")
@@ -182,13 +177,11 @@ def delete_product(qid):
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # ✅ استخدام الخدمة الجديدة
         client = GraphQLClient()
         products_service = ProductService(client)
         result = products_service.delete(qid)
         
         if result:
-            # ✅ حذف الربط من قاعدة البيانات المحلية
             mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
             if mapping:
                 db.session.delete(mapping)
@@ -218,7 +211,6 @@ def get_stats():
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # ✅ استخدام الخدمة الجديدة
         client = GraphQLClient()
         products_service = ProductService(client)
         all_products = products_service.get_all()
@@ -241,18 +233,17 @@ def get_stats():
 
 
 # ============================================================
-# ✅ مزامنة المنتجات (محدثة لدعم طلبات AJAX)
+# ✅ مزامنة المنتجات
 # ============================================================
 @admin_product_bp.route('/sync-products', methods=['POST'])
 @login_required
 def sync_products():
-    """مزامنة المنتجات من قمرة"""
+    """مزامنة المنتجات"""
     try:
         user_type = session.get('user_type')
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # ✅ استخدام الخدمة الجديدة
         client = GraphQLClient()
         products_service = ProductService(client)
         products = products_service.get_all()
@@ -293,13 +284,16 @@ def add_product():
     
     if request.method == 'POST':
         try:
-            # ✅ استخدام الخدمة الجديدة
             client = GraphQLClient()
             products_service = ProductService(client)
             
+            # ✅ تأمين تحليل السعر لتجنب ValueError
+            raw_price = request.form.get('price')
+            price_val = float(raw_price) if raw_price else 0.0
+            
             product_data = {
                 'name': request.form.get('title', ''),
-                'price': float(request.form.get('price', 0)),
+                'price': price_val,
                 'status': request.form.get('status', 'DRAFT'),
                 'description': request.form.get('description', '')
             }
@@ -309,8 +303,7 @@ def add_product():
             
             result = products_service.create(product_data)
             
-            if result:
-                # ربط المنتج بالمورد
+            if result and 'qid' in result:
                 supplier_id = request.form.get('supplier_id')
                 if supplier_id:
                     mapping = ProductSupplierMapping(
@@ -354,7 +347,6 @@ def edit_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
     
-    # ✅ استخدام الخدمة الجديدة
     client = GraphQLClient()
     products_service = ProductService(client)
     product = products_service.get_by_qid(qid)
@@ -363,10 +355,7 @@ def edit_product():
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products'))
 
-    # ✅ جلب الموردين النشطين
     suppliers = Supplier.query.filter_by(status='active').all()
-    
-    # ✅ جلب المورد المرتبط
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     assigned_supplier_id = mapping.supplier_id if mapping else None
 
@@ -394,20 +383,17 @@ def save_sync_product():
         if not qid:
             return jsonify({"status": "error", "message": "معرف المنتج (qid) مفقود."}), 400
 
-        # ---- البيانات الأساسية ----
         title = request.form.get('title', '')
         description = request.form.get('description', '')
         status = request.form.get('status', 'DRAFT')
         sku = request.form.get('sku', '')
         supplier_id = request.form.get('supplier_id')
         
-        # ---- الأسعار ----
         try:
             price = float(request.form.get('price', 0))
         except ValueError:
             price = 0.0
 
-        # ---- تحديث المنتج ----
         client = GraphQLClient()
         products_service = ProductService(client)
         
@@ -426,7 +412,6 @@ def save_sync_product():
         if not result:
             return jsonify({"status": "error", "message": "فشل حفظ التعديلات."}), 500
 
-        # ---- ربط المنتج بالمورد ----
         if supplier_id:
             try:
                 supplier_id_int = int(supplier_id)
