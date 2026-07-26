@@ -11,13 +11,6 @@ def get_all_products(self, input_data: dict = None) -> list:
                 price
                 status
             }
-            pagination {
-                totalItems
-                totalPages
-                currentPage
-                limit
-                hasNextPage
-            }
         }
     }
     """
