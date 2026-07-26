@@ -64,21 +64,56 @@
         const syncBtn = document.getElementById('syncConfirmBtn');
         
         if (syncForm) {
-            syncForm.addEventListener('submit', function(e) {
+            syncForm.addEventListener('submit', async function(e) {
+                e.preventDefault(); // منع الإرسال التقليدي ليتوافق مع استجابة الـ JSON في المسار
+                
                 if (syncBtn) {
                     syncBtn.disabled = true;
                     syncBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري المزامنة...';
                 }
+
+                try {
+                    const formData = new FormData(syncForm);
+                    const response = await fetch(syncForm.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const modalEl = document.getElementById('syncModal');
+                        const modal = bootstrap.Modal.getInstance(modalEl);
+                        if (modal) modal.hide();
+
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert(data.message || '❌ حدث خطأ أثناء المزامنة');
+                        resetButton();
+                    }
+                } catch (error) {
+                    console.error("خطأ في المزامنة:", error);
+                    alert('❌ تعذر الاتصال بالسيرفر، تأكد من الصلاحيات أو اتصال الإنترنت.');
+                    resetButton();
+                }
             });
+        }
+        
+        function resetButton() {
+            if (syncBtn) {
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = '<i class="fas fa-cloud-download-alt me-1"></i> بدء المزامنة الآن';
+            }
         }
         
         const syncModal = document.getElementById('syncModal');
         if (syncModal) {
             syncModal.addEventListener('hidden.bs.modal', function() {
-                if (syncBtn) {
-                    syncBtn.disabled = false;
-                    syncBtn.innerHTML = '<i class="fas fa-cloud-download-alt me-1"></i> بدء المزامنة الآن';
-                }
+                resetButton();
             });
         }
     });
