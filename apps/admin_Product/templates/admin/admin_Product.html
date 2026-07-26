@@ -1,86 +1,201 @@
-<!-- 📂 apps/admin_Product/templates/admin/admin_Product.html -->
-{% extends "admin/admin_base.html" %}
+{% extends "admin/base.html" %}
+
+{% block title %}إدارة المنتجات{% endblock %}
 
 {% block content %}
-<style>
-    :root { --dark-purple: #2d0b36; --accent-gold: #c5a059; }
-    .btn-custom { background-color: var(--dark-purple); color: #fff; border: none; transition: all 0.3s ease; }
-    .btn-custom:hover { background-color: #4a1558; color: #fff; }
-    .btn-back { color: var(--dark-purple); text-decoration: none; font-weight: 500; transition: 0.3s; }
-    .btn-back:hover { color: #000; padding-right: 5px; }
-    .text-primary { color: var(--dark-purple) !important; }
-    .search-wrapper { position: relative; }
-    .search-wrapper .fas.fa-search { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #6c757d; }
-    .search-wrapper input { padding-right: 40px; border-radius: 50rem; }
-</style>
-
-<div class="container-fluid py-4">
-    <div class="row align-items-center mb-4">
-        <div class="col-md-4">
-            <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="btn-back d-block mb-2">
-                <i class="fas fa-arrow-right me-1"></i> رجوع
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">📦 إدارة المنتجات</h1>
+        <div>
+            <a href="{{ url_for('admin_product_bp.add_product') }}" class="btn btn-success me-2">
+                <i class="fas fa-plus"></i> إضافة منتج
             </a>
-            <h3 class="fw-bold mb-0 text-dark">
-                <i class="fas fa-boxes text-muted me-2"></i> إدارة المنتجات
-            </h3>
-            <h6 class="text-muted mt-2">
-                عدد المنتجات الحالية: {{ products|length }}
-            </h6>
-        </div>
-        
-        <div class="col-md-4 search-wrapper">
-            <i class="fas fa-search"></i>
-            <form action="{{ url_for('admin_product_bp.manage_products') }}" method="GET" id="searchForm">
-                <input type="text" name="title" id="searchInput" class="form-control shadow-sm" 
-                       placeholder="ابحث عن منتج بالاسم..." value="{{ search_title }}">
-            </form>
-        </div>
-
-        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <a href="{{ url_for('admin_product_bp.add_product') }}" class="btn btn-success px-4 shadow-sm rounded-pill">
-                <i class="fas fa-plus me-1"></i> إضافة منتج
-            </a>
-            <button type="button" class="btn btn-custom px-4 shadow-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#syncModal">
-                <i class="fas fa-sync-alt me-1"></i> مزامنة
+            <button 
+                class="btn btn-primary" 
+                onclick="syncProducts()"
+                id="syncButton"
+            >
+                <i class="fas fa-sync"></i> مزامنة الآن
             </button>
         </div>
     </div>
 
-    <!-- ✅ حاوية جدول المنتجات -->
-    <div id="results-container">
-        {% include 'admin/includes/_table_products.html' %}
+    <!-- شريط البحث -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-8">
+                    <input 
+                        type="text" 
+                        name="title" 
+                        class="form-control" 
+                        placeholder="🔍 بحث عن منتج..." 
+                        value="{{ search_title or '' }}"
+                    >
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> بحث
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <strong>❌ خطأ:</strong> {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            <div id="productsTableContainer">
+                {% include "admin/includes/_table_products.html" %}
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- ✅ تضمين نافذة المزامنة المنبثقة المنفصلة -->
-{% include 'admin/includes/_sync_modal.html' %}
+<!-- النافذة المنبثقة للمزامنة -->
+{% include "admin/includes/_sync_modal.html" %}
 
 <script>
-    let timeout = null;
-    const searchInput = document.getElementById('searchInput');
-    const resultsContainer = document.getElementById('results-container');
+function syncProducts() {
+    const button = document.getElementById('syncButton');
+    const modal = document.getElementById('syncModal');
+    
+    // تعطيل الزر وإظهار النافذة
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
+    modal.style.display = 'block';
+    
+    // إرسال طلب المزامنة
+    fetch('{{ url_for("admin_product_bp.sync_products") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // تحديث الجدول بالبيانات الجديدة
+            showMessage('✅ ' + data.message, 'success');
+            // إعادة تحميل الصفحة بعد 1.5 ثانية لعرض البيانات المحدثة
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showMessage('❌ ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showMessage('❌ حدث خطأ في الاتصال: ' + error, 'danger');
+    })
+    .finally(() => {
+        // إعادة تفعيل الزر
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-sync"></i> مزامنة الآن';
+        // إخفاء النافذة بعد 2 ثانية
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 2000);
+    });
+}
 
-    if (searchInput) {
-        searchInput.addEventListener('keyup', () => {
-            clearTimeout(timeout);
-            timeout = setTimeout(async () => {
-                const query = searchInput.value;
-                try {
-                    const response = await fetch(`{{ url_for('admin_product_bp.manage_products') }}?title=${encodeURIComponent(query)}`, {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    });
-                    const html = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const newResults = doc.getElementById('results-container');
-                    if (newResults) { 
-                        resultsContainer.innerHTML = newResults.innerHTML; 
-                    }
-                } catch (error) { 
-                    console.error("خطأ في البحث:", error); 
+function showMessage(text, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    alertDiv.innerHTML = `
+        ${text}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // إخفاء الرسالة بعد 5 ثوانٍ
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// تحديث الإحصائيات كل 30 ثانية (اختياري)
+setInterval(() => {
+    fetch('{{ url_for("admin_product_bp.get_stats") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // تحديث البادج في العنوان إذا وجد
+                const badge = document.querySelector('.badge.bg-primary');
+                if (badge) {
+                    badge.textContent = data.stats.total;
                 }
-            }, 600);
-        });
-    }
+            }
+        })
+        .catch(() => {});
+}, 30000);
 </script>
+
+<style>
+#syncModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    backdrop-filter: blur(5px);
+}
+
+/* تنسيق شريط التقدم في المودال */
+#syncModal .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+#syncModal .progress {
+    height: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#syncModal .progress-bar {
+    background: linear-gradient(90deg, #007bff, #00d4ff);
+    animation: progressAnimation 1.5s ease-in-out infinite;
+}
+
+@keyframes progressAnimation {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* تنسيق الجدول */
+.table th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table img {
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+/* تنسيق البادج */
+.badge {
+    padding: 5px 12px;
+    font-size: 12px;
+}
+</style>
 {% endblock %}
