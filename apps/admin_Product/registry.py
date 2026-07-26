@@ -1,6 +1,10 @@
 # coding: utf-8
 # 📂 apps/admin_Product/registry.py
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 MODULE_NAME = "إدارة المنتجات"
 MODULE_ICON = "fa-boxes"
 SHOW_IN_SUPPLIER = False
@@ -25,8 +29,9 @@ def register_module(app):
 
 def get_module_stats():
     try:
-        from apps.services.product_sync_service import product_sync
-        products = product_sync.fetch_all_products_paginated(limit=100)
+        from apps.services import services
+        # 🛠️ توحيد طريقة جلب المنتجات مع ملف routes.py باستخدام الخدمة المركزية
+        products = services.products.get_all() or []
         
         stats = {'total': len(products), 'active': 0, 'draft': 0, 'archived': 0}
         for p in products:
@@ -37,9 +42,11 @@ def get_module_stats():
                 stats['draft'] += 1
             elif status == 'ARCHIVED':
                 stats['archived'] += 1
+                
         stats['has_products'] = stats['total'] > 0
         return stats
-    except:
+    except Exception as e:
+        print(f"❌ [Registry Stats Error]: {e}")
         return {'total': 0, 'active': 0, 'draft': 0, 'archived': 0, 'has_products': False}
 
 
