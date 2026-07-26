@@ -3,7 +3,7 @@
 
 import os
 import importlib
-from flask import Flask, redirect, session, url_for, request
+from flask import Flask, redirect, session, url_for, request, jsonify
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
 from flask_limiter import Limiter
@@ -12,6 +12,7 @@ from flask_cors import CORS
 from werkzeug.routing import BuildError
 import config
 from apps.extensions import db, login_manager, migrate
+from apps.services.graphql_client import GraphQLClient
 
 # تهيئة الأدوات
 csrf = CSRFProtect()
@@ -145,7 +146,7 @@ def create_app():
         path = request.path
         
         # استثناء الملفات الثابتة، مسارات المصادقة، والـ GraphQL لضمان عدم تأثر العرض والتصميم والاتصال
-        exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico']
+        exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection']
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
 
@@ -156,7 +157,6 @@ def create_app():
                 
         # التحقق من باقي المسارات الإدارية واللوحات
         elif path.startswith('/admin') or path.startswith('/dashboard') or not ('user_id' in session):
-            # إذا لم يكن مسجلاً، يتم تحويله إلى بوابة الإدارة الرئيسية بشكل منطقي
             if 'user_id' not in session:
                 admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
                 if not path.startswith(admin_login_path):
@@ -174,6 +174,20 @@ def create_app():
         },
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
+
+    # ============================================================
+    # ✅ مسار اختبار الاتصال المباشر بـ GraphQL
+    # ============================================================
+    @app.route('/m7jb_test_connection')
+    def test_graphql_connection():
+        client = GraphQLClient()
+        success = client.test_connection()
+        sample_data = client.execute("{ __typename }")
+        return jsonify({
+            "connection_status": success,
+            "endpoint": client.endpoint,
+            "introspection_result": sample_data
+        })
 
     # ============================================================
     # ✅ تسجيل البوابات الأساسية يدوياً
