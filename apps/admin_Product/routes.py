@@ -28,6 +28,7 @@ def manage_products():
             return redirect(url_for('admin_dashboard_bp.dashboard'))
         
         search_query = request.args.get('title', '', type=str)
+        page = request.args.get('page', 1, type=int)
         
         client = GraphQLClient()
         products_service = ProductService(client)
@@ -52,7 +53,7 @@ def manage_products():
             'admin/admin_Product.html',
             products=products,
             search_title=search_query,
-            pagination={"currentPage": 1, "totalPages": 1, "limit": len(products)}
+            pagination={"currentPage": page, "totalPages": 1, "limit": len(products)}
         )
     except Exception as e:
         print(f"❌ خطأ في manage_products: {e}")
@@ -231,7 +232,7 @@ def get_stats():
 
 
 # ============================================================
-# ✅ مزامنة المنتجات (تم تصحيح المسار ليطابق بقية المسارات)
+# ✅ مزامنة المنتجات
 # ============================================================
 @admin_product_bp.route('/products/sync-products', methods=['POST'])
 @login_required
