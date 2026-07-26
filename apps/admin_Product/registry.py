@@ -2,6 +2,7 @@
 # 📂 apps/admin_Product/registry.py
 
 import logging
+from flask import url_for
 
 logger = logging.getLogger(__name__)
 
@@ -17,45 +18,70 @@ LINKS = {
 
 
 def register_module(app):
+    """تسجيل موديول إدارة المنتجات في التطبيق"""
     try:
         from apps.admin_Product.routes import admin_product_bp
         if 'admin_product_bp' not in app.blueprints:
             app.register_blueprint(admin_product_bp, url_prefix='/admin')
             print("✅ [Registry]: تم تسجيل موديول إدارة المنتجات.")
+        else:
+            print("ℹ️ [Registry]: موديول إدارة المنتجات مسجل مسبقاً.")
+    except ImportError as e:
+        print(f"❌ [Registry]: خطأ في استيراد routes: {e}")
     except Exception as e:
         print(f"❌ [Registry]: خطأ في تسجيل admin_product: {e}")
     return app
 
 
 def get_module_stats():
+    """جلب إحصائيات المنتجات"""
     try:
         from apps.services import services
-        # 🛠️ توحيد طريقة جلب المنتجات مع ملف routes.py باستخدام الخدمة المركزية
-        products = services.products.get_all() or []
+        # استخدام الخدمة المركزية لجلب المنتجات
+        products = services.products.get_all_products() or []
         
-        stats = {'total': len(products), 'active': 0, 'draft': 0, 'archived': 0}
+        stats = {
+            'total': len(products), 
+            'active': 0, 
+            'draft': 0, 
+            'archived': 0,
+            'has_products': len(products) > 0
+        }
+        
         for p in products:
             status = p.get('status', '').upper()
-            if status in ['ACTIVE', 'PUBLISHED']:
+            is_active = p.get('isActive', False)
+            
+            if status in ['ACTIVE', 'PUBLISHED'] or is_active:
                 stats['active'] += 1
             elif status == 'DRAFT':
                 stats['draft'] += 1
             elif status == 'ARCHIVED':
                 stats['archived'] += 1
                 
-        stats['has_products'] = stats['total'] > 0
         return stats
     except Exception as e:
         print(f"❌ [Registry Stats Error]: {e}")
-        return {'total': 0, 'active': 0, 'draft': 0, 'archived': 0, 'has_products': False}
+        return {
+            'total': 0, 
+            'active': 0, 
+            'draft': 0, 
+            'archived': 0, 
+            'has_products': False
+        }
 
 
 def get_module_link():
-    from flask import url_for
-    return url_for('admin_product_bp.manage_products')
+    """الحصول على رابط الموديول"""
+    try:
+        return url_for('admin_product_bp.manage_products')
+    except Exception as e:
+        print(f"❌ [Registry Link Error]: {e}")
+        return '#'
 
 
 def get_dashboard_card():
+    """الحصول على بطاقة الموديول للوحة التحكم"""
     stats = get_module_stats()
     return {
         'title': MODULE_NAME,
@@ -69,6 +95,12 @@ def get_dashboard_card():
 
 
 __all__ = [
-    'MODULE_NAME', 'MODULE_ICON', 'SHOW_IN_SUPPLIER', 'LINKS',
-    'register_module', 'get_module_stats', 'get_module_link', 'get_dashboard_card'
+    'MODULE_NAME', 
+    'MODULE_ICON', 
+    'SHOW_IN_SUPPLIER', 
+    'LINKS',
+    'register_module', 
+    'get_module_stats', 
+    'get_module_link', 
+    'get_dashboard_card'
 ]
