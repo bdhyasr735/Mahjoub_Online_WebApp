@@ -1,256 +1,65 @@
 # coding: utf-8
-# 📂 apps/services/product_service.py
+# 🌐 عميل الاتصال بـ GraphQL - منصة محجوب أونلاين 2026
 
-from typing import List, Optional, Dict
-from graphql_client import GraphQLClient
+import requests
+from typing import Optional, Dict, Any
+from config import Config
 
 
-class VariantService:
-    """خدمة لإدارة متغيرات المنتجات"""
+class GraphQLClient:
+    """عميل الاتصال بـ GraphQL API لمتجر محجوب أونلاين"""
     
-    def __init__(self, client: GraphQLClient):
-        self.client = client
+    def __init__(self, endpoint: Optional[str] = None, api_key: Optional[str] = None):
+        self.endpoint = endpoint or Config.QUMRA_API_URL
+        self.api_key = api_key or Config.QUMRA_API_KEY
+        
+        if not self.api_key:
+            print("⚠️ [GraphQLClient]: تحذير: مفتاح المصادقة QUMRA_API_KEY غير موجود!")
     
-    def get_variants_by_product(self, product_id: str) -> List[Dict]:
-        """
-        جلب جميع متغيرات المنتج
-        """
-        query = """
-        query FindAllVariantsByProductId($productId: ID!) {
-          findAllVariantsByProductId(productId: $productId) {
-            id
-            qid
-            sku
-            barcode
-            price
-            compareAtPrice
-            costPerItem
-            quantity
-            weight
-            weightUnit
-            position
-            isActive
-            isAvailable
-            isDefault
-            
-            options {
-              id
-              name
-              value
-              position
-            }
-            
-            image {
-              id
-              url
-              altText
-              width
-              height
-            }
-            
-            inventory {
-              id
-              quantity
-              available
-              reserved
-              location
-              warehouse
-            }
-            
-            product {
-              id
-              qid
-              name
-              price
-              mainImage {
-                url
-                altText
-              }
-            }
-          }
+    def get_headers(self) -> Dict[str, str]:
+        """إعداد الترويسات (Headers) المطلوبة للاتصال مع توثيق الـ Bearer"""
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
         }
-        """
         
-        variables = {"productId": product_id}
-        result = self.client.execute(query, variables) or {}
-        return result.get('findAllVariantsByProductId', [])
+        if self.api_key:
+            token = self.api_key.strip()
+            # التعامل الذكي في حال كان المفتاح مسبوقاً بكلمة Bearer أو لا
+            if not token.lower().startswith("bearer "):
+                headers["Authorization"] = f"Bearer {token}"
+            else:
+                headers["Authorization"] = token
+                
+        return headers
     
-    def get_variant_by_id(self, variant_id: str) -> Optional[Dict]:
+    def execute(self, query: str, variables: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """
-        جلب متغير بواسطة ID
+        تنفيذ استعلام أو عملية تعديل (Query / Mutation) عبر GraphQL
         """
-        query = """
-        query FindVariantById($id: ID!) {
-          findVariantById(id: $id) {
-            id
-            qid
-            sku
-            barcode
-            price
-            compareAtPrice
-            costPerItem
-            quantity
-            weight
-            weightUnit
-            position
-            isActive
-            isAvailable
-            isDefault
+        payload = {"query": query}
+        if variables:
+            payload["variables"] = variables
             
-            options {
-              id
-              name
-              value
-              position
-            }
+        headers = self.get_headers()
+        
+        try:
+            response = requests.post(
+                self.endpoint,
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
             
-            image {
-              id
-              url
-              altText
-              width
-              height
-            }
-            
-            inventory {
-              id
-              quantity
-              available
-              reserved
-              location
-              warehouse
-            }
-            
-            product {
-              id
-              qid
-              name
-              price
-              mainImage {
-                url
-                altText
-              }
-            }
-          }
-        }
-        """
-        
-        variables = {"id": variant_id}
-        result = self.client.execute(query, variables) or {}
-        return result.get('findVariantById')
-    
-    def get_variant_by_sku(self, sku: str) -> Optional[Dict]:
-        """
-        جلب متغير بواسطة SKU
-        """
-        query = """
-        query FindVariantBySku($sku: String!) {
-          findVariantBySku(sku: $sku) {
-            id
-            qid
-            sku
-            barcode
-            price
-            compareAtPrice
-            quantity
-            isAvailable
-            options {
-              name
-              value
-            }
-            image {
-              url
-              altText
-            }
-            inventory {
-              quantity
-              available
-              location
-            }
-            product {
-              id
-              name
-              price
-            }
-          }
-        }
-        """
-        
-        variables = {"sku": sku}
-        result = self.client.execute(query, variables) or {}
-        return result.get('findVariantBySku')
-    
-    def get_variants_inventory(self, product_id: str) -> List[Dict]:
-        """
-        جلب مخزون متغيرات المنتج
-        """
-        query = """
-        query GetVariantsInventory($productId: ID!) {
-          findAllVariantsByProductId(productId: $productId) {
-            id
-            sku
-            quantity
-            isAvailable
-            inventory {
-              id
-              quantity
-              available
-              reserved
-              location
-            }
-            options {
-              name
-              value
-            }
-          }
-        }
-        """
-        
-        variables = {"productId": product_id}
-        result = self.client.execute(query, variables) or {}
-        return result.get('findAllVariantsByProductId', [])
-    
-    def get_variants_prices(self, product_id: str) -> List[Dict]:
-        """
-        جلب أسعار متغيرات المنتج
-        """
-        query = """
-        query GetVariantsPrices($productId: ID!) {
-          findAllVariantsByProductId(productId: $productId) {
-            id
-            sku
-            price
-            compareAtPrice
-            costPerItem
-            currency
-            options {
-              name
-              value
-            }
-          }
-        }
-        """
-        
-        variables = {"productId": product_id}
-        result = self.client.execute(query, variables) or {}
-        return result.get('findAllVariantsByProductId', [])
-    
-    def get_variant_by_options(self, product_id: str, options: Dict[str, str]) -> Optional[Dict]:
-        """
-        جلب متغير حسب الخيارات (مثل: اللون والحجم)
-        """
-        variants = self.get_variants_by_product(product_id)
-        
-        for variant in variants:
-            variant_options = {opt['name']: opt['value'] for opt in variant.get('options', [])}
-            if all(variant_options.get(k) == v for k, v in options.items()):
-                return variant
-        
-        return None
-    
-    def get_available_variants(self, product_id: str) -> List[Dict]:
-        """
-        جلب المتغيرات المتاحة للبيع فقط
-        """
-        variants = self.get_variants_by_product(product_id)
-        return [v for v in variants if v.get('isAvailable') and v.get('quantity', 0) > 0]
+            if response.status_code == 200:
+                result = response.json()
+                if "errors" in result:
+                    print(f"❌ [GraphQL Errors]: {result['errors']}")
+                return result.get("data")
+            else:
+                print(f"❌ [HTTP Error {response.status_code}]: {response.text}")
+                return None
+                
+        except requests.exceptions.RequestException as e:
+            print(f"❌ [Connection Exception]: {e}")
+            return None
