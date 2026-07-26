@@ -218,3 +218,56 @@ class ProductService:
         if res is None:
             return self.delete_product(qid_or_id)
         return bool(res)
+
+    def sync_products(self, external_products: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        مزامنة قائمة المنتجات الواردة من قمرة إلى النظام.
+        تعتمد على المعرف الفريد (QID) للمطابقة:
+        - إذا كان المنتج موجوداً مسبقاً -> يتم تحديث بياناته.
+        - إذا كان منتجاً جديداً -> يتم إنشاؤه.
+        """
+        synced_count = 0
+        created_count = 0
+        updated_count = 0
+        errors = []
+
+        for item in external_products:
+            try:
+                qid = str(item.get('qid') or item.get('id', ''))
+                if not qid:
+                    continue
+                
+                product_input = {
+                    "name": item.get('name'),
+                    "description": item.get('description', ''),
+                    "price": float(item.get('price', 0.0)),
+                    "sku": item.get('sku', ''),
+                    "quantity": int(item.get('quantity', 0)),
+                    "status": item.get('status', 'PUBLISHED')
+                }
+
+                existing_product = self.get_product_by_qid(qid)
+                
+                if existing_product:
+                    self.update(qid, product_input)
+                    updated_count += 1
+                else:
+                    product_input["qid"] = qid
+                    self.create(product_input)
+                    created_count += 1
+                
+                synced_count += 1
+                
+            except Exception as e:
+                errors.append({
+                    "product": item.get('name', 'Unknown'),
+                    "error": str(e)
+                })
+
+        return {
+            "success": True,
+            "syncedCount": synced_count,
+            "createdCount": created_count,
+            "updatedCount": updated_count,
+            "errors": errors
+        }
