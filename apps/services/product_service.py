@@ -24,10 +24,10 @@ class ProductService:
 
     def get_all_products(self, input_data: dict = None) -> list:
         """جلب جميع المنتجات"""
-        # ✅ استعلام مباشر باستخدام GraphQL مع variables
+        # ✅ استعلام مبسط للاختبار
         query = """
-        query FindAllProducts($input: GetAllProductsInput) {
-            findAllProducts(input: $input) {
+        query {
+            findAllProducts {
                 id
                 qid
                 name
@@ -37,11 +37,8 @@ class ProductService:
         }
         """
         
-        variables = {"input": input_data or {}}
-        
         try:
-            # ✅ تمرير operation_name لتجنب CSRF
-            data = self.client.execute(query, variables, operation_name="FindAllProducts")
+            data = self.client.execute(query)
             if data and "findAllProducts" in data:
                 return data["findAllProducts"]
             return []
@@ -52,7 +49,7 @@ class ProductService:
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج معين بواسطة الـ Qid"""
         query = """
-        query FindProductByQid($qid: String!) {
+        query($qid: String!) {
             findProductByQid(qid: $qid) {
                 id
                 qid
@@ -67,8 +64,7 @@ class ProductService:
         variables = {"qid": qid}
         
         try:
-            # ✅ تمرير operation_name لتجنب CSRF
-            data = self.client.execute(query, variables, operation_name="FindProductByQid")
+            data = self.client.execute(query, variables)
             if data and "findProductByQid" in data:
                 return data["findProductByQid"]
             return None
@@ -79,7 +75,7 @@ class ProductService:
     def get_product_status(self) -> list:
         """جلب حالة المنتجات"""
         query = """
-        query FindProductStatus {
+        query {
             findProductStatus {
                 id
                 qid
@@ -91,8 +87,7 @@ class ProductService:
         """
         
         try:
-            # ✅ تمرير operation_name لتجنب CSRF
-            data = self.client.execute(query, operation_name="FindProductStatus")
+            data = self.client.execute(query)
             if data and "findProductStatus" in data:
                 return data["findProductStatus"]
             return []
@@ -103,7 +98,7 @@ class ProductService:
     def get_top_viewed_products(self) -> list:
         """جلب المنتجات الأكثر مشاهدة"""
         query = """
-        query FindTopViewedProducts {
+        query {
             FindTopViewedProducts {
                 id
                 qid
@@ -115,8 +110,7 @@ class ProductService:
         """
         
         try:
-            # ✅ تمرير operation_name لتجنب CSRF
-            data = self.client.execute(query, operation_name="FindTopViewedProducts")
+            data = self.client.execute(query)
             if data and "FindTopViewedProducts" in data:
                 return data["FindTopViewedProducts"]
             return []
@@ -127,7 +121,7 @@ class ProductService:
     def create_product_data(self, input_data: dict) -> dict:
         """إنشاء منتج جديد عبر الـ Mutation"""
         query = """
-        mutation CreateProduct($input: CreateProductInput!) {
+        mutation($input: CreateProductInput!) {
             createProduct(input: $input) {
                 id
                 qid
@@ -141,8 +135,7 @@ class ProductService:
         variables = {"input": input_data}
         
         try:
-            # ✅ تمرير operation_name لتجنب CSRF
-            data = self.client.execute(query, variables, operation_name="CreateProduct")
+            data = self.client.execute(query, variables)
             if data and "createProduct" in data:
                 return data["createProduct"]
             return {}
@@ -153,7 +146,7 @@ class ProductService:
     def update_product_data(self, input_data: dict) -> dict:
         """تعديل بيانات منتج عبر الـ Mutation"""
         query = """
-        mutation UpdateProduct($input: UpdateProductInput!) {
+        mutation($input: UpdateProductInput!) {
             updateProduct(input: $input) {
                 id
                 qid
@@ -167,8 +160,7 @@ class ProductService:
         variables = {"input": input_data}
         
         try:
-            # ✅ تمرير operation_name لتجنب CSRF
-            data = self.client.execute(query, variables, operation_name="UpdateProduct")
+            data = self.client.execute(query, variables)
             if data and "updateProduct" in data:
                 return data["updateProduct"]
             return {}
