@@ -68,42 +68,55 @@
         <div class="row">
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">العنوان (SEO)</label>
-                <input type="text" name="seo_title" class="form-control" value="{{ product.seo.title if product.seo and product.seo.title else '-' }}" style="border-color: #2d0b36; border-radius: 8px;">
+                <input type="text" name="seo_title" class="form-control" value="{{ product.seo.title if product.seo and product.seo.title else '' }}" style="border-color: #2d0b36; border-radius: 8px;" placeholder="عنوان تحسين محركات البحث">
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">الوصف (SEO)</label>
-                <input type="text" name="seo_description" class="form-control" value="{{ product.seo.description if product.seo and product.seo.description else '-' }}" style="border-color: #2d0b36; border-radius: 8px;">
+                <input type="text" name="seo_description" class="form-control" value="{{ product.seo.description if product.seo and product.seo.description else '' }}" style="border-color: #2d0b36; border-radius: 8px;" placeholder="وصف تحسين محركات البحث">
             </div>
         </div>
         
         <div class="row mt-2">
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">الكلمات المفتاحية</label>
-                <input type="text" name="seo_keywords" class="form-control" value="{{ product.seo.keywords if product.seo and product.seo.keywords else '-' }}" style="border-color: #2d0b36; border-radius: 8px;">
+                <input type="text" name="seo_keywords" class="form-control" value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" style="border-color: #2d0b36; border-radius: 8px;" placeholder="كلمات مفتاحية مفصولة بفواصل">
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">العلامات (Tags)</label>
-                <p class="form-control-plaintext">{{ product.tags|join(', ') if product.tags else '-' }}</p>
+                <div class="form-control-plaintext" style="min-height: 38px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;">
+                    {% if product.tags and product.tags|length > 0 %}
+                        {% for tag in product.tags %}
+                        <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 4px 10px;">
+                            {{ tag }}
+                        </span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
         
         <div class="row mt-2">
             <div class="col-12">
                 <label class="form-label fw-bold" style="color: #2d0b36;">التصنيفات</label>
-                {% if product.categories and product.categories|length > 0 %}
-                    {% for cat in product.categories %}
-                    <span class="badge bg-primary me-1">{{ cat.name }}</span>
-                    {% endfor %}
-                {% else %}
-                    <span class="text-muted">-</span>
-                {% endif %}
+                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                    {% if product.categories and product.categories|length > 0 %}
+                        {% for cat in product.categories %}
+                        <span class="badge" style="background: #6c5ce7; color: white; padding: 4px 10px;">
+                            <i class="fas fa-tag me-1"></i> {{ cat.name }}
+                        </span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- معلومات إضافية عن المجموعات -->
-{% if product and product.collections and product.collections|length > 0 %}
+<!-- ✅ معلومات إضافية عن المجموعات (محسّنة) -->
 <div class="card shadow-sm mt-3">
     <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
         <h5 class="mb-0" style="color: #D4AF37;">
@@ -111,14 +124,31 @@
         </h5>
     </div>
     <div class="card-body">
-        {% for collection in product.collections %}
-        <span class="badge bg-warning text-dark me-1">
-            <i class="fas fa-folder me-1"></i> {{ collection.name or collection.qid }}
-        </span>
-        {% endfor %}
+        {% if product and product.collections and product.collections|length > 0 %}
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                {% for collection in product.collections %}
+                <div class="card" style="background: #f8f5f0; border: 1px solid rgba(212, 175, 55, 0.2); border-radius: 8px; padding: 8px 14px; min-width: 120px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-folder" style="color: #D4AF37;"></i>
+                        <div>
+                            <strong style="color: #2d0b36; font-size: 0.9rem;">{{ collection.title or collection.name or collection.qid }}</strong>
+                            {% if collection.handle %}
+                            <br><small class="text-muted" style="font-size: 0.7rem;">{{ collection.handle }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <small class="text-muted mt-2 d-block">عدد المجموعات: {{ product.collections|length }}</small>
+        {% else %}
+            <div class="text-center py-3 text-muted">
+                <i class="fas fa-folder-open fa-2x mb-2 d-block" style="color: #D4AF37;"></i>
+                <p>لا توجد مجموعات لهذا المنتج</p>
+            </div>
+        {% endif %}
     </div>
 </div>
-{% endif %}
 
 <style>
 .form-control-plaintext {
@@ -151,5 +181,10 @@
 /* لون النص الأساسي */
 .text-primary {
     color: #D4AF37 !important;
+}
+
+/* تحسين عرض المجموعات */
+.card.bg-light {
+    background: #f8f5f0 !important;
 }
 </style>
