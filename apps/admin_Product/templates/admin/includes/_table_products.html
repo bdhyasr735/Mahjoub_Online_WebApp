@@ -22,7 +22,7 @@
             {% set p_price = product.price if product.price is defined and product.price is not none else (product.pricing.price if product.pricing and product.pricing.price else 0) %}
             
             <tr id="product-row-{{ product.qid or product.id }}">
-                <td>{{ loop.index }}</td>
+                <td>{{ loop.index + ((pagination.currentPage - 1) * pagination.perPage) if pagination else loop.index }}</td>
                 <td>
                     <img src="{{ p_img }}"
                          alt="{{ p_name }}"
@@ -90,29 +90,73 @@
     </table>
 </div>
 
-<!-- ✅ الترقيم -->
+<!-- ✅ الترقيم المحسّن -->
 {% if pagination and pagination.totalPages > 1 %}
-<nav class="mt-4">
+<nav class="mt-4" aria-label="Page navigation">
     <ul class="pagination justify-content-center">
-        <li class="page-item {{ 'disabled' if pagination.currentPage <= 1 }}">
+        <!-- السابق -->
+        <li class="page-item {{ 'disabled' if not pagination.hasPrev }}">
             <a class="page-link"
-               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage-1, title=search_title) }}">
+               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage-1, title=search_title) if pagination.hasPrev else '#' }}">
                 <i class="fas fa-chevron-right"></i> السابق
             </a>
         </li>
-        <li class="page-item active shadow-sm">
-            <span class="page-link" style="background-color: var(--dark-purple); border-color: var(--dark-purple);">
-                {{ pagination.currentPage }} / {{ pagination.totalPages }}
-            </span>
-        </li>
-        <li class="page-item {{ 'disabled' if pagination.currentPage >= pagination.totalPages }}">
+        
+        <!-- أرقام الصفحات -->
+        {% set start_page = [1, pagination.currentPage - 2]|max %}
+        {% set end_page = [pagination.totalPages, pagination.currentPage + 2]|min %}
+        
+        {% if start_page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ safe_url_for('admin_product_bp.manage_products_view', page=1, title=search_title) }}">1</a>
+            </li>
+            {% if start_page > 2 %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endif %}
+        
+        {% for p in range(start_page, end_page + 1) %}
+            {% if p == pagination.currentPage %}
+                <li class="page-item active">
+                    <span class="page-link" style="background-color: var(--dark-purple); border-color: var(--dark-purple);">
+                        {{ p }}
+                    </span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ safe_url_for('admin_product_bp.manage_products_view', page=p, title=search_title) }}">
+                        {{ p }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if end_page < pagination.totalPages %}
+            {% if end_page < pagination.totalPages - 1 %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+            <li class="page-item">
+                <a class="page-link" href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.totalPages, title=search_title) }}">
+                    {{ pagination.totalPages }}
+                </a>
+            </li>
+        {% endif %}
+        
+        <!-- التالي -->
+        <li class="page-item {{ 'disabled' if not pagination.hasNext }}">
             <a class="page-link"
-               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage+1, title=search_title) }}">
+               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage+1, title=search_title) if pagination.hasNext else '#' }}">
                 التالي <i class="fas fa-chevron-left"></i>
             </a>
         </li>
     </ul>
 </nav>
+
+<!-- عرض معلومات إضافية عن الترقيم -->
+<div class="text-center text-muted mt-2 small">
+    عرض {{ products|length }} من {{ pagination.totalItems }} منتج
+    (صفحة {{ pagination.currentPage }} من {{ pagination.totalPages }})
+</div>
 {% endif %}
 
 <!-- ✅ JavaScript للحذف الديناميكي -->
@@ -195,5 +239,13 @@ function showToast(type, message) {
     .btn-group .btn {
         padding: 4px 8px;
         font-size: 0.8rem;
+    }
+    .pagination .page-link {
+        color: #2d0b36;
+    }
+    .pagination .page-item.active .page-link {
+        background-color: #2d0b36;
+        border-color: #2d0b36;
+        color: #D4AF37;
     }
 </style>
