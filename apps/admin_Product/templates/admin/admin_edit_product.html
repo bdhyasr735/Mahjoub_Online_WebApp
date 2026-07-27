@@ -4,8 +4,8 @@
 {% block title %}تعديل المنتج: {{ product.title or product.name }}{% endblock %}
 
 {% block extra_css %}
-<!-- ✅ TinyMCE Editor -->
-<script src="https://cdn.tiny.cloud/1/7q8e3s9p5z6k4r2t8w1y0u4i6o7p9a2s/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<!-- ✅ TinyMCE Editor (CDN مجاني) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
 <style>
     .edit-product-container {
         background: #f8f5f0;
@@ -369,7 +369,7 @@
 
 <script>
 // ========================================
-// TinyMCE Editor
+// TinyMCE Editor (بدون API Key)
 // ========================================
 tinymce.init({
     selector: '#productDescription',
@@ -389,7 +389,6 @@ tinymce.init({
     language: 'ar',
     images_upload_handler: function (blobInfo, progress) {
         return new Promise(function (resolve, reject) {
-            // ✅ معالجة رفع الصور من TinyMCE
             const reader = new FileReader();
             reader.onload = function (e) {
                 resolve(e.target.result);
@@ -444,7 +443,6 @@ function addTag() {
     if (!tag) return;
     
     const container = document.getElementById('tagsContainer');
-    // إزالة رسالة "لا توجد علامات"
     const noTagsMsg = container.querySelector('.text-muted');
     if (noTagsMsg) noTagsMsg.remove();
     
@@ -458,7 +456,6 @@ function addTag() {
 function removeTag(element) {
     if (confirm('هل أنت متأكد من حذف هذه العلامة؟')) {
         element.parentElement.remove();
-        // إعادة رسالة "لا توجد علامات" إذا كان container فارغاً
         const container = document.getElementById('tagsContainer');
         if (container.children.length === 0) {
             container.innerHTML = '<span class="text-muted">لا توجد علامات</span>';
@@ -466,7 +463,6 @@ function removeTag(element) {
     }
 }
 
-// ✅ إضافة علامة بالضغط على Enter
 document.getElementById('tagInput')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
@@ -495,7 +491,6 @@ document.getElementById('saveVariantBtn')?.addEventListener('click', function() 
     const quantity = document.getElementById('variantQuantity').value;
     const options = document.getElementById('variantOptions').value;
     
-    // ✅ إضافة المتغير إلى الواجهة
     const container = document.querySelector('.form-section:has(.variant-item) .col-12');
     const noVariantsMsg = container.querySelector('.text-muted.text-center');
     if (noVariantsMsg) noVariantsMsg.remove();
@@ -528,7 +523,6 @@ document.getElementById('saveVariantBtn')?.addEventListener('click', function() 
     variantModal.hide();
 });
 
-// ✅ إضافة متغير جديد (زر)
 document.querySelector('.btn-royal-outline.btn-sm')?.addEventListener('click', openVariantModal);
 
 // ========================================
