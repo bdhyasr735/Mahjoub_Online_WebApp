@@ -164,10 +164,10 @@ class ProductService:
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع جميع الحقول"""
         
-        # ✅ استخدم الاستعلام الذي يعمل في الساندبوكس
+        # ✅ استخدم استعلام مع متغيرات (يعمل عبر HTTP)
         query = """
-        {
-            findProductByQid(qid: "%s") {
+        query FindProductByQid($qid: String!) {
+            findProductByQid(qid: $qid) {
                 success
                 message
                 data {
@@ -225,16 +225,18 @@ class ProductService:
                 }
             }
         }
-        """ % qid
+        """
         
         try:
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
-            print(f"🔍 [get_product_by_qid] Query: {query[:200]}...")
             
-            data = self.client.execute(query)
+            variables = {"qid": qid}
+            print(f"🔍 [get_product_by_qid] Variables: {variables}")
+            
+            # ✅ أرسل operation_name = "FindProductByQid"
+            data = self.client.execute(query, variables, operation_name="FindProductByQid")
             print(f"🔍 [get_product_by_qid] Full Response: {data}")
             
-            # ✅ تحقق من وجود البيانات
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
                 print(f"🔍 [get_product_by_qid] Result success: {result.get('success')}")
