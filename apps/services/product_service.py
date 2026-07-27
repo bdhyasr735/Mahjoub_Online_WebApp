@@ -23,9 +23,12 @@ class ProductService:
 
     def get_all_products(self, input_data: dict = None) -> dict:
         """جلب جميع المنتجات مع معلومات الترقيم"""
+        if input_data is None:
+            input_data = {}
+        
         query = """
-        query {
-            findAllProducts {
+        query($input: FindAllProductsInput!) {
+            findAllProducts(input: $input) {
                 success
                 message
                 data {
@@ -52,54 +55,7 @@ class ProductService:
         }
         """
         try:
-            data = self.client.execute(query)
-            if data and "findAllProducts" in data:
-                return data["findAllProducts"]
-            return {}
-        except Exception as e:
-            print(f"❌ [ProductService]: {e}")
-            return {}
-
-    def get_products_page(self, page: int = 1) -> dict:
-        """
-        جلب صفحة محددة من المنتجات من GraphQL
-        
-        Args:
-            page: رقم الصفحة (يبدأ من 1)
-        
-        Returns:
-            dict: يحتوي على data و pagination
-        """
-        query = """
-        query($page: Int!) {
-            findAllProducts(input: { page: $page }) {
-                success
-                message
-                data {
-                    qid
-                    title
-                    pricing {
-                        price
-                        compareAtPrice
-                    }
-                    status
-                    images {
-                        fileUrl
-                    }
-                    quantity
-                }
-                pagination {
-                    totalItems
-                    totalPages
-                    currentPage
-                    limit
-                    hasNextPage
-                }
-            }
-        }
-        """
-        try:
-            variables = {"page": page}
+            variables = {"input": input_data}
             data = self.client.execute(query, variables)
             if data and "findAllProducts" in data:
                 return data["findAllProducts"]
@@ -107,6 +63,23 @@ class ProductService:
         except Exception as e:
             print(f"❌ [ProductService]: {e}")
             return {}
+
+    def get_products_page(self, page: int = 1, title: str = None) -> dict:
+        """
+        جلب صفحة محددة من المنتجات من GraphQL
+        
+        Args:
+            page: رقم الصفحة (يبدأ من 1)
+            title: للبحث بالعنوان (اختياري)
+        
+        Returns:
+            dict: يحتوي على data و pagination
+        """
+        input_data = {"page": page}
+        if title:
+            input_data["title"] = title
+        
+        return self.get_all_products(input_data)
 
     def fetch_all_products_for_search(self, max_pages: int = 10) -> list:
         """
@@ -154,6 +127,46 @@ class ProductService:
         """مسح Cache البحث"""
         self._search_cache = None
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
+
+    def search_products_by_title(self, title: str, page: int = 1) -> dict:
+        """البحث عن المنتجات بالعنوان"""
+        query = """
+        query SearchProducts($title: String!, $page: Int!) {
+            searchProducts(input: { title: $title, page: $page }) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    pricing {
+                        price
+                        compareAtPrice
+                    }
+                    status
+                    images {
+                        fileUrl
+                    }
+                    quantity
+                }
+                pagination {
+                    totalItems
+                    totalPages
+                    currentPage
+                    limit
+                    hasNextPage
+                }
+            }
+        }
+        """
+        try:
+            variables = {"title": title, "page": page}
+            data = self.client.execute(query, variables)
+            if data and "searchProducts" in data:
+                return data["searchProducts"]
+            return {}
+        except Exception as e:
+            print(f"❌ [ProductService]: {e}")
+            return {}
 
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع جميع الحقول"""
@@ -220,11 +233,17 @@ class ProductService:
         """
         try:
             data = self.client.execute(query, {"qid": qid})
-            print(f"🔍 [DEBUG] GraphQL Response for QID {qid}: {data}")  # ✅ للتحقق
+            print(f"🔍 [DEBUG] GraphQL Response for QID {qid}: {data}")
+            
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
                 if result.get("success"):
                     return result.get("data", {})
+                else:
+                    # ✅ تسجيل رسالة الخطأ
+                    error_msg = result.get('message', 'خطأ غير معروف')
+                    print(f"❌ [ProductService]: فشل جلب المنتج - {error_msg}")
+                    return {}
             return {}
         except Exception as e:
             print(f"❌ [ProductService]: {e}")
