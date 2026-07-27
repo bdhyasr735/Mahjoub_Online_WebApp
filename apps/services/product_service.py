@@ -183,7 +183,7 @@ class ProductService:
                     tags
                     collections {
                         qid
-                        name
+                        title
                         handle
                         description
                         image {
@@ -218,8 +218,6 @@ class ProductService:
                     slug
                     views
                     publishedAt
-                    createdAt
-                    updatedAt
                 }
             }
         }
