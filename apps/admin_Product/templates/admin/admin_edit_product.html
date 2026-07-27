@@ -88,26 +88,6 @@
         background: #dc3545;
         transform: scale(1.1);
     }
-    .variant-item {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 18px;
-        margin-bottom: 15px;
-        border: 1px solid #e9ecef;
-        transition: all 0.3s ease;
-    }
-    .variant-item:hover {
-        border-color: rgba(212, 175, 55, 0.4);
-        box-shadow: 0 4px 12px rgba(45, 11, 54, 0.05);
-    }
-    .variant-item .variant-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 1px dashed #dee2e6;
-    }
     .tag-item {
         display: inline-flex;
         align-items: center;
@@ -155,28 +135,8 @@
         background: #2d0b36;
         color: #D4AF37;
     }
-    /* ✅ تصميم احترافي لزر إضافة المتغيرات الجديد */
-    .btn-add-variant {
-        background: linear-gradient(135deg, #f3e5f5, #e1bee7);
-        color: #2d0b36;
-        border: 2px dashed #2d0b36;
-        border-radius: 10px;
-        padding: 12px 20px;
-        width: 100%;
-        font-weight: 700;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        margin-top: 10px;
-    }
-    .btn-add-variant:hover {
-        background: #2d0b36;
-        color: #D4AF37;
-        border-color: #D4AF37;
-        box-shadow: 0 4px 15px rgba(45, 11, 54, 0.2);
-        transform: translateY(-2px);
+    .min-height-35 {
+        min-height: 35px;
     }
 </style>
 {% endblock %}
@@ -193,9 +153,11 @@
         </a>
     </div>
 
-    <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}" id="editProductForm">
+    <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}" id="editProductForm" onsubmit="preparePayloadBeforeSubmit(event)">
         <input type="hidden" name="qid" value="{{ product.qid }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <!-- حقل مخفي لإرسال بيانات المتغيرات المعقدة بصيغة JSON -->
+        <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
         <!-- ======================================== -->
         <!-- 1. المعلومات الأساسية -->
@@ -252,51 +214,36 @@
         </div>
 
         <!-- ======================================== -->
-        <!-- 4. المتغيرات -->
+        <!-- 4. خصائص ومتغيرات المنتج (Cartesian Product System) -->
         <!-- ======================================== -->
         <div class="form-section">
             <div class="form-section-title">
-                <i class="fas fa-layer-group"></i> المتغيرات
+                <i class="fas fa-layer-group"></i> خصائص ومتغيرات المنتج (اللون، المقاس، إلخ...)
             </div>
-            <div class="row">
-                <div class="col-12" id="variantsContainer">
-                    {% if product.variants and product.variants|length > 0 %}
-                        {% for variant in product.variants %}
-                        <div class="variant-item">
-                            <div class="variant-header">
-                                <strong style="color: #2d0b36;"><i class="fas fa-cube me-1 text-warning"></i> المتغير #{{ loop.index }}</strong>
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeVariant(this, '{{ variant.qid }}')">
-                                    <i class="fas fa-trash"></i> حذف
-                                </button>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label small fw-bold">السعر</label>
-                                    <input type="number" class="form-control form-control-sm" value="{{ variant.pricing.price if variant.pricing else variant.price }}" step="0.01">
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label small fw-bold">الكمية</label>
-                                    <input type="number" class="form-control form-control-sm" value="{{ variant.quantity or 0 }}">
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label small fw-bold">الخيارات</label>
-                                    <input type="text" class="form-control form-control-sm" value="{% for opt in variant.options %}{{ opt.option }}: {{ opt.label }}{% if not loop.last %}, {% endif %}{% endfor %}">
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-muted text-center py-4 no-variants-placeholder">
-                            <i class="fas fa-box-open fa-2x mb-2 text-muted opacity-50"></i>
-                            <p class="mb-0">لا توجد متغيرات مضافة لهذا المنتج حالياً.</p>
-                        </div>
-                    {% endif %}
+            
+            <!-- حاوية خيارات المنتج -->
+            <div id="optionsContainer">
+                <div class="option-row border rounded p-3 mb-3 bg-light">
+                    <div class="d-flex gap-2 mb-2 align-items-center">
+                        <input type="text" class="form-control opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="updateVariantsTable()">
+                        <button class="btn btn-outline-danger btn-sm px-3" type="button" onclick="removeOptionRow(this)">حذف</button>
+                    </div>
+                    <label class="form-label text-muted small mb-1">القيم المتعددة:</label>
+                    <div class="values-container d-flex flex-wrap gap-2 mb-2 p-2 bg-white border rounded min-height-35"></div>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
+                        <button class="btn btn-dark" type="button" onclick="addValueToRow(this)">+ إضافة قيمة</button>
+                    </div>
                 </div>
-                <!-- ✅ زر إضافة متغير احترافي وبارز -->
-                <div class="col-12 mt-2">
-                    <button type="button" class="btn-add-variant" onclick="openVariantModal()">
-                        <i class="fas fa-plus-circle fa-lg text-warning"></i> إضافة متغير جديد للمنتج
-                    </button>
+            </div>
+
+            <button class="btn btn-outline-dark w-100 mb-4 fw-bold" type="button" onclick="addOptionRow()">+ إضافة خيار جديد</button>
+
+            <!-- جدول المتغيرات المولد تلقائياً -->
+            <label class="form-label fw-bold text-dark mb-2">تخصيص السعر، الكمية، وصورة لكل متغير:</label>
+            <div id="variantsTableContainer" class="table-responsive">
+                <div class="text-center p-4 text-muted border border-dashed rounded bg-light">
+                    قم بإضافة الخيارات والقيم أعلاه لتوليد جدول المتغيرات تلقائياً...
                 </div>
             </div>
         </div>
@@ -373,47 +320,9 @@
     </form>
 </div>
 
-<!-- ======================================== -->
-<!-- نافذة المتغيرات المنبثقة (Modal) -->
-<!-- ======================================== -->
-<div class="modal fade" id="variantModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header text-white" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
-                <h5 class="modal-title" style="color: #D4AF37;">
-                    <i class="fas fa-layer-group me-2"></i> إضافة متغير جديد
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="mb-3">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">السعر</label>
-                    <div class="input-group">
-                        <input type="number" class="form-control" id="variantPrice" step="0.01" placeholder="0.00">
-                        <span class="input-group-text">ر.ي</span>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">الكمية</label>
-                    <input type="number" class="form-control" id="variantQuantity" placeholder="0">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">الخيارات</label>
-                    <input type="text" class="form-control" id="variantOptions" placeholder="مثال: اللون: أحمر, الحجم: كبير">
-                    <small class="text-muted">اكتب الخصائص مفصولة بفواصل مع تحديد الاسم والقيمة.</small>
-                </div>
-            </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn-royal px-4" id="saveVariantBtn">حفظ وإضافة</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
 // ========================================
-// TinyMCE Editor (بدون API Key)
+// TinyMCE Editor
 // ========================================
 tinymce.init({
     selector: '#productDescription',
@@ -443,7 +352,7 @@ tinymce.init({
 });
 
 // ========================================
-// إدارة الصور
+// إدارة الصور الأساسية
 // ========================================
 document.getElementById('imageUploadArea')?.addEventListener('click', function() {
     document.getElementById('imageInput').click();
@@ -469,7 +378,6 @@ document.getElementById('imageInput')?.addEventListener('change', function(e) {
     this.value = '';
 });
 
-// ✅ حذف الصور
 document.querySelectorAll('.remove-image').forEach(btn => {
     btn.addEventListener('click', function() {
         if (confirm('هل أنت متأكد من حذف هذه الصورة؟')) {
@@ -477,6 +385,188 @@ document.querySelectorAll('.remove-image').forEach(btn => {
         }
     });
 });
+
+// ========================================
+// إدارة خيارات ومتغيرات المنتج الديناميكية
+// ========================================
+function addOptionRow() {
+    const container = document.getElementById('optionsContainer');
+    const row = document.createElement('div');
+    row.className = 'option-row border rounded p-3 mb-3 bg-light';
+    
+    row.innerHTML = `
+        <div class="d-flex gap-2 mb-2 align-items-center">
+            <input type="text" class="form-control opt-name" placeholder="اسم الخيار (مثل: المقاس)" oninput="updateVariantsTable()">
+            <button class="btn btn-outline-danger btn-sm px-3" type="button" onclick="removeOptionRow(this)">حذف</button>
+        </div>
+        <label class="form-label text-muted small mb-1">القيم المتعددة:</label>
+        <div class="values-container d-flex flex-wrap gap-2 mb-2 p-2 bg-white border rounded min-height-35"></div>
+        <div class="input-group input-group-sm">
+            <input type="text" class="form-control val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: كبير)">
+            <button class="btn btn-dark" type="button" onclick="addValueToRow(this)">+ إضافة قيمة</button>
+        </div>
+    `;
+    container.appendChild(row);
+}
+
+function removeOptionRow(button) {
+    button.closest('.option-row').remove();
+    updateVariantsTable();
+}
+
+function addValueToRow(button) {
+    const row = button.closest('.option-row');
+    const input = row.querySelector('.val-input');
+    const valText = input.value.trim();
+
+    if (valText) {
+        const valuesContainer = row.querySelector('.values-container');
+        const tag = document.createElement('span');
+        tag.className = 'badge border d-inline-flex align-items-center gap-1 p-2';
+        tag.style.backgroundColor = '#f3e8ff';
+        tag.style.color = '#581c87';
+        tag.innerHTML = `${valText} <span style="cursor: pointer; color: #ef4444; font-weight: bold; margin-right: 4px;" onclick="this.closest('span').remove(); updateVariantsTable();">&times;</span>`;
+        
+        valuesContainer.appendChild(tag);
+        input.value = '';
+        updateVariantsTable();
+    }
+}
+
+function cartesian(arr) {
+    return arr.reduce((a, b) => a.flatMap(d => b.map(e => [].concat(d, e))), [[]]);
+}
+
+function updateVariantsTable() {
+    const optionRows = document.querySelectorAll('.option-row');
+    let valuesArrays = [];
+
+    optionRows.forEach(row => {
+        const optName = row.querySelector('.opt-name').value.trim();
+        const tagElements = row.querySelectorAll('.badge');
+        const valuesArray = Array.from(tagElements).map(tag => tag.firstChild.textContent.trim());
+
+        if (optName && valuesArray.length > 0) {
+            valuesArrays.push(valuesArray);
+        }
+    });
+
+    const container = document.getElementById('variantsTableContainer');
+
+    if (valuesArrays.length === 0) {
+        container.innerHTML = `<div class="text-center p-4 text-muted border border-dashed rounded bg-light">قم بإضافة الخيارات والقيم أعلاه لتوليد جدول المتغيرات تلقائياً...</div>`;
+        return;
+    }
+
+    const combinations = cartesian(valuesArrays);
+
+    let html = `
+        <table class="table table-bordered align-middle text-center mb-0 bg-white">
+            <thead class="table-light">
+                <tr>
+                    <th>المتغير</th>
+                    <th>صورة المتغير</th>
+                    <th>SKU</th>
+                    <th>السعر</th>
+                    <th>الكمية</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    combinations.forEach((combo, index) => {
+        const optionValues = Array.isArray(combo) ? combo : [combo];
+        const variantLabel = optionValues.join(' / ');
+        html += `
+            <tr data-index="${index}">
+                <td><strong>${variantLabel}</strong></td>
+                <td>
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        <input type="file" class="var-img-file d-none" accept="image/*" onchange="handleVariantImage(this, ${index})">
+                        <img id="thumb-${index}" class="rounded border" style="width: 36px; height: 36px; object-fit: cover; display: none;" alt="Variant">
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="this.previousElementSibling.previousElementSibling.click()">📷 رفع</button>
+                        <button type="button" id="del-btn-${index}" class="btn btn-sm btn-danger py-0 px-1" style="display: none;" onclick="removeVariantImage(${index})">&times;</button>
+                    </div>
+                </td>
+                <td><input type="text" class="form-control form-control-sm var-sku text-center" value="SKU-VAR-${index + 1}"></td>
+                <td><input type="number" class="form-control form-control-sm var-price text-center" value="0" step="0.01"></td>
+                <td><input type="number" class="form-control form-control-sm var-qty text-center" value="0"></td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+}
+
+function handleVariantImage(input, index) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const thumb = document.getElementById(`thumb-${index}`);
+            const delBtn = document.getElementById(`del-btn-${index}`);
+            thumb.src = e.target.result;
+            thumb.style.display = 'block';
+            delBtn.style.display = 'inline-block';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function removeVariantImage(index) {
+    const tr = document.querySelector(`tr[data-index="${index}"]`);
+    tr.querySelector('.var-img-file').value = "";
+    const thumb = document.getElementById(`thumb-${index}`);
+    const delBtn = document.getElementById(`del-btn-${index}`);
+    thumb.src = "";
+    thumb.style.display = 'none';
+    delBtn.style.display = 'none';
+}
+
+function preparePayloadBeforeSubmit(e) {
+    const optionRows = document.querySelectorAll('.option-row');
+    const options = [];
+
+    optionRows.forEach(row => {
+        const optName = row.querySelector('.opt-name').value.trim();
+        const tagElements = row.querySelectorAll('.badge');
+        const valuesArray = Array.from(tagElements).map(tag => tag.firstChild.textContent.trim());
+
+        if (optName && valuesArray.length > 0) {
+            options.push({
+                name: optName,
+                values: valuesArray.map((val, idx) => ({ label: val, sortOrder: idx }))
+            });
+        }
+    });
+
+    const variantRows = document.querySelectorAll('#variantsTableContainer tbody tr');
+    const variants = [];
+
+    variantRows.forEach((tr, index) => {
+        const sku = tr.querySelector('.var-sku').value;
+        const price = parseFloat(tr.querySelector('.var-price').value) || 0;
+        const quantity = parseInt(tr.querySelector('.var-qty').value) || 0;
+        
+        const optionValuesText = tr.cells[0].innerText.trim();
+        const optionValues = optionValuesText.split(' / ');
+
+        const thumb = document.getElementById(`thumb-${index}`);
+        const variantImage = (thumb && thumb.style.display === 'block') ? thumb.src : null;
+
+        variants.push({
+            sku: sku,
+            price: price,
+            quantity: quantity,
+            optionValues: optionValues,
+            image: variantImage
+        });
+    });
+
+    // تعبئة الحقل المخفي ليتم إرساله مع الفورم إلى الباك إند
+    document.getElementById('variantsPayloadInput').value = JSON.stringify({ options, variants });
+}
 
 // ========================================
 // إدارة العلامات (Tags)
@@ -513,85 +603,6 @@ document.getElementById('tagInput')?.addEventListener('keypress', function(e) {
         addTag();
     }
 });
-
-// ========================================
-// إدارة المتغيرات (Variants Management)
-// ========================================
-let variantModal;
-
-document.addEventListener('DOMContentLoaded', function() {
-    const modalEl = document.getElementById('variantModal');
-    if (modalEl) {
-        variantModal = new bootstrap.Modal(modalEl);
-    }
-});
-
-function openVariantModal() {
-    document.getElementById('variantPrice').value = '';
-    document.getElementById('variantQuantity').value = '';
-    document.getElementById('variantOptions').value = '';
-    if (variantModal) {
-        variantModal.show();
-    }
-}
-
-document.getElementById('saveVariantBtn')?.addEventListener('click', function() {
-    const price = document.getElementById('variantPrice').value;
-    const quantity = document.getElementById('variantQuantity').value;
-    const options = document.getElementById('variantOptions').value;
-    
-    const container = document.getElementById('variantsContainer');
-    const noVariantsMsg = container.querySelector('.no-variants-placeholder');
-    if (noVariantsMsg) noVariantsMsg.remove();
-    
-    const variantCount = container.querySelectorAll('.variant-item').length + 1;
-    
-    const div = document.createElement('div');
-    div.className = 'variant-item';
-    div.innerHTML = `
-        <div class="variant-header">
-            <strong style="color: #2d0b36;"><i class="fas fa-cube me-1 text-warning"></i> متغير جديد (#${variantCount})</strong>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.variant-item').remove()">
-                <i class="fas fa-trash"></i> حذف
-            </button>
-        </div>
-        <div class="row">
-            <div class="col-md-3 mb-2">
-                <label class="form-label small fw-bold">السعر</label>
-                <input type="number" class="form-control form-control-sm" value="${price}" step="0.01">
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label small fw-bold">الكمية</label>
-                <input type="number" class="form-control form-control-sm" value="${quantity || 0}">
-            </div>
-            <div class="col-md-6 mb-2">
-                <label class="form-label small fw-bold">الخيارات</label>
-                <input type="text" class="form-control form-control-sm" value="${options}">
-            </div>
-        </div>
-    `;
-    container.appendChild(div);
-    if (variantModal) {
-        variantModal.hide();
-    }
-    showToast('success', '✅ تم إضافة المتغير بنجاح');
-});
-
-function removeVariant(btn, qid) {
-    if (confirm('⚠️ هل أنت متأكد من حذف هذا المتغير؟')) {
-        btn.closest('.variant-item').remove();
-        const container = document.getElementById('variantsContainer');
-        if (container.querySelectorAll('.variant-item').length === 0) {
-            container.innerHTML = `
-                <div class="text-muted text-center py-4 no-variants-placeholder">
-                    <i class="fas fa-box-open fa-2x mb-2 text-muted opacity-50"></i>
-                    <p class="mb-0">لا توجد متغيرات مضافة لهذا المنتج حالياً.</p>
-                </div>
-            `;
-        }
-        showToast('info', '🗑️ تم إزالة المتغير');
-    }
-}
 
 // ========================================
 // حذف المنتج
