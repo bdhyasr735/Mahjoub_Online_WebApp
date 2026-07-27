@@ -39,9 +39,16 @@
                     {{ "%.2f"|format(p_price|float) }} ر.س
                 </td>
                 <td>
-                    <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
-                        غير متوفر
-                    </span>
+                    {% if product.quantity is defined and product.quantity is not none %}
+                        <span class="badge {{ 'bg-success' if product.quantity > 0 else 'bg-secondary' }}" 
+                              style="background: {{ 'linear-gradient(135deg, #28a745, #1e7e34)' if product.quantity > 0 else 'linear-gradient(135deg, #6c757d, #495057)' }}; color: white;">
+                            {{ product.quantity }}
+                        </span>
+                    {% else %}
+                        <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                            غير متوفر
+                        </span>
+                    {% endif %}
                 </td>
                 <td>
                     {% set status = product.status|upper if product.status else 'DRAFT' %}
