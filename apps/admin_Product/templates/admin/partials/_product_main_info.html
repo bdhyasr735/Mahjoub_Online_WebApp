@@ -109,6 +109,28 @@
     </div>
 </div>
 
+<!-- ✅ رابط المنتج -->
+<div class="row">
+    <div class="col-md-12 mb-3">
+        <label for="productSlug" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-link text-info me-1"></i> رابط المنتج (Slug)
+        </label>
+        <div class="input-group">
+            <span class="input-group-text" style="background: #f8f5f0; border-color: #2d0b36; color: #2d0b36;">
+                <i class="fas fa-globe"></i>
+            </span>
+            <input type="text" 
+                   id="productSlug" 
+                   name="slug" 
+                   class="form-control" 
+                   value="{{ product.slug or product.handle or '' }}"
+                   placeholder="رابط المنتج (يظهر في المتجر)"
+                   style="border-color: #2d0b36; border-radius: 0 8px 8px 0;">
+        </div>
+        <small class="text-muted">الرابط الذي سيظهر للمنتج في المتجر (مثال: product-name)</small>
+    </div>
+</div>
+
 <!-- ✅ تم إزالة حقل الوصف من هنا لأنه موجود في admin_edit_product.html مع TinyMCE -->
 
 <div class="row">
@@ -153,5 +175,16 @@
 .form-label {
     font-weight: 600;
     color: #2d0b36;
+}
+
+/* ✅ تنسيق الأرقام بالإنجليزية */
+input[type="number"] {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+}
+
+/* ✅ تنسيق رابط المنتج */
+.input-group-text {
+    border-radius: 8px 0 0 8px;
 }
 </style>
