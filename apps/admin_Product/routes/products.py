@@ -21,7 +21,7 @@ def manage_products_view():
         search_query = request.args.get('title', '', type=str)
         ajax = request.args.get('ajax', 0, type=int)  # ✅ للتحقق من طلب AJAX
         
-        # ✅ جلب جميع المنتجات للبحث (لأن البحث يحتاج إلى البيانات الكاملة)
+        # ✅ جلب جميع المنتجات مع معلومات الترقيم
         all_result = services.products.get_all_products() or {}
         all_products = all_result.get('data', [])
         pagination_info = all_result.get('pagination', {})
