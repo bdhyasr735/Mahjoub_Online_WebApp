@@ -23,9 +23,10 @@ class ProductService:
 
     def get_all_products(self, input_data: dict = None) -> dict:
         """جلب جميع المنتجات مع معلومات الترقيم"""
+        # ✅ استخدام limit كبير لجلب جميع المنتجات دفعة واحدة
         query = """
         query {
-            findAllProducts {
+            findAllProducts(input: { pagination: { limit: 1000 } }) {
                 success
                 message
                 data {
