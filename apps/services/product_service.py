@@ -60,13 +60,12 @@ class ProductService:
             print(f"❌ [ProductService]: {e}")
             return {}
 
-    def get_products_page(self, page: int = 1, limit: int = 10) -> dict:
+    def get_products_page(self, page: int = 1) -> dict:
         """
         جلب صفحة محددة من المنتجات من GraphQL
         
         Args:
             page: رقم الصفحة (يبدأ من 1)
-            limit: عدد المنتجات في الصفحة (افتراضي 10)
         
         Returns:
             dict: يحتوي على data و pagination
