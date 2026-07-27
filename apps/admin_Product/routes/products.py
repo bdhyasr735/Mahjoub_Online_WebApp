@@ -31,6 +31,11 @@ def manage_products_view():
         # ✅ حساب الترقيم
         total_products = len(all_products)
         total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
+        
+        # ✅ التأكد من أن الصفحة الحالية لا تتجاوز إجمالي الصفحات
+        if page > total_pages:
+            page = total_pages
+        
         start = (page - 1) * per_page
         end = start + per_page
         products = all_products[start:end]
@@ -46,36 +51,31 @@ def manage_products_view():
                 product['supplier_name'] = 'غير مرتبط'
                 product['supplier_id'] = None
         
+        # ✅ بناء بيانات الترقيم
+        pagination_data = {
+            "currentPage": page,
+            "totalPages": total_pages,
+            "limit": len(products),
+            "totalItems": total_products,
+            "perPage": per_page,
+            "hasPrev": page > 1,
+            "hasNext": page < total_pages
+        }
+        
         # ✅ إذا كان طلب AJAX، أعد الجدول فقط
         if ajax:
             return render_template(
                 'admin/includes/_table_products.html',
                 products=products,
                 search_title=search_query,
-                pagination={
-                    "currentPage": page,
-                    "totalPages": total_pages,
-                    "limit": len(products),
-                    "totalItems": total_products,
-                    "perPage": per_page,
-                    "hasPrev": page > 1,
-                    "hasNext": page < total_pages
-                }
+                pagination=pagination_data
             )
         
         return render_template(
             'admin/admin_Product.html',
             products=products,
             search_title=search_query,
-            pagination={
-                "currentPage": page,
-                "totalPages": total_pages,
-                "limit": len(products),
-                "totalItems": total_products,
-                "perPage": per_page,
-                "hasPrev": page > 1,
-                "hasNext": page < total_pages
-            }
+            pagination=pagination_data
         )
     except Exception as e:
         print(f"❌ خطأ في manage_products: {e}")
