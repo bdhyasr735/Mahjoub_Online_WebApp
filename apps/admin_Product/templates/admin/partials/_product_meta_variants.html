@@ -14,7 +14,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th>المعرف</th>
+                        <th>المعرف (QID)</th>
                         <th>السعر</th>
                         <th>الكمية</th>
                         <th>الخيارات</th>
@@ -25,7 +25,10 @@
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td><code>{{ variant.qid or '-' }}</code></td>
-                        <td class="text-primary">{{ variant.pricing.price if variant.pricing and variant.pricing.price is not none else variant.price or 0 }} ر.س</td>
+                        <td class="text-primary">
+                            {% set price = variant.pricing.price if variant.pricing and variant.pricing.price is not none else variant.price or 0 %}
+                            {{ "%.2f"|format(price|float) }} ر.س
+                        </td>
                         <td>
                             <span class="badge {{ 'bg-success' if variant.quantity|int > 0 else 'bg-danger' }}">
                                 {{ variant.quantity or 0 }}
@@ -104,7 +107,7 @@
 <div class="card shadow-sm mt-3">
     <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
         <h5 class="mb-0" style="color: #D4AF37;">
-            <i class="fas fa-folder-open text-warning me-2"></i> المجموعات
+            <i class="fas fa-folder-open text-warning me-2"></i> المجموعات (Collections)
         </h5>
     </div>
     <div class="card-body">
@@ -131,5 +134,22 @@
 
 .text-purple {
     color: #2d0b36;
+}
+
+/* تحسين عرض البادجات */
+.badge {
+    font-weight: 500;
+    padding: 5px 10px;
+}
+
+/* تحسين الجدول */
+.table-sm td, .table-sm th {
+    padding: 6px 8px;
+    vertical-align: middle;
+}
+
+/* لون النص الأساسي */
+.text-primary {
+    color: #D4AF37 !important;
 }
 </style>
