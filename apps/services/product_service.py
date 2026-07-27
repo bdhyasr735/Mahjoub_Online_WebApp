@@ -215,6 +215,7 @@ class ProductService:
                         }
                     }
                     slug
+                    handle
                     views
                     publishedAt
                 }
