@@ -156,7 +156,7 @@ class ProductService:
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID"""
+        """جلب منتج بواسطة QID مع جميع الحقول"""
         query = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -165,16 +165,62 @@ class ProductService:
                 data {
                     qid
                     title
+                    description
+                    status
                     pricing {
                         price
                         compareAtPrice
+                        costPerItem
                     }
-                    status
-                    description
                     images {
                         fileUrl
                     }
                     quantity
+                    seo {
+                        title
+                        description
+                        keywords
+                    }
+                    tags
+                    collections {
+                        qid
+                        name
+                        handle
+                        description
+                        image {
+                            fileUrl
+                        }
+                    }
+                    variants {
+                        _id
+                        qid
+                        pricing {
+                            price
+                            compareAtPrice
+                        }
+                        quantity
+                        options {
+                            option
+                            label
+                        }
+                        images {
+                            fileUrl
+                        }
+                    }
+                    options {
+                        qid
+                        name
+                        values {
+                            option
+                            label
+                            sortOrder
+                        }
+                    }
+                    slug
+                    views
+                    publishedAt
+                    createdAt
+                    updatedAt
                 }
             }
         }
