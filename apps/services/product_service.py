@@ -110,7 +110,7 @@ class ProductService:
 
     def fetch_all_products_for_search(self, max_pages: int = 10) -> list:
         """
-        جلب المنتجات من أول 10 صفحات فقط للبحث (لتجنب Timeout)
+        جلب المنتجات من أول 10 صفحات فقط للبحث (مع Cache)
         
         Args:
             max_pages: عدد الصفحات المطلوب جلبها (افتراضي 10)
@@ -118,6 +118,11 @@ class ProductService:
         Returns:
             list: قائمة بالمنتجات من الصفحات المحددة
         """
+        # ✅ إذا كانت المنتجات موجودة في Cache، استخدمها
+        if hasattr(self, '_search_cache') and self._search_cache is not None:
+            print(f"✅ [ProductService]: استخدام Cache (عدد {len(self._search_cache)} منتج)")
+            return self._search_cache
+        
         all_products = []
         page = 1
         has_next = True
@@ -140,8 +145,15 @@ class ProductService:
                 print(f"❌ [ProductService]: خطأ في جلب الصفحة {page}: {e}")
                 break
         
-        print(f"✅ [ProductService]: تم جلب {len(all_products)} منتج من {page-1} صفحات")
+        # ✅ تخزين النتائج في Cache
+        self._search_cache = all_products
+        print(f"✅ [ProductService]: تم تخزين {len(all_products)} منتج في Cache")
         return all_products
+    
+    def clear_search_cache(self):
+        """مسح Cache البحث"""
+        self._search_cache = None
+        print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID"""
