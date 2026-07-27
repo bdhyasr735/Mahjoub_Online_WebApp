@@ -22,8 +22,12 @@ def review_products():
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
             return redirect(url_for('admin_dashboard_bp.dashboard'))
         
-        all_products = services.products.get_all_products()
-        draft_products = [p for p in all_products if p.get('status') == 'DRAFT']
+        # ✅ جلب المنتجات من GraphQL (النتيجة الآن dict)
+        result = services.products.get_all_products() or {}
+        all_products = result.get('data', [])
+        
+        # ✅ تصفية المنتجات بحالة DRAFT
+        draft_products = [p for p in all_products if p.get('status', '').upper() == 'DRAFT']
         
         for product in draft_products:
             mapping = ProductSupplierMapping.query.filter_by(
@@ -38,8 +42,8 @@ def review_products():
                 product['supplier_id'] = None
         
         total_draft = len(draft_products)
-        total_published = len([p for p in all_products if p.get('status') == 'PUBLISHED'])
-        total_rejected = len([p for p in all_products if p.get('status') == 'REJECTED'])
+        total_published = len([p for p in all_products if p.get('status', '').upper() == 'PUBLISHED'])
+        total_rejected = len([p for p in all_products if p.get('status', '').upper() == 'REJECTED'])
         
         return render_template(
             'admin/admin_review_products.html',
