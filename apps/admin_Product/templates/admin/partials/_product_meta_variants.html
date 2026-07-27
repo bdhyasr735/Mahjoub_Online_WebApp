@@ -1,63 +1,108 @@
 <!-- 📂 apps/admin_Product/templates/admin/partials/_product_meta_variants.html -->
 <!-- بيانات المتغيرات والـ Meta للمنتج -->
 
+<!-- ======================================== -->
+<!-- المتغيرات (Variants) مع الصور والأسعار -->
+<!-- ======================================== -->
 <div class="card shadow-sm mb-3">
     <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
         <h5 class="mb-0" style="color: #D4AF37;">
             <i class="fas fa-layer-group text-info me-2"></i> المتغيرات (Variants)
+            {% if product and product.variants %}
+            <span class="badge ms-2" style="background: rgba(212, 175, 55, 0.2); color: #D4AF37;">
+                {{ product.variants|length }}
+            </span>
+            {% endif %}
         </h5>
     </div>
     <div class="card-body">
         {% if product and product.variants and product.variants|length > 0 %}
         <div class="table-responsive">
-            <table class="table table-sm table-hover">
-                <thead class="table-light">
+            <table class="table table-hover align-middle">
+                <thead style="background: linear-gradient(135deg, #f8f5f0, #e9ecef);">
                     <tr>
-                        <th>#</th>
-                        <th>المعرف (QID)</th>
-                        <th>السعر</th>
-                        <th>الكمية</th>
-                        <th>الخيارات</th>
+                        <th style="color: #2d0b36; font-weight: 600;">#</th>
+                        <th style="color: #2d0b36; font-weight: 600;">الصورة</th>
+                        <th style="color: #2d0b36; font-weight: 600;">الخيارات</th>
+                        <th style="color: #2d0b36; font-weight: 600;" class="text-center">السعر</th>
+                        <th style="color: #2d0b36; font-weight: 600;" class="text-center">سعر المقارنة</th>
+                        <th style="color: #2d0b36; font-weight: 600;" class="text-center">الكمية</th>
+                        <th style="color: #2d0b36; font-weight: 600;" class="text-center">المعرف</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for variant in product.variants %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td><code>{{ variant.qid or '-' }}</code></td>
-                        <td class="text-primary">
+                        <td>
+                            {% if variant.images and variant.images|length > 0 %}
+                                <img src="{{ variant.images[0].fileUrl or variant.images[0].url }}" 
+                                     alt="صورة المتغير"
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #D4AF37;"
+                                     onerror="this.src='https://via.placeholder.com/50x50?text=No+Image'">
+                            {% else %}
+                                <div style="width: 50px; height: 50px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #dee2e6; display: flex; align-items: center; justify-content: center; color: #adb5bd;">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if variant.options %}
+                                <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                {% for opt in variant.options %}
+                                    <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 4px 10px;">
+                                        {{ opt.label }}
+                                    </span>
+                                {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-bold" style="color: #D4AF37;">
                             {% set price = variant.pricing.price if variant.pricing and variant.pricing.price is not none else variant.price or 0 %}
                             {{ "%.2f"|format(price|float) }} ر.س
                         </td>
-                        <td>
-                            <span class="badge {{ 'bg-success' if variant.quantity|int > 0 else 'bg-danger' }}">
+                        <td class="text-center">
+                            {% set comparePrice = variant.pricing.compareAtPrice if variant.pricing and variant.pricing.compareAtPrice is not none else variant.compareAtPrice or 0 %}
+                            {% if comparePrice > 0 %}
+                                <span class="text-muted text-decoration-line-through">{{ "%.2f"|format(comparePrice|float) }} ر.س</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge {{ 'bg-success' if variant.quantity|int > 0 else 'bg-danger' }}" 
+                                  style="font-size: 0.85rem; padding: 5px 12px;">
                                 {{ variant.quantity or 0 }}
                             </span>
                         </td>
                         <td>
-                            {% if variant.options %}
-                                {% for opt in variant.options %}
-                                <span class="badge bg-secondary me-1">{{ opt.option }}: {{ opt.label }}</span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
+                            <small class="text-muted">{{ variant.qid|truncate(20) or '-' }}</small>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        <small class="text-muted">إجمالي المتغيرات: {{ product.variants|length }}</small>
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            <small class="text-muted">
+                <i class="fas fa-cubes me-1"></i> إجمالي المتغيرات: <strong>{{ product.variants|length }}</strong>
+            </small>
+        </div>
         {% else %}
-        <div class="text-center py-3 text-muted">
-            <i class="fas fa-cubes fa-2x mb-2 d-block"></i>
-            <p>لا توجد متغيرات لهذا المنتج</p>
+        <div class="text-center py-4 text-muted">
+            <i class="fas fa-cubes fa-3x mb-3 d-block" style="color: #D4AF37;"></i>
+            <h6 style="color: #2d0b36;">لا توجد متغيرات لهذا المنتج</h6>
+            <p class="small">يمكنك إضافة متغيرات لتوفير خيارات متعددة للعملاء</p>
         </div>
         {% endif %}
     </div>
 </div>
 
+<!-- ======================================== -->
+<!-- البيانات الوصفية (Meta) -->
+<!-- ======================================== -->
 <div class="card shadow-sm">
     <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
         <h5 class="mb-0" style="color: #D4AF37;">
@@ -65,25 +110,48 @@
         </h5>
     </div>
     <div class="card-body">
-        <div class="row">
+        <div class="row g-3">
             <div class="col-md-6">
-                <label class="form-label fw-bold" style="color: #2d0b36;">العنوان (SEO)</label>
-                <input type="text" name="seo_title" class="form-control" value="{{ product.seo.title if product.seo and product.seo.title else '' }}" style="border-color: #2d0b36; border-radius: 8px;" placeholder="عنوان تحسين محركات البحث">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-heading text-primary me-1"></i> عنوان SEO
+                </label>
+                <input type="text" 
+                       name="seo_title" 
+                       class="form-control" 
+                       value="{{ product.seo.title if product.seo and product.seo.title else '' }}" 
+                       style="border-color: #2d0b36; border-radius: 8px;" 
+                       placeholder="عنوان تحسين محركات البحث">
             </div>
             <div class="col-md-6">
-                <label class="form-label fw-bold" style="color: #2d0b36;">الوصف (SEO)</label>
-                <input type="text" name="seo_description" class="form-control" value="{{ product.seo.description if product.seo and product.seo.description else '' }}" style="border-color: #2d0b36; border-radius: 8px;" placeholder="وصف تحسين محركات البحث">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-align-left text-success me-1"></i> وصف SEO
+                </label>
+                <input type="text" 
+                       name="seo_description" 
+                       class="form-control" 
+                       value="{{ product.seo.description if product.seo and product.seo.description else '' }}" 
+                       style="border-color: #2d0b36; border-radius: 8px;" 
+                       placeholder="وصف تحسين محركات البحث">
             </div>
         </div>
         
-        <div class="row mt-2">
+        <div class="row g-3 mt-1">
             <div class="col-md-6">
-                <label class="form-label fw-bold" style="color: #2d0b36;">الكلمات المفتاحية</label>
-                <input type="text" name="seo_keywords" class="form-control" value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" style="border-color: #2d0b36; border-radius: 8px;" placeholder="كلمات مفتاحية مفصولة بفواصل">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-tags text-info me-1"></i> الكلمات المفتاحية
+                </label>
+                <input type="text" 
+                       name="seo_keywords" 
+                       class="form-control" 
+                       value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" 
+                       style="border-color: #2d0b36; border-radius: 8px;" 
+                       placeholder="كلمات مفتاحية مفصولة بفواصل">
             </div>
             <div class="col-md-6">
-                <label class="form-label fw-bold" style="color: #2d0b36;">العلامات (Tags)</label>
-                <div class="form-control-plaintext" style="min-height: 38px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-hashtag text-warning me-1"></i> العلامات (Tags)
+                </label>
+                <div class="form-control-plaintext" style="min-height: 42px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; background: #f8f9fa; border-radius: 8px; padding: 6px 12px; border: 1px solid #e9ecef;">
                     {% if product.tags and product.tags|length > 0 %}
                         {% for tag in product.tags %}
                         <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 4px 10px;">
@@ -97,9 +165,11 @@
             </div>
         </div>
         
-        <div class="row mt-2">
+        <div class="row g-3 mt-1">
             <div class="col-12">
-                <label class="form-label fw-bold" style="color: #2d0b36;">التصنيفات</label>
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-folder text-danger me-1"></i> التصنيفات
+                </label>
                 <div style="display: flex; flex-wrap: wrap; gap: 4px;">
                     {% if product.categories and product.categories|length > 0 %}
                         {% for cat in product.categories %}
@@ -116,18 +186,25 @@
     </div>
 </div>
 
-<!-- ✅ معلومات إضافية عن المجموعات (محسّنة) -->
+<!-- ======================================== -->
+<!-- المجموعات (Collections) -->
+<!-- ======================================== -->
 <div class="card shadow-sm mt-3">
     <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
         <h5 class="mb-0" style="color: #D4AF37;">
             <i class="fas fa-folder-open text-warning me-2"></i> المجموعات (Collections)
+            {% if product and product.collections %}
+            <span class="badge ms-2" style="background: rgba(212, 175, 55, 0.2); color: #D4AF37;">
+                {{ product.collections|length }}
+            </span>
+            {% endif %}
         </h5>
     </div>
     <div class="card-body">
         {% if product and product.collections and product.collections|length > 0 %}
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                 {% for collection in product.collections %}
-                <div class="card" style="background: #f8f5f0; border: 1px solid rgba(212, 175, 55, 0.2); border-radius: 8px; padding: 8px 14px; min-width: 120px;">
+                <div class="card" style="background: #f8f5f0; border: 1px solid rgba(212, 175, 55, 0.2); border-radius: 8px; padding: 8px 14px; min-width: 120px; transition: all 0.3s;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-folder" style="color: #D4AF37;"></i>
                         <div>
@@ -140,7 +217,9 @@
                 </div>
                 {% endfor %}
             </div>
-            <small class="text-muted mt-2 d-block">عدد المجموعات: {{ product.collections|length }}</small>
+            <small class="text-muted mt-2 d-block">
+                <i class="fas fa-list me-1"></i> عدد المجموعات: <strong>{{ product.collections|length }}</strong>
+            </small>
         {% else %}
             <div class="text-center py-3 text-muted">
                 <i class="fas fa-folder-open fa-2x mb-2 d-block" style="color: #D4AF37;"></i>
@@ -151,6 +230,7 @@
 </div>
 
 <style>
+/* ✅ تنسيق عام */
 .form-control-plaintext {
     background: #f8f9fa;
     padding: 8px 12px;
@@ -160,31 +240,44 @@
 
 .card-header {
     border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    padding: 12px 20px;
 }
 
 .text-purple {
     color: #2d0b36;
 }
 
-/* تحسين عرض البادجات */
+/* ✅ تحسين البادجات */
 .badge {
     font-weight: 500;
     padding: 5px 10px;
 }
 
-/* تحسين الجدول */
-.table-sm td, .table-sm th {
-    padding: 6px 8px;
+/* ✅ تحسين الجدول */
+.table td, .table th {
+    padding: 10px 12px;
     vertical-align: middle;
 }
 
-/* لون النص الأساسي */
+.table-hover tbody tr:hover {
+    background-color: rgba(45, 11, 54, 0.04) !important;
+}
+
+/* ✅ لون النص الأساسي */
 .text-primary {
     color: #D4AF37 !important;
 }
 
-/* تحسين عرض المجموعات */
+/* ✅ تحسين عرض المجموعات */
 .card.bg-light {
     background: #f8f5f0 !important;
+}
+
+/* ✅ تنسيق الصور */
+img {
+    transition: all 0.3s ease;
+}
+img:hover {
+    transform: scale(1.05);
 }
 </style>
