@@ -52,7 +52,6 @@ def review_products():
     except Exception as e:
         print(f"❌ خطأ في review_products: {e}")
         flash('❌ حدث خطأ في تحميل صفحة المراجعة', 'danger')
-        # ✅ تم التعديل: manage_products → manage_products_view
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
 
