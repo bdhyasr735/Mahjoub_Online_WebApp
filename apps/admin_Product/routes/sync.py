@@ -88,6 +88,12 @@ def sync_products():
                     'error': str(ex)
                 })
         
+        # ✅ مسح Cache البحث بعد المزامنة
+        try:
+            services.products.clear_search_cache()
+        except Exception as cache_error:
+            print(f"⚠️ [Sync]: خطأ في مسح Cache: {cache_error}")
+        
         if request.method == 'GET':
             flash(f'✅ تمت المزامنة: {synced_count} منتج (جديد: {created_count}, محدث: {updated_count})', 'success')
             return redirect(url_for('admin_product_bp.manage_products_view'))
