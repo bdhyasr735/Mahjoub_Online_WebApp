@@ -2,6 +2,7 @@
 # 📦 خدمة المنتجات - منصة محجوب أونلاين 2026
 
 import os
+import re
 from apps.services.graphql_client import GraphQLClient
 
 
@@ -21,7 +22,7 @@ class ProductService:
             print(f"⚠️ [ProductService]: لم يتم العثور على ملف الاستعلامات")
             self.queries_content = ""
 
-    def _get_query(self, query_name: str) -> str:
+    def _extract_query(self, query_name: str) -> str:
         """استخراج استعلام معين من ملف الاستعلامات"""
         if not self.queries_content:
             return ""
@@ -33,11 +34,13 @@ class ProductService:
         brace_count = 0
         
         for line in lines:
+            # البحث عن بداية الاستعلام
             if f"query {query_name}" in line or f"mutation {query_name}" in line:
                 found = True
             
             if found:
                 result.append(line)
+                # حساب الأقواس
                 brace_count += line.count('{') - line.count('}')
                 if brace_count == 0 and len(result) > 1:
                     break
@@ -46,8 +49,11 @@ class ProductService:
 
     def get_all_products(self, input_data: dict = None) -> dict:
         """جلب جميع المنتجات مع معلومات الترقيم"""
-        query = self._get_query("FindAllProducts")
+        # ✅ استخدم الاستعلام من الملف
+        query = self._extract_query("FindAllProducts")
+        
         if not query:
+            # استعلام احتياطي إذا لم يتم العثور على الاستعلام
             query = """
             query FindAllProducts($input: GetAllProductsInput) {
                 findAllProducts(input: $input) {
@@ -165,12 +171,13 @@ class ProductService:
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID مع جميع الحقول من ملف الاستعلامات"""
-        # ✅ استخدام الاستعلام من ملف product_queries.graphql
-        query = self._get_query("FindProductByQid")
+        """جلب منتج بواسطة QID مع جميع الحقول"""
+        # ✅ استخدم الاستعلام من الملف
+        query = self._extract_query("FindProductByQid")
         
         # ✅ إذا لم يتم العثور على الاستعلام، استخدم الاستعلام الافتراضي
         if not query:
+            print(f"⚠️ [ProductService]: لم يتم العثور على استعلام FindProductByQid، استخدم الافتراضي")
             query = """
             query FindProductByQid($qid: String!) {
                 findProductByQid(qid: $qid) {
@@ -252,7 +259,8 @@ class ProductService:
 
     def create_product_data(self, input_data: dict) -> dict:
         """إنشاء منتج جديد"""
-        query = self._get_query("CreateProduct")
+        query = self._extract_query("CreateProduct")
+        
         if not query:
             query = """
             mutation CreateProduct($input: CreateProductInput!) {
@@ -285,7 +293,8 @@ class ProductService:
 
     def update_product_data(self, input_data: dict) -> dict:
         """تعديل منتج"""
-        query = self._get_query("UpdateProduct")
+        query = self._extract_query("UpdateProduct")
+        
         if not query:
             query = """
             mutation UpdateProduct($input: UpdateProductInput!) {
