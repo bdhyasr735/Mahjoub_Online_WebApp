@@ -164,7 +164,7 @@ class ProductService:
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع جميع الحقول"""
         
-        # ✅ الاستعلام النهائي المعتمد (الأسعار الثلاثة، الكمية، المتغيرات مع الصور)
+        # ✅ الاستعلام بعد إزالة costPerItem غير المتاح في نوع Pricing
         query = """
         {
             findProductByQid(qid: "%s") {
@@ -178,7 +178,6 @@ class ProductService:
                     pricing {
                         price
                         compareAtPrice
-                        costPerItem
                     }
                     images {
                         fileUrl
