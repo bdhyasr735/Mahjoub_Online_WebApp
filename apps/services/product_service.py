@@ -164,7 +164,7 @@ class ProductService:
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع جميع الحقول"""
         
-        # ✅ تم إزالة حقل option غير المدعوم كقيمة نصية من variants.options لتجنب خطأ الـ GraphQL
+        # ✅ الاستعلام النهائي المعتمد (الأسعار الثلاثة، الكمية، المتغيرات مع الصور)
         query = """
         {
             findProductByQid(qid: "%s") {
@@ -178,6 +178,7 @@ class ProductService:
                     pricing {
                         price
                         compareAtPrice
+                        costPerItem
                     }
                     images {
                         fileUrl
@@ -195,16 +196,18 @@ class ProductService:
                     variants {
                         _id
                         qid
+                        quantity
                         pricing {
                             price
                             compareAtPrice
                         }
-                        quantity
                         options {
                             label
                         }
                         images {
+                            _id
                             fileUrl
+                            path
                         }
                     }
                     options {
