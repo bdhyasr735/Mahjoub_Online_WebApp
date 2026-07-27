@@ -2,8 +2,8 @@
 <!-- بيانات المتغيرات والـ Meta للمنتج -->
 
 <div class="card shadow-sm mb-3">
-    <div class="card-header bg-light">
-        <h5 class="mb-0">
+    <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
+        <h5 class="mb-0" style="color: #D4AF37;">
             <i class="fas fa-layer-group text-info me-2"></i> المتغيرات (Variants)
         </h5>
     </div>
@@ -26,7 +26,7 @@
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td><code>{{ variant.sku or '-' }}</code></td>
-                        <td class="text-primary">{{ variant.price or 0 }} ر.س</td>
+                        <td class="text-primary">{{ variant.pricing.price if variant.pricing and variant.pricing.price is not none else variant.price or 0 }} ر.س</td>
                         <td>
                             <span class="badge {{ 'bg-success' if variant.quantity|int > 0 else 'bg-danger' }}">
                                 {{ variant.quantity or 0 }}
@@ -62,37 +62,37 @@
 </div>
 
 <div class="card shadow-sm">
-    <div class="card-header bg-light">
-        <h5 class="mb-0">
+    <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
+        <h5 class="mb-0" style="color: #D4AF37;">
             <i class="fas fa-code text-secondary me-2"></i> البيانات الوصفية (Meta)
         </h5>
     </div>
     <div class="card-body">
         <div class="row">
             <div class="col-md-6">
-                <label class="form-label fw-bold">العنوان (SEO)</label>
+                <label class="form-label fw-bold" style="color: #2d0b36;">العنوان (SEO)</label>
                 <p class="form-control-plaintext">{{ product.seo.title or '-' }}</p>
             </div>
             <div class="col-md-6">
-                <label class="form-label fw-bold">الوصف (SEO)</label>
+                <label class="form-label fw-bold" style="color: #2d0b36;">الوصف (SEO)</label>
                 <p class="form-control-plaintext">{{ product.seo.description or '-' }}</p>
             </div>
         </div>
         
         <div class="row">
             <div class="col-md-6">
-                <label class="form-label fw-bold">الكلمات المفتاحية</label>
+                <label class="form-label fw-bold" style="color: #2d0b36;">الكلمات المفتاحية</label>
                 <p class="form-control-plaintext">{{ product.seo.keywords or '-' }}</p>
             </div>
             <div class="col-md-6">
-                <label class="form-label fw-bold">العلامات (Tags)</label>
+                <label class="form-label fw-bold" style="color: #2d0b36;">العلامات (Tags)</label>
                 <p class="form-control-plaintext">{{ product.tags|join(', ') if product.tags else '-' }}</p>
             </div>
         </div>
         
         <div class="row">
             <div class="col-12">
-                <label class="form-label fw-bold">التصنيفات</label>
+                <label class="form-label fw-bold" style="color: #2d0b36;">التصنيفات</label>
                 {% if product.categories and product.categories|length > 0 %}
                     {% for cat in product.categories %}
                     <span class="badge bg-primary me-1">{{ cat.name }}</span>
@@ -108,8 +108,8 @@
 <!-- معلومات إضافية عن المجموعات -->
 {% if product and product.collections and product.collections|length > 0 %}
 <div class="card shadow-sm mt-3">
-    <div class="card-header bg-light">
-        <h5 class="mb-0">
+    <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
+        <h5 class="mb-0" style="color: #D4AF37;">
             <i class="fas fa-folder-open text-warning me-2"></i> المجموعات
         </h5>
     </div>
@@ -129,5 +129,13 @@
     padding: 8px 12px;
     border-radius: 8px;
     border: 1px solid #e9ecef;
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.text-purple {
+    color: #2d0b36;
 }
 </style>
