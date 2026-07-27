@@ -22,49 +22,43 @@
         </div>
     </div>
 
-    <!-- شريط البحث المباشر -->
+    <!-- ✅ شريط البحث الاحترافي (بدون زر بحث) -->
     <div class="card mb-4 shadow-sm border-0">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-10">
-                    <div class="position-relative">
-                        <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                        <input 
-                            type="text" 
-                            id="searchInput"
-                            name="title" 
-                            class="form-control ps-5" 
-                            placeholder="🔍 ابحث عن منتج بالاسم أو الوصف..." 
-                            value="{{ search_title or '' }}"
-                            autofocus
-                            style="border-color: #2d0b36;"
-                        >
-                        <!-- ✅ زر مسح البحث (يظهر عند وجود نص) -->
-                        <button type="button" id="clearSearchBtn" class="btn btn-link position-absolute top-50 end-0 translate-middle-y me-2" 
-                                style="display: {{ 'block' if search_title else 'none' }}; color: #6c757d; text-decoration: none; padding: 0;"
-                                onclick="clearSearch()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn w-100" id="searchBtn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
+            <div class="position-relative">
+                <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.9rem;"></i>
+                <input 
+                    type="text" 
+                    id="searchInput"
+                    name="title" 
+                    class="form-control ps-5 pe-5" 
+                    placeholder="🔍 ابحث عن منتج بالاسم أو الوصف..." 
+                    value="{{ search_title or '' }}"
+                    autofocus
+                    style="border-color: #2d0b36; border-radius: 10px; height: 50px;"
+                >
+                <!-- ✅ زر مسح البحث (يظهر عند وجود نص) -->
+                <button type="button" id="clearSearchBtn" class="btn btn-link position-absolute top-50 end-0 translate-middle-y me-2" 
+                        style="display: {{ 'block' if search_title else 'none' }}; color: #6c757d; text-decoration: none; padding: 0; font-size: 1.2rem;"
+                        onclick="clearSearch()">
+                    <i class="fas fa-times-circle"></i>
+                </button>
             </div>
+            <!-- ✅ رسالة نتائج البحث -->
+            {% if search_title %}
+            <div class="mt-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 8px 16px; border-radius: 20px;">
+                        <i class="fas fa-search me-1"></i> نتائج البحث: "{{ search_title }}"
+                    </span>
+                </div>
+                <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 6px 18px;">
+                    <i class="fas fa-arrow-right me-1"></i> عرض الكل
+                </a>
+            </div>
+            {% endif %}
         </div>
     </div>
-
-    <!-- ✅ زر الرجوع (يظهر عند وجود بحث) -->
-    {% if search_title %}
-    <div class="mb-3">
-        <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn btn-outline-secondary" style="border-color: #2d0b36; color: #2d0b36;">
-            <i class="fas fa-arrow-right"></i> العودة إلى جميع المنتجات
-        </a>
-        <span class="badge bg-secondary ms-2">نتائج البحث: "{{ search_title }}"</span>
-    </div>
-    {% endif %}
 
     <!-- رسائل الخطأ -->
     {% if error %}
@@ -100,23 +94,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ✅ مسح البحث
+    // ✅ مسح البحث والعودة إلى الكل
     window.clearSearch = function() {
         if (searchInput) {
             searchInput.value = '';
             toggleClearBtn();
-            performSearch('');
+            // ✅ إعادة التوجيه إلى صفحة الكل بدون بحث
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.delete('title');
+            currentUrl.searchParams.set('page', '1');
+            window.location.href = currentUrl.toString();
         }
     };
 
     if (searchInput) {
-        // ✅ بحث فوري عند الكتابة (تأخير 300ms)
+        // ✅ بحث فوري عند الكتابة (تأخير 400ms)
         searchInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
             toggleClearBtn();
             searchTimeout = setTimeout(() => {
                 performSearch(this.value);
-            }, 300);
+            }, 400);
         });
 
         // ✅ البحث عند الضغط على Enter
@@ -129,21 +127,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ✅ البحث عند الضغط على زر البحث
-    document.getElementById('searchBtn')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        const input = document.getElementById('searchInput');
-        if (input) performSearch(input.value);
-    });
-
-    // ✅ دالة البحث المحسّنة (بدون إعادة تحميل الصفحة)
+    // ✅ دالة البحث المحسّنة (بدون تغيير الرابط)
     function performSearch(query) {
         const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('title', query);
+        if (query.trim()) {
+            currentUrl.searchParams.set('title', query);
+        } else {
+            currentUrl.searchParams.delete('title');
+        }
         currentUrl.searchParams.set('page', '1');
         
-        // ✅ تحديث الرابط بدون إعادة تحميل الصفحة (History API)
-        window.history.pushState({}, '', currentUrl.toString());
+        // ✅ تحديث الرابط بدون إعادة تحميل الصفحة (replaceState)
+        window.history.replaceState({}, '', currentUrl.toString());
         
         // ✅ تحديث الجدول فقط
         fetchProductsTable();
@@ -320,15 +315,24 @@ function showToast(type, message) {
 
 /* أيقونة البحث داخل الحقل */
 .position-relative .form-control {
-    padding-left: 2.5rem;
-    padding-right: 2.5rem;
+    padding-left: 2.8rem;
+    padding-right: 2.8rem;
+    transition: all 0.3s ease;
+}
+
+.position-relative .form-control:focus {
+    box-shadow: 0 0 0 3px rgba(45, 11, 54, 0.15);
+    border-color: #2d0b36;
 }
 
 /* زر مسح البحث */
 #clearSearchBtn {
     z-index: 10;
+    opacity: 0.7;
+    transition: all 0.3s ease;
 }
 #clearSearchBtn:hover {
+    opacity: 1;
     color: #dc3545 !important;
 }
 
