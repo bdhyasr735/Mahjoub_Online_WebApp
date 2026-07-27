@@ -29,6 +29,10 @@ def manage_products_view():
         # ✅ استخدام totalItems من GraphQL إذا كان متاحاً
         total_products = pagination_info.get('totalItems', len(all_products))
         
+        # ✅ طباعة للتحقق (يمكن إزالتها بعد التأكد)
+        print(f"🔍 [DEBUG] Total products from GraphQL: {total_products}")
+        print(f"🔍 [DEBUG] Products fetched in data: {len(all_products)}")
+        
         # ✅ تطبيق البحث (استخدم title بدلاً من name)
         if search_query:
             all_products = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
@@ -44,6 +48,15 @@ def manage_products_view():
         start = (page - 1) * per_page
         end = start + per_page
         products = all_products[start:end]
+        
+        # ✅ إذا كانت الصفحة فارغة، حاول جلب البيانات من GraphQL مرة أخرى
+        if not products and page == 1:
+            print("⚠️ [DEBUG] No products found, attempting to refetch...")
+            result = services.products.get_all_products() or {}
+            all_products = result.get('data', [])
+            pagination_info = result.get('pagination', {})
+            total_products = pagination_info.get('totalItems', len(all_products))
+            products = all_products[start:end]
         
         # ✅ ربط الموردين بالمنتجات
         for product in products:
