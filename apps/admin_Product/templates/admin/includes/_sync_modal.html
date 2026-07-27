@@ -1,345 +1,88 @@
-{% extends "admin/admin_base.html" %}
-
-{% block title %}إدارة المنتجات{% endblock %}
-
-{% block content %}
-<div class="container-fluid">
-    <!-- رأس الصفحة -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0" style="color: #2d0b36;">📦 إدارة المنتجات</h1>
-        <div class="d-flex gap-2 mt-2 mt-sm-0">
-            <a href="{{ url_for('admin_product_bp.add_product') }}" class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
-                <i class="fas fa-plus"></i> إضافة منتج
-            </a>
-            <button 
-                class="btn" 
-                onclick="syncProducts()"
-                id="syncButton"
-                style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;"
-            >
-                <i class="fas fa-sync"></i> مزامنة الآن
-            </button>
+<!-- 📂 apps/admin_Product/templates/admin/includes/_sync_modal.html -->
+<!-- نافذة المزامنة المنبثقة -->
+<div id="syncModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="
+        background: white;
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        text-align: center;
+        min-width: 320px;
+        max-width: 90%;
+        width: 400px;
+    ">
+        <!-- أيقونة التحميل -->
+        <div class="spinner-border" style="width: 3.5rem; height: 3.5rem; color: #D4AF37;" role="status">
+            <span class="visually-hidden">جاري التحميل...</span>
         </div>
-    </div>
-
-    <!-- شريط البحث المباشر -->
-    <div class="card mb-4 shadow-sm border-0">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-8">
-                    <div class="position-relative">
-                        <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                        <input 
-                            type="text" 
-                            id="searchInput"
-                            name="title" 
-                            class="form-control ps-5" 
-                            placeholder="🔍 ابحث عن منتج بالاسم أو الوصف..." 
-                            value="{{ search_title or '' }}"
-                            autofocus
-                            style="border-color: #2d0b36;"
-                        >
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <button type="submit" class="btn w-100" id="searchBtn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
-                        <i class="fas fa-search"></i> بحث
-                    </button>
-                </div>
-            </div>
+        
+        <h4 class="mt-3" style="color: #2d0b36;">🔄 جاري المزامنة</h4>
+        <p class="text-muted">يرجى الانتظار، جلب البيانات من الخادم...</p>
+        
+        <!-- شريط التقدم -->
+        <div class="progress mt-3" style="height: 8px; border-radius: 10px; overflow: hidden;">
+            <div 
+                class="progress-bar progress-bar-striped progress-bar-animated" 
+                style="width: 100%; background: linear-gradient(90deg, #2d0b36, #D4AF37);"
+            ></div>
         </div>
-    </div>
-
-    <!-- رسائل الخطأ -->
-    {% if error %}
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <strong>❌ خطأ:</strong> {{ error }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endif %}
-
-    <!-- جدول المنتجات -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <div id="productsTableContainer">
-                {% include "admin/includes/_table_products.html" %}
-            </div>
+        
+        <!-- رسائل المزامنة (تظهر بعد الانتهاء) -->
+        <div id="syncResult" style="display:none; margin-top: 15px;">
+            <div id="syncMessage" class="alert" style="margin-bottom: 0; border-radius: 10px;"></div>
+            <div id="syncDetails" style="font-size: 14px; color: #6c757d; margin-top: 10px;"></div>
         </div>
     </div>
 </div>
 
-<!-- نافذة المزامنة المنبثقة -->
-{% include "admin/includes/_sync_modal.html" %}
-
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // ✅ بحث فوري عند الكتابة (تأخير 500ms)
-    const searchInput = document.getElementById('searchInput');
-    let searchTimeout = null;
-
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                performSearch(this.value);
-            }, 500);
-        });
-
-        // ✅ البحث عند الضغط على Enter
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                clearTimeout(searchTimeout);
-                performSearch(this.value);
-            }
-        });
+function updateSyncProgress(message, percentage) {
+    const progressBar = document.querySelector('#syncModal .progress-bar');
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+        progressBar.setAttribute('aria-valuenow', percentage);
+        progressBar.textContent = percentage + '%';
     }
-
-    // ✅ البحث عند الضغط على زر البحث
-    document.getElementById('searchBtn')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        const input = document.getElementById('searchInput');
-        if (input) performSearch(input.value);
-    });
-
-    function performSearch(query) {
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('title', query);
-        currentUrl.searchParams.set('page', '1');
-        window.location.href = currentUrl.toString();
+    // عرض الرسالة في مكانها المناسب
+    const progressText = document.querySelector('#syncModal .text-muted');
+    if (progressText && message) {
+        progressText.textContent = message;
     }
-});
+}
 
-// ✅ دالة المزامنة المحسّنة
-function syncProducts() {
-    const button = document.getElementById('syncButton');
+function showSyncResult(success, message, details) {
+    const resultDiv = document.getElementById('syncResult');
+    const messageDiv = document.getElementById('syncMessage');
+    const detailsDiv = document.getElementById('syncDetails');
+    
+    resultDiv.style.display = 'block';
+    messageDiv.className = `alert alert-${success ? 'success' : 'danger'}`;
+    messageDiv.innerHTML = message;
+    
+    if (details) {
+        detailsDiv.textContent = details;
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+    
+    // إخفاء شريط التقدم بعد ظهور النتيجة
+    const progressBar = document.querySelector('#syncModal .progress');
+    if (progressBar) {
+        progressBar.style.display = 'none';
+    }
+}
+
+// إعادة ضبط النافذة عند الإغلاق
+function resetSyncModal() {
     const modal = document.getElementById('syncModal');
+    const resultDiv = document.getElementById('syncResult');
+    const progressBar = document.querySelector('#syncModal .progress');
+    const progressText = document.querySelector('#syncModal .text-muted');
     
-    // تعطيل الزر وإظهار النافذة
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
-    modal.style.display = 'block';
-    
-    // تحديث التقدم
-    if (typeof updateSyncProgress === 'function') {
-        updateSyncProgress('جاري الاتصال بالخادم...', 25);
-    }
-    
-    // الحصول على CSRF Token
-    const csrfInput = document.querySelector('input[name="csrf_token"]');
-    const csrfToken = csrfInput ? csrfInput.value : '';
-    
-    // إرسال طلب المزامنة
-    fetch('/admin/products/sync', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (typeof updateSyncProgress === 'function') {
-            updateSyncProgress('جاري معالجة البيانات...', 75);
-        }
-        
-        if (data.success) {
-            if (typeof showSyncResult === 'function') {
-                showSyncResult(true, '✅ ' + (data.message || 'تمت المزامنة بنجاح'), 
-                    `تمت مزامنة ${data.syncedCount || 0} منتج`);
-            } else {
-                showToast('success', '✅ ' + (data.message || 'تمت المزامنة بنجاح'));
-            }
-            
-            // ✅ تحديث الجدول فقط بدلاً من إعادة تحميل الصفحة
-            fetchProductsTable();
-            
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 2000);
-        } else {
-            if (typeof showSyncResult === 'function') {
-                showSyncResult(false, '❌ ' + (data.message || 'فشلت المزامنة'));
-            } else {
-                showToast('error', '❌ ' + (data.message || 'فشلت المزامنة'));
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Fetch Error:', error);
-        if (typeof showSyncResult === 'function') {
-            showSyncResult(false, '❌ حدث خطأ في الاتصال: ' + error.message);
-        } else {
-            showToast('error', '❌ حدث خطأ في الاتصال: ' + error.message);
-        }
-    })
-    .finally(() => {
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-sync"></i> مزامنة الآن';
-    });
-}
-
-// ✅ دالة لجلب الجدول فقط دون إعادة تحميل الصفحة
-function fetchProductsTable() {
-    const currentUrl = new URL(window.location.href);
-    const container = document.getElementById('productsTableContainer');
-    if (!container) return;
-    
-    // عرض حالة التحميل
-    container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">جاري تحديث البيانات...</p></div>';
-    
-    fetch(currentUrl.toString() + '&ajax=1')
-        .then(response => response.text())
-        .then(html => {
-            container.innerHTML = html;
-            // إعادة تهيئة أحداث الحذف
-            document.querySelectorAll('.delete-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    // كود الحذف...
-                });
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching table:', error);
-            container.innerHTML = '<div class="alert alert-danger">حدث خطأ في تحديث الجدول</div>';
-        });
-}
-
-// ✅ دالة showToast المحسّنة
-function showToast(type, message) {
-    const colors = {
-        success: '#28a745',
-        error: '#dc3545',
-        warning: '#ffc107',
-        info: '#0d6efd'
-    };
-    
-    const toast = document.createElement('div');
-    toast.className = 'position-fixed bottom-0 end-0 p-3';
-    toast.style.zIndex = '9999';
-    toast.innerHTML = `
-        <div class="toast show border-0 shadow-lg" role="alert" 
-             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 280px;">
-            <div class="toast-body d-flex align-items-center gap-2">
-                <span>${message}</span>
-                <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+    resultDiv.style.display = 'none';
+    if (progressBar) progressBar.style.display = 'block';
+    if (progressText) progressText.textContent = 'يرجى الانتظار، جلب البيانات من الخادم...';
+    modal.style.display = 'none';
 }
 </script>
-
-<style>
-/* تحسينات إضافية */
-#syncModal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 9999;
-    backdrop-filter: blur(5px);
-}
-
-#syncModal .spinner-border {
-    width: 3rem;
-    height: 3rem;
-}
-
-#syncModal .progress {
-    height: 8px;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-#syncModal .progress-bar {
-    background: linear-gradient(90deg, #2d0b36, #D4AF37);
-    animation: progressAnimation 1.5s ease-in-out infinite;
-}
-
-@keyframes progressAnimation {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
-
-.card {
-    border: none;
-    border-radius: 12px;
-}
-
-/* أيقونة البحث داخل الحقل */
-.position-relative .form-control {
-    padding-left: 2.5rem;
-}
-
-/* تحسين التجاوب */
-@media (max-width: 576px) {
-    .d-flex.gap-2 {
-        flex-wrap: wrap;
-    }
-    .btn {
-        font-size: 0.85rem;
-        padding: 0.4rem 0.8rem;
-    }
-}
-
-/* الهوية الملكية البنفسجية الداكنة */
-.btn-primary {
-    background: linear-gradient(135deg, #2d0b36, #1a0520) !important;
-    color: #D4AF37 !important;
-    border: none !important;
-}
-
-.btn-primary:hover {
-    background: linear-gradient(135deg, #3d1a4a, #2d0b36) !important;
-    color: #ffd700 !important;
-    box-shadow: 0 4px 15px rgba(45, 11, 54, 0.4);
-}
-
-.btn-success {
-    background: linear-gradient(135deg, #2d0b36, #1a0520) !important;
-    color: #D4AF37 !important;
-    border: none !important;
-}
-
-.btn-success:hover {
-    background: linear-gradient(135deg, #3d1a4a, #2d0b36) !important;
-    color: #ffd700 !important;
-    box-shadow: 0 4px 15px rgba(45, 11, 54, 0.4);
-}
-
-/* لون البادج في الترقيم */
-.page-item.active .page-link {
-    background-color: #2d0b36 !important;
-    border-color: #2d0b36 !important;
-    color: #D4AF37 !important;
-}
-
-.table th {
-    background-color: #2d0b36 !important;
-    color: #D4AF37 !important;
-    border-bottom: 2px solid #D4AF37;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(45, 11, 54, 0.05) !important;
-}
-
-/* لون البحث */
-.form-control:focus {
-    border-color: #2d0b36 !important;
-    box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.25) !important;
-}
-</style>
-{% endblock %}
