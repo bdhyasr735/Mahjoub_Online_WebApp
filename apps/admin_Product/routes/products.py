@@ -37,7 +37,8 @@ def manage_products_view():
         
         # ✅ تطبيق البحث (استخدم title بدلاً من name)
         if search_query:
-            # ✅ جلب جميع المنتجات للبحث (لأن البحث يحتاج إلى البيانات الكاملة)
+            # ✅ استخدام get_products_page للبحث أيضاً (إذا كان البحث مدعوماً)
+            # أو جلب جميع المنتجات وتطبيق البحث محلياً
             all_result = services.products.get_all_products() or {}
             all_products = all_result.get('data', [])
             filtered = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
