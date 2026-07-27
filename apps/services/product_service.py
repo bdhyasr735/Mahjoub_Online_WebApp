@@ -27,20 +27,17 @@ class ProductService:
         if not self.queries_content:
             return ""
         
-        # البحث عن الاستعلام في الملف
         lines = self.queries_content.split('\n')
         result = []
         found = False
         brace_count = 0
         
         for line in lines:
-            # البحث عن بداية الاستعلام
             if f"query {query_name}" in line or f"mutation {query_name}" in line:
                 found = True
             
             if found:
                 result.append(line)
-                # حساب الأقواس
                 brace_count += line.count('{') - line.count('}')
                 if brace_count == 0 and len(result) > 1:
                     break
@@ -49,43 +46,37 @@ class ProductService:
 
     def get_all_products(self, input_data: dict = None) -> dict:
         """جلب جميع المنتجات مع معلومات الترقيم"""
-        # ✅ استخدم الاستعلام من الملف
-        query = self._extract_query("FindAllProducts")
-        
-        if not query:
-            # استعلام احتياطي إذا لم يتم العثور على الاستعلام
-            query = """
-            query FindAllProducts($input: GetAllProductsInput) {
-                findAllProducts(input: $input) {
-                    success
-                    message
-                    data {
-                        qid
-                        title
-                        pricing {
-                            price
-                            compareAtPrice
-                        }
-                        status
-                        images {
-                            fileUrl
-                        }
-                        quantity
+        query = """
+        {
+            findAllProducts {
+                success
+                message
+                data {
+                    qid
+                    title
+                    pricing {
+                        price
+                        compareAtPrice
                     }
-                    pagination {
-                        totalItems
-                        totalPages
-                        currentPage
-                        limit
-                        hasNextPage
+                    status
+                    images {
+                        fileUrl
                     }
+                    quantity
+                }
+                pagination {
+                    totalItems
+                    totalPages
+                    currentPage
+                    limit
+                    hasNextPage
                 }
             }
-            """
+        }
+        """
         
         try:
-            variables = {"input": input_data} if input_data else {}
-            data = self.client.execute(query, variables)
+            data = self.client.execute(query)
             if data and "findAllProducts" in data:
                 return data["findAllProducts"]
             return {}
@@ -173,9 +164,9 @@ class ProductService:
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع جميع الحقول"""
         
-        # ✅ استعلام بدون متغيرات (ضع qid مباشرة في الاستعلام)
+        # ✅ استخدم الاستعلام الذي يعمل (بدون متغيرات)
         query = """
-        query {
+        {
             findProductByQid(qid: "%s") {
                 success
                 message
@@ -257,26 +248,23 @@ class ProductService:
 
     def create_product_data(self, input_data: dict) -> dict:
         """إنشاء منتج جديد"""
-        query = self._extract_query("CreateProduct")
-        
-        if not query:
-            query = """
-            mutation CreateProduct($input: CreateProductInput!) {
-                createProduct(input: $input) {
-                    success
-                    message
-                    data {
-                        qid
-                        title
-                        pricing {
-                            price
-                            compareAtPrice
-                        }
-                        status
+        query = """
+        mutation CreateProduct($input: CreateProductInput!) {
+            createProduct(input: $input) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    pricing {
+                        price
+                        compareAtPrice
                     }
+                    status
                 }
             }
-            """
+        }
+        """
         
         try:
             data = self.client.execute(query, {"input": input_data})
@@ -291,26 +279,23 @@ class ProductService:
 
     def update_product_data(self, input_data: dict) -> dict:
         """تعديل منتج"""
-        query = self._extract_query("UpdateProduct")
-        
-        if not query:
-            query = """
-            mutation UpdateProduct($input: UpdateProductInput!) {
-                updateProduct(input: $input) {
-                    success
-                    message
-                    data {
-                        qid
-                        title
-                        pricing {
-                            price
-                            compareAtPrice
-                        }
-                        status
+        query = """
+        mutation UpdateProduct($input: UpdateProductInput!) {
+            updateProduct(input: $input) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    pricing {
+                        price
+                        compareAtPrice
                     }
+                    status
                 }
             }
-            """
+        }
+        """
         
         try:
             data = self.client.execute(query, {"input": input_data})
