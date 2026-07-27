@@ -21,10 +21,10 @@ def manage_products_view():
         search_query = request.args.get('title', '', type=str)
         ajax = request.args.get('ajax', 0, type=int)
         
-        # ✅ إذا كان هناك بحث، جلب الكل وتطبيق البحث محلياً
+        # ✅ إذا كان هناك بحث، جلب جميع المنتجات للبحث
         if search_query:
-            all_result = services.products.get_all_products() or {}
-            all_products = all_result.get('data', [])
+            # ✅ استخدام الدالة الجديدة لجلب جميع المنتجات
+            all_products = services.products.fetch_all_products_for_search()
             
             # ✅ تطبيق البحث
             filtered = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
