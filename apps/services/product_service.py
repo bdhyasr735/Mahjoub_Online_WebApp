@@ -164,7 +164,7 @@ class ProductService:
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع جميع الحقول"""
         
-        # ✅ استخدم الاستعلام الذي يعمل (بدون متغيرات)
+        # ✅ استخدم الاستعلام الذي يعمل في الساندبوكس
         query = """
         {
             findProductByQid(qid: "%s") {
@@ -229,21 +229,30 @@ class ProductService:
         
         try:
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
+            print(f"🔍 [get_product_by_qid] Query: {query[:200]}...")
             
             data = self.client.execute(query)
-            print(f"🔍 [get_product_by_qid] Response: {data}")
+            print(f"🔍 [get_product_by_qid] Full Response: {data}")
             
+            # ✅ تحقق من وجود البيانات
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
+                print(f"🔍 [get_product_by_qid] Result success: {result.get('success')}")
+                
                 if result.get("success"):
-                    return result.get("data", {})
+                    product_data = result.get("data", {})
+                    print(f"✅ [get_product_by_qid] تم جلب المنتج: {product_data.get('title')}")
+                    return product_data
                 else:
                     error_msg = result.get('message', 'خطأ غير معروف')
-                    print(f"❌ [ProductService]: فشل جلب المنتج - {error_msg}")
+                    print(f"❌ [get_product_by_qid] فشل جلب المنتج - {error_msg}")
                     return {}
-            return {}
+            else:
+                print(f"❌ [get_product_by_qid] لم يتم العثور على findProductByQid في البيانات")
+                return {}
+                
         except Exception as e:
-            print(f"❌ [ProductService]: {e}")
+            print(f"❌ [get_product_by_qid] Exception: {e}")
             return {}
 
     def create_product_data(self, input_data: dict) -> dict:
