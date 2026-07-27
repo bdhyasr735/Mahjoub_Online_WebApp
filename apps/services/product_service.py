@@ -165,6 +165,7 @@ class ProductService:
         """جلب منتج بواسطة QID مع جميع الحقول"""
         
         # ✅ استخدم الاستعلام الذي يعمل (بدون متغيرات)
+        # ✅ تم إزالة الحقول غير المدعومة: collections { handle } و handle
         query = """
         {
             findProductByQid(qid: "%s") {
@@ -191,7 +192,6 @@ class ProductService:
                     tags
                     collections {
                         title
-                        handle
                     }
                     variants {
                         _id
@@ -219,7 +219,6 @@ class ProductService:
                         }
                     }
                     slug
-                    handle
                     views
                     publishedAt
                 }
