@@ -71,7 +71,6 @@ class ProductService:
         Returns:
             dict: يحتوي على data و pagination
         """
-        # ✅ استعلام مع دعم page
         query = """
         query($page: Int!) {
             findAllProducts(input: { page: $page }) {
@@ -109,6 +108,39 @@ class ProductService:
         except Exception as e:
             print(f"❌ [ProductService]: {e}")
             return {}
+
+    def fetch_all_products_for_search(self) -> list:
+        """
+        جلب جميع المنتجات من جميع الصفحات (للبحث فقط)
+        
+        Returns:
+            list: قائمة بجميع المنتجات
+        """
+        all_products = []
+        page = 1
+        has_next = True
+        max_pages = 100  # ✅ حد أمان لمنع الحلقات اللانهائية
+        
+        print(f"🔄 [ProductService]: جاري جلب جميع المنتجات للبحث...")
+        
+        while has_next and page <= max_pages:
+            try:
+                result = self.get_products_page(page)
+                products = result.get('data', [])
+                pagination = result.get('pagination', {})
+                
+                all_products.extend(products)
+                has_next = pagination.get('hasNextPage', False)
+                
+                print(f"📄 [ProductService]: تم جلب صفحة {page} ({len(products)} منتج)")
+                page += 1
+                
+            except Exception as e:
+                print(f"❌ [ProductService]: خطأ في جلب الصفحة {page}: {e}")
+                break
+        
+        print(f"✅ [ProductService]: تم جلب {len(all_products)} منتج من {page-1} صفحات")
+        return all_products
 
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID"""
