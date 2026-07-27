@@ -172,77 +172,75 @@ class ProductService:
 
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع جميع الحقول"""
-        # ✅ استخدم الاستعلام من الملف
-        query = self._extract_query("FindProductByQid")
         
-        # ✅ إذا لم يتم العثور على الاستعلام، استخدم الاستعلام الافتراضي
-        if not query:
-            print(f"⚠️ [ProductService]: لم يتم العثور على استعلام FindProductByQid، استخدم الافتراضي")
-            query = """
-            query FindProductByQid($qid: String!) {
-                findProductByQid(qid: $qid) {
-                    success
-                    message
-                    data {
-                        qid
+        # ✅ استعلام بدون متغيرات (ضع qid مباشرة في الاستعلام)
+        query = """
+        query {
+            findProductByQid(qid: "%s") {
+                success
+                message
+                data {
+                    qid
+                    title
+                    description
+                    status
+                    pricing {
+                        price
+                        compareAtPrice
+                    }
+                    images {
+                        fileUrl
+                    }
+                    quantity
+                    seo {
                         title
                         description
-                        status
+                        keywords
+                    }
+                    tags
+                    collections {
+                        title
+                        handle
+                    }
+                    variants {
+                        _id
+                        qid
                         pricing {
                             price
                             compareAtPrice
                         }
+                        quantity
+                        options {
+                            option
+                            label
+                        }
                         images {
                             fileUrl
                         }
-                        quantity
-                        seo {
-                            title
-                            description
-                            keywords
-                        }
-                        tags
-                        collections {
-                            title
-                            handle
-                        }
-                        variants {
-                            _id
-                            qid
-                            pricing {
-                                price
-                                compareAtPrice
-                            }
-                            quantity
-                            options {
-                                option
-                                label
-                            }
-                            images {
-                                fileUrl
-                            }
-                        }
-                        options {
-                            qid
-                            name
-                            values {
-                                option
-                                label
-                                sortOrder
-                            }
-                        }
-                        slug
-                        handle
-                        views
-                        publishedAt
                     }
+                    options {
+                        qid
+                        name
+                        values {
+                            option
+                            label
+                            sortOrder
+                        }
+                    }
+                    slug
+                    handle
+                    views
+                    publishedAt
                 }
             }
-            """
+        }
+        """ % qid
         
         try:
-            data = self.client.execute(query, {"qid": qid})
-            print(f"🔍 [DEBUG] GraphQL Response for QID {qid}: {data}")
+            print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
+            
+            data = self.client.execute(query)
+            print(f"🔍 [get_product_by_qid] Response: {data}")
             
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
