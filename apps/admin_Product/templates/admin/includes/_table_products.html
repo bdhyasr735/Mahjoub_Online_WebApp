@@ -66,12 +66,12 @@
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm">
-                        <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}"
+                        <a href="{{ safe_url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}"
                            class="btn btn-outline-primary" title="تعديل المنتج">
                             <i class="fas fa-edit"></i>
                         </a>
                         <button type="button" class="btn btn-outline-danger delete-btn" 
-                                data-delete-url="{{ url_for('admin_product_bp.delete_product', qid=product.qid or product.id) }}" 
+                                data-delete-url="{{ safe_url_for('admin_product_bp.delete_product', qid=product.qid or product.id) }}" 
                                 title="حذف المنتج">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -96,7 +96,7 @@
     <ul class="pagination justify-content-center">
         <li class="page-item {{ 'disabled' if pagination.currentPage <= 1 }}">
             <a class="page-link"
-               href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage-1, title=search_title) }}">
+               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage-1, title=search_title) }}">
                 <i class="fas fa-chevron-right"></i> السابق
             </a>
         </li>
@@ -107,7 +107,7 @@
         </li>
         <li class="page-item {{ 'disabled' if pagination.currentPage >= pagination.totalPages }}">
             <a class="page-link"
-               href="{{ url_for('admin_product_bp.manage_products', page=pagination.currentPage+1, title=search_title) }}">
+               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage+1, title=search_title) }}">
                 التالي <i class="fas fa-chevron-left"></i>
             </a>
         </li>
