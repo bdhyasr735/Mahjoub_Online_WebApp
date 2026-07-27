@@ -18,7 +18,7 @@
         <tbody>
             {% for product in products %}
             {% set p_name = product.title or product.name or 'منتج بدون اسم' %}
-            {% set p_img = (product.mainImage.url if product.mainImage and product.mainImage.url else none) or (product.images[0].fileUrl if product.images else none) or url_for('static', filename='images/default.png') %}
+            {% set p_img = (product.mainImage.url if product.mainImage and product.mainImage.url else none) or (product.images[0].fileUrl if product.images else none) or 'https://via.placeholder.com/60x60?text=No+Image' %}
             {% set p_price = product.price if product.price is defined and product.price is not none else (product.pricing.price if product.pricing and product.pricing.price else 0) %}
             
             <tr id="product-row-{{ product.qid or product.id }}">
@@ -27,7 +27,7 @@
                     <img src="{{ p_img }}"
                          alt="{{ p_name }}"
                          style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
-                         onerror="this.src='{{ url_for('static', filename='images/default.png') }}'">
+                         onerror="this.src='https://via.placeholder.com/60x60?text=No+Image'">
                 </td>
                 <td class="fw-bold text-truncate" style="max-width: 200px;">
                     {{ p_name }}
@@ -39,7 +39,6 @@
                     {{ "%.2f"|format(p_price|float) }} ر.س
                 </td>
                 <td>
-                    <!-- ✅ تم التعديل: عرض "غير متوفر" بدلاً من quantity -->
                     <span class="badge bg-secondary">
                         غير متوفر
                     </span>
