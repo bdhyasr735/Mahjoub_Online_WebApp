@@ -71,36 +71,44 @@ class ProductService:
         Returns:
             dict: يحتوي على data و pagination
         """
-        # ✅ بما أن الـ API لا يدعم الترقيم، نجلب الكل ثم نقسم
-        result = self.get_all_products()
-        all_products = result.get('data', [])
-        pagination_info = result.get('pagination', {})
-        
-        # ✅ حساب المؤشرات
-        total_items = pagination_info.get('totalItems', len(all_products))
-        total_pages = (total_items + limit - 1) // limit if total_items > 0 else 1
-        
-        # ✅ التأكد من أن الصفحة المطلوبة موجودة
-        if page > total_pages:
-            page = total_pages
-        
-        start = (page - 1) * limit
-        end = start + limit
-        
-        # ✅ تقسيم المنتجات
-        page_products = all_products[start:end] if all_products else []
-        
-        return {
-            'data': page_products,
-            'pagination': {
-                'totalItems': total_items,
-                'totalPages': total_pages,
-                'currentPage': page,
-                'limit': limit,
-                'hasNextPage': page < total_pages,
-                'hasPrevPage': page > 1
+        # ✅ استعلام مع دعم page
+        query = """
+        query($page: Int!) {
+            findAllProducts(input: { page: $page }) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    pricing {
+                        price
+                        compareAtPrice
+                    }
+                    status
+                    images {
+                        fileUrl
+                    }
+                    quantity
+                }
+                pagination {
+                    totalItems
+                    totalPages
+                    currentPage
+                    limit
+                    hasNextPage
+                }
             }
         }
+        """
+        try:
+            variables = {"page": page}
+            data = self.client.execute(query, variables)
+            if data and "findAllProducts" in data:
+                return data["findAllProducts"]
+            return {}
+        except Exception as e:
+            print(f"❌ [ProductService]: {e}")
+            return {}
 
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID"""
