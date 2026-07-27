@@ -21,15 +21,20 @@ def manage_products_view():
         search_query = request.args.get('title', '', type=str)
         ajax = request.args.get('ajax', 0, type=int)  # ✅ للتحقق من طلب AJAX
         
-        # ✅ جلب جميع المنتجات من GraphQL
-        all_products = services.products.get_all_products() or []
+        # ✅ جلب جميع المنتجات من GraphQL (مع معلومات الترقيم)
+        result = services.products.get_all_products() or {}
+        all_products = result.get('data', [])
+        pagination_info = result.get('pagination', {})
+        
+        # ✅ استخدام totalItems من GraphQL إذا كان متاحاً
+        total_products = pagination_info.get('totalItems', len(all_products))
         
         # ✅ تطبيق البحث (استخدم title بدلاً من name)
         if search_query:
             all_products = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
+            total_products = len(all_products)
         
         # ✅ حساب الترقيم
-        total_products = len(all_products)
         total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
         
         # ✅ التأكد من أن الصفحة الحالية لا تتجاوز إجمالي الصفحات
