@@ -22,11 +22,10 @@ class ProductService:
             self.queries_content = ""
 
     def get_all_products(self, input_data: dict = None) -> dict:
-        """جلب جميع المنتجات مع معلومات الترقيم (بدون حد)"""
-        # ✅ إضافة limit كبير لجلب جميع المنتجات
+        """جلب جميع المنتجات مع معلومات الترقيم"""
         query = """
         query {
-            findAllProducts(input: { pagination: { limit: 10000 } }) {
+            findAllProducts {
                 success
                 message
                 data {
