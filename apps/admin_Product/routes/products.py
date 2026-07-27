@@ -118,10 +118,12 @@ def manage_products_view():
         )
 
 
-# ✅ دالة تعديل المنتج (المضافة)
+# ✅ دالة تعديل المنتج مع @login_required
+@login_required
 def edit_product_view(qid):
     """صفحة تعديل المنتج"""
     try:
+        # ✅ تحقق من نوع المستخدم
         user_type = session.get('user_type')
         if user_type != 'admin':
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
