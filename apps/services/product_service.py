@@ -164,8 +164,7 @@ class ProductService:
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع جميع الحقول"""
         
-        # ✅ استخدم الاستعلام الذي يعمل (بدون متغيرات)
-        # ✅ تم إزالة الحقول غير المدعومة: collections { handle } و handle
+        # ✅ تم إزالة حقل option غير المدعوم كقيمة نصية من variants.options لتجنب خطأ الـ GraphQL
         query = """
         {
             findProductByQid(qid: "%s") {
@@ -202,7 +201,6 @@ class ProductService:
                         }
                         quantity
                         options {
-                            option
                             label
                         }
                         images {
