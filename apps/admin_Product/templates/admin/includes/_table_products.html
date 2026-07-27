@@ -39,8 +39,9 @@
                     {{ "%.2f"|format(p_price|float) }} ر.س
                 </td>
                 <td>
-                    <span class="badge {{ 'bg-success' if product.quantity|int > 0 else 'bg-danger' }}">
-                        {{ product.quantity or 0 }}
+                    <!-- ✅ تم التعديل: عرض "غير متوفر" بدلاً من quantity -->
+                    <span class="badge bg-secondary">
+                        غير متوفر
                     </span>
                 </td>
                 <td>
