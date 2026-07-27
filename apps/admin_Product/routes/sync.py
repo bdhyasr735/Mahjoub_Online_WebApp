@@ -89,7 +89,7 @@ def sync_products():
         
         if request.method == 'GET':
             flash(f'✅ تمت المزامنة: {synced_count} منتج (جديد: {created_count}, محدث: {updated_count})', 'success')
-            return redirect(url_for('admin_product_bp.manage_products'))
+            return redirect(url_for('admin_product_bp.manage_products_view'))
         
         return jsonify({
             'success': True,
@@ -110,4 +110,4 @@ def sync_products():
             }), 500
         else:
             flash(f'❌ فشل المزامنة: {str(e)}', 'danger')
-            return redirect(url_for('admin_product_bp.manage_products'))
+            return redirect(url_for('admin_product_bp.manage_products_view'))
