@@ -1,109 +1,156 @@
 # coding: utf-8
-# 📂 apps/admin_Product/routes/products.py
+# 📦 خدمة المنتجات - منصة محجوب أونلاين 2026
 
-from flask import render_template, request, redirect, url_for, flash, session
-from flask_login import login_required
-from apps.services import services
-from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models.supplier_db import Supplier
+import os
+from apps.services.graphql_client import GraphQLClient
 
 
-def manage_products_view():
-    try:
-        user_type = session.get('user_type')
-        if user_type != 'admin':
-            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
-            return redirect(url_for('admin_dashboard_bp.dashboard'))
+class ProductService:
+    """خدمة إدارة المنتجات"""
+    
+    def __init__(self, client=None):
+        self.client = client if client else GraphQLClient()
         
-        # ✅ جلب معلمات الصفحة والبحث
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)  # 10 منتجات لكل صفحة
-        search_query = request.args.get('title', '', type=str)
-        ajax = request.args.get('ajax', 0, type=int)  # ✅ للتحقق من طلب AJAX
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.query_file_path = os.path.join(current_dir, 'product_queries.graphql')
         
-        # ✅ جلب جميع المنتجات من GraphQL (مع معلومات الترقيم)
-        result = services.products.get_all_products() or {}
-        all_products = result.get('data', [])
-        pagination_info = result.get('pagination', {})
-        
-        # ✅ استخدام totalItems من GraphQL إذا كان متاحاً
-        total_products = pagination_info.get('totalItems', len(all_products))
-        
-        # ✅ تطبيق البحث (استخدم title بدلاً من name)
-        if search_query:
-            all_products = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
-            total_products = len(all_products)
-        
-        # ✅ حساب الترقيم
-        total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
-        
-        # ✅ التأكد من أن الصفحة الحالية لا تتجاوز إجمالي الصفحات
-        if page > total_pages:
-            page = total_pages
-        
-        start = (page - 1) * per_page
-        end = start + per_page
-        products = all_products[start:end]
-        
-        # ✅ ربط الموردين بالمنتجات
-        for product in products:
-            mapping = ProductSupplierMapping.query.filter_by(product_qid=product.get('qid')).first()
-            if mapping:
-                supplier = Supplier.query.get(mapping.supplier_id)
-                product['supplier_name'] = supplier.trade_name if supplier else 'غير معروف'
-                product['supplier_id'] = mapping.supplier_id
-            else:
-                product['supplier_name'] = 'غير مرتبط'
-                product['supplier_id'] = None
-        
-        # ✅ بناء بيانات الترقيم
-        pagination_data = {
-            "currentPage": page,
-            "totalPages": total_pages,
-            "limit": len(products),
-            "totalItems": total_products,
-            "perPage": per_page,
-            "hasPrev": page > 1,
-            "hasNext": page < total_pages
-        }
-        
-        # ✅ إذا كان طلب AJAX، أعد الجدول فقط
-        if ajax:
-            return render_template(
-                'admin/includes/_table_products.html',
-                products=products,
-                search_title=search_query,
-                pagination=pagination_data
-            )
-        
-        return render_template(
-            'admin/admin_Product.html',
-            products=products,
-            search_title=search_query,
-            pagination=pagination_data
-        )
-    except Exception as e:
-        print(f"❌ خطأ في manage_products: {e}")
-        flash(f'❌ حدث خطأ في تحميل المنتجات: {str(e)}', 'danger')
-        
-        if ajax:
-            return '<div class="alert alert-danger">حدث خطأ في تحميل المنتجات</div>'
-        
-        return render_template(
-            'admin/admin_Product.html',
-            products=[],
-            search_title=request.args.get('title', ''),
-            pagination={
-                "currentPage": 1, 
-                "totalPages": 1, 
-                "limit": 0, 
-                "totalItems": 0,
-                "hasPrev": False,
-                "hasNext": False
+        try:
+            with open(self.query_file_path, 'r', encoding='utf-8') as f:
+                self.queries_content = f.read()
+        except FileNotFoundError:
+            print(f"⚠️ [ProductService]: لم يتم العثور على ملف الاستعلامات")
+            self.queries_content = ""
+
+    def get_all_products(self, input_data: dict = None) -> dict:
+        """جلب جميع المنتجات مع معلومات الترقيم"""
+        query = """
+        query {
+            findAllProducts {
+                success
+                message
+                data {
+                    qid
+                    title
+                    pricing {
+                        price
+                        compareAtPrice
+                    }
+                    status
+                    images {
+                        fileUrl
+                    }
+                    quantity
+                }
+                pagination {
+                    totalItems
+                    totalPages
+                    currentPage
+                    limit
+                    hasNextPage
+                }
             }
-        )
+        }
+        """
+        try:
+            data = self.client.execute(query)
+            if data and "findAllProducts" in data:
+                return data["findAllProducts"]
+            return {}
+        except Exception as e:
+            print(f"❌ [ProductService]: {e}")
+            return {}
 
+    def get_product_by_qid(self, qid: str) -> dict:
+        """جلب منتج بواسطة QID"""
+        query = """
+        query FindProductByQid($qid: String!) {
+            findProductByQid(qid: $qid) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    pricing {
+                        price
+                        compareAtPrice
+                    }
+                    status
+                    description
+                    images {
+                        fileUrl
+                    }
+                    quantity
+                }
+            }
+        }
+        """
+        try:
+            data = self.client.execute(query, {"qid": qid})
+            if data and "findProductByQid" in data:
+                result = data["findProductByQid"]
+                if result.get("success"):
+                    return result.get("data", {})
+            return {}
+        except Exception as e:
+            print(f"❌ [ProductService]: {e}")
+            return {}
 
-def register_products_route(bp):
-    bp.add_url_rule('/products', view_func=manage_products_view, methods=['GET'])
-    return bp
+    def create_product_data(self, input_data: dict) -> dict:
+        """إنشاء منتج جديد"""
+        query = """
+        mutation CreateProduct($input: CreateProductInput!) {
+            createProduct(input: $input) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    pricing {
+                        price
+                        compareAtPrice
+                    }
+                    status
+                }
+            }
+        }
+        """
+        try:
+            data = self.client.execute(query, {"input": input_data})
+            if data and "createProduct" in data:
+                result = data["createProduct"]
+                if result.get("success"):
+                    return result.get("data", {})
+            return {}
+        except Exception as e:
+            print(f"❌ [ProductService]: {e}")
+            return {}
+
+    def update_product_data(self, input_data: dict) -> dict:
+        """تعديل منتج"""
+        query = """
+        mutation UpdateProduct($input: UpdateProductInput!) {
+            updateProduct(input: $input) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    pricing {
+                        price
+                        compareAtPrice
+                    }
+                    status
+                }
+            }
+        }
+        """
+        try:
+            data = self.client.execute(query, {"input": input_data})
+            if data and "updateProduct" in data:
+                result = data["updateProduct"]
+                if result.get("success"):
+                    return result.get("data", {})
+            return {}
+        except Exception as e:
+            print(f"❌ [ProductService]: {e}")
+            return {}
