@@ -55,7 +55,7 @@ def add_product():
             else:
                 flash('❌ فشل إضافة المنتج', 'danger')
                 
-            return redirect(url_for('admin_product_bp.manage_products'))
+            return redirect(url_for('admin_product_bp.manage_products_view'))
             
         except Exception as e:
             flash(f'❌ حدث خطأ: {str(e)}', 'danger')
@@ -79,13 +79,13 @@ def edit_product():
     
     if not qid:
         flash("معرف المنتج (qid) مفقود.", "danger")
-        return redirect(url_for('admin_product_bp.manage_products'))
+        return redirect(url_for('admin_product_bp.manage_products_view'))
     
     product = services.products.get_product_by_qid(qid)
 
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
-        return redirect(url_for('admin_product_bp.manage_products'))
+        return redirect(url_for('admin_product_bp.manage_products_view'))
 
     suppliers = Supplier.query.filter_by(status='active').all()
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
