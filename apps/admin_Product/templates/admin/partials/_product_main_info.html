@@ -11,7 +11,7 @@
                id="productName" 
                name="title" 
                class="form-control form-control-lg" 
-               value="{{ product.name or '' }}"
+               value="{{ product.title or product.name or '' }}"
                placeholder="أدخل اسم المنتج..."
                required>
     </div>
@@ -28,7 +28,7 @@
                    class="form-control" 
                    step="0.01" 
                    min="0"
-                   value="{{ product.price or 0 }}"
+                   value="{{ product.pricing.price if product.pricing and product.pricing.price is not none else product.price or 0 }}"
                    required>
             <span class="input-group-text">ر.س</span>
         </div>
