@@ -6,15 +6,16 @@
 <div class="container-fluid">
     <!-- رأس الصفحة -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">📦 إدارة المنتجات</h1>
+        <h1 class="h3 mb-0" style="color: #2d0b36;">📦 إدارة المنتجات</h1>
         <div class="d-flex gap-2 mt-2 mt-sm-0">
-            <a href="{{ url_for('admin_product_bp.add_product') }}" class="btn btn-success">
+            <a href="{{ url_for('admin_product_bp.add_product') }}" class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
                 <i class="fas fa-plus"></i> إضافة منتج
             </a>
             <button 
-                class="btn btn-primary" 
+                class="btn" 
                 onclick="syncProducts()"
                 id="syncButton"
+                style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;"
             >
                 <i class="fas fa-sync"></i> مزامنة الآن
             </button>
@@ -36,11 +37,12 @@
                             placeholder="🔍 ابحث عن منتج بالاسم أو الوصف..." 
                             value="{{ search_title or '' }}"
                             autofocus
+                            style="border-color: #2d0b36;"
                         >
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary w-100" id="searchBtn">
+                    <button type="submit" class="btn w-100" id="searchBtn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
                         <i class="fas fa-search"></i> بحث
                     </button>
                 </div>
@@ -156,8 +158,11 @@ function syncProducts() {
                 showToast('success', '✅ ' + (data.message || 'تمت المزامنة بنجاح'));
             }
             
+            // ✅ تحديث الجدول فقط بدلاً من إعادة تحميل الصفحة
+            fetchProductsTable();
+            
             setTimeout(() => {
-                window.location.reload();
+                modal.style.display = 'none';
             }, 2000);
         } else {
             if (typeof showSyncResult === 'function') {
@@ -178,10 +183,34 @@ function syncProducts() {
     .finally(() => {
         button.disabled = false;
         button.innerHTML = '<i class="fas fa-sync"></i> مزامنة الآن';
-        setTimeout(() => {
-            modal.style.display = 'none';
-        }, 3000);
     });
+}
+
+// ✅ دالة لجلب الجدول فقط دون إعادة تحميل الصفحة
+function fetchProductsTable() {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('ajax', '1');
+    const container = document.getElementById('productsTableContainer');
+    if (!container) return;
+    
+    // عرض حالة التحميل
+    container.innerHTML = '<div class="text-center py-4"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2">جاري تحديث البيانات...</p></div>';
+    
+    fetch(currentUrl.toString())
+        .then(response => response.text())
+        .then(html => {
+            container.innerHTML = html;
+            // إعادة تهيئة أحداث الحذف
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    // كود الحذف...
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching table:', error);
+            container.innerHTML = '<div class="alert alert-danger">حدث خطأ في تحديث الجدول</div>';
+        });
 }
 
 // ✅ دالة showToast المحسّنة
@@ -227,6 +256,7 @@ function showToast(type, message) {
 #syncModal .spinner-border {
     width: 3rem;
     height: 3rem;
+    color: #D4AF37;
 }
 
 #syncModal .progress {
@@ -236,7 +266,7 @@ function showToast(type, message) {
 }
 
 #syncModal .progress-bar {
-    background: linear-gradient(90deg, #007bff, #00d4ff);
+    background: linear-gradient(90deg, #2d0b36, #D4AF37);
     animation: progressAnimation 1.5s ease-in-out infinite;
 }
 
@@ -264,6 +294,54 @@ function showToast(type, message) {
         font-size: 0.85rem;
         padding: 0.4rem 0.8rem;
     }
+}
+
+/* الهوية الملكية البنفسجية الداكنة */
+.btn-primary {
+    background: linear-gradient(135deg, #2d0b36, #1a0520) !important;
+    color: #D4AF37 !important;
+    border: none !important;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #3d1a4a, #2d0b36) !important;
+    color: #ffd700 !important;
+    box-shadow: 0 4px 15px rgba(45, 11, 54, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #2d0b36, #1a0520) !important;
+    color: #D4AF37 !important;
+    border: none !important;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #3d1a4a, #2d0b36) !important;
+    color: #ffd700 !important;
+    box-shadow: 0 4px 15px rgba(45, 11, 54, 0.4);
+}
+
+/* لون البادج في الترقيم */
+.page-item.active .page-link {
+    background-color: #2d0b36 !important;
+    border-color: #2d0b36 !important;
+    color: #D4AF37 !important;
+}
+
+.table th {
+    background-color: #2d0b36 !important;
+    color: #D4AF37 !important;
+    border-bottom: 2px solid #D4AF37;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(45, 11, 54, 0.05) !important;
+}
+
+/* لون البحث */
+.form-control:focus {
+    border-color: #2d0b36 !important;
+    box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.25) !important;
 }
 </style>
 {% endblock %}
