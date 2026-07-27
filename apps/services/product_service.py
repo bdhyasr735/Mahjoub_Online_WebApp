@@ -39,6 +39,7 @@ class ProductService:
                     images {
                         fileUrl
                     }
+                    quantity
                 }
             }
         }
@@ -73,6 +74,7 @@ class ProductService:
                     images {
                         fileUrl
                     }
+                    quantity
                 }
             }
         }
