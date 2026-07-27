@@ -15,12 +15,26 @@ def manage_products_view():
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
             return redirect(url_for('admin_dashboard_bp.dashboard'))
         
+        # ✅ جلب معلمات الصفحة والبحث
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)  # 10 منتجات لكل صفحة
         search_query = request.args.get('title', '', type=str)
-        products = services.products.get_all_products()
         
+        # ✅ جلب جميع المنتجات من GraphQL
+        all_products = services.products.get_all_products() or []
+        
+        # ✅ تطبيق البحث (استخدم title بدلاً من name)
         if search_query:
-            products = [p for p in products if search_query.lower() in p.get('name', '').lower()]
+            all_products = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
         
+        # ✅ حساب الترقيم
+        total_products = len(all_products)
+        total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
+        start = (page - 1) * per_page
+        end = start + per_page
+        products = all_products[start:end]
+        
+        # ✅ ربط الموردين بالمنتجات
         for product in products:
             mapping = ProductSupplierMapping.query.filter_by(product_qid=product.get('qid')).first()
             if mapping:
@@ -35,7 +49,15 @@ def manage_products_view():
             'admin/admin_Product.html',
             products=products,
             search_title=search_query,
-            pagination={"currentPage": 1, "totalPages": 1, "limit": len(products)}
+            pagination={
+                "currentPage": page,
+                "totalPages": total_pages,
+                "limit": len(products),
+                "totalItems": total_products,
+                "perPage": per_page,
+                "hasPrev": page > 1,
+                "hasNext": page < total_pages
+            }
         )
     except Exception as e:
         print(f"❌ خطأ في manage_products: {e}")
@@ -44,7 +66,14 @@ def manage_products_view():
             'admin/admin_Product.html',
             products=[],
             search_title=request.args.get('title', ''),
-            pagination={"currentPage": 1, "totalPages": 1, "limit": 0}
+            pagination={
+                "currentPage": 1, 
+                "totalPages": 1, 
+                "limit": 0, 
+                "totalItems": 0,
+                "hasPrev": False,
+                "hasNext": False
+            }
         )
 
 
