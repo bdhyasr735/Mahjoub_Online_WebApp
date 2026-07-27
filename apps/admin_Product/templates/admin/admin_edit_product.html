@@ -7,36 +7,224 @@
 <!-- ✅ TinyMCE Editor (CDN مجاني) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
 <style>
+    :root {
+        --bg-main: #f8fafc;
+        --bg-card: #ffffff;
+        --text-primary: #1e293b;
+        --primary-color: #2d0b36; 
+        --primary-hover: #1e0b46;
+        --gold-color: #D4AF37;
+        --danger-color: #ef4444;
+        --border-color: #e2e8f0;
+    }
+
     .edit-product-container {
-        background: #f8f5f0;
+        max-width: 1100px;
+        margin: 0 auto;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
         border-radius: 16px;
         padding: 30px;
         box-shadow: 0 4px 20px rgba(45, 11, 54, 0.08);
     }
+
     .form-section {
         background: white;
         border-radius: 12px;
         padding: 24px;
         margin-bottom: 24px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-        border: 1px solid rgba(212, 175, 55, 0.1);
+        border: 1px solid rgba(212, 175, 55, 0.15);
     }
+
     .form-section-title {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         font-weight: 700;
-        color: #2d0b36;
+        color: var(--primary-color);
         margin-bottom: 20px;
         padding-bottom: 12px;
-        border-bottom: 2px solid rgba(212, 175, 55, 0.2);
+        border-bottom: 2px solid rgba(212, 175, 55, 0.3);
         display: flex;
         align-items: center;
         gap: 10px;
     }
+
     .form-section-title i {
-        color: #D4AF37;
+        color: var(--gold-color);
     }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+    }
+
+    input, select, textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-size: 1rem;
+        background: white;
+    }
+
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(45, 11, 54, 0.1);
+    }
+
+    .option-row {
+        background: #fdfcff;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #e9d5ff;
+        margin-bottom: 15px;
+    }
+
+    .option-header {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
+    }
+
+    .option-header input {
+        flex: 1;
+    }
+
+    .values-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+        min-height: 38px;
+        padding: 6px;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+    }
+
+    .value-tag {
+        background-color: #f3e8ff;
+        color: #581c87;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        border: 1px solid #d8b4fe;
+    }
+
+    .value-tag span {
+        cursor: pointer;
+        color: #ef4444;
+        font-weight: bold;
+    }
+
+    .add-value-group {
+        display: flex;
+        gap: 8px;
+    }
+
+    .add-value-group input {
+        flex: 1;
+        padding: 8px;
+    }
+
+    .variants-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        margin-bottom: 20px;
+    }
+
+    .variants-table th, .variants-table td {
+        border: 1px solid var(--border-color);
+        padding: 10px;
+        text-align: center;
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    .variants-table th {
+        background-color: #f8fafc;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .variants-table input {
+        padding: 6px;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    .variant-img-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .variant-thumb {
+        width: 36px;
+        height: 36px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        display: none;
+    }
+
+    .btn-action {
+        background-color: var(--primary-color);
+        color: #D4AF37;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+    }
+
+    .btn-action:hover {
+        background-color: var(--primary-hover);
+        color: #ffd700;
+    }
+
+    .btn-danger {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: #dc2626;
+        color: white;
+    }
+
+    .btn-full {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        margin-top: 10px;
+        justify-content: center;
+    }
+
     .image-upload-area {
-        border: 2px dashed #2d0b36;
+        border: 2px dashed var(--primary-color);
         border-radius: 12px;
         padding: 30px;
         text-align: center;
@@ -45,7 +233,7 @@
         background: #faf8f6;
     }
     .image-upload-area:hover {
-        border-color: #D4AF37;
+        border-color: var(--gold-color);
         background: #f5f0eb;
     }
     .image-preview-grid {
@@ -84,10 +272,7 @@
         align-items: center;
         justify-content: center;
     }
-    .image-preview-item .remove-image:hover {
-        background: #dc3545;
-        transform: scale(1.1);
-    }
+
     .tag-item {
         display: inline-flex;
         align-items: center;
@@ -108,212 +293,164 @@
         opacity: 1;
         color: #dc3545;
     }
-    .btn-royal {
-        background: linear-gradient(135deg, #2d0b36, #1a0520);
-        color: #D4AF37;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 20px;
-        transition: all 0.3s;
-        font-weight: 600;
-    }
-    .btn-royal:hover {
-        background: linear-gradient(135deg, #3d1a4a, #2d0b36);
-        color: #ffd700;
-        box-shadow: 0 4px 15px rgba(45, 11, 54, 0.3);
-    }
-    .btn-royal-outline {
-        background: transparent;
-        color: #2d0b36;
-        border: 1px solid #2d0b36;
-        border-radius: 8px;
-        padding: 8px 20px;
-        transition: all 0.3s;
-        font-weight: 600;
-    }
-    .btn-royal-outline:hover {
-        background: #2d0b36;
-        color: #D4AF37;
-    }
-    .min-height-35 {
-        min-height: 35px;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid edit-product-container">
+<div class="edit-product-container">
     <!-- رأس الصفحة -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <h1 class="h3" style="color: #2d0b36;">
-            <i class="fas fa-edit me-2"></i> تعديل المنتج: <span style="color: #D4AF37;">{{ product.title or product.name }}</span>
-        </h1>
-        <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-royal">
-            <i class="fas fa-arrow-right me-2"></i> العودة
+        <h2>
+            <i class="fas fa-edit me-2"></i> تعديل المنتج: <span style="color: var(--gold-color);">{{ product.title or product.name }}</span>
+        </h2>
+        <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action">
+            <i class="fas fa-arrow-right me-2"></i> العودة للقائمة
         </a>
     </div>
 
     <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}" id="editProductForm" onsubmit="preparePayloadBeforeSubmit(event)">
         <input type="hidden" name="qid" value="{{ product.qid }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <!-- حقل مخفي لإرسال بيانات المتغيرات المعقدة بصيغة JSON -->
+        <!-- حقل مخفي لإرسال بيانات المتغيرات بصيغة JSON للباك إند -->
         <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
-        <!-- ======================================== -->
-        <!-- 1. المعلومات الأساسية -->
-        <!-- ======================================== -->
+        <!-- ================= أولاً: المعلومات الأساسية ================= -->
         <div class="form-section">
             <div class="form-section-title">
                 <i class="fas fa-info-circle"></i> المعلومات الأساسية
             </div>
+            <div class="form-group">
+                <label>اسم المنتج الأساسي:</label>
+                <input type="text" id="productTitle" name="title" value="{{ product.title or product.name or '' }}" placeholder="أدخل اسم المنتج" oninput="generatePayload()" required>
+            </div>
             {% include "admin/partials/_product_main_info.html" %}
         </div>
 
-        <!-- ======================================== -->
-        <!-- 2. الوصف (مع شريط الأدوات) -->
-        <!-- ======================================== -->
+        <!-- ================= ثانياً: وصف المنتج ================= -->
         <div class="form-section">
             <div class="form-section-title">
-                <i class="fas fa-align-left"></i> الوصف
+                <i class="fas fa-align-left"></i> الوصف التفصيلي
             </div>
-            <div class="row">
-                <div class="col-12">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">الوصف الكامل للمنتج</label>
-                    <textarea id="productDescription" name="description" rows="12" class="form-control">{{ product.description or '' }}</textarea>
-                </div>
+            <div class="form-group mb-0">
+                <label>وصف المنتج:</label>
+                <textarea id="productDescription" name="description" rows="12">{{ product.description or '' }}</textarea>
             </div>
         </div>
 
-        <!-- ======================================== -->
-        <!-- 3. الصور -->
-        <!-- ======================================== -->
+        <!-- ================= ثالثاً: صور المنتج ================= -->
         <div class="form-section">
             <div class="form-section-title">
-                <i class="fas fa-images"></i> الصور
+                <i class="fas fa-images"></i> صور المنتج الرئيسية
             </div>
-            <div class="row">
-                <div class="col-12">
-                    <div class="image-upload-area" id="imageUploadArea">
-                        <i class="fas fa-cloud-upload-alt fa-3x" style="color: #D4AF37;"></i>
-                        <p class="mt-2 mb-0" style="color: #2d0b36; font-weight: 600;">اسحب الصور هنا أو انقر للتحميل</p>
-                        <small class="text-muted">يدعم JPG, PNG, WebP</small>
-                        <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
+            <div class="image-upload-area" id="imageUploadArea">
+                <i class="fas fa-cloud-upload-alt fa-3x" style="color: var(--gold-color);"></i>
+                <p class="mt-2 mb-0 fw-bold" style="color: var(--primary-color);">اسحب الصور هنا أو انقر للتحميل</p>
+                <small class="text-muted">يدعم صيغ JPG, PNG, WebP</small>
+                <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
+            </div>
+            <div class="image-preview-grid" id="imagePreviewGrid">
+                {% if product.images and product.images|length > 0 %}
+                    {% for image in product.images %}
+                    <div class="image-preview-item">
+                        <img src="{{ image.fileUrl }}" alt="صورة المنتج">
+                        <button type="button" class="remove-image" onclick="if(confirm('حذف هذه الصورة؟')) this.parentElement.remove();">✕</button>
                     </div>
-                    <div class="image-preview-grid" id="imagePreviewGrid">
-                        {% if product.images and product.images|length > 0 %}
-                            {% for image in product.images %}
-                            <div class="image-preview-item">
-                                <img src="{{ image.fileUrl }}" alt="صورة المنتج">
-                                <button type="button" class="remove-image" data-image-url="{{ image.fileUrl }}">✕</button>
-                            </div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                </div>
+                    {% endfor %}
+                {% endif %}
             </div>
         </div>
 
-        <!-- ======================================== -->
-        <!-- 4. خصائص ومتغيرات المنتج (Cartesian Product System) -->
-        <!-- ======================================== -->
+        <!-- ================= رابعاً: خيارات ومتغيرات المنتج (Cartesian Product) ================= -->
         <div class="form-section">
             <div class="form-section-title">
-                <i class="fas fa-layer-group"></i> خصائص ومتغيرات المنتج (اللون، المقاس، إلخ...)
+                <i class="fas fa-layer-group"></i> خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)
             </div>
             
-            <!-- حاوية خيارات المنتج -->
-            <div id="optionsContainer">
-                <div class="option-row border rounded p-3 mb-3 bg-light">
-                    <div class="d-flex gap-2 mb-2 align-items-center">
-                        <input type="text" class="form-control opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="updateVariantsTable()">
-                        <button class="btn btn-outline-danger btn-sm px-3" type="button" onclick="removeOptionRow(this)">حذف</button>
-                    </div>
-                    <label class="form-label text-muted small mb-1">القيم المتعددة:</label>
-                    <div class="values-container d-flex flex-wrap gap-2 mb-2 p-2 bg-white border rounded min-height-35"></div>
-                    <div class="input-group input-group-sm">
-                        <input type="text" class="form-control val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
-                        <button class="btn btn-dark" type="button" onclick="addValueToRow(this)">+ إضافة قيمة</button>
+            <div class="form-group">
+                <label>خيارات ومتغيرات المنتج:</label>
+                <div id="optionsContainer">
+                    <div class="option-row">
+                        <div class="option-header">
+                            <input type="text" class="opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()">
+                            <button class="btn-action btn-danger" type="button" onclick="removeOptionRow(this)">حذف الخيار</button>
+                        </div>
+                        <label style="font-size: 0.85rem; color: #64748b; margin-bottom: 4px;">القيم المتعددة:</label>
+                        <div class="values-container"></div>
+                        <div class="add-value-group">
+                            <input type="text" class="val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
+                            <button class="btn-action" type="button" onclick="addValueToRow(this)">+ إضافة قيمة</button>
+                        </div>
                     </div>
                 </div>
+                <button class="btn-action btn-full" type="button" onclick="addOptionRow()">+ إضافة خيار جديد</button>
             </div>
 
-            <button class="btn btn-outline-dark w-100 mb-4 fw-bold" type="button" onclick="addOptionRow()">+ إضافة خيار جديد</button>
-
-            <!-- جدول المتغيرات المولد تلقائياً -->
-            <label class="form-label fw-bold text-dark mb-2">تخصيص السعر، الكمية، وصورة لكل متغير:</label>
-            <div id="variantsTableContainer" class="table-responsive">
-                <div class="text-center p-4 text-muted border border-dashed rounded bg-light">
-                    قم بإضافة الخيارات والقيم أعلاه لتوليد جدول المتغيرات تلقائياً...
+            <div class="form-group mb-0">
+                <label>تخصيص السعر، الكمية، وصورة لكل متغير:</label>
+                <div id="variantsTableContainer">
+                    <p style="color: #64748b; font-size: 0.9rem; text-align: center; padding: 15px; background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 6px;">قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...</p>
                 </div>
             </div>
         </div>
 
-        <!-- ======================================== -->
-        <!-- 5. البيانات الوصفية (SEO) -->
-        <!-- ======================================== -->
+        <!-- ================= خامساً: البيانات الوصفية (SEO) ================= -->
         <div class="form-section">
             <div class="form-section-title">
-                <i class="fas fa-code"></i> البيانات الوصفية (SEO)
+                <i class="fas fa-code"></i> تحسين محركات البحث (SEO)
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">عنوان SEO</label>
-                    <input type="text" name="seo_title" class="form-control" value="{{ product.seo.title if product.seo and product.seo.title else '' }}" placeholder="عنوان تحسين محركات البحث">
+                    <label>عنوان SEO</label>
+                    <input type="text" name="seo_title" value="{{ product.seo.title if product.seo and product.seo.title else '' }}" placeholder="عنوان SEO">
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">وصف SEO</label>
-                    <input type="text" name="seo_description" class="form-control" value="{{ product.seo.description if product.seo and product.seo.description else '' }}" placeholder="وصف تحسين محركات البحث">
+                    <label>وصف SEO</label>
+                    <input type="text" name="seo_description" value="{{ product.seo.description if product.seo and product.seo.description else '' }}" placeholder="وصف SEO">
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-12 mb-3">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">الكلمات المفتاحية</label>
-                    <input type="text" name="seo_keywords" class="form-control" value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" placeholder="كلمات مفتاحية مفصولة بفواصل">
+                <div class="col-md-12 mb-0">
+                    <label>الكلمات المفتاحية</label>
+                    <input type="text" name="seo_keywords" value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" placeholder="كلمات مفتاحية مفصولة بفواصل">
                 </div>
             </div>
         </div>
 
-        <!-- ======================================== -->
-        <!-- 6. العلامات -->
-        <!-- ======================================== -->
+        <!-- ================= سادساً: العلامات (Tags) ================= -->
         <div class="form-section">
             <div class="form-section-title">
                 <i class="fas fa-tags"></i> العلامات (Tags)
             </div>
-            <div class="row">
-                <div class="col-12">
-                    <div class="d-flex flex-wrap gap-1 mb-2" id="tagsContainer">
-                        {% if product.tags and product.tags|length > 0 %}
-                            {% for tag in product.tags %}
-                            <span class="tag-item">
-                                <span class="remove-tag" onclick="removeTag(this)">✕</span> {{ tag }}
-                            </span>
-                            {% endfor %}
-                        {% else %}
-                            <span class="text-muted">لا توجد علامات</span>
-                        {% endif %}
-                    </div>
-                    <div class="input-group">
-                        <input type="text" id="tagInput" class="form-control" placeholder="أدخل علامة جديدة...">
-                        <button type="button" class="btn-royal" onclick="addTag()">إضافة</button>
-                    </div>
+            <div class="form-group mb-0">
+                <div class="d-flex flex-wrap gap-1 mb-2" id="tagsContainer">
+                    {% if product.tags and product.tags|length > 0 %}
+                        {% for tag in product.tags %}
+                        <span class="tag-item">
+                            <span class="remove-tag" onclick="this.parentElement.remove();">✕</span> {{ tag }}
+                        </span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted">لا توجد علامات حالياً</span>
+                    {% endif %}
+                </div>
+                <div class="input-group">
+                    <input type="text" id="tagInput" placeholder="أدخل علامة جديدة واضغط Enter...">
+                    <button type="button" class="btn-action" onclick="addTag()">إضافة علامة</button>
                 </div>
             </div>
         </div>
 
-        <!-- ======================================== -->
-        <!-- 7. أزرار الإجراءات -->
-        <!-- ======================================== -->
+        <!-- ================= الأزرار النهائية ================= -->
         <div class="d-flex flex-wrap gap-2 mt-4">
-            <button type="submit" class="btn-royal px-4 py-2">
-                <i class="fas fa-save me-2"></i> حفظ التغييرات
+            <button type="submit" class="btn-action" style="padding: 12px 24px; font-size: 1.05rem;">
+                <i class="fas fa-save me-2"></i> حفظ التغييرات وتحديث المنتج
             </button>
-            <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-royal-outline px-4 py-2">
+            <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action btn-danger" style="padding: 12px 24px; font-size: 1.05rem; background: #64748b;">
                 <i class="fas fa-times me-2"></i> إلغاء
             </a>
             {% if product.status|upper != 'ARCHIVED' %}
-            <button type="button" class="btn btn-danger px-4 py-2" onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
-                <i class="fas fa-trash me-2"></i> حذف/أرشفة
+            <button type="button" class="btn-action btn-danger" style="padding: 12px 24px; font-size: 1.05rem;" onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
+                <i class="fas fa-trash me-2"></i> حذف / أرشفة المنتج
             </button>
             {% endif %}
         </div>
@@ -321,346 +458,308 @@
 </div>
 
 <script>
-// ========================================
-// TinyMCE Editor
-// ========================================
-tinymce.init({
-    selector: '#productDescription',
-    height: 300,
-    menubar: true,
-    plugins: [
-        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-        'insertdatetime', 'media', 'table', 'help', 'wordcount'
-    ],
-    toolbar: 'undo redo | blocks | ' +
-        'bold italic backcolor | alignleft aligncenter ' +
-        'alignright alignjustify | bullist numlist outdent indent | ' +
-        'removeformat | help | link image media | fullscreen | code',
-    content_style: 'body { font-family: "Cairo", sans-serif; font-size: 16px; }',
-    directionality: 'rtl',
-    language: 'ar',
-    images_upload_handler: function (blobInfo, progress) {
-        return new Promise(function (resolve, reject) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                resolve(e.target.result);
-            };
-            reader.readAsDataURL(blobInfo.blob());
-        });
-    }
-});
-
-// ========================================
-// إدارة الصور الأساسية
-// ========================================
-document.getElementById('imageUploadArea')?.addEventListener('click', function() {
-    document.getElementById('imageInput').click();
-});
-
-document.getElementById('imageInput')?.addEventListener('change', function(e) {
-    const files = e.target.files;
-    const grid = document.getElementById('imagePreviewGrid');
-    
-    for (let i = 0; i < files.length; i++) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const div = document.createElement('div');
-            div.className = 'image-preview-item';
-            div.innerHTML = `
-                <img src="${event.target.result}" alt="صورة المنتج">
-                <button type="button" class="remove-image" onclick="this.parentElement.remove()">✕</button>
-            `;
-            grid.appendChild(div);
-        };
-        reader.readAsDataURL(files[i]);
-    }
-    this.value = '';
-});
-
-document.querySelectorAll('.remove-image').forEach(btn => {
-    btn.addEventListener('click', function() {
-        if (confirm('هل أنت متأكد من حذف هذه الصورة؟')) {
-            this.parentElement.remove();
-        }
-    });
-});
-
-// ========================================
-// إدارة خيارات ومتغيرات المنتج الديناميكية
-// ========================================
-function addOptionRow() {
-    const container = document.getElementById('optionsContainer');
-    const row = document.createElement('div');
-    row.className = 'option-row border rounded p-3 mb-3 bg-light';
-    
-    row.innerHTML = `
-        <div class="d-flex gap-2 mb-2 align-items-center">
-            <input type="text" class="form-control opt-name" placeholder="اسم الخيار (مثل: المقاس)" oninput="updateVariantsTable()">
-            <button class="btn btn-outline-danger btn-sm px-3" type="button" onclick="removeOptionRow(this)">حذف</button>
-        </div>
-        <label class="form-label text-muted small mb-1">القيم المتعددة:</label>
-        <div class="values-container d-flex flex-wrap gap-2 mb-2 p-2 bg-white border rounded min-height-35"></div>
-        <div class="input-group input-group-sm">
-            <input type="text" class="form-control val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: كبير)">
-            <button class="btn btn-dark" type="button" onclick="addValueToRow(this)">+ إضافة قيمة</button>
-        </div>
-    `;
-    container.appendChild(row);
-}
-
-function removeOptionRow(button) {
-    button.closest('.option-row').remove();
-    updateVariantsTable();
-}
-
-function addValueToRow(button) {
-    const row = button.closest('.option-row');
-    const input = row.querySelector('.val-input');
-    const valText = input.value.trim();
-
-    if (valText) {
-        const valuesContainer = row.querySelector('.values-container');
-        const tag = document.createElement('span');
-        tag.className = 'badge border d-inline-flex align-items-center gap-1 p-2';
-        tag.style.backgroundColor = '#f3e8ff';
-        tag.style.color = '#581c87';
-        tag.innerHTML = `${valText} <span style="cursor: pointer; color: #ef4444; font-weight: bold; margin-right: 4px;" onclick="this.closest('span').remove(); updateVariantsTable();">&times;</span>`;
-        
-        valuesContainer.appendChild(tag);
-        input.value = '';
-        updateVariantsTable();
-    }
-}
-
-function cartesian(arr) {
-    return arr.reduce((a, b) => a.flatMap(d => b.map(e => [].concat(d, e))), [[]]);
-}
-
-function updateVariantsTable() {
-    const optionRows = document.querySelectorAll('.option-row');
-    let valuesArrays = [];
-
-    optionRows.forEach(row => {
-        const optName = row.querySelector('.opt-name').value.trim();
-        const tagElements = row.querySelectorAll('.badge');
-        const valuesArray = Array.from(tagElements).map(tag => tag.firstChild.textContent.trim());
-
-        if (optName && valuesArray.length > 0) {
-            valuesArrays.push(valuesArray);
-        }
-    });
-
-    const container = document.getElementById('variantsTableContainer');
-
-    if (valuesArrays.length === 0) {
-        container.innerHTML = `<div class="text-center p-4 text-muted border border-dashed rounded bg-light">قم بإضافة الخيارات والقيم أعلاه لتوليد جدول المتغيرات تلقائياً...</div>`;
-        return;
-    }
-
-    const combinations = cartesian(valuesArrays);
-
-    let html = `
-        <table class="table table-bordered align-middle text-center mb-0 bg-white">
-            <thead class="table-light">
-                <tr>
-                    <th>المتغير</th>
-                    <th>صورة المتغير</th>
-                    <th>SKU</th>
-                    <th>السعر</th>
-                    <th>الكمية</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    combinations.forEach((combo, index) => {
-        const optionValues = Array.isArray(combo) ? combo : [combo];
-        const variantLabel = optionValues.join(' / ');
-        html += `
-            <tr data-index="${index}">
-                <td><strong>${variantLabel}</strong></td>
-                <td>
-                    <div class="d-flex align-items-center justify-content-center gap-2">
-                        <input type="file" class="var-img-file d-none" accept="image/*" onchange="handleVariantImage(this, ${index})">
-                        <img id="thumb-${index}" class="rounded border" style="width: 36px; height: 36px; object-fit: cover; display: none;" alt="Variant">
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="this.previousElementSibling.previousElementSibling.click()">📷 رفع</button>
-                        <button type="button" id="del-btn-${index}" class="btn btn-sm btn-danger py-0 px-1" style="display: none;" onclick="removeVariantImage(${index})">&times;</button>
-                    </div>
-                </td>
-                <td><input type="text" class="form-control form-control-sm var-sku text-center" value="SKU-VAR-${index + 1}"></td>
-                <td><input type="number" class="form-control form-control-sm var-price text-center" value="0" step="0.01"></td>
-                <td><input type="number" class="form-control form-control-sm var-qty text-center" value="0"></td>
-            </tr>
-        `;
-    });
-
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-}
-
-function handleVariantImage(input, index) {
-    const file = input.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const thumb = document.getElementById(`thumb-${index}`);
-            const delBtn = document.getElementById(`del-btn-${index}`);
-            thumb.src = e.target.result;
-            thumb.style.display = 'block';
-            delBtn.style.display = 'inline-block';
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-function removeVariantImage(index) {
-    const tr = document.querySelector(`tr[data-index="${index}"]`);
-    tr.querySelector('.var-img-file').value = "";
-    const thumb = document.getElementById(`thumb-${index}`);
-    const delBtn = document.getElementById(`del-btn-${index}`);
-    thumb.src = "";
-    thumb.style.display = 'none';
-    delBtn.style.display = 'none';
-}
-
-function preparePayloadBeforeSubmit(e) {
-    const optionRows = document.querySelectorAll('.option-row');
-    const options = [];
-
-    optionRows.forEach(row => {
-        const optName = row.querySelector('.opt-name').value.trim();
-        const tagElements = row.querySelectorAll('.badge');
-        const valuesArray = Array.from(tagElements).map(tag => tag.firstChild.textContent.trim());
-
-        if (optName && valuesArray.length > 0) {
-            options.push({
-                name: optName,
-                values: valuesArray.map((val, idx) => ({ label: val, sortOrder: idx }))
+    // ========================================
+    // TinyMCE Editor Init
+    // ========================================
+    tinymce.init({
+        selector: '#productDescription',
+        height: 300,
+        menubar: true,
+        plugins: ['advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'searchreplace', 'visualblocks', 'code', 'fullscreen', 'insertdatetime', 'media', 'table', 'help', 'wordcount'],
+        toolbar: 'undo redo | blocks | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help | link image media | fullscreen | code',
+        content_style: 'body { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; }',
+        directionality: 'rtl',
+        language: 'ar',
+        images_upload_handler: function (blobInfo, progress) {
+            return new Promise(function (resolve, reject) {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.readAsDataURL(blobInfo.blob());
             });
         }
     });
 
-    const variantRows = document.querySelectorAll('#variantsTableContainer tbody tr');
-    const variants = [];
+    // ========================================
+    // إدارة رفع الصور الرئيسية
+    // ========================================
+    document.getElementById('imageUploadArea')?.addEventListener('click', () => {
+        document.getElementById('imageInput').click();
+    });
 
-    variantRows.forEach((tr, index) => {
-        const sku = tr.querySelector('.var-sku').value;
-        const price = parseFloat(tr.querySelector('.var-price').value) || 0;
-        const quantity = parseInt(tr.querySelector('.var-qty').value) || 0;
+    document.getElementById('imageInput')?.addEventListener('change', function(e) {
+        const files = e.target.files;
+        const grid = document.getElementById('imagePreviewGrid');
+        for (let i = 0; i < files.length; i++) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item';
+                div.innerHTML = `
+                    <img src="${event.target.result}" alt="صورة">
+                    <button type="button" class="remove-image" onclick="this.parentElement.remove()">✕</button>
+                `;
+                grid.appendChild(div);
+            };
+            reader.readAsDataURL(files[i]);
+        }
+        this.value = '';
+    });
+
+    // ========================================
+    // إدارة المتغيرات (Cartesian Product Logic)
+    // ========================================
+    function addOptionRow() {
+        const container = document.getElementById('optionsContainer');
+        const row = document.createElement('div');
+        row.className = 'option-row';
         
-        const optionValuesText = tr.cells[0].innerText.trim();
-        const optionValues = optionValuesText.split(' / ');
-
-        const thumb = document.getElementById(`thumb-${index}`);
-        const variantImage = (thumb && thumb.style.display === 'block') ? thumb.src : null;
-
-        variants.push({
-            sku: sku,
-            price: price,
-            quantity: quantity,
-            optionValues: optionValues,
-            image: variantImage
-        });
-    });
-
-    // تعبئة الحقل المخفي ليتم إرساله مع الفورم إلى الباك إند
-    document.getElementById('variantsPayloadInput').value = JSON.stringify({ options, variants });
-}
-
-// ========================================
-// إدارة العلامات (Tags)
-// ========================================
-function addTag() {
-    const input = document.getElementById('tagInput');
-    const tag = input.value.trim();
-    if (!tag) return;
-    
-    const container = document.getElementById('tagsContainer');
-    const noTagsMsg = container.querySelector('.text-muted');
-    if (noTagsMsg) noTagsMsg.remove();
-    
-    const span = document.createElement('span');
-    span.className = 'tag-item';
-    span.innerHTML = `<span class="remove-tag" onclick="removeTag(this)">✕</span> ${tag}`;
-    container.appendChild(span);
-    input.value = '';
-}
-
-function removeTag(element) {
-    if (confirm('هل أنت متأكد من حذف هذه العلامة؟')) {
-        element.parentElement.remove();
-        const container = document.getElementById('tagsContainer');
-        if (container.children.length === 0) {
-            container.innerHTML = '<span class="text-muted">لا توجد علامات</span>';
-        }
-    }
-}
-
-document.getElementById('tagInput')?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        addTag();
-    }
-});
-
-// ========================================
-// حذف المنتج
-// ========================================
-function deleteProduct(qid, name) {
-    if (!confirm(`⚠️ هل أنت متأكد من حذف/أرشفة المنتج "${name}"؟`)) {
-        return;
-    }
-    
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-    
-    fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('success', '✅ ' + data.message);
-            setTimeout(() => window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}', 1500);
-        } else {
-            showToast('error', '❌ ' + data.message);
-        }
-    })
-    .catch(error => {
-        showToast('error', '❌ حدث خطأ: ' + error);
-    });
-}
-
-// ========================================
-// Toast Notifications
-// ========================================
-function showToast(type, message) {
-    const colors = {
-        success: '#28a745',
-        error: '#dc3545',
-        warning: '#ffc107',
-        info: '#0d6efd'
-    };
-    
-    const toast = document.createElement('div');
-    toast.className = 'position-fixed bottom-0 end-0 p-3';
-    toast.style.zIndex = '9999';
-    toast.innerHTML = `
-        <div class="toast show border-0 shadow-lg" role="alert" 
-             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
-            <div class="toast-body d-flex align-items-center gap-2">
-                <span>${message}</span>
-                <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+        row.innerHTML = `
+            <div class="option-header">
+                <input type="text" class="opt-name" placeholder="اسم الخيار (مثل: المقاس)" oninput="generatePayload()">
+                <button class="btn-action btn-danger" type="button" onclick="removeOptionRow(this)">حذف الخيار</button>
             </div>
-        </div>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3500);
-}
+            <label style="font-size: 0.85rem; color: #64748b; margin-bottom: 4px;">القيم المتعددة:</label>
+            <div class="values-container"></div>
+            <div class="add-value-group">
+                <input type="text" class="val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: كبير)">
+                <button class="btn-action" type="button" onclick="addValueToRow(this)">+ إضافة قيمة</button>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeOptionRow(button) {
+        button.closest('.option-row').remove();
+        updateVariantsTable();
+        generatePayload();
+    }
+
+    function addValueToRow(button) {
+        const row = button.closest('.option-row');
+        const input = row.querySelector('.val-input');
+        const valText = input.value.trim();
+
+        if (valText) {
+            const valuesContainer = row.querySelector('.values-container');
+            const tag = document.createElement('div');
+            tag.className = 'value-tag';
+            tag.innerHTML = `${valText} <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>`;
+            
+            valuesContainer.appendChild(tag);
+            input.value = '';
+            updateVariantsTable();
+            generatePayload();
+        }
+    }
+
+    function cartesian(arr) {
+        return arr.reduce((a, b) => a.flatMap(d => b.map(e => [].concat(d, e))), [[]]);
+    }
+
+    function updateVariantsTable() {
+        const optionRows = document.querySelectorAll('.option-row');
+        let valuesArrays = [];
+
+        optionRows.forEach(row => {
+            const optName = row.querySelector('.opt-name').value.trim();
+            const tagElements = row.querySelectorAll('.value-tag');
+            const valuesArray = Array.from(tagElements).map(tag => tag.firstChild.textContent.trim());
+
+            if (optName && valuesArray.length > 0) {
+                valuesArrays.push(valuesArray);
+            }
+        });
+
+        const container = document.getElementById('variantsTableContainer');
+
+        if (valuesArrays.length === 0) {
+            container.innerHTML = `<p style="color: #64748b; font-size: 0.9rem; text-align: center; padding: 15px; background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 6px;">قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...</p>`;
+            return;
+        }
+
+        const combinations = cartesian(valuesArrays);
+
+        let html = `
+            <table class="variants-table">
+                <thead>
+                    <tr>
+                        <th>المتغير</th>
+                        <th>صورة المتغير</th>
+                        <th>SKU</th>
+                        <th>السعر</th>
+                        <th>الكمية</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        combinations.forEach((combo, index) => {
+            const optionValues = Array.isArray(combo) ? combo : [combo];
+            const variantLabel = optionValues.join(' / ');
+            html += `
+                <tr data-index="${index}">
+                    <td><strong>${variantLabel}</strong></td>
+                    <td>
+                        <div class="variant-img-wrapper">
+                            <input type="file" class="var-img-file" accept="image/*" style="display: none;" onchange="handleVariantImage(this, ${index})">
+                            <img id="thumb-${index}" class="variant-thumb" src="" alt="Variant Image">
+                            <button type="button" class="btn-action" style="padding: 5px 10px; font-size: 0.8rem;" onclick="this.previousElementSibling.previousElementSibling.click()">📷 رفع</button>
+                            <button type="button" id="del-btn-${index}" class="btn-action btn-danger" style="padding: 5px 8px; font-size: 0.75rem; display: none;" onclick="removeVariantImage(${index})">×</button>
+                        </div>
+                    </td>
+                    <td><input type="text" class="var-sku" value="SKU-VAR-${index + 1}" oninput="generatePayload()"></td>
+                    <td><input type="number" class="var-price" value="0" step="0.01" oninput="generatePayload()"></td>
+                    <td><input type="number" class="var-qty" value="0" oninput="generatePayload()"></td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+        generatePayload();
+    }
+
+    function handleVariantImage(input, index) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const thumb = document.getElementById(`thumb-${index}`);
+                const delBtn = document.getElementById(`del-btn-${index}`);
+                thumb.src = e.target.result;
+                thumb.style.display = 'block';
+                delBtn.style.display = 'inline-block';
+                generatePayload();
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function removeVariantImage(index) {
+        const tr = document.querySelector(`tr[data-index="${index}"]`);
+        tr.querySelector('.var-img-file').value = "";
+        const thumb = document.getElementById(`thumb-${index}`);
+        const delBtn = document.getElementById(`del-btn-${index}`);
+        thumb.src = "";
+        thumb.style.display = 'none';
+        delBtn.style.display = 'none';
+        generatePayload();
+    }
+
+    function generatePayload() {
+        const title = document.getElementById('productTitle').value;
+        const optionRows = document.querySelectorAll('.option-row');
+        const options = [];
+
+        optionRows.forEach(row => {
+            const optName = row.querySelector('.opt-name').value.trim();
+            const tagElements = row.querySelectorAll('.value-tag');
+            const valuesArray = Array.from(tagElements).map(tag => tag.firstChild.textContent.trim());
+
+            if (optName && valuesArray.length > 0) {
+                options.push({
+                    name: optName,
+                    values: valuesArray.map((val, idx) => ({
+                        label: val,
+                        sortOrder: idx
+                    }))
+                });
+            }
+        });
+
+        const variantRows = document.querySelectorAll('.variants-table tbody tr');
+        const variants = [];
+
+        variantRows.forEach((tr, index) => {
+            const sku = tr.querySelector('.var-sku').value;
+            const price = parseFloat(tr.querySelector('.var-price').value) || 0;
+            const quantity = parseInt(tr.querySelector('.var-qty').value) || 0;
+            
+            const optionValuesText = tr.cells[0].innerText.trim();
+            const optionValues = optionValuesText.split(' / ');
+
+            const thumb = document.getElementById(`thumb-${index}`);
+            const variantImage = (thumb && thumb.style.display === 'block') ? thumb.src : null;
+
+            variants.push({
+                sku: sku,
+                price: price,
+                compareAtPrice: 0,
+                quantity: quantity,
+                optionValues: optionValues,
+                image: variantImage
+            });
+        });
+
+        const payload = {
+            input: {
+                title: title || "",
+                status: "active",
+                options: options,
+                variants: variants
+            }
+        };
+
+        // تعبئة حقل الـ JSON المخفي ليرسله الفورم بسلاسة عند الحفظ
+        document.getElementById('variantsPayloadInput').value = JSON.stringify(payload);
+    }
+
+    function preparePayloadBeforeSubmit(e) {
+        generatePayload(); // التأكد من توليد آخر نسخة قبل الإرسال
+    }
+
+    // ========================================
+    // إدارة العلامات (Tags)
+    // ========================================
+    function addTag() {
+        const input = document.getElementById('tagInput');
+        const tag = input.value.trim();
+        if (!tag) return;
+        
+        const container = document.getElementById('tagsContainer');
+        const noTagsMsg = container.querySelector('.text-muted');
+        if (noTagsMsg) noTagsMsg.remove();
+        
+        const span = document.createElement('span');
+        span.className = 'tag-item';
+        span.innerHTML = `<span class="remove-tag" onclick="this.parentElement.remove()">✕</span> ${tag}`;
+        container.appendChild(span);
+        input.value = '';
+    }
+
+    document.getElementById('tagInput')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addTag();
+        }
+    });
+
+    // ========================================
+    // حذف المنتج
+    // ========================================
+    function deleteProduct(qid, name) {
+        if (!confirm(`⚠️ هل أنت متأكد من حذف/أرشفة المنتج "${name}"؟`)) return;
+        
+        const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+        
+        fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}';
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => alert('❌ حدث خطأ: ' + error));
+    }
 </script>
 {% endblock %}
