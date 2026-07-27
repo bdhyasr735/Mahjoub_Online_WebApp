@@ -68,18 +68,18 @@
         <div class="row">
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">العنوان (SEO)</label>
-                <p class="form-control-plaintext">{{ product.seo.title if product.seo and product.seo.title else '-' }}</p>
+                <input type="text" name="seo_title" class="form-control" value="{{ product.seo.title if product.seo and product.seo.title else '-' }}" style="border-color: #2d0b36; border-radius: 8px;">
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">الوصف (SEO)</label>
-                <p class="form-control-plaintext">{{ product.seo.description if product.seo and product.seo.description else '-' }}</p>
+                <input type="text" name="seo_description" class="form-control" value="{{ product.seo.description if product.seo and product.seo.description else '-' }}" style="border-color: #2d0b36; border-radius: 8px;">
             </div>
         </div>
         
-        <div class="row">
+        <div class="row mt-2">
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">الكلمات المفتاحية</label>
-                <p class="form-control-plaintext">{{ product.seo.keywords if product.seo and product.seo.keywords else '-' }}</p>
+                <input type="text" name="seo_keywords" class="form-control" value="{{ product.seo.keywords if product.seo and product.seo.keywords else '-' }}" style="border-color: #2d0b36; border-radius: 8px;">
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">العلامات (Tags)</label>
@@ -87,7 +87,7 @@
             </div>
         </div>
         
-        <div class="row">
+        <div class="row mt-2">
             <div class="col-12">
                 <label class="form-label fw-bold" style="color: #2d0b36;">التصنيفات</label>
                 {% if product.categories and product.categories|length > 0 %}
