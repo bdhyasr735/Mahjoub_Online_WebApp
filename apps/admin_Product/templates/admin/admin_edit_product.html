@@ -1,12 +1,12 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}تعديل المنتج: {{ product.name }}{% endblock %}
+{% block title %}تعديل المنتج: {{ product.title or product.name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">✏️ تعديل المنتج: {{ product.name }}</h1>
-        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-secondary">
+        <h1 class="h3" style="color: #2d0b36;">✏️ تعديل المنتج: {{ product.title or product.name }}</h1>
+        <a href="{{ safe_url_for('admin_product_bp.manage_products_view') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-right"></i> العودة
         </a>
     </div>
@@ -23,14 +23,14 @@
         
         <!-- أزرار الإجراءات -->
         <div class="mt-4 d-flex gap-2">
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
                 <i class="fas fa-save"></i> حفظ التغييرات
             </button>
-            <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-secondary">
+            <a href="{{ safe_url_for('admin_product_bp.manage_products_view') }}" class="btn btn-secondary">
                 <i class="fas fa-times"></i> إلغاء
             </a>
             {% if product.status|upper != 'ARCHIVED' %}
-            <button type="button" class="btn btn-danger" onclick="deleteProduct('{{ product.qid }}', '{{ product.name }}')">
+            <button type="button" class="btn btn-danger" onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
                 <i class="fas fa-trash"></i> حذف/أرشفة
             </button>
             {% endif %}
@@ -58,7 +58,7 @@ function deleteProduct(qid, name) {
     .then(data => {
         if (data.success) {
             showToast('success', '✅ ' + data.message);
-            setTimeout(() => window.location.href = '{{ url_for("admin_product_bp.manage_products") }}', 1500);
+            setTimeout(() => window.location.href = '{{ safe_url_for("admin_product_bp.manage_products_view") }}', 1500);
         } else {
             showToast('error', '❌ ' + data.message);
         }
@@ -97,6 +97,41 @@ function showToast(type, message) {
 .card {
     border: none;
     border-radius: 12px;
+}
+
+/* الهوية الملكية */
+.btn-primary {
+    background: linear-gradient(135deg, #2d0b36, #1a0520) !important;
+    color: #D4AF37 !important;
+    border: none !important;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #3d1a4a, #2d0b36) !important;
+    color: #ffd700 !important;
+    box-shadow: 0 4px 15px rgba(45, 11, 54, 0.4);
+}
+
+.btn-secondary {
+    background: #6c757d !important;
+    color: white !important;
+    border: none !important;
+}
+
+.btn-secondary:hover {
+    background: #5a6268 !important;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545, #a71d2a) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333, #8b1a1f) !important;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
 }
 </style>
 {% endblock %}
