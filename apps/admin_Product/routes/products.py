@@ -19,6 +19,7 @@ def manage_products_view():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)  # 10 منتجات لكل صفحة
         search_query = request.args.get('title', '', type=str)
+        ajax = request.args.get('ajax', 0, type=int)  # ✅ للتحقق من طلب AJAX
         
         # ✅ جلب جميع المنتجات من GraphQL
         all_products = services.products.get_all_products() or []
@@ -45,6 +46,23 @@ def manage_products_view():
                 product['supplier_name'] = 'غير مرتبط'
                 product['supplier_id'] = None
         
+        # ✅ إذا كان طلب AJAX، أعد الجدول فقط
+        if ajax:
+            return render_template(
+                'admin/includes/_table_products.html',
+                products=products,
+                search_title=search_query,
+                pagination={
+                    "currentPage": page,
+                    "totalPages": total_pages,
+                    "limit": len(products),
+                    "totalItems": total_products,
+                    "perPage": per_page,
+                    "hasPrev": page > 1,
+                    "hasNext": page < total_pages
+                }
+            )
+        
         return render_template(
             'admin/admin_Product.html',
             products=products,
@@ -62,6 +80,10 @@ def manage_products_view():
     except Exception as e:
         print(f"❌ خطأ في manage_products: {e}")
         flash(f'❌ حدث خطأ في تحميل المنتجات: {str(e)}', 'danger')
+        
+        if ajax:
+            return '<div class="alert alert-danger">حدث خطأ في تحميل المنتجات</div>'
+        
         return render_template(
             'admin/admin_Product.html',
             products=[],
