@@ -18,29 +18,34 @@ class GraphQLClient:
         if not self.api_key:
             raise ValueError("QUMRA_API_KEY غير موجود في متغيرات البيئة!")
         
+        # ✅ headers الأساسية فقط
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "x-apollo-operation-name": "FindAllProducts",  # ✅ لتجنب CSRF
-            "apollo-require-preflight": "true"             # ✅ لتجنب CSRF
         }
     
     def execute(self, query: str, variables: Optional[Dict] = None, operation_name: Optional[str] = None) -> Dict[str, Any]:
         """
         تنفيذ استعلام GraphQL وإرجاع النتيجة.
         """
+        # ✅ بناء الـ payload
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
         if operation_name:
             payload["operationName"] = operation_name
         
-        # ✅ نسخ الـ headers لتجنب تعديل الـ original
+        # ✅ نسخ الـ headers
         headers = self.headers.copy()
+        
+        # ✅ أضف operation_name في الـ header إذا كان موجوداً
         if operation_name:
             headers["x-apollo-operation-name"] = operation_name
-        elif "x-apollo-operation-name" not in headers:
-            headers["x-apollo-operation-name"] = "FindAllProducts"
+        
+        # ✅ طباعة للتصحيح
+        print(f"🔍 [GraphQLClient] Operation: {operation_name}")
+        print(f"🔍 [GraphQLClient] Variables: {variables}")
+        print(f"🔍 [GraphQLClient] Payload: {payload}")
         
         try:
             response = requests.post(
@@ -49,6 +54,10 @@ class GraphQLClient:
                 headers=headers,
                 timeout=30
             )
+            
+            print(f"🔍 [GraphQLClient] Status Code: {response.status_code}")
+            print(f"🔍 [GraphQLClient] Response: {response.text[:500]}...")
+            
             response.raise_for_status()
             data = response.json()
             
@@ -75,7 +84,7 @@ class GraphQLClient:
                 __typename
             }
             """
-            result = self.execute(query)
+            result = self.execute(query, operation_name="__typename")
             return result is not None
         except Exception as e:
             print(f"❌ [GraphQLClient]: فشل اختبار الاتصال: {e}")
