@@ -21,21 +21,23 @@ def manage_products_view():
         search_query = request.args.get('title', '', type=str)
         ajax = request.args.get('ajax', 0, type=int)
         
-        # ✅ جلب جميع المنتجات (للبحث والترقيم)
-        all_result = services.products.get_all_products() or {}
-        all_products = all_result.get('data', [])
-        pagination_info = all_result.get('pagination', {})
-        
-        # ✅ تطبيق البحث محلياً (لأن الـ API لا يدعم البحث)
+        # ✅ إذا كان هناك بحث، جلب الكل وتطبيق البحث محلياً
         if search_query:
+            all_result = services.products.get_all_products() or {}
+            all_products = all_result.get('data', [])
+            
+            # ✅ تطبيق البحث
             filtered = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
             total_products = len(filtered)
             total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
+            
             if page > total_pages:
                 page = total_pages
+            
             start = (page - 1) * per_page
             end = start + per_page
             products = filtered[start:end]
+            
             pagination_info = {
                 'totalItems': total_products,
                 'totalPages': total_pages,
@@ -44,16 +46,14 @@ def manage_products_view():
                 'hasPrevPage': page > 1
             }
         else:
-            # ✅ بدون بحث، استخدم الترقيم من الـ API
-            total_products = pagination_info.get('totalItems', len(all_products))
-            total_pages = pagination_info.get('totalPages', 1)
+            # ✅ بدون بحث، جلب الصفحة المطلوبة فقط
+            result = services.products.get_products_page(page, per_page)
+            products = result.get('data', [])
+            pagination_info = result.get('pagination', {})
             
-            # ✅ التأكد من أن الصفحة المطلوبة موجودة
-            if page > total_pages:
-                page = total_pages
-            start = (page - 1) * per_page
-            end = start + per_page
-            products = all_products[start:end] if all_products else []
+            # ✅ التأكد من وجود بيانات
+            total_products = pagination_info.get('totalItems', 0)
+            total_pages = pagination_info.get('totalPages', 1)
         
         # ✅ طباعة للتحقق
         print(f"🔍 [DEBUG] Page: {page}, Total: {total_products}, Pages: {total_pages}")
