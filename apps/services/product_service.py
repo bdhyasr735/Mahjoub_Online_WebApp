@@ -182,7 +182,6 @@ class ProductService:
                     }
                     tags
                     collections {
-                        qid
                         title
                         handle
                         description
