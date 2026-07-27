@@ -47,7 +47,7 @@ def manage_products_view():
             }
         else:
             # ✅ بدون بحث، جلب الصفحة المطلوبة فقط
-            result = services.products.get_products_page(page, per_page)
+            result = services.products.get_products_page(page)
             products = result.get('data', [])
             pagination_info = result.get('pagination', {})
             
