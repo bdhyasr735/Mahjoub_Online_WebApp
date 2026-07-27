@@ -108,19 +108,21 @@ class ProductService:
             print(f"❌ [ProductService]: {e}")
             return {}
 
-    def fetch_all_products_for_search(self) -> list:
+    def fetch_all_products_for_search(self, max_pages: int = 10) -> list:
         """
-        جلب جميع المنتجات من جميع الصفحات (للبحث فقط)
+        جلب المنتجات من أول 10 صفحات فقط للبحث (لتجنب Timeout)
+        
+        Args:
+            max_pages: عدد الصفحات المطلوب جلبها (افتراضي 10)
         
         Returns:
-            list: قائمة بجميع المنتجات
+            list: قائمة بالمنتجات من الصفحات المحددة
         """
         all_products = []
         page = 1
         has_next = True
-        max_pages = 100  # ✅ حد أمان لمنع الحلقات اللانهائية
         
-        print(f"🔄 [ProductService]: جاري جلب جميع المنتجات للبحث...")
+        print(f"🔄 [ProductService]: جاري جلب {max_pages} صفحة للبحث...")
         
         while has_next and page <= max_pages:
             try:
