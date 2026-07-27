@@ -90,16 +90,23 @@
     }
     .variant-item {
         background: #f8f9fa;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 12px;
+        border-radius: 10px;
+        padding: 18px;
+        margin-bottom: 15px;
         border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    .variant-item:hover {
+        border-color: rgba(212, 175, 55, 0.4);
+        box-shadow: 0 4px 12px rgba(45, 11, 54, 0.05);
     }
     .variant-item .variant-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px dashed #dee2e6;
     }
     .tag-item {
         display: inline-flex;
@@ -128,6 +135,7 @@
         border-radius: 8px;
         padding: 8px 20px;
         transition: all 0.3s;
+        font-weight: 600;
     }
     .btn-royal:hover {
         background: linear-gradient(135deg, #3d1a4a, #2d0b36);
@@ -141,10 +149,34 @@
         border-radius: 8px;
         padding: 8px 20px;
         transition: all 0.3s;
+        font-weight: 600;
     }
     .btn-royal-outline:hover {
         background: #2d0b36;
         color: #D4AF37;
+    }
+    /* ✅ تصميم احترافي لزر إضافة المتغيرات الجديد */
+    .btn-add-variant {
+        background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+        color: #2d0b36;
+        border: 2px dashed #2d0b36;
+        border-radius: 10px;
+        padding: 12px 20px;
+        width: 100%;
+        font-weight: 700;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .btn-add-variant:hover {
+        background: #2d0b36;
+        color: #D4AF37;
+        border-color: #D4AF37;
+        box-shadow: 0 4px 15px rgba(45, 11, 54, 0.2);
+        transform: translateY(-2px);
     }
 </style>
 {% endblock %}
@@ -156,7 +188,6 @@
         <h1 class="h3" style="color: #2d0b36;">
             <i class="fas fa-edit me-2"></i> تعديل المنتج: <span style="color: #D4AF37;">{{ product.title or product.name }}</span>
         </h1>
-        <!-- ✅ تم التعديل هنا -->
         <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-royal">
             <i class="fas fa-arrow-right me-2"></i> العودة
         </a>
@@ -228,44 +259,50 @@
                 <i class="fas fa-layer-group"></i> المتغيرات
             </div>
             <div class="row">
-                <div class="col-12">
+                <div class="col-12" id="variantsContainer">
                     {% if product.variants and product.variants|length > 0 %}
                         {% for variant in product.variants %}
                         <div class="variant-item">
                             <div class="variant-header">
-                                <strong style="color: #2d0b36;">المتغير #{{ loop.index }}</strong>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="removeVariant('{{ variant.qid }}')">
-                                    <i class="fas fa-trash"></i>
+                                <strong style="color: #2d0b36;"><i class="fas fa-cube me-1 text-warning"></i> المتغير #{{ loop.index }}</strong>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeVariant(this, '{{ variant.qid }}')">
+                                    <i class="fas fa-trash"></i> حذف
                                 </button>
                             </div>
                             <div class="row">
                                 <div class="col-md-3 mb-2">
-                                    <label class="form-label small">السعر</label>
+                                    <label class="form-label small fw-bold">السعر</label>
                                     <input type="number" class="form-control form-control-sm" value="{{ variant.pricing.price if variant.pricing else variant.price }}" step="0.01">
                                 </div>
                                 <div class="col-md-3 mb-2">
-                                    <label class="form-label small">الكمية</label>
+                                    <label class="form-label small fw-bold">الكمية</label>
                                     <input type="number" class="form-control form-control-sm" value="{{ variant.quantity or 0 }}">
                                 </div>
                                 <div class="col-md-6 mb-2">
-                                    <label class="form-label small">الخيارات</label>
+                                    <label class="form-label small fw-bold">الخيارات</label>
                                     <input type="text" class="form-control form-control-sm" value="{% for opt in variant.options %}{{ opt.option }}: {{ opt.label }}{% if not loop.last %}, {% endif %}{% endfor %}">
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     {% else %}
-                        <p class="text-muted text-center py-3">لا توجد متغيرات لهذا المنتج</p>
+                        <div class="text-muted text-center py-4 no-variants-placeholder">
+                            <i class="fas fa-box-open fa-2x mb-2 text-muted opacity-50"></i>
+                            <p class="mb-0">لا توجد متغيرات مضافة لهذا المنتج حالياً.</p>
+                        </div>
                     {% endif %}
-                    <button type="button" class="btn-royal-outline btn-sm mt-2">
-                        <i class="fas fa-plus"></i> إضافة متغير
+                </div>
+                <!-- ✅ زر إضافة متغير احترافي وبارز -->
+                <div class="col-12 mt-2">
+                    <button type="button" class="btn-add-variant" onclick="openVariantModal()">
+                        <i class="fas fa-plus-circle fa-lg text-warning"></i> إضافة متغير جديد للمنتج
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- ======================================== -->
-        <!-- 5. SEO والعلامات -->
+        <!-- 5. البيانات الوصفية (SEO) -->
         <!-- ======================================== -->
         <div class="form-section">
             <div class="form-section-title">
@@ -324,7 +361,6 @@
             <button type="submit" class="btn-royal px-4 py-2">
                 <i class="fas fa-save me-2"></i> حفظ التغييرات
             </button>
-            <!-- ✅ تم التعديل هنا -->
             <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-royal-outline px-4 py-2">
                 <i class="fas fa-times me-2"></i> إلغاء
             </a>
@@ -338,32 +374,38 @@
 </div>
 
 <!-- ======================================== -->
-<!-- نافذة المتغيرات المنبثقة -->
+<!-- نافذة المتغيرات المنبثقة (Modal) -->
 <!-- ======================================== -->
 <div class="modal fade" id="variantModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
-                <h5 class="modal-title" style="color: #D4AF37;">إضافة متغير جديد</h5>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
+                <h5 class="modal-title" style="color: #D4AF37;">
+                    <i class="fas fa-layer-group me-2"></i> إضافة متغير جديد
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <div class="mb-3">
-                    <label class="form-label">السعر</label>
-                    <input type="number" class="form-control" id="variantPrice" step="0.01">
+                    <label class="form-label fw-bold" style="color: #2d0b36;">السعر</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="variantPrice" step="0.01" placeholder="0.00">
+                        <span class="input-group-text">ر.ي</span>
+                    </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">الكمية</label>
-                    <input type="number" class="form-control" id="variantQuantity">
+                    <label class="form-label fw-bold" style="color: #2d0b36;">الكمية</label>
+                    <input type="number" class="form-control" id="variantQuantity" placeholder="0">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">الخيارات</label>
+                    <label class="form-label fw-bold" style="color: #2d0b36;">الخيارات</label>
                     <input type="text" class="form-control" id="variantOptions" placeholder="مثال: اللون: أحمر, الحجم: كبير">
+                    <small class="text-muted">اكتب الخصائص مفصولة بفواصل مع تحديد الاسم والقيمة.</small>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn-royal" id="saveVariantBtn">حفظ المتغير</button>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn-royal px-4" id="saveVariantBtn">حفظ وإضافة</button>
             </div>
         </div>
     </div>
@@ -473,19 +515,24 @@ document.getElementById('tagInput')?.addEventListener('keypress', function(e) {
 });
 
 // ========================================
-// إدارة المتغيرات
+// إدارة المتغيرات (Variants Management)
 // ========================================
 let variantModal;
 
 document.addEventListener('DOMContentLoaded', function() {
-    variantModal = new bootstrap.Modal(document.getElementById('variantModal'));
+    const modalEl = document.getElementById('variantModal');
+    if (modalEl) {
+        variantModal = new bootstrap.Modal(modalEl);
+    }
 });
 
 function openVariantModal() {
     document.getElementById('variantPrice').value = '';
     document.getElementById('variantQuantity').value = '';
     document.getElementById('variantOptions').value = '';
-    variantModal.show();
+    if (variantModal) {
+        variantModal.show();
+    }
 }
 
 document.getElementById('saveVariantBtn')?.addEventListener('click', function() {
@@ -493,39 +540,58 @@ document.getElementById('saveVariantBtn')?.addEventListener('click', function() 
     const quantity = document.getElementById('variantQuantity').value;
     const options = document.getElementById('variantOptions').value;
     
-    const container = document.querySelector('.form-section:has(.variant-item) .col-12');
-    const noVariantsMsg = container.querySelector('.text-muted.text-center');
+    const container = document.getElementById('variantsContainer');
+    const noVariantsMsg = container.querySelector('.no-variants-placeholder');
     if (noVariantsMsg) noVariantsMsg.remove();
+    
+    const variantCount = container.querySelectorAll('.variant-item').length + 1;
     
     const div = document.createElement('div');
     div.className = 'variant-item';
     div.innerHTML = `
         <div class="variant-header">
-            <strong style="color: #2d0b36;">متغير جديد</strong>
-            <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.variant-item').remove()">
-                <i class="fas fa-trash"></i>
+            <strong style="color: #2d0b36;"><i class="fas fa-cube me-1 text-warning"></i> متغير جديد (#${variantCount})</strong>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.variant-item').remove()">
+                <i class="fas fa-trash"></i> حذف
             </button>
         </div>
         <div class="row">
             <div class="col-md-3 mb-2">
-                <label class="form-label small">السعر</label>
+                <label class="form-label small fw-bold">السعر</label>
                 <input type="number" class="form-control form-control-sm" value="${price}" step="0.01">
             </div>
             <div class="col-md-3 mb-2">
-                <label class="form-label small">الكمية</label>
+                <label class="form-label small fw-bold">الكمية</label>
                 <input type="number" class="form-control form-control-sm" value="${quantity || 0}">
             </div>
             <div class="col-md-6 mb-2">
-                <label class="form-label small">الخيارات</label>
+                <label class="form-label small fw-bold">الخيارات</label>
                 <input type="text" class="form-control form-control-sm" value="${options}">
             </div>
         </div>
     `;
     container.appendChild(div);
-    variantModal.hide();
+    if (variantModal) {
+        variantModal.hide();
+    }
+    showToast('success', '✅ تم إضافة المتغير بنجاح');
 });
 
-document.querySelector('.btn-royal-outline.btn-sm')?.addEventListener('click', openVariantModal);
+function removeVariant(btn, qid) {
+    if (confirm('⚠️ هل أنت متأكد من حذف هذا المتغير؟')) {
+        btn.closest('.variant-item').remove();
+        const container = document.getElementById('variantsContainer');
+        if (container.querySelectorAll('.variant-item').length === 0) {
+            container.innerHTML = `
+                <div class="text-muted text-center py-4 no-variants-placeholder">
+                    <i class="fas fa-box-open fa-2x mb-2 text-muted opacity-50"></i>
+                    <p class="mb-0">لا توجد متغيرات مضافة لهذا المنتج حالياً.</p>
+                </div>
+            `;
+        }
+        showToast('info', '🗑️ تم إزالة المتغير');
+    }
+}
 
 // ========================================
 // حذف المنتج
