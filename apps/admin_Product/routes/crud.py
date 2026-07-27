@@ -81,6 +81,7 @@ def edit_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
     
+    # ✅ جلب المنتج من GraphQL
     product = services.products.get_product_by_qid(qid)
 
     if not product:
@@ -118,6 +119,11 @@ def save_sync_product():
         sku = request.form.get('sku', '')
         supplier_id = request.form.get('supplier_id')
         
+        # ✅ معالجة SEO
+        seo_title = request.form.get('seo_title', '')
+        seo_description = request.form.get('seo_description', '')
+        seo_keywords = request.form.get('seo_keywords', '')
+        
         try:
             price = float(request.form.get('price', 0))
         except ValueError:
@@ -128,7 +134,12 @@ def save_sync_product():
             'name': title,
             'price': price,
             'status': status,
-            'description': description
+            'description': description,
+            'seo': {
+                'title': seo_title,
+                'description': seo_description,
+                'keywords': seo_keywords
+            }
         }
         
         if sku:
