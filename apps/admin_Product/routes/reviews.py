@@ -52,7 +52,8 @@ def review_products():
     except Exception as e:
         print(f"❌ خطأ في review_products: {e}")
         flash('❌ حدث خطأ في تحميل صفحة المراجعة', 'danger')
-        return redirect(url_for('admin_product_bp.manage_products'))
+        # ✅ تم التعديل: manage_products → manage_products_view
+        return redirect(url_for('admin_product_bp.manage_products_view'))
 
 
 @admin_product_bp.route('/products/change-status/<qid>', methods=['POST'])
