@@ -1,593 +1,155 @@
-<!-- 📂 apps/admin_Product/templates/admin/admin_edit_product.html -->
-{% extends "admin/admin_base.html" %}
+<!-- 📂 apps/admin_Product/templates/admin/partials/_product_main_info.html -->
+<!-- معلومات المنتج الرئيسية -->
 
-{% block title %}تعديل المنتج: {{ product.title or product.name }}{% endblock %}
+<div class="row">
+    <!-- الاسم -->
+    <div class="col-md-6 mb-3">
+        <label for="productName" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-tag text-primary me-1"></i> اسم المنتج *
+        </label>
+        <input type="text" 
+               id="productName" 
+               name="title" 
+               class="form-control form-control-lg" 
+               value="{{ product.title or product.name or '' }}"
+               placeholder="أدخل اسم المنتج..."
+               required
+               style="border-color: #2d0b36; border-radius: 8px;">
+    </div>
+    
+    <!-- SKU -->
+    <div class="col-md-3 mb-3">
+        <label for="productSku" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-barcode text-info me-1"></i> SKU
+        </label>
+        <input type="text" 
+               id="productSku" 
+               name="sku" 
+               class="form-control" 
+               value="{{ product.sku or '' }}"
+               placeholder="رمز المنتج"
+               style="border-color: #2d0b36; border-radius: 8px;">
+    </div>
+    
+    <!-- الكمية -->
+    <div class="col-md-3 mb-3">
+        <label for="productQuantity" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-cubes text-info me-1"></i> الكمية
+        </label>
+        <input type="number" 
+               id="productQuantity" 
+               name="quantity" 
+               class="form-control" 
+               min="0"
+               value="{{ product.quantity or 0 }}"
+               style="border-color: #2d0b36; border-radius: 8px;">
+    </div>
+</div>
 
-{% block extra_css %}
-<!-- ✅ TinyMCE Editor -->
-<script src="https://cdn.tiny.cloud/1/7q8e3s9p5z6k4r2t8w1y0u4i6o7p9a2s/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<!-- ======================================== -->
+<!-- الأسعار الثلاثة -->
+<!-- ======================================== -->
+<div class="row">
+    <!-- السعر الأساسي -->
+    <div class="col-md-4 mb-3">
+        <label for="productPrice" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-dollar-sign text-success me-1"></i> السعر الأساسي *
+        </label>
+        <div class="input-group">
+            <input type="number" 
+                   id="productPrice" 
+                   name="price" 
+                   class="form-control" 
+                   step="0.01" 
+                   min="0"
+                   value="{{ product.pricing.price if product.pricing and product.pricing.price is not none else 0 }}"
+                   required
+                   style="border-color: #2d0b36; border-radius: 8px 0 0 8px;">
+            <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; border-radius: 0 8px 8px 0;">ر.س</span>
+        </div>
+        <small class="text-muted">السعر المعروض للبيع</small>
+    </div>
+    
+    <!-- سعر المقارنة -->
+    <div class="col-md-4 mb-3">
+        <label for="comparePrice" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-tag text-warning me-1"></i> سعر المقارنة
+        </label>
+        <div class="input-group">
+            <input type="number" 
+                   id="comparePrice" 
+                   name="compare_price" 
+                   class="form-control" 
+                   step="0.01" 
+                   min="0"
+                   value="{{ product.pricing.compareAtPrice if product.pricing and product.pricing.compareAtPrice is not none else 0 }}"
+                   style="border-color: #2d0b36; border-radius: 8px 0 0 8px;">
+            <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; border-radius: 0 8px 8px 0;">ر.س</span>
+        </div>
+        <small class="text-muted">السعر قبل الخصم (يظهر مشطوباً)</small>
+    </div>
+    
+    <!-- سعر التكلفة -->
+    <div class="col-md-4 mb-3">
+        <label for="costPrice" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-coins text-secondary me-1"></i> سعر التكلفة
+        </label>
+        <div class="input-group">
+            <input type="number" 
+                   id="costPrice" 
+                   name="cost_price" 
+                   class="form-control" 
+                   step="0.01" 
+                   min="0"
+                   value="{{ product.pricing.costPerItem if product.pricing and product.pricing.costPerItem is not none else 0 }}"
+                   style="border-color: #2d0b36; border-radius: 8px 0 0 8px;">
+            <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; border-radius: 0 8px 8px 0;">ر.س</span>
+        </div>
+        <small class="text-muted">سعر الشراء (داخلي للمحاسبة)</small>
+    </div>
+</div>
+
+<div class="row">
+    <!-- الحالة -->
+    <div class="col-md-6 mb-3">
+        <label for="productStatus" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-circle text-warning me-1"></i> الحالة
+        </label>
+        <select id="productStatus" name="status" class="form-select" style="border-color: #2d0b36; border-radius: 8px;">
+            <option value="DRAFT" {% if product.status|upper == 'DRAFT' %}selected{% endif %}>
+                ⏳ مسودة
+            </option>
+            <option value="PUBLISHED" {% if product.status|upper == 'PUBLISHED' %}selected{% endif %}>
+                ✅ منشور
+            </option>
+            <option value="REJECTED" {% if product.status|upper == 'REJECTED' %}selected{% endif %}>
+                ❌ مرفوض
+            </option>
+            <option value="ARCHIVED" {% if product.status|upper == 'ARCHIVED' %}selected{% endif %}>
+                📦 مؤرشف
+            </option>
+        </select>
+    </div>
+    
+    <!-- المورد -->
+    <div class="col-md-6 mb-3">
+        <label for="supplierId" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-store text-purple me-1"></i> المورد
+        </label>
+        <select id="supplierId" name="supplier_id" class="form-select" style="border-color: #2d0b36; border-radius: 8px;">
+            <option value="">-- غير مرتبط --</option>
+            {% for supplier in suppliers %}
+            <option value="{{ supplier.id }}" {% if assigned_supplier_id == supplier.id %}selected{% endif %}>
+                {{ supplier.trade_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
 <style>
-    .edit-product-container {
-        background: #f8f5f0;
-        border-radius: 16px;
-        padding: 30px;
-        box-shadow: 0 4px 20px rgba(45, 11, 54, 0.08);
-    }
-    .form-section {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 24px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-        border: 1px solid rgba(212, 175, 55, 0.1);
-    }
-    .form-section-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #2d0b36;
-        margin-bottom: 20px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid rgba(212, 175, 55, 0.2);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .form-section-title i {
-        color: #D4AF37;
-    }
-    .image-upload-area {
-        border: 2px dashed #2d0b36;
-        border-radius: 12px;
-        padding: 30px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        background: #faf8f6;
-    }
-    .image-upload-area:hover {
-        border-color: #D4AF37;
-        background: #f5f0eb;
-    }
-    .image-preview-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 12px;
-        margin-top: 15px;
-    }
-    .image-preview-item {
-        position: relative;
-        border-radius: 8px;
-        overflow: hidden;
-        border: 2px solid #e9ecef;
-        aspect-ratio: 1;
-        background: #f8f9fa;
-    }
-    .image-preview-item img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .image-preview-item .remove-image {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        background: rgba(220, 53, 69, 0.9);
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-        cursor: pointer;
-        font-size: 12px;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .image-preview-item .remove-image:hover {
-        background: #dc3545;
-        transform: scale(1.1);
-    }
-    .variant-item {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 12px;
-        border: 1px solid #e9ecef;
-    }
-    .variant-item .variant-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-    .tag-item {
-        display: inline-flex;
-        align-items: center;
-        background: linear-gradient(135deg, #2d0b36, #1a0520);
-        color: #D4AF37;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        margin: 3px;
-    }
-    .tag-item .remove-tag {
-        margin-right: 6px;
-        cursor: pointer;
-        opacity: 0.7;
-        transition: all 0.3s;
-    }
-    .tag-item .remove-tag:hover {
-        opacity: 1;
-        color: #dc3545;
-    }
-    .btn-royal {
-        background: linear-gradient(135deg, #2d0b36, #1a0520);
-        color: #D4AF37;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 20px;
-        transition: all 0.3s;
-    }
-    .btn-royal:hover {
-        background: linear-gradient(135deg, #3d1a4a, #2d0b36);
-        color: #ffd700;
-        box-shadow: 0 4px 15px rgba(45, 11, 54, 0.3);
-    }
-    .btn-royal-outline {
-        background: transparent;
-        color: #2d0b36;
-        border: 1px solid #2d0b36;
-        border-radius: 8px;
-        padding: 8px 20px;
-        transition: all 0.3s;
-    }
-    .btn-royal-outline:hover {
-        background: #2d0b36;
-        color: #D4AF37;
-    }
+.form-label {
+    font-weight: 600;
+    color: #2d0b36;
+}
 </style>
-{% endblock %}
-
-{% block content %}
-<div class="container-fluid edit-product-container">
-    <!-- رأس الصفحة -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <h1 class="h3" style="color: #2d0b36;">
-            <i class="fas fa-edit me-2"></i> تعديل المنتج: <span style="color: #D4AF37;">{{ product.title or product.name }}</span>
-        </h1>
-        <a href="{{ safe_url_for('admin_product_bp.manage_products_view') }}" class="btn-royal">
-            <i class="fas fa-arrow-right me-2"></i> العودة
-        </a>
-    </div>
-
-    <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}" id="editProductForm">
-        <input type="hidden" name="qid" value="{{ product.qid }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-        <!-- ======================================== -->
-        <!-- 1. المعلومات الأساسية -->
-        <!-- ======================================== -->
-        <div class="form-section">
-            <div class="form-section-title">
-                <i class="fas fa-info-circle"></i> المعلومات الأساسية
-            </div>
-            {% include "admin/partials/_product_main_info.html" %}
-        </div>
-
-        <!-- ======================================== -->
-        <!-- 2. الوصف (مع شريط الأدوات) -->
-        <!-- ======================================== -->
-        <div class="form-section">
-            <div class="form-section-title">
-                <i class="fas fa-align-left"></i> الوصف
-            </div>
-            <div class="row">
-                <div class="col-12">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">الوصف الكامل للمنتج</label>
-                    <textarea id="productDescription" name="description" rows="12" class="form-control">{{ product.description or '' }}</textarea>
-                </div>
-            </div>
-        </div>
-
-        <!-- ======================================== -->
-        <!-- 3. الصور -->
-        <!-- ======================================== -->
-        <div class="form-section">
-            <div class="form-section-title">
-                <i class="fas fa-images"></i> الصور
-            </div>
-            <div class="row">
-                <div class="col-12">
-                    <div class="image-upload-area" id="imageUploadArea">
-                        <i class="fas fa-cloud-upload-alt fa-3x" style="color: #D4AF37;"></i>
-                        <p class="mt-2 mb-0" style="color: #2d0b36; font-weight: 600;">اسحب الصور هنا أو انقر للتحميل</p>
-                        <small class="text-muted">يدعم JPG, PNG, WebP</small>
-                        <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
-                    </div>
-                    <div class="image-preview-grid" id="imagePreviewGrid">
-                        {% if product.images and product.images|length > 0 %}
-                            {% for image in product.images %}
-                            <div class="image-preview-item">
-                                <img src="{{ image.fileUrl }}" alt="صورة المنتج">
-                                <button type="button" class="remove-image" data-image-url="{{ image.fileUrl }}">✕</button>
-                            </div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ======================================== -->
-        <!-- 4. المتغيرات -->
-        <!-- ======================================== -->
-        <div class="form-section">
-            <div class="form-section-title">
-                <i class="fas fa-layer-group"></i> المتغيرات
-            </div>
-            <div class="row">
-                <div class="col-12">
-                    {% if product.variants and product.variants|length > 0 %}
-                        {% for variant in product.variants %}
-                        <div class="variant-item">
-                            <div class="variant-header">
-                                <strong style="color: #2d0b36;">المتغير #{{ loop.index }}</strong>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="removeVariant('{{ variant.qid }}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label small">السعر</label>
-                                    <input type="number" class="form-control form-control-sm" value="{{ variant.pricing.price if variant.pricing else variant.price }}" step="0.01">
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <label class="form-label small">الكمية</label>
-                                    <input type="number" class="form-control form-control-sm" value="{{ variant.quantity or 0 }}">
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label small">الخيارات</label>
-                                    <input type="text" class="form-control form-control-sm" value="{% for opt in variant.options %}{{ opt.option }}: {{ opt.label }}{% if not loop.last %}, {% endif %}{% endfor %}">
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-muted text-center py-3">لا توجد متغيرات لهذا المنتج</p>
-                    {% endif %}
-                    <button type="button" class="btn-royal-outline btn-sm mt-2">
-                        <i class="fas fa-plus"></i> إضافة متغير
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ======================================== -->
-        <!-- 5. SEO والعلامات -->
-        <!-- ======================================== -->
-        <div class="form-section">
-            <div class="form-section-title">
-                <i class="fas fa-code"></i> البيانات الوصفية (SEO)
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">عنوان SEO</label>
-                    <input type="text" name="seo_title" class="form-control" value="{{ product.seo.title if product.seo and product.seo.title else '' }}" placeholder="عنوان تحسين محركات البحث">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">وصف SEO</label>
-                    <input type="text" name="seo_description" class="form-control" value="{{ product.seo.description if product.seo and product.seo.description else '' }}" placeholder="وصف تحسين محركات البحث">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12 mb-3">
-                    <label class="form-label fw-bold" style="color: #2d0b36;">الكلمات المفتاحية</label>
-                    <input type="text" name="seo_keywords" class="form-control" value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" placeholder="كلمات مفتاحية مفصولة بفواصل">
-                </div>
-            </div>
-        </div>
-
-        <!-- ======================================== -->
-        <!-- 6. العلامات -->
-        <!-- ======================================== -->
-        <div class="form-section">
-            <div class="form-section-title">
-                <i class="fas fa-tags"></i> العلامات (Tags)
-            </div>
-            <div class="row">
-                <div class="col-12">
-                    <div class="d-flex flex-wrap gap-1 mb-2" id="tagsContainer">
-                        {% if product.tags and product.tags|length > 0 %}
-                            {% for tag in product.tags %}
-                            <span class="tag-item">
-                                <span class="remove-tag" onclick="removeTag(this)">✕</span> {{ tag }}
-                            </span>
-                            {% endfor %}
-                        {% else %}
-                            <span class="text-muted">لا توجد علامات</span>
-                        {% endif %}
-                    </div>
-                    <div class="input-group">
-                        <input type="text" id="tagInput" class="form-control" placeholder="أدخل علامة جديدة...">
-                        <button type="button" class="btn-royal" onclick="addTag()">إضافة</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ======================================== -->
-        <!-- 7. أزرار الإجراءات -->
-        <!-- ======================================== -->
-        <div class="d-flex flex-wrap gap-2 mt-4">
-            <button type="submit" class="btn-royal px-4 py-2">
-                <i class="fas fa-save me-2"></i> حفظ التغييرات
-            </button>
-            <a href="{{ safe_url_for('admin_product_bp.manage_products_view') }}" class="btn-royal-outline px-4 py-2">
-                <i class="fas fa-times me-2"></i> إلغاء
-            </a>
-            {% if product.status|upper != 'ARCHIVED' %}
-            <button type="button" class="btn btn-danger px-4 py-2" onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
-                <i class="fas fa-trash me-2"></i> حذف/أرشفة
-            </button>
-            {% endif %}
-        </div>
-    </form>
-</div>
-
-<!-- ======================================== -->
-<!-- نافذة المتغيرات المنبثقة -->
-<!-- ======================================== -->
-<div class="modal fade" id="variantModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
-                <h5 class="modal-title" style="color: #D4AF37;">إضافة متغير جديد</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">السعر</label>
-                    <input type="number" class="form-control" id="variantPrice" step="0.01">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">الكمية</label>
-                    <input type="number" class="form-control" id="variantQuantity">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">الخيارات</label>
-                    <input type="text" class="form-control" id="variantOptions" placeholder="مثال: اللون: أحمر, الحجم: كبير">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn-royal" id="saveVariantBtn">حفظ المتغير</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-// ========================================
-// TinyMCE Editor
-// ========================================
-tinymce.init({
-    selector: '#productDescription',
-    height: 300,
-    menubar: true,
-    plugins: [
-        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-        'insertdatetime', 'media', 'table', 'help', 'wordcount'
-    ],
-    toolbar: 'undo redo | blocks | ' +
-        'bold italic backcolor | alignleft aligncenter ' +
-        'alignright alignjustify | bullist numlist outdent indent | ' +
-        'removeformat | help | link image media | fullscreen | code',
-    content_style: 'body { font-family: "Cairo", sans-serif; font-size: 16px; }',
-    directionality: 'rtl',
-    language: 'ar',
-    images_upload_handler: function (blobInfo, progress) {
-        return new Promise(function (resolve, reject) {
-            // ✅ معالجة رفع الصور من TinyMCE
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                resolve(e.target.result);
-            };
-            reader.readAsDataURL(blobInfo.blob());
-        });
-    }
-});
-
-// ========================================
-// إدارة الصور
-// ========================================
-document.getElementById('imageUploadArea')?.addEventListener('click', function() {
-    document.getElementById('imageInput').click();
-});
-
-document.getElementById('imageInput')?.addEventListener('change', function(e) {
-    const files = e.target.files;
-    const grid = document.getElementById('imagePreviewGrid');
-    
-    for (let i = 0; i < files.length; i++) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const div = document.createElement('div');
-            div.className = 'image-preview-item';
-            div.innerHTML = `
-                <img src="${event.target.result}" alt="صورة المنتج">
-                <button type="button" class="remove-image" onclick="this.parentElement.remove()">✕</button>
-            `;
-            grid.appendChild(div);
-        };
-        reader.readAsDataURL(files[i]);
-    }
-    this.value = '';
-});
-
-// ✅ حذف الصور
-document.querySelectorAll('.remove-image').forEach(btn => {
-    btn.addEventListener('click', function() {
-        if (confirm('هل أنت متأكد من حذف هذه الصورة؟')) {
-            this.parentElement.remove();
-        }
-    });
-});
-
-// ========================================
-// إدارة العلامات (Tags)
-// ========================================
-function addTag() {
-    const input = document.getElementById('tagInput');
-    const tag = input.value.trim();
-    if (!tag) return;
-    
-    const container = document.getElementById('tagsContainer');
-    // إزالة رسالة "لا توجد علامات"
-    const noTagsMsg = container.querySelector('.text-muted');
-    if (noTagsMsg) noTagsMsg.remove();
-    
-    const span = document.createElement('span');
-    span.className = 'tag-item';
-    span.innerHTML = `<span class="remove-tag" onclick="removeTag(this)">✕</span> ${tag}`;
-    container.appendChild(span);
-    input.value = '';
-}
-
-function removeTag(element) {
-    if (confirm('هل أنت متأكد من حذف هذه العلامة؟')) {
-        element.parentElement.remove();
-        // إعادة رسالة "لا توجد علامات" إذا كان container فارغاً
-        const container = document.getElementById('tagsContainer');
-        if (container.children.length === 0) {
-            container.innerHTML = '<span class="text-muted">لا توجد علامات</span>';
-        }
-    }
-}
-
-// ✅ إضافة علامة بالضغط على Enter
-document.getElementById('tagInput')?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        addTag();
-    }
-});
-
-// ========================================
-// إدارة المتغيرات
-// ========================================
-let variantModal;
-
-document.addEventListener('DOMContentLoaded', function() {
-    variantModal = new bootstrap.Modal(document.getElementById('variantModal'));
-});
-
-function openVariantModal() {
-    document.getElementById('variantPrice').value = '';
-    document.getElementById('variantQuantity').value = '';
-    document.getElementById('variantOptions').value = '';
-    variantModal.show();
-}
-
-document.getElementById('saveVariantBtn')?.addEventListener('click', function() {
-    const price = document.getElementById('variantPrice').value;
-    const quantity = document.getElementById('variantQuantity').value;
-    const options = document.getElementById('variantOptions').value;
-    
-    // ✅ إضافة المتغير إلى الواجهة
-    const container = document.querySelector('.form-section:has(.variant-item) .col-12');
-    const noVariantsMsg = container.querySelector('.text-muted.text-center');
-    if (noVariantsMsg) noVariantsMsg.remove();
-    
-    const div = document.createElement('div');
-    div.className = 'variant-item';
-    div.innerHTML = `
-        <div class="variant-header">
-            <strong style="color: #2d0b36;">متغير جديد</strong>
-            <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.variant-item').remove()">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-        <div class="row">
-            <div class="col-md-3 mb-2">
-                <label class="form-label small">السعر</label>
-                <input type="number" class="form-control form-control-sm" value="${price}" step="0.01">
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label small">الكمية</label>
-                <input type="number" class="form-control form-control-sm" value="${quantity || 0}">
-            </div>
-            <div class="col-md-6 mb-2">
-                <label class="form-label small">الخيارات</label>
-                <input type="text" class="form-control form-control-sm" value="${options}">
-            </div>
-        </div>
-    `;
-    container.appendChild(div);
-    variantModal.hide();
-});
-
-// ✅ إضافة متغير جديد (زر)
-document.querySelector('.btn-royal-outline.btn-sm')?.addEventListener('click', openVariantModal);
-
-// ========================================
-// حذف المنتج
-// ========================================
-function deleteProduct(qid, name) {
-    if (!confirm(`⚠️ هل أنت متأكد من حذف/أرشفة المنتج "${name}"؟`)) {
-        return;
-    }
-    
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-    
-    fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('success', '✅ ' + data.message);
-            setTimeout(() => window.location.href = '{{ safe_url_for("admin_product_bp.manage_products_view") }}', 1500);
-        } else {
-            showToast('error', '❌ ' + data.message);
-        }
-    })
-    .catch(error => {
-        showToast('error', '❌ حدث خطأ: ' + error);
-    });
-}
-
-// ========================================
-// Toast Notifications
-// ========================================
-function showToast(type, message) {
-    const colors = {
-        success: '#28a745',
-        error: '#dc3545',
-        warning: '#ffc107',
-        info: '#0d6efd'
-    };
-    
-    const toast = document.createElement('div');
-    toast.className = 'position-fixed bottom-0 end-0 p-3';
-    toast.style.zIndex = '9999';
-    toast.innerHTML = `
-        <div class="toast show border-0 shadow-lg" role="alert" 
-             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
-            <div class="toast-body d-flex align-items-center gap-2">
-                <span>${message}</span>
-                <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3500);
-}
-</script>
-{% endblock %}
