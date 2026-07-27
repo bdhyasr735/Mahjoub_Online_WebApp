@@ -4,7 +4,7 @@
 <div class="row">
     <!-- الاسم -->
     <div class="col-md-6 mb-3">
-        <label for="productName" class="form-label fw-bold">
+        <label for="productName" class="form-label fw-bold" style="color: #2d0b36;">
             <i class="fas fa-tag text-primary me-1"></i> اسم المنتج *
         </label>
         <input type="text" 
@@ -13,12 +13,13 @@
                class="form-control form-control-lg" 
                value="{{ product.title or product.name or '' }}"
                placeholder="أدخل اسم المنتج..."
-               required>
+               required
+               style="border-color: #2d0b36; border-radius: 8px;">
     </div>
     
     <!-- السعر -->
     <div class="col-md-3 mb-3">
-        <label for="productPrice" class="form-label fw-bold">
+        <label for="productPrice" class="form-label fw-bold" style="color: #2d0b36;">
             <i class="fas fa-dollar-sign text-success me-1"></i> السعر *
         </label>
         <div class="input-group">
@@ -29,14 +30,15 @@
                    step="0.01" 
                    min="0"
                    value="{{ product.pricing.price if product.pricing and product.pricing.price is not none else product.price or 0 }}"
-                   required>
-            <span class="input-group-text">ر.س</span>
+                   required
+                   style="border-color: #2d0b36; border-radius: 8px 0 0 8px;">
+            <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; border-radius: 0 8px 8px 0;">ر.س</span>
         </div>
     </div>
     
     <!-- SKU -->
     <div class="col-md-3 mb-3">
-        <label for="productSku" class="form-label fw-bold">
+        <label for="productSku" class="form-label fw-bold" style="color: #2d0b36;">
             <i class="fas fa-barcode text-info me-1"></i> SKU
         </label>
         <input type="text" 
@@ -44,31 +46,33 @@
                name="sku" 
                class="form-control" 
                value="{{ product.sku or '' }}"
-               placeholder="رمز المنتج">
+               placeholder="رمز المنتج"
+               style="border-color: #2d0b36; border-radius: 8px;">
     </div>
 </div>
 
 <div class="row">
-    <!-- الوصف -->
+    <!-- الوصف (نقلناه إلى الصفحة الرئيسية مع TinyMCE) -->
     <div class="col-12 mb-3">
-        <label for="productDescription" class="form-label fw-bold">
+        <label for="productDescription" class="form-label fw-bold" style="color: #2d0b36;">
             <i class="fas fa-align-left text-secondary me-1"></i> الوصف
         </label>
         <textarea id="productDescription" 
                   name="description" 
                   class="form-control" 
                   rows="4"
-                  placeholder="وصف المنتج...">{{ product.description or '' }}</textarea>
+                  placeholder="وصف المنتج..."
+                  style="border-color: #2d0b36; border-radius: 8px;">{{ product.description or '' }}</textarea>
     </div>
 </div>
 
 <div class="row">
     <!-- الحالة -->
     <div class="col-md-6 mb-3">
-        <label for="productStatus" class="form-label fw-bold">
+        <label for="productStatus" class="form-label fw-bold" style="color: #2d0b36;">
             <i class="fas fa-circle text-warning me-1"></i> الحالة
         </label>
-        <select id="productStatus" name="status" class="form-select">
+        <select id="productStatus" name="status" class="form-select" style="border-color: #2d0b36; border-radius: 8px;">
             <option value="DRAFT" {% if product.status|upper == 'DRAFT' %}selected{% endif %}>
                 ⏳ مسودة
             </option>
@@ -86,10 +90,10 @@
     
     <!-- المورد -->
     <div class="col-md-6 mb-3">
-        <label for="supplierId" class="form-label fw-bold">
+        <label for="supplierId" class="form-label fw-bold" style="color: #2d0b36;">
             <i class="fas fa-store text-purple me-1"></i> المورد
         </label>
-        <select id="supplierId" name="supplier_id" class="form-select">
+        <select id="supplierId" name="supplier_id" class="form-select" style="border-color: #2d0b36; border-radius: 8px;">
             <option value="">-- غير مرتبط --</option>
             {% for supplier in suppliers %}
             <option value="{{ supplier.id }}" {% if assigned_supplier_id == supplier.id %}selected{% endif %}>
@@ -99,29 +103,6 @@
         </select>
     </div>
 </div>
-
-<!-- معلومات إضافية (للقراءة فقط) -->
-{% if product and product.qid %}
-<div class="row mt-3 pt-3 border-top">
-    <div class="col-md-4">
-        <small class="text-muted">
-            <i class="fas fa-fingerprint me-1"></i> QID: {{ product.qid }}
-        </small>
-    </div>
-    <div class="col-md-4">
-        <small class="text-muted">
-            <i class="fas fa-calendar-plus me-1"></i> تاريخ الإنشاء: 
-            {{ product.createdAt|datetime if product.createdAt else '-' }}
-        </small>
-    </div>
-    <div class="col-md-4">
-        <small class="text-muted">
-            <i class="fas fa-calendar-edit me-1"></i> آخر تحديث: 
-            {{ product.updatedAt|datetime if product.updatedAt else '-' }}
-        </small>
-    </div>
-</div>
-{% endif %}
 
 <style>
 .form-label {
