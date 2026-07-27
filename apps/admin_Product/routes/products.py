@@ -23,10 +23,7 @@ def manage_products_view():
         
         # ✅ إذا كان هناك بحث، جلب جميع المنتجات للبحث
         if search_query:
-            # ✅ استخدام الدالة الجديدة لجلب جميع المنتجات
             all_products = services.products.fetch_all_products_for_search()
-            
-            # ✅ تطبيق البحث
             filtered = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
             total_products = len(filtered)
             total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
@@ -46,20 +43,15 @@ def manage_products_view():
                 'hasPrevPage': page > 1
             }
         else:
-            # ✅ بدون بحث، جلب الصفحة المطلوبة فقط
             result = services.products.get_products_page(page)
             products = result.get('data', [])
             pagination_info = result.get('pagination', {})
-            
-            # ✅ التأكد من وجود بيانات
             total_products = pagination_info.get('totalItems', 0)
             total_pages = pagination_info.get('totalPages', 1)
         
-        # ✅ طباعة للتحقق
         print(f"🔍 [DEBUG] Page: {page}, Total: {total_products}, Pages: {total_pages}")
         print(f"🔍 [DEBUG] Products in this page: {len(products)}")
         
-        # ✅ ربط الموردين بالمنتجات
         for product in products:
             mapping = ProductSupplierMapping.query.filter_by(product_qid=product.get('qid')).first()
             if mapping:
@@ -70,7 +62,6 @@ def manage_products_view():
                 product['supplier_name'] = 'غير مرتبط'
                 product['supplier_id'] = None
         
-        # ✅ بناء بيانات الترقيم
         pagination_data = {
             "currentPage": pagination_info.get('currentPage', page),
             "totalPages": pagination_info.get('totalPages', total_pages),
@@ -81,7 +72,6 @@ def manage_products_view():
             "hasNext": pagination_info.get('hasNextPage', page < total_pages)
         }
         
-        # ✅ إذا كان طلب AJAX، أعد الجدول فقط
         if ajax:
             return render_template(
                 'admin/includes/_table_products.html',
@@ -118,43 +108,7 @@ def manage_products_view():
         )
 
 
-# ✅ دالة تعديل المنتج مع @login_required
-@login_required
-def edit_product_view(qid):
-    """صفحة تعديل المنتج"""
-    try:
-        # ✅ تحقق من نوع المستخدم
-        user_type = session.get('user_type')
-        if user_type != 'admin':
-            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
-            return redirect(url_for('admin_dashboard_bp.dashboard'))
-        
-        print(f"🔍 [edit_product] جلب المنتج بـ QID: {qid}")
-        
-        # ✅ جلب المنتج من الخدمة
-        product = services.products.get_product_by_qid(qid)
-        
-        # ✅ إذا لم يتم العثور على المنتج
-        if not product or not product.get('qid'):
-            print(f"❌ [edit_product] المنتج غير موجود: {qid}")
-            flash('❌ المنتج غير موجود', 'danger')
-            return redirect(url_for('admin_product_bp.manage_products_view'))
-        
-        print(f"✅ [edit_product] تم جلب المنتج: {product.get('title')}")
-        
-        return render_template(
-            'admin/admin_edit_product.html',
-            product=product
-        )
-        
-    except Exception as e:
-        print(f"❌ [edit_product] خطأ: {e}")
-        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
-        return redirect(url_for('admin_product_bp.manage_products_view'))
-
-
 def register_products_route(bp):
     bp.add_url_rule('/products', view_func=manage_products_view, methods=['GET'])
-    # ✅ أضف هذا السطر لتسجيل مسار التعديل
-    bp.add_url_rule('/products/edit/<qid>', view_func=edit_product_view, methods=['GET'])
+    # ✅ تم إزالة مسار /products/edit/<qid> لأنه موجود في crud.py
     return bp
