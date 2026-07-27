@@ -164,10 +164,10 @@ class ProductService:
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع جميع الحقول"""
         
-        # ✅ استخدم استعلام مع متغيرات (يعمل عبر HTTP)
+        # ✅ استخدم الاستعلام الذي يعمل (بدون متغيرات)
         query = """
-        query FindProductByQid($qid: String!) {
-            findProductByQid(qid: $qid) {
+        {
+            findProductByQid(qid: "%s") {
                 success
                 message
                 data {
@@ -225,22 +225,17 @@ class ProductService:
                 }
             }
         }
-        """
+        """ % qid
         
         try:
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
+            print(f"🔍 [get_product_by_qid] Query: {query[:200]}...")
             
-            variables = {"qid": qid}
-            print(f"🔍 [get_product_by_qid] Variables: {variables}")
-            
-            # ✅ أرسل operation_name = "FindProductByQid"
-            data = self.client.execute(query, variables, operation_name="FindProductByQid")
+            data = self.client.execute(query)
             print(f"🔍 [get_product_by_qid] Full Response: {data}")
             
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
-                print(f"🔍 [get_product_by_qid] Result success: {result.get('success')}")
-                
                 if result.get("success"):
                     product_data = result.get("data", {})
                     print(f"✅ [get_product_by_qid] تم جلب المنتج: {product_data.get('title')}")
@@ -249,9 +244,7 @@ class ProductService:
                     error_msg = result.get('message', 'خطأ غير معروف')
                     print(f"❌ [get_product_by_qid] فشل جلب المنتج - {error_msg}")
                     return {}
-            else:
-                print(f"❌ [get_product_by_qid] لم يتم العثور على findProductByQid في البيانات")
-                return {}
+            return {}
                 
         except Exception as e:
             print(f"❌ [get_product_by_qid] Exception: {e}")
