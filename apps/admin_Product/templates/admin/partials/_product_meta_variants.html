@@ -14,18 +14,17 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th>SKU</th>
+                        <th>المعرف</th>
                         <th>السعر</th>
                         <th>الكمية</th>
                         <th>الخيارات</th>
-                        <th>الحالة</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for variant in product.variants %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td><code>{{ variant.sku or '-' }}</code></td>
+                        <td><code>{{ variant.qid or '-' }}</code></td>
                         <td class="text-primary">{{ variant.pricing.price if variant.pricing and variant.pricing.price is not none else variant.price or 0 }} ر.س</td>
                         <td>
                             <span class="badge {{ 'bg-success' if variant.quantity|int > 0 else 'bg-danger' }}">
@@ -35,16 +34,11 @@
                         <td>
                             {% if variant.options %}
                                 {% for opt in variant.options %}
-                                <span class="badge bg-secondary me-1">{{ opt.name }}: {{ opt.value }}</span>
+                                <span class="badge bg-secondary me-1">{{ opt.option }}: {{ opt.label }}</span>
                                 {% endfor %}
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge {{ 'bg-success' if variant.isActive else 'bg-secondary' }}">
-                                {{ 'نشط' if variant.isActive else 'غير نشط' }}
-                            </span>
                         </td>
                     </tr>
                     {% endfor %}
@@ -116,7 +110,7 @@
     <div class="card-body">
         {% for collection in product.collections %}
         <span class="badge bg-warning text-dark me-1">
-            <i class="fas fa-folder me-1"></i> {{ collection.name }}
+            <i class="fas fa-folder me-1"></i> {{ collection.name or collection.qid }}
         </span>
         {% endfor %}
     </div>
