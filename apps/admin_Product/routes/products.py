@@ -21,42 +21,42 @@ def manage_products_view():
         search_query = request.args.get('title', '', type=str)
         ajax = request.args.get('ajax', 0, type=int)  # ✅ للتحقق من طلب AJAX
         
-        # ✅ جلب جميع المنتجات من GraphQL (مع معلومات الترقيم)
-        result = services.products.get_all_products() or {}
-        all_products = result.get('data', [])
+        # ✅ جلب صفحة محددة من المنتجات باستخدام الدالة الجديدة
+        result = services.products.get_products_page(page, per_page)
+        products = result.get('data', [])
         pagination_info = result.get('pagination', {})
         
-        # ✅ استخدام totalItems من GraphQL إذا كان متاحاً
-        total_products = pagination_info.get('totalItems', len(all_products))
+        # ✅ استخدام معلومات الترقيم من الدالة
+        total_products = pagination_info.get('totalItems', 0)
+        total_pages = pagination_info.get('totalPages', 1)
+        current_page = pagination_info.get('currentPage', page)
         
-        # ✅ طباعة للتحقق (يمكن إزالتها بعد التأكد)
-        print(f"🔍 [DEBUG] Total products from GraphQL: {total_products}")
-        print(f"🔍 [DEBUG] Products fetched in data: {len(all_products)}")
+        # ✅ طباعة للتحقق
+        print(f"🔍 [DEBUG] Page: {current_page}, Total: {total_products}, Pages: {total_pages}")
+        print(f"🔍 [DEBUG] Products in this page: {len(products)}")
         
         # ✅ تطبيق البحث (استخدم title بدلاً من name)
         if search_query:
-            all_products = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
-            total_products = len(all_products)
-        
-        # ✅ حساب الترقيم
-        total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
-        
-        # ✅ التأكد من أن الصفحة الحالية لا تتجاوز إجمالي الصفحات
-        if page > total_pages:
-            page = total_pages
-        
-        start = (page - 1) * per_page
-        end = start + per_page
-        products = all_products[start:end]
-        
-        # ✅ إذا كانت الصفحة فارغة، حاول جلب البيانات من GraphQL مرة أخرى
-        if not products and page == 1:
-            print("⚠️ [DEBUG] No products found, attempting to refetch...")
-            result = services.products.get_all_products() or {}
-            all_products = result.get('data', [])
-            pagination_info = result.get('pagination', {})
-            total_products = pagination_info.get('totalItems', len(all_products))
-            products = all_products[start:end]
+            # ✅ جلب جميع المنتجات للبحث (لأن البحث يحتاج إلى البيانات الكاملة)
+            all_result = services.products.get_all_products() or {}
+            all_products = all_result.get('data', [])
+            filtered = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
+            
+            # ✅ حساب الترقيم للبحث
+            total_products = len(filtered)
+            total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
+            if page > total_pages:
+                page = total_pages
+            start = (page - 1) * per_page
+            end = start + per_page
+            products = filtered[start:end]
+            pagination_info = {
+                'totalItems': total_products,
+                'totalPages': total_pages,
+                'currentPage': page,
+                'hasNextPage': page < total_pages,
+                'hasPrevPage': page > 1
+            }
         
         # ✅ ربط الموردين بالمنتجات
         for product in products:
@@ -71,13 +71,13 @@ def manage_products_view():
         
         # ✅ بناء بيانات الترقيم
         pagination_data = {
-            "currentPage": page,
-            "totalPages": total_pages,
+            "currentPage": pagination_info.get('currentPage', page),
+            "totalPages": pagination_info.get('totalPages', total_pages),
             "limit": len(products),
-            "totalItems": total_products,
+            "totalItems": pagination_info.get('totalItems', total_products),
             "perPage": per_page,
-            "hasPrev": page > 1,
-            "hasNext": page < total_pages
+            "hasPrev": pagination_info.get('hasPrevPage', page > 1),
+            "hasNext": pagination_info.get('hasNextPage', page < total_pages)
         }
         
         # ✅ إذا كان طلب AJAX، أعد الجدول فقط
