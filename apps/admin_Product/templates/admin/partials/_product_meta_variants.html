@@ -71,18 +71,18 @@
         <div class="row">
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">العنوان (SEO)</label>
-                <p class="form-control-plaintext">{{ product.seo.title or '-' }}</p>
+                <p class="form-control-plaintext">{{ product.seo.title if product.seo and product.seo.title else '-' }}</p>
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">الوصف (SEO)</label>
-                <p class="form-control-plaintext">{{ product.seo.description or '-' }}</p>
+                <p class="form-control-plaintext">{{ product.seo.description if product.seo and product.seo.description else '-' }}</p>
             </div>
         </div>
         
         <div class="row">
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">الكلمات المفتاحية</label>
-                <p class="form-control-plaintext">{{ product.seo.keywords or '-' }}</p>
+                <p class="form-control-plaintext">{{ product.seo.keywords if product.seo and product.seo.keywords else '-' }}</p>
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold" style="color: #2d0b36;">العلامات (Tags)</label>
