@@ -184,10 +184,6 @@ class ProductService:
                     collections {
                         title
                         handle
-                        description
-                        image {
-                            fileUrl
-                        }
                     }
                     variants {
                         _id
@@ -224,6 +220,7 @@ class ProductService:
         """
         try:
             data = self.client.execute(query, {"qid": qid})
+            print(f"🔍 [DEBUG] GraphQL Response for QID {qid}: {data}")  # ✅ للتحقق
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
                 if result.get("success"):
