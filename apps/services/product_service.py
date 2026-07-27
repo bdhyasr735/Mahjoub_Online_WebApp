@@ -36,6 +36,9 @@ class ProductService:
                         compareAtPrice
                     }
                     status
+                    images {
+                        fileUrl
+                    }
                 }
             }
         }
@@ -67,6 +70,9 @@ class ProductService:
                     }
                     status
                     description
+                    images {
+                        fileUrl
+                    }
                 }
             }
         }
