@@ -1,4 +1,3 @@
-apps/admin_Product/routes/crud.py
 # coding: utf-8
 # 📂 apps/admin_Product/routes/crud.py
 # إضافة - تعديل - حذف المنتجات
