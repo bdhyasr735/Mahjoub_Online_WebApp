@@ -26,7 +26,7 @@
     <div class="card mb-4 shadow-sm border-0">
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-8">
+                <div class="col-md-10">
                     <div class="position-relative">
                         <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
                         <input 
@@ -39,16 +39,32 @@
                             autofocus
                             style="border-color: #2d0b36;"
                         >
+                        <!-- ✅ زر مسح البحث (يظهر عند وجود نص) -->
+                        <button type="button" id="clearSearchBtn" class="btn btn-link position-absolute top-50 end-0 translate-middle-y me-2" 
+                                style="display: {{ 'block' if search_title else 'none' }}; color: #6c757d; text-decoration: none; padding: 0;"
+                                onclick="clearSearch()">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <button type="submit" class="btn w-100" id="searchBtn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
-                        <i class="fas fa-search"></i> بحث
+                        <i class="fas fa-search"></i>
                     </button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- ✅ زر الرجوع (يظهر عند وجود بحث) -->
+    {% if search_title %}
+    <div class="mb-3">
+        <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn btn-outline-secondary" style="border-color: #2d0b36; color: #2d0b36;">
+            <i class="fas fa-arrow-right"></i> العودة إلى جميع المنتجات
+        </a>
+        <span class="badge bg-secondary ms-2">نتائج البحث: "{{ search_title }}"</span>
+    </div>
+    {% endif %}
 
     <!-- رسائل الخطأ -->
     {% if error %}
@@ -73,16 +89,34 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ✅ بحث فوري عند الكتابة (تأخير 500ms)
     const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearSearchBtn');
     let searchTimeout = null;
 
+    // ✅ عرض/إخفاء زر مسح البحث
+    function toggleClearBtn() {
+        if (clearBtn) {
+            clearBtn.style.display = searchInput.value.length > 0 ? 'block' : 'none';
+        }
+    }
+
+    // ✅ مسح البحث
+    window.clearSearch = function() {
+        if (searchInput) {
+            searchInput.value = '';
+            toggleClearBtn();
+            performSearch('');
+        }
+    };
+
     if (searchInput) {
+        // ✅ بحث فوري عند الكتابة (تأخير 300ms)
         searchInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
+            toggleClearBtn();
             searchTimeout = setTimeout(() => {
                 performSearch(this.value);
-            }, 500);
+            }, 300);
         });
 
         // ✅ البحث عند الضغط على Enter
@@ -102,12 +136,50 @@ document.addEventListener('DOMContentLoaded', function() {
         if (input) performSearch(input.value);
     });
 
+    // ✅ دالة البحث المحسّنة (بدون إعادة تحميل الصفحة)
     function performSearch(query) {
         const currentUrl = new URL(window.location.href);
         currentUrl.searchParams.set('title', query);
         currentUrl.searchParams.set('page', '1');
-        window.location.href = currentUrl.toString();
+        
+        // ✅ تحديث الرابط بدون إعادة تحميل الصفحة (History API)
+        window.history.pushState({}, '', currentUrl.toString());
+        
+        // ✅ تحديث الجدول فقط
+        fetchProductsTable();
     }
+
+    // ✅ دالة لجلب الجدول فقط دون إعادة تحميل الصفحة
+    function fetchProductsTable() {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('ajax', '1');
+        const container = document.getElementById('productsTableContainer');
+        if (!container) return;
+        
+        // ✅ عرض حالة التحميل
+        container.innerHTML = '<div class="text-center py-4"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2">جاري تحديث البيانات...</p></div>';
+        
+        fetch(currentUrl.toString())
+            .then(response => response.text())
+            .then(html => {
+                container.innerHTML = html;
+                // ✅ إعادة تهيئة أحداث الحذف
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        // كود الحذف موجود مسبقاً في _table_products.html
+                    });
+                });
+                // ✅ تحديث زر مسح البحث
+                toggleClearBtn();
+            })
+            .catch(error => {
+                console.error('Error fetching table:', error);
+                container.innerHTML = '<div class="alert alert-danger">حدث خطأ في تحديث الجدول</div>';
+            });
+    }
+
+    // ✅ تحديث زر مسح البحث عند تحميل الصفحة
+    toggleClearBtn();
 });
 
 // ✅ دالة المزامنة المحسّنة
@@ -115,21 +187,17 @@ function syncProducts() {
     const button = document.getElementById('syncButton');
     const modal = document.getElementById('syncModal');
     
-    // تعطيل الزر وإظهار النافذة
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
     modal.style.display = 'block';
     
-    // تحديث التقدم
     if (typeof updateSyncProgress === 'function') {
         updateSyncProgress('جاري الاتصال بالخادم...', 25);
     }
     
-    // الحصول على CSRF Token
     const csrfInput = document.querySelector('input[name="csrf_token"]');
     const csrfToken = csrfInput ? csrfInput.value : '';
     
-    // إرسال طلب المزامنة
     fetch('/admin/products/sync', {
         method: 'POST',
         headers: {
@@ -157,10 +225,7 @@ function syncProducts() {
             } else {
                 showToast('success', '✅ ' + (data.message || 'تمت المزامنة بنجاح'));
             }
-            
-            // ✅ تحديث الجدول فقط بدلاً من إعادة تحميل الصفحة
             fetchProductsTable();
-            
             setTimeout(() => {
                 modal.style.display = 'none';
             }, 2000);
@@ -184,33 +249,6 @@ function syncProducts() {
         button.disabled = false;
         button.innerHTML = '<i class="fas fa-sync"></i> مزامنة الآن';
     });
-}
-
-// ✅ دالة لجلب الجدول فقط دون إعادة تحميل الصفحة
-function fetchProductsTable() {
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('ajax', '1');
-    const container = document.getElementById('productsTableContainer');
-    if (!container) return;
-    
-    // عرض حالة التحميل
-    container.innerHTML = '<div class="text-center py-4"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2">جاري تحديث البيانات...</p></div>';
-    
-    fetch(currentUrl.toString())
-        .then(response => response.text())
-        .then(html => {
-            container.innerHTML = html;
-            // إعادة تهيئة أحداث الحذف
-            document.querySelectorAll('.delete-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    // كود الحذف...
-                });
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching table:', error);
-            container.innerHTML = '<div class="alert alert-danger">حدث خطأ في تحديث الجدول</div>';
-        });
 }
 
 // ✅ دالة showToast المحسّنة
@@ -283,6 +321,15 @@ function showToast(type, message) {
 /* أيقونة البحث داخل الحقل */
 .position-relative .form-control {
     padding-left: 2.5rem;
+    padding-right: 2.5rem;
+}
+
+/* زر مسح البحث */
+#clearSearchBtn {
+    z-index: 10;
+}
+#clearSearchBtn:hover {
+    color: #dc3545 !important;
 }
 
 /* تحسين التجاوب */
@@ -342,6 +389,13 @@ function showToast(type, message) {
 .form-control:focus {
     border-color: #2d0b36 !important;
     box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.25) !important;
+}
+
+/* زر الرجوع */
+.btn-outline-secondary:hover {
+    background-color: #2d0b36 !important;
+    color: #D4AF37 !important;
+    border-color: #2d0b36 !important;
 }
 </style>
 {% endblock %}
