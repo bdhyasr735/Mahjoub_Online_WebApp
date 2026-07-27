@@ -81,7 +81,6 @@ def edit_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
     
-    # ✅ جلب المنتج من GraphQL
     product = services.products.get_product_by_qid(qid)
 
     if not product:
@@ -118,16 +117,28 @@ def save_sync_product():
         status = request.form.get('status', 'DRAFT')
         sku = request.form.get('sku', '')
         supplier_id = request.form.get('supplier_id')
+        quantity = request.form.get('quantity', 0)
         
         # ✅ معالجة SEO
         seo_title = request.form.get('seo_title', '')
         seo_description = request.form.get('seo_description', '')
         seo_keywords = request.form.get('seo_keywords', '')
         
+        # ✅ معالجة الأسعار الثلاثة
         try:
             price = float(request.form.get('price', 0))
         except ValueError:
             price = 0.0
+        
+        try:
+            compare_price = float(request.form.get('compare_price', 0)) if request.form.get('compare_price') else None
+        except ValueError:
+            compare_price = None
+        
+        try:
+            cost_price = float(request.form.get('cost_price', 0)) if request.form.get('cost_price') else None
+        except ValueError:
+            cost_price = None
 
         update_data = {
             'qid': qid,
@@ -135,6 +146,7 @@ def save_sync_product():
             'price': price,
             'status': status,
             'description': description,
+            'quantity': int(quantity) if quantity else 0,
             'seo': {
                 'title': seo_title,
                 'description': seo_description,
@@ -144,6 +156,12 @@ def save_sync_product():
         
         if sku:
             update_data['sku'] = sku
+        
+        if compare_price is not None:
+            update_data['compareAtPrice'] = compare_price
+        
+        if cost_price is not None:
+            update_data['costPerItem'] = cost_price
         
         result = services.products.update_product_data(update_data)
 
