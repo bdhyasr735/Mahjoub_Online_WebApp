@@ -4,15 +4,15 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <table class="table table-hover align-middle shadow-sm rounded">
-        <thead class="table-light">
+        <thead style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
             <tr>
-                <th scope="col">#</th>
-                <th scope="col">الصورة</th>
-                <th scope="col">اسم المنتج</th>
-                <th scope="col">السعر</th>
-                <th scope="col">الكمية</th>
-                <th scope="col">الحالة</th>
-                <th scope="col">الإجراءات</th>
+                <th scope="col" style="color: #D4AF37;">#</th>
+                <th scope="col" style="color: #D4AF37;">الصورة</th>
+                <th scope="col" style="color: #D4AF37;">اسم المنتج</th>
+                <th scope="col" style="color: #D4AF37;">السعر</th>
+                <th scope="col" style="color: #D4AF37;">الكمية</th>
+                <th scope="col" style="color: #D4AF37;">الحالة</th>
+                <th scope="col" style="color: #D4AF37;">الإجراءات</th>
             </tr>
         </thead>
         <tbody>
@@ -26,20 +26,20 @@
                 <td>
                     <img src="{{ p_img }}"
                          alt="{{ p_name }}"
-                         style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;"
+                         style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 2px solid #D4AF37;"
                          onerror="this.src='https://via.placeholder.com/60x60?text=No+Image'">
                 </td>
-                <td class="fw-bold text-truncate" style="max-width: 200px;">
+                <td class="fw-bold text-truncate" style="max-width: 200px; color: #2d0b36;">
                     {{ p_name }}
                     {% if product.description %}
                     <br><small class="text-muted">{{ product.description|striptags|truncate(40) }}</small>
                     {% endif %}
                 </td>
-                <td class="text-primary fw-bold">
+                <td class="fw-bold" style="color: #D4AF37;">
                     {{ "%.2f"|format(p_price|float) }} ر.س
                 </td>
                 <td>
-                    <span class="badge bg-secondary">
+                    <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
                         غير متوفر
                     </span>
                 </td>
@@ -67,10 +67,11 @@
                 <td>
                     <div class="btn-group btn-group-sm">
                         <a href="{{ safe_url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}"
-                           class="btn btn-outline-primary" title="تعديل المنتج">
+                           class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 4px; padding: 4px 10px;" 
+                           title="تعديل المنتج">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <button type="button" class="btn btn-outline-danger delete-btn" 
+                        <button type="button" class="btn" style="background: linear-gradient(135deg, #dc3545, #a71d2a); color: white; border: none; border-radius: 4px; padding: 4px 10px;" 
                                 data-delete-url="{{ safe_url_for('admin_product_bp.delete_product', qid=product.qid or product.id) }}" 
                                 title="حذف المنتج">
                             <i class="fas fa-trash"></i>
@@ -97,7 +98,8 @@
         <!-- السابق -->
         <li class="page-item {{ 'disabled' if not pagination.hasPrev }}">
             <a class="page-link"
-               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage-1, title=search_title) if pagination.hasPrev else '#' }}">
+               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage-1, title=search_title) if pagination.hasPrev else '#' }}"
+               style="color: #2d0b36;">
                 <i class="fas fa-chevron-right"></i> السابق
             </a>
         </li>
@@ -108,23 +110,23 @@
         
         {% if start_page > 1 %}
             <li class="page-item">
-                <a class="page-link" href="{{ safe_url_for('admin_product_bp.manage_products_view', page=1, title=search_title) }}">1</a>
+                <a class="page-link" href="{{ safe_url_for('admin_product_bp.manage_products_view', page=1, title=search_title) }}" style="color: #2d0b36;">1</a>
             </li>
             {% if start_page > 2 %}
-                <li class="page-item disabled"><span class="page-link">...</span></li>
+                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
             {% endif %}
         {% endif %}
         
         {% for p in range(start_page, end_page + 1) %}
             {% if p == pagination.currentPage %}
                 <li class="page-item active">
-                    <span class="page-link" style="background-color: var(--dark-purple); border-color: var(--dark-purple);">
+                    <span class="page-link" style="background: linear-gradient(135deg, #2d0b36, #1a0520); border-color: #2d0b36; color: #D4AF37;">
                         {{ p }}
                     </span>
                 </li>
             {% else %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ safe_url_for('admin_product_bp.manage_products_view', page=p, title=search_title) }}">
+                    <a class="page-link" href="{{ safe_url_for('admin_product_bp.manage_products_view', page=p, title=search_title) }}" style="color: #2d0b36;">
                         {{ p }}
                     </a>
                 </li>
@@ -133,10 +135,10 @@
         
         {% if end_page < pagination.totalPages %}
             {% if end_page < pagination.totalPages - 1 %}
-                <li class="page-item disabled"><span class="page-link">...</span></li>
+                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
             {% endif %}
             <li class="page-item">
-                <a class="page-link" href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.totalPages, title=search_title) }}">
+                <a class="page-link" href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.totalPages, title=search_title) }}" style="color: #2d0b36;">
                     {{ pagination.totalPages }}
                 </a>
             </li>
@@ -145,7 +147,8 @@
         <!-- التالي -->
         <li class="page-item {{ 'disabled' if not pagination.hasNext }}">
             <a class="page-link"
-               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage+1, title=search_title) if pagination.hasNext else '#' }}">
+               href="{{ safe_url_for('admin_product_bp.manage_products_view', page=pagination.currentPage+1, title=search_title) if pagination.hasNext else '#' }}"
+               style="color: #2d0b36;">
                 التالي <i class="fas fa-chevron-left"></i>
             </a>
         </li>
@@ -227,14 +230,13 @@ function showToast(type, message) {
 <style>
     .table th {
         font-weight: 600;
-        color: #495057;
-        border-bottom: 2px solid #dee2e6;
+        border-bottom: 2px solid #D4AF37;
     }
     .table td {
         vertical-align: middle;
     }
     .table-hover tbody tr:hover {
-        background-color: rgba(45, 11, 54, 0.02);
+        background-color: rgba(45, 11, 54, 0.05) !important;
     }
     .btn-group .btn {
         padding: 4px 8px;
@@ -242,10 +244,22 @@ function showToast(type, message) {
     }
     .pagination .page-link {
         color: #2d0b36;
+        border-color: #dee2e6;
+    }
+    .pagination .page-link:hover {
+        background-color: rgba(45, 11, 54, 0.05);
+        color: #2d0b36;
     }
     .pagination .page-item.active .page-link {
-        background-color: #2d0b36;
-        border-color: #2d0b36;
-        color: #D4AF37;
+        background: linear-gradient(135deg, #2d0b36, #1a0520) !important;
+        border-color: #2d0b36 !important;
+        color: #D4AF37 !important;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+    }
+    .badge {
+        font-weight: 500;
+        padding: 5px 12px;
     }
 </style>
