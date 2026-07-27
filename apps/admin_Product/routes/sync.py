@@ -51,8 +51,9 @@ def sync_products():
             return redirect(url_for('admin_dashboard_bp.dashboard'))
     
     try:
-        # جلب المنتجات من GraphQL
-        external_products = services.products.get_all_products()
+        # ✅ جلب المنتجات من GraphQL (النتيجة الآن dict)
+        result = services.products.get_all_products() or {}
+        external_products = result.get('data', [])
         
         if not external_products:
             return jsonify({
