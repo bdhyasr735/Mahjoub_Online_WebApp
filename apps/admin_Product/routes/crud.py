@@ -77,11 +77,18 @@ def edit_product():
     
     qid = request.args.get('qid')
     
+    # ✅ للتحقق من الـ QID
+    print(f"🔍 [DEBUG] QID received: {qid}")
+    
     if not qid:
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
     
+    # ✅ جلب المنتج من GraphQL
     product = services.products.get_product_by_qid(qid)
+    
+    # ✅ للتحقق من النتيجة
+    print(f"🔍 [DEBUG] Product found: {product is not None and 'qid' in product}")
 
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
