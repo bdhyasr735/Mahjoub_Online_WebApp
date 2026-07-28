@@ -45,65 +45,11 @@ class ProductService:
         return '\n'.join(result)
 
     def get_all_products(self, input_data: dict = None) -> dict:
-        """جلب جميع المنتجات مع معلومات الترقيم والأسعار والـ slug"""
-        query = """
-        {
-            findAllProducts {
-                success
-                message
-                data {
-                    qid
-                    title
-                    slug
-                    description
-                    sku
-                    status
-                    pricing {
-                        price
-                        compareAtPrice
-                        originalPrice
-                        discount {
-                            discountValue
-                            discountType
-                        }
-                    }
-                    images {
-                        fileUrl
-                    }
-                    quantity
-                    variants {
-                        qid
-                        pricing {
-                            price
-                            compareAtPrice
-                            originalPrice
-                        }
-                    }
-                    createdAt
-                    updatedAt
-                }
-                pagination {
-                    totalItems
-                    totalPages
-                    currentPage
-                    limit
-                    hasNextPage
-                }
-            }
-        }
-        """
-        
-        try:
-            data = self.client.execute(query)
-            if data and "findAllProducts" in data:
-                return data["findAllProducts"]
-            return {}
-        except Exception as e:
-            print(f"❌ [ProductService]: {e}")
-            return {}
+        """جلب جميع المنتجات مع معلومات الترقيم والأسعار والـ slug (باستخدام الصفحة الأولى افتراضياً)"""
+        return self.get_products_page(page=1)
 
     def get_products_page(self, page: int = 1) -> dict:
-        """جلب صفحة محددة من المنتجات مع الأسعار والـ slug"""
+        """جلب صفحة محددة من المنتجات مع الأسعار والـ slug وتمرير المتغيرات بشكل آمن"""
         query = """
         query($page: Int!) {
             findAllProducts(input: { page: $page }) {
@@ -114,7 +60,6 @@ class ProductService:
                     title
                     slug
                     description
-                    sku
                     status
                     pricing {
                         price
@@ -137,8 +82,6 @@ class ProductService:
                             originalPrice
                         }
                     }
-                    createdAt
-                    updatedAt
                 }
                 pagination {
                     totalItems
@@ -151,7 +94,8 @@ class ProductService:
         }
         """
         try:
-            variables = {"page": page}
+            safe_page = int(page) if page and str(page).isdigit() else 1
+            variables = {"page": safe_page}
             data = self.client.execute(query, variables)
             if data and "findAllProducts" in data:
                 return data["findAllProducts"]
