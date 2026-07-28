@@ -98,11 +98,20 @@ def edit_product():
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     assigned_supplier_id = mapping.supplier_id if mapping else None
 
+    # ✅ جلب جميع المجموعات للقائمة المنسدلة
+    try:
+        all_collections = services.collections.get_all_collections() if hasattr(services, 'collections') else []
+        print(f"🔍 [DEBUG] Collections loaded: {len(all_collections)}")
+    except Exception as e:
+        print(f"❌ [DEBUG] Error loading collections: {e}")
+        all_collections = []
+
     return render_template(
         'admin/admin_edit_product.html',
         product=product,
         suppliers=suppliers,
-        assigned_supplier_id=assigned_supplier_id
+        assigned_supplier_id=assigned_supplier_id,
+        all_collections=all_collections  # ✅ تم إضافة المجموعات
     )
 
 
@@ -144,6 +153,10 @@ def save_sync_product():
         
         # ✅ تم إزالة cost_price لأن costPerItem غير مدعوم في GraphQL API
 
+        # ✅ معالجة معرفات المجموعات
+        collection_ids = request.form.getlist('collection_ids')
+        print(f"🔍 [DEBUG] Collection IDs received: {collection_ids}")
+
         update_data = {
             'qid': qid,
             'name': title,
@@ -163,6 +176,10 @@ def save_sync_product():
         
         if compare_price is not None:
             update_data['compareAtPrice'] = compare_price
+        
+        # ✅ إضافة المجموعات إلى بيانات التحديث إذا كانت موجودة
+        if collection_ids:
+            update_data['collectionIds'] = collection_ids
         
         result = services.products.update_product_data(update_data)
 
