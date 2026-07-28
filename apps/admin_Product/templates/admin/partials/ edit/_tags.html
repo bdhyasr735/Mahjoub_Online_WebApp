@@ -1,1 +1,23 @@
-
+<!-- ================= العلامات (Tags) ================= -->
+<div class="form-section">
+    <div class="form-section-title">
+        <i class="fas fa-tags"></i> العلامات (Tags)
+    </div>
+    <div class="form-group mb-0">
+        <div class="d-flex flex-wrap gap-1 mb-2" id="tagsContainer">
+            {% if product.tags and product.tags|length > 0 %}
+                {% for tag in product.tags %}
+                <span class="tag-item">
+                    <span class="remove-tag" onclick="this.parentElement.remove();">✕</span> {{ tag }}
+                </span>
+                {% endfor %}
+            {% else %}
+                <span class="text-muted">لا توجد علامات حالياً</span>
+            {% endif %}
+        </div>
+        <div class="input-group">
+            <input type="text" id="tagInput" placeholder="أدخل علامة جديدة واضغط Enter...">
+            <button type="button" class="btn-action" onclick="addTag()">إضافة علامة</button>
+        </div>
+    </div>
+</div>
