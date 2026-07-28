@@ -1,138 +1,305 @@
-# coding: utf-8
-# 📂 apps/admin_Product/routes/sync.py
-# مزامنة المنتجات
+<!-- 📂 apps/admin_Product/templates/admin/includes/_table_products.html -->
+<div class="table-responsive">
+    <!-- حقل مخفي لضمان نجاح طلبات الحذف عبر الـ AJAX -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-import functools
-import traceback
-from flask import request, jsonify, redirect, url_for, flash, session
-from flask_login import login_required
-from apps.admin_Product.routes import admin_product_bp
-from apps.services import services
-from apps.models.product_supplier_map import ProductSupplierMapping
-from app import db
+    <!-- ✅ رسالة نتائج البحث -->
+    {% if search_title %}
+    <div class="alert alert-info alert-dismissible fade show mb-3" style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-right: 4px solid #D4AF37; border-radius: 10px;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-search text-muted me-2"></i>
+                <strong>نتائج البحث:</strong> "{{ search_title }}"
+                <span class="badge ms-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                    {{ products|length }} منتج
+                </span>
+            </div>
+            <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 4px 16px;">
+                <i class="fas fa-arrow-right me-1"></i> عرض الكل
+            </a>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
 
+    <table class="table table-hover align-middle shadow-sm rounded">
+        <thead style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
+            <tr>
+                <th scope="col" style="color: #D4AF37;">#</th>
+                <th scope="col" style="color: #D4AF37;">الصورة</th>
+                <th scope="col" style="color: #D4AF37;">اسم المنتج</th>
+                <th scope="col" style="color: #D4AF37;">السعر</th>
+                <th scope="col" style="color: #D4AF37;">الكمية</th>
+                <th scope="col" style="color: #D4AF37;">الحالة</th>
+                <th scope="col" style="color: #D4AF37;">الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            {% set p_name = product.title or product.name or 'منتج بدون اسم' %}
+            {% set p_img = (product.images[0].fileUrl if product.images and product.images|length > 0 else none) or 'https://via.placeholder.com/60x60?text=No+Image' %}
+            {% set p_price = product.price if product.price is defined and product.price is not none else (product.pricing.price if product.pricing and product.pricing.price else 0) %}
+            
+            <tr id="product-row-{{ product.qid or product.id }}">
+                <td>{{ loop.index + ((pagination.currentPage - 1) * pagination.perPage) if pagination else loop.index }}</td>
+                <td>
+                    <img src="{{ p_img }}"
+                         alt="{{ p_name }}"
+                         style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 2px solid #D4AF37;"
+                         onerror="this.src='https://via.placeholder.com/60x60?text=No+Image'">
+                </td>
+                <td class="fw-bold text-truncate" style="max-width: 200px; color: #2d0b36;">
+                    {{ p_name }}
+                    {% if product.description %}
+                    <br><small class="text-muted">{{ product.description|striptags|truncate(40) }}</small>
+                    {% endif %}
+                </td>
+                <td class="fw-bold" style="color: #D4AF37;">
+                    {{ "%.2f"|format(p_price|float) }} ر.س
+                </td>
+                <td>
+                    {% if product.quantity is defined and product.quantity is not none %}
+                        <span class="badge {{ 'bg-success' if product.quantity > 0 else 'bg-secondary' }}" 
+                              style="background: {{ 'linear-gradient(135deg, #28a745, #1e7e34)' if product.quantity > 0 else 'linear-gradient(135deg, #6c757d, #495057)' }}; color: white;">
+                            {{ product.quantity }}
+                        </span>
+                    {% else %}
+                        <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                            غير متوفر
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% set status = product.status|upper if product.status else 'DRAFT' %}
+                    <span class="badge 
+                        {% if status == 'PUBLISHED' %}bg-success
+                        {% elif status == 'DRAFT' %}bg-warning text-dark
+                        {% elif status == 'REJECTED' %}bg-danger
+                        {% elif status == 'ARCHIVED' %}bg-secondary
+                        {% else %}bg-light text-dark{% endif %}">
+                        {% if status == 'PUBLISHED' %}
+                            <i class="fas fa-check-circle me-1"></i> منشور
+                        {% elif status == 'DRAFT' %}
+                            <i class="fas fa-clock me-1"></i> قيد المراجعة
+                        {% elif status == 'REJECTED' %}
+                            <i class="fas fa-times-circle me-1"></i> مرفوض
+                        {% elif status == 'ARCHIVED' %}
+                            <i class="fas fa-archive me-1"></i> مؤرشف
+                        {% else %}
+                            {{ status }}
+                        {% endif %}
+                    </span>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <!-- ✅ تم التعديل هنا: استبدال safe_url_for بـ url_for -->
+                        <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}"
+                           class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 4px; padding: 4px 10px;" 
+                           title="تعديل المنتج">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <!-- ✅ تم التعديل هنا: استبدال safe_url_for بـ url_for -->
+                        <button type="button" class="btn" style="background: linear-gradient(135deg, #dc3545, #a71d2a); color: white; border: none; border-radius: 4px; padding: 4px 10px;" 
+                                data-delete-url="{{ url_for('admin_product_bp.delete_product', qid=product.qid or product.id) }}" 
+                                title="حذف المنتج">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <i class="fas fa-box-open fa-3x mb-3 d-block" style="color: #D4AF37;"></i>
+                    <h5 style="color: #2d0b36;">لا توجد منتجات</h5>
+                    <p class="text-muted">
+                        {% if search_title %}
+                        لا توجد نتائج مطابقة للبحث "{{ search_title }}"
+                        {% else %}
+                        لم يتم إضافة أي منتجات بعد
+                        {% endif %}
+                    </p>
+                    {% if search_title %}
+                    <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 6px 20px;">
+                        <i class="fas fa-arrow-right me-1"></i> عرض جميع المنتجات
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
-def analyze_render_error(route_func):
-    """مزيّن لتحليل أخطاء سيرفر Render"""
-    @functools.wraps(route_func)
-    def wrapper(*args, **kwargs):
-        try:
-            return route_func(*args, **kwargs)
-        except Exception as e:
-            error_type = type(e).__name__
-            error_message = str(e)
-            tb_details = traceback.format_exc()
-            
-            print(f"\n================ 🚨 RENDER ERROR TRACEBACK ================")
-            print(f"📍 المسار أو الدالة: {route_func.__name__}")
-            print(f"🔴 نوع الخطأ: {error_type}")
-            print(f"💬 التفاصيل: {error_message}")
-            print(f"🛠️ التتبع البرمجي:\n{tb_details}")
-            print(f"===========================================================\n")
-            
-            if request.method == 'POST' or request.is_json:
-                return jsonify({
-                    "success": False,
-                    "error_type": error_type,
-                    "message": f"❌ خطأ في Render [{error_type}]: {error_message}"
-                }), 500
-            else:
-                flash(f'❌ حدث خطأ أثناء المزامنة: {error_message}', 'danger')
-                return redirect(url_for('admin_product_bp.manage_products_view'))
-    return wrapper
+<!-- ✅ الترقيم المحسّن -->
+{% if pagination and pagination.totalPages > 1 %}
+<nav class="mt-4" aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <!-- السابق -->
+        <li class="page-item {{ 'disabled' if not pagination.hasPrev }}">
+            <a class="page-link"
+               href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.currentPage-1, title=search_title) if pagination.hasPrev else '#' }}"
+               style="color: #2d0b36;">
+                <i class="fas fa-chevron-right"></i> السابق
+            </a>
+        </li>
+        
+        <!-- أرقام الصفحات -->
+        {% set start_page = [1, pagination.currentPage - 2]|max %}
+        {% set end_page = [pagination.totalPages, pagination.currentPage + 2]|min %}
+        
+        {% if start_page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=1, title=search_title) }}" style="color: #2d0b36;">1</a>
+            </li>
+            {% if start_page > 2 %}
+                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
+            {% endif %}
+        {% endif %}
+        
+        {% for p in range(start_page, end_page + 1) %}
+            {% if p == pagination.currentPage %}
+                <li class="page-item active">
+                    <span class="page-link" style="background: linear-gradient(135deg, #2d0b36, #1a0520); border-color: #2d0b36; color: #D4AF37;">
+                        {{ p }}
+                    </span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=p, title=search_title) }}" style="color: #2d0b36;">
+                        {{ p }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if end_page < pagination.totalPages %}
+            {% if end_page < pagination.totalPages - 1 %}
+                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
+            {% endif %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.totalPages, title=search_title) }}" style="color: #2d0b36;">
+                    {{ pagination.totalPages }}
+                </a>
+            </li>
+        {% endif %}
+        
+        <!-- التالي -->
+        <li class="page-item {{ 'disabled' if not pagination.hasNext }}">
+            <a class="page-link"
+               href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.currentPage+1, title=search_title) if pagination.hasNext else '#' }}"
+               style="color: #2d0b36;">
+                التالي <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
 
+<!-- عرض معلومات إضافية عن الترقيم -->
+<div class="text-center text-muted mt-2 small">
+    عرض {{ products|length }} من {{ pagination.totalItems }} منتج
+    (صفحة {{ pagination.currentPage }} من {{ pagination.totalPages }})
+</div>
+{% endif %}
 
-@admin_product_bp.route('/products/sync', methods=['GET', 'POST'])
-@login_required
-@analyze_render_error
-def sync_products():
-    """مزامنة المنتجات مع رصد الأخطاء وإرجاع الإحصائيات التفصيلية"""
-    user_type = session.get('user_type')
-    if user_type != 'admin':
-        if request.method == 'POST' or request.is_json:
-            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
-        else:
-            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
-            return redirect(url_for('admin_dashboard_bp.dashboard'))
-    
-    try:
-        # ✅ جلب المنتجات من GraphQL
-        result = services.products.get_all_products() or {}
-        external_products = result.get('data', [])
-        
-        if not external_products:
-            if request.method == 'GET':
-                flash('ℹ️ لا توجد منتجات للمزامنة عبر الاتصال السحابي', 'info')
-                return redirect(url_for('admin_product_bp.manage_products_view'))
-            return jsonify({
-                'success': True,
-                'message': 'ℹ️ لا توجد منتجات للمزامنة عبر الاتصال السحابي',
-                'syncedCount': 0,
-                'createdCount': 0,
-                'updatedCount': 0,
-                'errors': []
-            })
-        
-        synced_count = len(external_products)
-        created_count = 0
-        updated_count = 0
-        errors = []
-        
-        for product in external_products:
-            try:
-                qid = product.get('qid')
-                if not qid:
-                    continue
-                
-                mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-                if not mapping:
-                    # ✅ إنشاء وحفظ السجل الجديد في القاعدة فعلياً
-                    new_mapping = ProductSupplierMapping(product_qid=qid)
-                    db.session.add(new_mapping)
-                    created_count += 1
-                else:
-                    updated_count += 1
-                    
-            except Exception as ex:
-                errors.append({
-                    'qid': product.get('qid', 'unknown'),
-                    'error': str(ex)
-                })
-        
-        # ✅ حفظ التغييرات نهائياً في قاعدة البيانات
-        try:
-            db.session.commit()
-        except Exception as commit_err:
-            db.session.rollback()
-            print(f"❌ [Sync]: خطأ في حفظ السجلات: {commit_err}")
-        
-        # ✅ مسح Cache البحث بعد المزامنة
-        try:
-            services.products.clear_search_cache()
-        except Exception as cache_error:
-            print(f"⚠️ [Sync]: خطأ في مسح Cache: {cache_error}")
-        
-        if request.method == 'GET':
-            flash(f'✅ تمت المزامنة: {synced_count} منتج (جديد: {created_count}, محدث: {updated_count})', 'success')
-            return redirect(url_for('admin_product_bp.manage_products_view'))
-        
-        return jsonify({
-            'success': True,
-            'message': '✅ تمت مزامنة البيانات بنجاح.',
-            'syncedCount': synced_count,
-            'createdCount': created_count,
-            'updatedCount': updated_count,
-            'errors': errors
-        })
-        
-    except Exception as e:
-        print(f"❌ خطأ في sync_products: {e}")
-        if request.method == 'POST' or request.is_json:
-            return jsonify({
-                'success': False, 
-                'message': f'❌ فشل المزامنة: {str(e)}',
-                'errors': [{'error': str(e)}]
-            }), 500
-        else:
-            flash(f'❌ فشل المزامنة: {str(e)}', 'danger')
-            return redirect(url_for('admin_product_bp.manage_products_view'))
+<!-- ✅ JavaScript للحذف الديناميكي -->
+<script>
+document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const deleteUrl = this.getAttribute('data-delete-url');
+        if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء!')) return;
+        
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        
+        const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+
+        fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('success', '✅ ' + (data.message || 'تم حذف المنتج بنجاح'));
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast('error', '❌ ' + (data.message || 'فشل الحذف'));
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash"></i>';
+            }
+        })
+        .catch(err => {
+            showToast('error', '❌ حدث خطأ في الاتصال: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i>';
+        });
+    });
+});
+
+function showToast(type, message) {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#0d6efd'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show border-0 shadow-lg" role="alert" 
+             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <span>${message}</span>
+                <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
+</script>
+
+<style>
+    .table th {
+        font-weight: 600;
+        border-bottom: 2px solid #D4AF37;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(45, 11, 54, 0.05) !important;
+    }
+    .btn-group .btn {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
+    .pagination .page-link {
+        color: #2d0b36;
+        border-color: #dee2e6;
+    }
+    .pagination .page-link:hover {
+        background-color: rgba(45, 11, 54, 0.05);
+        color: #2d0b36;
+    }
+    .pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #2d0b36, #1a0520) !important;
+        border-color: #2d0b36 !important;
+        color: #D4AF37 !important;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+    }
+    .badge {
+        font-weight: 500;
+        padding: 5px 12px;
+    }
+</style>
