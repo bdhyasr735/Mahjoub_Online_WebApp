@@ -1,11 +1,239 @@
-
 <!-- ================= وصف المنتج ================= -->
 <div class="form-section">
     <div class="form-section-title">
         <i class="fas fa-align-left"></i> الوصف التفصيلي
+        <span class="badge ms-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; font-size: 0.7rem;">
+            <i class="fas fa-edit"></i> محرر متقدم
+        </span>
     </div>
+    
     <div class="form-group mb-0">
         <label>وصف المنتج:</label>
-        <textarea id="productDescription" name="description" rows="12">{{ product.description or '' }}</textarea>
+        
+        <!-- ✅ TinyMCE Editor مع شريط أدوات كامل -->
+        <textarea id="productDescription" name="description" rows="15">
+            {{ product.description or '' }}
+        </textarea>
+        
+        <div class="mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                يمكنك تنسيق النص، إضافة روابط، صور، جداول، وتغيير الألوان
+            </small>
+            <small class="text-muted">
+                <i class="fas fa-arrows-alt me-1"></i>
+                يمكنك توسيع المحرر بالضغط على أيقونة <strong>Fullscreen</strong>
+            </small>
+        </div>
     </div>
 </div>
+
+<style>
+/* ✅ تحسينات إضافية للمحرر */
+.tox-tinymce {
+    border-radius: 8px !important;
+    border: 2px solid var(--border-color) !important;
+    transition: all 0.3s ease;
+}
+
+.tox-tinymce:focus-within {
+    border-color: var(--gold-color) !important;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
+}
+
+.tox .tox-toolbar__group {
+    padding: 0 4px !important;
+}
+
+.tox .tox-tbtn {
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
+}
+
+.tox .tox-tbtn:hover {
+    background: rgba(212, 175, 55, 0.1) !important;
+}
+
+.tox .tox-tbtn--active {
+    background: rgba(212, 175, 55, 0.2) !important;
+}
+
+.tox .tox-tbtn svg {
+    fill: #2d0b36 !important;
+}
+
+.tox .tox-toolbar__overflow-button {
+    border-radius: 4px !important;
+}
+
+/* ✅ تنسيق المحتوى داخل المحرر */
+.tox .tox-edit-area iframe {
+    background: #ffffff !important;
+}
+
+/* ✅ أزرار اللغة العربية */
+.tox .tox-tbtn .tox-tbtn__select-label {
+    font-family: "Cairo", system-ui, sans-serif !important;
+}
+
+/* ✅ تحسين القوائم المنسدلة */
+.tox .tox-menu {
+    border-radius: 8px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+.tox .tox-collection__item {
+    padding: 6px 12px !important;
+    border-radius: 4px !important;
+}
+
+.tox .tox-collection__item:hover {
+    background: rgba(212, 175, 55, 0.1) !important;
+}
+
+/* ✅ تحسين شريط الأدوات في الجوال */
+@media (max-width: 768px) {
+    .tox .tox-toolbar__primary {
+        flex-wrap: wrap !important;
+        gap: 2px !important;
+    }
+    
+    .tox .tox-toolbar__group {
+        flex-wrap: wrap !important;
+    }
+    
+    .tox .tox-tbtn {
+        width: 32px !important;
+        height: 32px !important;
+    }
+}
+</style>
+
+<script>
+// ✅ تهيئة TinyMCE مع شريط أدوات كامل بالعربية
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof tinymce !== 'undefined') {
+        tinymce.init({
+            selector: '#productDescription',
+            height: 450,
+            menubar: true,
+            
+            // ✅ شريط الأدوات الرئيسي (بالعربية)
+            toolbar: [
+                'undo redo | blocks | fontsize | fontfamily',
+                'bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify',
+                'bullist numlist | outdent indent | link image media | table | code',
+                'removeformat | fullscreen | help'
+            ],
+            
+            // ✅ القوائم الرئيسية (بالعربية)
+            menu: {
+                file: { title: 'ملف', items: 'newdocument | print | preview' },
+                edit: { title: 'تحرير', items: 'undo redo | cut copy paste | selectall | searchreplace' },
+                insert: { title: 'إدراج', items: 'link image media | table | hr | charmap | anchor' },
+                view: { title: 'عرض', items: 'visualaid | fullscreen | code' },
+                format: { title: 'تنسيق', items: 'bold italic underline strikethrough | formats | removeformat' },
+                table: { title: 'جدول', items: 'inserttable | cell row column | tableprops deletetable' },
+                tools: { title: 'أدوات', items: 'spellchecker | code' }
+            },
+            
+            // ✅ إعدادات اللغة
+            language: 'ar',
+            directionality: 'rtl',
+            
+            // ✅ أنواع الخطوط المتاحة
+            font_family_formats: [
+                'Cairo=ج', 
+                'Arial=Arial', 
+                'Helvetica=Helvetica', 
+                'Times New Roman=Times New Roman', 
+                'Courier New=Courier New', 
+                'Georgia=Georgia', 
+                'Tahoma=Tahoma',
+                'Verdana=Verdana'
+            ].join(';'),
+            
+            // ✅ أحجام الخطوط المتاحة
+            font_size_formats: '8pt 10pt 12pt 14pt 18pt 24pt 36pt 48pt 72pt',
+            
+            // ✅ الألوان المخصصة
+            color_map: [
+                '#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', '#efefef', '#f3f3f3', '#ffffff',
+                '#980000', '#ff0000', '#ff9900', '#ffff00', '#00ff00', '#00ffff', '#4a86e8', '#0000ff', '#9900ff', '#ff00ff',
+                '#e6b8af', '#f4cccc', '#fce5cd', '#fff2cc', '#d9ead3', '#d0e0e3', '#c9daf8', '#cfe2f3', '#d9d2e9', '#ead1dc',
+                '#dd7e6b', '#ea9999', '#f9cb9c', '#ffe599', '#b6d7a8', '#a2c4c9', '#8ea5db', '#9fc5e8', '#b4a7d6', '#d5a6bd',
+                '#cc4125', '#e06666', '#f6b26b', '#ffd966', '#93c47d', '#76a5af', '#6d9eeb', '#6fa8dc', '#8e7cc3', '#c27ba0',
+                '#a61c00', '#cc0000', '#e69138', '#f1c232', '#6aa84f', '#45818e', '#3c78d8', '#3d85c6', '#674ea7', '#a64d79',
+                '#85200c', '#990000', '#b45f06', '#bf9000', '#38761d', '#134f5c', '#1155cc', '#0b5394', '#351c75', '#741b47'
+            ],
+            
+            // ✅ الإضافات (Plugins)
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'media',
+                'charmap', 'preview', 'anchor', 'searchreplace', 'visualblocks',
+                'code', 'fullscreen', 'insertdatetime', 'table', 'help', 'wordcount'
+            ],
+            
+            // ✅ محتوى النمط داخل المحرر
+            content_style: `
+                body { 
+                    font-family: "Cairo", system-ui, -apple-system, sans-serif; 
+                    font-size: 16px; 
+                    line-height: 1.8; 
+                    padding: 20px; 
+                    background: #ffffff;
+                    color: #1e293b;
+                }
+                h1 { font-size: 2rem; color: #2d0b36; }
+                h2 { font-size: 1.75rem; color: #2d0b36; }
+                h3 { font-size: 1.5rem; color: #2d0b36; }
+                h4 { font-size: 1.25rem; color: #2d0b36; }
+                p { margin-bottom: 1rem; }
+                ul, ol { padding-right: 1.5rem; margin-bottom: 1rem; }
+                a { color: #D4AF37; text-decoration: underline; }
+                a:hover { color: #b8962e; }
+                table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
+                th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: right; }
+                th { background: #f1f5f9; font-weight: 600; }
+                blockquote { 
+                    border-right: 4px solid #D4AF37; 
+                    padding: 12px 20px; 
+                    margin: 1rem 0; 
+                    background: #f8fafc;
+                    border-radius: 4px;
+                }
+                img { max-width: 100%; height: auto; border-radius: 8px; }
+                .text-gold { color: #D4AF37; }
+                .highlight { background: #fef3c7; padding: 2px 4px; border-radius: 4px; }
+            `,
+            
+            // ✅ معالج رفع الصور
+            images_upload_handler: function(blobInfo, progress) {
+                return new Promise(function(resolve, reject) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        resolve(e.target.result);
+                    };
+                    reader.onerror = function(e) {
+                        reject('❌ فشل رفع الصورة');
+                    };
+                    reader.readAsDataURL(blobInfo.blob());
+                });
+            },
+            
+            // ✅ عند تغيير المحتوى
+            setup: function(editor) {
+                editor.on('init', function() {
+                    console.log('✅ TinyMCE initialized successfully');
+                });
+                
+                editor.on('change', function() {
+                    // تحديث الحقل المخفي إذا لزم الأمر
+                    const content = editor.getContent();
+                    document.querySelector('textarea[name="description"]').value = content;
+                });
+            }
+        });
+    }
+});
+</script>
