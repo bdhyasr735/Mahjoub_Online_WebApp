@@ -239,6 +239,8 @@ class ProductService:
                 
         except Exception as e:
             print(f"❌ [get_product_by_qid] Exception: {e}")
+            import traceback
+            traceback.print_exc()
             return {}
 
     def create_product_data(self, input_data: dict) -> dict:
