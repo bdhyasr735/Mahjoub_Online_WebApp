@@ -1,33 +1,154 @@
 <!-- apps/admin_Product/templates/admin/partials/edit/_variants.html -->
-<!-- ================= خيارات ومتغيرات المنتج ================= -->
-<div class="form-section">
-    <div class="form-section-title">
-        <i class="fas fa-layer-group"></i> خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)
+
+<!-- ============================================================
+   🔀 خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)
+   ============================================================ -->
+<div class="form-section variants-card shadow-sm">
+    <div class="form-section-title d-flex align-items-center justify-content-between">
+        <div>
+            <i class="fas fa-layer-group text-gold me-2"></i> 
+            <span>خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)</span>
+        </div>
+        <span class="badge badge-gold-soft">
+            <i class="fas fa-sliders-h me-1"></i> المتغيرات
+        </span>
     </div>
     
-    <div class="form-group">
-        <label>خيارات ومتغيرات المنتج:</label>
-        <div id="optionsContainer">
-            <div class="option-row">
-                <div class="option-header">
-                    <input type="text" class="opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()">
-                    <button class="btn-action btn-danger" type="button" onclick="removeOptionRow(this)">حذف الخيار</button>
+    <div class="form-group mb-4">
+        <label class="form-label fw-bold text-dark-purple mb-2">إدارة خيارات المنتج:</label>
+        <div id="optionsContainer" class="d-flex flex-column gap-3">
+            <div class="option-row p-3 rounded-3 bg-white">
+                <div class="option-header d-flex gap-2 mb-2">
+                    <input type="text" class="form-control custom-input opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()">
+                    <button class="btn btn-outline-danger btn-sm px-3" type="button" onclick="removeOptionRow(this)" title="حذف الخيار">
+                        <i class="fas fa-trash-alt"></i> حذف
+                    </button>
                 </div>
-                <label style="font-size: 0.85rem; color: #64748b; margin-bottom: 4px;">القيم المتعددة:</label>
-                <div class="values-container"></div>
-                <div class="add-value-group">
-                    <input type="text" class="val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
-                    <button class="btn-action" type="button" onclick="addValueToRow(this)">+ إضافة قيمة</button>
+                <label class="form-label text-muted" style="font-size: 0.85rem; margin-bottom: 6px;">القيم المتعددة:</label>
+                <div class="values-container d-flex flex-wrap gap-2 mb-2"></div>
+                <div class="add-value-group input-group input-group-sm">
+                    <input type="text" class="form-control custom-input val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
+                    <button class="btn btn-gold-gradient" type="button" onclick="addValueToRow(this)">
+                        <i class="fas fa-plus me-1"></i> إضافة قيمة
+                    </button>
                 </div>
             </div>
         </div>
-        <button class="btn-action btn-full" type="button" onclick="addOptionRow()">+ إضافة خيار جديد</button>
+        <button class="btn btn-outline-purple w-100 mt-3 py-2 fw-bold" type="button" onclick="addOptionRow()">
+            <i class="fas fa-plus-circle me-1"></i> إضافة خيار جديد
+        </button>
     </div>
 
     <div class="form-group mb-0">
-        <label>تخصيص السعر، الكمية، وصورة لكل متغير:</label>
-        <div id="variantsTableContainer">
-            <p style="color: #64748b; font-size: 0.9rem; text-align: center; padding: 15px; background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 6px;">قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...</p>
+        <label class="form-label fw-bold text-dark-purple mb-2">تخصيص السعر، الكمية، وصورة لكل متغير:</label>
+        <div id="variantsTableContainer" class="table-responsive">
+            <p class="text-muted text-center p-4 bg-light rounded-3 border border-dashed" style="font-size: 0.9rem;">
+                <i class="fas fa-info-circle me-1"></i> قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...
+            </p>
         </div>
     </div>
 </div>
+
+<!-- ============================================================
+   🎨 التنسيقات والأنماط (Styles)
+   ============================================================ -->
+<style>
+.variants-card {
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.form-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d0b36;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
+}
+
+.text-gold {
+    color: #D4AF37 !important;
+}
+
+.text-dark-purple {
+    color: #2d0b36 !important;
+}
+
+.badge-gold-soft {
+    background: rgba(212, 175, 55, 0.2);
+    color: #D4AF37;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.custom-input {
+    border-color: #e2e8f0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+}
+
+.custom-input:focus {
+    border-color: #D4AF37;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+}
+
+.option-row {
+    border: 1px solid rgba(212, 175, 55, 0.3) !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    transition: all 0.3s ease;
+}
+
+.option-row:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.btn-gold-gradient {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    color: #D4AF37;
+    border: none;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 0 10px 10px 0 !important;
+    transition: all 0.3s ease;
+}
+
+.btn-gold-gradient:hover {
+    opacity: 0.95;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(45, 11, 54, 0.2);
+}
+
+.btn-outline-purple {
+    color: #2d0b36;
+    border: 2px dashed #2d0b36;
+    background: transparent;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-purple:hover {
+    background: #2d0b36;
+    color: #D4AF37;
+    border-color: #2d0b36;
+}
+
+.border-dashed {
+    border-style: dashed !important;
+    border-color: #cbd5e1 !important;
+}
+
+@media (max-width: 768px) {
+    .variants-card {
+        padding: 16px;
+    }
+}
+</style>
