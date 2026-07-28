@@ -11,8 +11,7 @@ query FindAllCollections {
       qid
       title
       image {
-        url
-        altText
+        fileUrl
       }
     }
   }
@@ -32,8 +31,7 @@ query FindCollectionByQid($id: ID!) {
       handle
       image {
         id
-        url
-        altText
+        fileUrl
         width
         height
       }
@@ -68,15 +66,13 @@ query FindAllProductsForCollection($id: ID!) {
       isAvailable
       mainImage {
         id
-        url
-        altText
+        fileUrl
         width
         height
       }
       images {
         id
-        url
-        altText
+        fileUrl
         width
         height
         position
@@ -89,8 +85,7 @@ query FindAllProductsForCollection($id: ID!) {
         quantity
         isAvailable
         image {
-          url
-          altText
+          fileUrl
         }
         inventory {
           quantity
@@ -106,7 +101,7 @@ query FindAllProductsForCollection($id: ID!) {
         id
         name
         logo {
-          url
+          fileUrl
         }
       }
       ratings {
