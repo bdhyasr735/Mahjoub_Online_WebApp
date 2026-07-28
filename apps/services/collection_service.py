@@ -38,8 +38,7 @@ class CollectionService:
                     qid
                     title
                     image {
-                        url
-                        altText
+                        fileUrl
                     }
                 }
             }
@@ -83,8 +82,7 @@ class CollectionService:
                     handle
                     image {
                         id
-                        url
-                        altText
+                        fileUrl
                         width
                         height
                     }
@@ -143,15 +141,13 @@ class CollectionService:
                     isAvailable
                     mainImage {
                         id
-                        url
-                        altText
+                        fileUrl
                         width
                         height
                     }
                     images {
                         id
-                        url
-                        altText
+                        fileUrl
                         width
                         height
                         position
@@ -164,8 +160,7 @@ class CollectionService:
                         quantity
                         isAvailable
                         image {
-                            url
-                            altText
+                            fileUrl
                         }
                         inventory {
                             quantity
@@ -181,7 +176,7 @@ class CollectionService:
                         id
                         name
                         logo {
-                            url
+                            fileUrl
                         }
                     }
                     ratings {
