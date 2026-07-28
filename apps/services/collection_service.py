@@ -32,23 +32,12 @@ class CollectionService:
         query = """
         query FindAllCollections {
             findAllCollections {
-                id
-                qid
-                title
-                description
-                handle
-                image {
-                    id
-                    url
-                    altText
-                    width
-                    height
+                success
+                message
+                data {
+                    qid
+                    title
                 }
-                productsCount
-                isActive
-                isFeatured
-                createdAt
-                updatedAt
             }
         }
         """
@@ -59,7 +48,8 @@ class CollectionService:
             print(f"🔍 [CollectionService] Result: {result}")
             
             if result and "findAllCollections" in result:
-                collections = result.get('findAllCollections', [])
+                collections_data = result.get('findAllCollections', {})
+                collections = collections_data.get('data', [])
                 print(f"✅ [CollectionService] تم جلب {len(collections)} مجموعة")
                 return collections
             return []
@@ -80,40 +70,25 @@ class CollectionService:
         query = """
         query FindCollectionByQid($id: ID!) {
             findCollectionByQid(id: $id) {
-                id
-                qid
-                title
-                description
-                handle
-                image {
-                    id
-                    url
-                    altText
-                    width
-                    height
-                }
-                productsCount
-                isActive
-                isFeatured
-                createdAt
-                updatedAt
-                products {
-                    id
+                success
+                message
+                data {
                     qid
-                    name
+                    title
                     description
-                    price
-                    compareAtPrice
-                    mainImage {
+                    handle
+                    image {
+                        id
                         url
                         altText
+                        width
+                        height
                     }
-                    variants {
-                        id
-                        price
-                        sku
-                        quantity
-                    }
+                    productsCount
+                    isActive
+                    isFeatured
+                    createdAt
+                    updatedAt
                 }
             }
         }
@@ -125,7 +100,11 @@ class CollectionService:
             print(f"🔍 [CollectionService] جلب المجموعة بـ QID: {qid}")
             result = self.client.execute(query, variables, operation_name="FindCollectionByQid")
             print(f"🔍 [CollectionService] Result: {result}")
-            return result.get('findCollectionByQid') if result else None
+            
+            if result and "findCollectionByQid" in result:
+                collection_data = result.get('findCollectionByQid', {})
+                return collection_data.get('data') if collection_data.get('success') else None
+            return None
         except Exception as e:
             print(f"❌ [CollectionService]: خطأ في جلب المجموعة {qid}: {e}")
             return None
@@ -143,68 +122,72 @@ class CollectionService:
         query = """
         query FindAllProductsForCollection($id: ID!) {
             findAllProductsForCollection(id: $id) {
-                id
-                qid
-                name
-                description
-                price
-                compareAtPrice
-                currency
-                sku
-                quantity
-                status
-                isActive
-                isAvailable
-                mainImage {
+                success
+                message
+                data {
                     id
-                    url
-                    altText
-                    width
-                    height
-                }
-                images {
-                    id
-                    url
-                    altText
-                    width
-                    height
-                    position
-                }
-                variants {
-                    id
-                    sku
+                    qid
+                    name
+                    description
                     price
                     compareAtPrice
+                    currency
+                    sku
                     quantity
+                    status
+                    isActive
                     isAvailable
-                    image {
+                    mainImage {
+                        id
                         url
                         altText
+                        width
+                        height
+                    }
+                    images {
+                        id
+                        url
+                        altText
+                        width
+                        height
+                        position
+                    }
+                    variants {
+                        id
+                        sku
+                        price
+                        compareAtPrice
+                        quantity
+                        isAvailable
+                        image {
+                            url
+                            altText
+                        }
+                        inventory {
+                            quantity
+                            available
+                        }
+                    }
+                    category {
+                        id
+                        name
+                        handle
+                    }
+                    brand {
+                        id
+                        name
+                        logo {
+                            url
+                        }
+                    }
+                    ratings {
+                        average
+                        count
                     }
                     inventory {
                         quantity
                         available
                     }
-                }
-                category {
-                    id
-                    name
-                    handle
-                }
-                brand {
-                    id
-                    name
-                    logo {
-                        url
-                    }
-                }
-                ratings {
-                    average
-                    count
-                }
-                inventory {
-                    quantity
-                    available
                 }
             }
         }
@@ -216,7 +199,11 @@ class CollectionService:
             print(f"🔍 [CollectionService] جلب منتجات المجموعة: {collection_qid}")
             result = self.client.execute(query, variables, operation_name="FindAllProductsForCollection")
             print(f"🔍 [CollectionService] Result: {result}")
-            return result.get('findAllProductsForCollection', []) if result else []
+            
+            if result and "findAllProductsForCollection" in result:
+                products_data = result.get('findAllProductsForCollection', {})
+                return products_data.get('data', []) if products_data.get('success') else []
+            return []
         except Exception as e:
             print(f"❌ [CollectionService]: خطأ في جلب منتجات المجموعة {collection_qid}: {e}")
             return []
