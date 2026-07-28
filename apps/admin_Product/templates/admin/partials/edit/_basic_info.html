@@ -1,17 +1,26 @@
 <!-- apps/admin_Product/templates/admin/partials/edit/_basic_info.html -->
 
 <!-- ================= المعلومات الأساسية ================= -->
-<div class="form-section">
-    <div class="form-section-title">
-        <i class="fas fa-info-circle"></i> المعلومات الأساسية ومعرف الرابط
+<div class="form-section shadow-sm p-4 mb-4 bg-white rounded-3 border border-light">
+    <div class="form-section-title d-flex align-items-center mb-3 pb-2 border-bottom" style="color: #4a154b; font-weight: 700;">
+        <i class="fas fa-info-circle text-warning fs-5 me-2"></i> 
+        <span class="ms-2">المعلومات الأساسية ومعرف الرابط</span>
     </div>
-    <div class="form-group">
-        <label>اسم المنتج الأساسي:</label>
-        <input type="text" id="productTitle" name="title" value="{{ product.title or product.name or '' }}" placeholder="أدخل اسم المنتج" oninput="generatePayload()" required>
+    
+    <div class="row g-3 mb-3">
+        <!-- اسم المنتج الأساسي -->
+        <div class="col-md-6">
+            <label class="form-label fw-semibold text-secondary mb-2">اسم المنتج الأساسي:</label>
+            <input type="text" class="form-control" id="productTitle" name="title" value="{{ product.title or product.name or '' }}" placeholder="أدخل اسم المنتج" oninput="generatePayload()" style="border-radius: 8px;" required>
+        </div>
+        
+        <!-- معرف الرابط (Slug URL) -->
+        <div class="col-md-6">
+            <label class="form-label fw-semibold text-secondary mb-2">معرف الرابط (Slug URL):</label>
+            <input type="text" class="form-control" id="productSlug" name="slug" value="{{ product.slug or '' }}" placeholder="product-slug-url" dir="ltr" oninput="generatePayload()" style="border-radius: 8px;">
+        </div>
     </div>
-    <div class="form-group">
-        <label>معرف الرابط (Slug URL):</label>
-        <input type="text" id="productSlug" name="slug" value="{{ product.slug or '' }}" placeholder="product-slug-url" dir="ltr" oninput="generatePayload()">
-    </div>
+
+    <!-- تضمين معلومات المنتج الرئيسية (السعر، المخزون، الحالة، المورد) -->
     {% include "admin/partials/edit/_product_main_info.html" %}
 </div>
