@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/admin_Product/routes/crud.py
+# apps/admin_Product/routes/crud.py
 # إضافة - تعديل - حذف المنتجات
 
 from flask import render_template, request, jsonify, redirect, url_for, flash, session
@@ -131,7 +131,7 @@ def save_sync_product():
         seo_description = request.form.get('seo_description', '')
         seo_keywords = request.form.get('seo_keywords', '')
         
-        # ✅ معالجة الأسعار الثلاثة
+        # ✅ معالجة الأسعار (بدون cost_price)
         try:
             price = float(request.form.get('price', 0))
         except ValueError:
@@ -142,10 +142,7 @@ def save_sync_product():
         except ValueError:
             compare_price = None
         
-        try:
-            cost_price = float(request.form.get('cost_price', 0)) if request.form.get('cost_price') else None
-        except ValueError:
-            cost_price = None
+        # ✅ تم إزالة cost_price لأن costPerItem غير مدعوم في GraphQL API
 
         update_data = {
             'qid': qid,
@@ -166,9 +163,6 @@ def save_sync_product():
         
         if compare_price is not None:
             update_data['compareAtPrice'] = compare_price
-        
-        if cost_price is not None:
-            update_data['costPerItem'] = cost_price
         
         result = services.products.update_product_data(update_data)
 
