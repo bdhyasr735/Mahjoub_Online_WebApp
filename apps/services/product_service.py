@@ -142,10 +142,12 @@ class ProductService:
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID مع تفاصيل الأسعار والـ slug"""
+        """جلب منتج بواسطة QID مع تفاصيل الأسعار والـ slug والكمية والمجموعات"""
+        
+        # ✅ استخدم الاستعلام مع operation_name
         query = """
-        {
-            findProductByQid(qid: "%s") {
+        query FindProductByQid($qid: String!) {
+            findProductByQid(qid: $qid) {
                 success
                 message
                 data {
@@ -154,6 +156,7 @@ class ProductService:
                     slug
                     description
                     status
+                    quantity
                     pricing {
                         price
                         compareAtPrice
@@ -166,7 +169,6 @@ class ProductService:
                     images {
                         fileUrl
                     }
-                    quantity
                     seo {
                         title
                         description
@@ -175,6 +177,7 @@ class ProductService:
                     tags
                     collections {
                         title
+                        handle
                     }
                     variants {
                         _id
@@ -208,17 +211,25 @@ class ProductService:
                 }
             }
         }
-        """ % qid
+        """
         
         try:
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
-            data = self.client.execute(query)
+            
+            variables = {"qid": qid}
+            print(f"🔍 [get_product_by_qid] Variables: {variables}")
+            
+            # ✅ استخدم operation_name = "FindProductByQid"
+            data = self.client.execute(query, variables, operation_name="FindProductByQid")
+            print(f"🔍 [get_product_by_qid] Full Response: {data}")
             
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
                 if result.get("success"):
                     product_data = result.get("data", {})
                     print(f"✅ [get_product_by_qid] تم جلب المنتج: {product_data.get('title')}")
+                    print(f"✅ [get_product_by_qid] Quantity: {product_data.get('quantity')}")
+                    print(f"✅ [get_product_by_qid] Collections: {product_data.get('collections')}")
                     return product_data
                 else:
                     error_msg = result.get('message', 'خطأ غير معروف')
