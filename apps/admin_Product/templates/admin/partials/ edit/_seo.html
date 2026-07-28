@@ -1,1 +1,22 @@
-
+<!-- ================= البيانات الوصفية (SEO) ================= -->
+<div class="form-section">
+    <div class="form-section-title">
+        <i class="fas fa-code"></i> تحسين محركات البحث (SEO)
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label>عنوان SEO</label>
+            <input type="text" name="seo_title" value="{{ product.seo.title if product.seo and product.seo.title else '' }}" placeholder="عنوان SEO">
+        </div>
+        <div class="col-md-6 mb-3">
+            <label>وصف SEO</label>
+            <input type="text" name="seo_description" value="{{ product.seo.description if product.seo and product.seo.description else '' }}" placeholder="وصف SEO">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 mb-0">
+            <label>الكلمات المفتاحية</label>
+            <input type="text" name="seo_keywords" value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" placeholder="كلمات مفتاحية مفصولة بفواصل">
+        </div>
+    </div>
+</div>
