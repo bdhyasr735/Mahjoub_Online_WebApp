@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/services/collection_service.py
+# apps/services/collection_service.py
 
 """
 خدمة المجموعات - Collection Service
@@ -34,7 +34,7 @@ class CollectionService:
             findAllCollections {
                 id
                 qid
-                name
+                title
                 description
                 handle
                 image {
@@ -85,7 +85,7 @@ class CollectionService:
             findCollectionByQid(id: $id) {
                 id
                 qid
-                name
+                title
                 description
                 handle
                 image {
