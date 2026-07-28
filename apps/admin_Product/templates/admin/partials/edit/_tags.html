@@ -1,23 +1,147 @@
-<!-- ================= العلامات (Tags) ================= -->
-<div class="form-section">
-    <div class="form-section-title">
-        <i class="fas fa-tags"></i> العلامات (Tags)
+<!-- apps/admin_Product/templates/admin/partials/edit/_tags.html -->
+
+<!-- ============================================================
+   🏷️ العلامات والوسوم (Tags)
+   ============================================================ -->
+<div class="form-section tags-card shadow-sm">
+    <div class="form-section-title d-flex align-items-center justify-content-between">
+        <div>
+            <i class="fas fa-tags text-gold me-2"></i> 
+            <span>العلامات (Tags)</span>
+        </div>
+        <span class="badge badge-gold-soft">
+            <i class="fas fa-hashtag me-1"></i> الوسوم
+        </span>
     </div>
+    
     <div class="form-group mb-0">
-        <div class="d-flex flex-wrap gap-1 mb-2" id="tagsContainer">
+        <!-- حاوية العلامات الحالية -->
+        <div class="d-flex flex-wrap gap-2 mb-3" id="tagsContainer">
             {% if product.tags and product.tags|length > 0 %}
                 {% for tag in product.tags %}
                 <span class="tag-item">
-                    <span class="remove-tag" onclick="this.parentElement.remove();">✕</span> {{ tag }}
+                    <span class="remove-tag" onclick="this.parentElement.remove();" title="حذف العلامة">✕</span> 
+                    <span class="tag-text">{{ tag }}</span>
+                    <input type="hidden" name="tags[]" value="{{ tag }}">
                 </span>
                 {% endfor %}
             {% else %}
-                <span class="text-muted">لا توجد علامات حالياً</span>
+                <span class="text-muted fst-italic">
+                    <i class="fas fa-info-circle me-1"></i> لا توجد علامات حالياً
+                </span>
             {% endif %}
         </div>
-        <div class="input-group">
-            <input type="text" id="tagInput" placeholder="أدخل علامة جديدة واضغط Enter...">
-            <button type="button" class="btn-action" onclick="addTag()">إضافة علامة</button>
+        
+        <!-- حقل الإدخال وزر الإضافة -->
+        <div class="input-group input-group-lg">
+            <input type="text" id="tagInput" class="form-control custom-input" placeholder="أدخل علامة جديدة واضغط Enter...">
+            <button type="button" class="btn btn-gold-gradient" onclick="addTag()">
+                <i class="fas fa-plus me-1"></i> إضافة علامة
+            </button>
         </div>
+        <small class="text-muted mt-2 d-block">
+            <i class="fas fa-lightbulb me-1"></i> تساعد العلامات في تصنيف المنتج وتسهيل البحث عنه داخل المتجر.
+        </small>
     </div>
 </div>
+
+<!-- ============================================================
+   🎨 التنسيقات والأنماط (Styles)
+   ============================================================ -->
+<style>
+.tags-card {
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.form-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d0b36;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
+}
+
+.text-gold {
+    color: #D4AF37 !important;
+}
+
+.badge-gold-soft {
+    background: rgba(212, 175, 55, 0.2);
+    color: #D4AF37;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.tag-item {
+    display: inline-flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: #2d0b36;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+}
+
+.tag-item:hover {
+    border-color: #D4AF37;
+    box-shadow: 0 2px 6px rgba(212, 175, 55, 0.15);
+}
+
+.remove-tag {
+    cursor: pointer;
+    margin-left: 8px;
+    color: #e53e3e;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+
+.remove-tag:hover {
+    color: #c53030;
+}
+
+.custom-input {
+    border-color: #e2e8f0;
+    border-radius: 10px 0 0 10px !important;
+    transition: all 0.3s ease;
+    padding: 12px 16px;
+    font-size: 1rem;
+}
+
+.custom-input:focus {
+    border-color: #D4AF37;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+}
+
+.btn-gold-gradient {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    color: #D4AF37;
+    border: none;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 0 10px 10px 0 !important;
+    transition: all 0.3s ease;
+}
+
+.btn-gold-gradient:hover {
+    opacity: 0.95;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(45, 11, 54, 0.2);
+}
+
+@media (max-width: 768px) {
+    .tags-card {
+        padding: 16px;
+    }
+}
+</style>
