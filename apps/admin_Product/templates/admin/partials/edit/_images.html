@@ -1,48 +1,588 @@
 <!-- apps/admin_Product/templates/admin/partials/edit/_images.html -->
 
 <!-- ================= صور المنتج ================= -->
-<div class="form-section">
+<div class="form-section images-card">
     <div class="form-section-title">
-        <i class="fas fa-images"></i> صور المنتج الرئيسية
-        {% if product.images and product.images|length > 0 %}
-        <span class="badge ms-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
-            {{ product.images|length }}
+        <i class="fas fa-images"></i>
+        صور المنتج
+        <span class="badge-count gold" id="imagesCount">
+            {{ product.images|length if product.images else 0 }}
         </span>
-        {% endif %}
+        <span class="badge-status {{ 'has-images' if product.images and product.images|length > 0 else 'empty' }}">
+            {% if product.images and product.images|length > 0 %}
+            <i class="fas fa-check-circle"></i> مكتمل
+            {% else %}
+            <i class="fas fa-exclamation-circle"></i> فارغ
+            {% endif %}
+        </span>
     </div>
     
-    <!-- منطقة رفع الصور -->
-    <div class="image-upload-area" id="imageUploadArea">
-        <div class="upload-icon-wrapper">
-            <i class="fas fa-cloud-upload-alt fa-3x" style="color: var(--gold-color);"></i>
+    <!-- ✅ منطقة رفع الصور -->
+    <div class="upload-zone" id="imageUploadArea">
+        <div class="upload-zone-content">
+            <div class="upload-icon-wrapper">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <h4>اسحب الصور هنا</h4>
+            <p>أو انقر لاختيار الملفات</p>
+            <div class="upload-formats">
+                <span class="format-badge">JPG</span>
+                <span class="format-badge">PNG</span>
+                <span class="format-badge">WebP</span>
+                <span class="format-badge">SVG</span>
+            </div>
+            <div class="upload-size-limit">
+                <i class="fas fa-info-circle"></i>
+                الحد الأقصى: 5MB لكل صورة
+            </div>
         </div>
-        <p class="mt-2 mb-0 fw-bold" style="color: var(--primary-color);">📤 اسحب الصور هنا أو انقر للتحميل</p>
-        <small class="text-muted">يدعم صيغ JPG, PNG, WebP</small>
         <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
     </div>
     
-    <!-- معرض الصور -->
-    <div class="image-preview-grid" id="imagePreviewGrid">
+    <!-- ✅ معرض الصور مع تحسينات -->
+    <div class="image-gallery" id="imagePreviewGrid">
         {% if product.images and product.images|length > 0 %}
             {% for image in product.images %}
-            <div class="image-preview-item">
-                <img src="{{ image.fileUrl }}" alt="صورة المنتج" loading="lazy">
-                <button type="button" class="remove-image" onclick="if(confirm('⚠️ هل أنت متأكد من حذف هذه الصورة؟')) this.parentElement.remove();" title="حذف الصورة">
+            <div class="gallery-item" data-index="{{ loop.index0 }}">
+                <div class="gallery-item-image">
+                    <img src="{{ image.fileUrl }}" alt="صورة المنتج" loading="lazy">
+                    <div class="gallery-item-overlay">
+                        <span class="image-number">{{ loop.index }}</span>
+                    </div>
+                </div>
+                <button type="button" class="gallery-item-remove" 
+                        onclick="if(confirm('⚠️ هل أنت متأكد من حذف هذه الصورة؟')) { this.closest('.gallery-item').remove(); updateImagesCount(); }" 
+                        title="حذف الصورة">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             {% endfor %}
         {% else %}
-            <div class="col-12 text-center text-muted py-3">
-                <i class="fas fa-image fa-2x mb-2 d-block" style="color: #D4AF37;"></i>
-                <p>لا توجد صور مضافة حتى الآن</p>
+            <div class="gallery-empty">
+                <i class="fas fa-image"></i>
+                <p>لا توجد صور مضافة</p>
+                <small>قم برفع الصور من المنطقة أعلاه</small>
             </div>
         {% endif %}
+    </div>
+    
+    <!-- ✅ شريط المعلومات السفلية -->
+    <div class="gallery-footer">
+        <div class="gallery-stats">
+            <span>
+                <i class="fas fa-images"></i>
+                <strong id="imagesCountFooter">{{ product.images|length if product.images else 0 }}</strong>
+                صورة
+            </span>
+            <span>
+                <i class="fas fa-upload"></i>
+                <span id="uploadStatus">جاهز للرفع</span>
+            </span>
+        </div>
+        <div class="gallery-actions">
+            <button type="button" class="btn-clear-images" onclick="clearAllImages()" style="display: {{ 'inline-flex' if product.images and product.images|length > 0 else 'none' }}">
+                <i class="fas fa-trash-alt"></i>
+                حذف الكل
+            </button>
+        </div>
     </div>
 </div>
 
 <style>
-.image-preview-grid .col-12 {
+/* ============================================================
+   🎨 تصميم بطاقة الصور
+   ============================================================ */
+.images-card {
+    border-color: rgba(212, 175, 55, 0.15);
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+}
+
+.images-card .form-section-title .badge-status {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-status.has-images {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.badge-status.empty {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+/* ============================================================
+   📤 منطقة الرفع
+   ============================================================ */
+.upload-zone {
+    border: 2px dashed #e2e8f0;
+    border-radius: 14px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #faf8f6;
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.upload-zone:hover {
+    border-color: #D4AF37;
+    background: #f5f0eb;
+    transform: translateY(-2px);
+}
+
+.upload-zone.dragover {
+    border-color: #D4AF37;
+    background: rgba(212, 175, 55, 0.05);
+    transform: scale(1.01);
+}
+
+.upload-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.upload-icon-wrapper {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.upload-zone:hover .upload-icon-wrapper {
+    transform: scale(1.05) rotate(-5deg);
+}
+
+.upload-icon-wrapper i {
+    font-size: 2rem;
+    color: #D4AF37;
+}
+
+.upload-zone-content h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.upload-zone-content p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.upload-formats {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.format-badge {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.65rem;
+    font-weight: 600;
+}
+
+.upload-size-limit {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ============================================================
+   🖼️ معرض الصور
+   ============================================================ */
+.image-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    min-height: 120px;
+    padding: 4px;
+}
+
+.gallery-item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 1;
+    background: #f8f9fa;
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.gallery-item:nth-child(1) { animation-delay: 0.05s; }
+.gallery-item:nth-child(2) { animation-delay: 0.10s; }
+.gallery-item:nth-child(3) { animation-delay: 0.15s; }
+.gallery-item:nth-child(4) { animation-delay: 0.20s; }
+.gallery-item:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: scale(0.9) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.gallery-item:hover {
+    transform: scale(1.03);
+    border-color: #D4AF37;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+}
+
+.gallery-item-image {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.gallery-item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gallery-item-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 12px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.gallery-item:hover .gallery-item-overlay {
+    opacity: 1;
+}
+
+.image-number {
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.gallery-item-remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    background: rgba(239, 68, 68, 0.9);
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.gallery-item:hover .gallery-item-remove {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.gallery-item-remove:hover {
+    background: #ef4444;
+    transform: scale(1.1);
+}
+
+/* ============================================================
+   📋 حالة فارغة
+   ============================================================ */
+.gallery-empty {
     grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed #e2e8f0;
+}
+
+.gallery-empty i {
+    font-size: 2.5rem;
+    color: #D4AF37;
+    margin-bottom: 8px;
+}
+
+.gallery-empty p {
+    font-weight: 600;
+    margin: 0;
+}
+
+.gallery-empty small {
+    font-size: 0.85rem;
+}
+
+/* ============================================================
+   📊 تذييل المعرض
+   ============================================================ */
+.gallery-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid #e2e8f0;
+    gap: 12px;
+}
+
+.gallery-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.gallery-stats i {
+    color: #D4AF37;
+    margin-right: 4px;
+}
+
+.gallery-stats strong {
+    color: #0f172a;
+}
+
+.gallery-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-clear-images {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-clear-images:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #dc2626;
+}
+
+/* ============================================================
+   📱 تحسينات الجوال
+   ============================================================ */
+@media (max-width: 768px) {
+    .image-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+    }
+    
+    .upload-zone {
+        padding: 32px 16px;
+    }
+    
+    .upload-icon-wrapper {
+        width: 56px;
+        height: 56px;
+    }
+    
+    .upload-icon-wrapper i {
+        font-size: 1.5rem;
+    }
+    
+    .gallery-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .gallery-stats {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}
+
+/* ============================================================
+   🎯 ديناميكية الأبعاد
+   ============================================================ */
+@media (min-width: 1200px) {
+    .image-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .image-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 8px;
+    }
 }
 </style>
+
+<script>
+// ============================================================
+// 🔄 دوال ديناميكية
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ تحديث عدد الصور ديناميكياً
+    window.updateImagesCount = function() {
+        const items = document.querySelectorAll('.gallery-item');
+        const count = items.length;
+        
+        const countBadge = document.getElementById('imagesCount');
+        const countFooter = document.getElementById('imagesCountFooter');
+        const statusBadge = document.querySelector('.badge-status');
+        const clearBtn = document.querySelector('.btn-clear-images');
+        const emptyState = document.querySelector('.gallery-empty');
+        
+        // تحديث البادجات
+        if (countBadge) countBadge.textContent = count;
+        if (countFooter) countFooter.textContent = count;
+        
+        // تحديث حالة البطاقة
+        if (statusBadge) {
+            if (count > 0) {
+                statusBadge.className = 'badge-status has-images';
+                statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> مكتمل';
+            } else {
+                statusBadge.className = 'badge-status empty';
+                statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> فارغ';
+            }
+        }
+        
+        // إظهار/إخفاء زر حذف الكل
+        if (clearBtn) {
+            clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+        
+        // إظهار/إخفاء الحالة الفارغة
+        if (emptyState) {
+            if (count > 0) {
+                emptyState.style.display = 'none';
+            } else {
+                emptyState.style.display = 'flex';
+            }
+        }
+        
+        // تحديث رسالة حالة الرفع
+        const uploadStatus = document.getElementById('uploadStatus');
+        if (uploadStatus) {
+            uploadStatus.textContent = count > 0 ? `${count} صورة مرفوعة` : 'جاهز للرفع';
+        }
+    };
+    
+    // ✅ حذف جميع الصور
+    window.clearAllImages = function() {
+        if (!confirm('⚠️ هل أنت متأكد من حذف جميع الصور؟')) return;
+        
+        const items = document.querySelectorAll('.gallery-item');
+        items.forEach(item => item.remove());
+        updateImagesCount();
+        showNotification('🗑️ تم حذف جميع الصور', 'info');
+    };
+    
+    // ✅ إضافة صورة جديدة ديناميكياً
+    window.addImageToGallery = function(file, url) {
+        const grid = document.getElementById('imagePreviewGrid');
+        if (!grid) return;
+        
+        // إزالة الحالة الفارغة
+        const emptyState = grid.querySelector('.gallery-empty');
+        if (emptyState) emptyState.remove();
+        
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        item.innerHTML = `
+            <div class="gallery-item-image">
+                <img src="${url}" alt="صورة المنتج" loading="lazy">
+                <div class="gallery-item-overlay">
+                    <span class="image-number">${grid.children.length + 1}</span>
+                </div>
+            </div>
+            <button type="button" class="gallery-item-remove" 
+                    onclick="if(confirm('⚠️ هل أنت متأكد من حذف هذه الصورة؟')) { this.closest('.gallery-item').remove(); updateImagesCount(); }" 
+                    title="حذف الصورة">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        grid.appendChild(item);
+        updateImagesCount();
+    };
+    
+    // ✅ تهيئة العداد عند التحميل
+    updateImagesCount();
+});
+
+// ✅ تحديث واجهة رفع الصور
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadZone = document.getElementById('imageUploadArea');
+    const fileInput = document.getElementById('imageInput');
+    const grid = document.getElementById('imagePreviewGrid');
+    
+    if (uploadZone && fileInput) {
+        // رفع الصور
+        fileInput.addEventListener('change', function() {
+            const files = this.files;
+            for (let i = 0; i < files.length; i++) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    addImageToGallery(files[i], e.target.result);
+                };
+                reader.readAsDataURL(files[i]);
+            }
+            this.value = '';
+        });
+        
+        // دعم السحب والإفلات
+        uploadZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+        
+        uploadZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+});
+</script>
