@@ -1,123 +1,163 @@
-{% extends "admin/base.html" %}
+{% extends "admin/admin_base.html" %}
 
 {% block title %}إضافة منتج جديد{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">➕ إضافة منتج جديد</h1>
-        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-right"></i> العودة
+    <!-- رأس الصفحة -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <h1 class="h3" style="color: #2d0b36;">
+            <i class="fas fa-plus-circle me-2" style="color: #D4AF37;"></i> إضافة منتج جديد
+        </h1>
+        <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 8px; padding: 8px 20px;">
+            <i class="fas fa-arrow-right me-2"></i> العودة للقائمة
         </a>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
+    <!-- بطاقة النموذج -->
+    <div class="card shadow-sm border-0" style="border-radius: 16px;">
+        <div class="card-body" style="padding: 30px;">
             <form method="POST" action="{{ url_for('admin_product_bp.add_product') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
-                <!-- معلومات المنتج الرئيسية -->
-                <div class="row">
-                    <!-- الاسم -->
-                    <div class="col-md-6 mb-3">
-                        <label for="productName" class="form-label fw-bold">
-                            <i class="fas fa-tag text-primary me-1"></i> اسم المنتج *
-                        </label>
-                        <input type="text" 
-                               id="productName" 
-                               name="title" 
-                               class="form-control form-control-lg" 
-                               placeholder="أدخل اسم المنتج..."
-                               required>
-                    </div>
+                <!-- ======================================== -->
+                <!-- المعلومات الأساسية -->
+                <!-- ======================================== -->
+                <div class="form-section" style="background: #f8f5f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(212, 175, 55, 0.1);">
+                    <h5 style="color: #2d0b36; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid rgba(212, 175, 55, 0.2);">
+                        <i class="fas fa-info-circle" style="color: #D4AF37;"></i> المعلومات الأساسية
+                    </h5>
                     
-                    <!-- السعر -->
-                    <div class="col-md-3 mb-3">
-                        <label for="productPrice" class="form-label fw-bold">
-                            <i class="fas fa-dollar-sign text-success me-1"></i> السعر *
-                        </label>
-                        <div class="input-group">
+                    <div class="row">
+                        <!-- الاسم -->
+                        <div class="col-md-6 mb-3">
+                            <label for="productName" class="form-label fw-bold" style="color: #2d0b36;">
+                                <i class="fas fa-tag text-primary me-1"></i> اسم المنتج *
+                            </label>
+                            <input type="text" 
+                                   id="productName" 
+                                   name="title" 
+                                   class="form-control form-control-lg" 
+                                   placeholder="أدخل اسم المنتج..."
+                                   required
+                                   style="border-color: #2d0b36; border-radius: 8px;">
+                        </div>
+                        
+                        <!-- السعر الأساسي -->
+                        <div class="col-md-3 mb-3">
+                            <label for="productPrice" class="form-label fw-bold" style="color: #2d0b36;">
+                                <i class="fas fa-dollar-sign text-success me-1"></i> السعر الأساسي *
+                            </label>
+                            <div class="input-group">
+                                <input type="number" 
+                                       id="productPrice" 
+                                       name="price" 
+                                       class="form-control" 
+                                       step="0.01" 
+                                       min="0"
+                                       placeholder="0.00"
+                                       required
+                                       style="border-color: #2d0b36; border-radius: 8px 0 0 8px; direction: ltr; text-align: right; font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums;">
+                                <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; border-radius: 0 8px 8px 0;">ر.س</span>
+                            </div>
+                        </div>
+                        
+                        <!-- الكمية -->
+                        <div class="col-md-3 mb-3">
+                            <label for="productQuantity" class="form-label fw-bold" style="color: #2d0b36;">
+                                <i class="fas fa-cubes text-info me-1"></i> الكمية
+                            </label>
                             <input type="number" 
-                                   id="productPrice" 
-                                   name="price" 
+                                   id="productQuantity" 
+                                   name="quantity" 
                                    class="form-control" 
-                                   step="0.01" 
                                    min="0"
-                                   placeholder="0.00"
-                                   required>
-                            <span class="input-group-text">ر.س</span>
+                                   value="0"
+                                   style="border-color: #2d0b36; border-radius: 8px; direction: ltr; text-align: right; font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums;">
                         </div>
                     </div>
-                    
-                    <!-- SKU -->
-                    <div class="col-md-3 mb-3">
-                        <label for="productSku" class="form-label fw-bold">
-                            <i class="fas fa-barcode text-info me-1"></i> SKU
-                        </label>
-                        <input type="text" 
-                               id="productSku" 
-                               name="sku" 
-                               class="form-control" 
-                               placeholder="رمز المنتج">
+
+                    <div class="row">
+                        <!-- SKU -->
+                        <div class="col-md-6 mb-3">
+                            <label for="productSku" class="form-label fw-bold" style="color: #2d0b36;">
+                                <i class="fas fa-barcode text-info me-1"></i> SKU
+                            </label>
+                            <input type="text" 
+                                   id="productSku" 
+                                   name="sku" 
+                                   class="form-control" 
+                                   placeholder="رمز المنتج"
+                                   style="border-color: #2d0b36; border-radius: 8px;">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- الحالة -->
+                        <div class="col-md-6 mb-3">
+                            <label for="productStatus" class="form-label fw-bold" style="color: #2d0b36;">
+                                <i class="fas fa-circle text-warning me-1"></i> الحالة
+                            </label>
+                            <select id="productStatus" name="status" class="form-select" style="border-color: #2d0b36; border-radius: 8px;">
+                                <option value="DRAFT" selected>
+                                    ⏳ مسودة
+                                </option>
+                                <option value="PUBLISHED">
+                                    ✅ منشور
+                                </option>
+                                <option value="ARCHIVED">
+                                    📦 مؤرشف
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <!-- المورد -->
+                        <div class="col-md-6 mb-3">
+                            <label for="supplierId" class="form-label fw-bold" style="color: #2d0b36;">
+                                <i class="fas fa-store text-purple me-1"></i> المورد
+                            </label>
+                            <select id="supplierId" name="supplier_id" class="form-select" style="border-color: #2d0b36; border-radius: 8px;">
+                                <option value="">-- غير مرتبط --</option>
+                                {% for supplier in suppliers %}
+                                <option value="{{ supplier.id }}">
+                                    {{ supplier.trade_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div class="row">
-                    <!-- الوصف -->
-                    <div class="col-12 mb-3">
-                        <label for="productDescription" class="form-label fw-bold">
-                            <i class="fas fa-align-left text-secondary me-1"></i> الوصف
-                        </label>
-                        <textarea id="productDescription" 
-                                  name="description" 
-                                  class="form-control" 
-                                  rows="4"
-                                  placeholder="وصف المنتج..."></textarea>
+                <!-- ======================================== -->
+                <!-- الوصف -->
+                <!-- ======================================== -->
+                <div class="form-section" style="background: #f8f5f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(212, 175, 55, 0.1);">
+                    <h5 style="color: #2d0b36; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid rgba(212, 175, 55, 0.2);">
+                        <i class="fas fa-align-left" style="color: #D4AF37;"></i> الوصف التفصيلي
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-12 mb-0">
+                            <label for="productDescription" class="form-label fw-bold" style="color: #2d0b36;">وصف المنتج</label>
+                            <textarea id="productDescription" 
+                                      name="description" 
+                                      class="form-control" 
+                                      rows="6"
+                                      placeholder="وصف المنتج..."
+                                      style="border-color: #2d0b36; border-radius: 8px;"></textarea>
+                        </div>
                     </div>
                 </div>
 
-                <div class="row">
-                    <!-- الحالة -->
-                    <div class="col-md-6 mb-3">
-                        <label for="productStatus" class="form-label fw-bold">
-                            <i class="fas fa-circle text-warning me-1"></i> الحالة
-                        </label>
-                        <select id="productStatus" name="status" class="form-select">
-                            <option value="DRAFT" selected>
-                                ⏳ مسودة
-                            </option>
-                            <option value="PUBLISHED">
-                                ✅ منشور
-                            </option>
-                            <option value="ARCHIVED">
-                                📦 مؤرشف
-                            </option>
-                        </select>
-                    </div>
-                    
-                    <!-- المورد -->
-                    <div class="col-md-6 mb-3">
-                        <label for="supplierId" class="form-label fw-bold">
-                            <i class="fas fa-store text-purple me-1"></i> المورد
-                        </label>
-                        <select id="supplierId" name="supplier_id" class="form-select">
-                            <option value="">-- غير مرتبط --</option>
-                            {% for supplier in suppliers %}
-                            <option value="{{ supplier.id }}">
-                                {{ supplier.trade_name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                
+                <!-- ======================================== -->
                 <!-- أزرار الإجراءات -->
-                <div class="mt-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> حفظ المنتج
+                <!-- ======================================== -->
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 8px; padding: 12px 24px; font-size: 1.05rem;">
+                        <i class="fas fa-save me-2"></i> حفظ المنتج
                     </button>
-                    <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> إلغاء
+                    <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn" style="background: #64748b; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-size: 1.05rem;">
+                        <i class="fas fa-times me-2"></i> إلغاء
                     </a>
                 </div>
             </form>
@@ -128,7 +168,7 @@
 <style>
 .card {
     border: none;
-    border-radius: 12px;
+    border-radius: 16px;
 }
 .form-label {
     font-weight: 600;
@@ -136,10 +176,15 @@
 }
 .form-control, .form-select {
     border-radius: 8px;
+    border-color: #2d0b36;
 }
 .form-control:focus, .form-select:focus {
-    border-color: #6c5ce7;
-    box-shadow: 0 0 0 0.2rem rgba(108, 92, 231, 0.25);
+    border-color: #2d0b36;
+    box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.25);
+}
+input[type="number"] {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
 }
 </style>
 {% endblock %}
