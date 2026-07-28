@@ -1,106 +1,95 @@
-<!-- apps/admin_Product/templates/admin/partials/admin_edit_product.html -->
-{% extends "admin/admin_base.html" %}
+<!-- apps/admin_Product/templates/admin/partials/edit/_product_main_info.html -->
+<!-- معلومات المنتج الأساسية والأسعار -->
 
-{% block title %}تعديل المنتج: {{ product.title or product.name }}{% endblock %}
-
-{% block extra_css %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"></script>
-<style>
-    /* ✅ جميع الأنماط هنا (نفسها كما كانت) */
-    :root { --primary-color: #2d0b36; --gold-color: #D4AF37; --danger-color: #ef4444; --border-color: #e2e8f0; }
-    .edit-product-container { max-width: 1100px; margin: 0 auto; background: white; border: 1px solid var(--border-color); border-radius: 16px; padding: 30px; box-shadow: 0 4px 20px rgba(45, 11, 54, 0.08); }
-    .form-section { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(212, 175, 55, 0.15); }
-    .form-section-title { font-size: 1.2rem; font-weight: 700; color: var(--primary-color); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid rgba(212, 175, 55, 0.3); display: flex; align-items: center; gap: 10px; }
-    .form-section-title i { color: var(--gold-color); }
-    .form-group { margin-bottom: 20px; }
-    label { display: block; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
-    input[type="number"] { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; direction: ltr; text-align: right; }
-    input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; }
-    .btn-action { background: var(--primary-color); color: var(--gold-color); border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.3s; }
-    .btn-action:hover { background: #1e0b46; color: #ffd700; }
-    .btn-danger { background: var(--danger-color); color: white; }
-    .btn-danger:hover { background: #dc2626; color: white; }
-    .btn-full { width: 100%; justify-content: center; }
-    .option-row { background: #fdfcff; padding: 15px; border-radius: 8px; border: 1px solid #e9d5ff; margin-bottom: 15px; }
-    .value-tag { background: #f3e8ff; color: #581c87; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d8b4fe; font-weight: 600; margin: 2px; }
-    .value-tag span { cursor: pointer; color: #ef4444; font-weight: bold; }
-    .variants-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    .variants-table th, .variants-table td { border: 1px solid var(--border-color); padding: 10px; text-align: center; }
-    .variants-table th { background: #f8fafc; font-weight: 600; color: var(--primary-color); }
-    .tag-item { background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 4px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; margin: 3px; }
-    .tag-item .remove-tag { cursor: pointer; opacity: 0.7; }
-    .tag-item .remove-tag:hover { opacity: 1; color: #dc3545; }
-    .collection-badge { background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 6px 14px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(212, 175, 55, 0.2); }
-    .remove-collection { cursor: pointer; color: #ef4444; font-weight: bold; }
-    .collection-option-item:hover { background: #f8fafc; }
-    .image-upload-area { border: 2px dashed var(--primary-color); border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; background: #faf8f6; }
-    .image-upload-area:hover { border-color: var(--gold-color); background: #f5f0eb; }
-    .image-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-top: 15px; }
-    .image-preview-item { position: relative; border-radius: 8px; overflow: hidden; border: 2px solid #e9ecef; aspect-ratio: 1; background: #f8f9fa; }
-    .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
-    .image-preview-item .remove-image { position: absolute; top: 4px; right: 4px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
-    .image-preview-item .remove-image:hover { background: #dc3545; transform: scale(1.1); }
-    .collection-multiselect-container { position: relative; }
-    .selected-collections-box { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: white; min-height: 48px; cursor: pointer; align-items: center; }
-    #collectionDropdownMenu { display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; margin-top: 5px; padding: 10px; }
-    #collectionsList { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="edit-product-container">
-    <!-- رأس الصفحة -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <h2>
-            <i class="fas fa-edit me-2"></i> تعديل المنتج: <span style="color: var(--gold-color);">{{ product.title or product.name }}</span>
-        </h2>
-        <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action">
-            <i class="fas fa-arrow-right me-2"></i> العودة للقائمة
-        </a>
+<div class="row">
+    <!-- SKU -->
+    <div class="col-md-6 mb-3">
+        <label for="productSku" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-barcode text-info me-1"></i> رمز التخزين التعريفي (SKU)
+        </label>
+        <input type="text" id="productSku" name="sku" class="form-control" value="{{ product.sku or '' }}" placeholder="رمز المنتج (SKU)" style="border-color: #2d0b36; border-radius: 8px;" oninput="generatePayload()">
     </div>
-
-    <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}" id="editProductForm" onsubmit="preparePayloadBeforeSubmit(event)">
-        <input type="hidden" name="qid" value="{{ product.qid }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="variants_payload" id="variantsPayloadInput">
-
-        <!-- ✅ جميع الأجزاء -->
-        {% include "admin/partials/edit/_basic_info.html" %}
-        {% include "admin/partials/edit/_description.html" %}
-        {% include "admin/partials/edit/_images.html" %}
-        {% include "admin/partials/edit/_collections.html" %}
-        {% include "admin/partials/edit/_variants.html" %}
-        {% include "admin/partials/edit/_seo.html" %}
-        {% include "admin/partials/edit/_tags.html" %}
-        {% include "admin/partials/edit/_actions.html" %}
-    </form>
+    
+    <!-- الكمية -->
+    <div class="col-md-6 mb-3">
+        <label for="productQuantity" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-cubes text-info me-1"></i> الكمية المتاحة
+        </label>
+        <input type="number" id="productQuantity" name="quantity" class="form-control" min="0" value="{{ product.quantity or 0 }}" style="border-color: #2d0b36; border-radius: 8px; direction: ltr; text-align: right; font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums;" oninput="generatePayload()">
+    </div>
 </div>
 
-<!-- ✅ جميع دوال JavaScript (نفسها) -->
-<script>
-    tinymce.init({ selector: '#productDescription', height: 300, menubar: true, plugins: ['advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'searchreplace', 'visualblocks', 'code', 'fullscreen', 'insertdatetime', 'media', 'table', 'help', 'wordcount'], toolbar: 'undo redo | blocks | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help | link image media | fullscreen | code', content_style: 'body { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; }', directionality: 'rtl', language: 'ar', images_upload_handler: function(blobInfo, progress) { return new Promise(function(resolve, reject) { const reader = new FileReader(); reader.onload = e => resolve(e.target.result); reader.readAsDataURL(blobInfo.blob()); }); } });
+<!-- ======================================== -->
+<!-- الأسعار الثلاثة -->
+<!-- ======================================== -->
+<div class="row">
+    <!-- السعر الأساسي -->
+    <div class="col-md-4 mb-3">
+        <label for="productPrice" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-dollar-sign text-success me-1"></i> السعر الأساسي *
+        </label>
+        <div class="input-group">
+            <input type="number" id="productPrice" name="price" class="form-control" step="0.01" min="0" value="{{ product.pricing.price if product.pricing and product.pricing.price is not none else 0 }}" required style="border-color: #2d0b36; border-radius: 8px 0 0 8px; direction: ltr; text-align: right; font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums;" oninput="generatePayload()">
+            <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; border-radius: 0 8px 8px 0;">ر.س</span>
+        </div>
+        <small class="text-muted">السعر المعروض للبيع</small>
+    </div>
+    
+    <!-- سعر المقارنة -->
+    <div class="col-md-4 mb-3">
+        <label for="comparePrice" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-tag text-warning me-1"></i> سعر المقارنة
+        </label>
+        <div class="input-group">
+            <input type="number" id="comparePrice" name="compare_price" class="form-control" step="0.01" min="0" value="{{ product.pricing.compareAtPrice if product.pricing and product.pricing.compareAtPrice is not none else 0 }}" style="border-color: #2d0b36; border-radius: 8px 0 0 8px; direction: ltr; text-align: right; font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums;" oninput="generatePayload()">
+            <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; border-radius: 0 8px 8px 0;">ر.س</span>
+        </div>
+        <small class="text-muted">السعر قبل الخصم (يظهر مشطوباً)</small>
+    </div>
+    
+    <!-- السعر الأصلي -->
+    <div class="col-md-4 mb-3">
+        <label for="originalPrice" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-history text-primary me-1"></i> السعر الأصلي
+        </label>
+        <div class="input-group">
+            <input type="number" id="originalPrice" name="original_price" class="form-control" step="0.01" min="0" value="{{ product.pricing.originalPrice if product.pricing and product.pricing.originalPrice is not none else 0 }}" style="border-color: #2d0b36; border-radius: 8px 0 0 8px; direction: ltr; text-align: right; font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums;" oninput="generatePayload()">
+            <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; border-radius: 0 8px 8px 0;">ر.س</span>
+        </div>
+        <small class="text-muted">السعر الأصلي قبل التخفيضات</small>
+    </div>
+</div>
 
-    function toggleCollectionDropdown() { const menu = document.getElementById('collectionDropdownMenu'); menu.style.display = menu.style.display === 'block' ? 'none' : 'block'; if (menu.style.display === 'block') { document.getElementById('collectionSearchInput').focus(); } }
-    document.addEventListener('click', function(e) { const container = document.querySelector('.collection-multiselect-container'); if (container && !container.contains(e.target)) { document.getElementById('collectionDropdownMenu').style.display = 'none'; } });
-    function filterCollections(query) { const items = document.querySelectorAll('.collection-option-item'); query = query.toLowerCase(); items.forEach(item => { const title = item.getAttribute('data-title').toLowerCase(); item.style.display = title.includes(query) ? 'flex' : 'none'; }); }
-    function toggleCollectionSelection(element, id, title) { const checkbox = element.querySelector('.col-checkbox'); checkbox.checked = !checkbox.checked; if (checkbox.checked) { addCollectionBadge(id, title); } else { removeCollection(id); } }
-    function addCollectionBadge(id, title) { const box = document.getElementById('selectedCollectionsBox'); const placeholder = document.getElementById('collectionPlaceholder'); if (placeholder) placeholder.style.display = 'none'; if (box.querySelector(`.collection-badge[data-id="${id}"]`)) return; const badge = document.createElement('span'); badge.className = 'collection-badge'; badge.setAttribute('data-id', id); badge.innerHTML = `<i class="fas fa-folder"></i> ${title} <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('${id}')">&times;</span>`; box.appendChild(badge); const hiddenContainer = document.getElementById('hiddenCollectionsInputs'); if (!document.getElementById(`col-input-${id}`)) { const input = document.createElement('input'); input.type = 'hidden'; input.name = 'collection_ids'; input.value = id; input.id = `col-input-${id}`; hiddenContainer.appendChild(input); } }
-    function removeCollection(id) { const box = document.getElementById('selectedCollectionsBox'); const badge = box.querySelector(`.collection-badge[data-id="${id}"]`); if (badge) badge.remove(); const input = document.getElementById(`col-input-${id}`); if (input) input.remove(); const checkbox = document.querySelector(`.collection-option-item[data-id="${id}"] .col-checkbox`); if (checkbox) checkbox.checked = false; if (box.querySelectorAll('.collection-badge').length === 0) { const placeholder = document.getElementById('collectionPlaceholder'); if (placeholder) placeholder.style.display = 'block'; } }
+<div class="row">
+    <!-- الحالة -->
+    <div class="col-md-6 mb-3">
+        <label for="productStatus" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-circle text-warning me-1"></i> الحالة
+        </label>
+        <select id="productStatus" name="status" class="form-select" style="border-color: #2d0b36; border-radius: 8px;" onchange="generatePayload()">
+            <option value="DRAFT" {% if product.status|upper == 'DRAFT' %}selected{% endif %}>⏳ مسودة</option>
+            <option value="PUBLISHED" {% if product.status|upper == 'PUBLISHED' %}selected{% endif %}>✅ منشور</option>
+            <option value="REJECTED" {% if product.status|upper == 'REJECTED' %}selected{% endif %}>❌ مرفوض</option>
+            <option value="ARCHIVED" {% if product.status|upper == 'ARCHIVED' %}selected{% endif %}>📦 مؤرشف</option>
+        </select>
+    </div>
+    
+    <!-- المورد -->
+    <div class="col-md-6 mb-3">
+        <label for="supplierId" class="form-label fw-bold" style="color: #2d0b36;">
+            <i class="fas fa-store text-purple me-1"></i> المورد
+        </label>
+        <select id="supplierId" name="supplier_id" class="form-select" style="border-color: #2d0b36; border-radius: 8px;">
+            <option value="">-- غير مرتبط --</option>
+            {% for supplier in suppliers %}
+            <option value="{{ supplier.id }}" {% if assigned_supplier_id == supplier.id %}selected{% endif %}>{{ supplier.trade_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
 
-    document.getElementById('imageUploadArea')?.addEventListener('click', () => { document.getElementById('imageInput').click(); });
-    document.getElementById('imageInput')?.addEventListener('change', function(e) { const files = e.target.files; const grid = document.getElementById('imagePreviewGrid'); for (let i = 0; i < files.length; i++) { const reader = new FileReader(); reader.onload = function(event) { const div = document.createElement('div'); div.className = 'image-preview-item'; div.innerHTML = `<img src="${event.target.result}" alt="صورة"><button type="button" class="remove-image" onclick="this.parentElement.remove()">✕</button>`; grid.appendChild(div); }; reader.readAsDataURL(files[i]); } this.value = ''; });
-
-    function addOptionRow() { const container = document.getElementById('optionsContainer'); const row = document.createElement('div'); row.className = 'option-row'; row.innerHTML = `<div class="option-header"><input type="text" class="opt-name" placeholder="اسم الخيار (مثل: المقاس)" oninput="generatePayload()"><button class="btn-action btn-danger" type="button" onclick="removeOptionRow(this)">حذف الخيار</button></div><label style="font-size: 0.85rem; color: #64748b; margin-bottom: 4px;">القيم المتعددة:</label><div class="values-container"></div><div class="add-value-group"><input type="text" class="val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: كبير)"><button class="btn-action" type="button" onclick="addValueToRow(this)">+ إضافة قيمة</button></div>`; container.appendChild(row); }
-    function removeOptionRow(button) { button.closest('.option-row').remove(); updateVariantsTable(); generatePayload(); }
-    function addValueToRow(button) { const row = button.closest('.option-row'); const input = row.querySelector('.val-input'); const valText = input.value.trim(); if (valText) { const valuesContainer = row.querySelector('.values-container'); const tag = document.createElement('div'); tag.className = 'value-tag'; tag.innerHTML = `${valText} <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>`; valuesContainer.appendChild(tag); input.value = ''; updateVariantsTable(); generatePayload(); } }
-    function cartesian(arr) { return arr.reduce((a, b) => a.flatMap(d => b.map(e => [].concat(d, e))), [[]]); }
-    function updateVariantsTable() { const optionRows = document.querySelectorAll('.option-row'); let valuesArrays = []; optionRows.forEach(row => { const optName = row.querySelector('.opt-name').value.trim(); const tagElements = row.querySelectorAll('.value-tag'); const valuesArray = Array.from(tagElements).map(tag => tag.firstChild.textContent.trim()); if (optName && valuesArray.length > 0) { valuesArrays.push(valuesArray); } }); const container = document.getElementById('variantsTableContainer'); if (valuesArrays.length === 0) { container.innerHTML = `<p style="color: #64748b; font-size: 0.9rem; text-align: center; padding: 15px; background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 6px;">قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...</p>`; return; } const combinations = cartesian(valuesArrays); let html = `<table class="variants-table"><thead><tr><th>المتغير</th><th>صورة المتغير</th><th>SKU</th><th>السعر</th><th>الكمية</th></tr></thead><tbody>`; combinations.forEach((combo, index) => { const optionValues = Array.isArray(combo) ? combo : [combo]; const variantLabel = optionValues.join(' / '); html += `<tr data-index="${index}"><td><strong>${variantLabel}</strong></td><td><div class="variant-img-wrapper"><input type="file" class="var-img-file" accept="image/*" style="display: none;" onchange="handleVariantImage(this, ${index})"><img id="thumb-${index}" class="variant-thumb" src="" alt="Variant Image"><button type="button" class="btn-action" style="padding: 5px 10px; font-size: 0.8rem;" onclick="this.previousElementSibling.previousElementSibling.click()">📷 رفع</button><button type="button" id="del-btn-${index}" class="btn-action btn-danger" style="padding: 5px 8px; font-size: 0.75rem; display: none;" onclick="removeVariantImage(${index})">×</button></div></td><td><input type="text" class="var-sku" value="SKU-VAR-${index + 1}" oninput="generatePayload()"></td><td><input type="number" class="var-price" value="0" step="0.01" oninput="generatePayload()" dir="ltr"></td><td><input type="number" class="var-qty" value="0" oninput="generatePayload()" dir="ltr"></td></tr>`; }); html += `</tbody></table>`; container.innerHTML = html; generatePayload(); }
-    function handleVariantImage(input, index) { const file = input.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { const thumb = document.getElementById(`thumb-${index}`); const delBtn = document.getElementById(`del-btn-${index}`); thumb.src = e.target.result; thumb.style.display = 'block'; delBtn.style.display = 'inline-block'; generatePayload(); }; reader.readAsDataURL(file); } }
-    function removeVariantImage(index) { const tr = document.querySelector(`tr[data-index="${index}"]`); tr.querySelector('.var-img-file').value = ""; const thumb = document.getElementById(`thumb-${index}`); const delBtn = document.getElementById(`del-btn-${index}`); thumb.src = ""; thumb.style.display = 'none'; delBtn.style.display = 'none'; generatePayload(); }
-    function generatePayload() { const title = document.getElementById('productTitle').value; const slug = document.getElementById('productSlug').value; const optionRows = document.querySelectorAll('.option-row'); const options = []; optionRows.forEach(row => { const optName = row.querySelector('.opt-name').value.trim(); const tagElements = row.querySelectorAll('.value-tag'); const valuesArray = Array.from(tagElements).map(tag => tag.firstChild.textContent.trim()); if (optName && valuesArray.length > 0) { options.push({ name: optName, values: valuesArray.map((val, idx) => ({ label: val, sortOrder: idx })) }); } }); const variantRows = document.querySelectorAll('.variants-table tbody tr'); const variants = []; variantRows.forEach((tr, index) => { const sku = tr.querySelector('.var-sku').value; const price = parseFloat(tr.querySelector('.var-price').value) || 0; const quantity = parseInt(tr.querySelector('.var-qty').value) || 0; const optionValuesText = tr.cells[0].innerText.trim(); const optionValues = optionValuesText.split(' / '); const thumb = document.getElementById(`thumb-${index}`); const variantImage = (thumb && thumb.style.display === 'block') ? thumb.src : null; variants.push({ sku: sku, price: price, compareAtPrice: 0, quantity: quantity, optionValues: optionValues, image: variantImage }); }); const payload = { input: { title: title || "", slug: slug || "", status: "active", options: options, variants: variants } }; document.getElementById('variantsPayloadInput').value = JSON.stringify(payload); }
-    function preparePayloadBeforeSubmit(e) { generatePayload(); }
-
-    function addTag() { const input = document.getElementById('tagInput'); const tag = input.value.trim(); if (!tag) return; const container = document.getElementById('tagsContainer'); const noTagsMsg = container.querySelector('.text-muted'); if (noTagsMsg) noTagsMsg.remove(); const span = document.createElement('span'); span.className = 'tag-item'; span.innerHTML = `<span class="remove-tag" onclick="this.parentElement.remove()">✕</span> ${tag}`; container.appendChild(span); input.value = ''; }
-    document.getElementById('tagInput')?.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addTag(); } });
-
-    function deleteProduct(qid, name) { if (!confirm(`⚠️ هل أنت متأكد من حذف/أرشفة المنتج "${name}"؟`)) return; const csrfToken = document.querySelector('[name="csrf_token"]')?.value || ''; fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' } }).then(response => response.json()).then(data => { if (data.success) { alert('✅ ' + data.message); window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}'; } else { alert('❌
+<style>
+.form-label { font-weight: 600; color: #2d0b36; }
+input[type="number"] { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; direction: ltr; text-align: right; }
+.input-group-text { border-radius: 8px 0 0 8px; }
+</style>
