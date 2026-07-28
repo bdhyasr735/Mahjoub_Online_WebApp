@@ -162,10 +162,12 @@ class ProductService:
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID مع جميع الحقول باستخدام متغيرات GraphQL"""
+        """جلب منتج بواسطة QID مع جميع الحقول"""
+        
+        # ✅ استخدم الاستعلام الذي يعمل (بدون متغيرات)
         query = """
-        query($qid: String!) {
-            findProductByQid(qid: $qid) {
+        {
+            findProductByQid(qid: "%s") {
                 success
                 message
                 data {
@@ -222,13 +224,13 @@ class ProductService:
                 }
             }
         }
-        """
+        """ % qid
         
         try:
-            variables = {"qid": qid}
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
+            print(f"🔍 [get_product_by_qid] Query: {query[:200]}...")
             
-            data = self.client.execute(query, variables)
+            data = self.client.execute(query)
             print(f"🔍 [get_product_by_qid] Full Response: {data}")
             
             if data and "findProductByQid" in data:
