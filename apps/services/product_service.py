@@ -60,6 +60,7 @@ class ProductService:
                     pricing {
                         price
                         compareAtPrice
+                        costPerItem
                     }
                     images {
                         fileUrl
@@ -104,6 +105,7 @@ class ProductService:
                     pricing {
                         price
                         compareAtPrice
+                        costPerItem
                     }
                     images {
                         fileUrl
@@ -186,6 +188,7 @@ class ProductService:
                     pricing {
                         price
                         compareAtPrice
+                        costPerItem
                     }
                     images {
                         fileUrl
