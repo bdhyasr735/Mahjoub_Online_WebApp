@@ -1,5 +1,5 @@
 # coding: utf-8
-# 📂 apps/admin_Product/routes/stats.py
+# apps/admin_Product/routes/stats.py
 # إحصائيات المنتجات
 
 from flask import jsonify, session
@@ -17,14 +17,16 @@ def get_stats():
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        all_products = services.products.get_all_products()
+        # ✅ جلب المنتجات من GraphQL
+        result = services.products.get_all_products() or {}
+        all_products = result.get('data', [])
         
         stats = {
             'total': len(all_products),
-            'draft': len([p for p in all_products if p.get('status') == 'DRAFT']),
-            'published': len([p for p in all_products if p.get('status') == 'PUBLISHED']),
-            'rejected': len([p for p in all_products if p.get('status') == 'REJECTED']),
-            'archived': len([p for p in all_products if p.get('status') == 'ARCHIVED'])
+            'draft': len([p for p in all_products if p.get('status', '').upper() == 'DRAFT']),
+            'published': len([p for p in all_products if p.get('status', '').upper() == 'PUBLISHED']),
+            'rejected': len([p for p in all_products if p.get('status', '').upper() == 'REJECTED']),
+            'archived': len([p for p in all_products if p.get('status', '').upper() == 'ARCHIVED'])
         }
         
         return jsonify({
@@ -33,4 +35,5 @@ def get_stats():
         })
         
     except Exception as e:
+        print(f"❌ خطأ في get_stats: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
