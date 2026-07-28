@@ -1,1 +1,54 @@
+<!-- ================= المجموعات ================= -->
+<div class="form-section">
+    <div class="form-section-title">
+        <i class="fas fa-folder-open"></i> المجموعات (Collections)
+    </div>
+    <div class="form-group mb-0">
+        <label>اختر أو ثبّت المجموعات:</label>
+        <div class="collection-multiselect-container" style="position: relative;">
+            <!-- صندوق العرض -->
+            <div class="selected-collections-box" id="selectedCollectionsBox" onclick="toggleCollectionDropdown()" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: white; min-height: 48px; cursor: pointer; align-items: center;">
+                <span class="text-muted placeholder-text" id="collectionPlaceholder" {% if product.collections and product.collections|length > 0 %}style="display:none;"{% endif %}>انقر لاختيار المجموعات...</span>
+                {% if product.collections %}
+                    {% for col in product.collections %}
+                    <span class="collection-badge" data-id="{{ col.qid or col.id }}">
+                        <i class="fas fa-folder"></i> {{ col.title or col.name }}
+                        <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('{{ col.qid or col.id }}')">&times;</span>
+                    </span>
+                    {% endfor %}
+                {% endif %}
+            </div>
 
+            <!-- القائمة المنسدلة -->
+            <div id="collectionDropdownMenu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; margin-top: 5px; padding: 10px;">
+                <input type="text" id="collectionSearchInput" placeholder="بحث في المجموعات..." oninput="filterCollections(this.value)" style="margin-bottom: 8px; padding: 8px;" onclick="event.stopPropagation();">
+                <div id="collectionsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                    {% if all_collections %}
+                        {% for col in all_collections %}
+                        <div class="collection-option-item" data-id="{{ col.qid or col.id }}" data-title="{{ col.title or col.name }}" onclick="toggleCollectionSelection(this, '{{ col.qid or col.id }}', '{{ col.title or col.name }}')" style="padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+                            <span>
+                                {% if col.image and col.image.fileUrl %}
+                                <img src="{{ col.image.fileUrl }}" style="width: 24px; height: 24px; object-fit: cover; border-radius: 4px; margin-right: 6px;">
+                                {% endif %}
+                                <i class="fas fa-folder me-2 text-warning"></i> {{ col.title or col.name }}
+                            </span>
+                            <input type="checkbox" class="col-checkbox" value="{{ col.qid or col.id }}" {% if product.collections and col in product.collections %}checked{% endif %} style="pointer-events: none; width: auto;">
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-muted text-center py-2">لا توجد مجموعات متاحة</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- حقول مخفية -->
+        <div id="hiddenCollectionsInputs">
+            {% if product.collections %}
+                {% for col in product.collections %}
+                <input type="hidden" name="collection_ids" value="{{ col.qid or col.id }}" id="col-input-{{ col.qid or col.id }}">
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
