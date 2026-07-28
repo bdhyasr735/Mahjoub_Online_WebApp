@@ -1,15 +1,17 @@
 <!-- apps/admin_Product/templates/admin/partials/edit/_product_main_info.html -->
-<!-- معلومات المنتج الأساسية والأسعار -->
 
+<!-- ============================================================
+   📦 معلومات المنتج الأساسية والكمية
+   ============================================================ -->
 <div class="row g-3">
     <!-- SKU -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="productSku" class="form-label">
-                <i class="fas fa-barcode text-info me-1"></i> رمز التخزين التعريفي (SKU)
+                <i class="fas fa-barcode text-gold me-1"></i> رمز التخزين التعريفي (SKU)
                 <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">اختياري</span>
             </label>
-            <input type="text" id="productSku" name="sku" class="form-control form-control-lg" 
+            <input type="text" id="productSku" name="sku" class="form-control form-control-lg custom-input" 
                    value="{{ product.sku or '' }}" 
                    placeholder="أدخل رمز SKU (مثل: SKU-001)" 
                    oninput="generatePayload()">
@@ -20,33 +22,33 @@
     <div class="col-md-6">
         <div class="form-group">
             <label for="productQuantity" class="form-label">
-                <i class="fas fa-cubes text-info me-1"></i> الكمية المتاحة
+                <i class="fas fa-cubes text-gold me-1"></i> الكمية المتاحة
                 <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">المخزون</span>
             </label>
-            <input type="number" id="productQuantity" name="quantity" class="form-control form-control-lg" 
+            <input type="number" id="productQuantity" name="quantity" class="form-control form-control-lg custom-input tabular-nums" 
                    min="0" value="{{ product.quantity or 0 }}" 
                    oninput="generatePayload()">
         </div>
     </div>
 </div>
 
-<!-- ======================================== -->
-<!-- الأسعار الثلاثة -->
-<!-- ======================================== -->
+<!-- ============================================================
+   💰 الأسعار الثلاثة
+   ============================================================ -->
 <div class="row g-3 mt-2">
     <!-- السعر الأساسي -->
     <div class="col-md-4">
         <div class="form-group">
             <label for="productPrice" class="form-label">
-                <i class="fas fa-tag text-success me-1"></i> السعر الأساسي *
+                <i class="fas fa-tag text-gold me-1"></i> السعر الأساسي *
                 <span class="badge bg-danger text-white ms-1" style="font-size: 0.6rem; font-weight: 400;">مطلوب</span>
             </label>
             <div class="input-group input-group-lg">
-                <input type="number" id="productPrice" name="price" class="form-control" 
+                <input type="number" id="productPrice" name="price" class="form-control custom-input tabular-nums" 
                        step="0.01" min="0" 
                        value="{{ product.pricing.price if product.pricing and product.pricing.price is not none else 0 }}" 
                        required oninput="generatePayload()">
-                <span class="input-group-text" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; font-weight: 700;">
+                <span class="input-group-text currency-addon">
                     ر.س
                 </span>
             </div>
@@ -58,19 +60,19 @@
     <div class="col-md-4">
         <div class="form-group">
             <label for="comparePrice" class="form-label">
-                <i class="fas fa-tags text-warning me-1"></i> سعر المقارنة
+                <i class="fas fa-tags text-gold me-1"></i> سعر المقارنة
                 <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">عرض</span>
             </label>
             <div class="input-group input-group-lg">
-                <input type="number" id="comparePrice" name="compare_price" class="form-control" 
+                <input type="number" id="comparePrice" name="compare_price" class="form-control custom-input tabular-nums" 
                        step="0.01" min="0" 
                        value="{{ product.pricing.compareAtPrice if product.pricing and product.pricing.compareAtPrice is not none else 0 }}" 
                        oninput="generatePayload()">
-                <span class="input-group-text" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; font-weight: 700;">
+                <span class="input-group-text currency-addon">
                     ر.س
                 </span>
             </div>
-            <small class="text-muted"><i class="fas fa-info-circle me-1"></i> السعر قبل الخصم (يظهر مشطوباً)</small>
+            <small class="text-muted"><i class="fas fa-info-circle me-1"></i> السعر قبل الخصم (مشطوب)</small>
         </div>
     </div>
     
@@ -78,15 +80,15 @@
     <div class="col-md-4">
         <div class="form-group">
             <label for="originalPrice" class="form-label">
-                <i class="fas fa-history text-primary me-1"></i> السعر الأصلي
+                <i class="fas fa-history text-gold me-1"></i> السعر الأصلي
                 <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">مرجع</span>
             </label>
             <div class="input-group input-group-lg">
-                <input type="number" id="originalPrice" name="original_price" class="form-control" 
+                <input type="number" id="originalPrice" name="original_price" class="form-control custom-input tabular-nums" 
                        step="0.01" min="0" 
                        value="{{ product.pricing.originalPrice if product.pricing and product.pricing.originalPrice is not none else 0 }}" 
                        oninput="generatePayload()">
-                <span class="input-group-text" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; font-weight: 700;">
+                <span class="input-group-text currency-addon">
                     ر.س
                 </span>
             </div>
@@ -95,17 +97,17 @@
     </div>
 </div>
 
-<!-- ======================================== -->
-<!-- الحالة والمورد -->
-<!-- ======================================== -->
+<!-- ============================================================
+   ⚙️ الحالة والمورد
+   ============================================================ -->
 <div class="row g-3 mt-2">
     <!-- الحالة -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="productStatus" class="form-label">
-                <i class="fas fa-circle text-warning me-1"></i> الحالة
+                <i class="fas fa-circle text-gold me-1"></i> الحالة
             </label>
-            <select id="productStatus" name="status" class="form-select form-select-lg" onchange="generatePayload()">
+            <select id="productStatus" name="status" class="form-select form-select-lg custom-input" onchange="generatePayload()">
                 <option value="DRAFT" {% if product.status|upper == 'DRAFT' %}selected{% endif %}>⏳ مسودة</option>
                 <option value="PUBLISHED" {% if product.status|upper == 'PUBLISHED' %}selected{% endif %}>✅ منشور</option>
                 <option value="REJECTED" {% if product.status|upper == 'REJECTED' %}selected{% endif %}>❌ مرفوض</option>
@@ -118,9 +120,9 @@
     <div class="col-md-6">
         <div class="form-group">
             <label for="supplierId" class="form-label">
-                <i class="fas fa-store text-purple me-1"></i> المورد
+                <i class="fas fa-store text-gold me-1"></i> المورد
             </label>
-            <select id="supplierId" name="supplier_id" class="form-select form-select-lg">
+            <select id="supplierId" name="supplier_id" class="form-select form-select-lg custom-input">
                 <option value="">-- غير مرتبط --</option>
                 {% for supplier in suppliers %}
                 <option value="{{ supplier.id }}" {% if assigned_supplier_id == supplier.id %}selected{% endif %}>
@@ -132,43 +134,43 @@
     </div>
 </div>
 
-<!-- ======================================== -->
-<!-- ✅ ملخص سريع -->
-<!-- ======================================== -->
+<!-- ============================================================
+   📊 ملخص سريع للبيانات
+   ============================================================ -->
 <div class="row g-3 mt-3">
     <div class="col-12">
-        <div class="p-3" style="background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+        <div class="summary-box">
             <div class="d-flex flex-wrap align-items-center gap-4">
                 <div>
                     <small class="text-muted d-block">السعر الأساسي</small>
-                    <strong style="color: #2d0b36; font-size: 1.1rem;">
+                    <strong class="summary-value">
                         {{ "%.2f"|format(product.pricing.price if product.pricing and product.pricing.price is not none else 0) }} 
-                        <span style="color: #D4AF37;">ر.س</span>
+                        <span class="text-gold">ر.س</span>
                     </strong>
                 </div>
                 <div>
                     <small class="text-muted d-block">سعر المقارنة</small>
-                    <strong style="color: #2d0b36; font-size: 1.1rem;">
+                    <strong class="summary-value">
                         {{ "%.2f"|format(product.pricing.compareAtPrice if product.pricing and product.pricing.compareAtPrice is not none else 0) }} 
-                        <span style="color: #D4AF37;">ر.س</span>
+                        <span class="text-gold">ر.س</span>
                     </strong>
                 </div>
                 <div>
                     <small class="text-muted d-block">السعر الأصلي</small>
-                    <strong style="color: #2d0b36; font-size: 1.1rem;">
+                    <strong class="summary-value">
                         {{ "%.2f"|format(product.pricing.originalPrice if product.pricing and product.pricing.originalPrice is not none else 0) }} 
-                        <span style="color: #D4AF37;">ر.س</span>
+                        <span class="text-gold">ر.س</span>
                     </strong>
                 </div>
                 <div>
                     <small class="text-muted d-block">الكمية</small>
-                    <strong style="color: #2d0b36; font-size: 1.1rem;">
+                    <strong class="summary-value">
                         {{ product.quantity or 0 }} 
-                        <span style="color: #D4AF37;">قطعة</span>
+                        <span class="text-gold">قطعة</span>
                     </strong>
                 </div>
                 <div class="ms-auto">
-                    <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 8px 16px;">
+                    <span class="badge badge-gold-gradient">
                         <i class="fas fa-check-circle me-1"></i> جاهز للتعديل
                     </span>
                 </div>
@@ -177,8 +179,10 @@
     </div>
 </div>
 
+<!-- ============================================================
+   🎨 التنسيقات والأنماط (Styles)
+   ============================================================ -->
 <style>
-/* ✅ تحسينات التصميم */
 .form-group {
     margin-bottom: 0;
 }
@@ -190,11 +194,11 @@
     margin-bottom: 6px;
 }
 
-.form-label i {
-    width: 20px;
+.text-gold {
+    color: #D4AF37 !important;
 }
 
-.form-control, .form-select {
+.custom-input {
     border-color: #e2e8f0;
     border-radius: 10px;
     transition: all 0.3s ease;
@@ -202,74 +206,65 @@
     font-size: 1rem;
 }
 
-.form-control:focus, .form-select:focus {
+.custom-input:focus {
     border-color: #D4AF37;
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
 }
 
-.form-control-lg {
+.form-control-lg, .form-select-lg {
     padding: 14px 18px;
     font-size: 1.05rem;
 }
 
-.input-group-lg .form-control {
-    padding: 14px 18px;
-    font-size: 1.05rem;
-}
-
-.input-group-lg .input-group-text {
-    padding: 14px 20px;
-    font-size: 1.05rem;
-}
-
-.input-group-text {
+.currency-addon {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    color: #D4AF37;
+    border: none;
+    font-weight: 700;
     border-radius: 0 10px 10px 0 !important;
+    padding: 14px 20px;
 }
 
-/* ✅ تنسيق الأرقام */
-input[type="number"] {
+.tabular-nums {
     font-feature-settings: "tnum";
     font-variant-numeric: tabular-nums;
     direction: ltr;
     text-align: right;
 }
 
-/* ✅ تحسينات الجوال */
+.summary-box {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+    border-radius: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.summary-value {
+    color: #2d0b36;
+    font-size: 1.1rem;
+}
+
+.badge-gold-gradient {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    color: #D4AF37;
+    padding: 8px 16px;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+/* تحسينات الجوال */
 @media (max-width: 768px) {
     .form-control-lg, .form-select-lg {
         padding: 10px 14px;
         font-size: 0.95rem;
     }
     
-    .input-group-lg .form-control {
+    .currency-addon {
         padding: 10px 14px;
-        font-size: 0.95rem;
     }
     
-    .input-group-lg .input-group-text {
-        padding: 10px 14px;
-        font-size: 0.95rem;
-    }
-    
-    .p-3 {
-        padding: 16px !important;
-    }
-    
-    .d-flex.flex-wrap.align-items-center.gap-4 {
-        gap: 12px !important;
+    .summary-box {
+        padding: 14px;
     }
 }
-
-/* ✅ تأثيرات الحركة */
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.form-group {
-    animation: fadeInUp 0.4s ease-out forwards;
-}
-
-.form-group:nth-child(2) { animation-delay: 0.1s; }
-.form-group:nth-child(3) { animation-delay: 0.2s; }
 </style>
