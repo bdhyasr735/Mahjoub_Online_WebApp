@@ -1,22 +1,129 @@
-<!-- ================= البيانات الوصفية (SEO) ================= -->
-<div class="form-section">
-    <div class="form-section-title">
-        <i class="fas fa-code"></i> تحسين محركات البحث (SEO)
-    </div>
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label>عنوان SEO</label>
-            <input type="text" name="seo_title" value="{{ product.seo.title if product.seo and product.seo.title else '' }}" placeholder="عنوان SEO">
+<!-- apps/admin_Product/templates/admin/partials/edit/_seo.html -->
+
+<!-- ============================================================
+   🔍 تحسين محركات البحث (SEO)
+   ============================================================ -->
+<div class="form-section seo-card shadow-sm">
+    <div class="form-section-title d-flex align-items-center justify-content-between">
+        <div>
+            <i class="fas fa-code text-gold me-2"></i> 
+            <span>تحسين محركات البحث (SEO)</span>
         </div>
-        <div class="col-md-6 mb-3">
-            <label>وصف SEO</label>
-            <input type="text" name="seo_description" value="{{ product.seo.description if product.seo and product.seo.description else '' }}" placeholder="وصف SEO">
+        <span class="badge badge-gold-soft">
+            <i class="fas fa-search me-1"></i> محركات البحث
+        </span>
+    </div>
+    
+    <div class="row g-3">
+        <!-- عنوان SEO -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="form-label fw-bold text-dark-purple">
+                    <i class="fas fa-heading text-gold me-1"></i> عنوان SEO
+                    <span class="text-muted fw-normal" style="font-size: 0.75rem;">(موصى به: 50-60 حرفاً)</span>
+                </label>
+                <input type="text" 
+                       name="seo_title" 
+                       class="form-control custom-input" 
+                       value="{{ product.seo.title if product.seo and product.seo.title else '' }}" 
+                       placeholder="عنوان تحسين محركات البحث (SEO Title)">
+            </div>
+        </div>
+        
+        <!-- وصف SEO -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="form-label fw-bold text-dark-purple">
+                    <i class="fas fa-align-left text-gold me-1"></i> وصف SEO
+                    <span class="text-muted fw-normal" style="font-size: 0.75rem;">(موصى به: 150-160 حرفاً)</span>
+                </label>
+                <input type="text" 
+                       name="seo_description" 
+                       class="form-control custom-input" 
+                       value="{{ product.seo.description if product.seo and product.seo.description else '' }}" 
+                       placeholder="وصف تحسين محركات البحث (SEO Description)">
+            </div>
         </div>
     </div>
-    <div class="row">
-        <div class="col-md-12 mb-0">
-            <label>الكلمات المفتاحية</label>
-            <input type="text" name="seo_keywords" value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" placeholder="كلمات مفتاحية مفصولة بفواصل">
+    
+    <div class="row g-3 mt-1">
+        <!-- الكلمات المفتاحية -->
+        <div class="col-12">
+            <div class="form-group">
+                <label class="form-label fw-bold text-dark-purple">
+                    <i class="fas fa-tags text-gold me-1"></i> الكلمات المفتاحية
+                </label>
+                <input type="text" 
+                       name="seo_keywords" 
+                       class="form-control custom-input" 
+                       value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" 
+                       placeholder="كلمات مفتاحية مفصولة بفواصل (مثال: متجر, تسوق, منتج)">
+                <small class="text-muted mt-1 d-block">
+                    <i class="fas fa-info-circle me-1"></i> تساعد هذه الكلمات محركات البحث في فهم محتوى المنتج بشكل أفضل.
+                </small>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- ============================================================
+   🎨 التنسيقات والأنماط (Styles)
+   ============================================================ -->
+<style>
+.seo-card {
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.form-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d0b36;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
+}
+
+.text-gold {
+    color: #D4AF37 !important;
+}
+
+.text-dark-purple {
+    color: #2d0b36 !important;
+}
+
+.badge-gold-soft {
+    background: rgba(212, 175, 55, 0.2);
+    color: #D4AF37;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.custom-input {
+    border-color: #e2e8f0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    padding: 12px 16px;
+    font-size: 1rem;
+}
+
+.custom-input:focus {
+    border-color: #D4AF37;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+}
+
+.form-group {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .seo-card {
+        padding: 16px;
+    }
+}
+</style>
