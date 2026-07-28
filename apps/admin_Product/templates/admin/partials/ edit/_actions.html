@@ -1,1 +1,14 @@
-
+<!-- ================= أزرار الإجراءات ================= -->
+<div class="d-flex flex-wrap gap-2 mt-4">
+    <button type="submit" class="btn-action" style="padding: 12px 24px; font-size: 1.05rem;">
+        <i class="fas fa-save me-2"></i> حفظ التغييرات
+    </button>
+    <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action btn-danger" style="padding: 12px 24px; font-size: 1.05rem; background: #64748b;">
+        <i class="fas fa-times me-2"></i> إلغاء
+    </a>
+    {% if product.status|upper != 'ARCHIVED' %}
+    <button type="button" class="btn-action btn-danger" style="padding: 12px 24px; font-size: 1.05rem;" onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
+        <i class="fas fa-trash me-2"></i> حذف / أرشفة
+    </button>
+    {% endif %}
+</div>
