@@ -1,1 +1,32 @@
+<!-- ================= خيارات ومتغيرات المنتج ================= -->
+<div class="form-section">
+    <div class="form-section-title">
+        <i class="fas fa-layer-group"></i> خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)
+    </div>
+    
+    <div class="form-group">
+        <label>خيارات ومتغيرات المنتج:</label>
+        <div id="optionsContainer">
+            <div class="option-row">
+                <div class="option-header">
+                    <input type="text" class="opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()">
+                    <button class="btn-action btn-danger" type="button" onclick="removeOptionRow(this)">حذف الخيار</button>
+                </div>
+                <label style="font-size: 0.85rem; color: #64748b; margin-bottom: 4px;">القيم المتعددة:</label>
+                <div class="values-container"></div>
+                <div class="add-value-group">
+                    <input type="text" class="val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
+                    <button class="btn-action" type="button" onclick="addValueToRow(this)">+ إضافة قيمة</button>
+                </div>
+            </div>
+        </div>
+        <button class="btn-action btn-full" type="button" onclick="addOptionRow()">+ إضافة خيار جديد</button>
+    </div>
 
+    <div class="form-group mb-0">
+        <label>تخصيص السعر، الكمية، وصورة لكل متغير:</label>
+        <div id="variantsTableContainer">
+            <p style="color: #64748b; font-size: 0.9rem; text-align: center; padding: 15px; background: #f8fafc; border: 1px dashed var(--border-color); border-radius: 6px;">قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...</p>
+        </div>
+    </div>
+</div>
