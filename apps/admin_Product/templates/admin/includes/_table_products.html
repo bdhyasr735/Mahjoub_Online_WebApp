@@ -92,14 +92,14 @@
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm">
-                        <!-- ✅ تم التعديل هنا: استبدال safe_url_for بـ url_for -->
+                        <!-- زر التعديل -->
                         <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}"
                            class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 4px; padding: 4px 10px;" 
                            title="تعديل المنتج">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <!-- ✅ تم التعديل هنا: استبدال safe_url_for بـ url_for -->
-                        <button type="button" class="btn" style="background: linear-gradient(135deg, #dc3545, #a71d2a); color: white; border: none; border-radius: 4px; padding: 4px 10px;" 
+                        <!-- زر الحذف (تم إضافة delete-btn هنا) -->
+                        <button type="button" class="btn delete-btn" style="background: linear-gradient(135deg, #dc3545, #a71d2a); color: white; border: none; border-radius: 4px; padding: 4px 10px;" 
                                 data-delete-url="{{ url_for('admin_product_bp.delete_product', qid=product.qid or product.id) }}" 
                                 title="حذف المنتج">
                             <i class="fas fa-trash"></i>
