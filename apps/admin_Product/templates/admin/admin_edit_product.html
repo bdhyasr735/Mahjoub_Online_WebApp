@@ -304,13 +304,7 @@
         color: #dc3545;
     }
 
-    /* ✅ عرض المجموعات */
-    .collections-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 10px;
-    }
+    /* ✅ تنسيق المجموعات (Collections Multi-select مع البحث) */
     .collection-badge {
         background: linear-gradient(135deg, #2d0b36, #1a0520);
         color: #D4AF37;
@@ -324,6 +318,19 @@
     }
     .collection-badge i {
         color: #D4AF37;
+    }
+    .remove-collection {
+        cursor: pointer;
+        color: #ef4444;
+        font-weight: bold;
+        margin-left: 4px;
+        transition: color 0.2s;
+    }
+    .remove-collection:hover {
+        color: #dc2626;
+    }
+    .collection-option-item:hover {
+        background-color: #f8fafc;
     }
 </style>
 {% endblock %}
@@ -345,14 +352,18 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
-        <!-- ================= أولاً: المعلومات الأساسية ================= -->
+        <!-- ================= أولاً: المعلومات الأساسية ومعرف الرابط (Slug) ================= -->
         <div class="form-section">
             <div class="form-section-title">
-                <i class="fas fa-info-circle"></i> المعلومات الأساسية
+                <i class="fas fa-info-circle"></i> المعلومات الأساسية ومعرف الرابط
             </div>
             <div class="form-group">
                 <label>اسم المنتج الأساسي:</label>
                 <input type="text" id="productTitle" name="title" value="{{ product.title or product.name or '' }}" placeholder="أدخل اسم المنتج" oninput="generatePayload()" required>
+            </div>
+            <div class="form-group">
+                <label>معرف الرابط (Slug URL):</label>
+                <input type="text" id="productSlug" name="slug" value="{{ product.slug or '' }}" placeholder="product-slug-url" dir="ltr" oninput="generatePayload()">
             </div>
             {% include "admin/partials/_product_main_info.html" %}
         </div>
@@ -391,24 +402,53 @@
             </div>
         </div>
 
-        <!-- ================= رابعاً: المجموعات (Collections) ================= -->
+        <!-- ================= رابعاً: المجموعات (Collections) - قائمة منسدلة مع بحث وتثبيت متعدد ================= -->
         <div class="form-section">
             <div class="form-section-title">
                 <i class="fas fa-folder-open"></i> المجموعات (Collections)
             </div>
             <div class="form-group mb-0">
-                {% if product.collections and product.collections|length > 0 %}
-                    <div class="collections-grid">
-                        {% for collection in product.collections %}
-                            <span class="collection-badge">
-                                <i class="fas fa-folder"></i> {{ collection.title or collection.name or collection.qid }}
+                <label>اختر أو ثبّت المجموعات:</label>
+                <div class="collection-multiselect-container" style="position: relative;">
+                    <!-- صندوق العرض والتفاعل -->
+                    <div class="selected-collections-box" id="selectedCollectionsBox" onclick="toggleCollectionDropdown()" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: white; min-height: 48px; cursor: pointer; align-items: center;">
+                        <span class="text-muted placeholder-text" id="collectionPlaceholder" {% if product.collections and product.collections|length > 0 %}style="display:none;"{% endif %}>انقر لاختيار المجموعات...</span>
+                        {% if product.collections %}
+                            {% for col in product.collections %}
+                            <span class="collection-badge" data-id="{{ col.qid or col.id }}">
+                                <i class="fas fa-folder"></i> {{ col.title or col.name }}
+                                <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('{{ col.qid or col.id }}')">&times;</span>
                             </span>
-                        {% endfor %}
+                            {% endfor %}
+                        {% endif %}
                     </div>
-                    <small class="text-muted mt-2 d-block">عدد المجموعات: {{ product.collections|length }}</small>
-                {% else %}
-                    <p class="text-muted text-center py-3">لا توجد مجموعات لهذا المنتج</p>
-                {% endif %}
+
+                    <!-- القائمة المنسدلة للبحث والتحديد -->
+                    <div id="collectionDropdownMenu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; margin-top: 5px; padding: 10px;">
+                        <input type="text" id="collectionSearchInput" placeholder="بحث في المجموعات..." oninput="filterCollections(this.value)" style="margin-bottom: 8px; padding: 8px;" onclick="event.stopPropagation();">
+                        <div id="collectionsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                            {% if all_collections %}
+                                {% for col in all_collections %}
+                                <div class="collection-option-item" data-id="{{ col.qid or col.id }}" data-title="{{ col.title or col.name }}" onclick="toggleCollectionSelection(this, '{{ col.qid or col.id }}', '{{ col.title or col.name }}')" style="padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+                                    <span><i class="fas fa-folder me-2 text-warning"></i> {{ col.title or col.name }}</span>
+                                    <input type="checkbox" class="col-checkbox" value="{{ col.qid or col.id }}" {% if product.collections and col in product.collections %}checked{% endif %} style="pointer-events: none; width: auto;">
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-muted text-center py-2">لا توجد مجموعات متاحة</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- حقول مخفية لحفظ المعرفات المُرسلة -->
+                <div id="hiddenCollectionsInputs">
+                    {% if product.collections %}
+                        {% for col in product.collections %}
+                        <input type="hidden" name="collection_ids" value="{{ col.qid or col.id }}" id="col-input-{{ col.qid or col.id }}">
+                        {% endfor %}
+                    {% endif %}
+                </div>
             </div>
         </div>
 
@@ -530,6 +570,89 @@
             });
         }
     });
+
+    // ========================================
+    // إدارة قائمة المجموعات المنسدلة (بحث + تثبيت متعدد)
+    // ========================================
+    function toggleCollectionDropdown() {
+        const menu = document.getElementById('collectionDropdownMenu');
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        if (menu.style.display === 'block') {
+            document.getElementById('collectionSearchInput').focus();
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        const container = document.querySelector('.collection-multiselect-container');
+        if (container && !container.contains(e.target)) {
+            document.getElementById('collectionDropdownMenu').style.display = 'none';
+        }
+    });
+
+    function filterCollections(query) {
+        const items = document.querySelectorAll('.collection-option-item');
+        query = query.toLowerCase();
+        items.forEach(item => {
+            const title = item.getAttribute('data-title').toLowerCase();
+            if (title.includes(query)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    function toggleCollectionSelection(element, id, title) {
+        const checkbox = element.querySelector('.col-checkbox');
+        checkbox.checked = !checkbox.checked;
+        
+        if (checkbox.checked) {
+            addCollectionBadge(id, title);
+        } else {
+            removeCollection(id);
+        }
+    }
+
+    function addCollectionBadge(id, title) {
+        const box = document.getElementById('selectedCollectionsBox');
+        const placeholder = document.getElementById('collectionPlaceholder');
+        if (placeholder) placeholder.style.display = 'none';
+        
+        if (box.querySelector(`.collection-badge[data-id="${id}"]`)) return;
+        
+        const badge = document.createElement('span');
+        badge.className = 'collection-badge';
+        badge.setAttribute('data-id', id);
+        badge.innerHTML = `<i class="fas fa-folder"></i> ${title} <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('${id}')">&times;</span>`;
+        box.appendChild(badge);
+        
+        const hiddenContainer = document.getElementById('hiddenCollectionsInputs');
+        if (!document.getElementById(`col-input-${id}`)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'collection_ids';
+            input.value = id;
+            input.id = `col-input-${id}`;
+            hiddenContainer.appendChild(input);
+        }
+    }
+
+    function removeCollection(id) {
+        const box = document.getElementById('selectedCollectionsBox');
+        const badge = box.querySelector(`.collection-badge[data-id="${id}"]`);
+        if (badge) badge.remove();
+        
+        const input = document.getElementById(`col-input-${id}`);
+        if (input) input.remove();
+        
+        const checkbox = document.querySelector(`.collection-option-item[data-id="${id}"] .col-checkbox`);
+        if (checkbox) checkbox.checked = false;
+        
+        if (box.querySelectorAll('.collection-badge').length === 0) {
+            const placeholder = document.getElementById('collectionPlaceholder');
+            if (placeholder) placeholder.style.display = 'block';
+        }
+    }
 
     // ========================================
     // إدارة رفع الصور الرئيسية
@@ -700,6 +823,7 @@
 
     function generatePayload() {
         const title = document.getElementById('productTitle').value;
+        const slug = document.getElementById('productSlug').value;
         const optionRows = document.querySelectorAll('.option-row');
         const options = [];
 
@@ -746,6 +870,7 @@
         const payload = {
             input: {
                 title: title || "",
+                slug: slug || "",
                 status: "active",
                 options: options,
                 variants: variants
