@@ -1,4 +1,4 @@
-<!-- 📂 apps/admin_Product/templates/admin/partials/_product_meta_variants.html -->
+<!-- apps/admin_Product/templates/admin/partials/_product_meta_variants.html -->
 <!-- بيانات المتغيرات والـ Meta للمنتج -->
 
 <!-- ======================================== -->
@@ -26,6 +26,7 @@
                         <th style="color: #2d0b36; font-weight: 600;">الخيارات</th>
                         <th style="color: #2d0b36; font-weight: 600;" class="text-center">السعر</th>
                         <th style="color: #2d0b36; font-weight: 600;" class="text-center">سعر المقارنة</th>
+                        <th style="color: #2d0b36; font-weight: 600;" class="text-center">السعر الأصلي</th>
                         <th style="color: #2d0b36; font-weight: 600;" class="text-center">الكمية</th>
                         <th style="color: #2d0b36; font-weight: 600;" class="text-center">المعرف</th>
                     </tr>
@@ -59,14 +60,22 @@
                                 <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td class="text-center fw-bold" style="color: #D4AF37;">
+                        <td class="text-center fw-bold" style="color: #D4AF37; direction: ltr; font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums;">
                             {% set price = variant.pricing.price if variant.pricing and variant.pricing.price is not none else variant.price or 0 %}
                             {{ "%.2f"|format(price|float) }} ر.س
                         </td>
-                        <td class="text-center">
+                        <td class="text-center" style="direction: ltr; font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums;">
                             {% set comparePrice = variant.pricing.compareAtPrice if variant.pricing and variant.pricing.compareAtPrice is not none else variant.compareAtPrice or 0 %}
                             {% if comparePrice > 0 %}
                                 <span class="text-muted text-decoration-line-through">{{ "%.2f"|format(comparePrice|float) }} ر.س</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center" style="color: #6c5ce7; direction: ltr; font-feature-settings: 'tnum'; font-variant-numeric: tabular-nums;">
+                            {% set originalPrice = variant.pricing.originalPrice if variant.pricing and variant.pricing.originalPrice is not none else variant.originalPrice or 0 %}
+                            {% if originalPrice > 0 %}
+                                {{ "%.2f"|format(originalPrice|float) }} ر.س
                             {% else %}
                                 <span class="text-muted">-</span>
                             {% endif %}
@@ -279,5 +288,11 @@ img {
 }
 img:hover {
     transform: scale(1.05);
+}
+
+/* ✅ تنسيق الأرقام في الجدول */
+.text-center {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
 }
 </style>
