@@ -11,5 +11,5 @@
         <label>معرف الرابط (Slug URL):</label>
         <input type="text" id="productSlug" name="slug" value="{{ product.slug or '' }}" placeholder="product-slug-url" dir="ltr" oninput="generatePayload()">
     </div>
-    {% include "admin/partials/_product_main_info.html" %}
+    {% include "admin/partials/edit/_product_main_info.html" %}
 </div>
