@@ -1,1 +1,15 @@
-
+<!-- ================= المعلومات الأساسية ================= -->
+<div class="form-section">
+    <div class="form-section-title">
+        <i class="fas fa-info-circle"></i> المعلومات الأساسية ومعرف الرابط
+    </div>
+    <div class="form-group">
+        <label>اسم المنتج الأساسي:</label>
+        <input type="text" id="productTitle" name="title" value="{{ product.title or product.name or '' }}" placeholder="أدخل اسم المنتج" oninput="generatePayload()" required>
+    </div>
+    <div class="form-group">
+        <label>معرف الرابط (Slug URL):</label>
+        <input type="text" id="productSlug" name="slug" value="{{ product.slug or '' }}" placeholder="product-slug-url" dir="ltr" oninput="generatePayload()">
+    </div>
+    {% include "admin/partials/_product_main_info.html" %}
+</div>
