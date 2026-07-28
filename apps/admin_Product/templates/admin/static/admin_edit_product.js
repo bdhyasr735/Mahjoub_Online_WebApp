@@ -1,765 +1,230 @@
-// static/admin_edit_product.js
-// ============================================================
-// 🚀 التطبيق المتكامل لصفحة تعديل المنتج - النسخة الاحترافية
-// ============================================================
+{% extends "admin/base.html" %}
 
-(function() {
-    'use strict';
+{% block title %}{{ 'تعديل المنتج: ' ~ product.title if product else 'إضافة منتج جديد' }}{% endblock %}
 
-    // ============================================================
-    // 📝 TinyMCE Editor - محرر النصوص المتقدم
-    // ============================================================
-    function initTinyMCE() {
-        if (typeof tinymce === 'undefined') {
-            console.warn('⚠️ TinyMCE غير محمل');
-            return;
-        }
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('admin_product_bp.static', filename='admin_edit_product.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- TinyMCE CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
+{% endblock %}
 
-        tinymce.init({
-            selector: '#productDescription',
-            height: 400,
-            menubar: true,
-            language: 'ar',
-            directionality: 'rtl',
-            
-            plugins: [
-                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
-                'preview', 'anchor', 'searchreplace', 'visualblocks', 'code',
-                'fullscreen', 'insertdatetime', 'media', 'table', 'help', 'wordcount'
-            ],
-            
-            toolbar: [
-                'undo redo | blocks | fontfamily fontsize',
-                'bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify',
-                'bullist numlist | outdent indent | link image media | table | code',
-                'removeformat | fullscreen | help'
-            ],
-            
-            font_family_formats: [
-                'Cairo=ج', 'Arial=Arial', 'Helvetica=Helvetica',
-                'Times New Roman=Times New Roman', 'Georgia=Georgia',
-                'Tahoma=Tahoma', 'Verdana=Verdana'
-            ].join(';'),
-            
-            font_size_formats: '8pt 10pt 12pt 14pt 18pt 24pt 36pt 48pt 72pt',
-            
-            content_style: `
-                body { 
-                    font-family: "Cairo", system-ui, sans-serif; 
-                    font-size: 16px; 
-                    line-height: 1.8; 
-                    padding: 20px; 
-                    color: #1e293b;
-                }
-                h1, h2, h3, h4 { color: #0f172a; }
-                a { color: #D4AF37; text-decoration: underline; }
-                table { border-collapse: collapse; width: 100%; margin: 16px 0; }
-                th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: right; }
-                th { background: #f1f5f9; font-weight: 600; }
-                blockquote { 
-                    border-right: 4px solid #D4AF37; 
-                    padding: 12px 20px; 
-                    background: #f8fafc;
-                    border-radius: 4px;
-                    margin: 16px 0;
-                }
-                img { max-width: 100%; height: auto; border-radius: 8px; }
-            `,
-            
-            images_upload_handler: function(blobInfo) {
-                return new Promise(function(resolve) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        resolve(e.target.result);
-                    };
-                    reader.readAsDataURL(blobInfo.blob());
-                });
-            },
-            
-            setup: function(editor) {
-                editor.on('change', function() {
-                    document.querySelector('textarea[name="description"]').value = editor.getContent();
-                });
-            }
-        });
-    }
+{% block content %}
+<div class="edit-product-container">
+    <form method="POST" action="" enctype="multipart/form-data" onsubmit="preparePayloadBeforeSubmit(event)">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
-    // ============================================================
-    // 📂 إدارة المجموعات
-    // ============================================================
-    function initCollectionHandlers() {
-        // إغلاق القائمة عند النقر خارجها
-        document.addEventListener('click', function(e) {
-            const container = document.querySelector('.collection-multiselect-container');
-            if (container && !container.contains(e.target)) {
-                const menu = document.getElementById('collectionDropdownMenu');
-                if (menu) menu.style.display = 'none';
-            }
-        });
-    }
-
-    function toggleCollectionDropdown() {
-        const menu = document.getElementById('collectionDropdownMenu');
-        if (!menu) return;
-        
-        const isOpen = menu.style.display === 'block';
-        menu.style.display = isOpen ? 'none' : 'block';
-        
-        if (!isOpen) {
-            const input = document.getElementById('collectionSearchInput');
-            if (input) {
-                input.focus();
-                input.value = '';
-                filterCollections('');
-            }
-        }
-    }
-
-    function filterCollections(query) {
-        const items = document.querySelectorAll('.collection-option-item');
-        const normalizedQuery = query.toLowerCase().trim();
-        let visibleCount = 0;
-        
-        items.forEach(item => {
-            const title = item.getAttribute('data-title') || '';
-            const isVisible = title.toLowerCase().includes(normalizedQuery);
-            item.style.display = isVisible ? 'flex' : 'none';
-            if (isVisible) visibleCount++;
-        });
-        
-        const noResults = document.getElementById('collectionsNoResults');
-        if (noResults) {
-            noResults.style.display = visibleCount === 0 ? 'block' : 'none';
-        }
-    }
-
-    function toggleCollectionSelection(element, id, title) {
-        const checkbox = element.querySelector('.col-checkbox');
-        if (!checkbox) return;
-        
-        checkbox.checked = !checkbox.checked;
-        
-        if (checkbox.checked) {
-            addCollectionBadge(id, title);
-            element.classList.add('selected');
-        } else {
-            removeCollection(id);
-            element.classList.remove('selected');
-        }
-    }
-
-    function addCollectionBadge(id, title) {
-        const box = document.getElementById('selectedCollectionsBox');
-        if (!box) return;
-        
-        // إخفاء placeholder
-        const placeholder = document.getElementById('collectionPlaceholder');
-        if (placeholder) placeholder.style.display = 'none';
-        
-        // منع التكرار
-        if (box.querySelector(`.collection-badge[data-id="${id}"]`)) return;
-        
-        // إنشاء badge
-        const badge = document.createElement('span');
-        badge.className = 'collection-badge';
-        badge.setAttribute('data-id', id);
-        badge.innerHTML = `
-            <i class="fas fa-folder"></i> 
-            ${title} 
-            <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('${id}')">&times;</span>
-        `;
-        box.appendChild(badge);
-        
-        // إضافة الحقل المخفي
-        const hiddenContainer = document.getElementById('hiddenCollectionsInputs');
-        if (hiddenContainer && !document.getElementById(`col-input-${id}`)) {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'collection_ids';
-            input.value = id;
-            input.id = `col-input-${id}`;
-            hiddenContainer.appendChild(input);
-        }
-        
-        updateCollectionsCount();
-    }
-
-    function removeCollection(id) {
-        const box = document.getElementById('selectedCollectionsBox');
-        if (!box) return;
-        
-        // حذف badge
-        const badge = box.querySelector(`.collection-badge[data-id="${id}"]`);
-        if (badge) badge.remove();
-        
-        // حذف الحقل المخفي
-        const input = document.getElementById(`col-input-${id}`);
-        if (input) input.remove();
-        
-        // تحديث checkbox
-        const checkbox = document.querySelector(`.collection-option-item[data-id="${id}"] .col-checkbox`);
-        if (checkbox) checkbox.checked = false;
-        
-        // إظهار placeholder إذا لم يتبقى مجموعات
-        const remaining = box.querySelectorAll('.collection-badge');
-        const placeholder = document.getElementById('collectionPlaceholder');
-        if (placeholder && remaining.length === 0) {
-            placeholder.style.display = 'block';
-        }
-        
-        updateCollectionsCount();
-    }
-
-    function updateCollectionsCount() {
-        const box = document.getElementById('selectedCollectionsBox');
-        if (!box) return;
-        
-        const count = box.querySelectorAll('.collection-badge').length;
-        const display = document.getElementById('selectedCountDisplay');
-        if (display) display.textContent = count;
-        
-        const badge = document.querySelector('.collection-count-badge');
-        if (badge) {
-            badge.textContent = count;
-            badge.style.display = count > 0 ? 'inline-block' : 'none';
-        }
-    }
-
-    // ============================================================
-    // 🖼️ إدارة الصور
-    // ============================================================
-    function initImageHandlers() {
-        const uploadArea = document.getElementById('imageUploadArea');
-        const input = document.getElementById('imageInput');
-        
-        if (!uploadArea || !input) return;
-        
-        // رفع بالضغط
-        uploadArea.addEventListener('click', function() {
-            input.click();
-        });
-        
-        // سحب وإفلات
-        uploadArea.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            this.style.borderColor = '#D4AF37';
-            this.style.background = 'rgba(212, 175, 55, 0.05)';
-        });
-        
-        uploadArea.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            this.style.borderColor = '';
-            this.style.background = '';
-        });
-        
-        uploadArea.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.style.borderColor = '';
-            this.style.background = '';
-            
-            if (e.dataTransfer.files.length > 0) {
-                input.files = e.dataTransfer.files;
-                input.dispatchEvent(new Event('change'));
-            }
-        });
-        
-        // معاينة الصور
-        input.addEventListener('change', function() {
-            const files = this.files;
-            const grid = document.getElementById('imagePreviewGrid');
-            if (!grid) return;
-            
-            // إزالة رسالة "لا توجد صور"
-            const emptyMsg = grid.querySelector('.text-center.text-muted');
-            if (emptyMsg) emptyMsg.remove();
-            
-            for (let i = 0; i < files.length; i++) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const div = document.createElement('div');
-                    div.className = 'image-preview-item';
-                    div.innerHTML = `
-                        <img src="${event.target.result}" alt="صورة المنتج" loading="lazy">
-                        <button type="button" class="remove-image" onclick="this.parentElement.remove();">✕</button>
-                    `;
-                    grid.appendChild(div);
-                };
-                reader.readAsDataURL(files[i]);
-            }
-            
-            this.value = '';
-        });
-    }
-
-    // ============================================================
-    // 🧩 إدارة المتغيرات
-    // ============================================================
-    function addOptionRow() {
-        const container = document.getElementById('optionsContainer');
-        if (!container) return;
-        
-        const row = document.createElement('div');
-        row.className = 'option-row';
-        row.innerHTML = `
-            <div class="option-header">
-                <input type="text" class="opt-name" placeholder="اسم الخيار (مثل: المقاس)" oninput="generatePayload()">
-                <button class="btn-action btn-danger" type="button" onclick="removeOptionRow(this)">🗑️ حذف</button>
+        <!-- رأس الصفحة وأزرار الإجراءات -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 font-weight-bold" style="color: var(--primary);">
+                    <i class="fas fa-box-open" style="color: var(--gold);"></i> 
+                    {{ product.title if product and product.title else 'إضافة منتج جديد' }}
+                </h1>
+                <p class="text-muted mb-0">إدارة تفاصيل المنتج، المتغيرات، المجموعات، والصور الاحترافية.</p>
             </div>
-            <label style="font-size: 0.85rem; color: #64748b;">القيم المتعددة:</label>
-            <div class="values-container"></div>
-            <div class="add-value-group">
-                <input type="text" class="val-input" placeholder="أدخل قيمة" onkeypress="if(event.key==='Enter'){event.preventDefault();addValueToRow(this.closest('.add-value-group').querySelector('button'));}">
-                <button class="btn-action" type="button" onclick="addValueToRow(this)">➕ إضافة</button>
+            <div class="d-flex gap-2">
+                {% if product and product.id %}
+                <button type="button" class="btn-action btn-danger" onclick="deleteProduct('{{ product.id }}', '{{ product.title }}')">
+                    <i class="fas fa-trash-alt"></i> حذف المنتج
+                </button>
+                {% endif %}
+                <button type="submit" class="btn-action btn-action-gold">
+                    <i class="fas fa-save"></i> حفظ التغييرات
+                </button>
             </div>
-        `;
-        container.appendChild(row);
-        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+        </div>
 
-    function removeOptionRow(button) {
-        const row = button.closest('.option-row');
-        if (!row) return;
-        
-        if (row.parentElement.children.length <= 1) {
-            showNotification('⚠️ يجب أن يبقى خيار واحد على الأقل', 'warning');
-            return;
-        }
-        
-        if (confirm('⚠️ هل أنت متأكد من حذف هذا الخيار وجميع قيمه؟')) {
-            row.remove();
-            updateVariantsTable();
-            generatePayload();
-        }
-    }
-
-    function addValueToRow(button) {
-        const row = button.closest('.option-row');
-        if (!row) return;
-        
-        const input = row.querySelector('.val-input');
-        if (!input) return;
-        
-        const value = input.value.trim();
-        if (!value) {
-            showNotification('⚠️ الرجاء إدخال قيمة', 'warning');
-            return;
-        }
-        
-        const container = row.querySelector('.values-container');
-        if (!container) return;
-        
-        // منع التكرار
-        const existing = container.querySelectorAll('.value-tag');
-        for (let tag of existing) {
-            if (tag.textContent.trim().replace('×', '').trim() === value) {
-                showNotification('⚠️ هذه القيمة موجودة بالفعل', 'warning');
-                return;
-            }
-        }
-        
-        const tag = document.createElement('div');
-        tag.className = 'value-tag';
-        tag.innerHTML = `
-            ${value} 
-            <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
-        `;
-        container.appendChild(tag);
-        input.value = '';
-        input.focus();
-        
-        updateVariantsTable();
-        generatePayload();
-    }
-
-    function updateVariantsTable() {
-        const optionRows = document.querySelectorAll('.option-row');
-        const valuesArrays = [];
-        
-        optionRows.forEach(row => {
-            const optName = row.querySelector('.opt-name').value.trim();
-            const tags = row.querySelectorAll('.value-tag');
-            const values = Array.from(tags).map(tag => tag.textContent.trim().replace('×', '').trim());
-            
-            if (optName && values.length > 0) {
-                valuesArrays.push(values);
-            }
-        });
-        
-        const container = document.getElementById('variantsTableContainer');
-        if (!container) return;
-        
-        if (valuesArrays.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-5 text-muted">
-                    <i class="fas fa-cubes fa-3x mb-3 d-block" style="color: #D4AF37;"></i>
-                    <p class="mb-0">قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات</p>
+        <!-- 1. المعلومات الأساسية -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-info-circle"></i> المعلومات الأساسية
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label for="productTitle"><i class="fas fa-heading"></i> عنوان المنتج</label>
+                        <input type="text" id="productTitle" name="title" value="{{ product.title if product else '' }}" placeholder="أدخل عنوان المنتج الاحترافي..." required oninput="document.getElementById('productSlug').value = this.value.trim().toLowerCase().replace(/[\s]+/g, '-').replace(/[^\w\-]+/g, '')">
+                    </div>
                 </div>
-            `;
-            return;
-        }
-        
-        const combinations = cartesianProduct(valuesArrays);
-        let html = `
-            <div class="table-responsive">
-                <table class="variants-table">
-                    <thead>
-                        <tr>
-                            <th>المتغير</th>
-                            <th>صورة</th>
-                            <th>SKU</th>
-                            <th>السعر</th>
-                            <th>الكمية</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        combinations.forEach((combo, index) => {
-            const variantLabel = combo.join(' / ');
-            html += `
-                <tr data-index="${index}">
-                    <td><strong>${variantLabel}</strong></td>
-                    <td>
-                        <div class="variant-img-wrapper">
-                            <input type="file" class="var-img-file" accept="image/*" style="display:none;" onchange="handleVariantImage(this, ${index})">
-                            <img id="thumb-${index}" class="variant-thumb" src="" alt="صورة المتغير">
-                            <button class="btn-action btn-sm" onclick="this.previousElementSibling.previousElementSibling.click()">📷</button>
-                            <button id="del-btn-${index}" class="btn-action btn-danger btn-sm" style="display:none;" onclick="removeVariantImage(${index})">×</button>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="productSlug"><i class="fas fa-link"></i> الرابط المختصر (Slug)</label>
+                        <input type="text" id="productSlug" name="slug" value="{{ product.slug if product else '' }}" placeholder="product-slug-url" dir="ltr" required>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group mt-3">
+                <label for="productDescription"><i class="fas fa-align-right"></i> وصف المنتج المفصل</label>
+                <textarea id="productDescription" name="description">{{ product.description if product else '' }}</textarea>
+            </div>
+        </div>
+
+        <!-- 2. المجموعات والتصنيفات -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-folder-tree"></i> مجموعات المنتج
+                <span class="badge-count" id="selectedCountDisplay">0</span>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-tags"></i> اختر المجموعات التابع لها المنتج</label>
+                
+                <!-- حاوية التحديد المتعدد المخصصة -->
+                <div class="collection-multiselect-container position-relative">
+                    <div class="form-control d-flex flex-wrap align-items-center gap-2 cursor-pointer" onclick="toggleCollectionDropdown()" style="min-height: 50px; background: #fff;">
+                        <span id="collectionPlaceholder" class="text-muted">انقر لاختيار المجموعات...</span>
+                        <div id="selectedCollectionsBox" class="d-flex flex-wrap gap-2">
+                            <!-- يتم حقن الـ Badges هنا ديناميكياً -->
                         </div>
-                    </td>
-                    <td><input type="text" class="var-sku" value="SKU-${String(index + 1).padStart(3, '0')}" oninput="generatePayload()"></td>
-                    <td><input type="number" class="var-price" value="0" step="0.01" oninput="generatePayload()" dir="ltr"></td>
-                    <td><input type="number" class="var-qty" value="0" oninput="generatePayload()" dir="ltr"></td>
-                </tr>
-            `;
-        });
-        
-        html += `</tbody></table></div>`;
-        container.innerHTML = html;
-        generatePayload();
-    }
+                    </div>
 
-    function cartesianProduct(arr) {
-        return arr.reduce((a, b) => a.flatMap(d => b.map(e => [].concat(d, e))), [[]]);
-    }
+                    <!-- قائمة منسدلة للبحث والتحديد -->
+                    <div id="collectionDropdownMenu" class="dropdown-menu p-3 shadow-lg border-0 w-100 mt-1" style="display: none; position: absolute; top: 100%; right: 0; z-index: 1000; background: #fff; border-radius: 12px; border: 1px solid rgba(212, 175, 55, 0.3) !important;">
+                        <input type="text" id="collectionSearchInput" class="form-control mb-3" placeholder="بحث في المجموعات..." oninput="filterCollections(this.value)">
+                        
+                        <div class="collections-list-scroll" style="max-height: 220px; overflow-y: auto;">
+                            {% for col in all_collections %}
+                            <div class="collection-option-item d-flex align-items-center justify-content-between p-2 rounded cursor-pointer mb-1" 
+                                 data-id="{{ col.id }}" 
+                                 data-title="{{ col.title }}"
+                                 onclick="toggleCollectionSelection(this, '{{ col.id }}', '{{ col.title }}')"
+                                 style="transition: background 0.2s;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="checkbox" class="col-checkbox form-check-input m-0" {% if product and col in product.collections %}checked{% endif %}>
+                                    <span style="font-weight: 500; color: var(--primary);">{{ col.title }}</span>
+                                </div>
+                                <i class="fas fa-folder text-warning"></i>
+                            </div>
+                            {% endfor %}
+                            <div id="collectionsNoResults" class="text-center text-muted py-2" style="display: none;">لا توجد نتائج مطابقة</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- حقول مخفية لحفظ المعرفات عند الإرسال -->
+                <div id="hiddenCollectionsInputs">
+                    {% if product and product.collections %}
+                        {% for col in product.collections %}
+                        <input type="hidden" name="collection_ids" value="{{ col.id }}" id="col-input-{{ col.id }}">
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
-    function handleVariantImage(input, index) {
-        const file = input.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const thumb = document.getElementById(`thumb-${index}`);
-            const delBtn = document.getElementById(`del-btn-${index}`);
-            if (thumb) {
-                thumb.src = e.target.result;
-                thumb.style.display = 'block';
-            }
-            if (delBtn) delBtn.style.display = 'inline-block';
-            generatePayload();
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function removeVariantImage(index) {
-        const tr = document.querySelector(`tr[data-index="${index}"]`);
-        if (tr) {
-            const input = tr.querySelector('.var-img-file');
-            if (input) input.value = '';
-        }
-        
-        const thumb = document.getElementById(`thumb-${index}`);
-        const delBtn = document.getElementById(`del-btn-${index}`);
-        if (thumb) {
-            thumb.src = '';
-            thumb.style.display = 'none';
-        }
-        if (delBtn) delBtn.style.display = 'none';
-        generatePayload();
-    }
-
-    function generatePayload() {
-        const title = document.getElementById('productTitle')?.value || '';
-        const slug = document.getElementById('productSlug')?.value || '';
-        
-        const optionRows = document.querySelectorAll('.option-row');
-        const options = [];
-        
-        optionRows.forEach(row => {
-            const name = row.querySelector('.opt-name')?.value.trim() || '';
-            const tags = row.querySelectorAll('.value-tag');
-            const values = Array.from(tags).map(tag => tag.textContent.trim().replace('×', '').trim());
+        <!-- 3. صور المنتج الرئيسية -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-images"></i> معرض الصور
+            </div>
             
-            if (name && values.length > 0) {
-                options.push({
-                    name: name,
-                    values: values.map((label, index) => ({ label, sortOrder: index }))
-                });
-            }
-        });
-        
-        const variantRows = document.querySelectorAll('.variants-table tbody tr');
-        const variants = [];
-        
-        variantRows.forEach((tr, index) => {
-            const sku = tr.querySelector('.var-sku')?.value || `SKU-${String(index + 1).padStart(3, '0')}`;
-            const price = parseFloat(tr.querySelector('.var-price')?.value) || 0;
-            const quantity = parseInt(tr.querySelector('.var-qty')?.value) || 0;
-            
-            const optionValuesText = tr.querySelector('td:first-child strong')?.textContent || '';
-            const optionValues = optionValuesText.split(' / ');
-            
-            const thumb = document.getElementById(`thumb-${index}`);
-            const image = (thumb && thumb.style.display === 'block') ? thumb.src : null;
-            
-            variants.push({
-                sku,
-                price,
-                compareAtPrice: 0,
-                quantity,
-                optionValues,
-                image
-            });
-        });
-        
-        const payload = {
-            input: {
-                title: title || '',
-                slug: slug || '',
-                status: 'active',
-                options,
-                variants
-            }
-        };
-        
-        const payloadInput = document.getElementById('variantsPayloadInput');
-        if (payloadInput) {
-            payloadInput.value = JSON.stringify(payload);
+            <div id="imageUploadArea" class="border border-dashed rounded-3 p-4 text-center cursor-pointer mb-3" style="border: 2px dashed rgba(212, 175, 55, 0.4); background: var(--gray-50); transition: all 0.3s;">
+                <i class="fas fa-cloud-upload-alt fa-3x mb-2" style="color: var(--gold);"></i>
+                <h5 style="color: var(--primary); font-weight: 600;">اسحب وأفلت صور المنتج هنا، أو انقر للاختيار</h5>
+                <p class="text-muted small mb-0">PNG, JPG, WEBP مسموح بها</p>
+                <input type="file" id="imageInput" name="images" multiple accept="image/*" style="display: none;">
+            </div>
+
+            <div id="imagePreviewGrid" class="d-flex flex-wrap gap-3">
+                {% if product and product.images %}
+                    {% for img in product.images %}
+                    <div class="image-preview-item position-relative rounded overflow-hidden shadow-sm" style="width: 100px; height: 100px; border: 1px solid var(--gray-200);">
+                        <img src="{{ img.url }}" alt="صورة المنتج" class="w-100 h-100 object-fit-cover">
+                        <button type="button" class="remove-image btn btn-danger btn-sm position-absolute top-0 end-0 m-1 p-0 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px; border-radius: 50%;" onclick="this.parentElement.remove();">✕</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted w-150 py-3">لا توجد صور مرفوعة حالياً</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 4. خيارات ومتغيرات المنتج (Variants & Options) -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-cubes"></i> خيارات ومتغيرات المنتج (المقاسات، الألوان، إلخ)
+            </div>
+
+            <div id="optionsContainer">
+                <!-- صف الخيار الافتراضي -->
+                <div class="option-row p-3 rounded mb-3" style="background: var(--gray-50); border: 1px solid var(--gray-200);">
+                    <div class="option-header d-flex justify-content-between align-items-center mb-2">
+                        <input type="text" class="opt-name form-control w-75" placeholder="اسم الخيار (مثل: المقاس أو اللون)" value="المقاس" oninput="generatePayload()">
+                        <button class="btn-action btn-danger" type="button" onclick="removeOptionRow(this)"><i class="fas fa-trash"></i> حذف</button>
+                    </div>
+                    <label style="font-size: 0.85rem; color: var(--gray-600);">القيم المتعددة:</label>
+                    <div class="values-container d-flex flex-wrap gap-2 mb-2">
+                        <div class="value-tag badge bg-light text-dark border p-2 d-flex align-items-center gap-2">
+                            صغير <span class="cursor-pointer text-danger" onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
+                        </div>
+                        <div class="value-tag badge bg-light text-dark border p-2 d-flex align-items-center gap-2">
+                            كبير <span class="cursor-pointer text-danger" onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
+                        </div>
+                    </div>
+                    <div class="add-value-group d-flex gap-2">
+                        <input type="text" class="val-input form-control" placeholder="أدخل قيمة جديدة واضغط إضافة..." onkeypress="if(event.key==='Enter'){event.preventDefault();addValueToRow(this.closest('.add-value-group').querySelector('button'));}">
+                        <button class="btn-action btn-action-gold" type="button" onclick="addValueToRow(this)"><i class="fas fa-plus"></i> إضافة</button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="btn-action mb-4" onclick="addOptionRow()">
+                <i class="fas fa-plus-circle"></i> إضافة خيار جديد (مثل اللون)
+            </button>
+
+            <!-- جدول المتغيرات المولدة تلقائياً -->
+            <h5 class="font-weight-bold mb-3" style="color: var(--primary); font-size: 1rem;"><i class="fas fa-table" style="color: var(--gold);"></i> جدول المتغيرات والأسعار</h5>
+            <div id="variantsTableContainer">
+                <!-- يتم توليد الجدول تلقائياً بواسطة JavaScript -->
+            </div>
+        </div>
+
+        <!-- 5. العلامات (Tags) -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-tags"></i> العلامات الدلالية (Tags)
+            </div>
+            <div class="form-group">
+                <div class="d-flex gap-2 mb-3">
+                    <input type="text" id="tagInput" class="form-control" placeholder="أدخل علامة واضغط Enter...">
+                    <button type="button" class="btn-action btn-action-gold" onclick="addTag()"><i class="fas fa-plus"></i> إضافة علامة</button>
+                </div>
+                <div id="tagsContainer" class="d-flex flex-wrap gap-2">
+                    {% if product and product.tags %}
+                        {% for tag in product.tags %}
+                        <span class="tag-item">
+                            <span class="remove-tag cursor-pointer text-danger" onclick="this.parentElement.remove();">✕</span> 
+                            {{ tag }}
+                        </span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted small">لا توجد علامات مضافة.</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- زر الحفظ النهائي السفلي -->
+        <div class="d-flex justify-content-end gap-3 mt-4">
+            <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action bg-secondary text-white">إلغاء</a>
+            <button type="submit" class="btn-action btn-action-gold px-5 py-3" style="font-size: 1.05rem;">
+                <i class="fas fa-save"></i> حفظ المنتج نهائياً
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('admin_product_bp.static', filename='admin_edit_product.js') }}"></script>
+<script>
+    // تهيئة أولية لعرض جدول المتغيرات إن وجد عند التحميل
+    document.addEventListener("DOMContentLoaded", function() {
+        if (typeof updateVariantsTable === 'function') {
+            updateVariantsTable();
         }
-    }
-
-    function preparePayloadBeforeSubmit(e) {
-        generatePayload();
-    }
-
-    // ============================================================
-    // 🏷️ إدارة العلامات
-    // ============================================================
-    function initTagHandlers() {
-        const input = document.getElementById('tagInput');
-        if (input) {
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTag();
-                }
-            });
-        }
-    }
-
-    function addTag() {
-        const input = document.getElementById('tagInput');
-        if (!input) return;
-        
-        const tag = input.value.trim();
-        if (!tag) {
-            showNotification('⚠️ الرجاء إدخال علامة', 'warning');
-            return;
-        }
-        
-        const container = document.getElementById('tagsContainer');
-        if (!container) return;
-        
-        // منع التكرار
-        const existing = container.querySelectorAll('.tag-item');
-        for (let item of existing) {
-            if (item.textContent.trim().replace('✕', '').trim() === tag) {
-                showNotification('⚠️ هذه العلامة موجودة بالفعل', 'warning');
-                return;
-            }
-        }
-        
-        // إزالة رسالة "لا توجد علامات"
-        const noTagsMsg = container.querySelector('.text-muted');
-        if (noTagsMsg) noTagsMsg.remove();
-        
-        const span = document.createElement('span');
-        span.className = 'tag-item';
-        span.innerHTML = `
-            <span class="remove-tag" onclick="this.parentElement.remove();">✕</span> 
-            ${tag}
-        `;
-        container.appendChild(span);
-        input.value = '';
-        input.focus();
-    }
-
-    // ============================================================
-    // 🗑️ حذف المنتج
-    // ============================================================
-    function deleteProduct(qid, name) {
-        if (!confirm(`⚠️ هل أنت متأكد من حذف/أرشفة المنتج "${name}"؟\nلا يمكن التراجع عن هذا الإجراء!`)) return;
-        
-        const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-        
-        fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('✅ ' + data.message, 'success');
-                setTimeout(() => {
-                    window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}';
-                }, 1500);
-            } else {
-                showNotification('❌ ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            showNotification('❌ حدث خطأ: ' + error.message, 'error');
-        });
-    }
-
-    // ============================================================
-    // 🔔 نظام الإشعارات
-    // ============================================================
-    function showNotification(message, type = 'success') {
-        const icons = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: 'ℹ️'
-        };
-        
-        const colors = {
-            success: '#22c55e',
-            error: '#ef4444',
-            warning: '#f59e0b',
-            info: '#3b82f6'
-        };
-        
-        const toast = document.createElement('div');
-        toast.className = `toast-notification toast-${type}`;
-        toast.innerHTML = `
-            <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
-            <span class="toast-message">${message}</span>
-            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
-        `;
-        
-        // أنماط الإشعار
-        Object.assign(toast.style, {
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            background: '#ffffff',
-            padding: '16px 24px',
-            borderRadius: '12px',
-            boxShadow: '0 12px 48px rgba(0,0,0,0.12)',
-            borderRight: `4px solid ${colors[type]}`,
-            zIndex: '99999',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            fontFamily: 'system-ui, sans-serif',
-            fontSize: '0.95rem',
-            fontWeight: '600',
-            color: '#1e293b',
-            maxWidth: '420px',
-            animation: 'slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-            backdropFilter: 'blur(8px)',
-            background: 'rgba(255,255,255,0.95)'
-        });
-        
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.style.animation = 'slideOut 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-            setTimeout(() => toast.remove(), 400);
-        }, 4000);
-    }
-
-    // ============================================================
-    // 🎨 إضافة أنماط الإشعارات
-    // ============================================================
-    function addNotificationStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100px); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100px); opacity: 0; }
-            }
-            .toast-close {
-                background: none;
-                border: none;
-                cursor: pointer;
-                font-size: 1.2rem;
-                color: #94a3b8;
-                padding: 0 4px;
-                transition: all 0.3s ease;
-            }
-            .toast-close:hover {
-                color: #ef4444;
-                transform: rotate(90deg);
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    // ============================================================
-    // 🚀 التهيئة الرئيسية
-    // ============================================================
-    function init() {
-        // إضافة أنماط الإشعارات
-        addNotificationStyles();
-        
-        // تهيئة المكونات
-        initTinyMCE();
-        initCollectionHandlers();
-        initImageHandlers();
-        initTagHandlers();
-        
-        // تحديث عداد المجموعات
-        updateCollectionsCount();
-        
-        // ربط دوال المتغيرات بالـ window
-        window.addOptionRow = addOptionRow;
-        window.removeOptionRow = removeOptionRow;
-        window.addValueToRow = addValueToRow;
-        window.handleVariantImage = handleVariantImage;
-        window.removeVariantImage = removeVariantImage;
-        window.generatePayload = generatePayload;
-        window.preparePayloadBeforeSubmit = preparePayloadBeforeSubmit;
-        window.deleteProduct = deleteProduct;
-        window.showNotification = showNotification;
-        
-        // ربط دوال المجموعات
-        window.toggleCollectionDropdown = toggleCollectionDropdown;
-        window.filterCollections = filterCollections;
-        window.toggleCollectionSelection = toggleCollectionSelection;
-        window.addCollectionBadge = addCollectionBadge;
-        window.removeCollection = removeCollection;
-        
-        // ربط دوال العلامات
-        window.addTag = addTag;
-        
-        console.log('✅ [admin_edit_product] تم تهيئة جميع الوظائف بنجاح');
-    }
-
-    // التهيئة عند تحميل الصفحة
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-})();
+    });
+</script>
+{% endblock %}
