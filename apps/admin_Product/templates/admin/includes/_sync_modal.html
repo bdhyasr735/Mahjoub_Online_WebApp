@@ -147,11 +147,14 @@ document.addEventListener('keydown', function(event) {
 });
 
 // ✅ إغلاق النافذة بالضغط خارجها
-document.getElementById('syncModal')?.addEventListener('click', function(event) {
-    if (event.target === this) {
-        closeSyncModal();
-    }
-});
+const syncModalEl = document.getElementById('syncModal');
+if (syncModalEl) {
+    syncModalEl.addEventListener('click', function(event) {
+        if (event.target === this) {
+            closeSyncModal();
+        }
+    });
+}
 </script>
 
 <style>
