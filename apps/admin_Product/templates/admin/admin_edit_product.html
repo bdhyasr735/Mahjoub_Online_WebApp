@@ -7,7 +7,7 @@
 <!-- ✅ TinyMCE Editor -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"></script>
 <!-- ✅ ملف CSS الخاص بالتحرير -->
-<link rel="stylesheet" href="{{ url_for('admin_product_bp.static', filename='admin_edit_product.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin_edit_product.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -40,7 +40,7 @@
 </div>
 
 <!-- ✅ ملف JavaScript الخاص بالتحرير -->
-<script src="{{ url_for('admin_product_bp.static', filename='admin_edit_product.js') }}"></script>
+<script src="{{ url_for('static', filename='admin_edit_product.js') }}"></script>
 
 <script>
     // ✅ تهيئة جميع الدوال عند تحميل الصفحة
