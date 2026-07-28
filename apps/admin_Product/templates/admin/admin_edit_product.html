@@ -430,7 +430,12 @@
                             {% if all_collections %}
                                 {% for col in all_collections %}
                                 <div class="collection-option-item" data-id="{{ col.qid or col.id }}" data-title="{{ col.title or col.name }}" onclick="toggleCollectionSelection(this, '{{ col.qid or col.id }}', '{{ col.title or col.name }}')" style="padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
-                                    <span><i class="fas fa-folder me-2 text-warning"></i> {{ col.title or col.name }}</span>
+                                    <span>
+                                        {% if col.image and col.image.url %}
+                                        <img src="{{ col.image.url }}" style="width: 24px; height: 24px; object-fit: cover; border-radius: 4px; margin-right: 6px;">
+                                        {% endif %}
+                                        <i class="fas fa-folder me-2 text-warning"></i> {{ col.title or col.name }}
+                                    </span>
                                     <input type="checkbox" class="col-checkbox" value="{{ col.qid or col.id }}" {% if product.collections and col in product.collections %}checked{% endif %} style="pointer-events: none; width: auto;">
                                 </div>
                                 {% endfor %}
