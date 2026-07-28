@@ -1,14 +1,269 @@
 <!-- ================= أزرار الإجراءات ================= -->
-<div class="d-flex flex-wrap gap-2 mt-4">
-    <button type="submit" class="btn-action" style="padding: 12px 24px; font-size: 1.05rem;">
-        <i class="fas fa-save me-2"></i> حفظ التغييرات
-    </button>
-    <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action btn-danger" style="padding: 12px 24px; font-size: 1.05rem; background: #64748b;">
-        <i class="fas fa-times me-2"></i> إلغاء
-    </a>
-    {% if product.status|upper != 'ARCHIVED' %}
-    <button type="button" class="btn-action btn-danger" style="padding: 12px 24px; font-size: 1.05rem;" onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
-        <i class="fas fa-trash me-2"></i> حذف / أرشفة
-    </button>
-    {% endif %}
+<div class="form-section actions-card">
+    <div class="form-section-title">
+        <i class="fas fa-cog"></i> إجراءات المنتج
+        <span class="badge-count gold">نهائي</span>
+    </div>
+    
+    <div class="actions-content">
+        <div class="actions-grid">
+            <!-- ✅ زر الحفظ الرئيسي -->
+            <button type="submit" class="btn-action btn-save">
+                <i class="fas fa-save"></i>
+                <span>حفظ التغييرات</span>
+                <small class="btn-hint">Ctrl + S</small>
+            </button>
+            
+            <!-- ✅ زر الإلغاء -->
+            <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action btn-cancel">
+                <i class="fas fa-times"></i>
+                <span>إلغاء</span>
+                <small class="btn-hint">تجاهل التغييرات</small>
+            </a>
+            
+            <!-- ✅ زر الحذف (يظهر فقط إذا لم يكن المنتج مؤرشفاً) -->
+            {% if product.status|upper != 'ARCHIVED' %}
+            <button type="button" class="btn-action btn-delete" onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
+                <i class="fas fa-trash-alt"></i>
+                <span>حذف / أرشفة</span>
+                <small class="btn-hint">لا يمكن التراجع</small>
+            </button>
+            {% endif %}
+        </div>
+        
+        <!-- ✅ معلومات إضافية -->
+        <div class="actions-footer">
+            <div class="action-info">
+                <i class="fas fa-info-circle"></i>
+                <span>سيتم حفظ جميع التغييرات فور الضغط على زر الحفظ</span>
+            </div>
+            <div class="action-status">
+                <span class="status-dot"></span>
+                <span>المنتج في حالة: <strong>{{ product.status|upper or 'DRAFT' }}</strong></span>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+/* ✅ تصميم بطاقة الإجراءات */
+.actions-card {
+    border-color: rgba(212, 175, 55, 0.2);
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+}
+
+.actions-card::before {
+    background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold-dark));
+    height: 3px;
+}
+
+.actions-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ✅ شبكة الأزرار */
+.actions-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+/* ✅ تنسيق الأزرار */
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    min-width: 140px;
+    justify-content: center;
+}
+
+.btn-action .btn-hint {
+    font-size: 0.6rem;
+    font-weight: 400;
+    opacity: 0.6;
+    margin-left: 4px;
+}
+
+/* ✅ زر الحفظ */
+.btn-save {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: #D4AF37;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+    border-color: #D4AF37;
+    color: #f0d060;
+}
+
+.btn-save:active {
+    transform: translateY(0);
+}
+
+/* ✅ زر الإلغاء */
+.btn-cancel {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-cancel:hover {
+    background: #e2e8f0;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* ✅ زر الحذف */
+.btn-delete {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #ffffff;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-delete:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+/* ✅ تذييل البطاقة */
+.actions-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+    gap: 12px;
+}
+
+.action-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.action-info i {
+    color: #D4AF37;
+}
+
+.action-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.action-status strong {
+    color: #0f172a;
+}
+
+/* ✅ تحسينات الجوال */
+@media (max-width: 768px) {
+    .actions-grid {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-action {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 20px;
+    }
+    
+    .actions-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .action-info, .action-status {
+        font-size: 0.8rem;
+    }
+}
+
+/* ✅ تأثير النقر */
+.btn-action:active {
+    transform: scale(0.96);
+}
+
+/* ✅ تأثير التحميل */
+.btn-action.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn-action.loading i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<!-- ✅ إضافة تأثيرات JavaScript إضافية -->
+<script>
+// ✅ إضافة تأثير التحميل عند الضغط على حفظ
+document.addEventListener('DOMContentLoaded', function() {
+    const saveBtn = document.querySelector('.btn-save');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function(e) {
+            // إظهار حالة التحميل إذا كان النموذج سيتم إرساله
+            if (this.closest('form').checkValidity()) {
+                this.classList.add('loading');
+                this.innerHTML = `
+                    <i class="fas fa-spinner"></i>
+                    <span>جاري الحفظ...</span>
+                    <small class="btn-hint">يرجى الانتظار</small>
+                `;
+            }
+        });
+    }
+});
+
+// ✅ إضافة تأكيد للحذف
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteBtn = document.querySelector('.btn-delete');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function(e) {
+            if (!confirm('⚠️ هل أنت متأكد من حذف/أرشفة هذا المنتج؟\nلا يمكن التراجع عن هذا الإجراء!')) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    }
+});
+</script>
