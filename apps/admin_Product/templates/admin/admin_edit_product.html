@@ -64,6 +64,16 @@
         color: var(--text-primary);
     }
 
+    /* ✅ الأرقام بالإنجليزية */
+    input[type="number"], 
+    .price-input, 
+    .qty-input {
+        font-feature-settings: "tnum";
+        font-variant-numeric: tabular-nums;
+        direction: ltr;
+        text-align: right;
+    }
+
     input, select, textarea {
         width: 100%;
         padding: 10px;
@@ -293,6 +303,28 @@
         opacity: 1;
         color: #dc3545;
     }
+
+    /* ✅ عرض المجموعات */
+    .collections-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .collection-badge {
+        background: linear-gradient(135deg, #2d0b36, #1a0520);
+        color: #D4AF37;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgba(212, 175, 55, 0.2);
+    }
+    .collection-badge i {
+        color: #D4AF37;
+    }
 </style>
 {% endblock %}
 
@@ -311,7 +343,6 @@
     <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}" id="editProductForm" onsubmit="preparePayloadBeforeSubmit(event)">
         <input type="hidden" name="qid" value="{{ product.qid }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <!-- حقل مخفي لإرسال بيانات المتغيرات بصيغة JSON للباك إند -->
         <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
         <!-- ================= أولاً: المعلومات الأساسية ================= -->
@@ -360,7 +391,28 @@
             </div>
         </div>
 
-        <!-- ================= رابعاً: خيارات ومتغيرات المنتج (Cartesian Product) ================= -->
+        <!-- ================= رابعاً: المجموعات (Collections) ================= -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="fas fa-folder-open"></i> المجموعات (Collections)
+            </div>
+            <div class="form-group mb-0">
+                {% if product.collections and product.collections|length > 0 %}
+                    <div class="collections-grid">
+                        {% for collection in product.collections %}
+                            <span class="collection-badge">
+                                <i class="fas fa-folder"></i> {{ collection.title or collection.name or collection.qid }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted mt-2 d-block">عدد المجموعات: {{ product.collections|length }}</small>
+                {% else %}
+                    <p class="text-muted text-center py-3">لا توجد مجموعات لهذا المنتج</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ================= خامساً: خيارات ومتغيرات المنتج ================= -->
         <div class="form-section">
             <div class="form-section-title">
                 <i class="fas fa-layer-group"></i> خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)
@@ -393,7 +445,7 @@
             </div>
         </div>
 
-        <!-- ================= خامساً: البيانات الوصفية (SEO) ================= -->
+        <!-- ================= سادساً: البيانات الوصفية (SEO) ================= -->
         <div class="form-section">
             <div class="form-section-title">
                 <i class="fas fa-code"></i> تحسين محركات البحث (SEO)
@@ -416,7 +468,7 @@
             </div>
         </div>
 
-        <!-- ================= سادساً: العلامات (Tags) ================= -->
+        <!-- ================= سابعاً: العلامات (Tags) ================= -->
         <div class="form-section">
             <div class="form-section-title">
                 <i class="fas fa-tags"></i> العلامات (Tags)
@@ -608,8 +660,8 @@
                         </div>
                     </td>
                     <td><input type="text" class="var-sku" value="SKU-VAR-${index + 1}" oninput="generatePayload()"></td>
-                    <td><input type="number" class="var-price" value="0" step="0.01" oninput="generatePayload()"></td>
-                    <td><input type="number" class="var-qty" value="0" oninput="generatePayload()"></td>
+                    <td><input type="number" class="var-price" value="0" step="0.01" oninput="generatePayload()" dir="ltr"></td>
+                    <td><input type="number" class="var-qty" value="0" oninput="generatePayload()" dir="ltr"></td>
                 </tr>
             `;
         });
@@ -700,12 +752,11 @@
             }
         };
 
-        // تعبئة حقل الـ JSON المخفي ليرسله الفورم بسلاسة عند الحفظ
         document.getElementById('variantsPayloadInput').value = JSON.stringify(payload);
     }
 
     function preparePayloadBeforeSubmit(e) {
-        generatePayload(); // التأكد من توليد آخر نسخة قبل الإرسال
+        generatePayload();
     }
 
     // ========================================
