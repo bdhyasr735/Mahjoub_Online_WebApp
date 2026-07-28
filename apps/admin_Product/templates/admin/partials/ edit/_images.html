@@ -1,1 +1,22 @@
-
+<!-- ================= صور المنتج ================= -->
+<div class="form-section">
+    <div class="form-section-title">
+        <i class="fas fa-images"></i> صور المنتج الرئيسية
+    </div>
+    <div class="image-upload-area" id="imageUploadArea">
+        <i class="fas fa-cloud-upload-alt fa-3x" style="color: var(--gold-color);"></i>
+        <p class="mt-2 mb-0 fw-bold" style="color: var(--primary-color);">اسحب الصور هنا أو انقر للتحميل</p>
+        <small class="text-muted">يدعم JPG, PNG, WebP</small>
+        <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
+    </div>
+    <div class="image-preview-grid" id="imagePreviewGrid">
+        {% if product.images and product.images|length > 0 %}
+            {% for image in product.images %}
+            <div class="image-preview-item">
+                <img src="{{ image.fileUrl }}" alt="صورة المنتج">
+                <button type="button" class="remove-image" onclick="if(confirm('حذف هذه الصورة؟')) this.parentElement.remove();">✕</button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
