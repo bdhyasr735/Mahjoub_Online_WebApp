@@ -27,15 +27,15 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
-        <!-- ✅ جميع الأجزاء - مسار مباشر -->
-        {% include "partials/edit/_basic_info.html" %}
-        {% include "partials/edit/_description.html" %}
-        {% include "partials/edit/_images.html" %}
-        {% include "partials/edit/_collections.html" %}
-        {% include "partials/edit/_variants.html" %}
-        {% include "partials/edit/_seo.html" %}
-        {% include "partials/edit/_tags.html" %}
-        {% include "partials/edit/_actions.html" %}
+        <!-- ✅ جميع الأجزاء - المسار الصحيح -->
+        {% include "admin/partials/edit/_basic_info.html" %}
+        {% include "admin/partials/edit/_description.html" %}
+        {% include "admin/partials/edit/_images.html" %}
+        {% include "admin/partials/edit/_collections.html" %}
+        {% include "admin/partials/edit/_variants.html" %}
+        {% include "admin/partials/edit/_seo.html" %}
+        {% include "admin/partials/edit/_tags.html" %}
+        {% include "admin/partials/edit/_actions.html" %}
     </form>
 </div>
 
