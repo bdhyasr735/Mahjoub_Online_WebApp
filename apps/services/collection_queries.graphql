@@ -5,21 +5,12 @@
 # ============================================
 query FindAllCollections {
   findAllCollections {
-    id
-    qid
-    title
-    description
-    handle
-    image {
-      id
-      url
-      altText
-      width
-      height
+    success
+    message
+    data {
+      qid
+      title
     }
-    productsCount
-    createdAt
-    updatedAt
   }
 }
 
@@ -28,38 +19,25 @@ query FindAllCollections {
 # ============================================
 query FindCollectionByQid($id: ID!) {
   findCollectionByQid(id: $id) {
-    id
-    qid
-    title
-    description
-    handle
-    image {
-      id
-      url
-      altText
-      width
-      height
-    }
-    productsCount
-    createdAt
-    updatedAt
-    products {
-      id
+    success
+    message
+    data {
       qid
-      name
+      title
       description
-      price
-      compareAtPrice
-      mainImage {
+      handle
+      image {
+        id
         url
         altText
+        width
+        height
       }
-      variants {
-        id
-        price
-        sku
-        quantity
-      }
+      productsCount
+      isActive
+      isFeatured
+      createdAt
+      updatedAt
     }
   }
 }
@@ -69,68 +47,72 @@ query FindCollectionByQid($id: ID!) {
 # ============================================
 query FindAllProductsForCollection($id: ID!) {
   findAllProductsForCollection(id: $id) {
-    id
-    qid
-    name
-    description
-    price
-    compareAtPrice
-    currency
-    sku
-    quantity
-    status
-    isActive
-    isAvailable
-    mainImage {
+    success
+    message
+    data {
       id
-      url
-      altText
-      width
-      height
-    }
-    images {
-      id
-      url
-      altText
-      width
-      height
-      position
-    }
-    variants {
-      id
-      sku
+      qid
+      name
+      description
       price
       compareAtPrice
+      currency
+      sku
       quantity
+      status
+      isActive
       isAvailable
-      image {
+      mainImage {
+        id
         url
         altText
+        width
+        height
+      }
+      images {
+        id
+        url
+        altText
+        width
+        height
+        position
+      }
+      variants {
+        id
+        sku
+        price
+        compareAtPrice
+        quantity
+        isAvailable
+        image {
+          url
+          altText
+        }
+        inventory {
+          quantity
+          available
+        }
+      }
+      category {
+        id
+        name
+        handle
+      }
+      brand {
+        id
+        name
+        logo {
+          url
+        }
+      }
+      ratings {
+        average
+        count
       }
       inventory {
         quantity
         available
       }
-    }
-    category {
-      id
-      name
-      handle
-    }
-    brand {
-      id
-      name
-      logo {
-        url
-      }
-    }
-    ratings {
-      average
-      count
-    }
-    inventory {
-      quantity
-      available
     }
   }
 }
