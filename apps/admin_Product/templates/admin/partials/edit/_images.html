@@ -2,21 +2,45 @@
 <div class="form-section">
     <div class="form-section-title">
         <i class="fas fa-images"></i> صور المنتج الرئيسية
+        {% if product.images and product.images|length > 0 %}
+        <span class="badge ms-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+            {{ product.images|length }}
+        </span>
+        {% endif %}
     </div>
+    
+    <!-- منطقة رفع الصور -->
     <div class="image-upload-area" id="imageUploadArea">
-        <i class="fas fa-cloud-upload-alt fa-3x" style="color: var(--gold-color);"></i>
-        <p class="mt-2 mb-0 fw-bold" style="color: var(--primary-color);">اسحب الصور هنا أو انقر للتحميل</p>
-        <small class="text-muted">يدعم JPG, PNG, WebP</small>
+        <div class="upload-icon-wrapper">
+            <i class="fas fa-cloud-upload-alt fa-3x" style="color: var(--gold-color);"></i>
+        </div>
+        <p class="mt-2 mb-0 fw-bold" style="color: var(--primary-color);">📤 اسحب الصور هنا أو انقر للتحميل</p>
+        <small class="text-muted">يدعم صيغ JPG, PNG, WebP</small>
         <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
     </div>
+    
+    <!-- معرض الصور -->
     <div class="image-preview-grid" id="imagePreviewGrid">
         {% if product.images and product.images|length > 0 %}
             {% for image in product.images %}
             <div class="image-preview-item">
-                <img src="{{ image.fileUrl }}" alt="صورة المنتج">
-                <button type="button" class="remove-image" onclick="if(confirm('حذف هذه الصورة؟')) this.parentElement.remove();">✕</button>
+                <img src="{{ image.fileUrl }}" alt="صورة المنتج" loading="lazy">
+                <button type="button" class="remove-image" onclick="if(confirm('⚠️ هل أنت متأكد من حذف هذه الصورة؟')) this.parentElement.remove();" title="حذف الصورة">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             {% endfor %}
+        {% else %}
+            <div class="col-12 text-center text-muted py-3">
+                <i class="fas fa-image fa-2x mb-2 d-block" style="color: #D4AF37;"></i>
+                <p>لا توجد صور مضافة حتى الآن</p>
+            </div>
         {% endif %}
     </div>
 </div>
+
+<style>
+.image-preview-grid .col-12 {
+    grid-column: 1 / -1;
+}
+</style>
