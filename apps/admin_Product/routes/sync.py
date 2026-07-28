@@ -9,6 +9,7 @@ from flask_login import login_required
 from apps.admin_Product.routes import admin_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
+from app import db
 
 
 def analyze_render_error(route_func):
@@ -29,11 +30,15 @@ def analyze_render_error(route_func):
             print(f"🛠️ التتبع البرمجي:\n{tb_details}")
             print(f"===========================================================\n")
             
-            return jsonify({
-                "success": False,
-                "error_type": error_type,
-                "message": f"❌ خطأ في Render [{error_type}]: {error_message}"
-            }), 500
+            if request.method == 'POST' or request.is_json:
+                return jsonify({
+                    "success": False,
+                    "error_type": error_type,
+                    "message": f"❌ خطأ في Render [{error_type}]: {error_message}"
+                }), 500
+            else:
+                flash(f'❌ حدث خطأ أثناء المزامنة: {error_message}', 'danger')
+                return redirect(url_for('admin_product_bp.manage_products_view'))
     return wrapper
 
 
@@ -44,18 +49,21 @@ def sync_products():
     """مزامنة المنتجات مع رصد الأخطاء وإرجاع الإحصائيات التفصيلية"""
     user_type = session.get('user_type')
     if user_type != 'admin':
-        if request.method == 'POST':
+        if request.method == 'POST' or request.is_json:
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         else:
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
             return redirect(url_for('admin_dashboard_bp.dashboard'))
     
     try:
-        # ✅ جلب المنتجات من GraphQL (النتيجة الآن dict)
+        # ✅ جلب المنتجات من GraphQL
         result = services.products.get_all_products() or {}
         external_products = result.get('data', [])
         
         if not external_products:
+            if request.method == 'GET':
+                flash('ℹ️ لا توجد منتجات للمزامنة عبر الاتصال السحابي', 'info')
+                return redirect(url_for('admin_product_bp.manage_products_view'))
             return jsonify({
                 'success': True,
                 'message': 'ℹ️ لا توجد منتجات للمزامنة عبر الاتصال السحابي',
@@ -78,6 +86,9 @@ def sync_products():
                 
                 mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
                 if not mapping:
+                    # ✅ إنشاء وحفظ السجل الجديد في القاعدة فعلياً
+                    new_mapping = ProductSupplierMapping(product_qid=qid)
+                    db.session.add(new_mapping)
                     created_count += 1
                 else:
                     updated_count += 1
@@ -87,6 +98,13 @@ def sync_products():
                     'qid': product.get('qid', 'unknown'),
                     'error': str(ex)
                 })
+        
+        # ✅ حفظ التغييرات نهائياً في قاعدة البيانات
+        try:
+            db.session.commit()
+        except Exception as commit_err:
+            db.session.rollback()
+            print(f"❌ [Sync]: خطأ في حفظ السجلات: {commit_err}")
         
         # ✅ مسح Cache البحث بعد المزامنة
         try:
@@ -109,7 +127,7 @@ def sync_products():
         
     except Exception as e:
         print(f"❌ خطأ في sync_products: {e}")
-        if request.method == 'POST':
+        if request.method == 'POST' or request.is_json:
             return jsonify({
                 'success': False, 
                 'message': f'❌ فشل المزامنة: {str(e)}',
