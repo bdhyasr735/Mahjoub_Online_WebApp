@@ -1,3 +1,5 @@
+# apps/services/collection_queries.graphql
+
 # ============================================
 # 9. استعلام جلب جميع المجموعات
 # ============================================
@@ -5,7 +7,7 @@ query FindAllCollections {
   findAllCollections {
     id
     qid
-    name
+    title
     description
     handle
     image {
@@ -18,28 +20,6 @@ query FindAllCollections {
     productsCount
     createdAt
     updatedAt
-    products {
-      id
-      qid
-      name
-      description
-      price
-      compareAtPrice
-      mainImage {
-        url
-        altText
-      }
-      images {
-        url
-        altText
-      }
-      variants {
-        id
-        price
-        sku
-        quantity
-      }
-    }
   }
 }
 
@@ -50,7 +30,7 @@ query FindCollectionByQid($id: ID!) {
   findCollectionByQid(id: $id) {
     id
     qid
-    name
+    title
     description
     handle
     image {
