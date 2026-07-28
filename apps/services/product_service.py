@@ -45,7 +45,7 @@ class ProductService:
         return '\n'.join(result)
 
     def get_all_products(self, input_data: dict = None) -> dict:
-        """جلب جميع المنتجات مع معلومات الترقيم"""
+        """جلب جميع المنتجات مع معلومات الترقيم والأسعار والـ slug"""
         query = """
         {
             findAllProducts {
@@ -54,18 +54,31 @@ class ProductService:
                 data {
                     qid
                     title
+                    slug
                     description
                     sku
                     status
                     pricing {
                         price
                         compareAtPrice
-                        costPerItem
+                        originalPrice
+                        discount {
+                            discountValue
+                            discountType
+                        }
                     }
                     images {
                         fileUrl
                     }
                     quantity
+                    variants {
+                        qid
+                        pricing {
+                            price
+                            compareAtPrice
+                            originalPrice
+                        }
+                    }
                     createdAt
                     updatedAt
                 }
@@ -90,7 +103,7 @@ class ProductService:
             return {}
 
     def get_products_page(self, page: int = 1) -> dict:
-        """جلب صفحة محددة من المنتجات"""
+        """جلب صفحة محددة من المنتجات مع الأسعار والـ slug"""
         query = """
         query($page: Int!) {
             findAllProducts(input: { page: $page }) {
@@ -99,18 +112,31 @@ class ProductService:
                 data {
                     qid
                     title
+                    slug
                     description
                     sku
                     status
                     pricing {
                         price
                         compareAtPrice
-                        costPerItem
+                        originalPrice
+                        discount {
+                            discountValue
+                            discountType
+                        }
                     }
                     images {
                         fileUrl
                     }
                     quantity
+                    variants {
+                        qid
+                        pricing {
+                            price
+                            compareAtPrice
+                            originalPrice
+                        }
+                    }
                     createdAt
                     updatedAt
                 }
@@ -172,9 +198,7 @@ class ProductService:
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID مع جميع الحقول"""
-        
-        # ✅ استخدم الاستعلام الذي يعمل (بدون متغيرات)
+        """جلب منتج بواسطة QID مع تفاصيل الأسعار والـ slug"""
         query = """
         {
             findProductByQid(qid: "%s") {
@@ -183,12 +207,17 @@ class ProductService:
                 data {
                     qid
                     title
+                    slug
                     description
                     status
                     pricing {
                         price
                         compareAtPrice
-                        costPerItem
+                        originalPrice
+                        discount {
+                            discountValue
+                            discountType
+                        }
                     }
                     images {
                         fileUrl
@@ -210,6 +239,7 @@ class ProductService:
                         pricing {
                             price
                             compareAtPrice
+                            originalPrice
                         }
                         options {
                             label
@@ -229,7 +259,6 @@ class ProductService:
                             sortOrder
                         }
                     }
-                    slug
                     views
                     publishedAt
                 }
@@ -239,10 +268,7 @@ class ProductService:
         
         try:
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
-            print(f"🔍 [get_product_by_qid] Query: {query[:200]}...")
-            
             data = self.client.execute(query)
-            print(f"🔍 [get_product_by_qid] Full Response: {data}")
             
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
@@ -270,9 +296,11 @@ class ProductService:
                 data {
                     qid
                     title
+                    slug
                     pricing {
                         price
                         compareAtPrice
+                        originalPrice
                     }
                     status
                 }
@@ -301,9 +329,11 @@ class ProductService:
                 data {
                     qid
                     title
+                    slug
                     pricing {
                         price
                         compareAtPrice
+                        originalPrice
                     }
                     status
                 }
