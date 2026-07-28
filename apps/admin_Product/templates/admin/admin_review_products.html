@@ -4,107 +4,117 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">📋 مراجعة المنتجات</h1>
-        <a href="{{ url_for('admin_product_bp.manage_products') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-right"></i> العودة
+    <!-- رأس الصفحة -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <h1 class="h3" style="color: #2d0b36;">
+            <i class="fas fa-clipboard-list me-2" style="color: #D4AF37;"></i> مراجعة المنتجات
+        </h1>
+        <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 8px; padding: 8px 20px;">
+            <i class="fas fa-arrow-right me-2"></i> العودة للقائمة
         </a>
     </div>
 
+    <!-- ======================================== -->
     <!-- إحصائيات سريعة -->
-    <div class="row mb-4">
+    <!-- ======================================== -->
+    <div class="row mb-4 g-3">
         <div class="col-md-3">
-            <div class="card bg-warning text-dark shadow-sm">
+            <div class="card shadow-sm border-0" style="background: linear-gradient(135deg, #ffc107, #f8d39e); border-radius: 12px;">
                 <div class="card-body text-center">
-                    <h3>{{ total_count }}</h3>
-                    <small>⏳ قيد المراجعة</small>
+                    <h2 class="mb-0" style="color: #2d0b36;">{{ total_count }}</h2>
+                    <small style="color: #2d0b36; font-weight: 600;">⏳ قيد المراجعة</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-success text-white shadow-sm">
-                <div class="card-body text-center">
-                    <h3>{{ total_published }}</h3>
-                    <small>✅ منشور</small>
+            <div class="card shadow-sm border-0" style="background: linear-gradient(135deg, #28a745, #8bc34a); border-radius: 12px;">
+                <div class="card-body text-center text-white">
+                    <h2 class="mb-0">{{ total_published }}</h2>
+                    <small style="font-weight: 600;">✅ منشور</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-danger text-white shadow-sm">
-                <div class="card-body text-center">
-                    <h3>{{ total_rejected }}</h3>
-                    <small>❌ مرفوض</small>
+            <div class="card shadow-sm border-0" style="background: linear-gradient(135deg, #dc3545, #ef6c6c); border-radius: 12px;">
+                <div class="card-body text-center text-white">
+                    <h2 class="mb-0">{{ total_rejected }}</h2>
+                    <small style="font-weight: 600;">❌ مرفوض</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-primary text-white shadow-sm">
-                <div class="card-body text-center">
-                    <h3>{{ total_count + total_published + total_rejected }}</h3>
-                    <small>📦 المجموع</small>
+            <div class="card shadow-sm border-0" style="background: linear-gradient(135deg, #2d0b36, #1a0520); border-radius: 12px;">
+                <div class="card-body text-center" style="color: #D4AF37;">
+                    <h2 class="mb-0">{{ total_count + total_published + total_rejected }}</h2>
+                    <small style="font-weight: 600; color: #D4AF37;">📦 المجموع</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-header">
-            <i class="fas fa-clock"></i> المنتجات المنتظرة المراجعة
-            <span class="badge bg-warning ms-2">{{ total_count }}</span>
+    <!-- ======================================== -->
+    <!-- جدول المنتجات -->
+    <!-- ======================================== -->
+    <div class="card shadow-sm border-0" style="border-radius: 16px;">
+        <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520); border-radius: 16px 16px 0 0; padding: 15px 20px;">
+            <h5 class="mb-0" style="color: #D4AF37;">
+                <i class="fas fa-clock me-2"></i> المنتجات المنتظرة المراجعة
+                <span class="badge ms-2" style="background: rgba(212, 175, 55, 0.2); color: #D4AF37;">{{ total_count }}</span>
+            </h5>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             {% if products %}
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background: #f8f5f0;">
                         <tr>
-                            <th>#</th>
-                            <th>الصورة</th>
-                            <th>الاسم</th>
-                            <th>السعر</th>
-                            <th>المورد</th>
-                            <th>تاريخ الإنشاء</th>
-                            <th>الإجراءات</th>
+                            <th style="color: #2d0b36; font-weight: 600;">#</th>
+                            <th style="color: #2d0b36; font-weight: 600;">الصورة</th>
+                            <th style="color: #2d0b36; font-weight: 600;">الاسم</th>
+                            <th style="color: #2d0b36; font-weight: 600;">السعر</th>
+                            <th style="color: #2d0b36; font-weight: 600;">المورد</th>
+                            <th style="color: #2d0b36; font-weight: 600;">تاريخ الإنشاء</th>
+                            <th style="color: #2d0b36; font-weight: 600;" class="text-center">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for product in products %}
                         {% set p_name = product.title or product.name or 'منتج بدون اسم' %}
-                        {% set p_img = (product.mainImage.url if product.mainImage else none) or (product.images[0].fileUrl if product.images else none) or url_for('static', filename='images/default.png') %}
+                        {% set p_img = (product.mainImage.url if product.mainImage else none) or (product.images[0].fileUrl if product.images else none) or 'https://via.placeholder.com/50x50?text=No+Image' %}
                         <tr>
                             <td>{{ loop.index }}</td>
                             <td>
                                 <img src="{{ p_img }}" 
                                      alt="{{ p_name }}"
-                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"
-                                     onerror="this.src='{{ url_for('static', filename='images/default.png') }}'">
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #D4AF37;"
+                                     onerror="this.src='https://via.placeholder.com/50x50?text=No+Image'">
                             </td>
                             <td>
-                                <strong>{{ p_name }}</strong>
+                                <strong style="color: #2d0b36;">{{ p_name }}</strong>
                                 <br>
                                 <small class="text-muted">QID: {{ product.qid or product.id }}</small>
                             </td>
-                            <td class="text-primary fw-bold">
+                            <td class="fw-bold" style="color: #D4AF37;">
                                 {{ "%.2f"|format(product.price|float or 0) }} ر.س
                             </td>
                             <td>
                                 {% if product.supplier_name %}
-                                <span class="badge bg-info">{{ product.supplier_name }}</span>
+                                <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">{{ product.supplier_name }}</span>
                                 {% else %}
                                 <span class="badge bg-secondary">غير مرتبط</span>
                                 {% endif %}
                             </td>
                             <td>{{ product.createdAt|datetime if product.createdAt else '-' }}</td>
                             <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-success" onclick="changeStatus('{{ product.qid or product.id }}', 'PUBLISHED')">
-                                        <i class="fas fa-check"></i> قبول
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-success" onclick="changeStatus('{{ product.qid or product.id }}', 'PUBLISHED')" title="قبول">
+                                        <i class="fas fa-check"></i>
                                     </button>
-                                    <button class="btn btn-danger" onclick="changeStatus('{{ product.qid or product.id }}', 'REJECTED')">
-                                        <i class="fas fa-times"></i> رفض
+                                    <button class="btn btn-danger" onclick="changeStatus('{{ product.qid or product.id }}', 'REJECTED')" title="رفض">
+                                        <i class="fas fa-times"></i>
                                     </button>
                                     <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}" 
-                                       class="btn btn-outline-primary">
+                                       class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;" title="تعديل">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 </div>
@@ -115,9 +125,9 @@
                 </table>
             </div>
             {% else %}
-            <div class="alert alert-success text-center py-4">
-                <i class="fas fa-check-circle fa-2x mb-3" style="display:block;"></i>
-                <h5>🎉 لا توجد منتجات تنتظر المراجعة</h5>
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-3x mb-3" style="color: #28a745;"></i>
+                <h5 style="color: #2d0b36;">🎉 لا توجد منتجات تنتظر المراجعة</h5>
                 <p class="text-muted">جميع المنتجات تمت مراجعتها</p>
             </div>
             {% endif %}
@@ -136,7 +146,7 @@ function changeStatus(qid, status) {
         'DRAFT': 'إعادة للمراجعة'
     };
     
-    if (!confirm(`هل أنت متأكد من ${statusNames[status]} هذا المنتج؟`)) {
+    if (!confirm(`⚠️ هل أنت متأكد من ${statusNames[status]} هذا المنتج؟`)) {
         return;
     }
     
@@ -191,7 +201,17 @@ function showToast(type, message) {
 <style>
 .card {
     border: none;
-    border-radius: 12px;
+    border-radius: 16px;
+}
+.table td, .table th {
+    padding: 12px 16px;
+    vertical-align: middle;
+}
+.table-hover tbody tr:hover {
+    background-color: rgba(45, 11, 54, 0.04) !important;
+}
+.btn-group .btn {
+    border-radius: 4px !important;
 }
 </style>
 {% endblock %}
