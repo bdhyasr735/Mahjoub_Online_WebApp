@@ -54,15 +54,19 @@ class ProductService:
                 data {
                     qid
                     title
+                    description
+                    sku
+                    status
                     pricing {
                         price
                         compareAtPrice
                     }
-                    status
                     images {
                         fileUrl
                     }
                     quantity
+                    createdAt
+                    updatedAt
                 }
                 pagination {
                     totalItems
@@ -94,15 +98,19 @@ class ProductService:
                 data {
                     qid
                     title
+                    description
+                    sku
+                    status
                     pricing {
                         price
                         compareAtPrice
                     }
-                    status
                     images {
                         fileUrl
                     }
                     quantity
+                    createdAt
+                    updatedAt
                 }
                 pagination {
                     totalItems
