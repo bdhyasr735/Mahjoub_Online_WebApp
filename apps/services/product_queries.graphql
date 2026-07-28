@@ -1,7 +1,7 @@
 # ============================================
 # 📂 apps/services/product_queries.graphql
 # ============================================
-# استعلامات وطفرات منتجات منصة محجوب أونلاين 2026
+# استعلامات وطفرات منتجات منصة محجوب أونلاين 2026 (محدثة مطابقة للـ Schema الحقيقية)
 # ============================================
 
 # ============================================
@@ -9,108 +9,34 @@
 # ============================================
 query FindAllProducts($input: GetAllProductsInput) {
   findAllProducts(input: $input) {
-    id
-    qid
-    name
-    description
-    handle
-    status
-    isActive
-    isAvailable
-    isDigital
-    isPhysical
-    isGiftCard
-    isTaxable
-    createdAt
-    updatedAt
-    publishedAt
-    price
-    compareAtPrice
-    costPerItem
-    currency
-    taxClass
-    taxRate
-    quantity
-    inventory {
-      id
-      quantity
-      available
-      reserved
-      location
-      warehouse
-    }
-    sku
-    barcode
-    weight
-    weightUnit
-    images {
-      id
-      url
-      altText
-      width
-      height
-      size
-      position
-      createdAt
-    }
-    mainImage {
-      id
-      url
-      altText
-      width
-      height
-    }
-    media {
-      id
-      url
-      altText
-      type
-      position
-      createdAt
-    }
-    options {
+    data {
       id
       qid
       name
-      position
-      values {
-        id
-        value
-        position
-        hexCode
-        image {
-          url
-          altText
-        }
-      }
-    }
-    variants {
-      id
-      qid
-      sku
-      barcode
-      price
-      compareAtPrice
-      costPerItem
-      quantity
-      weight
-      weightUnit
-      position
+      description
+      handle
+      status
       isActive
       isAvailable
-      options {
-        id
-        name
-        value
-        position
+      isDigital
+      isPhysical
+      isGiftCard
+      isTaxable
+      createdAt
+      updatedAt
+      publishedAt
+      
+      # التعديل الهام: الأسعار داخل كائن pricing
+      pricing {
+        price
+        compareAtPrice
       }
-      image {
-        id
-        url
-        altText
-        width
-        height
-      }
+      
+      currency
+      taxClass
+      taxRate
+      quantity
+      
       inventory {
         id
         quantity
@@ -119,112 +45,223 @@ query FindAllProducts($input: GetAllProductsInput) {
         location
         warehouse
       }
-    }
-    collections {
-      id
-      qid
-      name
-      description
-      handle
-      image {
-        url
-        altText
-      }
-    }
-    category {
-      id
-      qid
-      name
-      handle
-      description
-      image {
-        url
-      }
-    }
-    categories {
-      id
-      qid
-      name
-      handle
-    }
-    brand {
-      id
-      qid
-      name
-      logo {
-        url
-        altText
-      }
-    }
-    ratings {
-      average
-      count
-      stars
-    }
-    shipping {
+      
+      sku
+      barcode
       weight
       weightUnit
-      length
-      width
-      height
-      dimensionUnit
-      requiresShipping
-      shippingClass
-    }
-    seo {
-      title
-      description
-      keywords
-      image {
-        url
-      }
-    }
-    translations {
-      locale
-      name
-      description
-      seoTitle
-      seoDescription
-    }
-    metafields {
-      id
-      namespace
-      key
-      value
-      type
-    }
-    relatedProducts {
-      id
-      qid
-      name
-      price
-      mainImage {
+      
+      images {
+        id
         url
         altText
+        width
+        height
+        size
+        position
+        createdAt
       }
-    }
-    recommendedProducts {
-      id
-      qid
-      name
-      price
+      
       mainImage {
+        id
         url
         altText
+        width
+        height
       }
-    }
-    discounts {
-      id
-      type
-      value
-      minQuantity
-      maxQuantity
-    }
-    availability {
-      isAvailable
-      availableDate
-      preorder
-      preorderDate
+      
+      media {
+        id
+        url
+        altText
+        type
+        position
+        createdAt
+      }
+      
+      options {
+        id
+        qid
+        name
+        position
+        values {
+          id
+          value
+          position
+          hexCode
+          image {
+            url
+            altText
+          }
+        }
+      }
+      
+      variants {
+        id
+        qid
+        sku
+        barcode
+        
+        # الأسعار الخاصة بالمتغير داخل كائن pricing
+        pricing {
+          price
+          compareAtPrice
+        }
+        
+        quantity
+        weight
+        weightUnit
+        position
+        isActive
+        isAvailable
+        
+        options {
+          id
+          name
+          value
+          position
+        }
+        
+        image {
+          id
+          url
+          altText
+          width
+          height
+        }
+        
+        inventory {
+          id
+          quantity
+          available
+          reserved
+          location
+          warehouse
+        }
+      }
+      
+      collections {
+        id
+        qid
+        name
+        description
+        handle
+        image {
+          url
+          altText
+        }
+      }
+      
+      category {
+        id
+        qid
+        name
+        handle
+        description
+        image {
+          url
+        }
+      }
+      
+      categories {
+        id
+        qid
+        name
+        handle
+      }
+      
+      brand {
+        id
+        qid
+        name
+        logo {
+          url
+          altText
+        }
+      }
+      
+      ratings {
+        average
+        count
+        stars
+      }
+      
+      shipping {
+        weight
+        weightUnit
+        length
+        width
+        height
+        dimensionUnit
+        requiresShipping
+        shippingClass
+      }
+      
+      seo {
+        title
+        description
+        keywords
+        image {
+          url
+        }
+      }
+      
+      translations {
+        locale
+        name
+        description
+        seoTitle
+        seoDescription
+      }
+      
+      metafields {
+        id
+        namespace
+        key
+        value
+        type
+      }
+      
+      relatedProducts {
+        id
+        qid
+        name
+        pricing {
+          price
+        }
+        mainImage {
+          url
+          altText
+        }
+      }
+      
+      recommendedProducts {
+        id
+        qid
+        name
+        pricing {
+          price
+        }
+        mainImage {
+          url
+          altText
+        }
+      }
+      
+      discounts {
+        id
+        type
+        value
+        minQuantity
+        maxQuantity
+      }
+      
+      availability {
+        isAvailable
+        availableDate
+        preorder
+        preorderDate
+      }
     }
   }
 }
@@ -249,13 +286,17 @@ query FindProductByQid($qid: String!) {
     createdAt
     updatedAt
     publishedAt
-    price
-    compareAtPrice
-    costPerItem
+    
+    pricing {
+      price
+      compareAtPrice
+    }
+    
     currency
     taxClass
     taxRate
     quantity
+    
     inventory {
       id
       quantity
@@ -264,10 +305,12 @@ query FindProductByQid($qid: String!) {
       location
       warehouse
     }
+    
     sku
     barcode
     weight
     weightUnit
+    
     images {
       id
       url
@@ -278,6 +321,7 @@ query FindProductByQid($qid: String!) {
       position
       createdAt
     }
+    
     mainImage {
       id
       url
@@ -285,6 +329,7 @@ query FindProductByQid($qid: String!) {
       width
       height
     }
+    
     media {
       id
       url
@@ -293,6 +338,7 @@ query FindProductByQid($qid: String!) {
       position
       createdAt
     }
+    
     options {
       id
       qid
@@ -309,26 +355,32 @@ query FindProductByQid($qid: String!) {
         }
       }
     }
+    
     variants {
       id
       qid
       sku
       barcode
-      price
-      compareAtPrice
-      costPerItem
+      
+      pricing {
+        price
+        compareAtPrice
+      }
+      
       quantity
       weight
       weightUnit
       position
       isActive
       isAvailable
+      
       options {
         id
         name
         value
         position
       }
+      
       image {
         id
         url
@@ -336,6 +388,7 @@ query FindProductByQid($qid: String!) {
         width
         height
       }
+      
       inventory {
         id
         quantity
@@ -345,6 +398,7 @@ query FindProductByQid($qid: String!) {
         warehouse
       }
     }
+    
     collections {
       id
       qid
@@ -356,6 +410,7 @@ query FindProductByQid($qid: String!) {
         altText
       }
     }
+    
     category {
       id
       qid
@@ -366,12 +421,14 @@ query FindProductByQid($qid: String!) {
         url
       }
     }
+    
     categories {
       id
       qid
       name
       handle
     }
+    
     brand {
       id
       qid
@@ -381,11 +438,13 @@ query FindProductByQid($qid: String!) {
         altText
       }
     }
+    
     ratings {
       average
       count
       stars
     }
+    
     shipping {
       weight
       weightUnit
@@ -396,6 +455,7 @@ query FindProductByQid($qid: String!) {
       requiresShipping
       shippingClass
     }
+    
     seo {
       title
       description
@@ -404,6 +464,7 @@ query FindProductByQid($qid: String!) {
         url
       }
     }
+    
     translations {
       locale
       name
@@ -411,6 +472,7 @@ query FindProductByQid($qid: String!) {
       seoTitle
       seoDescription
     }
+    
     metafields {
       id
       namespace
@@ -418,26 +480,33 @@ query FindProductByQid($qid: String!) {
       value
       type
     }
+    
     relatedProducts {
       id
       qid
       name
-      price
+      pricing {
+        price
+      }
       mainImage {
         url
         altText
       }
     }
+    
     recommendedProducts {
       id
       qid
       name
-      price
+      pricing {
+        price
+      }
       mainImage {
         url
         altText
       }
     }
+    
     discounts {
       id
       type
@@ -445,97 +514,12 @@ query FindProductByQid($qid: String!) {
       minQuantity
       maxQuantity
     }
+    
     availability {
       isAvailable
       availableDate
       preorder
       preorderDate
     }
-  }
-}
-
-# ============================================
-# 3. استعلام جلب حالة المنتج
-# ============================================
-query FindProductStatus {
-  findProductStatus {
-    id
-    qid
-    name
-    status
-    isActive
-    isAvailable
-    isPublished
-    isDraft
-    isArchived
-    createdAt
-    updatedAt
-  }
-}
-
-# ============================================
-# 4. استعلام جلب المنتجات الأكثر مشاهدة
-# ============================================
-query FindTopViewedProducts {
-  FindTopViewedProducts {
-    id
-    qid
-    name
-    price
-    compareAtPrice
-    views
-    mainImage {
-      url
-      altText
-    }
-    ratings {
-      average
-      count
-    }
-  }
-}
-
-# ============================================
-# 5. إنشاء منتج جديد (Mutation)
-# ============================================
-mutation CreateProduct($input: CreateProductInput!) {
-  createProduct(input: $input) {
-    id
-    qid
-    name
-    description
-    price
-    compareAtPrice
-    costPerItem
-    status
-    isActive
-    isAvailable
-    quantity
-    sku
-    barcode
-    createdAt
-    updatedAt
-  }
-}
-
-# ============================================
-# 6. تعديل بيانات منتج (Mutation)
-# ============================================
-mutation UpdateProduct($input: UpdateProductInput!) {
-  updateProduct(input: $input) {
-    id
-    qid
-    name
-    description
-    price
-    compareAtPrice
-    costPerItem
-    status
-    isActive
-    isAvailable
-    quantity
-    sku
-    barcode
-    updatedAt
   }
 }
