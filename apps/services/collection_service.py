@@ -37,6 +37,10 @@ class CollectionService:
                 data {
                     qid
                     title
+                    image {
+                        url
+                        altText
+                    }
                 }
             }
         }
