@@ -2,47 +2,71 @@
 <div class="form-section">
     <div class="form-section-title">
         <i class="fas fa-folder-open"></i> المجموعات (Collections)
+        {% if product.collections and product.collections|length > 0 %}
+        <span class="badge ms-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+            {{ product.collections|length }}
+        </span>
+        {% endif %}
     </div>
+    
     <div class="form-group mb-0">
         <label>اختر أو ثبّت المجموعات:</label>
-        <div class="collection-multiselect-container" style="position: relative;">
+        
+        <div class="collection-multiselect-container">
             <!-- صندوق العرض -->
-            <div class="selected-collections-box" id="selectedCollectionsBox" onclick="toggleCollectionDropdown()" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: white; min-height: 48px; cursor: pointer; align-items: center;">
-                <span class="text-muted placeholder-text" id="collectionPlaceholder" {% if product.collections and product.collections|length > 0 %}style="display:none;"{% endif %}>انقر لاختيار المجموعات...</span>
+            <div class="selected-collections-box" id="selectedCollectionsBox" onclick="toggleCollectionDropdown()">
+                <span class="text-muted placeholder-text" id="collectionPlaceholder" {% if product.collections and product.collections|length > 0 %}style="display:none;"{% endif %}>
+                    <i class="fas fa-folder-open me-1"></i> انقر لاختيار المجموعات...
+                </span>
                 {% if product.collections %}
                     {% for col in product.collections %}
                     <span class="collection-badge" data-id="{{ col.qid or col.id }}">
-                        <i class="fas fa-folder"></i> {{ col.title or col.name }}
+                        <i class="fas fa-folder"></i> 
+                        {{ col.title or col.name }}
                         <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('{{ col.qid or col.id }}')">&times;</span>
                     </span>
                     {% endfor %}
                 {% endif %}
             </div>
 
-            <!-- القائمة المنسدلة -->
-            <div id="collectionDropdownMenu" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; margin-top: 5px; padding: 10px;">
-                <input type="text" id="collectionSearchInput" placeholder="بحث في المجموعات..." oninput="filterCollections(this.value)" style="margin-bottom: 8px; padding: 8px;" onclick="event.stopPropagation();">
-                <div id="collectionsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+            <!-- القائمة المنسدلة مع البحث -->
+            <div id="collectionDropdownMenu">
+                <div class="dropdown-search-wrapper">
+                    <i class="fas fa-search position-absolute" style="top: 50%; right: 18px; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+                    <input type="text" id="collectionSearchInput" placeholder="🔍 ابحث عن مجموعة..." oninput="filterCollections(this.value)" onclick="event.stopPropagation();">
+                </div>
+                
+                <div id="collectionsList">
                     {% if all_collections %}
                         {% for col in all_collections %}
-                        <div class="collection-option-item" data-id="{{ col.qid or col.id }}" data-title="{{ col.title or col.name }}" onclick="toggleCollectionSelection(this, '{{ col.qid or col.id }}', '{{ col.title or col.name }}')" style="padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
-                            <span>
+                        <div class="collection-option-item" data-id="{{ col.qid or col.id }}" data-title="{{ col.title or col.name }}" onclick="toggleCollectionSelection(this, '{{ col.qid or col.id }}', '{{ col.title or col.name }}')">
+                            <span class="d-flex align-items-center gap-2">
                                 {% if col.image and col.image.fileUrl %}
-                                <img src="{{ col.image.fileUrl }}" style="width: 24px; height: 24px; object-fit: cover; border-radius: 4px; margin-right: 6px;">
+                                <img src="{{ col.image.fileUrl }}" class="collection-thumb" alt="{{ col.title or col.name }}">
+                                {% else %}
+                                <i class="fas fa-folder text-warning"></i>
                                 {% endif %}
-                                <i class="fas fa-folder me-2 text-warning"></i> {{ col.title or col.name }}
+                                <span>{{ col.title or col.name }}</span>
                             </span>
-                            <input type="checkbox" class="col-checkbox" value="{{ col.qid or col.id }}" {% if product.collections and col in product.collections %}checked{% endif %} style="pointer-events: none; width: auto;">
+                            <input type="checkbox" class="col-checkbox" value="{{ col.qid or col.id }}" {% if product.collections and col in product.collections %}checked{% endif %} style="pointer-events: none; width: auto; accent-color: var(--gold-color);">
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="text-muted text-center py-2">لا توجد مجموعات متاحة</div>
+                        <div class="text-muted text-center py-3">
+                            <i class="fas fa-folder-open fa-2x mb-2 d-block" style="color: #D4AF37;"></i>
+                            <p>لا توجد مجموعات متاحة</p>
+                        </div>
                     {% endif %}
+                </div>
+                
+                <!-- رسالة عدم وجود نتائج -->
+                <div id="collectionsNoResults" style="display: none;" class="text-muted text-center py-2">
+                    <i class="fas fa-search-minus me-1"></i> لا توجد نتائج مطابقة
                 </div>
             </div>
         </div>
 
-        <!-- حقول مخفية -->
+        <!-- حقول مخفية لحفظ المعرفات -->
         <div id="hiddenCollectionsInputs">
             {% if product.collections %}
                 {% for col in product.collections %}
@@ -50,5 +74,192 @@
                 {% endfor %}
             {% endif %}
         </div>
+        
+        <!-- عداد المجموعات المختارة -->
+        <div class="mt-2">
+            <small class="text-muted">
+                <i class="fas fa-check-circle me-1" style="color: #22c55e;"></i>
+                تم اختيار: <span id="selectedCountDisplay">{{ product.collections|length if product.collections else 0 }}</span> مجموعة
+            </small>
+        </div>
     </div>
 </div>
+
+<style>
+/* تحسينات إضافية للمجموعات */
+.collection-multiselect-container {
+    position: relative;
+}
+
+.selected-collections-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    background: #ffffff;
+    min-height: 52px;
+    cursor: pointer;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.selected-collections-box:hover {
+    border-color: var(--gold-color);
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
+}
+
+.selected-collections-box .placeholder-text {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.collection-badge {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    color: #D4AF37;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.collection-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(45, 11, 54, 0.15);
+}
+
+.remove-collection {
+    cursor: pointer;
+    color: #ef4444;
+    font-weight: 700;
+    margin-left: 4px;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+}
+
+.remove-collection:hover {
+    transform: rotate(90deg);
+    color: #dc2626;
+}
+
+.collection-option-item {
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.collection-option-item:hover {
+    background: #f1f5f9;
+    border-color: var(--gold-color);
+}
+
+.collection-option-item.selected {
+    background: rgba(212, 175, 55, 0.08);
+    border-color: var(--gold-color);
+}
+
+.collection-thumb {
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+#collectionDropdownMenu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+    z-index: 1000;
+    padding: 14px;
+    max-height: 320px;
+    overflow: hidden;
+    animation: dropdownSlide 0.25s ease-out;
+}
+
+@keyframes dropdownSlide {
+    0% { opacity: 0; transform: translateY(-8px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-search-wrapper {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+#collectionSearchInput {
+    width: 100%;
+    padding: 10px 40px 10px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+#collectionSearchInput:focus {
+    outline: none;
+    border-color: var(--gold-color);
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
+}
+
+#collectionsList {
+    max-height: 180px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+#collectionsList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#collectionsList::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+#collectionsList::-webkit-scrollbar-thumb {
+    background: var(--gold-color);
+    border-radius: 10px;
+}
+
+#collectionsList::-webkit-scrollbar-thumb:hover {
+    background: #b8962e;
+}
+
+.col-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--gold-color);
+}
+
+#collectionsNoResults {
+    padding: 12px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+</style>
