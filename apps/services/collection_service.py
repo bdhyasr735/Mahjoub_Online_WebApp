@@ -49,23 +49,20 @@ class CollectionService:
                 isFeatured
                 createdAt
                 updatedAt
-                products {
-                    id
-                    qid
-                    name
-                    price
-                    mainImage {
-                        url
-                        altText
-                    }
-                }
             }
         }
         """
         
         try:
+            print(f"🔍 [CollectionService] جلب جميع المجموعات...")
             result = self.client.execute(query, operation_name="FindAllCollections")
-            return result.get('findAllCollections', []) if result else []
+            print(f"🔍 [CollectionService] Result: {result}")
+            
+            if result and "findAllCollections" in result:
+                collections = result.get('findAllCollections', [])
+                print(f"✅ [CollectionService] تم جلب {len(collections)} مجموعة")
+                return collections
+            return []
         except Exception as e:
             print(f"❌ [CollectionService]: خطأ في جلب المجموعات: {e}")
             return []
@@ -125,7 +122,9 @@ class CollectionService:
         variables = {"id": qid}
         
         try:
+            print(f"🔍 [CollectionService] جلب المجموعة بـ QID: {qid}")
             result = self.client.execute(query, variables, operation_name="FindCollectionByQid")
+            print(f"🔍 [CollectionService] Result: {result}")
             return result.get('findCollectionByQid') if result else None
         except Exception as e:
             print(f"❌ [CollectionService]: خطأ في جلب المجموعة {qid}: {e}")
@@ -214,7 +213,9 @@ class CollectionService:
         variables = {"id": collection_qid}
         
         try:
+            print(f"🔍 [CollectionService] جلب منتجات المجموعة: {collection_qid}")
             result = self.client.execute(query, variables, operation_name="FindAllProductsForCollection")
+            print(f"🔍 [CollectionService] Result: {result}")
             return result.get('findAllProductsForCollection', []) if result else []
         except Exception as e:
             print(f"❌ [CollectionService]: خطأ في جلب منتجات المجموعة {collection_qid}: {e}")
