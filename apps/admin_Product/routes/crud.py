@@ -10,6 +10,7 @@ from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
 from datetime import datetime
+import json
 
 
 @admin_product_bp.route('/products/add', methods=['GET', 'POST'])
@@ -69,7 +70,7 @@ def add_product():
 @admin_product_bp.route('/products/edit', methods=['GET'])
 @login_required
 def edit_product():
-    """عرض صفحة تعديل المنتج مع محاولة جلب الخيارات بشكل آمن"""
+    """عرض صفحة تعديل المنتج مع معالجة آمنة للمتغيرات والخيارات"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
@@ -81,25 +82,26 @@ def edit_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
     
-    # 1. جلب المنتج الأساسي (الاستعلام الآمن الذي يفتح الصفحة بلا 500)
+    # 1. جلب المنتج الأساسي
     product = services.products.get_product_by_qid(qid)
     
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
-    # 2. محاولة جلب الخيارات (Options) فقط. (المتغيرات غير مدعومة وقد حذفناها)
+    # 2. جلب الخيارات (Options) بشكل آمن تماماً
     try:
         if hasattr(services, 'variants'):
-            # محاولة جلب خيارات المنتج (فقط ما يدعمه السيرفر)
             options_data = services.variants.get_all_options_for_product(qid)
             print(f"🔍 [DEBUG] Options Data received for {qid}: {options_data}")
             
             if options_data:
-                product['options'] = options_data
+                if isinstance(product, dict):
+                    product['options'] = options_data
+                else:
+                    setattr(product, 'options', options_data)
     except Exception as e:
-        # إذا فشلت، نطبع تحذيراً في السيرفر لكن الصفحة تبقى مفتوحة
-        print(f"⚠️ [Edit Product] تعذر جلب الخيارات... السبب: {e}")
+        print(f"⚠️ [Edit Product] تعذر جلب الخيارات للمنتج {qid}... السبب: {e}")
 
     # 3. جلب بيانات إضافية
     suppliers = Supplier.query.filter_by(status='active').all()
@@ -124,7 +126,7 @@ def edit_product():
 @admin_product_bp.route('/products/save-sync', methods=['POST'])
 @login_required
 def save_sync_product():
-    """معالجة وحفظ البيانات مع مزامنة المتغيرات (نسخة آمنة 100% من الأخطاء)"""
+    """معالجة وحفظ البيانات مع مزامنة المتغيرات (نسخة آمنة 100% ضد الأخطاء)"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         return jsonify({"status": "error", "message": "غير مصرح"}), 403
@@ -181,26 +183,25 @@ def save_sync_product():
         if collection_ids:
             update_data['collectionIds'] = collection_ids
 
-        # ✅ (آمن 100%) محاولة قراءة المتغيرات، إذا فشلت، نكمل دون كسر السيرفر
+        # ✅ معالجة آمنة لبيانات المتغيرات والخيارات المرسلة من الواجهة
         try:
             variants_payload_str = request.form.get('variants_payload', '{}')
             if variants_payload_str and variants_payload_str != '{}' and variants_payload_str != '{"input":{}}':
-                import json
                 variants_data = json.loads(variants_payload_str)
-                if variants_data and 'input' in variants_data:
-                    input_data = variants_data['input']
-                    if 'options' in input_data:
-                        update_data['options'] = input_data['options']
-                    if 'variants' in input_data:
-                        update_data['variants'] = input_data['variants']
+                if variants_data and isinstance(variants_data, dict):
+                    input_data = variants_data.get('input', variants_data)
+                    if isinstance(input_data, dict):
+                        if 'options' in input_data:
+                            update_data['options'] = input_data['options']
+                        if 'variants' in input_data:
+                            update_data['variants'] = input_data['variants']
         except Exception as e:
-            # إذا حدث خطأ، نطبع تحذيراً في السيرفر فقط ونكمل الحفظ
             print(f"⚠️ [Warning] تعذر قراءة المتغيرات، ولكن عملية الحفظ مستمرة: {e}")
 
         result = services.products.update_product_data(update_data)
 
         if not result:
-            return jsonify({"status": "error", "message": "فشل حفظ التعديلات."}), 500
+            return jsonify({"status": "error", "message": "فشل حفظ التعديلات في الخدمة."}), 500
 
         if supplier_id:
             try:
@@ -246,7 +247,7 @@ def save_sync_product():
         })
 
     except Exception as e:
-        print(f"❌ خطأ غير متوقع: {e}")
+        print(f"❌ خطأ غير متوقع في save_sync_product: {e}")
         return jsonify({
             "status": "error", 
             "message": f"حدث خطأ أثناء معالجة الطلب: {str(e)}"
