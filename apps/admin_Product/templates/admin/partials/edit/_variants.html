@@ -18,15 +18,13 @@
         <label class="form-label fw-bold text-dark-purple mb-2">إدارة خيارات المنتج:</label>
         <div id="optionsContainer" class="d-flex flex-column gap-3">
             
-            <!-- ✅ 1. التحقق من وجود خيارات مخزنة في Django (من `services.products`) -->
             {% if product and product.options and product.options|length > 0 %}
-                <!-- تكرار عبر الخيارات المخزنة -->
-                {% for option in product.options %}
+                <!-- ✅ تكرار آمن عبر الخيارات المخزنة -->
+                {% for opt in product.options %}
                 <div class="option-row p-3 rounded-3 bg-white">
                     <div class="option-header d-flex gap-2 mb-2 flex-wrap">
-                        <!-- عرض اسم الخيار -->
                         <input type="text" class="form-control custom-input opt-name" 
-                               value="{{ option.name }}" 
+                               value="{{ opt.name }}" 
                                placeholder="اسم الخيار (مثل: اللون)" 
                                oninput="generatePayload()" style="flex: 1; min-width: 150px;">
                         
@@ -37,8 +35,7 @@
                     
                     <label class="form-label text-muted" style="font-size: 0.85rem; margin-bottom: 6px;">القيم المتعددة:</label>
                     <div class="values-container d-flex flex-wrap gap-2 mb-2">
-                        <!-- تكرار عبر القيم المخزنة داخل الخيار -->
-                        {% for val in option.values %}
+                        {% for val in opt.values %}
                         <div class="value-tag">
                             {{ val.label }} 
                             <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
@@ -55,8 +52,8 @@
                 </div>
                 {% endfor %}
                 
-            <!-- ✅ 2. إذا كان المنتج جديداً وليس له خيارات، نعرض صفاً واحداً فارغاً -->
             {% else %}
+                <!-- ✅ صف فارغ افتراضي عند عدم وجود خيارات -->
                 <div class="option-row p-3 rounded-3 bg-white">
                     <div class="option-header d-flex gap-2 mb-2 flex-wrap">
                         <input type="text" class="form-control custom-input opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()" style="flex: 1; min-width: 150px;">
@@ -84,7 +81,6 @@
     <div class="form-group mb-0">
         <label class="form-label fw-bold text-dark-purple mb-2">تخصيص السعر، الكمية، وصورة لكل متغير:</label>
         <div id="variantsTableContainer" class="table-responsive">
-            <!-- ✅ إذا كان هناك متغيرات، سيتم تحميلها بواسطة JavaScript فوراً -->
             <p class="text-muted text-center p-4 bg-light rounded-3 border border-dashed" style="font-size: 0.9rem;">
                 <i class="fas fa-info-circle me-1"></i> قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...
             </p>
@@ -192,15 +188,13 @@
 document.addEventListener('DOMContentLoaded', function() {
     // استخدام setTimeout بسيط للتأكد من تحميل الـ JS الرئيسي
     setTimeout(function() {
-        // التأكد من وجود الدوال الخاصة بالمتغيرات
         if (typeof generatePayload === 'function' && typeof updateVariantsTable === 'function') {
             console.log('✅ [variants] جاري تحديث جدول المتغيرات عند التحميل...');
-            // استدعاء الدالة التي ترسم جدول المتغيرات بناءً على الخيارات الموجودة حالياً
             updateVariantsTable();
             generatePayload();
         } else {
-            console.warn('⚠️ [variants] دوال الـ JS (generatePayload/updateVariantsTable) لم يتم تحميلها بعد.');
+            console.warn('⚠️ [variants] دوال الـ JS لم يتم تحميلها بعد.');
         }
-    }, 500); // إعطاء وقت كافٍ للصفحة ولتحميل مكتبة TinyMCE وغيرها
+    }, 500);
 });
 </script>
