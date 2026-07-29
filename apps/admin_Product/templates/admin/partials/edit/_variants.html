@@ -17,10 +17,11 @@
     <div class="form-group mb-4">
         <label class="form-label fw-bold text-dark-purple mb-2">إدارة خيارات المنتج:</label>
         <div id="optionsContainer" class="d-flex flex-column gap-3">
+            <!-- نموذج الخيار الأول الافتراضي -->
             <div class="option-row p-3 rounded-3 bg-white">
-                <div class="option-header d-flex gap-2 mb-2">
-                    <input type="text" class="form-control custom-input opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()">
-                    <button class="btn btn-outline-danger btn-sm px-3" type="button" onclick="removeOptionRow(this)" title="حذف الخيار">
+                <div class="option-header d-flex gap-2 mb-2 flex-wrap">
+                    <input type="text" class="form-control custom-input opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()" style="flex: 1; min-width: 150px;">
+                    <button class="btn btn-outline-danger btn-sm px-3 delete-opt-btn" type="button" onclick="removeOptionRow(this)" title="حذف الخيار">
                         <i class="fas fa-trash-alt"></i> حذف
                     </button>
                 </div>
@@ -93,6 +94,7 @@
     transition: all 0.3s ease;
     padding: 10px 14px;
     font-size: 0.95rem;
+    height: 45px; /* تم توحيد الارتفاع */
 }
 
 .custom-input:focus {
@@ -111,14 +113,24 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+.delete-opt-btn {
+    height: 45px; /* توحيد الارتفاع مع حقل الإدخال */
+    display: flex;
+    align-items: center;
+    border-radius: 8px !important;
+}
+
 .btn-gold-gradient {
     background: linear-gradient(135deg, #2d0b36, #1a0520);
     color: #D4AF37;
     border: none;
     font-weight: 600;
     padding: 8px 16px;
+    height: 45px;
     border-radius: 0 10px 10px 0 !important;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
 }
 
 .btn-gold-gradient:hover {
@@ -133,6 +145,7 @@
     background: transparent;
     border-radius: 10px;
     transition: all 0.3s ease;
+    height: 50px;
 }
 
 .btn-outline-purple:hover {
@@ -144,6 +157,18 @@
 .border-dashed {
     border-style: dashed !important;
     border-color: #cbd5e1 !important;
+}
+
+/* ✅ تحسين عرض جدول المتغيرات عند توليده ليكون الأرقام إنجليزية */
+#variantsTableContainer table th,
+#variantsTableContainer table td {
+    text-align: center;
+    vertical-align: middle;
+}
+#variantsTableContainer table input[type="text"] {
+    height: 42px;
+    text-align: center;
+    direction: ltr; /* لكتابة الأرقام بشكل صحيح */
 }
 
 @media (max-width: 768px) {
