@@ -1,8 +1,8 @@
 <!-- apps/admin_Product/templates/admin/partials/edit/_variants.html -->
 
 <!-- ============================================================
-   🔀 خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)
-   ============================================================ -->
+    🔀 خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)
+    ============================================================ -->
 <div class="form-section variants-card shadow-sm">
     <div class="form-section-title d-flex align-items-center justify-content-between">
         <div>
@@ -19,7 +19,7 @@
         <div id="optionsContainer" class="d-flex flex-column gap-3">
             
             {% if product and product.options and product.options|length > 0 %}
-                <!-- ✅ تكرار آمن عبر الخيارات المخزنة -->
+                <!-- ✅ تكرار آمن عبر الخيارات المخزنة (مع الحماية ضد خطأ الدالة المدمجة) -->
                 {% for opt in product.options %}
                 <div class="option-row p-3 rounded-3 bg-white">
                     <div class="option-header d-flex gap-2 mb-2 flex-wrap">
@@ -35,12 +35,21 @@
                     
                     <label class="form-label text-muted" style="font-size: 0.85rem; margin-bottom: 6px;">القيم المتعددة:</label>
                     <div class="values-container d-flex flex-wrap gap-2 mb-2">
-                        {% for val in opt.values %}
-                        <div class="value-tag">
-                            {{ val.label }} 
-                            <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
-                        </div>
-                        {% endfor %}
+                        {% if opt.values and opt.values is iterable and opt.values is not mapping and opt.values is not string %}
+                            {% for val in opt.values %}
+                            <div class="value-tag">
+                                {{ val.label if val.label is defined else val }} 
+                                <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
+                            </div>
+                            {% endfor %}
+                        {% elif opt.get is defined and opt.get('values') %}
+                            {% for val in opt.get('values') %}
+                            <div class="value-tag">
+                                {{ val.label if val.label is defined else val }} 
+                                <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
                     </div>
                     
                     <div class="add-value-group input-group input-group-sm">
@@ -89,8 +98,8 @@
 </div>
 
 <!-- ============================================================
-   🎨 التنسيقات والأنماط (Styles)
-   ============================================================ -->
+    🎨 التنسيقات والأنماط (Styles)
+    ============================================================ -->
 <style>
 .variants-card {
     background: linear-gradient(135deg, #faf8f6, #ffffff);
@@ -182,11 +191,10 @@
 </style>
 
 <!-- ============================================================
-   🚀 سكربت ضمان توليد الجدول (آمن 100%)
-   ============================================================ -->
+    🚀 سكربت ضمان توليد الجدول (آمن 100%)
+    ============================================================ -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // استخدام setTimeout بسيط للتأكد من تحميل الـ JS الرئيسي
     setTimeout(function() {
         if (typeof generatePayload === 'function' && typeof updateVariantsTable === 'function') {
             console.log('✅ [variants] جاري تحديث جدول المتغيرات عند التحميل...');
