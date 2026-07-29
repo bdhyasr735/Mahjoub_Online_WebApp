@@ -69,7 +69,7 @@ def add_product():
 @admin_product_bp.route('/products/edit', methods=['GET'])
 @login_required
 def edit_product():
-    """عرض صفحة تعديل المنتج مع الخيارات (الحل النهائي والآمن)"""
+    """عرض صفحة تعديل المنتج"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
@@ -81,28 +81,20 @@ def edit_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
     
-    # ✅ محاولة جلب المنتج مع الخيارات والمتغيرات (الحل الآمن)
-    try:
-        # استخدم service.variants (الذي تم تعريفه في __init__.py)
-        product = services.variants.get_product_with_options_and_variants(qid)
-    except Exception as e:
-        print(f"❌ [ERROR] فشل جلب المنتج مع الخيارات: {e}")
-        flash(f"❌ حدث خطأ أثناء تحميل بيانات المنتج.", "danger")
-        return redirect(url_for('admin_product_bp.manage_products_view'))
-
+    # ✅ نعود للدالة الآمنة التي تعمل 100% (لن نطلب product من GraphQL)
+    product = services.products.get_product_by_qid(qid)
+    
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
-    # جلب البيانات الإضافية
+    # ✅ نستمر في جلب باقي البيانات
     suppliers = Supplier.query.filter_by(status='active').all()
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     assigned_supplier_id = mapping.supplier_id if mapping else None
 
-    # ✅ جلب جميع المجموعات للقائمة المنسدلة
     try:
         all_collections = services.collections.get_all_collections() if hasattr(services, 'collections') else []
-        print(f"🔍 [DEBUG] Collections loaded: {len(all_collections)}")
     except Exception as e:
         print(f"❌ [DEBUG] Error loading collections: {e}")
         all_collections = []
