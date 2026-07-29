@@ -216,25 +216,28 @@
     -webkit-appearance: none !important; margin: 0 !important;
 }
 
-/* ✅ تنسيق Tom Select (حل جذري لمشكلة الشريط البنفسجي) */
+/* ✅ تنسيق Tom Select (نسخة محسنة ومتناسقة) */
 .ts-wrapper {
     width: 100% !important;
     position: relative !important;
-    z-index: 1 !important;
 }
 
 /* تأكد من أن الحاوية الأصلية لا تقطع القائمة المنسدلة */
-.col-md-6 .form-group {
+.col-md-6 .form-group,
+.col-md-6 {
     overflow: visible !important;
 }
 
 .ts-control {
     height: 55px !important;
     border-radius: 10px !important;
-    border-color: #e2e8f0 !important;
+    border: 2px solid #e2e8f0 !important;
     background: #ffffff !important;
     font-size: 1.05rem !important;
     box-shadow: none !important;
+    color: var(--gray-800) !important;
+    padding: 12px 16px !important;
+    transition: all 0.3s ease !important;
 }
 .ts-control:focus, .ts-wrapper.single .ts-control:focus {
     border-color: #D4AF37 !important;
@@ -242,17 +245,15 @@
 }
 
 .ts-dropdown {
-    position: fixed !important; /* استخدام Fixed لمنع أي اقتصاص */
-    top: auto !important;
-    left: auto !important;
+    position: absolute !important;
     width: 100% !important;
-    max-width: 600px !important; /* لضمان عدم اتساعها بشكل مفرط */
     z-index: 99999 !important;
-    border-color: #e2e8f0 !important;
-    border-radius: 0 0 10px 10px !important;
+    border: 2px solid #e2e8f0 !important;
     border-top: none !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+    border-radius: 0 0 10px 10px !important;
     background: #ffffff !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+    margin-top: -2px !important;
 }
 .ts-dropdown .option.active {
     background-color: #2d0b36 !important;
@@ -294,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 placeholder: 'ابحث عن المورد هنا...',
                 searchField: ['text'],
                 maxOptions: 10,
-                dropdownParent: document.body // هذا يضمن ظهور القائمة فوق الجميع
+                dropdownParent: document.body  // يضمن أن القائمة تطفو فوق الصفحة
             });
             console.log('✅ Tom Select (المورد) تم تفعيله بنجاح');
         }
