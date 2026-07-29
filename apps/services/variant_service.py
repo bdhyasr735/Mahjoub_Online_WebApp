@@ -8,7 +8,7 @@ class VariantService:
     def __init__(self, client: GraphQLClient):
         self.client = client
     
-    # ========== الاستعلامات ==========
+    # ========== الاستعلامات الأساسية للمتغيرات ==========
     
     def get_by_product(self, product_qid: str) -> List[Dict]:
         query = """
@@ -53,8 +53,73 @@ class VariantService:
         except Exception as e:
             print(f"❌ [VariantService]: خطأ في جلب المتغير {variant_qid}: {e}")
             return None
+
+    # ========== 🔥 استعلام جديد: جلب هيكل المنتج بالكامل (للواجهة الأمامية) ==========
     
-    # ========== التحويرات ==========
+    def get_product_with_options_and_variants(self, product_qid: str) -> Optional[Dict]:
+        """
+        هذا الاستعلام يقوم بجلب بيانات المنتج، خياراته (Options)، ومتغيراته (Variants)
+        لاستخدامها في صفحة تعديل المنتج.
+        """
+        query = """
+        query GetProductFullStructure($qid: String!) {
+            product(qid: $qid) {
+                id
+                qid
+                title
+                name
+                sku
+                description
+                status
+                
+                # جلب الخيارات (Options) مثل اللون، المقاس
+                options {
+                    id
+                    name
+                    values {
+                        id
+                        label
+                        sortOrder
+                    }
+                    sortOrder
+                }
+                
+                # جلب المتغيرات (Variants) مع أسعارها وصورها
+                variants {
+                    id
+                    qid
+                    sku
+                    quantity
+                    price
+                    compareAtPrice
+                    originalPrice
+                    media
+                    options {
+                        id
+                        label
+                    }
+                }
+                
+                # معلومات إضافية للجداول
+                pricing {
+                    price
+                    compareAtPrice
+                    originalPrice
+                }
+                
+                quantity
+                media
+            }
+        }
+        """
+        try:
+            data = self.client.execute(query, {'qid': product_qid}, operation_name="GetProductFullStructure")
+            return data.get('product') if data else None
+        except Exception as e:
+            print(f"❌ [VariantService]: خطأ في جلب هيكل المنتج الكامل {product_qid}: {e}")
+            return None
+    
+    # ========== التحويرات (Mutations) ==========
     
     def update_price(self, variant_qid: str, price: float) -> Optional[Dict]:
         query = """
