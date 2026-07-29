@@ -18,22 +18,22 @@
         </div>
     </div>
     
-    <!-- الكمية -->
+    <!-- الكمية (تم التحويل إلى text) -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="productQuantity" class="form-label">
                 <i class="fas fa-cubes text-gold me-1"></i> الكمية المتاحة
                 <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">المخزون</span>
             </label>
-            <input type="number" id="productQuantity" name="quantity" class="form-control form-control-lg custom-input tabular-nums removeArrows" 
-                   min="0" value="{{ product.quantity or 0 }}" 
-                   oninput="generatePayload()">
+            <input type="text" id="productQuantity" name="quantity" class="form-control form-control-lg custom-input numeric-input" 
+                   value="{{ product.quantity|string if product.quantity is not none else '0' }}" 
+                   oninput="allowNumericOnly(this); generatePayload();">
         </div>
     </div>
 </div>
 
 <!-- ============================================================
-   💰 الأسعار الثلاثة (تم ضبط الأبعاد وإخفاء الأسهم)
+   💰 الأسعار الثلاثة (تم ضبط الأبعاد والتحويل إلى text)
    ============================================================ -->
 <div class="row g-3 mt-2">
     <!-- السعر الأساسي -->
@@ -44,10 +44,9 @@
                 <span class="badge bg-danger text-white ms-1" style="font-size: 0.6rem; font-weight: 400;">مطلوب</span>
             </label>
             <div class="input-group input-group-lg">
-                <input type="number" id="productPrice" name="price" class="form-control custom-input tabular-nums removeArrows" 
-                       step="0.01" min="0" 
-                       value="{{ product.pricing.price if product.pricing and product.pricing.price is not none else 0 }}" 
-                       required oninput="generatePayload()">
+                <input type="text" id="productPrice" name="price" class="form-control custom-input numeric-input" 
+                       value="{{ product.pricing.price|string if product.pricing and product.pricing.price is not none else '0' }}" 
+                       oninput="allowNumericOnly(this); generatePayload();">
                 <span class="input-group-text currency-addon">
                     ر.س
                 </span>
@@ -64,10 +63,9 @@
                 <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">عرض</span>
             </label>
             <div class="input-group input-group-lg">
-                <input type="number" id="comparePrice" name="compare_price" class="form-control custom-input tabular-nums removeArrows" 
-                       step="0.01" min="0" 
-                       value="{{ product.pricing.compareAtPrice if product.pricing and product.pricing.compareAtPrice is not none else 0 }}" 
-                       oninput="generatePayload()">
+                <input type="text" id="comparePrice" name="compare_price" class="form-control custom-input numeric-input" 
+                       value="{{ product.pricing.compareAtPrice|string if product.pricing and product.pricing.compareAtPrice is not none else '0' }}" 
+                       oninput="allowNumericOnly(this); generatePayload();">
                 <span class="input-group-text currency-addon">
                     ر.س
                 </span>
@@ -84,10 +82,9 @@
                 <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">مرجع</span>
             </label>
             <div class="input-group input-group-lg">
-                <input type="number" id="originalPrice" name="original_price" class="form-control custom-input tabular-nums removeArrows" 
-                       step="0.01" min="0" 
-                       value="{{ product.pricing.originalPrice if product.pricing and product.pricing.originalPrice is not none else 0 }}" 
-                       oninput="generatePayload()">
+                <input type="text" id="originalPrice" name="original_price" class="form-control custom-input numeric-input" 
+                       value="{{ product.pricing.originalPrice|string if product.pricing and product.pricing.originalPrice is not none else '0' }}" 
+                       oninput="allowNumericOnly(this); generatePayload();">
                 <span class="input-group-text currency-addon">
                     ر.س
                 </span>
@@ -122,7 +119,6 @@
             <label for="supplierId" class="form-label">
                 <i class="fas fa-store text-gold me-1"></i> المورد
             </label>
-            <!-- سأقوم هنا بتشغيل السكربت مباشرة عند تحميل الصفحة -->
             <select id="supplierSelect" name="supplier_id" class="form-select form-select-lg custom-input" placeholder="ابحث عن المورد...">
                 <option value="">-- غير مرتبط --</option>
                 {% for supplier in suppliers %}
@@ -166,7 +162,7 @@
                 <div>
                     <small class="text-muted d-block">الكمية</small>
                     <strong class="summary-value">
-                        {{ product.quantity or 0 }} 
+                        {{ product.quantity|string if product.quantity is not none else '0' }} 
                         <span class="text-gold">قطعة</span>
                     </strong>
                 </div>
@@ -200,17 +196,18 @@
     padding: 14px 20px; height: 55px; display: flex; align-items: center;
 }
 
-/* ✅ إجبار الأرقام على الظهور بالإنجليزية في المتصفحات */
-.tabular-nums {
-    font-feature-settings: "tnum";
-    font-variant-numeric: tabular-nums;
-    direction: ltr;
-    text-align: right;
-    /* هذه الخدعة تمنع المتصفح من تحويل الأرقام إلى عربية */
-    unicode-bidi: plaintext;
+/* ✅ تنسيق حقول الأرقام الجديدة (لتعمل مع type="text") */
+.numeric-input {
+    direction: ltr;      /* اجبار الأرقام على الكتابة من اليسار */
+    text-align: right;    /* محاذاة الأرقام لليمين بجانب كلمة ر.س */
+    letter-spacing: 0.5px; /* تحسين مظهر الأرقام */
+}
+.numeric-input:focus {
+    border-color: #D4AF37; 
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
 }
 
-/* ✅ إخفاء الأسهم الصغيرة تماماً */
+/* ✅ إخفاء الأسهم الصغيرة تماماً (لن تظهر لأنها type="text" لكن نحن متأكدون) */
 .removeArrows { -moz-appearance: textfield !important; appearance: textfield !important; }
 .removeArrows::-webkit-outer-spin-button,
 .removeArrows::-webkit-inner-spin-button {
@@ -231,8 +228,18 @@
 }
 </style>
 
-<!-- 👇 سكربت تشغيل البحث المتقدم في المورد فوراً 👇 -->
+<!-- 👇 سكربت تشغيل البحث المتقدم في المورد والتحكم بالأرقام 👇 -->
 <script>
+// دالة تمنع المستخدم من كتابة أي شيء غير الأرقام والنقاط
+function allowNumericOnly(input) {
+    // حذف أي حرف ليس رقماً أو نقطة
+    input.value = input.value.replace(/[^0-9.]/g, '');
+    // التأكد من وجود نقطة واحدة فقط للكسور
+    if ((input.value.match(/\./g) || []).length > 1) {
+        input.value = input.value.slice(0, -1);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // التأكد من أن المكتبة محملة
     if (typeof TomSelect !== 'undefined') {
