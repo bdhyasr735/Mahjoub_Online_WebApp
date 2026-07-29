@@ -1,205 +1,200 @@
 """
-خدمة المتغيرات والخيارات - Variant Service
+خدمة المتغيرات والخيارات - Variant Service Queries
 """
 
-from typing import List, Optional, Dict, Any
-from .graphql_client import GraphQLClient
+# ============================================================
+# 1. استعلامات جلب المتغيرات (Variants)
+# ============================================================
 
+query FindAllVariantsByProductId($productId: ID!) {
+    findAllVariantsByProductId(productId: $productId) {
+        id
+        qid
+        sku
+        barcode
+        price
+        compareAtPrice
+        costPerItem
+        quantity
+        weight
+        weightUnit
+        position
+        isActive
+        isAvailable
+        options {
+            id
+            name
+            value
+            position
+        }
+        image {
+            id
+            url
+            altText
+            width
+            height
+        }
+        inventory {
+            id
+            quantity
+            available
+            reserved
+            location
+            warehouse
+        }
+        product {
+            id
+            qid
+            name
+            mainImage {
+                url
+                altText
+            }
+        }
+    }
+}
 
-class VariantService:
-    """خدمة لإدارة متغيرات وخيارات المنتجات"""
-    
-    def __init__(self, client: GraphQLClient, queries_path: str = 'apps/services/variant_queries.graphql'):
-        self.client = client
-        try:
-            with open(queries_path, 'r', encoding='utf-8') as f:
-                self.queries = f.read()
-        except FileNotFoundError:
-            self.queries = ""
-    
-    def get_variants_by_product(self, product_id: str) -> List[Dict[str, Any]]:
-        """
-        جلب جميع متغيرات المنتج باستخدام استعلام FindAllVariantsByProductId
-        """
-        query = """
-        query FindAllVariantsByProductId($productId: ID!) {
-            findAllVariantsByProductId(productId: $productId) {
-                id
-                qid
-                sku
-                barcode
-                price
-                compareAtPrice
-                costPerItem
-                quantity
-                weight
-                weightUnit
-                position
-                isActive
-                isAvailable
-                options {
-                    id
-                    name
-                    value
-                    position
-                }
-                image {
-                    id
-                    url
-                    altText
-                    width
-                    height
-                }
-                inventory {
-                    id
-                    quantity
-                    available
-                    reserved
-                    location
-                    warehouse
-                }
-                product {
-                    id
-                    qid
-                    name
-                    mainImage {
-                        url
-                        altText
-                    }
-                }
+query FindVariantById($id: ID!) {
+    findVariantById(id: $id) {
+        id
+        qid
+        sku
+        barcode
+        price
+        compareAtPrice
+        costPerItem
+        quantity
+        weight
+        weightUnit
+        position
+        isActive
+        isAvailable
+        options {
+            id
+            name
+            value
+            position
+        }
+        image {
+            id
+            url
+            altText
+            width
+            height
+        }
+        inventory {
+            id
+            quantity
+            available
+            reserved
+            location
+            warehouse
+        }
+        product {
+            id
+            qid
+            name
+            price
+            mainImage {
+                url
+                altText
             }
         }
-        """
-        variables = {"productId": product_id}
-        try:
-            result = self.client.execute(query, variables, operation_name="FindAllVariantsByProductId")
-            return result.get('findAllVariantsByProductId', []) if result else []
-        except Exception as e:
-            print(f"❌ [VariantService]: خطأ في جلب متغيرات المنتج {product_id}: {e}")
-            return []
-    
-    def get_variant_by_id(self, variant_id: str) -> Optional[Dict[str, Any]]:
-        """
-        جلب متغير بواسطة ID باستخدام استعلام FindVariantById
-        """
-        query = """
-        query FindVariantById($id: ID!) {
-            findVariantById(id: $id) {
-                id
-                qid
-                sku
-                barcode
-                price
-                compareAtPrice
-                costPerItem
-                quantity
-                weight
-                weightUnit
-                position
-                isActive
-                isAvailable
-                options {
-                    id
-                    name
-                    value
-                    position
-                }
-                image {
-                    id
-                    url
-                    altText
-                    width
-                    height
-                }
-                inventory {
-                    id
-                    quantity
-                    available
-                    reserved
-                    location
-                    warehouse
-                }
-                product {
-                    id
-                    qid
-                    name
-                    price
-                    mainImage {
-                        url
-                        altText
-                    }
-                }
-            }
-        }
-        """
-        variables = {"id": variant_id}
-        try:
-            result = self.client.execute(query, variables, operation_name="FindVariantById")
-            return result.get('findVariantById') if result else None
-        except Exception as e:
-            print(f"❌ [VariantService]: خطأ في جلب المتغير {variant_id}: {e}")
-            return None
-    
-    def get_option_by_qid(self, qid: str) -> Optional[Dict[str, Any]]:
-        """
-        جلب خيار بواسطة QID باستخدام استعلام FindOptionByQid
-        """
-        query = """
-        query FindOptionByQid($qid: String!) {
-            findOptionByQid(qid: $qid) {
-                id
-                qid
-                name
-                position
-                values {
-                    id
-                    value
-                    position
-                    hexCode
-                    image {
-                        url
-                        altText
-                    }
-                }
-            }
-        }
-        """
-        variables = {"qid": qid}
-        try:
-            result = self.client.execute(query, variables, operation_name="FindOptionByQid")
-            return result.get('findOptionByQid') if result else None
-        except Exception as e:
-            print(f"❌ [VariantService]: خطأ في جلب الخيار {qid}: {e}")
-            return None
+    }
+}
 
-    def get_all_options_for_product(self, qid: str) -> List[Dict[str, Any]]:
-        """
-        جلب جميع خيارات المنتج باستخدام استعلام FindAllOptionsForProduct
-        """
-        query = """
-        query FindAllOptionsForProduct($qid: String!) {
-            findAllOptionsForProduct(qid: $qid) {
-                id
-                qid
-                name
-                position
-                values {
-                    id
-                    value
-                    position
-                    hexCode
-                    image {
-                        url
-                        altText
-                    }
-                }
+# ============================================================
+# 2. استعلامات جلب الخيارات (Options)
+# ============================================================
+
+query FindOptionByQid($qid: String!) {
+    findOptionByQid(qid: $qid) {
+        id
+        qid
+        name
+        position
+        values {
+            id
+            value
+            position
+            hexCode
+            image {
+                url
+                altText
             }
         }
-        """
-        variables = {"qid": qid}
-        try:
-            result = self.client.execute(query, variables, operation_name="FindAllOptionsForProduct")
-            return result.get('findAllOptionsForProduct', []) if result else []
-        except Exception as e:
-            print(f"❌ [VariantService]: خطأ في جلب خيارات المنتج {qid}: {e}")
-            return []
+    }
+}
+
+query FindAllOptionsForProduct($qid: String!) {
+    findAllOptionsForProduct(qid: $qid) {
+        id
+        qid
+        name
+        position
+        values {
+            id
+            value
+            position
+            hexCode
+            image {
+                url
+                altText
+            }
+        }
+    }
+}
+
+# ============================================================
+# 3. 🔥 الاستعلام السحري (جلب المنتج مع خياراته ومتغيراته مرة واحدة)
+# ============================================================
+
+query GetProductFullStructure($qid: String!) {
+    product(qid: $qid) {
+        id
+        qid
+        title
+        name
+        sku
+        description
+        status
+        
+        # جلب الخيارات (Options) مثل اللون، المقاس
+        options {
+            id
+            name
+            values {
+                id
+                label
+                sortOrder
+            }
+            sortOrder
+        }
+        
+        # جلب المتغيرات (Variants) مع أسعارها وصورها
+        variants {
+            id
+            qid
+            sku
+            quantity
+            price
+            compareAtPrice
+            originalPrice
+            media
+            options {
+                id
+                label
+            }
+        }
+        
+        # معلومات إضافية للجداول
+        pricing {
+            price
+            compareAtPrice
+            originalPrice
+        }
+        
+        quantity
+        media
+    }
+}
