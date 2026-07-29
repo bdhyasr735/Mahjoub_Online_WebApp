@@ -142,10 +142,10 @@ class ProductService:
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID مع تفاصيل الأسعار والـ slug والكمية والمجموعات (النسخة الآمنة والموثوقة)"""
+        """جلب منتج بواسطة QID مع تفاصيل الأسعار والـ slug والكمية والمجموعات"""
         
-        # ✅ تم إزالة أي حقول إضافية قد ترفضها الساندبوكس
-        query = """
+        # ✅ المحاولة الأولى: جلب المنتج مع الخيارات (Options)
+        query_with_options = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
                 success
@@ -197,7 +197,6 @@ class ProductService:
                             path
                         }
                     }
-                    # ✅ هذا هو الجزء الوحيد الذي تم إبقاؤه لجلب الخيارات
                     options {
                         qid
                         name
@@ -214,22 +213,94 @@ class ProductService:
         }
         """
         
+        # ✅ المحاولة الثانية: جلب المنتج بدون خيارات (في حال فشلت الأولى)
+        query_basic = """
+        query FindProductByQid($qid: String!) {
+            findProductByQid(qid: $qid) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    slug
+                    description
+                    status
+                    quantity
+                    pricing {
+                        price
+                        compareAtPrice
+                        originalPrice
+                        discount {
+                            discountValue
+                            discountType
+                        }
+                    }
+                    images {
+                        fileUrl
+                    }
+                    seo {
+                        title
+                        description
+                        keywords
+                    }
+                    tags
+                    collections {
+                        title
+                        handle
+                    }
+                    variants {
+                        _id
+                        qid
+                        quantity
+                        pricing {
+                            price
+                            compareAtPrice
+                            originalPrice
+                        }
+                        options {
+                            label
+                        }
+                        images {
+                            _id
+                            fileUrl
+                            path
+                        }
+                    }
+                    views
+                    publishedAt
+                }
+            }
+        }
+        """
+        
         try:
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
-            
             variables = {"qid": qid}
-            print(f"🔍 [get_product_by_qid] Variables: {variables}")
             
-            data = self.client.execute(query, variables, operation_name="FindProductByQid")
-            print(f"🔍 [get_product_by_qid] Full Response: {data}")
+            # 1. جرب الاستعلام مع الخيارات
+            try:
+                print(f"🔄 [get_product_by_qid] محاولة جلب المنتج مع الخيارات...")
+                data = self.client.execute(query_with_options, variables, operation_name="FindProductByQid")
+                
+                if data and "findProductByQid" in data:
+                    result = data["findProductByQid"]
+                    if result.get("success"):
+                        product_data = result.get("data", {})
+                        print(f"✅ [get_product_by_qid] تم جلب المنتج مع الخيارات بنجاح: {product_data.get('title')}")
+                        return product_data
+            except Exception as e:
+                print(f"⚠️ [get_product_by_qid] فشلت المحاولة الأولى (مع الخيارات). السبب: {e}")
+                print(f"🔄 [get_product_by_qid] التبديل إلى الاستعلام الأساسي...")
+
+            # 2. في حال فشلت الأولى، جرب الاستعلام الأساسي
+            data = self.client.execute(query_basic, variables, operation_name="FindProductByQid")
+            print(f"🔍 [get_product_by_qid] Full Response (Basic): {data}")
             
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
                 if result.get("success"):
                     product_data = result.get("data", {})
-                    print(f"✅ [get_product_by_qid] تم جلب المنتج: {product_data.get('title')}")
-                    print(f"✅ [get_product_by_qid] Quantity: {product_data.get('quantity')}")
-                    print(f"✅ [get_product_by_qid] Collections: {product_data.get('collections')}")
+                    print(f"✅ [get_product_by_qid] تم جلب المنتج الأساسي بنجاح: {product_data.get('title')}")
                     return product_data
                 else:
                     error_msg = result.get('message', 'خطأ غير معروف')
