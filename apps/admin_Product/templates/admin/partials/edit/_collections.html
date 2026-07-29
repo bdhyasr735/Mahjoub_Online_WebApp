@@ -1,7 +1,7 @@
 <!-- apps/admin_Product/templates/admin/partials/edit/_collections.html -->
 
 <!-- ============================================================
-   📁 المجموعات (Collections) - قائمة منسدلة مع بحث
+   📁 المجموعات (Collections) - قائمة منسدلة مع بحث وإضافة
    ============================================================ -->
 <div class="card shadow-sm meta-variants-card">
     <div class="card-header">
@@ -72,6 +72,24 @@
                 <div id="collectionsNoResults" style="display: none;">
                     <i class="fas fa-search-minus"></i> لا توجد نتائج
                 </div>
+                
+                <!-- ✅ زر إضافة مجموعة جديدة -->
+                <div class="dropdown-add-wrapper">
+                    <div class="add-collection-form" id="addCollectionForm" style="display: none;">
+                        <div class="d-flex gap-2">
+                            <input type="text" id="newCollectionName" class="form-control form-control-sm" placeholder="اسم المجموعة الجديدة...">
+                            <button type="button" class="btn-add-collection" onclick="saveNewCollection()">
+                                <i class="fas fa-save"></i> حفظ
+                            </button>
+                            <button type="button" class="btn-cancel-collection" onclick="cancelAddCollection()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add-collection" id="showAddCollectionBtn" onclick="showAddCollectionForm()">
+                        <i class="fas fa-plus-circle"></i> إضافة مجموعة جديدة
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -125,7 +143,7 @@
     display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
     background: #ffffff; border: 2px solid #e2e8f0; border-radius: 10px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.1); z-index: 1000;
-    padding: 12px; max-height: 320px; overflow: hidden;
+    padding: 12px; max-height: 400px; overflow: hidden;
 }
 .dropdown-search-wrapper { position: relative; margin-bottom: 8px; }
 .dropdown-search-wrapper .fa-search {
@@ -139,7 +157,7 @@
 }
 #collectionSearchInput:focus { outline: none; border-color: #D4AF37; background: #ffffff; }
 
-#collectionsList { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+#collectionsList { max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 #collectionsList::-webkit-scrollbar { width: 4px; }
 #collectionsList::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
 #collectionsList::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 4px; }
@@ -166,6 +184,42 @@
     transform: translate(-50%, -50%); color: #D4AF37; font-size: 10px; font-weight: 700;
 }
 
+/* ✅ زر إضافة مجموعة */
+.dropdown-add-wrapper { 
+    padding-top: 10px; 
+    margin-top: 8px; 
+    border-top: 1px solid #e2e8f0;
+}
+.btn-add-collection {
+    width: 100%; padding: 8px 12px;
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    color: #D4AF37; border: none; border-radius: 8px;
+    font-weight: 600; font-size: 0.85rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.3s ease;
+}
+.btn-add-collection:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 4px 12px rgba(45, 11, 54, 0.2);
+    color: #ffd700;
+}
+.btn-cancel-collection {
+    padding: 8px 12px;
+    background: #f1f5f9; color: #64748b;
+    border: none; border-radius: 8px;
+    font-weight: 600; cursor: pointer;
+    transition: all 0.3s ease;
+}
+.btn-cancel-collection:hover { background: #e2e8f0; }
+
+.add-collection-form .form-control {
+    border: 2px solid #e2e8f0; border-radius: 8px;
+    font-size: 0.85rem; padding: 6px 12px;
+}
+.add-collection-form .form-control:focus {
+    border-color: #D4AF37; box-shadow: 0 0 0 4px rgba(212,175,55,0.06);
+}
+
 .collections-empty-state { text-align: center; padding: 16px; color: #94a3b8; }
 .collections-empty-state i { font-size: 1.5rem; color: #D4AF37; display: block; margin-bottom: 4px; }
 
@@ -188,18 +242,17 @@
 @media (max-width: 768px) {
     .selected-collections-box { min-height: 38px; padding: 6px 10px; }
     .collection-badge { font-size: 0.65rem; padding: 2px 8px; }
-    #collectionDropdownMenu { padding: 10px; max-height: 260px; }
-    #collectionsList { max-height: 140px; }
+    #collectionDropdownMenu { padding: 10px; max-height: 340px; }
+    #collectionsList { max-height: 100px; }
     .collections-footer { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
 </style>
 
 <script>
 // ============================================================
-// 🔄 دوال المجموعات - معرفة في النطاق العام
+// 🔄 دوال المجموعات
 // ============================================================
 
-// ✅ فتح/إغلاق القائمة
 function toggleCollectionDropdown() {
     const menu = document.getElementById('collectionDropdownMenu');
     if (!menu) return;
@@ -207,10 +260,12 @@ function toggleCollectionDropdown() {
     if (menu.style.display === 'block') {
         const input = document.getElementById('collectionSearchInput');
         if (input) { input.focus(); input.value = ''; filterCollections(''); }
+        // إخفاء نموذج الإضافة عند فتح القائمة
+        document.getElementById('addCollectionForm').style.display = 'none';
+        document.getElementById('showAddCollectionBtn').style.display = 'flex';
     }
 }
 
-// ✅ البحث في المجموعات
 function filterCollections(query) {
     const items = document.querySelectorAll('.collection-option-item');
     query = query.toLowerCase().trim();
@@ -225,7 +280,6 @@ function filterCollections(query) {
     if (noResults) noResults.style.display = visible ? 'none' : 'flex';
 }
 
-// ✅ اختيار/إلغاء مجموعة
 function toggleCollectionSelection(element, id, title) {
     const checkbox = element.querySelector('.col-checkbox');
     if (!checkbox) return;
@@ -239,7 +293,6 @@ function toggleCollectionSelection(element, id, title) {
     }
 }
 
-// ✅ إضافة مجموعة
 function addCollectionBadge(id, title) {
     const box = document.getElementById('selectedBadgesContainer');
     if (!box) return;
@@ -263,7 +316,6 @@ function addCollectionBadge(id, title) {
     updateCollectionsUI();
 }
 
-// ✅ إزالة مجموعة
 function removeCollection(id) {
     const box = document.getElementById('selectedBadgesContainer');
     if (!box) return;
@@ -279,7 +331,6 @@ function removeCollection(id) {
     updateCollectionsUI();
 }
 
-// ✅ تحديث واجهة المستخدم
 function updateCollectionsUI() {
     const badges = document.querySelectorAll('.collection-badge');
     const count = badges.length;
@@ -301,13 +352,100 @@ function updateCollectionsUI() {
     if (clearBtn) clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
 }
 
-// ✅ إلغاء جميع المجموعات
 function clearAllCollections() {
     if (!confirm('⚠️ إلغاء اختيار جميع المجموعات؟')) return;
     document.querySelectorAll('.collection-badge').forEach(badge => {
         const id = badge.getAttribute('data-id');
         if (id) removeCollection(id);
     });
+}
+
+// ✅ إظهار نموذج إضافة مجموعة جديدة
+function showAddCollectionForm() {
+    document.getElementById('addCollectionForm').style.display = 'block';
+    document.getElementById('showAddCollectionBtn').style.display = 'none';
+    document.getElementById('newCollectionName').focus();
+}
+
+// ✅ إلغاء نموذج الإضافة
+function cancelAddCollection() {
+    document.getElementById('addCollectionForm').style.display = 'none';
+    document.getElementById('showAddCollectionBtn').style.display = 'flex';
+    document.getElementById('newCollectionName').value = '';
+}
+
+// ✅ حفظ مجموعة جديدة
+function saveNewCollection() {
+    const nameInput = document.getElementById('newCollectionName');
+    const name = nameInput.value.trim();
+    
+    if (!name) {
+        alert('⚠️ الرجاء إدخال اسم المجموعة');
+        nameInput.focus();
+        return;
+    }
+    
+    // التحقق من عدم التكرار
+    const existingItems = document.querySelectorAll('.collection-option-item');
+    for (let item of existingItems) {
+        const title = item.getAttribute('data-title');
+        if (title && title.toLowerCase() === name.toLowerCase()) {
+            alert('⚠️ هذه المجموعة موجودة بالفعل');
+            nameInput.value = '';
+            nameInput.focus();
+            return;
+        }
+    }
+    
+    // ✅ هنا يمكن إرسال طلب إلى الخادم لإضافة المجموعة
+    // حالياً نقوم بإضافتها محلياً في الواجهة
+    const collectionsList = document.getElementById('collectionsList');
+    const noResults = document.getElementById('collectionsNoResults');
+    if (noResults) noResults.style.display = 'none';
+    
+    // إزالة رسالة "لا توجد مجموعات"
+    const emptyState = collectionsList.querySelector('.collections-empty-state');
+    if (emptyState) emptyState.remove();
+    
+    // إنشاء عنصر المجموعة الجديد
+    const newId = 'new_' + Date.now();
+    const newItem = document.createElement('div');
+    newItem.className = 'collection-option-item';
+    newItem.setAttribute('data-id', newId);
+    newItem.setAttribute('data-title', name);
+    newItem.innerHTML = `
+        <span class="d-flex align-items-center gap-2">
+            <i class="fas fa-folder text-warning"></i>
+            <span>${name}</span>
+        </span>
+        <div class="collection-check-wrapper">
+            <input type="checkbox" class="col-checkbox" value="${newId}">
+            <span class="checkmark"></span>
+        </div>
+    `;
+    newItem.onclick = function() {
+        toggleCollectionSelection(this, newId, name);
+    };
+    
+    collectionsList.appendChild(newItem);
+    
+    // ✅ إضافتها تلقائياً كـ "مختارة"
+    toggleCollectionSelection(newItem, newId, name);
+    
+    // إخفاء النموذج
+    cancelAddCollection();
+    
+    // تحديث العدد الإجمالي
+    const totalSpan = document.getElementById('totalCollectionsCount');
+    if (totalSpan) {
+        const currentTotal = parseInt(totalSpan.textContent) || 0;
+        totalSpan.textContent = currentTotal + 1;
+    }
+    
+    // إظهار رسالة نجاح
+    showNotification('✅ تم إضافة المجموعة "' + name + '" بنجاح', 'success');
+    
+    nameInput.value = '';
 }
 
 // ✅ إغلاق القائمة عند النقر خارجها
