@@ -131,5 +131,6 @@ def manage_products_view():
 
 
 def register_products_route(bp):
-    bp.add_url_rule('/products', view_func=manage_products_view, methods=['GET'])
+    # ✅ تم تحديد الـ endpoint صراحة ليتطابق تماماً مع ما يطلبه ملف الـ registry.py
+    bp.add_url_rule('/products', view_func=manage_products_view, endpoint='manage_products_view', methods=['GET'])
     return bp
