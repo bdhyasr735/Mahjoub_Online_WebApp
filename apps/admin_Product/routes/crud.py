@@ -69,7 +69,7 @@ def add_product():
 @admin_product_bp.route('/products/edit', methods=['GET'])
 @login_required
 def edit_product():
-    """عرض صفحة تعديل المنتج مع محاولة جلب المتغيرات بشكل آمن"""
+    """عرض صفحة تعديل المنتج مع محاولة جلب الخيارات بشكل آمن"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
@@ -88,27 +88,18 @@ def edit_product():
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
-    # 2. محاولة جلب الخيارات والمتغيرات بشكل منفصل (لن يكسر الصفحة إذا فشل)
+    # 2. محاولة جلب الخيارات (Options) فقط. (المتغيرات غير مدعومة وقد حذفناها)
     try:
         if hasattr(services, 'variants'):
-            # محاولة جلب خيارات المنتج
+            # محاولة جلب خيارات المنتج (فقط ما يدعمه السيرفر)
             options_data = services.variants.get_all_options_for_product(qid)
-            # ✅ تم إضافة سطر التصحيح هنا:
             print(f"🔍 [DEBUG] Options Data received for {qid}: {options_data}")
             
             if options_data:
                 product['options'] = options_data
-            
-            # محاولة جلب المتغيرات
-            variants_data = services.variants.get_by_product(qid)
-            # ✅ تم إضافة سطر التصحيح هنا:
-            print(f"🔍 [DEBUG] Variants Data received for {qid}: {variants_data}")
-            
-            if variants_data:
-                product['variants'] = variants_data
     except Exception as e:
         # إذا فشلت، نطبع تحذيراً في السيرفر لكن الصفحة تبقى مفتوحة
-        print(f"⚠️ [Edit Product] تعذر جلب الخيارات والمتغيرات... السبب: {e}")
+        print(f"⚠️ [Edit Product] تعذر جلب الخيارات... السبب: {e}")
 
     # 3. جلب بيانات إضافية
     suppliers = Supplier.query.filter_by(status='active').all()
