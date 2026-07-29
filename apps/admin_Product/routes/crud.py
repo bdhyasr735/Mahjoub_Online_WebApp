@@ -93,16 +93,22 @@ def edit_product():
         if hasattr(services, 'variants'):
             # محاولة جلب خيارات المنتج
             options_data = services.variants.get_all_options_for_product(qid)
+            # ✅ تم إضافة سطر التصحيح هنا:
+            print(f"🔍 [DEBUG] Options Data received for {qid}: {options_data}")
+            
             if options_data:
                 product['options'] = options_data
             
             # محاولة جلب المتغيرات
             variants_data = services.variants.get_by_product(qid)
+            # ✅ تم إضافة سطر التصحيح هنا:
+            print(f"🔍 [DEBUG] Variants Data received for {qid}: {variants_data}")
+            
             if variants_data:
                 product['variants'] = variants_data
     except Exception as e:
         # إذا فشلت، نطبع تحذيراً في السيرفر لكن الصفحة تبقى مفتوحة
-        print(f"⚠️ [Edit Product] تعذر جلب الخيارات والمتغيرات، الصفحة ستعمل بدونها. السبب: {e}")
+        print(f"⚠️ [Edit Product] تعذر جلب الخيارات والمتغيرات... السبب: {e}")
 
     # 3. جلب بيانات إضافية
     suppliers = Supplier.query.filter_by(status='active').all()
