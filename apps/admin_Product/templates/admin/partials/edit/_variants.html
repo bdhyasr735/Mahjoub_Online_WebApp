@@ -17,7 +17,64 @@
     <div class="form-group mb-4">
         <label class="form-label fw-bold text-dark-purple mb-2">إدارة خيارات المنتج:</label>
         <div id="optionsContainer" class="d-flex flex-column gap-3">
-            <!-- سيتم توليد الخيارات هنا ديناميكياً عبر السكربت في الأسفل -->
+            
+            <!-- ✅ 1. التحقق من وجود خيارات مخزنة في Django -->
+            {% if product and product.options and product.options|length > 0 %}
+                <!-- تكرار عبر الخيارات المخزنة -->
+                {% for option in product.options %}
+                <div class="option-row p-3 rounded-3 bg-white">
+                    <div class="option-header d-flex gap-2 mb-2 flex-wrap">
+                        <!-- عرض اسم الخيار -->
+                        <input type="text" class="form-control custom-input opt-name" 
+                               value="{{ option.name }}" 
+                               placeholder="اسم الخيار (مثل: اللون)" 
+                               oninput="generatePayload()" style="flex: 1; min-width: 150px;">
+                        
+                        <button class="btn btn-outline-danger btn-sm px-3 delete-opt-btn" type="button" onclick="removeOptionRow(this)" title="حذف الخيار">
+                            <i class="fas fa-trash-alt"></i> حذف
+                        </button>
+                    </div>
+                    
+                    <label class="form-label text-muted" style="font-size: 0.85rem; margin-bottom: 6px;">القيم المتعددة:</label>
+                    <div class="values-container d-flex flex-wrap gap-2 mb-2">
+                        <!-- تكرار عبر القيم المخزنة داخل الخيار -->
+                        {% for val in option.values %}
+                        <div class="value-tag">
+                            {{ val.label }} 
+                            <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="add-value-group input-group input-group-sm">
+                        <input type="text" class="form-control custom-input val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
+                        <button class="btn btn-gold-gradient" type="button" onclick="addValueToRow(this)">
+                            <i class="fas fa-plus me-1"></i> إضافة قيمة
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                
+            <!-- ✅ 2. إذا كان المنتج جديداً وليس له خيارات، نعرض صفاً واحداً فارغاً -->
+            {% else %}
+                <div class="option-row p-3 rounded-3 bg-white">
+                    <div class="option-header d-flex gap-2 mb-2 flex-wrap">
+                        <input type="text" class="form-control custom-input opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()" style="flex: 1; min-width: 150px;">
+                        <button class="btn btn-outline-danger btn-sm px-3 delete-opt-btn" type="button" onclick="removeOptionRow(this)" title="حذف الخيار">
+                            <i class="fas fa-trash-alt"></i> حذف
+                        </button>
+                    </div>
+                    <label class="form-label text-muted" style="font-size: 0.85rem; margin-bottom: 6px;">القيم المتعددة:</label>
+                    <div class="values-container d-flex flex-wrap gap-2 mb-2"></div>
+                    <div class="add-value-group input-group input-group-sm">
+                        <input type="text" class="form-control custom-input val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
+                        <button class="btn btn-gold-gradient" type="button" onclick="addValueToRow(this)">
+                            <i class="fas fa-plus me-1"></i> إضافة قيمة
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+
         </div>
         <button class="btn btn-outline-purple w-100 mt-3 py-2 fw-bold" type="button" onclick="addOptionRow()">
             <i class="fas fa-plus-circle me-1"></i> إضافة خيار جديد
@@ -27,9 +84,16 @@
     <div class="form-group mb-0">
         <label class="form-label fw-bold text-dark-purple mb-2">تخصيص السعر، الكمية، وصورة لكل متغير:</label>
         <div id="variantsTableContainer" class="table-responsive">
+            <!-- ✅ هذا النص سيتم استبداله تلقائياً بالجدول عند عمل `generatePayload()` -->
+            {% if not product or not product.variants or product.variants|length == 0 %}
             <p class="text-muted text-center p-4 bg-light rounded-3 border border-dashed" style="font-size: 0.9rem;">
                 <i class="fas fa-info-circle me-1"></i> قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...
             </p>
+            {% else %}
+            <p class="text-muted text-center p-3 bg-light rounded-3 border border-dashed" style="font-size: 0.9rem;">
+                <i class="fas fa-sync-alt fa-spin me-1"></i> جاري تحميل جدول المتغيرات...
+            </p>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -128,49 +192,21 @@
 </style>
 
 <!-- ============================================================
-   🚀 سكربت التحميل الذكي (يتولى عرض المتغيرات إن وجدت)
+   🚀 سكربت ضمان توليد الجدول عند تحميل الصفحة
    ============================================================ -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ننتظر لحظة للتأكد من أن الـ JS الرئيسي قد تم تحميله
+    // استخدام setTimeout بسيط للتأكد من تحميل الـ JS الرئيسي
     setTimeout(function() {
-        const container = document.getElementById('optionsContainer');
-        if (!container) return;
-
-        // 1. التحقق مما إذا كان المنتج يحتوي على متغيرات (Options) مخزنة مسبقاً
-        // ملاحظة: المتغير 'product' هو متغير سياق Django يتم تمريره للصفحة
-        let hasStoredOptions = false;
-        try {
-            // نتحقق إذا كان المتغير product.options موجوداً وبه بيانات
-            if (typeof product !== 'undefined' && product.options && Array.isArray(product.options) && product.options.length > 0) {
-                hasStoredOptions = true;
-            }
-        } catch(e) {
-            // تجاهل الخطأ إذا لم يكن المتغير معرفاً
-        }
-
-        // 2. إذا كان لدينا خيارات مخزنة، نقوم بتوليد صفوف الخيارات
-        if (hasStoredOptions && typeof generatePayload === 'function') {
-            // مسح الحاوية لنسحب البيانات بشكل نظيف
-            container.innerHTML = '';
-            
-            // نقوم باستدعاء دالة التوليد الموجودة في ملفك الرئيسي (ستقوم ببناء الواجهة)
+        // التأكد من وجود الدوال الخاصة بالمتغيرات
+        if (typeof generatePayload === 'function' && typeof updateVariantsTable === 'function') {
+            console.log('✅ [variants] جاري تحديث جدول المتغيرات عند التحميل...');
+            // استدعاء الدالة التي ترسم جدول المتغيرات بناءً على الخيارات الموجودة حالياً
+            updateVariantsTable();
             generatePayload();
-            
-            // ملاحظة: دالة generatePayload في ملفك تقوم برسم الخيارات والجدول 
-            // بناءً على بيانات المنتج الموجودة في السياق.
-            console.log('✅ [variants] تم تحميل المتغيرات المخزنة للمنتج بنجاح.');
-        } 
-        // 3. إذا كان المنتج جديداً (فارغاً)، نعرض صفاً واحداً لبدء الإضافة
-        else if (typeof addOptionRow === 'function') {
-            if (container.children.length === 0) {
-                addOptionRow();
-                console.log('ℹ️ [variants] منتج جديد، تم تجهيز صف خيار افتراضي.');
-            }
         } else {
-            console.warn('⚠️ [variants] دوال جافاسكربت الرئيسية (addOptionRow, generatePayload) غير متوفرة.');
+            console.warn('⚠️ [variants] دوال الـ JS (generatePayload/updateVariantsTable) لم يتم تحميلها بعد.');
         }
-
-    }, 300); // تأخير 300 مللي ثانية لضمان تحميل المكتبات الأساسية
+    }, 500); // إعطاء وقت كافٍ للصفحة ولتحميل مكتبة TinyMCE وغيرها
 });
 </script>
