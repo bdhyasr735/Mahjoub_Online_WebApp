@@ -1,39 +1,51 @@
 <!-- ============================================================
-   📦 المتغيرات (المحدثة)، البيانات الوصفية، والمجموعات
+   📦 المتغيرات، البيانات الوصفية، والمجموعات
+   (بطاقة تجميعية احترافية)
    ============================================================ -->
 
-<!-- ✅ بطاقة المتغيرات (تم استبدال الجدول القديم بالواجهة الديناميكية الجديدة) -->
+<!-- ✅ بطاقة المتغيرات الديناميكية -->
 {% include "admin/partials/edit/_variants.html" %}
 
-<!-- ✅ بطاقة البيانات الوصفية -->
+<!-- ✅ بطاقة البيانات الوصفية (SEO) -->
 {% include "admin/partials/edit/_meta_seo.html" %}
 
-<!-- ✅ بطاقة المجموعات -->
+<!-- ✅ بطاقة المجموعات (Collections) -->
 {% include "admin/partials/edit/_collections_display.html" %}
 
 <style>
-/* أنماط مشتركة للبطاقات الثلاث */
+/* ============================================================
+   🎨 أنماط مشتركة للبطاقات الثلاث (تجنب تعارض الحقول)
+   ============================================================ */
 .meta-variants-card {
+    background: #ffffff;
     border: 1px solid rgba(212, 175, 55, 0.2);
     border-radius: 12px;
-    background: linear-gradient(135deg, #faf8f6, #ffffff);
     transition: all 0.3s ease;
+    margin-bottom: 24px;
 }
 .meta-variants-card:hover {
     border-color: rgba(212, 175, 55, 0.4);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
 }
+
+/* ✅ رأس البطاقة الموحد */
 .meta-variants-card .card-header {
-    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    background: linear-gradient(135deg, #1a0520, #2d0b36);
     border-radius: 12px 12px 0 0;
-    padding: 12px 18px;
+    padding: 14px 20px;
+    border-bottom: none;
 }
+
+/* ✅ الألوان والعناصر الأساسية */
 .text-gold { color: #D4AF37 !important; }
 .text-dark-purple { color: #2d0b36 !important; }
 .badge-gold-soft {
     background: rgba(212, 175, 55, 0.2);
     color: #D4AF37;
     font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
 }
 .badge-status {
     font-size: 0.65rem; font-weight: 600; padding: 3px 12px;
@@ -47,6 +59,8 @@
 .badge-status.empty {
     background: rgba(245, 158, 11, 0.1); color: #f59e0b;
 }
+
+/* ✅ أوسمة الخيارات والمجموعات */
 .badge-option {
     background: linear-gradient(135deg, #2d0b36, #1a0520);
     color: #D4AF37; padding: 4px 10px; font-weight: 500; border-radius: 6px;
@@ -56,6 +70,8 @@
     background: #6c5ce7; color: white; padding: 4px 10px;
     font-weight: 500; border-radius: 6px; font-size: 0.75rem;
 }
+
+/* ✅ تنسيق الجدول (موجود داخل بطاقة المتغيرات) */
 .custom-variants-table thead {
     background: linear-gradient(135deg, #f8f5f0, #e9ecef);
 }
@@ -65,6 +81,8 @@
 }
 .custom-variants-table td { padding: 10px 12px; vertical-align: middle; font-size: 0.85rem; }
 .custom-variants-table tbody tr:hover { background: rgba(45, 11, 54, 0.02); }
+
+/* ✅ معاينة الصور */
 .variant-img {
     width: 44px; height: 44px; object-fit: cover; border-radius: 8px;
     border: 2px solid #D4AF37; transition: transform 0.3s ease;
@@ -75,23 +93,19 @@
     border: 1px dashed #dee2e6; display: flex; align-items: center; justify-content: center;
     color: #adb5bd;
 }
-.variant-options-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
-.quantity-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; }
-.tabular-nums { direction: ltr; font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
-.custom-input {
-    border-color: #2d0b36; border-radius: 8px; transition: all 0.3s ease;
-    font-size: 0.9rem; padding: 8px 12px;
-}
-.custom-input:focus { border-color: #D4AF37; box-shadow: 0 0 0 0.2rem rgba(212,175,55,0.25); }
-.custom-plaintext {
-    min-height: 40px; background: #f8f9fa; border-radius: 8px;
-    padding: 6px 12px; border: 1px solid #e9ecef;
-    display: flex; align-items: center;
-}
+
+/* ✅ تنسيق عناصر المجموعات */
 .collection-item-card {
     background: #f8f5f0; border: 1px solid rgba(212, 175, 55, 0.15);
     border-radius: 8px; padding: 8px 14px; min-width: 120px;
     transition: all 0.3s ease;
 }
 .collection-item-card:hover { border-color: #D4AF37; transform: translateY(-2px); }
+
+/* ✅ تحسينات الجوال */
+@media (max-width: 768px) {
+    .meta-variants-card { padding: 0; }
+    .variant-img { width: 32px; height: 32px; }
+    .collection-item-card { min-width: 100px; padding: 6px 10px; }
+}
 </style>
