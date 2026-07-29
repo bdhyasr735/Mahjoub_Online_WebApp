@@ -11,6 +11,14 @@ from apps.models.supplier_db import Supplier
 from apps.extensions import db
 from datetime import datetime
 
+# ✅ استيراد خدمة المتغيرات الجديدة
+from apps.services.variant_service import VariantService
+from apps.services.graphql_client import GraphQLClient
+
+# تهيئة الـ GraphQL Client و Variant Service مرة واحدة
+graphql_client = GraphQLClient() # تأكد من أن هذا يأخذ الـ endpoint الصحيح
+variant_service = VariantService(graphql_client)
+
 
 @admin_product_bp.route('/products/add', methods=['GET', 'POST'])
 @login_required
@@ -69,7 +77,7 @@ def add_product():
 @admin_product_bp.route('/products/edit', methods=['GET'])
 @login_required
 def edit_product():
-    """عرض صفحة تعديل المنتج"""
+    """عرض صفحة تعديل المنتج مع الخيارات والمتغيرات"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
@@ -84,11 +92,20 @@ def edit_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
     
-    # ✅ جلب المنتج من GraphQL
-    product = services.products.get_product_by_qid(qid)
-    
-    # ✅ للتحقق من النتيجة
-    print(f"🔍 [DEBUG] Product found: {product is not None and 'qid' in product}")
+    try:
+        # ✅ التعديل الجوهري: استخدام دالة جلب الخيارات والمتغيرات
+        product = variant_service.get_product_with_options_and_variants(qid)
+        
+        # ✅ للتحقق من النتيجة
+        print(f"🔍 [DEBUG] Product found: {product is not None and 'qid' in product}")
+        if product:
+            print(f"🔍 [DEBUG] Product Options count: {len(product.get('options', []))}")
+            print(f"🔍 [DEBUG] Product Variants count: {len(product.get('variants', []))}")
+
+    except Exception as e:
+        print(f"❌ [CRITICAL ERROR] فشل جلب المنتج الكامل {qid}: {e}")
+        flash(f"❌ حدث خطأ في جلب بيانات المنتج: {str(e)}", "danger")
+        return redirect(url_for('admin_product_bp.manage_products_view'))
 
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
@@ -140,7 +157,7 @@ def save_sync_product():
         seo_description = request.form.get('seo_description', '')
         seo_keywords = request.form.get('seo_keywords', '')
         
-        # ✅ معالجة الأسعار (بدون cost_price)
+        # ✅ معالجة الأسعار
         try:
             price = float(request.form.get('price', 0))
         except ValueError:
@@ -150,8 +167,6 @@ def save_sync_product():
             compare_price = float(request.form.get('compare_price', 0)) if request.form.get('compare_price') else None
         except ValueError:
             compare_price = None
-        
-        # ✅ تم إزالة cost_price لأن costPerItem غير مدعوم في GraphQL API
 
         # ✅ معالجة معرفات المجموعات
         collection_ids = request.form.getlist('collection_ids')
