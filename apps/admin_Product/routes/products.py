@@ -1,33 +1,16 @@
 # coding: utf-8
 # 📂 apps/admin_Product/routes/products.py
 
-import time
 from flask import render_template, request, redirect, url_for, flash, session
 from flask_login import login_required
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_db import Supplier
 
-# ⚡ ذاكرة مؤقتة لتخزين المنتجات وتسريع البحث الفوري (تتحدث كل 60 ثانية)
-_products_cache = {
-    'data': None,
-    'timestamp': 0
-}
-CACHE_TTL = 60  # مدة التخزين بالثواني
 
-def get_cached_all_products():
-    """جلب المنتجات من الذاكرة المؤقتة أو تحديثها إذا انتهى الوقت"""
-    global _products_cache
-    current_time = time.time()
-    if _products_cache['data'] is None or (current_time - _products_cache['timestamp']) > CACHE_TTL:
-        try:
-            _products_cache['data'] = services.products.fetch_all_products_for_search()
-            _products_cache['timestamp'] = current_time
-        except Exception as e:
-            print(f"❌ خطأ في جلب المنتجات للذاكرة المؤقتة: {e}")
-            if _products_cache['data'] is None:
-                return []
-    return _products_cache['data']
+def clear_search_cache():
+    """دالة فارغة لتوافق مسح الكاش مع ملفات المزامنة"""
+    pass
 
 
 def manage_products_view():
@@ -43,9 +26,9 @@ def manage_products_view():
         search_query = request.args.get('title', '', type=str)
         ajax = request.args.get('ajax', 0, type=int)
         
-        # ✅ إذا كان هناك بحث، فلترة المنتجات فورياً من الذاكرة المؤقتة السريعة
+        # ✅ إذا كان هناك بحث، جلب جميع المنتجات للبحث
         if search_query:
-            all_products = get_cached_all_products()
+            all_products = services.products.fetch_all_products_for_search()
             filtered = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
             total_products = len(filtered)
             total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
@@ -131,6 +114,5 @@ def manage_products_view():
 
 
 def register_products_route(bp):
-    # ✅ تم تحديد الـ endpoint صراحة ليتطابق تماماً مع ما يطلبه ملف الـ registry.py
-    bp.add_url_rule('/products', view_func=manage_products_view, endpoint='manage_products_view', methods=['GET'])
+    bp.add_url_rule('/products', view_func=manage_products_view, methods=['GET'])
     return bp
