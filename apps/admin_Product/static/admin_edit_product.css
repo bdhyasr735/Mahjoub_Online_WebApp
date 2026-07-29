@@ -141,7 +141,7 @@ textarea {
     transition: all 0.3s ease;
     color: var(--gray-800);
     /* إضافة ثابتة للارتفاع لضمان التساوي */
-    height: 48px; 
+    height: 48px;
     box-sizing: border-box;
 }
 
