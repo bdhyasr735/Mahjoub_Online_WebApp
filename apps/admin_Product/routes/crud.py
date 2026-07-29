@@ -89,45 +89,44 @@ def edit_product():
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
-    # 2. جلب الخيارات (Options) ومعالجتها بشكل آمن 100% لمنع أخطاء الـ Iterable
-    cleaned_options = []
-    try:
-        if hasattr(services, 'variants'):
+    # 2. استخراج المعالجة الآمنة للخيارات (Options) سواء قادمة من المنتج مباشرة أو من خدمة الـ variants
+    raw_options = []
+    if isinstance(product, dict):
+        raw_options = product.get('options', [])
+    else:
+        raw_options = getattr(product, 'options', [])
+
+    if not raw_options and hasattr(services, 'variants'):
+        try:
             options_data = services.variants.get_all_options_for_product(qid)
-            print(f"🔍 [DEBUG] Options Data received for {qid}: {options_data}")
-            
-            if callable(options_data):
-                options_data = []
-            
             if isinstance(options_data, list):
-                for opt in options_data:
-                    if isinstance(opt, dict):
-                        vals = opt.get('values', [])
-                        if callable(vals) or not isinstance(vals, list):
-                            vals = []
-                        cleaned_options.append({
-                            "qid": opt.get('qid'),
-                            "name": opt.get('name'),
-                            "values": vals
-                        })
+                raw_options = options_data
             elif isinstance(options_data, dict):
-                vals = options_data.get('values', [])
+                raw_options = [options_data]
+        except Exception as e:
+            print(f"⚠️ [Edit Product] تعذر جلب الخيارات عبر خدمة variants: {e}")
+
+    # تنظيف وتطبيع الخيارات لضمان عدم حدوث أي خطأ في القالب (مثل دالة dict.values المدمجة)
+    cleaned_options = []
+    if isinstance(raw_options, list):
+        for opt in raw_options:
+            if isinstance(opt, dict):
+                vals = opt.get('values', [])
                 if callable(vals) or not isinstance(vals, list):
                     vals = []
                 cleaned_options.append({
-                    "qid": options_data.get('qid'),
-                    "name": options_data.get('name'),
+                    "qid": opt.get('qid'),
+                    "name": opt.get('name'),
+                    "type": opt.get('type'),
                     "values": vals
                 })
-    except Exception as e:
-        print(f"⚠️ [Edit Product] تعذر جلب الخيارات للمنتج {qid}... السبب: {e}")
 
     if isinstance(product, dict):
         product['options'] = cleaned_options
     else:
         setattr(product, 'options', cleaned_options)
 
-    # 3. جلب بيانات إضافية
+    # 3. جلب بيانات إضافية (الموردين، المجموعات)
     suppliers = Supplier.query.filter_by(status='active').all()
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     assigned_supplier_id = mapping.supplier_id if mapping else None
@@ -182,7 +181,6 @@ def save_sync_product():
             compare_price = None
 
         collection_ids = request.form.getlist('collection_ids')
-        print(f"🔍 [DEBUG] Collection IDs received: {collection_ids}")
 
         update_data = {
             'qid': qid,
