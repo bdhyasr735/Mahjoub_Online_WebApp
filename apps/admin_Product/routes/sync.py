@@ -1,14 +1,14 @@
 # coding: utf-8
-# 📂 apps/admin_Product/routes/sync.py
+# apps/admin_Product/routes/sync.py
 # مزامنة المنتجات
 
 import functools
 import traceback
 from flask import request, jsonify, redirect, url_for, flash, session
 from flask_login import login_required
+from apps.admin_Product.routes import admin_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.admin_Product.routes.products import clear_search_cache
 
 
 def analyze_render_error(route_func):
@@ -37,7 +37,10 @@ def analyze_render_error(route_func):
     return wrapper
 
 
-def sync_products_view():
+@admin_product_bp.route('/products/sync', methods=['GET', 'POST'])
+@login_required
+@analyze_render_error
+def sync_products():
     """مزامنة المنتجات مع رصد الأخطاء وإرجاع الإحصائيات التفصيلية"""
     user_type = session.get('user_type')
     if user_type != 'admin':
@@ -85,16 +88,11 @@ def sync_products_view():
                     'error': str(ex)
                 })
         
-        # ✅ مسح Cache البحث والذاكرة المحلية بعد المزامنة فوراً
+        # ✅ مسح Cache البحث بعد المزامنة
         try:
             services.products.clear_search_cache()
         except Exception as cache_error:
-            print(f"⚠️ [Sync]: خطأ في مسح Cache الخدمات: {cache_error}")
-
-        try:
-            clear_search_cache()
-        except Exception as local_cache_error:
-            print(f"⚠️ [Sync]: خطأ في مسح الذاكرة المحلية للبحث: {local_cache_error}")
+            print(f"⚠️ [Sync]: خطأ في مسح Cache: {cache_error}")
         
         if request.method == 'GET':
             flash(f'✅ تمت المزامنة: {synced_count} منتج (جديد: {created_count}, محدث: {updated_count})', 'success')
@@ -119,15 +117,4 @@ def sync_products_view():
             }), 500
         else:
             flash(f'❌ فشل المزامنة: {str(e)}', 'danger')
-            return redirect(url_for('admin_dashboard_bp.dashboard'))
-
-
-def register_sync_route(bp):
-    """تسجيل مسار المزامنة داخل الـ Blueprint"""
-    bp.add_url_rule(
-        '/products/sync', 
-        view_func=login_required(analyze_render_error(sync_products_view)), 
-        endpoint='sync_products', 
-        methods=['GET', 'POST']
-    )
-    return bp
+            return redirect(url_for('admin_product_bp.manage_products_view'))
