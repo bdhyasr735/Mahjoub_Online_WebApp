@@ -8,7 +8,7 @@ class VariantService:
 
     def get_all_options_for_product(self, qid: str) -> List[Dict[str, Any]]:
         """
-        جلب جميع خيارات المنتج الأساسية (مثل: اللون، المقاس)
+        جلب جميع خيارات المنتج الأساسية مع التأكد من سلامة هيكلة القيم وتجنب أي خطأ تكرار
         """
         query = """
         query FindAllOptionsForProduct($qid: String!) {
@@ -28,7 +28,20 @@ class VariantService:
         variables = {"qid": qid}
         try:
             result = self.client.execute(query, variables, operation_name="FindAllOptionsForProduct")
-            return result.get('findAllOptionsForProduct', {}).get('data', []) if result else []
+            options_data = result.get('findAllOptionsForProduct', {}).get('data', []) if result else []
+            
+            cleaned_options = []
+            for opt in options_data:
+                if isinstance(opt, dict):
+                    vals = opt.get('values', [])
+                    if callable(vals) or not isinstance(vals, list):
+                        vals = []
+                    cleaned_options.append({
+                        "qid": opt.get('qid'),
+                        "name": opt.get('name'),
+                        "values": vals
+                    })
+            return cleaned_options
         except Exception as e:
             print(f"❌ [VariantService]: خطأ في جلب خيارات المنتج {qid}: {e}")
             return []
