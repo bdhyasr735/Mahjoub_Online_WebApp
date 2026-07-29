@@ -12,23 +12,19 @@
     </div>
     
     <div class="actions-content">
-        <!-- ✅ شبكة الأزرار -->
         <div class="actions-grid">
-            <!-- زر الحفظ الرئيسي -->
             <button type="submit" class="btn-action btn-save" id="saveBtn">
                 <i class="fas fa-save"></i>
                 <span>حفظ التغييرات</span>
                 <small class="btn-hint">Ctrl + S</small>
             </button>
             
-            <!-- زر الإلغاء -->
             <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action btn-cancel">
                 <i class="fas fa-times"></i>
                 <span>إلغاء</span>
                 <small class="btn-hint">تجاهل التغييرات</small>
             </a>
             
-            <!-- زر الحذف (يظهر فقط إذا لم يكن المنتج مؤرشفاً) -->
             {% if product.status|upper != 'ARCHIVED' %}
             <button type="button" class="btn-action btn-delete" id="deleteBtn" 
                     onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
@@ -39,248 +35,96 @@
             {% endif %}
         </div>
         
-        <!-- ✅ معلومات إضافية -->
         <div class="actions-footer">
             <div class="action-info">
                 <i class="fas fa-info-circle"></i>
-                <span>سيتم حفظ جميع التغييرات فور الضغط على زر الحفظ</span>
+                <span>حفظ التغييرات فور الضغط</span>
             </div>
             <div class="action-status">
                 <span class="status-dot" id="statusDot"></span>
-                <span>المنتج في حالة: <strong id="productStatusDisplay">{{ product.status|upper or 'DRAFT' }}</strong></span>
+                <span>الحالة: <strong id="productStatusDisplay">{{ product.status|upper or 'DRAFT' }}</strong></span>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-/* ============================================================
-   🎨 تصميم بطاقة الإجراءات
-   ============================================================ */
 .actions-card {
     border-color: rgba(212, 175, 55, 0.2);
     background: linear-gradient(135deg, #faf8f6, #ffffff);
     position: relative;
     overflow: hidden;
 }
-
 .actions-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
     background: linear-gradient(90deg, #D4AF37, #f0d060, #b8962e);
     background-size: 200% 100%;
     animation: shimmer 3s ease-in-out infinite;
 }
-
 @keyframes shimmer {
     0%, 100% { background-position: -200% 0; }
     50% { background-position: 200% 0; }
 }
-
 .actions-card .badge-status {
-    font-size: 0.65rem;
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 20px;
-    margin-left: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
+    font-size: 0.65rem; font-weight: 600; padding: 3px 12px;
+    border-radius: 20px; margin-left: 8px;
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(34, 197, 94, 0.1); color: #22c55e;
 }
-
-.actions-content {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-/* ============================================================
-   🎯 شبكة الأزرار
-   ============================================================ */
-.actions-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-}
-
-/* ============================================================
-   🔘 تنسيق الأزرار
-   ============================================================ */
+.actions-content { display: flex; flex-direction: column; gap: 16px; }
+.actions-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .btn-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 24px;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    border: none;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    min-width: 140px;
-    justify-content: center;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 10px; font-weight: 600;
+    font-size: 0.9rem; border: none; cursor: pointer;
+    text-decoration: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 120px; justify-content: center;
 }
-
 .btn-action .btn-hint {
-    font-size: 0.6rem;
-    font-weight: 400;
-    opacity: 0.6;
-    margin-left: 4px;
+    font-size: 0.55rem; font-weight: 400; opacity: 0.6; margin-left: 4px;
 }
-
-/* ✅ زر الحفظ */
 .btn-save {
     background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: #D4AF37;
-    border: 1px solid rgba(212, 175, 55, 0.2);
+    color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.2);
 }
-
-.btn-save:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
-    border-color: #D4AF37;
-    color: #f0d060;
-}
-
-.btn-save:active {
-    transform: translateY(0);
-}
-
-/* ✅ زر الإلغاء */
+.btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15,23,42,0.25); border-color: #D4AF37; color: #f0d060; }
 .btn-cancel {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #e2e8f0;
+    background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
 }
-
-.btn-cancel:hover {
-    background: #e2e8f0;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-}
-
-/* ✅ زر الحذف */
+.btn-cancel:hover { background: #e2e8f0; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
 .btn-delete {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: #ffffff;
+    background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff;
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
-
-.btn-delete:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
-}
-
-/* ============================================================
-   📊 تذييل البطاقة
-   ============================================================ */
+.btn-delete:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(239,68,68,0.3); background: linear-gradient(135deg, #dc2626, #b91c1c); }
 .actions-footer {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 16px;
-    border-top: 1px solid #e2e8f0;
-    gap: 12px;
+    display: flex; flex-wrap: wrap; justify-content: space-between;
+    align-items: center; padding-top: 12px; border-top: 1px solid #e2e8f0; gap: 10px;
 }
-
-.action-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    color: #64748b;
-}
-
-.action-info i {
-    color: #D4AF37;
-}
-
-.action-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    color: #64748b;
-}
-
+.action-info { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748b; }
+.action-info i { color: #D4AF37; }
+.action-status { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748b; }
 .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #22c55e;
+    width: 8px; height: 8px; border-radius: 50%;
     animation: pulse-dot 2s ease-in-out infinite;
 }
-
 @keyframes pulse-dot {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.5; transform: scale(0.8); }
 }
-
-.action-status strong {
-    color: #0f172a;
-}
-
-/* ============================================================
-   📱 تحسينات الجوال
-   ============================================================ */
+.action-status strong { color: #0f172a; }
+.btn-action:active { transform: scale(0.96); }
+.btn-action.loading { pointer-events: none; opacity: 0.7; }
+.btn-action.loading i { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (max-width: 768px) {
-    .actions-grid {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .btn-action {
-        width: 100%;
-        justify-content: center;
-        padding: 14px 20px;
-    }
-    
-    .actions-footer {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
-    .action-info, .action-status {
-        font-size: 0.8rem;
-    }
-}
-
-/* ============================================================
-   🎯 تأثيرات إضافية
-   ============================================================ */
-.btn-action:active {
-    transform: scale(0.96);
-}
-
-.btn-action.loading {
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-.btn-action.loading i {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    .actions-grid { flex-direction: column; width: 100%; }
+    .btn-action { width: 100%; justify-content: center; padding: 12px 16px; }
+    .actions-footer { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .action-info, .action-status { font-size: 0.75rem; }
 }
 </style>
 
-<!-- ✅ JavaScript للتفاعلات -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ✅ تأثير التحميل عند حفظ المنتج
@@ -290,35 +134,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const form = this.closest('form');
             if (form && form.checkValidity()) {
                 this.classList.add('loading');
-                this.innerHTML = `
-                    <i class="fas fa-spinner"></i>
-                    <span>جاري الحفظ...</span>
-                    <small class="btn-hint">يرجى الانتظار</small>
-                `;
+                this.innerHTML = `<i class="fas fa-spinner"></i><span>جاري الحفظ...</span><small class="btn-hint">يرجى الانتظار</small>`;
                 this.disabled = true;
             }
         });
     }
 
-    // ✅ تحديث حالة المنتج ديناميكياً
+    // ✅ تحديث حالة المنتج
     const statusDisplay = document.getElementById('productStatusDisplay');
     const statusDot = document.getElementById('statusDot');
-    
     if (statusDisplay && statusDot) {
         const status = statusDisplay.textContent.trim();
-        const colors = {
-            'PUBLISHED': '#22c55e',
-            'DRAFT': '#f59e0b',
-            'REJECTED': '#ef4444',
-            'ARCHIVED': '#64748b'
-        };
+        const colors = { 'PUBLISHED': '#22c55e', 'DRAFT': '#f59e0b', 'REJECTED': '#ef4444', 'ARCHIVED': '#64748b' };
         statusDot.style.background = colors[status] || '#64748b';
     }
 
     // ✅ تحديث حالة النموذج
     const form = document.querySelector('form');
     const formStatus = document.getElementById('formStatus');
-    
     if (form && formStatus) {
         form.addEventListener('change', function() {
             formStatus.innerHTML = '<i class="fas fa-pen"></i> تم التعديل';
@@ -328,86 +161,41 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ✅ دالة حذف المنتج مع تأكيد
+// ✅ حذف المنتج
 function deleteProduct(qid, name) {
-    if (!confirm(`⚠️ هل أنت متأكد من حذف/أرشفة المنتج "${name}"؟\nلا يمكن التراجع عن هذا الإجراء!`)) {
-        return;
-    }
-    
+    if (!confirm(`⚠️ حذف المنتج "${name}"؟ لا يمكن التراجع!`)) return;
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-    
     fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(r => r.json()).then(data => {
         if (data.success) {
             showNotification('✅ ' + data.message, 'success');
-            setTimeout(() => {
-                window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}';
-            }, 1500);
-        } else {
-            showNotification('❌ ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        showNotification('❌ حدث خطأ: ' + error.message, 'error');
-    });
+            setTimeout(() => { window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}'; }, 1500);
+        } else { showNotification('❌ ' + data.message, 'error'); }
+    }).catch(e => showNotification('❌ خطأ: ' + e.message, 'error'));
 }
 
-// ✅ دالة الإشعارات
+// ✅ إشعارات
 function showNotification(message, type = 'success') {
-    const colors = {
-        success: '#22c55e',
-        error: '#ef4444',
-        warning: '#f59e0b',
-        info: '#3b82f6'
-    };
-    
-    const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
-    };
-    
+    const colors = { success: '#22c55e', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
     const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed; bottom: 24px; right: 24px;
-        background: white; padding: 16px 24px; border-radius: 12px;
-        box-shadow: 0 12px 48px rgba(0,0,0,0.15);
-        border-right: 4px solid ${colors[type]};
-        z-index: 99999; font-weight: 600; font-size: 0.95rem;
-        max-width: 400px; animation: slideIn 0.4s cubic-bezier(0.4,0,0.2,1);
-        display: flex; align-items: center; gap: 10px;
-        backdrop-filter: blur(8px);
-    `;
+    toast.style.cssText = `position:fixed;bottom:24px;right:24px;background:white;padding:14px 20px;border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,0.15);border-right:4px solid ${colors[type]};z-index:99999;font-weight:600;font-size:0.9rem;max-width:400px;animation:slideIn 0.4s cubic-bezier(0.4,0,0.2,1);display:flex;align-items:center;gap:10px;backdrop-filter:blur(8px)`;
     toast.innerHTML = `${icons[type] || 'ℹ️'} ${message}`;
     document.body.appendChild(toast);
-    
     setTimeout(() => {
         toast.style.animation = 'slideOut 0.4s cubic-bezier(0.4,0,0.2,1)';
         setTimeout(() => toast.remove(), 400);
     }, 4000);
 }
 
-// ✅ إضافة أنماط الإشعارات
-(function addToastStyles() {
+// ✅ أنماط الإشعارات
+(function() {
     const style = document.createElement('style');
     style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100px); opacity: 0; }
-        }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100px); opacity: 0; } }
     `;
     document.head.appendChild(style);
 })();
