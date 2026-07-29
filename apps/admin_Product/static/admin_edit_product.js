@@ -396,6 +396,50 @@
     }
 
     // ============================================================
+    // ✨ (جديد) تحويل الأرقام إلى إنجليزية تلقائياً
+    // ============================================================
+    function initEnglishNumbers() {
+        // تحويل أي حقل من نوع number ليكون بالإنجليزي فوراً
+        const numberInputs = document.querySelectorAll('input[type="number"]');
+        numberInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                // إذا كان المستخدم يكتب أرقاماً عربية، نحولها لإنجليزية
+                // ملاحظة: المتصفحات الحديثة تتعامل مع الأرقام الإنجليزية تلقائياً
+                // لكن هذا يضمن أن الأرقام ستكون إنجليزية عند الإرسال
+                this.value = this.value.replace(/[٠-٩]/g, function(d) {
+                    return d.charCodeAt(0) - 1632; // تحويل الأرقام العربية (٠-٩) إلى إنجليزية (0-9)
+                });
+            });
+        });
+    }
+
+    // ============================================================
+    // ✨ (جديد) تفعيل البحث المتقدم لحقل "المورد" (Select with Search)
+    // ============================================================
+    function initSupplierSelect() {
+        // سنستخدم مكتبة "Tom Select" لأنها خفيفة وجميلة وتدعم البحث وتعمل بدون jQuery
+        // نتحقق أولاً ما إذا كان العنصر موجوداً في الصفحة
+        const supplierSelect = document.getElementById('supplierSelect'); 
+        // ملاحظة: تأكد أن هذا الـ ID هو نفسه الموجود في HTML الخاص بحقل المورد
+        
+        if (supplierSelect && typeof TomSelect !== 'undefined') {
+            new TomSelect(supplierSelect, {
+                plugins: ['remove_button'],
+                placeholder: 'ابحث عن المورد هنا...',
+                searchField: ['text'],
+                maxOptions: 10,
+                render: {
+                    option: function(data, escape) {
+                        return '<div>' + escape(data.text) + '</div>';
+                    }
+                }
+            });
+        } else if (supplierSelect) {
+            console.warn('⚠️ مكتبة Tom Select غير محملة، يرجى إضافتها في الـ layout أو الـ CDN.');
+        }
+    }
+
+    // ============================================================
     // 🚀 التهيئة الرئيسية
     // ============================================================
     function init() {
@@ -413,6 +457,10 @@
         initImageHandlers();
         initTagHandlers();
         updateCollectionsCount();
+        
+        // تهيئة الميزات الجديدة
+        initEnglishNumbers();      // تشغيل تحويل الأرقام
+        initSupplierSelect();      // تشغيل البحث المتقدم للمورد
         
         // ربط الدوال بالـ window
         window.addOptionRow = addOptionRow;
