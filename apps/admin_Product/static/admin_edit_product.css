@@ -1,5 +1,320 @@
+/* static/admin_edit_product.css - النسخة الاحترافية الكاملة (Purple & Gold Theme) */
+
 /* ============================================================
-   🖼️ تنسيق شبكة ومعاينة الصور (ليتناسب مع الثيم)
+   🎨 الألوان الموحدة والمتغيرات
+   ============================================================ */
+:root {
+    --primary-dark: #1a0520;
+    --primary: #2d0b36;
+    --primary-light: #4a1259;
+    --gold: #D4AF37;
+    --gold-light: #f0d060;
+    --gold-dark: #b8962e;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --gray-50: #faf8f6;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e1;
+    --gray-400: #94a3b8;
+    --gray-500: #64748b;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1e293b;
+    --gray-900: #2d0b36;
+}
+
+/* ============================================================
+   📦 الحاوية الرئيسية
+   ============================================================ */
+.edit-product-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    background: var(--gray-50);
+    min-height: 100vh;
+}
+
+/* ============================================================
+   📋 البطاقات (Cards)
+   ============================================================ */
+.form-section {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 28px;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    box-shadow: 0 4px 20px rgba(45, 11, 54, 0.03);
+    transition: all 0.3s ease;
+}
+
+.form-section:hover {
+    box-shadow: 0 8px 30px rgba(45, 11, 54, 0.08);
+    border-color: rgba(212, 175, 55, 0.5);
+}
+
+/* ============================================================
+   📝 عناوين الأقسام
+   ============================================================ */
+.form-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.form-section-title i {
+    color: var(--gold);
+    font-size: 1.2rem;
+    width: 28px;
+    text-align: center;
+}
+
+.form-section-title .badge-count {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--primary);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: auto;
+}
+
+/* ============================================================
+   🧩 الحقول والنماذج - (تم تطويره لضبط الأبعاد)
+   ============================================================ */
+
+/* تنسيق الصفوف لجعل الحقول بجانب بعضها بنفس العرض */
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* مسافة بين الحقول */
+    margin-bottom: 20px;
+}
+
+.form-row .form-group {
+    flex: 1; /* يجعل الحقول تأخذ مساحة متساوية */
+    min-width: 200px; /* لا تقل عن هذا الحجم */
+    margin-bottom: 0; /* إلغاء المارجن الافتراضي */
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--primary);
+    font-size: 0.9rem;
+    letter-spacing: 0.3px;
+}
+
+label i {
+    color: var(--gold);
+    margin-right: 6px;
+}
+
+/* التنسيق الموحد لجميع المدخلات */
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    background: #ffffff;
+    transition: all 0.3s ease;
+    color: var(--gray-800);
+    /* إضافة ثابتة للارتفاع لضمان التساوي */
+    height: 48px; 
+    box-sizing: border-box;
+}
+
+/* استثناء للـ Textarea ليأخذ ارتفاع أكبر */
+textarea {
+    height: auto;
+    min-height: 100px;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+    border-color: var(--gray-300);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--gray-400);
+}
+
+/* ============================================================
+   🚫 إزالة أسهم الزيادة والنقصان من حقول الأرقام
+   ============================================================ */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* ============================================================
+   💰 تنسيق خاص لحقول الأسعار (مع ر.س)
+   ============================================================ */
+.price-input-wrapper {
+    position: relative;
+}
+
+.price-input-wrapper input {
+    padding-right: 50px; /* مساحة للعملة داخل الحقل */
+}
+
+.price-input-wrapper .currency-label {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-500);
+    font-weight: 700;
+    font-size: 0.9rem;
+    pointer-events: none; /* يمنع النقر على العملة */
+}
+
+/* ============================================================
+   🎯 الأزرار (Buttons)
+   ============================================================ */
+.btn-action {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: #ffffff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    height: 48px;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(26, 5, 32, 0.2);
+    color: var(--gold-light);
+}
+
+.btn-action-gold {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: #ffffff;
+}
+
+.btn-action-gold:hover {
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.3);
+    color: #ffffff;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: #ffffff;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================================
+   📊 الجداول (Tables)
+   ============================================================ */
+.variants-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+}
+
+.variants-table thead {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+}
+
+.variants-table th {
+    color: var(--gold);
+    padding: 14px 16px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.variants-table td {
+    border-bottom: 1px solid var(--gray-200);
+    padding: 12px 16px;
+    text-align: center;
+    background: #ffffff;
+}
+
+.variants-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+/* ============================================================
+   🏷️ البادجات والعلامات (Badges & Tags)
+   ============================================================ */
+.tag-item,
+.collection-badge {
+    background: #ffffff;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: var(--primary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.tag-item:hover,
+.collection-badge:hover {
+    border-color: var(--gold);
+    box-shadow: 0 2px 6px rgba(212, 175, 55, 0.15);
+}
+
+/* ============================================================
+   🖼️ تنسيق شبكة ومعاينة الصور
    ============================================================ */
 .image-preview-grid {
     display: flex;
@@ -89,4 +404,47 @@
 .value-tag span {
     color: var(--danger);
     font-weight: bold;
+}
+
+/* ============================================================
+   📱 تحسينات الجوال (Responsive Design)
+   ============================================================ */
+@media (max-width: 768px) {
+    .edit-product-container {
+        padding: 16px 12px;
+    }
+
+    .form-section {
+        padding: 20px 16px;
+        border-radius: 12px;
+    }
+
+    .form-section-title {
+        font-size: 1rem;
+    }
+
+    .form-row {
+        flex-direction: column; /* في الجوال تصبح الحقول تحت بعضها */
+        gap: 15px;
+    }
+
+    .form-row .form-group {
+        min-width: 100%;
+    }
+
+    .btn-action {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .variants-table {
+        font-size: 0.75rem;
+    }
+
+    .variants-table th,
+    .variants-table td {
+        padding: 8px 6px;
+    }
 }
