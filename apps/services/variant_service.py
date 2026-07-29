@@ -9,17 +9,17 @@ class VariantService:
         self.client = client
     
     # =================================================================
-    # 1. جلب المتغيرات (Variants) - تم الإصلاح الكامل
+    # 1. جلب المتغيرات (Variants) - التعديل بناءً على السجلات
     # =================================================================
     
     def get_by_product(self, product_qid: str) -> List[Dict]:
         """
         جلب جميع المتغيرات الخاصة بمنتج معين.
         """
-        # ✅ التعديلات الرئيسية هنا:
-        # 1. تغيير المتغير من $productQid إلى $productId (كما طلب السيرفر)
-        # 2. إضافة طبقة data { ... } لجلب البيانات من الرد
-        # 3. تغيير _id إلى id (لأن السيرفر رفض _id)
+        # ✅ التعديلات الحرفية بناءً على السجلات:
+        # 1. السجلات طلبت تغيير $productQid إلى $productId (تم).
+        # 2. السجلات رفضت الحقول المباشرة، لذا تم إضافة data { ... } (تم).
+        # 3. السجلات رفضت _id، لذا تم استخدام id (تم).
         query = """
         query FindAllVariantsByProductId($productId: String!) {
             findAllVariantsByProductId(productId: $productId) {
@@ -40,7 +40,6 @@ class VariantService:
         }
         """
         try:
-            # ✅ نمرر المتغير باسم productId الآن
             data = self.client.execute(query, {'productId': product_qid}, operation_name="FindAllVariantsByProductId")
             return data.get('findAllVariantsByProductId', {}).get('data', []) if data else []
         except Exception as e:
@@ -48,9 +47,6 @@ class VariantService:
             return []
     
     def get_by_qid(self, variant_qid: str) -> Optional[Dict]:
-        """
-        جلب متغير محدد بواسطة الـ QID الخاص به.
-        """
         query = """
         query FindVariantById($variantQid: String!) {
             findVariantById(variantQid: $variantQid) {
@@ -78,17 +74,12 @@ class VariantService:
             return None
 
     # =================================================================
-    # 2. جلب الخيارات (Options) - تم الإصلاح الكامل
+    # 2. جلب الخيارات (Options) - التعديل بناءً على السجلات
     # =================================================================
     
     def get_all_options_for_product(self, qid: str) -> List[Dict[str, Any]]:
-        """
-        جلب جميع خيارات المنتج (مثل: اللون، المقاس) بناءً على QID المنتج.
-        """
-        # ✅ التعديلات الرئيسية هنا:
-        # 1. إضافة طبقة data { ... } لجلب البيانات من الرد
-        # 2. نستخدم المتغيرات qid أو productId؟. بما أن السجلات لم تشتكِ من المتغير،
-        #    بل من الحقول، فهذا يعني أن اسم المتغير صحيح، لكننا بحاجة لطبقة data.
+        # ✅ التعديل الحرفي بناءً على السجلات:
+        # السجلات رفضت الحقول على المستوى الجذري، لذا تم إضافة data { ... }
         query = """
         query FindAllOptionsForProduct($qid: String!) {
             findAllOptionsForProduct(qid: $qid) {
@@ -113,7 +104,7 @@ class VariantService:
             return []
 
     # =================================================================
-    # 3. التحويرات (Mutations) - تحديث وحذف المتغيرات
+    # 3. التحويرات (Mutations) - التعديل بناءً على السجلات
     # =================================================================
     
     def update_price(self, variant_qid: str, price: float) -> Optional[Dict]:
