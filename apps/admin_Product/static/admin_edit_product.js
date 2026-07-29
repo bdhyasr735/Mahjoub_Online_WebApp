@@ -298,6 +298,63 @@
         generatePayload();
     }
 
+    // 🔄 تحميل الخيارات والمتغيرات الحالية للمنتج عند فتح الصفحة
+    function initExistingVariants(existingOptions, existingVariants) {
+        if (!existingOptions || !Array.isArray(existingOptions) || existingOptions.length === 0) return;
+        
+        const container = document.getElementById('optionsContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        existingOptions.forEach(opt => {
+            const row = document.createElement('div');
+            row.className = 'option-row mb-3 p-3 border rounded bg-light';
+            
+            let valuesHtml = '';
+            if (opt.values && Array.isArray(opt.values)) {
+                opt.values.forEach(val => {
+                    const valText = typeof val === 'object' ? (val.label || val.name || '') : val;
+                    if (valText) {
+                        valuesHtml += `<div class="value-tag badge bg-primary p-2 d-flex align-items-center gap-2">${valText} <span style="cursor:pointer;" onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span></div>`;
+                    }
+                });
+            }
+            
+            row.innerHTML = `
+                <div class="option-header d-flex justify-content-between align-items-center mb-2">
+                    <input type="text" class="opt-name form-control w-75" value="${opt.name || ''}" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()">
+                    <button class="btn btn-danger btn-sm" type="button" onclick="removeOptionRow(this)"><i class="fas fa-trash"></i> حذف</button>
+                </div>
+                <label style="font-size: 0.85rem; color: #6c757d;">القيم المتعددة:</label>
+                <div class="values-container d-flex flex-wrap gap-2 mb-2">${valuesHtml}</div>
+                <div class="add-value-group d-flex gap-2">
+                    <input type="text" class="val-input form-control" placeholder="أدخل قيمة جديدة..." onkeypress="if(event.key==='Enter'){event.preventDefault();addValueToRow(this.closest('.add-value-group').querySelector('button'));}">
+                    <button class="btn btn-secondary btn-sm" type="button" onclick="addValueToRow(this)"><i class="fas fa-plus"></i> إضافة</button>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+        
+        updateVariantsTable();
+        
+        if (existingVariants && Array.isArray(existingVariants) && existingVariants.length > 0) {
+            const variantRows = document.querySelectorAll('#variantsTableContainer table tbody tr, .variants-table tbody tr');
+            variantRows.forEach((tr, index) => {
+                if (existingVariants[index]) {
+                    const v = existingVariants[index];
+                    const skuInput = tr.querySelector('.var-sku');
+                    const priceInput = tr.querySelector('.var-price');
+                    const qtyInput = tr.querySelector('.var-qty');
+                    
+                    if (skuInput && v.sku) skuInput.value = v.sku;
+                    if (priceInput && (v.price !== undefined)) priceInput.value = v.price;
+                    if (qtyInput && (v.quantity !== undefined)) qtyInput.value = v.quantity;
+                }
+            });
+        }
+        generatePayload();
+    }
+
     function generatePayload() {
         const title = document.getElementById('productTitle')?.value || document.querySelector('input[name="title"]')?.value || '';
         const slug = document.getElementById('productSlug')?.value || '';
@@ -313,7 +370,6 @@
             }
         });
 
-        // ✅ تصحيح محدد الجدول ليشمل الجدول المولد بدقة
         const variantRows = document.querySelectorAll('#variantsTableContainer table tbody tr, .variants-table tbody tr');
         const variants = [];
         variantRows.forEach((tr, index) => {
@@ -427,6 +483,7 @@
         window.removeOptionRow = removeOptionRow;
         window.addValueToRow = addValueToRow;
         window.generatePayload = generatePayload;
+        window.initExistingVariants = initExistingVariants;
         window.preparePayloadBeforeSubmit = preparePayloadBeforeSubmit;
         window.deleteProduct = deleteProduct;
         window.showNotification = showNotification;
