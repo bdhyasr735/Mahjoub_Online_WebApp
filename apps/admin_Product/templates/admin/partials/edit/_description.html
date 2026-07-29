@@ -1,50 +1,154 @@
 <!-- apps/admin_Product/templates/admin/partials/edit/_description.html -->
 
 <!-- ================= وصف المنتج ================= -->
-<div class="form-section">
+<div class="form-section description-card">
     <div class="form-section-title">
-        <i class="fas fa-align-left"></i> الوصف التفصيلي
-        <span class="badge ms-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; font-size: 0.7rem;">
+        <i class="fas fa-align-left"></i>
+        الوصف التفصيلي
+        <span class="badge-count">
             <i class="fas fa-edit"></i> محرر متقدم
+        </span>
+        <span class="badge-status" id="descriptionStatus">
+            <i class="fas fa-check-circle"></i> جاهز
         </span>
     </div>
     
-    <div class="form-group mb-0">
-        <label>وصف المنتج:</label>
+    <div class="description-content">
+        <!-- ✅ معلومات قبل المحرر -->
+        <div class="description-info">
+            <div class="info-item">
+                <i class="fas fa-info-circle"></i>
+                <span>قم بكتابة وصف احترافي للمنتج</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-keyboard"></i>
+                <span>استخدم أدوات التنسيق لإضافة روابط، صور، جداول</span>
+            </div>
+        </div>
         
-        <!-- ✅ TinyMCE Editor مع شريط أدوات كامل -->
-        <textarea id="productDescription" name="description" rows="15">
-            {{ product.description or '' }}
-        </textarea>
+        <!-- ✅ TinyMCE Editor -->
+        <div class="editor-wrapper">
+            <textarea id="productDescription" name="description" rows="15">
+                {{ product.description or '' }}
+            </textarea>
+        </div>
         
-        <div class="mt-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <small class="text-muted">
-                <i class="fas fa-info-circle me-1"></i>
-                يمكنك تنسيق النص، إضافة روابط، صور، جداول، وتغيير الألوان
-            </small>
-            <small class="text-muted">
-                <i class="fas fa-arrows-alt me-1"></i>
-                يمكنك توسيع المحرر بالضغط على أيقونة <strong>Fullscreen</strong>
-            </small>
+        <!-- ✅ معلومات بعد المحرر -->
+        <div class="description-footer">
+            <div class="footer-left">
+                <i class="fas fa-arrows-alt"></i>
+                <span>يمكنك توسيع المحرر بالضغط على أيقونة <strong>Fullscreen</strong></span>
+            </div>
+            <div class="footer-right">
+                <span class="word-count" id="wordCount">
+                    <i class="fas fa-file-word"></i>
+                    <span id="wordCountNumber">0</span> كلمة
+                </span>
+                <span class="char-count" id="charCount">
+                    <i class="fas fa-font"></i>
+                    <span id="charCountNumber">0</span> حرف
+                </span>
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-/* ✅ تحسينات إضافية للمحرر */
-.tox-tinymce {
-    border-radius: 8px !important;
-    border: 2px solid var(--border-color) !important;
+/* ============================================================
+   🎨 تصميم بطاقة الوصف
+   ============================================================ */
+.description-card {
+    border-color: rgba(212, 175, 55, 0.15);
+    background: linear-gradient(135deg, #ffffff, #faf8f6);
+    padding: 28px 32px !important;
+}
+
+.description-card .badge-count {
+    background: rgba(212, 175, 55, 0.12);
+    color: #b8962e;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.description-card .badge-status {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
     transition: all 0.3s ease;
 }
 
-.tox-tinymce:focus-within {
-    border-color: var(--gold-color) !important;
+.description-card .badge-status.dirty {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.description-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ============================================================
+   📋 معلومات قبل المحرر
+   ============================================================ */
+.description-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.info-item i {
+    color: #D4AF37;
+    font-size: 0.9rem;
+}
+
+/* ============================================================
+   🖊️ المحرر
+   ============================================================ */
+.editor-wrapper {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.editor-wrapper:focus-within {
+    border-color: #D4AF37;
     box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
 }
 
-.tox .tox-toolbar__group {
-    padding: 0 4px !important;
+.tox-tinymce {
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+.tox .tox-toolbar__primary {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
 }
 
 .tox .tox-tbtn {
@@ -64,44 +168,85 @@
     fill: #2d0b36 !important;
 }
 
-.tox .tox-toolbar__overflow-button {
-    border-radius: 4px !important;
-}
-
-/* ✅ تنسيق المحتوى داخل المحرر */
 .tox .tox-edit-area iframe {
     background: #ffffff !important;
 }
 
-/* ✅ أزرار اللغة العربية */
-.tox .tox-tbtn .tox-tbtn__select-label {
-    font-family: "Cairo", system-ui, sans-serif !important;
+/* ============================================================
+   📊 تذييل المحرر
+   ============================================================ */
+.description-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    gap: 12px;
 }
 
-/* ✅ تحسين القوائم المنسدلة */
-.tox .tox-menu {
-    border-radius: 8px !important;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+.footer-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #94a3b8;
 }
 
-.tox .tox-collection__item {
-    padding: 6px 12px !important;
-    border-radius: 4px !important;
+.footer-left i {
+    color: #D4AF37;
 }
 
-.tox .tox-collection__item:hover {
-    background: rgba(212, 175, 55, 0.1) !important;
+.footer-left strong {
+    color: #64748b;
 }
 
-/* ✅ تحسين شريط الأدوات في الجوال */
+.footer-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.footer-right i {
+    color: #D4AF37;
+    margin-right: 4px;
+}
+
+.footer-right span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ============================================================
+   📱 تحسينات الجوال
+   ============================================================ */
 @media (max-width: 768px) {
+    .description-card {
+        padding: 20px 16px !important;
+    }
+    
+    .description-info {
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 14px;
+    }
+    
+    .description-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .footer-right {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
     .tox .tox-toolbar__primary {
         flex-wrap: wrap !important;
         gap: 2px !important;
-    }
-    
-    .tox .tox-toolbar__group {
-        flex-wrap: wrap !important;
     }
     
     .tox .tox-tbtn {
@@ -119,8 +264,10 @@ document.addEventListener('DOMContentLoaded', function() {
             selector: '#productDescription',
             height: 450,
             menubar: true,
+            language: 'ar',
+            directionality: 'rtl',
             
-            // ✅ شريط الأدوات الرئيسي (بالعربية)
+            // ✅ شريط الأدوات الرئيسي
             toolbar: [
                 'undo redo | blocks | fontsize | fontfamily',
                 'bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify',
@@ -128,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'removeformat | fullscreen | help'
             ],
             
-            // ✅ القوائم الرئيسية (بالعربية)
+            // ✅ القوائم الرئيسية
             menu: {
                 file: { title: 'ملف', items: 'newdocument | print | preview' },
                 edit: { title: 'تحرير', items: 'undo redo | cut copy paste | selectall | searchreplace' },
@@ -139,23 +286,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 tools: { title: 'أدوات', items: 'spellchecker | code' }
             },
             
-            // ✅ إعدادات اللغة
-            language: 'ar',
-            directionality: 'rtl',
-            
-            // ✅ أنواع الخطوط المتاحة
+            // ✅ أنواع الخطوط
             font_family_formats: [
-                'Cairo=Cairo', 
-                'Arial=Arial', 
-                'Helvetica=Helvetica', 
-                'Times New Roman=Times New Roman', 
-                'Courier New=Courier New', 
-                'Georgia=Georgia', 
-                'Tahoma=Tahoma',
-                'Verdana=Verdana'
+                'Cairo=Cairo', 'Arial=Arial', 'Helvetica=Helvetica',
+                'Times New Roman=Times New Roman', 'Georgia=Georgia',
+                'Tahoma=Tahoma', 'Verdana=Verdana'
             ].join(';'),
             
-            // ✅ أحجام الخطوط المتاحة
+            // ✅ أحجام الخطوط
             font_size_formats: '8pt 10pt 12pt 14pt 18pt 24pt 36pt 48pt 72pt',
             
             // ✅ الألوان المخصصة
@@ -169,17 +307,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 '#85200c', '#990000', '#b45f06', '#bf9000', '#38761d', '#134f5c', '#1155cc', '#0b5394', '#351c75', '#741b47'
             ],
             
-            // ✅ الإضافات (Plugins)
+            // ✅ الإضافات
             plugins: [
                 'advlist', 'autolink', 'lists', 'link', 'image', 'media',
                 'charmap', 'preview', 'anchor', 'searchreplace', 'visualblocks',
                 'code', 'fullscreen', 'insertdatetime', 'table', 'help', 'wordcount'
             ],
             
-            // ✅ محتوى النمط داخل المحرر
+            // ✅ محتوى النمط
             content_style: `
                 body { 
-                    font-family: "Cairo", system-ui, -apple-system, sans-serif; 
+                    font-family: "Cairo", system-ui, sans-serif; 
                     font-size: 16px; 
                     line-height: 1.8; 
                     padding: 20px; 
@@ -210,32 +348,63 @@ document.addEventListener('DOMContentLoaded', function() {
             `,
             
             // ✅ معالج رفع الصور
-            images_upload_handler: function(blobInfo, progress) {
-                return new Promise(function(resolve, reject) {
+            images_upload_handler: function(blobInfo) {
+                return new Promise(function(resolve) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         resolve(e.target.result);
-                    };
-                    reader.onerror = function(e) {
-                        reject('❌ فشل رفع الصورة');
                     };
                     reader.readAsDataURL(blobInfo.blob());
                 });
             },
             
-            // ✅ عند تغيير المحتوى
+            // ✅ تحديث عداد الكلمات والحروف
             setup: function(editor) {
                 editor.on('init', function() {
-                    console.log('✅ TinyMCE initialized successfully');
+                    updateWordCount(editor);
                 });
                 
                 editor.on('change', function() {
-                    // تحديث الحقل المخفي إذا لزم الأمر
-                    const content = editor.getContent();
-                    document.querySelector('textarea[name="description"]').value = content;
+                    updateWordCount(editor);
+                    updateDescriptionStatus(editor);
                 });
             }
         });
     }
 });
+
+// ✅ تحديث عداد الكلمات والحروف
+function updateWordCount(editor) {
+    const content = editor.getContent({ format: 'text' });
+    const text = content.trim();
+    
+    const wordCount = text ? text.split(/\s+/).length : 0;
+    const charCount = text.length;
+    
+    const wordSpan = document.getElementById('wordCountNumber');
+    const charSpan = document.getElementById('charCountNumber');
+    
+    if (wordSpan) wordSpan.textContent = wordCount;
+    if (charSpan) charSpan.textContent = charCount;
+}
+
+// ✅ تحديث حالة الوصف
+function updateDescriptionStatus(editor) {
+    const statusBadge = document.getElementById('descriptionStatus');
+    if (!statusBadge) return;
+    
+    const content = editor.getContent({ format: 'text' }).trim();
+    
+    if (content.length > 0) {
+        statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> مكتمل';
+        statusBadge.className = 'badge-status';
+    } else {
+        statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> فارغ';
+        statusBadge.className = 'badge-status dirty';
+    }
+}
+
+// ✅ ربط الدوال بالـ window
+window.updateWordCount = updateWordCount;
+window.updateDescriptionStatus = updateDescriptionStatus;
 </script>
