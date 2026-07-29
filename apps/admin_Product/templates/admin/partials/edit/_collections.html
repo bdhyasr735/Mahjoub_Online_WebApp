@@ -1,14 +1,16 @@
+<!-- apps/admin_Product/templates/admin/partials/edit/_collections.html -->
+
 <!-- ============================================================
-   📁 المجموعات (Collections)
+   📁 المجموعات (Collections) - قائمة منسدلة مع بحث
    ============================================================ -->
 <div class="card shadow-sm meta-variants-card">
     <div class="card-header">
         <h5 class="mb-0 text-gold d-flex align-items-center">
             <i class="fas fa-folder-open me-2"></i> المجموعات (Collections)
             {% if product and product.collections %}
-            <span class="badge badge-gold-soft ms-2">{{ product.collections|length }}</span>
+            <span class="badge badge-gold-soft ms-2" id="collectionsCount">{{ product.collections|length }}</span>
             {% endif %}
-            <span class="badge-status ms-auto {{ 'has-collections' if product.collections and product.collections|length > 0 else 'empty' }}">
+            <span class="badge-status ms-auto" id="collectionsStatus">
                 {% if product.collections and product.collections|length > 0 %}
                 <i class="fas fa-check-circle"></i> مكتمل
                 {% else %}
@@ -18,30 +20,262 @@
         </h5>
     </div>
     <div class="card-body">
-        {% if product and product.collections and product.collections|length > 0 %}
-        <div class="d-flex flex-wrap gap-2">
-            {% for collection in product.collections %}
-            <div class="collection-item-card">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-folder text-gold"></i>
-                    <div>
-                        <strong class="text-dark-purple d-block" style="font-size: 0.85rem;">{{ collection.title or collection.name or collection.qid }}</strong>
-                        {% if collection.handle %}
-                        <small class="text-muted" style="font-size: 0.65rem;">{{ collection.handle }}</small>
-                        {% endif %}
-                    </div>
+        <!-- ✅ قائمة منسدلة مع بحث -->
+        <div class="collection-multiselect-container">
+            <!-- صندوق العرض -->
+            <div class="selected-collections-box" id="selectedCollectionsBox" onclick="toggleCollectionDropdown()">
+                <span class="placeholder-text" id="collectionPlaceholder" {% if product.collections and product.collections|length > 0 %}style="display:none;"{% endif %}>
+                    <i class="fas fa-folder-open"></i> اختر المجموعات...
+                </span>
+                <div class="selected-badges" id="selectedBadgesContainer">
+                    {% if product.collections %}
+                        {% for col in product.collections %}
+                        <span class="collection-badge" data-id="{{ col.qid or col.id }}">
+                            <i class="fas fa-folder"></i> {{ col.title or col.name }}
+                            <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('{{ col.qid or col.id }}')">&times;</span>
+                        </span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                <i class="fas fa-chevron-down selection-arrow"></i>
+            </div>
+
+            <!-- القائمة المنسدلة مع البحث -->
+            <div id="collectionDropdownMenu">
+                <div class="dropdown-search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="collectionSearchInput" placeholder="ابحث عن مجموعة..." oninput="filterCollections(this.value)" onclick="event.stopPropagation();">
+                </div>
+                
+                <div id="collectionsList">
+                    {% if all_collections %}
+                        {% for col in all_collections %}
+                        <div class="collection-option-item" data-id="{{ col.qid or col.id }}" data-title="{{ col.title or col.name }}" onclick="toggleCollectionSelection(this, '{{ col.qid or col.id }}', '{{ col.title or col.name }}')">
+                            <span class="d-flex align-items-center gap-2">
+                                {% if col.image and col.image.fileUrl %}
+                                <img src="{{ col.image.fileUrl }}" class="collection-thumb" alt="{{ col.title or col.name }}">
+                                {% else %}
+                                <i class="fas fa-folder text-warning"></i>
+                                {% endif %}
+                                <span>{{ col.title or col.name }}</span>
+                            </span>
+                            <div class="collection-check-wrapper">
+                                <input type="checkbox" class="col-checkbox" value="{{ col.qid or col.id }}" {% if product.collections and col in product.collections %}checked{% endif %}>
+                                <span class="checkmark"></span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="collections-empty-state">لا توجد مجموعات متاحة</div>
+                    {% endif %}
+                </div>
+                
+                <div id="collectionsNoResults" style="display: none;">
+                    <i class="fas fa-search-minus"></i> لا توجد نتائج
                 </div>
             </div>
-            {% endfor %}
         </div>
-        <small class="text-muted mt-3 d-block pt-2 border-top">
-            <i class="fas fa-list me-1"></i> عدد المجموعات: <strong>{{ product.collections|length }}</strong>
-        </small>
-        {% else %}
-        <div class="text-center py-4 text-muted">
-            <i class="fas fa-folder-open fa-2x mb-2 text-gold"></i>
-            <p class="mb-0">لا توجد مجموعات</p>
+
+        <!-- ✅ حقول مخفية لحفظ المعرفات -->
+        <div id="hiddenCollectionsInputs">
+            {% if product.collections %}
+                {% for col in product.collections %}
+                <input type="hidden" name="collection_ids" value="{{ col.qid or col.id }}" id="col-input-{{ col.qid or col.id }}">
+                {% endfor %}
+            {% endif %}
         </div>
-        {% endif %}
+        
+        <!-- ✅ تذييل -->
+        <div class="collections-footer">
+            <div class="collections-stats">
+                <span><i class="fas fa-check-circle"></i> <strong id="selectedCountDisplay">{{ product.collections|length if product.collections else 0 }}</strong> مختارة</span>
+                <span class="divider">|</span>
+                <span><i class="fas fa-list-ul"></i> <strong id="totalCollectionsCount">{{ all_collections|length if all_collections else 0 }}</strong> متاحة</span>
+            </div>
+            <button class="btn-clear-collections" onclick="clearAllCollections()" style="display: {{ 'inline-flex' if product.collections and product.collections|length > 0 else 'none' }}">
+                <i class="fas fa-times-circle"></i> إلغاء الكل
+            </button>
+        </div>
     </div>
 </div>
+
+<style>
+/* ✅ أنماط القائمة المنسدلة */
+.collection-multiselect-container { position: relative; }
+
+.selected-collections-box {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 10px;
+    background: #ffffff; min-height: 44px; cursor: pointer;
+    transition: all 0.3s ease;
+}
+.selected-collections-box:hover { border-color: #D4AF37; }
+
+.placeholder-text { color: #94a3b8; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
+.placeholder-text i { color: #D4AF37; }
+.selected-badges { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+.selection-arrow { color: #94a3b8; font-size: 0.7rem; transition: all 0.3s ease; margin-left: auto; }
+.selection-arrow.open { transform: rotate(180deg); color: #D4AF37; }
+
+.collection-badge {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    color: #D4AF37; padding: 3px 10px; border-radius: 14px;
+    display: inline-flex; align-items: center; gap: 4px;
+    border: 1px solid rgba(212, 175, 55, 0.15); font-size: 0.75rem;
+    transition: all 0.2s ease;
+}
+.remove-collection { cursor: pointer; color: #ef4444; font-weight: 700; font-size: 0.9rem; transition: all 0.2s ease; }
+.remove-collection:hover { transform: rotate(90deg); }
+
+#collectionDropdownMenu {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: #ffffff; border: 2px solid #e2e8f0; border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.1); z-index: 1000;
+    padding: 12px; max-height: 320px; overflow: hidden;
+    animation: dropdownSlide 0.25s ease;
+}
+@keyframes dropdownSlide {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-search-wrapper { position: relative; margin-bottom: 8px; }
+.dropdown-search-wrapper .fa-search {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: #94a3b8; font-size: 0.85rem;
+}
+#collectionSearchInput {
+    width: 100%; padding: 8px 36px 8px 12px;
+    border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem;
+    transition: all 0.3s ease; background: #f8fafc;
+}
+#collectionSearchInput:focus {
+    outline: none; border-color: #D4AF37; background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(212,175,55,0.06);
+}
+
+#collectionsList { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+#collectionsList::-webkit-scrollbar { width: 4px; }
+#collectionsList::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+#collectionsList::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 4px; }
+
+.collection-option-item {
+    padding: 6px 10px; border-radius: 6px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: all 0.15s ease;
+}
+.collection-option-item:hover { background: #f1f5f9; }
+.collection-thumb { width: 20px; height: 20px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0; }
+.collection-check-wrapper { position: relative; width: 16px; height: 16px; }
+.col-checkbox { position: absolute; opacity: 0; width: 16px; height: 16px; cursor: pointer; }
+.checkmark {
+    position: absolute; top: 0; left: 0; width: 16px; height: 16px;
+    border: 2px solid #cbd5e1; border-radius: 4px; transition: all 0.2s ease;
+}
+.collection-option-item:hover .checkmark { border-color: #D4AF37; }
+.col-checkbox:checked + .checkmark {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    border-color: #D4AF37;
+}
+.col-checkbox:checked + .checkmark::after {
+    content: '✓'; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%); color: #D4AF37; font-size: 10px; font-weight: 700;
+}
+
+.collections-empty-state { text-align: center; padding: 16px; color: #94a3b8; }
+.collections-empty-state i { font-size: 1.5rem; color: #D4AF37; display: block; margin-bottom: 4px; }
+
+.collections-footer {
+    display: flex; flex-wrap: wrap; justify-content: space-between;
+    align-items: center; padding-top: 10px; margin-top: 10px;
+    border-top: 1px solid #e2e8f0; gap: 8px;
+}
+.collections-stats {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.8rem; color: #64748b;
+}
+.collections-stats strong { color: #0f172a; font-size: 0.9rem; }
+.stat-label { font-size: 0.7rem; color: #94a3b8; }
+.collections-stats .divider { color: #e2e8f0; }
+.btn-clear-collections {
+    background: none; border: none; color: #ef4444; font-size: 0.75rem;
+    font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 6px; transition: all 0.2s ease;
+}
+.btn-clear-collections:hover { background: rgba(239,68,68,0.06); color: #dc2626; }
+
+@media (max-width: 768px) {
+    .selected-collections-box { min-height: 38px; padding: 6px 10px; }
+    .collection-badge { font-size: 0.65rem; padding: 2px 8px; }
+    #collectionDropdownMenu { padding: 10px; max-height: 260px; }
+    #collectionsList { max-height: 140px; }
+    .collections-footer { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+</style>
+
+<script>
+// ============================================================
+// 🔄 دوال المجموعات
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ تحديث واجهة المستخدم
+    window.updateCollectionsUI = function() {
+        const badges = document.querySelectorAll('.collection-badge');
+        const count = badges.length;
+        
+        const countBadge = document.getElementById('collectionsCount');
+        if (countBadge) countBadge.textContent = count;
+        
+        const display = document.getElementById('selectedCountDisplay');
+        if (display) display.textContent = count;
+        
+        const statusBadge = document.getElementById('collectionsStatus');
+        if (statusBadge) {
+            if (count > 0) {
+                statusBadge.className = 'badge-status has-collections';
+                statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> مكتمل';
+            } else {
+                statusBadge.className = 'badge-status empty';
+                statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> فارغ';
+            }
+        }
+        
+        const clearBtn = document.querySelector('.btn-clear-collections');
+        if (clearBtn) clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+        
+        const placeholder = document.getElementById('collectionPlaceholder');
+        if (placeholder) placeholder.style.display = count > 0 ? 'none' : 'flex';
+    };
+    
+    // ✅ إلغاء جميع المجموعات
+    window.clearAllCollections = function() {
+        if (!confirm('⚠️ إلغاء اختيار جميع المجموعات؟')) return;
+        document.querySelectorAll('.collection-badge').forEach(badge => {
+            const id = badge.getAttribute('data-id');
+            if (id) removeCollection(id);
+        });
+        setTimeout(() => updateCollectionsUI(), 50);
+    };
+    
+    // ✅ سهم القائمة
+    const dropdown = document.getElementById('collectionDropdownMenu');
+    const arrow = document.querySelector('.selection-arrow');
+    if (dropdown && arrow) {
+        new MutationObserver(() => arrow.classList.toggle('open', dropdown.style.display === 'block'))
+            .observe(dropdown, { attributes: true, attributeFilter: ['style'] });
+    }
+    
+    updateCollectionsUI();
+});
+
+// ============================================================
+// 🎯 ربط الدوال العالمية
+// ============================================================
+window.toggleCollectionDropdown = toggleCollectionDropdown;
+window.filterCollections = filterCollections;
+window.toggleCollectionSelection = toggleCollectionSelection;
+window.addCollectionBadge = addCollectionBadge;
+window.removeCollection = removeCollection;
+window.updateCollectionsUI = updateCollectionsUI;
+window.clearAllCollections = clearAllCollections;
+</script>
