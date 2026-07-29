@@ -17,14 +17,17 @@ admin_product_bp = Blueprint(
     static_url_path='static'
 )
 
-# ✅ استيراد جميع الـ Routes
-from . import sync
+# ✅ استيراد الـ Routes التي تستخدم الديكوراتور المباشر
 from . import reviews
 from . import crud
 from . import stats
 
-# ✅ استيراد products.py وتسجيل الـ Route
+# ✅ استيراد وتسيجل مسارات المنتجات
 from .products import register_products_route
 register_products_route(admin_product_bp)
+
+# ✅ استيراد وتسيجل مسارات المزامنة
+from .sync import register_sync_route
+register_sync_route(admin_product_bp)
 
 __all__ = ['admin_product_bp']
