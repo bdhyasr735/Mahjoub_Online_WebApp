@@ -25,7 +25,6 @@
                 <i class="fas fa-cubes text-gold me-1"></i> الكمية المتاحة
                 <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">المخزون</span>
             </label>
-            <!-- تم إضافة removeArrows كلاس لإخفاء الأسهم -->
             <input type="number" id="productQuantity" name="quantity" class="form-control form-control-lg custom-input tabular-nums removeArrows" 
                    min="0" value="{{ product.quantity or 0 }}" 
                    oninput="generatePayload()">
@@ -45,7 +44,6 @@
                 <span class="badge bg-danger text-white ms-1" style="font-size: 0.6rem; font-weight: 400;">مطلوب</span>
             </label>
             <div class="input-group input-group-lg">
-                <!-- تم إضافة removeArrows لإخفاء الأسهم -->
                 <input type="number" id="productPrice" name="price" class="form-control custom-input tabular-nums removeArrows" 
                        step="0.01" min="0" 
                        value="{{ product.pricing.price if product.pricing and product.pricing.price is not none else 0 }}" 
@@ -100,7 +98,7 @@
 </div>
 
 <!-- ============================================================
-   ⚙️ الحالة والمورد (تم تجهيز المورد للبحث المتقدم)
+   ⚙️ الحالة والمورد
    ============================================================ -->
 <div class="row g-3 mt-2">
     <!-- الحالة -->
@@ -118,13 +116,13 @@
         </div>
     </div>
     
-    <!-- المورد (مجهز للربط بمكتبة البحث Tom Select) -->
+    <!-- المورد -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="supplierId" class="form-label">
                 <i class="fas fa-store text-gold me-1"></i> المورد
             </label>
-            <!-- تم تغيير الـ id إلى supplierSelect ليتوافق مع ملف الـ JS الذي أرسلته لك سابقاً -->
+            <!-- سأقوم هنا بتشغيل السكربت مباشرة عند تحميل الصفحة -->
             <select id="supplierSelect" name="supplier_id" class="form-select form-select-lg custom-input" placeholder="ابحث عن المورد...">
                 <option value="">-- غير مرتبط --</option>
                 {% for supplier in suppliers %}
@@ -183,101 +181,73 @@
 </div>
 
 <!-- ============================================================
-   🎨 التنسيقات والأنماط (تمت إضافة: إخفاء الأسهم وتحسين الأبعاد)
+   🎨 التنسيقات والأنماط + سكربت التشغيل المباشر
    ============================================================ -->
 <style>
 /* ضبط الحقول لتبدو متساوية تماماً */
-.form-group {
-    margin-bottom: 0;
-}
-.form-label {
-    font-weight: 600;
-    color: #2d0b36;
-    font-size: 0.95rem;
-    margin-bottom: 6px;
-}
-.text-gold {
-    color: #D4AF37 !important;
-}
+.form-group { margin-bottom: 0; }
+.form-label { font-weight: 600; color: #2d0b36; font-size: 0.95rem; margin-bottom: 6px; }
+.text-gold { color: #D4AF37 !important; }
 .custom-input {
-    border-color: #e2e8f0;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    padding: 12px 16px;
-    font-size: 1rem;
-    /* توحيد الارتفاع لضمان التساوي مع بقية الحقول */
-    height: 55px; 
+    border-color: #e2e8f0; border-radius: 10px; transition: all 0.3s ease;
+    padding: 12px 16px; font-size: 1rem; height: 55px; 
 }
-.custom-input:focus {
-    border-color: #D4AF37;
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
-}
-.form-control-lg, .form-select-lg {
-    padding: 14px 18px;
-    font-size: 1.05rem;
-}
+.custom-input:focus { border-color: #D4AF37; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15); }
+.form-control-lg, .form-select-lg { padding: 14px 18px; font-size: 1.05rem; }
 .currency-addon {
-    background: linear-gradient(135deg, #2d0b36, #1a0520);
-    color: #D4AF37;
-    border: none;
-    font-weight: 700;
-    border-radius: 0 10px 10px 0 !important;
-    padding: 14px 20px;
-    /* ضبط ارتفاع الـ addon ليتساوى مع الحقل */
-    height: 55px;
-    display: flex;
-    align-items: center;
+    background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;
+    border: none; font-weight: 700; border-radius: 0 10px 10px 0 !important;
+    padding: 14px 20px; height: 55px; display: flex; align-items: center;
 }
+
+/* ✅ إجبار الأرقام على الظهور بالإنجليزية في المتصفحات */
 .tabular-nums {
     font-feature-settings: "tnum";
     font-variant-numeric: tabular-nums;
     direction: ltr;
     text-align: right;
+    /* هذه الخدعة تمنع المتصفح من تحويل الأرقام إلى عربية */
+    unicode-bidi: plaintext;
 }
 
-/* ✅ الكود السحري لإخفاء الأسهم الصغيرة تماماً */
-.removeArrows {
-    -moz-appearance: textfield !important;
-    appearance: textfield !important;
-}
+/* ✅ إخفاء الأسهم الصغيرة تماماً */
+.removeArrows { -moz-appearance: textfield !important; appearance: textfield !important; }
 .removeArrows::-webkit-outer-spin-button,
 .removeArrows::-webkit-inner-spin-button {
-    -webkit-appearance: none !important;
-    margin: 0 !important;
+    -webkit-appearance: none !important; margin: 0 !important;
 }
 
-/* ---------- المخصص لملخص البيانات ---------- */
 .summary-box {
-    padding: 16px 20px;
-    background: linear-gradient(135deg, #faf8f6, #ffffff);
-    border-radius: 12px;
-    border: 1px solid rgba(212, 175, 55, 0.2);
+    padding: 16px 20px; background: linear-gradient(135deg, #faf8f6, #ffffff);
+    border-radius: 12px; border: 1px solid rgba(212, 175, 55, 0.2);
 }
-.summary-value {
-    color: #2d0b36;
-    font-size: 1.1rem;
-}
-.badge-gold-gradient {
-    background: linear-gradient(135deg, #2d0b36, #1a0520);
-    color: #D4AF37;
-    padding: 8px 16px;
-    font-weight: 600;
-    border-radius: 8px;
-}
+.summary-value { color: #2d0b36; font-size: 1.1rem; }
+.badge-gold-gradient { background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 8px 16px; font-weight: 600; border-radius: 8px; }
 
-/* تحسينات الجوال */
 @media (max-width: 768px) {
-    .form-control-lg, .form-select-lg {
-        padding: 10px 14px;
-        font-size: 0.95rem;
-        height: 48px; /* ارتفاع أقل للجوال */
-    }
-    .currency-addon {
-        padding: 10px 14px;
-        height: 48px;
-    }
-    .summary-box {
-        padding: 14px;
-    }
+    .form-control-lg, .form-select-lg { padding: 10px 14px; font-size: 0.95rem; height: 48px; }
+    .currency-addon { padding: 10px 14px; height: 48px; }
+    .summary-box { padding: 14px; }
 }
 </style>
+
+<!-- 👇 سكربت تشغيل البحث المتقدم في المورد فوراً 👇 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // التأكد من أن المكتبة محملة
+    if (typeof TomSelect !== 'undefined') {
+        const supplierSelect = document.getElementById('supplierSelect');
+        if (supplierSelect) {
+            new TomSelect(supplierSelect, {
+                plugins: ['remove_button'],
+                placeholder: 'ابحث عن المورد هنا...',
+                searchField: ['text'],
+                maxOptions: 10
+            });
+            console.log('✅ Tom Select (المورد) تم تفعيله بنجاح');
+        }
+    } else {
+        console.warn('⚠️ تنبيه: مكتبة Tom Select غير محملة. تأكد من إضافتها في base.html');
+    }
+});
+</script>
