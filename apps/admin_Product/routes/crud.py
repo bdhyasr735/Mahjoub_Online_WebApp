@@ -69,7 +69,7 @@ def add_product():
 @admin_product_bp.route('/products/edit', methods=['GET'])
 @login_required
 def edit_product():
-    """عرض صفحة تعديل المنتج"""
+    """عرض صفحة تعديل المنتج مع محاولة جلب المتغيرات بشكل آمن"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
@@ -81,14 +81,30 @@ def edit_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
     
-    # ✅ نعود للدالة الآمنة التي تعمل 100% (لن نطلب product من GraphQL)
+    # 1. جلب المنتج الأساسي (الاستعلام الآمن الذي يفتح الصفحة بلا 500)
     product = services.products.get_product_by_qid(qid)
     
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
-    # ✅ نستمر في جلب باقي البيانات
+    # 2. محاولة جلب الخيارات والمتغيرات بشكل منفصل (لن يكسر الصفحة إذا فشل)
+    try:
+        if hasattr(services, 'variants'):
+            # محاولة جلب خيارات المنتج
+            options_data = services.variants.get_all_options_for_product(qid)
+            if options_data:
+                product['options'] = options_data
+            
+            # محاولة جلب المتغيرات
+            variants_data = services.variants.get_by_product(qid)
+            if variants_data:
+                product['variants'] = variants_data
+    except Exception as e:
+        # إذا فشلت، نطبع تحذيراً في السيرفر لكن الصفحة تبقى مفتوحة
+        print(f"⚠️ [Edit Product] تعذر جلب الخيارات والمتغيرات، الصفحة ستعمل بدونها. السبب: {e}")
+
+    # 3. جلب بيانات إضافية
     suppliers = Supplier.query.filter_by(status='active').all()
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     assigned_supplier_id = mapping.supplier_id if mapping else None
