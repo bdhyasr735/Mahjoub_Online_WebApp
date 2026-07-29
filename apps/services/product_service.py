@@ -142,9 +142,9 @@ class ProductService:
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID مع تفاصيل الأسعار والـ slug والكمية والمجموعات (النسخة الآمنة)"""
+        """جلب منتج بواسطة QID مع تفاصيل الأسعار والـ slug والكمية والمجموعات (النسخة الآمنة والموثوقة)"""
         
-        # ✅ استخدمنا النسخة الأصلية التي كانت تعمل (مع إضافة options الأساسية)
+        # ✅ تم إزالة أي حقول إضافية قد ترفضها الساندبوكس
         query = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -197,7 +197,7 @@ class ProductService:
                             path
                         }
                     }
-                    # ✅ تم إضافة هذا القسم بحذر (لا يحتوي على حقول غير موجودة)
+                    # ✅ هذا هو الجزء الوحيد الذي تم إبقاؤه لجلب الخيارات
                     options {
                         qid
                         name
@@ -220,7 +220,6 @@ class ProductService:
             variables = {"qid": qid}
             print(f"🔍 [get_product_by_qid] Variables: {variables}")
             
-            # ✅ استخدم operation_name = "FindProductByQid"
             data = self.client.execute(query, variables, operation_name="FindProductByQid")
             print(f"🔍 [get_product_by_qid] Full Response: {data}")
             
