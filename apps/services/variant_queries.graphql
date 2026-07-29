@@ -1,11 +1,9 @@
 """
-خدمة المتغيرات والخيارات - Variant Service Queries (نسخة محدثة 2026)
-ملاحظة: تم تعليق استعلامات المتغيرات لأن السيرفر لا يدعمها حالياً.
-تم إبقاء استعلام الخيارات فقط لأنه يعمل 100%.
+خدمة المتغيرات والخيارات - Variant Service Queries (نسخة محدثة 2026 - متوافقة مع السيرفر)
 """
 
 # ============================================================
-# ✅ استعلام الخيارات (Options) الوحيد المدعوم
+# ✅ استعلامات الخيارات والمتغيرات المدعومة رسمياً
 # ============================================================
 
 query FindAllOptionsForProduct($qid: String!) {
@@ -22,165 +20,67 @@ query FindAllOptionsForProduct($qid: String!) {
     }
 }
 
+query FindAllVariantsByProductId($productId: String!, $getAllVariantsInput: GetAllVariantsInput) {
+    findAllVariantsByProductId(productId: $productId, getAllVariantsInput: $getAllVariantsInput) {
+        data {
+            qid
+            sku
+            barcode
+            quantity
+            position
+            isActive
+            isAvailable
+            pricing {
+                price
+                compareAtPrice
+                originalPrice
+            }
+            options {
+                name
+                value
+            }
+        }
+    }
+}
+
+query FindVariantById($id: String!) {
+    findVariantById(id: $id) {
+        data {
+            qid
+            sku
+            quantity
+        }
+    }
+}
+
 # ============================================================
-# ⚠️ الاستعلامات التالية معلقة (غير مدعومة، تسبب أخطاء 400/404)
+# 🔄 التحويرات (Mutations) المدعومة للمتغيرات
 # ============================================================
 
-# query FindAllVariantsByProductId($productId: ID!) {
-#     findAllVariantsByProductId(productId: $productId) {
-#         id
-#         qid
-#         sku
-#         barcode
-#         price
-#         compareAtPrice
-#         costPerItem
-#         quantity
-#         weight
-#         weightUnit
-#         position
-#         isActive
-#         isAvailable
-#         options {
-#             id
-#             name
-#             value
-#             position
-#         }
-#         image {
-#             id
-#             url
-#             altText
-#             width
-#             height
-#         }
-#         inventory {
-#             id
-#             quantity
-#             available
-#             reserved
-#             location
-#             warehouse
-#         }
-#         product {
-#             id
-#             qid
-#             name
-#             mainImage {
-#                 url
-#                 altText
-#             }
-#         }
-#     }
-# }
+mutation UpdateVariantPricing($variantId: String!, $pricing: UpdateVariantPricingInput!) {
+    updateVariantPricing(variantId: $variantId, pricing: $pricing) {
+        data {
+            qid
+        }
+    }
+}
 
-# query FindVariantById($id: ID!) {
-#     findVariantById(id: $id) {
-#         id
-#         qid
-#         sku
-#         barcode
-#         price
-#         compareAtPrice
-#         costPerItem
-#         quantity
-#         weight
-#         weightUnit
-#         position
-#         isActive
-#         isAvailable
-#         options {
-#             id
-#             name
-#             value
-#             position
-#         }
-#         image {
-#             id
-#             url
-#             altText
-#             width
-#             height
-#         }
-#         inventory {
-#             id
-#             quantity
-#             available
-#             reserved
-#             location
-#             warehouse
-#         }
-#         product {
-#             id
-#             qid
-#             name
-#             price
-#             mainImage {
-#                 url
-#                 altText
-#             }
-#         }
-#     }
-# }
+mutation UpdateVariantMedia($variantId: String!, $media: [String!]!) {
+    updateVariantMedia(variantId: $variantId, media: $media) {
+        data {
+            qid
+        }
+    }
+}
 
-# query FindOptionByQid($qid: String!) {
-#     findOptionByQid(qid: $qid) {
-#         id
-#         qid
-#         name
-#         position
-#         values {
-#             id
-#             value
-#             position
-#             hexCode
-#             image {
-#                 url
-#                 altText
-#             }
-#         }
-#     }
-# }
+mutation RemoveVariantById($id: String!) {
+    removeVariantById(id: $id)
+}
 
-# query GetProductFullStructure($qid: String!) {
-#     product(qid: $qid) {
-#         id
-#         qid
-#         title
-#         name
-#         sku
-#         description
-#         status
-#         options {
-#             id
-#             name
-#             values {
-#                 id
-#                 label
-#                 sortOrder
-#             }
-#             sortOrder
-#         }
-#         variants {
-#             id
-#             qid
-#             sku
-#             quantity
-#             price
-#             compareAtPrice
-#             originalPrice
-#             media
-#             options {
-#                 id
-#                 label
-#             }
-#         }
-#         pricing {
-#             price
-#             compareAtPrice
-#             originalPrice
-#         }
-#         quantity
-#         media
-#     }
-# }
+mutation BulkVariantUpdate($bulkUpdateVariantsInput: BulkVariantUpdateVariantsInput!) {
+    bulkVariantUpdate(bulkUpdateVariantsInput: $bulkUpdateVariantsInput) {
+        data {
+            qid
+        }
+    }
+}
