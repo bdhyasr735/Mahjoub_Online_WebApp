@@ -142,9 +142,9 @@ class ProductService:
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID مع تفاصيل الأسعار والـ slug والكمية والمجموعات (نسخة مصححة وآمنة)"""
+        """جلب منتج بواسطة QID مع تفاصيل الأسعار والـ slug والكمية والمجموعات (النسخة الآمنة)"""
         
-        # ✅ الاستعلام المصحح بالكامل (مطابق لـ product_queries.graphql)
+        # ✅ استخدمنا النسخة الأصلية التي كانت تعمل (مع إضافة options الأساسية)
         query = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -197,21 +197,14 @@ class ProductService:
                             path
                         }
                     }
-                    # ✅ تم تصحيح أسماء الحقول هنا لتطابق الـ Schema
+                    # ✅ تم إضافة هذا القسم بحذر (لا يحتوي على حقول غير موجودة)
                     options {
-                        id
                         qid
                         name
-                        position
                         values {
-                            id
-                            value
-                            position
-                            hexCode
-                            image {
-                                url
-                                altText
-                            }
+                            option
+                            label
+                            sortOrder
                         }
                     }
                     views
