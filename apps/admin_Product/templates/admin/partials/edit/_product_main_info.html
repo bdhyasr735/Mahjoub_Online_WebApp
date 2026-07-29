@@ -18,7 +18,7 @@
         </div>
     </div>
     
-    <!-- الكمية (تم التحويل إلى text) -->
+    <!-- الكمية -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="productQuantity" class="form-label">
@@ -33,7 +33,7 @@
 </div>
 
 <!-- ============================================================
-   💰 الأسعار الثلاثة (تم ضبط الأبعاد والتحويل إلى text)
+   💰 الأسعار الثلاثة
    ============================================================ -->
 <div class="row g-3 mt-2">
     <!-- السعر الأساسي -->
@@ -113,13 +113,15 @@
         </div>
     </div>
     
-    <!-- المورد -->
+    <!-- المورد مع بحث متقدم (Tom Select) -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="supplierId" class="form-label">
                 <i class="fas fa-store text-gold me-1"></i> المورد
             </label>
-            <select id="supplierSelect" name="supplier_id" class="form-select form-select-lg custom-input" placeholder="ابحث عن المورد...">
+            <!-- تم إضافة display: none لإخفاء القائمة الأصلية -->
+            <select id="supplierSelect" name="supplier_id" class="form-select form-select-lg custom-input" 
+                    placeholder="ابحث عن المورد..." style="display: none !important;">
                 <option value="">-- غير مرتبط --</option>
                 {% for supplier in suppliers %}
                 <option value="{{ supplier.id }}" {% if assigned_supplier_id == supplier.id %}selected{% endif %}>
@@ -177,7 +179,7 @@
 </div>
 
 <!-- ============================================================
-   🎨 التنسيقات والأنماط + سكربت التشغيل المباشر
+   🎨 التنسيقات والأنماط + سكربت التشغيل
    ============================================================ -->
 <style>
 /* ضبط الحقول لتبدو متساوية تماماً */
@@ -196,22 +198,52 @@
     padding: 14px 20px; height: 55px; display: flex; align-items: center;
 }
 
-/* ✅ تنسيق حقول الأرقام الجديدة (لتعمل مع type="text") */
+/* تنسيق حقول الأرقام */
 .numeric-input {
     direction: ltr;      /* اجبار الأرقام على الكتابة من اليسار */
-    text-align: right;    /* محاذاة الأرقام لليمين بجانب كلمة ر.س */
-    letter-spacing: 0.5px; /* تحسين مظهر الأرقام */
+    text-align: right;    /* محاذاة الأرقام لليمين */
+    letter-spacing: 0.5px;
 }
 .numeric-input:focus {
     border-color: #D4AF37; 
     box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
 }
 
-/* ✅ إخفاء الأسهم الصغيرة تماماً (لن تظهر لأنها type="text" لكن نحن متأكدون) */
+/* إخفاء الأسهم الصغيرة */
 .removeArrows { -moz-appearance: textfield !important; appearance: textfield !important; }
 .removeArrows::-webkit-outer-spin-button,
 .removeArrows::-webkit-inner-spin-button {
     -webkit-appearance: none !important; margin: 0 !important;
+}
+
+/* ✅ تنسيق Tom Select (لإخفاء القائمة الأصلية وجعل البحث متطابقاً) */
+.ts-wrapper {
+    width: 100% !important;
+}
+.ts-control {
+    height: 55px !important;
+    border-radius: 10px !important;
+    border-color: #e2e8f0 !important;
+    background: #ffffff !important;
+    font-size: 1.05rem !important;
+    box-shadow: none !important;
+}
+.ts-control:focus, .ts-wrapper.single .ts-control:focus {
+    border-color: #D4AF37 !important;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15) !important;
+}
+.ts-dropdown {
+    border-color: #e2e8f0 !important;
+    border-radius: 0 0 10px 10px !important;
+    border-top: none !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+.ts-dropdown .option.active {
+    background-color: #2d0b36 !important;
+    color: #D4AF37 !important;
+}
+.ts-wrapper .item {
+    color: #1e293b !important;
 }
 
 .summary-box {
@@ -228,20 +260,16 @@
 }
 </style>
 
-<!-- 👇 سكربت تشغيل البحث المتقدم في المورد والتحكم بالأرقام 👇 -->
+<!-- سكربت تشغيل البحث المتقدم في المورد والتحكم بالأرقام -->
 <script>
-// دالة تمنع المستخدم من كتابة أي شيء غير الأرقام والنقاط
 function allowNumericOnly(input) {
-    // حذف أي حرف ليس رقماً أو نقطة
     input.value = input.value.replace(/[^0-9.]/g, '');
-    // التأكد من وجود نقطة واحدة فقط للكسور
     if ((input.value.match(/\./g) || []).length > 1) {
         input.value = input.value.slice(0, -1);
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // التأكد من أن المكتبة محملة
     if (typeof TomSelect !== 'undefined') {
         const supplierSelect = document.getElementById('supplierSelect');
         if (supplierSelect) {
