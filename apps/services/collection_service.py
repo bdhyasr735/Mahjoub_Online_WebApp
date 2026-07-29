@@ -24,41 +24,63 @@ class CollectionService:
     
     def get_all_collections(self) -> List[Dict]:
         """
-        جلب جميع المجموعات
+        جلب جميع المجموعات (جلب جميع الصفحات)
         
         Returns:
             قائمة المجموعات
         """
-        query = """
-        query FindAllCollections {
-            findAllCollections {
-                success
-                message
-                data {
-                    qid
-                    title
-                    image {
-                        fileUrl
+        all_collections = []
+        page = 1
+        has_next = True
+        
+        print(f"🔍 [CollectionService] جلب جميع المجموعات...")
+        
+        while has_next:
+            query = """
+            query FindAllCollections($page: Int!) {
+                findAllCollections(input: { page: $page }) {
+                    success
+                    message
+                    data {
+                        qid
+                        title
+                        image {
+                            fileUrl
+                        }
+                    }
+                    pagination {
+                        totalItems
+                        totalPages
+                        currentPage
+                        hasNextPage
                     }
                 }
             }
-        }
-        """
-        
-        try:
-            print(f"🔍 [CollectionService] جلب جميع المجموعات...")
-            result = self.client.execute(query, operation_name="FindAllCollections")
-            print(f"🔍 [CollectionService] Result: {result}")
+            """
             
-            if result and "findAllCollections" in result:
-                collections_data = result.get('findAllCollections', {})
-                collections = collections_data.get('data', [])
-                print(f"✅ [CollectionService] تم جلب {len(collections)} مجموعة")
-                return collections
-            return []
-        except Exception as e:
-            print(f"❌ [CollectionService]: خطأ في جلب المجموعات: {e}")
-            return []
+            try:
+                variables = {"page": page}
+                result = self.client.execute(query, variables, operation_name="FindAllCollections")
+                
+                if result and "findAllCollections" in result:
+                    collections_data = result.get('findAllCollections', {})
+                    collections = collections_data.get('data', [])
+                    pagination = collections_data.get('pagination', {})
+                    
+                    all_collections.extend(collections)
+                    has_next = pagination.get('hasNextPage', False)
+                    
+                    print(f"📄 [CollectionService] صفحة {page}: {len(collections)} مجموعة")
+                    page += 1
+                else:
+                    break
+                    
+            except Exception as e:
+                print(f"❌ [CollectionService]: خطأ في جلب الصفحة {page}: {e}")
+                break
+        
+        print(f"✅ [CollectionService] إجمالي المجموعات: {len(all_collections)}")
+        return all_collections
     
     def get_collection_by_qid(self, qid: str) -> Optional[Dict]:
         """
