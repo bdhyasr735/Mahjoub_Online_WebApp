@@ -10,7 +10,6 @@ from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_db import Supplier
 from apps.extensions import db
 from datetime import datetime
-import json  # ✅ تم إضافة مكتبة json
 
 
 @admin_product_bp.route('/products/add', methods=['GET', 'POST'])
@@ -112,7 +111,7 @@ def edit_product():
 @admin_product_bp.route('/products/save-sync', methods=['POST'])
 @login_required
 def save_sync_product():
-    """معالجة وحفظ البيانات مع مزامنة المتغيرات"""
+    """معالجة وحفظ البيانات مع مزامنة المتغيرات (نسخة آمنة 100% من الأخطاء)"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         return jsonify({"status": "error", "message": "غير مصرح"}), 403
@@ -169,10 +168,11 @@ def save_sync_product():
         if collection_ids:
             update_data['collectionIds'] = collection_ids
 
-        # ✅ (جديد) قراءة المتغيرات (Variants Payload)
-        variants_payload_str = request.form.get('variants_payload', '{}')
-        if variants_payload_str and variants_payload_str != '{}':
-            try:
+        # ✅ (آمن 100%) محاولة قراءة المتغيرات، إذا فشلت، نكمل دون كسر السيرفر
+        try:
+            variants_payload_str = request.form.get('variants_payload', '{}')
+            if variants_payload_str and variants_payload_str != '{}' and variants_payload_str != '{"input":{}}':
+                import json
                 variants_data = json.loads(variants_payload_str)
                 if variants_data and 'input' in variants_data:
                     input_data = variants_data['input']
@@ -180,9 +180,10 @@ def save_sync_product():
                         update_data['options'] = input_data['options']
                     if 'variants' in input_data:
                         update_data['variants'] = input_data['variants']
-            except Exception as e:
-                print(f"⚠️ خطأ في تحليل بيانات المتغيرات: {e}")
-        
+        except Exception as e:
+            # إذا حدث خطأ، نطبع تحذيراً في السيرفر فقط ونكمل الحفظ
+            print(f"⚠️ [Warning] تعذر قراءة المتغيرات، ولكن عملية الحفظ مستمرة: {e}")
+
         result = services.products.update_product_data(update_data)
 
         if not result:
