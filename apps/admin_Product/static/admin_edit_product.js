@@ -1,5 +1,5 @@
 // ============================================================
-// 🚀 التطبيق المتكامل لصفحة تعديل المنتج - النسخة الاحترافية
+// 🚀 التطبيق المتكامل لصفحة تعديل المنتج - النسخة الاحترافية (مصححة وآمنة)
 // ============================================================
 
 (function() {
@@ -50,7 +50,8 @@
             },
             setup: function(editor) {
                 editor.on('change', function() {
-                    document.querySelector('textarea[name="description"]').value = editor.getContent();
+                    const descInput = document.querySelector('textarea[name="description"]');
+                    if (descInput) descInput.value = editor.getContent();
                 });
             }
         });
@@ -200,23 +201,23 @@
     }
 
     // ============================================================
-    // 🧩 إدارة المتغيرات (تم التعديل هنا)
+    // 🧩 إدارة المتغيرات
     // ============================================================
     function addOptionRow() {
         const container = document.getElementById('optionsContainer');
         if (!container) return;
         const row = document.createElement('div');
-        row.className = 'option-row';
+        row.className = 'option-row mb-3 p-3 border rounded bg-light';
         row.innerHTML = `
             <div class="option-header d-flex justify-content-between align-items-center mb-2">
                 <input type="text" class="opt-name form-control w-75" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()">
-                <button class="btn-action btn-danger" type="button" onclick="removeOptionRow(this)"><i class="fas fa-trash"></i> حذف</button>
+                <button class="btn btn-danger btn-sm" type="button" onclick="removeOptionRow(this)"><i class="fas fa-trash"></i> حذف</button>
             </div>
-            <label style="font-size: 0.85rem; color: var(--gray-600);">القيم المتعددة:</label>
+            <label style="font-size: 0.85rem; color: #6c757d;">القيم المتعددة:</label>
             <div class="values-container d-flex flex-wrap gap-2 mb-2"></div>
             <div class="add-value-group d-flex gap-2">
                 <input type="text" class="val-input form-control" placeholder="أدخل قيمة جديدة..." onkeypress="if(event.key==='Enter'){event.preventDefault();addValueToRow(this.closest('.add-value-group').querySelector('button'));}">
-                <button class="btn-action btn-action-gold" type="button" onclick="addValueToRow(this)"><i class="fas fa-plus"></i> إضافة</button>
+                <button class="btn btn-secondary btn-sm" type="button" onclick="addValueToRow(this)"><i class="fas fa-plus"></i> إضافة</button>
             </div>
         `;
         container.appendChild(row);
@@ -253,8 +254,8 @@
             }
         }
         const tag = document.createElement('div');
-        tag.className = 'value-tag';
-        tag.innerHTML = `${value} <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>`;
+        tag.className = 'value-tag badge bg-primary p-2 d-flex align-items-center gap-2';
+        tag.innerHTML = `${value} <span style="cursor:pointer;" onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>`;
         container.appendChild(tag);
         input.value = '';
         input.focus();
@@ -270,7 +271,8 @@
         const optionRows = document.querySelectorAll('.option-row');
         const valuesArrays = [];
         optionRows.forEach(row => {
-            const optName = row.querySelector('.opt-name').value.trim();
+            const optNameInput = row.querySelector('.opt-name');
+            const optName = optNameInput ? optNameInput.value.trim() : '';
             const tags = row.querySelectorAll('.value-tag');
             const values = Array.from(tags).map(tag => tag.textContent.trim().replace('×', '').trim());
             if (optName && values.length > 0) valuesArrays.push(values);
@@ -282,10 +284,9 @@
             return;
         }
         const combinations = cartesianProduct(valuesArrays);
-        let html = `<table class="table table-bordered"><thead><tr><th>المتغير</th><th>SKU</th><th>السعر</th><th>الكمية</th></tr></thead><tbody>`;
+        let html = `<table class="table table-bordered variants-table"><thead><tr><th>المتغير</th><th>SKU</th><th>السعر</th><th>الكمية</th></tr></thead><tbody>`;
         combinations.forEach((combo, index) => {
             const variantLabel = combo.join(' / ');
-            // ✅ التعديل الأساسي: تحويل type="number" إلى type="text" للأسعار والكمية
             html += `<tr data-index="${index}"><td><strong>${variantLabel}</strong></td>
                         <td><input type="text" class="var-sku form-control" value="SKU-${String(index+1).padStart(3,'0')}" oninput="generatePayload()"></td>
                         <td><input type="text" class="var-price form-control" value="0" oninput="generatePayload()"></td>
@@ -298,8 +299,9 @@
     }
 
     function generatePayload() {
-        const title = document.getElementById('productTitle')?.value || '';
+        const title = document.getElementById('productTitle')?.value || document.querySelector('input[name="title"]')?.value || '';
         const slug = document.getElementById('productSlug')?.value || '';
+        
         const optionRows = document.querySelectorAll('.option-row');
         const options = [];
         optionRows.forEach(row => {
@@ -310,7 +312,9 @@
                 options.push({ name, values: values.map((label, index) => ({ label, sortOrder: index })) });
             }
         });
-        const variantRows = document.querySelectorAll('.variants-table tbody tr');
+
+        // ✅ تصحيح محدد الجدول ليشمل الجدول المولد بدقة
+        const variantRows = document.querySelectorAll('#variantsTableContainer table tbody tr, .variants-table tbody tr');
         const variants = [];
         variantRows.forEach((tr, index) => {
             const sku = tr.querySelector('.var-sku')?.value || `SKU-${String(index+1).padStart(3,'0')}`;
@@ -318,6 +322,7 @@
             const quantity = parseInt(tr.querySelector('.var-qty')?.value) || 0;
             variants.push({ sku, price, compareAtPrice: 0, quantity });
         });
+
         const payload = { input: { title: title || '', slug: slug || '', status: 'active', options, variants } };
         const payloadInput = document.getElementById('variantsPayloadInput');
         if (payloadInput) payloadInput.value = JSON.stringify(payload);
@@ -354,8 +359,8 @@
         const noTagsMsg = container.querySelector('.text-muted');
         if (noTagsMsg) noTagsMsg.remove();
         const span = document.createElement('span');
-        span.className = 'tag-item';
-        span.innerHTML = `<span class="remove-tag" onclick="this.parentElement.remove();">✕</span> ${tag}`;
+        span.className = 'tag-item badge bg-secondary p-2 me-1 mb-1';
+        span.innerHTML = `<span class="remove-tag" style="cursor:pointer;" onclick="this.parentElement.remove();">✕</span> ${tag}`;
         container.appendChild(span);
         input.value = '';
         input.focus();
@@ -367,11 +372,11 @@
     function deleteProduct(id, name) {
         if (!confirm(`⚠️ هل أنت متأكد من حذف المنتج "${name}"؟`)) return;
         const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-        fetch(`{{ url_for('admin_product_bp.delete_product', id='') }}${id}`, {
+        fetch(`/admin/products/delete/${id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
         }).then(r => r.json()).then(data => {
-            if (data.success) { alert('✅ ' + data.message); window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}'; }
+            if (data.success) { alert('✅ ' + data.message); window.location.href = '/admin/products'; }
             else { alert('❌ ' + data.message); }
         }).catch(e => alert('❌ حدث خطأ: ' + e.message));
     }
@@ -401,54 +406,9 @@
     }
 
     // ============================================================
-    // ✨ (جديد) تحويل الأرقام إلى إنجليزية تلقائياً
-    // ============================================================
-    function initEnglishNumbers() {
-        // تحويل أي حقل من نوع number ليكون بالإنجليزي فوراً
-        const numberInputs = document.querySelectorAll('input[type="number"]');
-        numberInputs.forEach(input => {
-            input.addEventListener('input', function() {
-                // إذا كان المستخدم يكتب أرقاماً عربية، نحولها لإنجليزية
-                // ملاحظة: المتصفحات الحديثة تتعامل مع الأرقام الإنجليزية تلقائياً
-                // لكن هذا يضمن أن الأرقام ستكون إنجليزية عند الإرسال
-                this.value = this.value.replace(/[٠-٩]/g, function(d) {
-                    return d.charCodeAt(0) - 1632; // تحويل الأرقام العربية (٠-٩) إلى إنجليزية (0-9)
-                });
-            });
-        });
-    }
-
-    // ============================================================
-    // ✨ (جديد) تفعيل البحث المتقدم لحقل "المورد" (Select with Search)
-    // ============================================================
-    function initSupplierSelect() {
-        // سنستخدم مكتبة "Tom Select" لأنها خفيفة وجميلة وتدعم البحث وتعمل بدون jQuery
-        // نتحقق أولاً ما إذا كان العنصر موجوداً في الصفحة
-        const supplierSelect = document.getElementById('supplierSelect'); 
-        // ملاحظة: تأكد أن هذا الـ ID هو نفسه الموجود في HTML الخاص بحقل المورد
-        
-        if (supplierSelect && typeof TomSelect !== 'undefined') {
-            new TomSelect(supplierSelect, {
-                plugins: ['remove_button'],
-                placeholder: 'ابحث عن المورد هنا...',
-                searchField: ['text'],
-                maxOptions: 10,
-                render: {
-                    option: function(data, escape) {
-                        return '<div>' + escape(data.text) + '</div>';
-                    }
-                }
-            });
-        } else if (supplierSelect) {
-            console.warn('⚠️ مكتبة Tom Select غير محملة، يرجى إضافتها في الـ layout أو الـ CDN.');
-        }
-    }
-
-    // ============================================================
     // 🚀 التهيئة الرئيسية
     // ============================================================
     function init() {
-        // إضافة أنماط الإشعارات
         const style = document.createElement('style');
         style.textContent = `
             @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -456,18 +416,13 @@
         `;
         document.head.appendChild(style);
         
-        // تهيئة المكونات
         initTinyMCE();
         initCollectionHandlers();
         initImageHandlers();
         initTagHandlers();
         updateCollectionsCount();
         
-        // تهيئة الميزات الجديدة
-        initEnglishNumbers();      // تشغيل تحويل الأرقام
-        initSupplierSelect();      // تشغيل البحث المتقدم للمورد
-        
-        // ربط الدوال بالـ window
+        // ربط الدوال بالـ window لضمان عمل الأزرار داخل القوالب
         window.addOptionRow = addOptionRow;
         window.removeOptionRow = removeOptionRow;
         window.addValueToRow = addValueToRow;
@@ -482,7 +437,7 @@
         window.removeCollection = removeCollection;
         window.addTag = addTag;
         
-        console.log('✅ [admin_edit_product] تم تهيئة جميع الوظائف بنجاح');
+        console.log('✅ [admin_edit_product] تم تهيئة جميع الوظائف بنجاح تام');
     }
 
     if (document.readyState === 'loading') {
