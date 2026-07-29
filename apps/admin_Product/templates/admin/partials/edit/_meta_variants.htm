@@ -1,17 +1,12 @@
-<!-- apps/admin_Product/templates/admin/partials/edit/_meta_variants.html -->
-
 <!-- ============================================================
    📦 المتغيرات (Variants) مع الصور والأسعار
    ============================================================ -->
 <div class="card shadow-sm mb-4 meta-variants-card">
-    <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
+    <div class="card-header">
         <h5 class="mb-0 text-gold d-flex align-items-center">
-            <i class="fas fa-layer-group me-2"></i> 
-            المتغيرات (Variants)
+            <i class="fas fa-layer-group me-2"></i> المتغيرات (Variants)
             {% if product and product.variants %}
-            <span class="badge badge-gold-soft ms-2">
-                {{ product.variants|length }}
-            </span>
+            <span class="badge badge-gold-soft ms-2">{{ product.variants|length }}</span>
             {% endif %}
             <span class="badge-status ms-auto {{ 'has-variants' if product.variants and product.variants|length > 0 else 'empty' }}">
                 {% if product.variants and product.variants|length > 0 %}
@@ -28,9 +23,7 @@
             <table class="table table-hover align-middle custom-variants-table">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>الصورة</th>
-                        <th>الخيارات</th>
+                        <th>#</th><th>الصورة</th><th>الخيارات</th>
                         <th class="text-center">السعر</th>
                         <th class="text-center">سعر المقارنة</th>
                         <th class="text-center">السعر الأصلي</th>
@@ -44,27 +37,20 @@
                         <td class="fw-bold text-muted">{{ loop.index }}</td>
                         <td>
                             {% if variant.images and variant.images|length > 0 %}
-                                <img src="{{ variant.images[0].fileUrl or variant.images[0].url }}" 
-                                     alt="صورة المتغير"
-                                     class="variant-img"
-                                     onerror="this.src='https://via.placeholder.com/50x50?text=No+Image'">
+                            <img src="{{ variant.images[0].fileUrl or variant.images[0].url }}" class="variant-img">
                             {% else %}
-                                <div class="variant-img-placeholder">
-                                    <i class="fas fa-image"></i>
-                                </div>
+                            <div class="variant-img-placeholder"><i class="fas fa-image"></i></div>
                             {% endif %}
                         </td>
                         <td>
                             {% if variant.options %}
-                                <div class="variant-options-wrap">
+                            <div class="variant-options-wrap">
                                 {% for opt in variant.options %}
-                                    <span class="badge badge-option">
-                                        {{ opt.label }}
-                                    </span>
+                                <span class="badge badge-option">{{ opt.label }}</span>
                                 {% endfor %}
-                                </div>
+                            </div>
                             {% else %}
-                                <span class="text-muted">-</span>
+                            <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td class="text-center fw-bold text-gold tabular-nums">
@@ -74,17 +60,17 @@
                         <td class="text-center tabular-nums">
                             {% set comparePrice = variant.pricing.compareAtPrice if variant.pricing and variant.pricing.compareAtPrice is not none else variant.compareAtPrice or 0 %}
                             {% if comparePrice > 0 %}
-                                <span class="text-muted text-decoration-line-through">{{ "%.2f"|format(comparePrice|float) }} ر.س</span>
+                            <span class="text-muted text-decoration-line-through">{{ "%.2f"|format(comparePrice|float) }} ر.س</span>
                             {% else %}
-                                <span class="text-muted">-</span>
+                            <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td class="text-center tabular-nums" style="color: #6c5ce7;">
                             {% set originalPrice = variant.pricing.originalPrice if variant.pricing and variant.pricing.originalPrice is not none else variant.originalPrice or 0 %}
                             {% if originalPrice > 0 %}
-                                {{ "%.2f"|format(originalPrice|float) }} ر.س
+                            {{ "%.2f"|format(originalPrice|float) }} ر.س
                             {% else %}
-                                <span class="text-muted">-</span>
+                            <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td class="text-center">
@@ -92,337 +78,21 @@
                                 {{ variant.quantity or 0 }}
                             </span>
                         </td>
-                        <td>
-                            <small class="text-muted font-monospace">{{ variant.qid|truncate(20) or '-' }}</small>
-                        </td>
+                        <td><small class="text-muted font-monospace">{{ variant.qid|truncate(20) or '-' }}</small></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-            <small class="text-muted">
-                <i class="fas fa-cubes me-1"></i> إجمالي المتغيرات: <strong>{{ product.variants|length }}</strong>
-            </small>
+            <small class="text-muted"><i class="fas fa-cubes me-1"></i> إجمالي المتغيرات: <strong>{{ product.variants|length }}</strong></small>
         </div>
         {% else %}
         <div class="text-center py-5 text-muted">
             <i class="fas fa-cubes fa-3x mb-3 d-block text-gold"></i>
-            <h6 class="fw-bold text-dark-purple">لا توجد متغيرات لهذا المنتج</h6>
-            <p class="small mb-0">يمكنك إضافة متغيرات لتوفير خيارات متعددة للعملاء</p>
+            <h6 class="fw-bold text-dark-purple">لا توجد متغيرات</h6>
+            <p class="small mb-0">أضف خيارات لتوليد المتغيرات تلقائياً</p>
         </div>
         {% endif %}
     </div>
 </div>
-
-<!-- ============================================================
-   🔍 البيانات الوصفية (Meta)
-   ============================================================ -->
-<div class="card shadow-sm mb-4 meta-variants-card">
-    <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
-        <h5 class="mb-0 text-gold d-flex align-items-center">
-            <i class="fas fa-code me-2"></i> البيانات الوصفية (Meta)
-            <span class="badge-status ms-auto {{ 'has-meta' if product.seo and (product.seo.title or product.seo.description) else 'empty' }}">
-                {% if product.seo and (product.seo.title or product.seo.description) %}
-                <i class="fas fa-check-circle"></i> مكتمل
-                {% else %}
-                <i class="fas fa-exclamation-circle"></i> فارغ
-                {% endif %}
-            </span>
-        </h5>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label fw-bold text-dark-purple">
-                    <i class="fas fa-heading text-gold me-1"></i> عنوان SEO
-                </label>
-                <input type="text" 
-                       name="seo_title" 
-                       class="form-control custom-input" 
-                       value="{{ product.seo.title if product.seo and product.seo.title else '' }}" 
-                       placeholder="عنوان تحسين محركات البحث">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label fw-bold text-dark-purple">
-                    <i class="fas fa-align-left text-gold me-1"></i> وصف SEO
-                </label>
-                <input type="text" 
-                       name="seo_description" 
-                       class="form-control custom-input" 
-                       value="{{ product.seo.description if product.seo and product.seo.description else '' }}" 
-                       placeholder="وصف تحسين محركات البحث">
-            </div>
-        </div>
-        
-        <div class="row g-3 mt-1">
-            <div class="col-md-6">
-                <label class="form-label fw-bold text-dark-purple">
-                    <i class="fas fa-tags text-gold me-1"></i> الكلمات المفتاحية
-                </label>
-                <input type="text" 
-                       name="seo_keywords" 
-                       class="form-control custom-input" 
-                       value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" 
-                       placeholder="كلمات مفتاحية مفصولة بفواصل">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label fw-bold text-dark-purple">
-                    <i class="fas fa-hashtag text-gold me-1"></i> العلامات (Tags)
-                </label>
-                <div class="form-control-plaintext custom-plaintext">
-                    {% if product.tags and product.tags|length > 0 %}
-                        <div class="d-flex flex-wrap gap-1">
-                        {% for tag in product.tags %}
-                        <span class="badge badge-option">
-                            {{ tag }}
-                        </span>
-                        {% endfor %}
-                        </div>
-                    {% else %}
-                        <span class="text-muted">-</span>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="row g-3 mt-1">
-            <div class="col-12">
-                <label class="form-label fw-bold text-dark-purple">
-                    <i class="fas fa-folder text-gold me-1"></i> التصنيفات
-                </label>
-                <div class="d-flex flex-wrap gap-1">
-                    {% if product.categories and product.categories|length > 0 %}
-                        {% for cat in product.categories %}
-                        <span class="badge badge-category">
-                            <i class="fas fa-tag me-1"></i> {{ cat.name }}
-                        </span>
-                        {% endfor %}
-                    {% else %}
-                        <span class="text-muted">-</span>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ============================================================
-   📁 المجموعات (Collections)
-   ============================================================ -->
-<div class="card shadow-sm meta-variants-card">
-    <div class="card-header" style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
-        <h5 class="mb-0 text-gold d-flex align-items-center">
-            <i class="fas fa-folder-open me-2"></i> 
-            المجموعات (Collections)
-            {% if product and product.collections %}
-            <span class="badge badge-gold-soft ms-2">
-                {{ product.collections|length }}
-            </span>
-            {% endif %}
-            <span class="badge-status ms-auto {{ 'has-collections' if product.collections and product.collections|length > 0 else 'empty' }}">
-                {% if product.collections and product.collections|length > 0 %}
-                <i class="fas fa-check-circle"></i> مكتمل
-                {% else %}
-                <i class="fas fa-exclamation-circle"></i> فارغ
-                {% endif %}
-            </span>
-        </h5>
-    </div>
-    <div class="card-body">
-        {% if product and product.collections and product.collections|length > 0 %}
-            <div class="d-flex flex-wrap gap-2">
-                {% for collection in product.collections %}
-                <div class="collection-item-card">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fas fa-folder text-gold"></i>
-                        <div>
-                            <strong class="text-dark-purple d-block" style="font-size: 0.9rem;">{{ collection.title or collection.name or collection.qid }}</strong>
-                            {% if collection.handle %}
-                            <small class="text-muted" style="font-size: 0.7rem;">{{ collection.handle }}</small>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            <small class="text-muted mt-3 d-block pt-2 border-top">
-                <i class="fas fa-list me-1"></i> عدد المجموعات: <strong>{{ product.collections|length }}</strong>
-            </small>
-        {% else %}
-            <div class="text-center py-4 text-muted">
-                <i class="fas fa-folder-open fa-2x mb-2 text-gold"></i>
-                <p class="mb-0">لا توجد مجموعات لهذا المنتج</p>
-            </div>
-        {% endif %}
-    </div>
-</div>
-
-<!-- ============================================================
-   🎨 التنسيقات والأنماط (Styles)
-   ============================================================ -->
-<style>
-.meta-variants-card {
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    border-radius: 12px;
-    background: linear-gradient(135deg, #faf8f6, #ffffff);
-    transition: all 0.3s ease;
-}
-
-.meta-variants-card:hover {
-    border-color: rgba(212, 175, 55, 0.4);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-}
-
-.text-gold {
-    color: #D4AF37 !important;
-}
-
-.text-dark-purple {
-    color: #2d0b36 !important;
-}
-
-.badge-gold-soft {
-    background: rgba(212, 175, 55, 0.2);
-    color: #D4AF37;
-    font-weight: 600;
-}
-
-.badge-status {
-    font-size: 0.65rem;
-    font-weight: 600;
-    padding: 3px 12px;
-    border-radius: 20px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.badge-status.has-variants,
-.badge-status.has-meta,
-.badge-status.has-collections {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-}
-
-.badge-status.empty {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-}
-
-.badge-option {
-    background: linear-gradient(135deg, #2d0b36, #1a0520);
-    color: #D4AF37;
-    padding: 5px 10px;
-    font-weight: 500;
-    border-radius: 6px;
-}
-
-.badge-category {
-    background: #6c5ce7;
-    color: white;
-    padding: 6px 12px;
-    font-weight: 500;
-    border-radius: 6px;
-}
-
-.custom-variants-table thead {
-    background: linear-gradient(135deg, #f8f5f0, #e9ecef);
-}
-
-.custom-variants-table th {
-    color: #2d0b36;
-    font-weight: 600;
-    padding: 12px;
-    border-bottom: 2px solid rgba(212, 175, 55, 0.2);
-}
-
-.custom-variants-table td {
-    padding: 12px;
-    vertical-align: middle;
-}
-
-.custom-variants-table tbody tr:hover {
-    background-color: rgba(45, 11, 54, 0.03) !important;
-}
-
-.variant-img {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 2px solid #D4AF37;
-    transition: transform 0.3s ease;
-}
-
-.variant-img:hover {
-    transform: scale(1.08);
-}
-
-.variant-img-placeholder {
-    width: 50px;
-    height: 50px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px dashed #dee2e6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #adb5bd;
-}
-
-.variant-options-wrap {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-}
-
-.quantity-badge {
-    font-size: 0.85rem;
-    padding: 6px 12px;
-    border-radius: 20px;
-}
-
-.tabular-nums {
-    direction: ltr;
-    font-feature-settings: "tnum";
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-}
-
-.custom-input {
-    border-color: #2d0b36;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-
-.custom-input:focus {
-    border-color: #D4AF37;
-    box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
-}
-
-.custom-plaintext {
-    min-height: 42px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 6px 12px;
-    border: 1px solid #e9ecef;
-    display: flex;
-    align-items: center;
-}
-
-.collection-item-card {
-    background: #f8f5f0;
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    border-radius: 8px;
-    padding: 10px 14px;
-    min-width: 140px;
-    transition: all 0.3s ease;
-}
-
-.collection-item-card:hover {
-    border-color: #D4AF37;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-</style>
