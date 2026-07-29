@@ -89,19 +89,43 @@ def edit_product():
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
-    # 2. جلب الخيارات (Options) بشكل آمن تماماً
+    # 2. جلب الخيارات (Options) ومعالجتها بشكل آمن 100% لمنع أخطاء الـ Iterable
+    cleaned_options = []
     try:
         if hasattr(services, 'variants'):
             options_data = services.variants.get_all_options_for_product(qid)
             print(f"🔍 [DEBUG] Options Data received for {qid}: {options_data}")
             
-            if options_data:
-                if isinstance(product, dict):
-                    product['options'] = options_data
-                else:
-                    setattr(product, 'options', options_data)
+            if callable(options_data):
+                options_data = []
+            
+            if isinstance(options_data, list):
+                for opt in options_data:
+                    if isinstance(opt, dict):
+                        vals = opt.get('values', [])
+                        if callable(vals) or not isinstance(vals, list):
+                            vals = []
+                        cleaned_options.append({
+                            "qid": opt.get('qid'),
+                            "name": opt.get('name'),
+                            "values": vals
+                        })
+            elif isinstance(options_data, dict):
+                vals = options_data.get('values', [])
+                if callable(vals) or not isinstance(vals, list):
+                    vals = []
+                cleaned_options.append({
+                    "qid": options_data.get('qid'),
+                    "name": options_data.get('name'),
+                    "values": vals
+                })
     except Exception as e:
         print(f"⚠️ [Edit Product] تعذر جلب الخيارات للمنتج {qid}... السبب: {e}")
+
+    if isinstance(product, dict):
+        product['options'] = cleaned_options
+    else:
+        setattr(product, 'options', cleaned_options)
 
     # 3. جلب بيانات إضافية
     suppliers = Supplier.query.filter_by(status='active').all()
