@@ -8,6 +8,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"></script>
 <!-- ✅ ملف CSS الخاص بالتحرير -->
 <link rel="stylesheet" href="{{ url_for('static', filename='admin_edit_product.css') }}">
+
+<!-- ✅ (جديد - هام جداً) إضافة ملفات تنسيق Tom Select للبحث المتقدم في المورد -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+
+<style>
+/* ✅ (جديد) حل جذري لعرض الأرقام باللغة الإنجليزية في المتصفحات العربية */
+input[type="number"], 
+input.tabular-nums {
+    unicode-bidi: plaintext !important;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -62,6 +73,9 @@
 <!-- ✅ ملف JavaScript الخاص بالتحرير -->
 <script src="{{ url_for('static', filename='admin_edit_product.js') }}"></script>
 
+<!-- ✅ (جديد - هام جداً) إضافة مكتبة Tom Select وتشغيلها -->
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
 <script>
     // ✅ تهيئة جميع الدوال عند تحميل الصفحة
     document.addEventListener('DOMContentLoaded', function() {
@@ -80,8 +94,26 @@
         
         // تهيئة إدارة العلامات
         if (typeof initTagHandlers === 'function') initTagHandlers();
+
+        // ✅ (جديد) تفعيل البحث المتقدم في المورد
+        if (typeof TomSelect !== 'undefined') {
+            const supplierSelect = document.getElementById('supplierSelect');
+            if (supplierSelect) {
+                new TomSelect(supplierSelect, {
+                    plugins: ['remove_button'],
+                    placeholder: 'ابحث عن المورد هنا...',
+                    searchField: ['text'],
+                    maxOptions: 10
+                });
+                console.log('✅ [admin_edit_product] Tom Select (المورد) تم تفعيله بنجاح');
+            } else {
+                console.log('ℹ️ [admin_edit_product] عنصر المورد (#supplierSelect) غير موجود في هذه الصفحة.');
+            }
+        } else {
+            console.warn('⚠️ [admin_edit_product] مكتبة Tom Select غير محملة! تأكد من إضافتها.');
+        }
         
-        console.log('✅ [admin_edit_product] تم تحميل الصفحة بنجاح');
+        console.log('✅ [admin_edit_product] تم تحميل الصفحة وتفعيل جميع الأدوات بنجاح');
     });
 </script>
 
