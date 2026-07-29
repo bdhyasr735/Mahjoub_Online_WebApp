@@ -3,29 +3,35 @@
 <!-- ================= أزرار الإجراءات ================= -->
 <div class="form-section actions-card">
     <div class="form-section-title">
-        <i class="fas fa-cog"></i> إجراءات المنتج
+        <i class="fas fa-cog"></i>
+        إجراءات المنتج
         <span class="badge-count gold">نهائي</span>
+        <span class="badge-status" id="formStatus">
+            <i class="fas fa-check-circle"></i> جاهز للحفظ
+        </span>
     </div>
     
     <div class="actions-content">
+        <!-- ✅ شبكة الأزرار -->
         <div class="actions-grid">
-            <!-- ✅ زر الحفظ الرئيسي -->
-            <button type="submit" class="btn-action btn-save">
+            <!-- زر الحفظ الرئيسي -->
+            <button type="submit" class="btn-action btn-save" id="saveBtn">
                 <i class="fas fa-save"></i>
                 <span>حفظ التغييرات</span>
                 <small class="btn-hint">Ctrl + S</small>
             </button>
             
-            <!-- ✅ زر الإلغاء -->
+            <!-- زر الإلغاء -->
             <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action btn-cancel">
                 <i class="fas fa-times"></i>
                 <span>إلغاء</span>
                 <small class="btn-hint">تجاهل التغييرات</small>
             </a>
             
-            <!-- ✅ زر الحذف (يظهر فقط إذا لم يكن المنتج مؤرشفاً) -->
+            <!-- زر الحذف (يظهر فقط إذا لم يكن المنتج مؤرشفاً) -->
             {% if product.status|upper != 'ARCHIVED' %}
-            <button type="button" class="btn-action btn-delete" onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
+            <button type="button" class="btn-action btn-delete" id="deleteBtn" 
+                    onclick="deleteProduct('{{ product.qid }}', '{{ product.title or product.name }}')">
                 <i class="fas fa-trash-alt"></i>
                 <span>حذف / أرشفة</span>
                 <small class="btn-hint">لا يمكن التراجع</small>
@@ -40,23 +46,52 @@
                 <span>سيتم حفظ جميع التغييرات فور الضغط على زر الحفظ</span>
             </div>
             <div class="action-status">
-                <span class="status-dot"></span>
-                <span>المنتج في حالة: <strong>{{ product.status|upper or 'DRAFT' }}</strong></span>
+                <span class="status-dot" id="statusDot"></span>
+                <span>المنتج في حالة: <strong id="productStatusDisplay">{{ product.status|upper or 'DRAFT' }}</strong></span>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-/* ✅ تصميم بطاقة الإجراءات */
+/* ============================================================
+   🎨 تصميم بطاقة الإجراءات
+   ============================================================ */
 .actions-card {
     border-color: rgba(212, 175, 55, 0.2);
     background: linear-gradient(135deg, #faf8f6, #ffffff);
+    position: relative;
+    overflow: hidden;
 }
 
 .actions-card::before {
-    background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold-dark));
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 3px;
+    background: linear-gradient(90deg, #D4AF37, #f0d060, #b8962e);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0%, 100% { background-position: -200% 0; }
+    50% { background-position: 200% 0; }
+}
+
+.actions-card .badge-status {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
 }
 
 .actions-content {
@@ -65,7 +100,9 @@
     gap: 20px;
 }
 
-/* ✅ شبكة الأزرار */
+/* ============================================================
+   🎯 شبكة الأزرار
+   ============================================================ */
 .actions-grid {
     display: flex;
     flex-wrap: wrap;
@@ -73,7 +110,9 @@
     align-items: center;
 }
 
-/* ✅ تنسيق الأزرار */
+/* ============================================================
+   🔘 تنسيق الأزرار
+   ============================================================ */
 .btn-action {
     display: inline-flex;
     align-items: center;
@@ -143,7 +182,9 @@
     background: linear-gradient(135deg, #dc2626, #b91c1c);
 }
 
-/* ✅ تذييل البطاقة */
+/* ============================================================
+   📊 تذييل البطاقة
+   ============================================================ */
 .actions-footer {
     display: flex;
     flex-wrap: wrap;
@@ -178,7 +219,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--gold);
+    background: #22c55e;
     animation: pulse-dot 2s ease-in-out infinite;
 }
 
@@ -191,7 +232,9 @@
     color: #0f172a;
 }
 
-/* ✅ تحسينات الجوال */
+/* ============================================================
+   📱 تحسينات الجوال
+   ============================================================ */
 @media (max-width: 768px) {
     .actions-grid {
         flex-direction: column;
@@ -215,12 +258,13 @@
     }
 }
 
-/* ✅ تأثير النقر */
+/* ============================================================
+   🎯 تأثيرات إضافية
+   ============================================================ */
 .btn-action:active {
     transform: scale(0.96);
 }
 
-/* ✅ تأثير التحميل */
 .btn-action.loading {
     pointer-events: none;
     opacity: 0.7;
@@ -236,36 +280,135 @@
 }
 </style>
 
-<!-- ✅ إضافة تأثيرات JavaScript إضافية -->
+<!-- ✅ JavaScript للتفاعلات -->
 <script>
-// ✅ إضافة تأثير التحميل عند الضغط على حفظ
 document.addEventListener('DOMContentLoaded', function() {
-    const saveBtn = document.querySelector('.btn-save');
+    // ✅ تأثير التحميل عند حفظ المنتج
+    const saveBtn = document.getElementById('saveBtn');
     if (saveBtn) {
         saveBtn.addEventListener('click', function(e) {
-            // إظهار حالة التحميل إذا كان النموذج سيتم إرساله
-            if (this.closest('form').checkValidity()) {
+            const form = this.closest('form');
+            if (form && form.checkValidity()) {
                 this.classList.add('loading');
                 this.innerHTML = `
                     <i class="fas fa-spinner"></i>
                     <span>جاري الحفظ...</span>
                     <small class="btn-hint">يرجى الانتظار</small>
                 `;
+                this.disabled = true;
             }
+        });
+    }
+
+    // ✅ تحديث حالة المنتج ديناميكياً
+    const statusDisplay = document.getElementById('productStatusDisplay');
+    const statusDot = document.getElementById('statusDot');
+    
+    if (statusDisplay && statusDot) {
+        const status = statusDisplay.textContent.trim();
+        const colors = {
+            'PUBLISHED': '#22c55e',
+            'DRAFT': '#f59e0b',
+            'REJECTED': '#ef4444',
+            'ARCHIVED': '#64748b'
+        };
+        statusDot.style.background = colors[status] || '#64748b';
+    }
+
+    // ✅ تحديث حالة النموذج
+    const form = document.querySelector('form');
+    const formStatus = document.getElementById('formStatus');
+    
+    if (form && formStatus) {
+        form.addEventListener('change', function() {
+            formStatus.innerHTML = '<i class="fas fa-pen"></i> تم التعديل';
+            formStatus.style.background = 'rgba(245, 158, 11, 0.1)';
+            formStatus.style.color = '#f59e0b';
         });
     }
 });
 
-// ✅ إضافة تأكيد للحذف
-document.addEventListener('DOMContentLoaded', function() {
-    const deleteBtn = document.querySelector('.btn-delete');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function(e) {
-            if (!confirm('⚠️ هل أنت متأكد من حذف/أرشفة هذا المنتج؟\nلا يمكن التراجع عن هذا الإجراء!')) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        });
+// ✅ دالة حذف المنتج مع تأكيد
+function deleteProduct(qid, name) {
+    if (!confirm(`⚠️ هل أنت متأكد من حذف/أرشفة المنتج "${name}"؟\nلا يمكن التراجع عن هذا الإجراء!`)) {
+        return;
     }
-});
+    
+    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+    
+    fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('✅ ' + data.message, 'success');
+            setTimeout(() => {
+                window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}';
+            }, 1500);
+        } else {
+            showNotification('❌ ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('❌ حدث خطأ: ' + error.message, 'error');
+    });
+}
+
+// ✅ دالة الإشعارات
+function showNotification(message, type = 'success') {
+    const colors = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; bottom: 24px; right: 24px;
+        background: white; padding: 16px 24px; border-radius: 12px;
+        box-shadow: 0 12px 48px rgba(0,0,0,0.15);
+        border-right: 4px solid ${colors[type]};
+        z-index: 99999; font-weight: 600; font-size: 0.95rem;
+        max-width: 400px; animation: slideIn 0.4s cubic-bezier(0.4,0,0.2,1);
+        display: flex; align-items: center; gap: 10px;
+        backdrop-filter: blur(8px);
+    `;
+    toast.innerHTML = `${icons[type] || 'ℹ️'} ${message}`;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.4s cubic-bezier(0.4,0,0.2,1)';
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+}
+
+// ✅ إضافة أنماط الإشعارات
+(function addToastStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100px); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+})();
 </script>
