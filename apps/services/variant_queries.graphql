@@ -1,200 +1,186 @@
 """
-خدمة المتغيرات والخيارات - Variant Service Queries
+خدمة المتغيرات والخيارات - Variant Service Queries (نسخة محدثة 2026)
+ملاحظة: تم تعليق استعلامات المتغيرات لأن السيرفر لا يدعمها حالياً.
+تم إبقاء استعلام الخيارات فقط لأنه يعمل 100%.
 """
 
 # ============================================================
-# 1. استعلامات جلب المتغيرات (Variants)
+# ✅ استعلام الخيارات (Options) الوحيد المدعوم
 # ============================================================
-
-query FindAllVariantsByProductId($productId: ID!) {
-    findAllVariantsByProductId(productId: $productId) {
-        id
-        qid
-        sku
-        barcode
-        price
-        compareAtPrice
-        costPerItem
-        quantity
-        weight
-        weightUnit
-        position
-        isActive
-        isAvailable
-        options {
-            id
-            name
-            value
-            position
-        }
-        image {
-            id
-            url
-            altText
-            width
-            height
-        }
-        inventory {
-            id
-            quantity
-            available
-            reserved
-            location
-            warehouse
-        }
-        product {
-            id
-            qid
-            name
-            mainImage {
-                url
-                altText
-            }
-        }
-    }
-}
-
-query FindVariantById($id: ID!) {
-    findVariantById(id: $id) {
-        id
-        qid
-        sku
-        barcode
-        price
-        compareAtPrice
-        costPerItem
-        quantity
-        weight
-        weightUnit
-        position
-        isActive
-        isAvailable
-        options {
-            id
-            name
-            value
-            position
-        }
-        image {
-            id
-            url
-            altText
-            width
-            height
-        }
-        inventory {
-            id
-            quantity
-            available
-            reserved
-            location
-            warehouse
-        }
-        product {
-            id
-            qid
-            name
-            price
-            mainImage {
-                url
-                altText
-            }
-        }
-    }
-}
-
-# ============================================================
-# 2. استعلامات جلب الخيارات (Options)
-# ============================================================
-
-query FindOptionByQid($qid: String!) {
-    findOptionByQid(qid: $qid) {
-        id
-        qid
-        name
-        position
-        values {
-            id
-            value
-            position
-            hexCode
-            image {
-                url
-                altText
-            }
-        }
-    }
-}
 
 query FindAllOptionsForProduct($qid: String!) {
     findAllOptionsForProduct(qid: $qid) {
-        id
-        qid
-        name
-        position
-        values {
-            id
-            value
-            position
-            hexCode
-            image {
-                url
-                altText
-            }
-        }
-    }
-}
-
-# ============================================================
-# 3. 🔥 الاستعلام السحري (جلب المنتج مع خياراته ومتغيراته مرة واحدة)
-# ============================================================
-
-query GetProductFullStructure($qid: String!) {
-    product(qid: $qid) {
-        id
-        qid
-        title
-        name
-        sku
-        description
-        status
-        
-        # جلب الخيارات (Options) مثل اللون، المقاس
-        options {
-            id
+        data {
+            qid
             name
             values {
-                id
+                option
                 label
                 sortOrder
             }
-            sortOrder
         }
-        
-        # جلب المتغيرات (Variants) مع أسعارها وصورها
-        variants {
-            id
-            qid
-            sku
-            quantity
-            price
-            compareAtPrice
-            originalPrice
-            media
-            options {
-                id
-                label
-            }
-        }
-        
-        # معلومات إضافية للجداول
-        pricing {
-            price
-            compareAtPrice
-            originalPrice
-        }
-        
-        quantity
-        media
     }
 }
+
+# ============================================================
+# ⚠️ الاستعلامات التالية معلقة (غير مدعومة، تسبب أخطاء 400/404)
+# ============================================================
+
+# query FindAllVariantsByProductId($productId: ID!) {
+#     findAllVariantsByProductId(productId: $productId) {
+#         id
+#         qid
+#         sku
+#         barcode
+#         price
+#         compareAtPrice
+#         costPerItem
+#         quantity
+#         weight
+#         weightUnit
+#         position
+#         isActive
+#         isAvailable
+#         options {
+#             id
+#             name
+#             value
+#             position
+#         }
+#         image {
+#             id
+#             url
+#             altText
+#             width
+#             height
+#         }
+#         inventory {
+#             id
+#             quantity
+#             available
+#             reserved
+#             location
+#             warehouse
+#         }
+#         product {
+#             id
+#             qid
+#             name
+#             mainImage {
+#                 url
+#                 altText
+#             }
+#         }
+#     }
+# }
+
+# query FindVariantById($id: ID!) {
+#     findVariantById(id: $id) {
+#         id
+#         qid
+#         sku
+#         barcode
+#         price
+#         compareAtPrice
+#         costPerItem
+#         quantity
+#         weight
+#         weightUnit
+#         position
+#         isActive
+#         isAvailable
+#         options {
+#             id
+#             name
+#             value
+#             position
+#         }
+#         image {
+#             id
+#             url
+#             altText
+#             width
+#             height
+#         }
+#         inventory {
+#             id
+#             quantity
+#             available
+#             reserved
+#             location
+#             warehouse
+#         }
+#         product {
+#             id
+#             qid
+#             name
+#             price
+#             mainImage {
+#                 url
+#                 altText
+#             }
+#         }
+#     }
+# }
+
+# query FindOptionByQid($qid: String!) {
+#     findOptionByQid(qid: $qid) {
+#         id
+#         qid
+#         name
+#         position
+#         values {
+#             id
+#             value
+#             position
+#             hexCode
+#             image {
+#                 url
+#                 altText
+#             }
+#         }
+#     }
+# }
+
+# query GetProductFullStructure($qid: String!) {
+#     product(qid: $qid) {
+#         id
+#         qid
+#         title
+#         name
+#         sku
+#         description
+#         status
+#         options {
+#             id
+#             name
+#             values {
+#                 id
+#                 label
+#                 sortOrder
+#             }
+#             sortOrder
+#         }
+#         variants {
+#             id
+#             qid
+#             sku
+#             quantity
+#             price
+#             compareAtPrice
+#             originalPrice
+#             media
+#             options {
+#                 id
+#                 label
+#             }
+#         }
+#         pricing {
+#             price
+#             compareAtPrice
+#             originalPrice
+#         }
+#         quantity
+#         media
+#     }
+# }
