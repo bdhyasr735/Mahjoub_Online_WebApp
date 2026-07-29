@@ -4,14 +4,17 @@
 import os
 from flask import Blueprint
 
-# ✅ المسار المطلق لمجلد القوالب
+# ✅ المسار المطلق لمجلد القوالب والملفات الثابتة
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'templates')
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static')
 
-# إنشاء Blueprint الرئيسي مع المسار المطلق للقوالب
+# إنشاء Blueprint الرئيسي مع المسار المطلق للقوالب والملفات الثابتة
 admin_product_bp = Blueprint(
     'admin_product_bp', 
     __name__, 
-    template_folder=template_dir
+    template_folder=template_dir,
+    static_folder=static_dir,
+    static_url_path='static'
 )
 
 # ✅ استيراد جميع الـ Routes
