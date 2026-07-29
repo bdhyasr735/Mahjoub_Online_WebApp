@@ -88,8 +88,23 @@
 }
 
 /* ============================================================
-   🧩 الحقول والنماذج
+   🧩 الحقول والنماذج - (تم تطويره لضبط الأبعاد)
    ============================================================ */
+
+/* تنسيق الصفوف لجعل الحقول بجانب بعضها بنفس العرض */
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* مسافة بين الحقول */
+    margin-bottom: 20px;
+}
+
+.form-row .form-group {
+    flex: 1; /* يجعل الحقول تأخذ مساحة متساوية */
+    min-width: 200px; /* لا تقل عن هذا الحجم */
+    margin-bottom: 0; /* إلغاء المارجن الافتراضي */
+}
+
 .form-group {
     margin-bottom: 20px;
 }
@@ -112,6 +127,7 @@ label i {
     margin-right: 6px;
 }
 
+/* التنسيق الموحد لجميع المدخلات */
 input,
 select,
 textarea {
@@ -124,6 +140,15 @@ textarea {
     background: #ffffff;
     transition: all 0.3s ease;
     color: var(--gray-800);
+    /* إضافة ثابتة للارتفاع لضمان التساوي */
+    height: 48px; 
+    box-sizing: border-box;
+}
+
+/* استثناء للـ Textarea ليأخذ ارتفاع أكبر */
+textarea {
+    height: auto;
+    min-height: 100px;
 }
 
 input:hover,
@@ -146,6 +171,44 @@ textarea::placeholder {
 }
 
 /* ============================================================
+   🚫 إزالة أسهم الزيادة والنقصان من حقول الأرقام (طلباتك)
+   ============================================================ */
+/* إخفاء الأسهم في متصفحات Chrome و Safari و Edge */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* إخفاء الأسهم في فايرفوكس */
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* ============================================================
+   💰 تنسيق خاص لحقول الأسعار (مع ر.س)
+   ============================================================ */
+.price-input-wrapper {
+    position: relative;
+}
+
+.price-input-wrapper input {
+    padding-right: 50px; /* مساحة للعملة داخل الحقل */
+}
+
+.price-input-wrapper .currency-label {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-500);
+    font-weight: 700;
+    font-size: 0.9rem;
+    pointer-events: none; /* يمنع النقر على العملة */
+}
+
+/* ============================================================
    🎯 الأزرار (Buttons)
    ============================================================ */
 .btn-action {
@@ -162,6 +225,7 @@ textarea::placeholder {
     text-decoration: none;
     transition: all 0.3s ease;
     font-size: 0.9rem;
+    height: 48px;
 }
 
 .btn-action:hover {
@@ -266,6 +330,15 @@ textarea::placeholder {
 
     .form-section-title {
         font-size: 1rem;
+    }
+
+    .form-row {
+        flex-direction: column; /* في الجوال تصبح الحقول تحت بعضها */
+        gap: 15px;
+    }
+
+    .form-row .form-group {
+        min-width: 100%;
     }
 
     .btn-action {
