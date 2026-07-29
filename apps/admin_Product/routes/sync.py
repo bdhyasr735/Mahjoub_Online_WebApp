@@ -9,6 +9,7 @@ from flask_login import login_required
 from apps.admin_Product.routes import admin_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
+from apps.admin_Product.routes.products import clear_search_cache
 
 
 def analyze_render_error(route_func):
@@ -88,11 +89,16 @@ def sync_products():
                     'error': str(ex)
                 })
         
-        # ✅ مسح Cache البحث بعد المزامنة
+        # ✅ مسح Cache البحث والذاكرة المحلية بعد المزامنة فوراً
         try:
             services.products.clear_search_cache()
         except Exception as cache_error:
-            print(f"⚠️ [Sync]: خطأ في مسح Cache: {cache_error}")
+            print(f"⚠️ [Sync]: خطأ في مسح Cache الخدمات: {cache_error}")
+
+        try:
+            clear_search_cache()
+        except Exception as local_cache_error:
+            print(f"⚠️ [Sync]: خطأ في مسح الذاكرة المحلية للبحث: {local_cache_error}")
         
         if request.method == 'GET':
             flash(f'✅ تمت المزامنة: {synced_count} منتج (جديد: {created_count}, محدث: {updated_count})', 'success')
