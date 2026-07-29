@@ -8,11 +8,6 @@ from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.supplier_db import Supplier
 
 
-def clear_search_cache():
-    """دالة فارغة لتوافق مسح الكاش مع ملفات المزامنة"""
-    pass
-
-
 def manage_products_view():
     try:
         user_type = session.get('user_type')
@@ -115,4 +110,5 @@ def manage_products_view():
 
 def register_products_route(bp):
     bp.add_url_rule('/products', view_func=manage_products_view, methods=['GET'])
+    # ✅ تم إزالة مسار /products/edit/<qid> لأنه موجود في crud.py
     return bp
