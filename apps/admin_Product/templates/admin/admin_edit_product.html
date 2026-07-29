@@ -12,30 +12,50 @@
 
 {% block content %}
 <div class="edit-product-container">
-    <!-- رأس الصفحة -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <h2>
-            <i class="fas fa-edit me-2"></i> تعديل المنتج: <span style="color: var(--gold-color);">{{ product.title or product.name }}</span>
-        </h2>
-        <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-action">
-            <i class="fas fa-arrow-right me-2"></i> العودة للقائمة
-        </a>
+    <!-- ✅ رأس الصفحة المحسن -->
+    <div class="edit-header">
+        <div class="edit-header-left">
+            <h1 class="edit-title">
+                <i class="fas fa-edit text-gold"></i>
+                تعديل المنتج
+                <span class="product-name">{{ product.title or product.name }}</span>
+            </h1>
+            <div class="edit-meta">
+                <span class="badge-status">
+                    <i class="fas fa-circle" style="color: {{ 'var(--success)' if product.status|upper == 'PUBLISHED' else 'var(--warning)' if product.status|upper == 'DRAFT' else 'var(--danger)' }};"></i>
+                    {{ product.status|upper or 'DRAFT' }}
+                </span>
+                <span class="badge-id">
+                    <i class="fas fa-fingerprint"></i>
+                    {{ product.qid|truncate(20) }}
+                </span>
+            </div>
+        </div>
+        <div class="edit-header-right">
+            <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn-back">
+                <i class="fas fa-arrow-right"></i>
+                العودة للقائمة
+            </a>
+        </div>
     </div>
 
+    <!-- ✅ نموذج التعديل -->
     <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}" id="editProductForm" enctype="multipart/form-data" onsubmit="preparePayloadBeforeSubmit(event)">
         <input type="hidden" name="qid" value="{{ product.qid }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
         <!-- ✅ جميع الأجزاء (Partials) -->
-        {% include "admin/partials/edit/_basic_info.html" %}
-        {% include "admin/partials/edit/_description.html" %}
-        {% include "admin/partials/edit/_images.html" %}
-        {% include "admin/partials/edit/_collections.html" %}
-        {% include "admin/partials/edit/_variants.html" %}
-        {% include "admin/partials/edit/_seo.html" %}
-        {% include "admin/partials/edit/_tags.html" %}
-        {% include "admin/partials/edit/_actions.html" %}
+        <div class="edit-sections">
+            {% include "admin/partials/edit/_basic_info.html" %}
+            {% include "admin/partials/edit/_description.html" %}
+            {% include "admin/partials/edit/_images.html" %}
+            {% include "admin/partials/edit/_collections.html" %}
+            {% include "admin/partials/edit/_variants.html" %}
+            {% include "admin/partials/edit/_seo.html" %}
+            {% include "admin/partials/edit/_tags.html" %}
+            {% include "admin/partials/edit/_actions.html" %}
+        </div>
     </form>
 </div>
 
@@ -45,11 +65,155 @@
 <script>
     // ✅ تهيئة جميع الدوال عند تحميل الصفحة
     document.addEventListener('DOMContentLoaded', function() {
-        initTinyMCE();
-        initCollectionHandlers();
-        initImageHandlers();
-        initVariantHandlers();
-        initTagHandlers();
+        // تهيئة TinyMCE
+        if (typeof initTinyMCE === 'function') initTinyMCE();
+        
+        // تهيئة إدارة المجموعات
+        if (typeof initCollectionHandlers === 'function') initCollectionHandlers();
+        if (typeof updateCollectionsUI === 'function') updateCollectionsUI();
+        
+        // تهيئة إدارة الصور
+        if (typeof initImageHandlers === 'function') initImageHandlers();
+        
+        // تهيئة إدارة المتغيرات
+        if (typeof initVariantHandlers === 'function') initVariantHandlers();
+        
+        // تهيئة إدارة العلامات
+        if (typeof initTagHandlers === 'function') initTagHandlers();
+        
+        console.log('✅ [admin_edit_product] تم تحميل الصفحة بنجاح');
     });
 </script>
+
+<style>
+/* ✅ أنماط إضافية للرأس */
+.edit-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    padding: 20px 28px;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.edit-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.edit-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.edit-title .text-gold {
+    color: #D4AF37;
+}
+
+.edit-title .product-name {
+    color: #D4AF37;
+    font-weight: 600;
+}
+
+.edit-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.badge-status {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 3px 10px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-status i {
+    font-size: 0.45rem;
+}
+
+.badge-id {
+    font-size: 0.65rem;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 3px 10px;
+    border-radius: 16px;
+    font-family: monospace;
+}
+
+.edit-header-right {
+    display: flex;
+    align-items: center;
+}
+
+.btn-back {
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.btn-back:hover {
+    background: rgba(212, 175, 55, 0.12);
+    border-color: #D4AF37;
+    color: #D4AF37;
+    transform: translateY(-2px);
+}
+
+.edit-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ✅ تحسينات الجوال */
+@media (max-width: 768px) {
+    .edit-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 16px 20px;
+    }
+    
+    .edit-title {
+        font-size: 1.1rem;
+        flex-wrap: wrap;
+    }
+    
+    .edit-title .product-name {
+        font-size: 0.95rem;
+    }
+    
+    .edit-meta {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .btn-back {
+        justify-content: center;
+        width: 100%;
+    }
+}
+</style>
 {% endblock %}
