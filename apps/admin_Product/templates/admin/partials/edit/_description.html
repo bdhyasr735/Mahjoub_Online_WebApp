@@ -5,9 +5,7 @@
     <div class="form-section-title">
         <i class="fas fa-align-left"></i>
         الوصف التفصيلي
-        <span class="badge-count">
-            <i class="fas fa-edit"></i> محرر متقدم
-        </span>
+        <span class="badge-count"><i class="fas fa-edit"></i> محرر متقدم</span>
         <span class="badge-status" id="descriptionStatus">
             <i class="fas fa-check-circle"></i> جاهز
         </span>
@@ -16,266 +14,93 @@
     <div class="description-content">
         <!-- ✅ معلومات قبل المحرر -->
         <div class="description-info">
-            <div class="info-item">
-                <i class="fas fa-info-circle"></i>
-                <span>قم بكتابة وصف احترافي للمنتج</span>
-            </div>
-            <div class="info-item">
-                <i class="fas fa-keyboard"></i>
-                <span>استخدم أدوات التنسيق لإضافة روابط، صور، جداول</span>
-            </div>
+            <span><i class="fas fa-info-circle"></i> كتابة وصف احترافي للمنتج</span>
+            <span><i class="fas fa-keyboard"></i> تنسيق، روابط، صور، جداول</span>
         </div>
         
         <!-- ✅ TinyMCE Editor -->
         <div class="editor-wrapper">
-            <textarea id="productDescription" name="description" rows="15">
-                {{ product.description or '' }}
-            </textarea>
+            <textarea id="productDescription" name="description" rows="12">{{ product.description or '' }}</textarea>
         </div>
         
         <!-- ✅ معلومات بعد المحرر -->
         <div class="description-footer">
-            <div class="footer-left">
-                <i class="fas fa-arrows-alt"></i>
-                <span>يمكنك توسيع المحرر بالضغط على أيقونة <strong>Fullscreen</strong></span>
-            </div>
-            <div class="footer-right">
-                <span class="word-count" id="wordCount">
-                    <i class="fas fa-file-word"></i>
-                    <span id="wordCountNumber">0</span> كلمة
-                </span>
-                <span class="char-count" id="charCount">
-                    <i class="fas fa-font"></i>
-                    <span id="charCountNumber">0</span> حرف
-                </span>
-            </div>
+            <span><i class="fas fa-arrows-alt"></i> توسيع: <strong>Fullscreen</strong></span>
+            <span><i class="fas fa-file-word"></i> <span id="wordCountNumber">0</span> كلمة</span>
+            <span><i class="fas fa-font"></i> <span id="charCountNumber">0</span> حرف</span>
         </div>
     </div>
 </div>
 
 <style>
-/* ============================================================
-   🎨 تصميم بطاقة الوصف
-   ============================================================ */
 .description-card {
     border-color: rgba(212, 175, 55, 0.15);
     background: linear-gradient(135deg, #ffffff, #faf8f6);
-    padding: 28px 32px !important;
+    padding: 24px 28px !important;
 }
-
-.description-card .badge-count {
-    background: rgba(212, 175, 55, 0.12);
-    color: #b8962e;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
 .description-card .badge-status {
-    font-size: 0.65rem;
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 20px;
-    margin-left: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
+    font-size: 0.65rem; font-weight: 600; padding: 3px 12px;
+    border-radius: 20px; margin-left: 8px;
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(34, 197, 94, 0.1); color: #22c55e;
     transition: all 0.3s ease;
 }
-
 .description-card .badge-status.dirty {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1); color: #f59e0b;
 }
-
-.description-content {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-/* ============================================================
-   📋 معلومات قبل المحرر
-   ============================================================ */
+.description-content { display: flex; flex-direction: column; gap: 14px; }
 .description-info {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 12px 16px;
-    background: #f8fafc;
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
+    display: flex; flex-wrap: wrap; gap: 16px;
+    padding: 10px 16px; background: #f8fafc;
+    border-radius: 10px; border: 1px solid #e2e8f0;
+    font-size: 0.8rem; color: #64748b;
 }
-
-.info-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    color: #64748b;
-}
-
-.info-item i {
-    color: #D4AF37;
-    font-size: 0.9rem;
-}
-
-/* ============================================================
-   🖊️ المحرر
-   ============================================================ */
+.description-info i { color: #D4AF37; margin-right: 4px; }
 .editor-wrapper {
-    border-radius: 10px;
-    overflow: hidden;
-    border: 2px solid #e2e8f0;
-    transition: all 0.3s ease;
+    border-radius: 10px; overflow: hidden;
+    border: 2px solid #e2e8f0; transition: all 0.3s ease;
 }
-
 .editor-wrapper:focus-within {
-    border-color: #D4AF37;
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
+    border-color: #D4AF37; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
 }
-
-.tox-tinymce {
-    border: none !important;
-    border-radius: 0 !important;
-}
-
-.tox .tox-toolbar__primary {
-    background: #f8fafc !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-}
-
-.tox .tox-tbtn {
-    border-radius: 4px !important;
-    transition: all 0.2s ease !important;
-}
-
-.tox .tox-tbtn:hover {
-    background: rgba(212, 175, 55, 0.1) !important;
-}
-
-.tox .tox-tbtn--active {
-    background: rgba(212, 175, 55, 0.2) !important;
-}
-
-.tox .tox-tbtn svg {
-    fill: #2d0b36 !important;
-}
-
-.tox .tox-edit-area iframe {
-    background: #ffffff !important;
-}
-
-/* ============================================================
-   📊 تذييل المحرر
-   ============================================================ */
+.tox-tinymce { border: none !important; border-radius: 0 !important; }
+.tox .tox-toolbar__primary { background: #f8fafc !important; border-bottom: 1px solid #e2e8f0 !important; }
+.tox .tox-tbtn { border-radius: 4px !important; transition: all 0.2s ease !important; }
+.tox .tox-tbtn:hover { background: rgba(212, 175, 55, 0.1) !important; }
+.tox .tox-tbtn--active { background: rgba(212, 175, 55, 0.2) !important; }
+.tox .tox-tbtn svg { fill: #2d0b36 !important; }
+.tox .tox-edit-area iframe { background: #ffffff !important; }
 .description-footer {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 12px;
-    gap: 12px;
+    display: flex; flex-wrap: wrap; justify-content: space-between;
+    align-items: center; padding-top: 10px; gap: 10px;
+    font-size: 0.75rem; color: #94a3b8;
 }
-
-.footer-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.8rem;
-    color: #94a3b8;
-}
-
-.footer-left i {
-    color: #D4AF37;
-}
-
-.footer-left strong {
-    color: #64748b;
-}
-
-.footer-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 0.8rem;
-    color: #94a3b8;
-}
-
-.footer-right i {
-    color: #D4AF37;
-    margin-right: 4px;
-}
-
-.footer-right span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-/* ============================================================
-   📱 تحسينات الجوال
-   ============================================================ */
+.description-footer i { color: #D4AF37; margin-right: 4px; }
+.description-footer strong { color: #64748b; }
 @media (max-width: 768px) {
-    .description-card {
-        padding: 20px 16px !important;
-    }
-    
-    .description-info {
-        flex-direction: column;
-        gap: 8px;
-        padding: 10px 14px;
-    }
-    
-    .description-footer {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
-    .footer-right {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    
-    .tox .tox-toolbar__primary {
-        flex-wrap: wrap !important;
-        gap: 2px !important;
-    }
-    
-    .tox .tox-tbtn {
-        width: 32px !important;
-        height: 32px !important;
-    }
+    .description-card { padding: 16px 14px !important; }
+    .description-info { flex-direction: column; gap: 6px; padding: 8px 12px; }
+    .description-footer { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .tox .tox-toolbar__primary { flex-wrap: wrap !important; gap: 2px !important; }
+    .tox .tox-tbtn { width: 32px !important; height: 32px !important; }
 }
 </style>
 
 <script>
-// ✅ تهيئة TinyMCE مع شريط أدوات كامل بالعربية
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof tinymce !== 'undefined') {
         tinymce.init({
             selector: '#productDescription',
-            height: 450,
+            height: 400,
             menubar: true,
             language: 'ar',
             directionality: 'rtl',
-            
-            // ✅ شريط الأدوات الرئيسي
             toolbar: [
                 'undo redo | blocks | fontsize | fontfamily',
                 'bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify',
                 'bullist numlist | outdent indent | link image media | table | code',
                 'removeformat | fullscreen | help'
             ],
-            
-            // ✅ القوائم الرئيسية
             menu: {
                 file: { title: 'ملف', items: 'newdocument | print | preview' },
                 edit: { title: 'تحرير', items: 'undo redo | cut copy paste | selectall | searchreplace' },
@@ -285,85 +110,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 table: { title: 'جدول', items: 'inserttable | cell row column | tableprops deletetable' },
                 tools: { title: 'أدوات', items: 'spellchecker | code' }
             },
-            
-            // ✅ أنواع الخطوط
-            font_family_formats: [
-                'Cairo=Cairo', 'Arial=Arial', 'Helvetica=Helvetica',
-                'Times New Roman=Times New Roman', 'Georgia=Georgia',
-                'Tahoma=Tahoma', 'Verdana=Verdana'
-            ].join(';'),
-            
-            // ✅ أحجام الخطوط
+            font_family_formats: 'Cairo=Cairo;Arial=Arial;Helvetica=Helvetica;Times New Roman=Times New Roman;Georgia=Georgia;Tahoma=Tahoma;Verdana=Verdana',
             font_size_formats: '8pt 10pt 12pt 14pt 18pt 24pt 36pt 48pt 72pt',
-            
-            // ✅ الألوان المخصصة
-            color_map: [
-                '#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', '#efefef', '#f3f3f3', '#ffffff',
-                '#980000', '#ff0000', '#ff9900', '#ffff00', '#00ff00', '#00ffff', '#4a86e8', '#0000ff', '#9900ff', '#ff00ff',
-                '#e6b8af', '#f4cccc', '#fce5cd', '#fff2cc', '#d9ead3', '#d0e0e3', '#c9daf8', '#cfe2f3', '#d9d2e9', '#ead1dc',
-                '#dd7e6b', '#ea9999', '#f9cb9c', '#ffe599', '#b6d7a8', '#a2c4c9', '#8ea5db', '#9fc5e8', '#b4a7d6', '#d5a6bd',
-                '#cc4125', '#e06666', '#f6b26b', '#ffd966', '#93c47d', '#76a5af', '#6d9eeb', '#6fa8dc', '#8e7cc3', '#c27ba0',
-                '#a61c00', '#cc0000', '#e69138', '#f1c232', '#6aa84f', '#45818e', '#3c78d8', '#3d85c6', '#674ea7', '#a64d79',
-                '#85200c', '#990000', '#b45f06', '#bf9000', '#38761d', '#134f5c', '#1155cc', '#0b5394', '#351c75', '#741b47'
-            ],
-            
-            // ✅ الإضافات
-            plugins: [
-                'advlist', 'autolink', 'lists', 'link', 'image', 'media',
-                'charmap', 'preview', 'anchor', 'searchreplace', 'visualblocks',
-                'code', 'fullscreen', 'insertdatetime', 'table', 'help', 'wordcount'
-            ],
-            
-            // ✅ محتوى النمط
-            content_style: `
-                body { 
-                    font-family: "Cairo", system-ui, sans-serif; 
-                    font-size: 16px; 
-                    line-height: 1.8; 
-                    padding: 20px; 
-                    background: #ffffff;
-                    color: #1e293b;
-                }
-                h1 { font-size: 2rem; color: #2d0b36; }
-                h2 { font-size: 1.75rem; color: #2d0b36; }
-                h3 { font-size: 1.5rem; color: #2d0b36; }
-                h4 { font-size: 1.25rem; color: #2d0b36; }
-                p { margin-bottom: 1rem; }
-                ul, ol { padding-right: 1.5rem; margin-bottom: 1rem; }
-                a { color: #D4AF37; text-decoration: underline; }
-                a:hover { color: #b8962e; }
-                table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
-                th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: right; }
-                th { background: #f1f5f9; font-weight: 600; }
-                blockquote { 
-                    border-right: 4px solid #D4AF37; 
-                    padding: 12px 20px; 
-                    margin: 1rem 0; 
-                    background: #f8fafc;
-                    border-radius: 4px;
-                }
-                img { max-width: 100%; height: auto; border-radius: 8px; }
-                .text-gold { color: #D4AF37; }
-                .highlight { background: #fef3c7; padding: 2px 4px; border-radius: 4px; }
-            `,
-            
-            // ✅ معالج رفع الصور
+            plugins: ['advlist','autolink','lists','link','image','media','charmap','preview','anchor','searchreplace','visualblocks','code','fullscreen','insertdatetime','table','help','wordcount'],
+            content_style: 'body{font-family:"Cairo",sans-serif;font-size:16px;line-height:1.8;padding:20px;color:#1e293b} h1,h2,h3,h4{color:#0f172a} a{color:#D4AF37} table{border-collapse:collapse;width:100%;margin:16px 0} th,td{border:1px solid #e2e8f0;padding:8px 12px;text-align:right} th{background:#f1f5f9} blockquote{border-right:4px solid #D4AF37;padding:12px 20px;background:#f8fafc;border-radius:4px;margin:16px 0} img{max-width:100%;height:auto;border-radius:8px}',
             images_upload_handler: function(blobInfo) {
                 return new Promise(function(resolve) {
                     const reader = new FileReader();
-                    reader.onload = function(e) {
-                        resolve(e.target.result);
-                    };
+                    reader.onload = function(e) { resolve(e.target.result); };
                     reader.readAsDataURL(blobInfo.blob());
                 });
             },
-            
-            // ✅ تحديث عداد الكلمات والحروف
             setup: function(editor) {
-                editor.on('init', function() {
-                    updateWordCount(editor);
-                });
-                
+                editor.on('init', function() { updateWordCount(editor); });
                 editor.on('change', function() {
                     updateWordCount(editor);
                     updateDescriptionStatus(editor);
@@ -373,28 +132,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ✅ تحديث عداد الكلمات والحروف
 function updateWordCount(editor) {
-    const content = editor.getContent({ format: 'text' });
-    const text = content.trim();
-    
-    const wordCount = text ? text.split(/\s+/).length : 0;
-    const charCount = text.length;
-    
+    const content = editor.getContent({ format: 'text' }).trim();
+    const wordCount = content ? content.split(/\s+/).length : 0;
+    const charCount = content.length;
     const wordSpan = document.getElementById('wordCountNumber');
     const charSpan = document.getElementById('charCountNumber');
-    
     if (wordSpan) wordSpan.textContent = wordCount;
     if (charSpan) charSpan.textContent = charCount;
 }
 
-// ✅ تحديث حالة الوصف
 function updateDescriptionStatus(editor) {
     const statusBadge = document.getElementById('descriptionStatus');
     if (!statusBadge) return;
-    
     const content = editor.getContent({ format: 'text' }).trim();
-    
     if (content.length > 0) {
         statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> مكتمل';
         statusBadge.className = 'badge-status';
@@ -403,8 +154,4 @@ function updateDescriptionStatus(editor) {
         statusBadge.className = 'badge-status dirty';
     }
 }
-
-// ✅ ربط الدوال بالـ window
-window.updateWordCount = updateWordCount;
-window.updateDescriptionStatus = updateDescriptionStatus;
 </script>
