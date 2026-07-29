@@ -18,7 +18,7 @@
         <label class="form-label fw-bold text-dark-purple mb-2">إدارة خيارات المنتج:</label>
         <div id="optionsContainer" class="d-flex flex-column gap-3">
             
-            <!-- ✅ 1. التحقق من وجود خيارات مخزنة في Django -->
+            <!-- ✅ 1. التحقق من وجود خيارات مخزنة في Django (من `services.products`) -->
             {% if product and product.options and product.options|length > 0 %}
                 <!-- تكرار عبر الخيارات المخزنة -->
                 {% for option in product.options %}
@@ -84,16 +84,10 @@
     <div class="form-group mb-0">
         <label class="form-label fw-bold text-dark-purple mb-2">تخصيص السعر، الكمية، وصورة لكل متغير:</label>
         <div id="variantsTableContainer" class="table-responsive">
-            <!-- ✅ هذا النص سيتم استبداله تلقائياً بالجدول عند عمل `generatePayload()` -->
-            {% if not product or not product.variants or product.variants|length == 0 %}
+            <!-- ✅ إذا كان هناك متغيرات، سيتم تحميلها بواسطة JavaScript فوراً -->
             <p class="text-muted text-center p-4 bg-light rounded-3 border border-dashed" style="font-size: 0.9rem;">
                 <i class="fas fa-info-circle me-1"></i> قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...
             </p>
-            {% else %}
-            <p class="text-muted text-center p-3 bg-light rounded-3 border border-dashed" style="font-size: 0.9rem;">
-                <i class="fas fa-sync-alt fa-spin me-1"></i> جاري تحميل جدول المتغيرات...
-            </p>
-            {% endif %}
         </div>
     </div>
 </div>
@@ -192,13 +186,10 @@
 </style>
 
 <!-- ============================================================
-   🚀 سكربت ضمان توليد الجدول عند تحميل الصفحة (مع طباعة Debug)
+   🚀 سكربت ضمان توليد الجدول (آمن 100%)
    ============================================================ -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔍 [Variant Debug] بدء تحميل المتغيرات...');
-    console.log('📦 [Variant Debug] بيانات المنتج القادمة من Django:', {{ product | tojson }});
-
     // استخدام setTimeout بسيط للتأكد من تحميل الـ JS الرئيسي
     setTimeout(function() {
         // التأكد من وجود الدوال الخاصة بالمتغيرات
