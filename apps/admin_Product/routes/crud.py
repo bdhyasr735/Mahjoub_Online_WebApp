@@ -11,14 +11,6 @@ from apps.models.supplier_db import Supplier
 from apps.extensions import db
 from datetime import datetime
 
-# ✅ استيراد خدمة المتغيرات الجديدة
-from apps.services.variant_service import VariantService
-from apps.services.graphql_client import GraphQLClient
-
-# تهيئة الـ GraphQL Client و Variant Service مرة واحدة
-graphql_client = GraphQLClient() # تأكد من أن هذا يأخذ الـ endpoint الصحيح
-variant_service = VariantService(graphql_client)
-
 
 @admin_product_bp.route('/products/add', methods=['GET', 'POST'])
 @login_required
@@ -77,7 +69,7 @@ def add_product():
 @admin_product_bp.route('/products/edit', methods=['GET'])
 @login_required
 def edit_product():
-    """عرض صفحة تعديل المنتج مع الخيارات والمتغيرات"""
+    """عرض صفحة تعديل المنتج مع الخيارات (الحل النهائي والآمن)"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
@@ -85,32 +77,24 @@ def edit_product():
     
     qid = request.args.get('qid')
     
-    # ✅ للتحقق من الـ QID
-    print(f"🔍 [DEBUG] QID received: {qid}")
-    
     if not qid:
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
     
+    # ✅ محاولة جلب المنتج مع الخيارات والمتغيرات (الحل الآمن)
     try:
-        # ✅ التعديل الجوهري: استخدام دالة جلب الخيارات والمتغيرات
-        product = variant_service.get_product_with_options_and_variants(qid)
-        
-        # ✅ للتحقق من النتيجة
-        print(f"🔍 [DEBUG] Product found: {product is not None and 'qid' in product}")
-        if product:
-            print(f"🔍 [DEBUG] Product Options count: {len(product.get('options', []))}")
-            print(f"🔍 [DEBUG] Product Variants count: {len(product.get('variants', []))}")
-
+        # استخدم service.variants (الذي تم تعريفه في __init__.py)
+        product = services.variants.get_product_with_options_and_variants(qid)
     except Exception as e:
-        print(f"❌ [CRITICAL ERROR] فشل جلب المنتج الكامل {qid}: {e}")
-        flash(f"❌ حدث خطأ في جلب بيانات المنتج: {str(e)}", "danger")
+        print(f"❌ [ERROR] فشل جلب المنتج مع الخيارات: {e}")
+        flash(f"❌ حدث خطأ أثناء تحميل بيانات المنتج.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
+    # جلب البيانات الإضافية
     suppliers = Supplier.query.filter_by(status='active').all()
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     assigned_supplier_id = mapping.supplier_id if mapping else None
@@ -128,7 +112,7 @@ def edit_product():
         product=product,
         suppliers=suppliers,
         assigned_supplier_id=assigned_supplier_id,
-        all_collections=all_collections  # ✅ تم إضافة المجموعات
+        all_collections=all_collections
     )
 
 
@@ -152,12 +136,10 @@ def save_sync_product():
         supplier_id = request.form.get('supplier_id')
         quantity = request.form.get('quantity', 0)
         
-        # ✅ معالجة SEO
         seo_title = request.form.get('seo_title', '')
         seo_description = request.form.get('seo_description', '')
         seo_keywords = request.form.get('seo_keywords', '')
         
-        # ✅ معالجة الأسعار
         try:
             price = float(request.form.get('price', 0))
         except ValueError:
@@ -168,7 +150,6 @@ def save_sync_product():
         except ValueError:
             compare_price = None
 
-        # ✅ معالجة معرفات المجموعات
         collection_ids = request.form.getlist('collection_ids')
         print(f"🔍 [DEBUG] Collection IDs received: {collection_ids}")
 
@@ -192,7 +173,6 @@ def save_sync_product():
         if compare_price is not None:
             update_data['compareAtPrice'] = compare_price
         
-        # ✅ إضافة المجموعات إلى بيانات التحديث إذا كانت موجودة
         if collection_ids:
             update_data['collectionIds'] = collection_ids
         
