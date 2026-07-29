@@ -1,102 +1,47 @@
-<!-- apps/admin_Product/templates/admin/partials/edit/_collections.html -->
-
-<!-- ================= المجموعات ================= -->
-<div class="form-section collections-card">
-    <div class="form-section-title">
-        <i class="fas fa-folder-open"></i>
-        المجموعات
-        <span class="badge-count" id="collectionsCount">
-            {{ product.collections|length if product.collections else 0 }}
-        </span>
-        <span class="badge-status" id="collectionsStatus">
-            {% if product.collections and product.collections|length > 0 %}
-            <i class="fas fa-check-circle"></i> مكتمل
-            {% else %}
-            <i class="fas fa-exclamation-circle"></i> فارغ
+<!-- ============================================================
+   📁 المجموعات (Collections)
+   ============================================================ -->
+<div class="card shadow-sm meta-variants-card">
+    <div class="card-header">
+        <h5 class="mb-0 text-gold d-flex align-items-center">
+            <i class="fas fa-folder-open me-2"></i> المجموعات (Collections)
+            {% if product and product.collections %}
+            <span class="badge badge-gold-soft ms-2">{{ product.collections|length }}</span>
             {% endif %}
-        </span>
+            <span class="badge-status ms-auto {{ 'has-collections' if product.collections and product.collections|length > 0 else 'empty' }}">
+                {% if product.collections and product.collections|length > 0 %}
+                <i class="fas fa-check-circle"></i> مكتمل
+                {% else %}
+                <i class="fas fa-exclamation-circle"></i> فارغ
+                {% endif %}
+            </span>
+        </h5>
     </div>
-    
-    <div class="collections-content">
-        <!-- ✅ صندوق اختيار المجموعات -->
-        <div class="collection-multiselect-container">
-            <div class="selected-collections-box" id="selectedCollectionsBox" onclick="toggleCollectionDropdown()">
-                <span class="placeholder-text" id="collectionPlaceholder" {% if product.collections and product.collections|length > 0 %}style="display:none;"{% endif %}>
-                    <i class="fas fa-folder-open"></i> اختر المجموعات...
-                </span>
-                <div class="selected-badges" id="selectedBadgesContainer">
-                    {% if product.collections %}
-                        {% for col in product.collections %}
-                        <span class="collection-badge" data-id="{{ col.qid or col.id }}">
-                            <i class="fas fa-folder"></i> {{ col.title or col.name }}
-                            <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('{{ col.qid or col.id }}')">&times;</span>
-                        </span>
-                        {% endfor %}
-                    {% endif %}
-                </div>
-                <i class="fas fa-chevron-down selection-arrow"></i>
-            </div>
-
-            <!-- ✅ القائمة المنسدلة مع البحث -->
-            <div id="collectionDropdownMenu">
-                <div class="dropdown-search-wrapper">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="collectionSearchInput" placeholder="ابحث عن مجموعة..." oninput="filterCollections(this.value)" onclick="event.stopPropagation();">
-                </div>
-                
-                <div id="collectionsList">
-                    {% if all_collections %}
-                        {% for col in all_collections %}
-                        <div class="collection-option-item" data-id="{{ col.qid or col.id }}" data-title="{{ col.title or col.name }}" onclick="toggleCollectionSelection(this, '{{ col.qid or col.id }}', '{{ col.title or col.name }}')">
-                            <span>
-                                {% if col.image and col.image.fileUrl %}
-                                <img src="{{ col.image.fileUrl }}" class="collection-thumb">
-                                {% else %}
-                                <i class="fas fa-folder"></i>
-                                {% endif %}
-                                {{ col.title or col.name }}
-                            </span>
-                            <input type="checkbox" class="col-checkbox" value="{{ col.qid or col.id }}" {% if product.collections and col in product.collections %}checked{% endif %}>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="collections-empty-state">لا توجد مجموعات</div>
-                    {% endif %}
-                </div>
-                
-                <div id="collectionsNoResults" style="display: none;">
-                    <i class="fas fa-search-minus"></i> لا توجد نتائج
+    <div class="card-body">
+        {% if product and product.collections and product.collections|length > 0 %}
+        <div class="d-flex flex-wrap gap-2">
+            {% for collection in product.collections %}
+            <div class="collection-item-card">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-folder text-gold"></i>
+                    <div>
+                        <strong class="text-dark-purple d-block" style="font-size: 0.85rem;">{{ collection.title or collection.name or collection.qid }}</strong>
+                        {% if collection.handle %}
+                        <small class="text-muted" style="font-size: 0.65rem;">{{ collection.handle }}</small>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-
-        <!-- ✅ حقول مخفية -->
-        <div id="hiddenCollectionsInputs">
-            {% if product.collections %}
-                {% for col in product.collections %}
-                <input type="hidden" name="collection_ids" value="{{ col.qid or col.id }}" id="col-input-{{ col.qid or col.id }}">
-                {% endfor %}
-            {% endif %}
+        <small class="text-muted mt-3 d-block pt-2 border-top">
+            <i class="fas fa-list me-1"></i> عدد المجموعات: <strong>{{ product.collections|length }}</strong>
+        </small>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="fas fa-folder-open fa-2x mb-2 text-gold"></i>
+            <p class="mb-0">لا توجد مجموعات</p>
         </div>
-        
-        <!-- ✅ تذييل -->
-        <div class="collections-footer">
-            <div class="collections-stats">
-                <span><i class="fas fa-check-circle"></i> <strong id="selectedCountDisplay">{{ product.collections|length if product.collections else 0 }}</strong> مختارة</span>
-                <span class="divider">|</span>
-                <span><i class="fas fa-list-ul"></i> <strong id="totalCollectionsCount">{{ all_collections|length if all_collections else 0 }}</strong> متاحة</span>
-            </div>
-            <button class="btn-clear-collections" onclick="clearAllCollections()" style="display: {{ 'inline-flex' if product.collections and product.collections|length > 0 else 'none' }}">
-                <i class="fas fa-times-circle"></i> إلغاء الكل
-            </button>
-        </div>
+        {% endif %}
     </div>
 </div>
-
-<style>
-/* ✅ أنماط المجموعات - تم نقلها إلى الملف الرئيسي */
-</style>
-
-<script>
-// ✅ دوال المجموعات - تم نقلها إلى الملف الرئيسي
-</script>
