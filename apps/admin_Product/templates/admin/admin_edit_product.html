@@ -22,12 +22,12 @@
         </a>
     </div>
 
-    <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}" id="editProductForm" onsubmit="preparePayloadBeforeSubmit(event)">
+    <form method="POST" action="{{ url_for('admin_product_bp.save_sync_product') }}" id="editProductForm" enctype="multipart/form-data" onsubmit="preparePayloadBeforeSubmit(event)">
         <input type="hidden" name="qid" value="{{ product.qid }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
-        <!-- ✅ جميع الأجزاء -->
+        <!-- ✅ جميع الأجزاء (Partials) -->
         {% include "admin/partials/edit/_basic_info.html" %}
         {% include "admin/partials/edit/_description.html" %}
         {% include "admin/partials/edit/_images.html" %}
