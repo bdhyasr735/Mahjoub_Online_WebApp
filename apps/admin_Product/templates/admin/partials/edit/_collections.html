@@ -1,41 +1,52 @@
 <!-- apps/admin_Product/templates/admin/partials/edit/_collections.html -->
 
 <!-- ================= المجموعات ================= -->
-<div class="form-section">
+<div class="form-section collections-card">
     <div class="form-section-title">
-        <i class="fas fa-folder-open"></i> المجموعات (Collections)
-        {% if product.collections and product.collections|length > 0 %}
-        <span class="badge ms-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
-            {{ product.collections|length }}
+        <i class="fas fa-folder-open"></i>
+        المجموعات
+        <span class="badge-count gold" id="collectionsCount">
+            {{ product.collections|length if product.collections else 0 }}
         </span>
-        {% endif %}
+        <span class="badge-status {{ 'has-collections' if product.collections and product.collections|length > 0 else 'empty' }}">
+            {% if product.collections and product.collections|length > 0 %}
+            <i class="fas fa-check-circle"></i> مكتمل
+            {% else %}
+            <i class="fas fa-exclamation-circle"></i> فارغ
+            {% endif %}
+        </span>
     </div>
     
-    <div class="form-group mb-0">
-        <label>اختر أو ثبّت المجموعات:</label>
-        
+    <div class="collections-content">
+        <!-- ✅ صندوق اختيار المجموعات -->
         <div class="collection-multiselect-container">
-            <!-- صندوق العرض -->
             <div class="selected-collections-box" id="selectedCollectionsBox" onclick="toggleCollectionDropdown()">
-                <span class="text-muted placeholder-text" id="collectionPlaceholder" {% if product.collections and product.collections|length > 0 %}style="display:none;"{% endif %}>
-                    <i class="fas fa-folder-open me-1"></i> انقر لاختيار المجموعات...
+                <span class="placeholder-text" id="collectionPlaceholder" {% if product.collections and product.collections|length > 0 %}style="display:none;"{% endif %}>
+                    <i class="fas fa-folder-open"></i>
+                    اختر المجموعات...
                 </span>
-                {% if product.collections %}
-                    {% for col in product.collections %}
-                    <span class="collection-badge" data-id="{{ col.qid or col.id }}">
-                        <i class="fas fa-folder"></i> 
-                        {{ col.title or col.name }}
-                        <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('{{ col.qid or col.id }}')">&times;</span>
-                    </span>
-                    {% endfor %}
-                {% endif %}
+                <div class="selected-badges" id="selectedBadgesContainer">
+                    {% if product.collections %}
+                        {% for col in product.collections %}
+                        <span class="collection-badge" data-id="{{ col.qid or col.id }}">
+                            <i class="fas fa-folder"></i> 
+                            {{ col.title or col.name }}
+                            <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('{{ col.qid or col.id }}')">&times;</span>
+                        </span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                <i class="fas fa-chevron-down selection-arrow"></i>
             </div>
 
-            <!-- القائمة المنسدلة مع البحث -->
+            <!-- ✅ القائمة المنسدلة مع البحث -->
             <div id="collectionDropdownMenu">
                 <div class="dropdown-search-wrapper">
-                    <i class="fas fa-search position-absolute" style="top: 50%; right: 18px; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
-                    <input type="text" id="collectionSearchInput" placeholder="🔍 ابحث عن مجموعة..." oninput="filterCollections(this.value)" onclick="event.stopPropagation();">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="collectionSearchInput" placeholder="ابحث عن مجموعة..." oninput="filterCollections(this.value)" onclick="event.stopPropagation();">
+                    <button class="dropdown-close" onclick="document.getElementById('collectionDropdownMenu').style.display='none'">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
                 
                 <div id="collectionsList">
@@ -50,25 +61,28 @@
                                 {% endif %}
                                 <span>{{ col.title or col.name }}</span>
                             </span>
-                            <input type="checkbox" class="col-checkbox" value="{{ col.qid or col.id }}" {% if product.collections and col in product.collections %}checked{% endif %} style="pointer-events: none; width: auto; accent-color: var(--gold-color);">
+                            <div class="collection-check-wrapper">
+                                <input type="checkbox" class="col-checkbox" value="{{ col.qid or col.id }}" {% if product.collections and col in product.collections %}checked{% endif %}>
+                                <span class="checkmark"></span>
+                            </div>
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="text-muted text-center py-3">
-                            <i class="fas fa-folder-open fa-2x mb-2 d-block" style="color: #D4AF37;"></i>
-                            <p>لا توجد مجموعات متاحة</p>
+                        <div class="collections-empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <p>لا توجد مجموعات</p>
                         </div>
                     {% endif %}
                 </div>
                 
-                <!-- رسالة عدم وجود نتائج -->
-                <div id="collectionsNoResults" style="display: none;" class="text-muted text-center py-2">
-                    <i class="fas fa-search-minus me-1"></i> لا توجد نتائج مطابقة
+                <div id="collectionsNoResults" style="display: none;">
+                    <i class="fas fa-search-minus"></i>
+                    <span>لا توجد نتائج</span>
                 </div>
             </div>
         </div>
 
-        <!-- حقول مخفية لحفظ المعرفات -->
+        <!-- ✅ حقول مخفية لحفظ المعرفات -->
         <div id="hiddenCollectionsInputs">
             {% if product.collections %}
                 {% for col in product.collections %}
@@ -77,18 +91,69 @@
             {% endif %}
         </div>
         
-        <!-- عداد المجموعات المختارة -->
-        <div class="mt-2">
-            <small class="text-muted">
-                <i class="fas fa-check-circle me-1" style="color: #22c55e;"></i>
-                تم اختيار: <span id="selectedCountDisplay">{{ product.collections|length if product.collections else 0 }}</span> مجموعة
-            </small>
+        <!-- ✅ تذييل البطاقة -->
+        <div class="collections-footer">
+            <div class="collections-stats">
+                <span>
+                    <i class="fas fa-check-circle"></i>
+                    <strong id="selectedCountDisplay">{{ product.collections|length if product.collections else 0 }}</strong>
+                    <span class="stat-label">مختارة</span>
+                </span>
+                <span class="divider">|</span>
+                <span>
+                    <i class="fas fa-list-ul"></i>
+                    <strong id="totalCollectionsCount">{{ all_collections|length if all_collections else 0 }}</strong>
+                    <span class="stat-label">متاحة</span>
+                </span>
+            </div>
+            <button type="button" class="btn-clear-collections" onclick="clearAllCollections()" style="display: {{ 'inline-flex' if product.collections and product.collections|length > 0 else 'none' }}">
+                <i class="fas fa-times-circle"></i>
+                إلغاء الكل
+            </button>
         </div>
     </div>
 </div>
 
 <style>
-/* تحسينات إضافية للمجموعات */
+/* ============================================================
+   🎨 تصميم بطاقة المجموعات
+   ============================================================ */
+.collections-card {
+    border-color: rgba(212, 175, 55, 0.15);
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+    padding: 24px 28px !important;
+}
+
+.collections-card .badge-status {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.collections-card .badge-status.has-collections {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.collections-card .badge-status.empty {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.collections-content {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ============================================================
+   📦 صندوق الاختيار
+   ============================================================ */
 .collection-multiselect-container {
     position: relative;
 }
@@ -96,129 +161,154 @@
 .selected-collections-box {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 16px;
-    border: 2px solid var(--border-color);
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 2px solid #e2e8f0;
     border-radius: 10px;
     background: #ffffff;
-    min-height: 52px;
+    min-height: 44px;
     cursor: pointer;
-    align-items: center;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .selected-collections-box:hover {
-    border-color: var(--gold-color);
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
+    border-color: #D4AF37;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.06);
 }
 
-.selected-collections-box .placeholder-text {
+.placeholder-text {
     color: #94a3b8;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.placeholder-text i {
+    color: #D4AF37;
+}
+
+.selected-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex: 1;
+}
+
+.selection-arrow {
+    color: #94a3b8;
+    font-size: 0.7rem;
+    transition: all 0.3s ease;
+    margin-left: auto;
+    padding-left: 4px;
+}
+
+.selection-arrow.open {
+    transform: rotate(180deg);
+    color: #D4AF37;
 }
 
 .collection-badge {
     background: linear-gradient(135deg, #2d0b36, #1a0520);
     color: #D4AF37;
-    padding: 6px 14px;
-    border-radius: 20px;
+    padding: 3px 10px;
+    border-radius: 14px;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    font-size: 0.85rem;
-    transition: all 0.3s ease;
-    animation: fadeIn 0.3s ease-out;
+    gap: 4px;
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
 }
 
 .collection-badge:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(45, 11, 54, 0.15);
+    transform: translateY(-1px);
 }
 
 .remove-collection {
     cursor: pointer;
     color: #ef4444;
     font-weight: 700;
-    margin-left: 4px;
-    transition: all 0.3s ease;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: all 0.2s ease;
 }
 
 .remove-collection:hover {
     transform: rotate(90deg);
-    color: #dc2626;
 }
 
-.collection-option-item {
-    padding: 10px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-}
-
-.collection-option-item:hover {
-    background: #f1f5f9;
-    border-color: var(--gold-color);
-}
-
-.collection-option-item.selected {
-    background: rgba(212, 175, 55, 0.08);
-    border-color: var(--gold-color);
-}
-
-.collection-thumb {
-    width: 28px;
-    height: 28px;
-    object-fit: cover;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-}
-
+/* ============================================================
+   📋 القائمة المنسدلة
+   ============================================================ */
 #collectionDropdownMenu {
     display: none;
     position: absolute;
-    top: calc(100% + 6px);
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
     background: #ffffff;
-    border: 2px solid var(--border-color);
+    border: 2px solid #e2e8f0;
     border-radius: 10px;
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
     z-index: 1000;
-    padding: 14px;
+    padding: 12px;
     max-height: 320px;
     overflow: hidden;
-    animation: dropdownSlide 0.25s ease-out;
+    animation: dropdownSlide 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes dropdownSlide {
-    0% { opacity: 0; transform: translateY(-8px); }
-    100% { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .dropdown-search-wrapper {
     position: relative;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dropdown-search-wrapper .fa-search {
+    position: absolute;
+    right: 12px;
+    color: #94a3b8;
+    font-size: 0.85rem;
 }
 
 #collectionSearchInput {
     width: 100%;
-    padding: 10px 40px 10px 14px;
-    border: 2px solid var(--border-color);
+    padding: 8px 36px 8px 12px;
+    border: 2px solid #e2e8f0;
     border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     transition: all 0.3s ease;
+    background: #f8fafc;
 }
 
 #collectionSearchInput:focus {
     outline: none;
-    border-color: var(--gold-color);
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
+    border-color: #D4AF37;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.06);
+}
+
+.dropdown-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.dropdown-close:hover {
+    background: #f1f5f9;
+    color: #ef4444;
 }
 
 #collectionsList {
@@ -230,38 +320,295 @@
 }
 
 #collectionsList::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
 }
 
 #collectionsList::-webkit-scrollbar-track {
     background: #f1f5f9;
-    border-radius: 10px;
+    border-radius: 4px;
 }
 
 #collectionsList::-webkit-scrollbar-thumb {
-    background: var(--gold-color);
-    border-radius: 10px;
+    background: #D4AF37;
+    border-radius: 4px;
 }
 
-#collectionsList::-webkit-scrollbar-thumb:hover {
-    background: #b8962e;
+.collection-option-item {
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.15s ease;
+}
+
+.collection-option-item:hover {
+    background: #f1f5f9;
+}
+
+.collection-option-item.selected {
+    background: rgba(212, 175, 55, 0.06);
+}
+
+.collection-thumb {
+    width: 20px;
+    height: 20px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+.collection-check-wrapper {
+    position: relative;
+    width: 16px;
+    height: 16px;
 }
 
 .col-checkbox {
-    width: 18px;
-    height: 18px;
+    position: absolute;
+    opacity: 0;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
-    accent-color: var(--gold-color);
+}
+
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #cbd5e1;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.collection-option-item:hover .checkmark {
+    border-color: #D4AF37;
+}
+
+.col-checkbox:checked + .checkmark {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    border-color: #D4AF37;
+}
+
+.col-checkbox:checked + .checkmark::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #D4AF37;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.collections-empty-state {
+    text-align: center;
+    padding: 16px;
+    color: #94a3b8;
+}
+
+.collections-empty-state i {
+    font-size: 1.5rem;
+    color: #D4AF37;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.collections-empty-state p {
+    font-size: 0.85rem;
+    margin: 0;
 }
 
 #collectionsNoResults {
-    padding: 12px;
+    text-align: center;
+    padding: 10px;
     color: #94a3b8;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* ============================================================
+   📊 تذييل البطاقة
+   ============================================================ */
+.collections-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 1px solid #e2e8f0;
+    gap: 8px;
+}
+
+.collections-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.collections-stats i {
+    font-size: 0.75rem;
+    margin-right: 2px;
+}
+
+.collections-stats strong {
+    color: #0f172a;
     font-size: 0.9rem;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+.stat-label {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.collections-stats .divider {
+    color: #e2e8f0;
+}
+
+.btn-clear-collections {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-clear-collections:hover {
+    background: rgba(239, 68, 68, 0.06);
+    color: #dc2626;
+}
+
+/* ============================================================
+   📱 تحسينات الجوال
+   ============================================================ */
+@media (max-width: 768px) {
+    .collections-card {
+        padding: 16px 14px !important;
+    }
+    
+    .selected-collections-box {
+        min-height: 38px;
+        padding: 6px 10px;
+    }
+    
+    .collection-badge {
+        font-size: 0.65rem;
+        padding: 2px 8px;
+    }
+    
+    #collectionDropdownMenu {
+        padding: 10px;
+        max-height: 260px;
+    }
+    
+    #collectionsList {
+        max-height: 140px;
+    }
+    
+    .collections-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
 }
 </style>
+
+<script>
+// ============================================================
+// 🔄 دوال ديناميكية للمجموعات
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ تحديث واجهة المستخدم
+    window.updateCollectionsUI = function() {
+        const badges = document.querySelectorAll('.collection-badge');
+        const count = badges.length;
+        
+        // تحديث العداد الرئيسي
+        const countBadge = document.getElementById('collectionsCount');
+        if (countBadge) countBadge.textContent = count;
+        
+        // تحديث العداد في التذييل
+        const display = document.getElementById('selectedCountDisplay');
+        if (display) display.textContent = count;
+        
+        // تحديث حالة البطاقة
+        const statusBadge = document.querySelector('.badge-status');
+        if (statusBadge) {
+            if (count > 0) {
+                statusBadge.className = 'badge-status has-collections';
+                statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> مكتمل';
+            } else {
+                statusBadge.className = 'badge-status empty';
+                statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> فارغ';
+            }
+        }
+        
+        // إظهار/إخفاء زر إلغاء الكل
+        const clearBtn = document.querySelector('.btn-clear-collections');
+        if (clearBtn) {
+            clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+        
+        // إظهار/إخفاء placeholder
+        const placeholder = document.getElementById('collectionPlaceholder');
+        if (placeholder) {
+            placeholder.style.display = count > 0 ? 'none' : 'flex';
+        }
+    };
+    
+    // ✅ إلغاء جميع المجموعات
+    window.clearAllCollections = function() {
+        if (!confirm('⚠️ هل أنت متأكد من إلغاء اختيار جميع المجموعات؟')) return;
+        
+        const badges = document.querySelectorAll('.collection-badge');
+        badges.forEach(badge => {
+            const id = badge.getAttribute('data-id');
+            if (id) removeCollection(id);
+        });
+        
+        setTimeout(() => updateCollectionsUI(), 50);
+        showNotification('🗑️ تم إلغاء اختيار جميع المجموعات', 'info');
+    };
+    
+    // ✅ سهم القائمة المنسدلة
+    const dropdown = document.getElementById('collectionDropdownMenu');
+    const arrow = document.querySelector('.selection-arrow');
+    
+    if (dropdown && arrow) {
+        const observer = new MutationObserver(function() {
+            arrow.classList.toggle('open', dropdown.style.display === 'block');
+        });
+        observer.observe(dropdown, { attributes: true, attributeFilter: ['style'] });
+    }
+    
+    // ✅ تهيئة العداد
+    updateCollectionsUI();
+});
+
+// ============================================================
+// 🎯 ربط الدوال العالمية
+// ============================================================
+window.toggleCollectionDropdown = toggleCollectionDropdown;
+window.filterCollections = filterCollections;
+window.toggleCollectionSelection = toggleCollectionSelection;
+window.addCollectionBadge = addCollectionBadge;
+window.removeCollection = removeCollection;
+window.updateCollectionsUI = updateCollectionsUI;
+window.clearAllCollections = clearAllCollections;
+</script>
