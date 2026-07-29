@@ -200,7 +200,7 @@
     }
 
     // ============================================================
-    // 🧩 إدارة المتغيرات
+    // 🧩 إدارة المتغيرات (تم التعديل هنا)
     // ============================================================
     function addOptionRow() {
         const container = document.getElementById('optionsContainer');
@@ -285,7 +285,12 @@
         let html = `<table class="table table-bordered"><thead><tr><th>المتغير</th><th>SKU</th><th>السعر</th><th>الكمية</th></tr></thead><tbody>`;
         combinations.forEach((combo, index) => {
             const variantLabel = combo.join(' / ');
-            html += `<tr data-index="${index}"><td><strong>${variantLabel}</strong></td><td><input type="text" class="var-sku form-control" value="SKU-${String(index+1).padStart(3,'0')}" oninput="generatePayload()"></td><td><input type="number" class="var-price form-control" value="0" step="0.01" oninput="generatePayload()"></td><td><input type="number" class="var-qty form-control" value="0" oninput="generatePayload()"></td></tr>`;
+            // ✅ التعديل الأساسي: تحويل type="number" إلى type="text" للأسعار والكمية
+            html += `<tr data-index="${index}"><td><strong>${variantLabel}</strong></td>
+                        <td><input type="text" class="var-sku form-control" value="SKU-${String(index+1).padStart(3,'0')}" oninput="generatePayload()"></td>
+                        <td><input type="text" class="var-price form-control" value="0" oninput="generatePayload()"></td>
+                        <td><input type="text" class="var-qty form-control" value="0" oninput="generatePayload()"></td>
+                    </tr>`;
         });
         html += `</tbody></table>`;
         container.innerHTML = html;
