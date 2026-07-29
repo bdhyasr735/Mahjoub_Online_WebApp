@@ -2,7 +2,7 @@
 // 🚀 التطبيق المتكامل لصفحة تعديل المنتج - النسخة الاحترافية (مصححة وآمنة)
 // ============================================================
 
-(function () {
+(function() {
     'use strict';
 
     // ============================================================
@@ -41,15 +41,15 @@
                 blockquote { border-right: 4px solid #D4AF37; padding: 12px 20px; background: #f8fafc; border-radius: 4px; margin: 16px 0; }
                 img { max-width: 100%; height: auto; border-radius: 8px; }
             `,
-            images_upload_handler: function (blobInfo) {
-                return new Promise(function (resolve) {
+            images_upload_handler: function(blobInfo) {
+                return new Promise(function(resolve) {
                     const reader = new FileReader();
-                    reader.onload = function (e) { resolve(e.target.result); };
+                    reader.onload = function(e) { resolve(e.target.result); };
                     reader.readAsDataURL(blobInfo.blob());
                 });
             },
-            setup: function (editor) {
-                editor.on('change', function () {
+            setup: function(editor) {
+                editor.on('change', function() {
                     const descInput = document.querySelector('textarea[name="description"]');
                     if (descInput) descInput.value = editor.getContent();
                 });
@@ -61,7 +61,7 @@
     // 📂 إدارة المجموعات
     // ============================================================
     function initCollectionHandlers() {
-        document.addEventListener('click', function (e) {
+        document.addEventListener('click', function(e) {
             const container = document.querySelector('.collection-multiselect-container');
             if (container && !container.contains(e.target)) {
                 const menu = document.getElementById('collectionDropdownMenu');
@@ -76,11 +76,7 @@
         menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
         if (menu.style.display === 'block') {
             const input = document.getElementById('collectionSearchInput');
-            if (input) { 
-                input.focus(); 
-                input.value = ''; 
-                filterCollections(''); 
-            }
+            if (input) { input.focus(); input.value = ''; filterCollections(''); }
         }
     }
 
@@ -88,14 +84,12 @@
         const items = document.querySelectorAll('.collection-option-item');
         query = query.toLowerCase().trim();
         let visibleCount = 0;
-        
         items.forEach(item => {
             const title = item.getAttribute('data-title') || '';
             const isVisible = title.toLowerCase().includes(query);
             item.style.display = isVisible ? 'flex' : 'none';
             if (isVisible) visibleCount++;
         });
-
         const noResults = document.getElementById('collectionsNoResults');
         if (noResults) noResults.style.display = visibleCount === 0 ? 'block' : 'none';
     }
@@ -103,7 +97,6 @@
     function toggleCollectionSelection(element, id, title) {
         const checkbox = element.querySelector('.col-checkbox');
         if (!checkbox) return;
-        
         checkbox.checked = !checkbox.checked;
         if (checkbox.checked) {
             addCollectionBadge(id, title);
@@ -117,17 +110,14 @@
     function addCollectionBadge(id, title) {
         const box = document.getElementById('selectedCollectionsBox');
         if (!box) return;
-        
         const placeholder = document.getElementById('collectionPlaceholder');
         if (placeholder) placeholder.style.display = 'none';
         if (box.querySelector(`[data-id="${id}"]`)) return;
-
         const badge = document.createElement('span');
         badge.className = 'collection-badge';
         badge.setAttribute('data-id', id);
         badge.innerHTML = `<i class="fas fa-folder"></i> ${title} <span class="remove-collection" onclick="event.stopPropagation(); removeCollection('${id}')">&times;</span>`;
         box.appendChild(badge);
-
         const hiddenContainer = document.getElementById('hiddenCollectionsInputs');
         if (hiddenContainer && !document.getElementById(`col-input-${id}`)) {
             const input = document.createElement('input');
@@ -143,20 +133,15 @@
     function removeCollection(id) {
         const box = document.getElementById('selectedCollectionsBox');
         if (!box) return;
-        
         const badge = box.querySelector(`[data-id="${id}"]`);
         if (badge) badge.remove();
-        
         const input = document.getElementById(`col-input-${id}`);
         if (input) input.remove();
-        
         const checkbox = document.querySelector(`.collection-option-item[data-id="${id}"] .col-checkbox`);
         if (checkbox) checkbox.checked = false;
-        
         const remaining = box.querySelectorAll('.collection-badge');
         const placeholder = document.getElementById('collectionPlaceholder');
         if (placeholder && remaining.length === 0) placeholder.style.display = 'block';
-        
         updateCollectionsCount();
     }
 
@@ -175,22 +160,18 @@
         const uploadArea = document.getElementById('imageUploadArea');
         const input = document.getElementById('imageInput');
         if (!uploadArea || !input) return;
-
-        uploadArea.addEventListener('click', function () { input.click(); });
-        
-        uploadArea.addEventListener('dragover', function (e) {
+        uploadArea.addEventListener('click', function() { input.click(); });
+        uploadArea.addEventListener('dragover', function(e) {
             e.preventDefault();
             this.style.borderColor = '#D4AF37';
             this.style.background = 'rgba(212, 175, 55, 0.05)';
         });
-        
-        uploadArea.addEventListener('dragleave', function (e) {
+        uploadArea.addEventListener('dragleave', function(e) {
             e.preventDefault();
             this.style.borderColor = '';
             this.style.background = '';
         });
-        
-        uploadArea.addEventListener('drop', function (e) {
+        uploadArea.addEventListener('drop', function(e) {
             e.preventDefault();
             this.style.borderColor = '';
             this.style.background = '';
@@ -199,18 +180,15 @@
                 input.dispatchEvent(new Event('change'));
             }
         });
-
-        input.addEventListener('change', function () {
+        input.addEventListener('change', function() {
             const files = this.files;
             const grid = document.getElementById('imagePreviewGrid');
             if (!grid) return;
-            
             const emptyMsg = grid.querySelector('.text-center.text-muted');
             if (emptyMsg) emptyMsg.remove();
-            
             for (let i = 0; i < files.length; i++) {
                 const reader = new FileReader();
-                reader.onload = function (event) {
+                reader.onload = function(event) {
                     const div = document.createElement('div');
                     div.className = 'image-preview-item';
                     div.innerHTML = `<img src="${event.target.result}" alt="صورة المنتج"><button type="button" class="remove-image" onclick="this.parentElement.remove();">✕</button>`;
@@ -228,7 +206,6 @@
     function addOptionRow() {
         const container = document.getElementById('optionsContainer');
         if (!container) return;
-        
         const row = document.createElement('div');
         row.className = 'option-row mb-3 p-3 border rounded bg-light';
         row.innerHTML = `
@@ -249,12 +226,10 @@
     function removeOptionRow(button) {
         const row = button.closest('.option-row');
         if (!row) return;
-        
         if (row.parentElement.children.length <= 1) {
             alert('⚠️ يجب أن يبقى خيار واحد على الأقل');
             return;
         }
-        
         if (confirm('⚠️ هل أنت متأكد من حذف هذا الخيار؟')) {
             row.remove();
             updateVariantsTable();
@@ -265,19 +240,12 @@
     function addValueToRow(button) {
         const row = button.closest('.option-row');
         if (!row) return;
-        
         const input = row.querySelector('.val-input');
         if (!input) return;
-        
         const value = input.value.trim();
-        if (!value) { 
-            alert('⚠️ الرجاء إدخال قيمة'); 
-            return; 
-        }
-        
+        if (!value) { alert('⚠️ الرجاء إدخال قيمة'); return; }
         const container = row.querySelector('.values-container');
         if (!container) return;
-        
         const existing = container.querySelectorAll('.value-tag');
         for (let tag of existing) {
             if (tag.textContent.trim().replace('×', '').trim() === value) {
@@ -285,12 +253,10 @@
                 return;
             }
         }
-        
         const tag = document.createElement('div');
         tag.className = 'value-tag badge bg-primary p-2 d-flex align-items-center gap-2';
         tag.innerHTML = `${value} <span style="cursor:pointer;" onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>`;
         container.appendChild(tag);
-        
         input.value = '';
         input.focus();
         updateVariantsTable();
@@ -304,7 +270,6 @@
     function updateVariantsTable() {
         const optionRows = document.querySelectorAll('.option-row');
         const valuesArrays = [];
-        
         optionRows.forEach(row => {
             const optNameInput = row.querySelector('.opt-name');
             const optName = optNameInput ? optNameInput.value.trim() : '';
@@ -312,33 +277,28 @@
             const values = Array.from(tags).map(tag => tag.textContent.trim().replace('×', '').trim());
             if (optName && values.length > 0) valuesArrays.push(values);
         });
-
         const container = document.getElementById('variantsTableContainer');
         if (!container) return;
-        
         if (valuesArrays.length === 0) {
             container.innerHTML = `<p class="text-muted text-center">قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...</p>`;
             return;
         }
-
         const combinations = cartesianProduct(valuesArrays);
         let html = `<table class="table table-bordered variants-table"><thead><tr><th>المتغير</th><th>SKU</th><th>السعر</th><th>الكمية</th></tr></thead><tbody>`;
-        
         combinations.forEach((combo, index) => {
             const variantLabel = combo.join(' / ');
-            html += `<tr data-index="${index}">
-                <td><strong>${variantLabel}</strong></td>
-                <td><input type="text" class="var-sku form-control" value="SKU-${String(index + 1).padStart(3, '0')}" oninput="generatePayload()"></td>
-                <td><input type="text" class="var-price form-control" value="0" oninput="generatePayload()"></td>
-                <td><input type="text" class="var-qty form-control" value="0" oninput="generatePayload()"></td>
-            </tr>`;
+            html += `<tr data-index="${index}"><td><strong>${variantLabel}</strong></td>
+                        <td><input type="text" class="var-sku form-control" value="SKU-${String(index+1).padStart(3,'0')}" oninput="generatePayload()"></td>
+                        <td><input type="text" class="var-price form-control" value="0" oninput="generatePayload()"></td>
+                        <td><input type="text" class="var-qty form-control" value="0" oninput="generatePayload()"></td>
+                    </tr>`;
         });
-        
         html += `</tbody></table>`;
         container.innerHTML = html;
         generatePayload();
     }
 
+    // 🔄 تحميل الخيارات والمتغيرات الحالية للمنتج عند فتح الصفحة
     function initExistingVariants(existingOptions, existingVariants) {
         if (!existingOptions || !Array.isArray(existingOptions) || existingOptions.length === 0) return;
         
@@ -401,7 +361,6 @@
         
         const optionRows = document.querySelectorAll('.option-row');
         const options = [];
-        
         optionRows.forEach(row => {
             const name = row.querySelector('.opt-name')?.value.trim() || '';
             const tags = row.querySelectorAll('.value-tag');
@@ -413,9 +372,8 @@
 
         const variantRows = document.querySelectorAll('#variantsTableContainer table tbody tr, .variants-table tbody tr');
         const variants = [];
-        
         variantRows.forEach((tr, index) => {
-            const sku = tr.querySelector('.var-sku')?.value || `SKU-${String(index + 1).padStart(3, '0')}`;
+            const sku = tr.querySelector('.var-sku')?.value || `SKU-${String(index+1).padStart(3,'0')}`;
             const price = parseFloat(tr.querySelector('.var-price')?.value) || 0;
             const quantity = parseInt(tr.querySelector('.var-qty')?.value) || 0;
             variants.push({ sku, price, compareAtPrice: 0, quantity });
@@ -426,9 +384,7 @@
         if (payloadInput) payloadInput.value = JSON.stringify(payload);
     }
 
-    function preparePayloadBeforeSubmit(e) { 
-        generatePayload(); 
-    }
+    function preparePayloadBeforeSubmit(e) { generatePayload(); }
 
     // ============================================================
     // 🏷️ إدارة العلامات
@@ -436,11 +392,8 @@
     function initTagHandlers() {
         const input = document.getElementById('tagInput');
         if (input) {
-            input.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') { 
-                    e.preventDefault(); 
-                    addTag(); 
-                }
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); addTag(); }
             });
         }
     }
@@ -448,16 +401,10 @@
     function addTag() {
         const input = document.getElementById('tagInput');
         if (!input) return;
-        
         const tag = input.value.trim();
-        if (!tag) { 
-            alert('⚠️ الرجاء إدخال علامة'); 
-            return; 
-        }
-        
+        if (!tag) { alert('⚠️ الرجاء إدخال علامة'); return; }
         const container = document.getElementById('tagsContainer');
         if (!container) return;
-        
         const existing = container.querySelectorAll('.tag-item');
         for (let item of existing) {
             if (item.textContent.trim().replace('✕', '').trim() === tag) {
@@ -465,15 +412,12 @@
                 return;
             }
         }
-        
         const noTagsMsg = container.querySelector('.text-muted');
         if (noTagsMsg) noTagsMsg.remove();
-        
         const span = document.createElement('span');
         span.className = 'tag-item badge bg-secondary p-2 me-1 mb-1';
         span.innerHTML = `<span class="remove-tag" style="cursor:pointer;" onclick="this.parentElement.remove();">✕</span> ${tag}`;
         container.appendChild(span);
-        
         input.value = '';
         input.focus();
     }
@@ -483,22 +427,14 @@
     // ============================================================
     function deleteProduct(id, name) {
         if (!confirm(`⚠️ هل أنت متأكد من حذف المنتج "${name}"؟`)) return;
-        
         const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
         fetch(`/admin/products/delete/${id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) { 
-                alert('✅ ' + data.message); 
-                window.location.href = '/admin/products'; 
-            } else { 
-                alert('❌ ' + data.message); 
-            }
-        })
-        .catch(e => alert('❌ حدث خطأ: ' + e.message));
+        }).then(r => r.json()).then(data => {
+            if (data.success) { alert('✅ ' + data.message); window.location.href = '/admin/products'; }
+            else { alert('❌ ' + data.message); }
+        }).catch(e => alert('❌ حدث خطأ: ' + e.message));
     }
 
     // ============================================================
@@ -507,7 +443,6 @@
     function showNotification(message, type = 'success') {
         const colors = { success: '#22c55e', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
         const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-        
         const toast = document.createElement('div');
         toast.style.cssText = `
             position: fixed; bottom: 24px; right: 24px;
@@ -520,7 +455,6 @@
         `;
         toast.innerHTML = `${icons[type] || 'ℹ️'} ${message}`;
         document.body.appendChild(toast);
-        
         setTimeout(() => {
             toast.style.animation = 'slideOut 0.4s cubic-bezier(0.4,0,0.2,1)';
             setTimeout(() => toast.remove(), 400);
