@@ -31,6 +31,10 @@ def manage_supplier_products_view():
         else:
             filtered_by_supplier = services.products.fetch_all_products_for_search() if hasattr(services.products, 'fetch_all_products_for_search') else []
 
+        # 🔍 طباعة تفاصيل أول منتج في الـ Terminal لفحص أسماء المفاتيح (الصور، السعر، إلخ)
+        if filtered_by_supplier:
+            print("🔍 [DEBUG] عينة بيانات المنتج الأول من الـ API:", filtered_by_supplier[0])
+
         if search_query:
             filtered = [p for p in filtered_by_supplier if search_query.lower() in p.get('title', '').lower() or search_query.lower() in str(p.get('sku', '')).lower()]
         else:
@@ -51,6 +55,23 @@ def manage_supplier_products_view():
 
         wrapped_items = []
         for prod in current_page_items:
+            # معالجة مرنة لاستخراج السعر بغض النظر عن اسم المفتاح في الـ API
+            price = prod.get('price') or prod.get('sale_price') or prod.get('regular_price') or 0
+            prod['price'] = price
+            
+            # معالجة مرنة للصور للتأكد من وجود رابط صالح
+            images = prod.get('images', [])
+            processed_images = []
+            if isinstance(images, list):
+                for img in images:
+                    if isinstance(img, dict) and img.get('url'):
+                        processed_images.append({'url': img.get('url')})
+                    elif isinstance(img, str):
+                        processed_images.append({'url': img})
+            elif isinstance(images, str):
+                processed_images.append({'url': images})
+            
+            prod['images'] = processed_images
             wrapped_items.append({'product': prod})
 
         class PaginationMock:
@@ -91,7 +112,7 @@ def manage_supplier_products_view():
             try:
                 return f"{float(price):,.2f} ر.ي"
             except:
-                return price
+                return f"{price} ر.ي"
 
         return render_template(
             'suppliers/suppliers_product.html',
