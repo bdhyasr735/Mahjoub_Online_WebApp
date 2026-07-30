@@ -1,63 +1,77 @@
-<!-- 📂 apps/suppliers_product/templates/suppliers/suppliers_product.html -->
+<!-- apps/suppliers_product/templates/suppliers/suppliers_product.html -->
 {% extends "suppliers/base.html" %}
 
 {% block title %}إدارة المنتجات{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-4" dir="rtl">
     <!-- رأس الصفحة وإحصائيات المنتجات -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0" style="color: #2d0b36;">📦 إدارة المنتجات</h1>
+            <p class="text-muted mb-0">عرض وإدارة منتجاتك كبطاقات تفاعلية</p>
+        </div>
+        <div class="d-flex gap-2 mt-2 mt-sm-0">
+            <!-- زر الإضافة يطابق الـ Blueprint الصحيح -->
+            <a href="{{ url_for('suppliers_product.add_product') }}" class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
+                <i class="fas fa-plus me-1"></i> رفع منتج جديد
+            </a>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-            <div class="card">
+        <div class="col-xl-4 col-sm-4 mb-xl-0 mb-3">
+            <div class="card shadow-sm border-0">
                 <div class="card-body p-3">
                     <div class="row">
                         <div class="col-8">
                             <div class="numbers">
-                                <p class="text-sm mb-0 text-uppercase font-weight-bold">إجمالي المنتجات</p>
-                                <h5 class="font-weight-bolder mb-0">{{ total_products }}</h5>
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold text-muted">إجمالي المنتجات</p>
+                                <h5 class="font-weight-bolder mb-0" style="color: #2d0b36;">{{ total_products }}</h5>
                             </div>
                         </div>
                         <div class="col-4 text-end">
-                            <div class="icon icon-shape bg-gradient-primary shadow-primary text-center border-radius-md">
-                                <i class="fas fa-box text-lg opacity-10" aria-hidden="true"></i>
+                            <div class="icon icon-shape shadow-sm text-center border-radius-md d-flex align-items-center justify-content-center ms-auto" style="width: 45px; height: 45px; background: rgba(45, 11, 54, 0.1); border-radius: 10px;">
+                                <i class="fas fa-box text-lg" style="color: #2d0b36;" aria-hidden="true"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-            <div class="card">
+        <div class="col-xl-4 col-sm-4 mb-xl-0 mb-3">
+            <div class="card shadow-sm border-0">
                 <div class="card-body p-3">
                     <div class="row">
                         <div class="col-8">
                             <div class="numbers">
-                                <p class="text-sm mb-0 text-uppercase font-weight-bold">المنتجات المنشورة</p>
-                                <h5 class="font-weight-bolder mb-0">{{ active_products }}</h5>
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold text-muted">المنتجات المنشورة</p>
+                                <h5 class="font-weight-bolder mb-0 text-success">{{ active_products }}</h5>
                             </div>
                         </div>
                         <div class="col-4 text-end">
-                            <div class="icon icon-shape bg-gradient-success shadow-success text-center border-radius-md">
-                                <i class="fas fa-check-circle text-lg opacity-10" aria-hidden="true"></i>
+                            <div class="icon icon-shape shadow-sm text-center border-radius-md d-flex align-items-center justify-content-center ms-auto" style="width: 45px; height: 45px; background: rgba(40, 167, 69, 0.1); border-radius: 10px;">
+                                <i class="fas fa-check-circle text-lg text-success" aria-hidden="true"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-            <div class="card">
+        <div class="col-xl-4 col-sm-4 mb-xl-0 mb-3">
+            <div class="card shadow-sm border-0">
                 <div class="card-body p-3">
                     <div class="row">
                         <div class="col-8">
                             <div class="numbers">
-                                <p class="text-sm mb-0 text-uppercase font-weight-bold">المسودات</p>
-                                <h5 class="font-weight-bolder mb-0">{{ draft_products }}</h5>
+                                <p class="text-sm mb-0 text-uppercase font-weight-bold text-muted">المسودات</p>
+                                <h5 class="font-weight-bolder mb-0 text-warning">{{ draft_products }}</h5>
                             </div>
                         </div>
                         <div class="col-4 text-end">
-                            <div class="icon icon-shape bg-gradient-warning shadow-warning text-center border-radius-md">
-                                <i class="fas fa-file-alt text-lg opacity-10" aria-hidden="true"></i>
+                            <div class="icon icon-shape shadow-sm text-center border-radius-md d-flex align-items-center justify-content-center ms-auto" style="width: 45px; height: 45px; background: rgba(255, 193, 7, 0.1); border-radius: 10px;">
+                                <i class="fas fa-file-alt text-lg text-warning" aria-hidden="true"></i>
                             </div>
                         </div>
                     </div>
@@ -66,72 +80,219 @@
         </div>
     </div>
 
-    <!-- جدول عرض المنتجات وأدوات البحث -->
-    <div class="card">
-        <div class="card-header pb-0 px-3 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0">قائمة منتجات المورد</h6>
-            <!-- زر الإضافة يطابق الـ Blueprint الصحيح -->
-            <a href="{{ url_for('suppliers_product.add_product') }}" class="btn bg-gradient-dark btn-sm mb-0">
-                <i class="fas fa-plus me-2"></i> رفع منتج جديد
-            </a>
-        </div>
-        <div class="card-body px-0 pt-0 pb-2">
-            <div class="table-responsive p-0">
-                <table class="table align-items-center mb-0">
-                    <thead>
-                        <tr>
-                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">المنتج</th>
-                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">السعر</th>
-                            <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">الحالة</th>
-                            <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">الكمية</th>
-                            <th class="text-secondary opacity-7"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if products.items %}
-                            {% for item in products.items %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex px-2 py-1">
-                                        <div>
-                                            <img src="{{ item.product.images[0].url if item.product.images else url_for('static', filename='img/default-product.png') }}" class="avatar avatar-sm me-3" alt="product">
-                                        </div>
-                                        <div class="d-flex flex-column justify-content-center">
-                                            <h6 class="mb-0 text-sm">{{ item.product.title }}</h6>
-                                            <p class="text-xs text-secondary mb-0">SKU: {{ item.product.sku }}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <p class="text-xs font-weight-bold mb-0">{{ format_price(item.product.price) }}</p>
-                                </td>
-                                <td class="align-middle text-center text-sm">
-                                    <span class="badge badge-sm bg-gradient-{{ 'success' if item.product.status == 'PUBLISHED' else 'secondary' }}">
-                                        {{ get_status_text(item.product.status) }}
-                                    </span>
-                                </td>
-                                <td class="align-middle text-center">
-                                    <span class="text-secondary text-xs font-weight-bold">{{ item.product.quantity }}</span>
-                                </td>
-                                <td class="align-middle text-end">
-                                    <!-- زر التعديل يطابق الـ Blueprint الصحيح وتمرير المعرف -->
-                                    <a href="{{ url_for('suppliers_product.edit_product', qid=item.product.qid) }}" class="text-secondary font-weight-bold text-xs" data-toggle="tooltip" data-original-title="تعديل المنتج">
-                                        تعديل
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center py-4">
-                                    <p class="text-secondary mb-0">لا توجد منتجات مضافة حتى الآن.</p>
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
+    <!-- ✅ شريط البحث الاحترافي -->
+    <div class="card mb-4 shadow-sm border-0">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('suppliers_product.suppliers_product') }}" id="searchForm">
+                <div class="position-relative">
+                    <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.9rem;"></i>
+                    <input 
+                        type="text" 
+                        id="searchInput"
+                        name="title" 
+                        class="form-control ps-5 pe-5" 
+                        placeholder="🔍 ابحث عن منتج بالاسم أو الكود (SKU)..." 
+                        value="{{ search_title or '' }}"
+                        style="border-color: #2d0b36; border-radius: 10px; height: 50px;"
+                    >
+                    <!-- ✅ زر مسح البحث -->
+                    <button type="button" id="clearSearchBtn" class="btn btn-link position-absolute top-50 end-0 translate-middle-y me-2" 
+                            style="display: {{ 'block' if search_title else 'none' }}; color: #6c757d; text-decoration: none; padding: 0; font-size: 1.2rem;"
+                            onclick="clearSearch()">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                </div>
+            </form>
+            <!-- ✅ رسالة نتائج البحث -->
+            {% if search_title %}
+            <div class="mt-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 8px 16px; border-radius: 20px;">
+                        <i class="fas fa-search me-1"></i> نتائج البحث عن: "{{ search_title }}"
+                    </span>
+                </div>
+                <a href="{{ url_for('suppliers_product.suppliers_product') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 6px 18px;">
+                    <i class="fas fa-arrow-right me-1"></i> عرض الكل
+                </a>
             </div>
+            {% endif %}
         </div>
     </div>
+
+    <!-- ✅ عرض المنتجات كبطاقات (Cards) -->
+    <div class="row g-4">
+        {% if products.items %}
+            {% for item in products.items %}
+            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden">
+                    
+                    <!-- شريط الحالة العلوي -->
+                    <div class="position-absolute top-0 start-0 m-3 z-index-2">
+                        <span class="badge bg-gradient-{{ 'success' if item.product.status == 'PUBLISHED' else 'secondary' }} shadow-sm px-3 py-2" style="font-size: 0.75rem; border-radius: 20px;">
+                            {{ get_status_text(item.product.status) }}
+                        </span>
+                    </div>
+
+                    <!-- صورة المنتج -->
+                    <div class="product-img-wrapper text-center bg-light p-3 position-relative" style="height: 200px; overflow: hidden;">
+                        <img src="{{ item.product.images[0].url if item.product.images else url_for('static', filename='img/default-product.png') }}" 
+                             class="img-fluid h-100 w-100 object-fit-cover rounded-3" 
+                             alt="product"
+                             style="transition: transform 0.3s ease;">
+                    </div>
+
+                    <!-- تفاصيل البطاقة -->
+                    <div class="card-body d-flex flex-column p-4">
+                        <div class="mb-2">
+                            <span class="text-xs text-muted font-weight-bold">SKU: {{ item.product.sku }}</span>
+                            <h5 class="card-title fw-bold text-dark text-truncate mb-1" title="{{ item.product.title }}" style="font-size: 1.05rem;">
+                                {{ item.product.title }}
+                            </h5>
+                        </div>
+
+                        <!-- السعر والكمية بتنسيق مميز -->
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
+                            <div>
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">السعر</small>
+                                <span class="fw-bolder fs-6" style="color: #2d0b36;">{{ format_price(item.product.price) }}</span>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">الكمية</small>
+                                <span class="badge bg-light text-dark border px-2 py-1 fw-bold">
+                                    <i class="fas fa-boxes text-muted me-1"></i> {{ item.product.quantity }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- زر التعديل -->
+                        <div class="mt-3">
+                            <a href="{{ url_for('suppliers_product.edit_product', qid=item.product.qid) }}" 
+                               class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none"
+                               style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 10px; border: none; transition: all 0.3s ease;">
+                                <i class="fas fa-edit"></i> تعديل المنتج
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="card shadow-sm border-0 text-center py-5 rounded-4">
+                    <div class="card-body">
+                        <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-50"></i>
+                        <h5 class="text-secondary mb-1">لا توجد منتجات مضافة حتى الآن</h5>
+                        <p class="text-muted small">ابدأ برفع منتجك الأول لتظهر البطاقات هنا.</p>
+                        <a href="{{ url_for('suppliers_product.add_product') }}" class="btn mt-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                            <i class="fas fa-plus me-1"></i> رفع منتج جديد
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ✅ نظام التقليب بين الصفحات (Pagination) -->
+    {% if products.pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-5">
+        <ul class="pagination justify-content-center">
+            <!-- زر السابق -->
+            <li class="page-item {{ 'disabled' if not products.has_prev else '' }}">
+                <a class="page-link shadow-none" href="{{ url_for('suppliers_product.suppliers_product', page=products.prev_num, title=search_title) }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo; السابق</span>
+                </a>
+            </li>
+
+            <!-- أرقام الصفحات -->
+            {% for page_num in products.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {{ 'active' if page_num == products.page else '' }}">
+                        <a class="page-link shadow-none" href="{{ url_for('suppliers_product.suppliers_product', page=page_num, title=search_title) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+            {% endfor %}
+
+            <!-- زر التالي -->
+            <li class="page-item {{ 'disabled' if not products.has_next else '' }}">
+                <a class="page-link shadow-none" href="{{ url_for('suppliers_product.suppliers_product', page=products.next_num, title=search_title) }}" aria-label="Next">
+                    <span aria-hidden="true">التالي &raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
 </div>
+
+<!-- ✅ سكريبت البحث التفاعلي -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearSearchBtn');
+
+    function toggleClearBtn() {
+        if (clearBtn && searchInput) {
+            clearBtn.style.display = searchInput.value.length > 0 ? 'block' : 'none';
+        }
+    }
+
+    window.clearSearch = function() {
+        if (searchInput) {
+            searchInput.value = '';
+            toggleClearBtn();
+            window.location.href = "{{ url_for('suppliers_product.suppliers_product') }}";
+        }
+    };
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            toggleClearBtn();
+        });
+    }
+
+    toggleClearBtn();
+});
+</script>
+
+<!-- ✅ تنسيقات CSS مخصصة للبطاقات والترقيم -->
+<style>
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(45, 11, 54, 0.12) !important;
+}
+.product-card:hover .product-img-wrapper img {
+    transform: scale(1.05);
+}
+.object-fit-cover {
+    object-fit: cover;
+}
+.form-control:focus {
+    border-color: #2d0b36 !important;
+    box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.25) !important;
+}
+/* تنسيق أزرار التقليب بالهوية البنفسجية والذهبية */
+.pagination .page-item .page-link {
+    color: #2d0b36;
+    border-radius: 8px;
+    margin: 0 3px;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+.pagination .page-item.active .page-link {
+    background-color: #2d0b36 !important;
+    border-color: #2d0b36 !important;
+    color: #D4AF37 !important;
+    box-shadow: 0 4px 10px rgba(45, 11, 54, 0.2);
+}
+.pagination .page-item .page-link:hover {
+    background-color: rgba(45, 11, 54, 0.08);
+    color: #2d0b36;
+}
+</style>
+
 {% endblock %}
