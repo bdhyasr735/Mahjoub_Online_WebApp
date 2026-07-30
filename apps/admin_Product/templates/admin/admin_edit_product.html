@@ -7,10 +7,7 @@
 <!-- ✅ TinyMCE Editor -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"></script>
 
-<!-- ✅ ملف CSS الخاص بالتحرير (مسار حقيقي لمجلد static الخاص بالتطبيق) -->
-<link rel="stylesheet" href="{{ url_for('admin_product_bp.static', filename='admin_edit_product.css') }}">
-
-<!-- ✅ إضافة ملفات تنسيق Tom Select للبحث المتقدم في المورد -->
+<!-- ✅ إضافة ملفات تنسيق Tom Select للبحث المتقدم في المورد (ملف CSS ضروري للمكتبة) -->
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 
 <style>
@@ -57,7 +54,7 @@ input.tabular-nums {
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
-        <!-- ✅ جميع الأجزاء (Partials) -->
+        <!-- ✅ جميع الأجزاء (Partials) - لاحظ أننا نستخدم الملفات المدمجة -->
         <div class="edit-sections">
             {% include "admin/partials/edit/_basic_info.html" %}
             {% include "admin/partials/edit/_description.html" %}
@@ -71,7 +68,7 @@ input.tabular-nums {
     </form>
 </div>
 
-<!-- ✅ ملف JavaScript الخاص بالتحرير (مسار حقيقي) -->
+<!-- ✅ ملف JavaScript الخاص بالتحرير (المحرك الوحيد الذي لا نستغني عنه) -->
 <script src="{{ url_for('admin_product_bp.static', filename='admin_edit_product.js') }}"></script>
 
 <!-- ✅ إضافة مكتبة Tom Select وتشغيلها -->
@@ -119,7 +116,7 @@ input.tabular-nums {
 </script>
 
 <style>
-/* ✅ أنماط إضافية للرأس */
+/* ✅ أنماط إضافية خاصة بالرأس (Header) */
 .edit-header {
     display: flex;
     flex-wrap: wrap;
