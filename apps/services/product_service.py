@@ -230,16 +230,13 @@ class ProductService:
 
     def update_product_data(self, input_data: dict) -> dict:
         """تعديل معلومات المنتج (بدون الحالة - لاستخدام دالة الحالة المنفصلة)"""
-        # إزالة qid من بيانات الإدخال لأنه يُمرر بشكل منفصل
         qid = input_data.get('qid')
         if not qid:
             print("❌ [ProductService] qid مفقود في update_product_data")
             return {}
 
-        # تحضير كائن الإدخال (دون qid)
         update_info_input = {k: v for k, v in input_data.items() if k != 'qid'}
 
-        # ✅ تم التصحيح النهائي بناءً على الساندبوكس
         query = """
         mutation UpdateProductInfo($id: String!, $input: UpdateProductInfo!) {
             updateProductInfo(id: $id, updateProductInfoInput: $input) {
@@ -277,4 +274,26 @@ class ProductService:
             return {}
         except Exception as e:
             print(f"❌ [ProductService] خطأ في تحديث الحالة: {e}")
+            return {}
+
+    # ============================================================
+    # ✅ دالة تحديث التسعير والسعر (المضافة حديثاً)
+    # ============================================================
+    def update_product_pricing(self, product_qid: str, pricing_input: dict) -> dict:
+        """تحديث تسعير المنتج باستخدام updateProductPricing"""
+        query = """
+        mutation UpdateProductPricing($id: ID!, $input: UpdateProductPricingInput!) {
+            updateProductPricing(id: $id, input: $input) {
+                success
+                message
+            }
+        }
+        """
+        try:
+            data = self.client.execute(query, {"id": product_qid, "input": pricing_input})
+            if data and "updateProductPricing" in data:
+                return data["updateProductPricing"]
+            return {}
+        except Exception as e:
+            print(f"❌ [ProductService] خطأ في تحديث السعر: {e}")
             return {}
