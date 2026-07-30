@@ -23,7 +23,8 @@ ADMIN_MODULES = {}
 SUPPLIER_MODULES = {}
 
 def create_app():
-    app = Flask(__name__)
+    # ✅ تم التعديل: إضافة static_folder='../static' ليجد التطبيق المجلد الجذري للـ static
+    app = Flask(__name__, static_folder='../static')
     app.config.from_object('config.Config')
     config.Config.validate_config()
 
