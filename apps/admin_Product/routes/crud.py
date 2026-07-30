@@ -146,7 +146,7 @@ def edit_product():
 @admin_product_bp.route('/products/save-sync', methods=['POST'])
 @login_required
 def save_sync_product():
-    """حفظ المنتج مع مزامنة المتغيرات والحالة (محسن)"""
+    """حفظ المنتج مع مزامنة المتغيرات والحالة (محسن ومجزأ ليتوافق مع الـ API)"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         return jsonify({"status": "error", "message": "غير مصرح"}), 403
@@ -162,7 +162,6 @@ def save_sync_product():
         status = raw_status.upper() if raw_status else 'DRAFT'
         sku = request.form.get('sku', '')
         supplier_id = request.form.get('supplier_id')
-        quantity = request.form.get('quantity', 0)
         
         seo_title = request.form.get('seo_title', '')
         seo_description = request.form.get('seo_description', '')
@@ -181,7 +180,7 @@ def save_sync_product():
         collection_ids = request.form.getlist('collection_ids')
 
         # ============================================================
-        # ✅ 1. حفظ المورد محلياً (منفصل تماماً وقبل أي اتصال بقمرة)
+        # ✅ 1. حفظ المورد محلياً
         # ============================================================
         try:
             supplier_id_clean = int(supplier_id) if supplier_id and supplier_id.strip() else None
@@ -191,12 +190,9 @@ def save_sync_product():
                 if mapping:
                     db.session.delete(mapping)
                     db.session.commit()
-                    print(f"ℹ️ [Supplier] تم إلغاء ربط المورد عن المنتج {qid}")
             else:
                 supplier = Supplier.query.get(supplier_id_clean)
-                if not supplier:
-                    print(f"⚠️ [Supplier] المورد برقم {supplier_id_clean} غير موجود")
-                else:
+                if supplier:
                     if mapping:
                         mapping.supplier_id = supplier_id_clean
                         mapping.status = 'active'
@@ -209,65 +205,67 @@ def save_sync_product():
                         )
                         db.session.add(mapping)
                     db.session.commit()
-                    print(f"ℹ️ [Supplier] تم ربط المنتج {qid} بالمورد {supplier.trade_name}")
         except Exception as db_err:
             db.session.rollback()
             print(f"⚠️ [Supplier] خطأ أثناء حفظ المورد: {db_err}")
 
         # ============================================================
-        # ✅ 2. تحديث البيانات الأساسية (رفع لقمرة) - لا يمنع من حفظ المورد حتى لو فشل
+        # ✅ 2. تحديث البيانات عبر الـ Mutations المجزأة للـ GraphQL
         # ============================================================
-        update_data = {
-            'qid': qid,
-            'name': title,
-            'price': price,
-            'description': description,
-            'quantity': int(quantity) if quantity else 0,
-            'seo': {
-                'title': seo_title,
-                'description': seo_description,
-                'keywords': seo_keywords
-            }
-        }
-        if sku:
-            update_data['sku'] = sku
-        if compare_price is not None:
-            update_data['compareAtPrice'] = compare_price
-        if collection_ids:
-            update_data['collectionIds'] = collection_ids
-
-        # معالجة المتغيرات من الواجهة
+        
+        # أ. تحديث المعلومات الأساسية (الاسم والـ SKU)
         try:
-            variants_payload_str = request.form.get('variants_payload', '{}')
-            if variants_payload_str and variants_payload_str != '{}' and variants_payload_str != '{"input":{}}':
-                variants_data = json.loads(variants_payload_str)
-                if variants_data and isinstance(variants_data, dict):
-                    input_data = variants_data.get('input', variants_data)
-                    if isinstance(input_data, dict):
-                        if 'options' in input_data:
-                            update_data['options'] = input_data['options']
-                        if 'variants' in input_data:
-                            update_data['variants'] = input_data['variants']
+            if hasattr(services.products, 'update_product_info'):
+                services.products.update_product_info(qid, {"title": title, "sku": sku})
         except Exception as e:
-            print(f"⚠️ [Warning] تعذر قراءة المتغيرات: {e}")
+            print(f"⚠️ [Warning] فشل تحديث معلومات المنتج: {e}")
 
-        # محاولة رفع المنتج لقمرة (حتى لو فشلت، المورد قد حُفظ بالفعل)
-        result = services.products.update_product_data(update_data)
-        if not result:
-            # نعطي تحذير لكن نكمل لأن المورد حُفظ
-            print(f"⚠️ [Warning] فشل رفع معلومات المنتج لقمرة: {result}")
-
-        # تحديث الحالة
+        # ب. تحديث الوصف
         try:
-            status_result = services.products.update_product_status(qid, status)
-            if not status_result or not status_result.get('success'):
-                print(f"⚠️ [Warning] فشل تحديث الحالة إلى {status}")
+            if hasattr(services.products, 'update_product_description'):
+                services.products.update_product_description(qid, description)
+        except Exception as e:
+            print(f"⚠️ [Warning] فشل تحديث وصف المنتج: {e}")
+
+        # ج. تحديث التسعير
+        try:
+            if hasattr(services.products, 'update_product_pricing'):
+                pricing_data = {"price": price}
+                if compare_price is not None:
+                    pricing_data["compareAtPrice"] = compare_price
+                services.products.update_product_pricing(qid, pricing_data)
+        except Exception as e:
+            print(f"⚠️ [Warning] فشل تحديث التسعير: {e}")
+
+        # د. تحديث الـ SEO
+        try:
+            if hasattr(services.products, 'update_product_seo'):
+                services.products.update_product_seo(qid, {
+                    "title": seo_title,
+                    "description": seo_description,
+                    "keywords": seo_keywords
+                })
+        except Exception as e:
+            print(f"⚠️ [Warning] فشل تحديث الـ SEO: {e}")
+
+        # هـ. تحديث المجموعات
+        if collection_ids:
+            try:
+                if hasattr(services.products, 'update_product_collection'):
+                    services.products.update_product_collection(qid, collection_ids)
+            except Exception as e:
+                print(f"⚠️ [Warning] فشل تحديث مجموعات المنتج: {e}")
+
+        # و. تحديث الحالة
+        try:
+            if hasattr(services.products, 'update_product_status'):
+                services.products.update_product_status(qid, status)
         except Exception as e:
             print(f"⚠️ [Warning] حدث خطأ أثناء تحديث الحالة: {e}")
 
         return jsonify({
             "status": "success", 
-            "message": "تم حفظ المنتج والمتغيرات والمورد بنجاح!"
+            "message": "تم حفظ وتحديث المنتج بنجاح!"
         })
 
     except Exception as e:
