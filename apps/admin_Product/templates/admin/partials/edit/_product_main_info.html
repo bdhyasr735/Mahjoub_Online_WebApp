@@ -119,9 +119,9 @@
             <label for="supplierId" class="form-label">
                 <i class="fas fa-store text-gold me-1"></i> المورد
             </label>
-            <!-- إخفاء القائمة الأصلية تماماً -->
+            <!-- ✅ تم إخفاء القائمة الأصلية وإضافة تنسيقات لمنع التداخل -->
             <select id="supplierSelect" name="supplier_id" class="form-select form-select-lg custom-input" 
-                    placeholder="ابحث عن المورد..." style="display: none !important;">
+                    placeholder="ابحث عن المورد..." style="display: none !important; visibility: hidden !important; height: 0 !important; width: 0 !important;">
                 <option value="">-- غير مرتبط --</option>
                 {% for supplier in suppliers %}
                 <option value="{{ supplier.id }}" {% if assigned_supplier_id == supplier.id %}selected{% endif %}>
@@ -199,20 +199,12 @@
 }
 
 /* تنسيق حقول الأرقام */
-.numeric-input {
-    direction: ltr;      /* اجبار الأرقام على الكتابة من اليسار */
-    text-align: right;    /* محاذاة الأرقام لليمين */
-    letter-spacing: 0.5px;
-}
-.numeric-input:focus {
-    border-color: #D4AF37; 
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
-}
+.numeric-input { direction: ltr; text-align: right; letter-spacing: 0.5px; }
+.numeric-input:focus { border-color: #D4AF37; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15); }
 
 /* إخفاء الأسهم الصغيرة */
 .removeArrows { -moz-appearance: textfield !important; appearance: textfield !important; }
-.removeArrows::-webkit-outer-spin-button,
-.removeArrows::-webkit-inner-spin-button {
+.removeArrows::-webkit-outer-spin-button, .removeArrows::-webkit-inner-spin-button {
     -webkit-appearance: none !important; margin: 0 !important;
 }
 
@@ -220,12 +212,6 @@
 .ts-wrapper {
     width: 100% !important;
     position: relative !important;
-}
-
-/* تأكد من أن الحاوية الأصلية لا تقطع القائمة المنسدلة */
-.col-md-6 .form-group,
-.col-md-6 {
-    overflow: visible !important;
 }
 
 .ts-control {
@@ -255,13 +241,8 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
     margin-top: -2px !important;
 }
-.ts-dropdown .option.active {
-    background-color: #2d0b36 !important;
-    color: #D4AF37 !important;
-}
-.ts-wrapper .item {
-    color: #1e293b !important;
-}
+.ts-dropdown .option.active { background-color: #2d0b36 !important; color: #D4AF37 !important; }
+.ts-wrapper .item { color: #1e293b !important; }
 
 .summary-box {
     padding: 16px 20px; background: linear-gradient(135deg, #faf8f6, #ffffff);
@@ -295,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 placeholder: 'ابحث عن المورد هنا...',
                 searchField: ['text'],
                 maxOptions: 10,
-                dropdownParent: document.body  // يضمن أن القائمة تطفو فوق الصفحة
+                dropdownParent: document.body
             });
             console.log('✅ Tom Select (المورد) تم تفعيله بنجاح');
         }
