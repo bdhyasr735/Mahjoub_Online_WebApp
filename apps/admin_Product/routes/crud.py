@@ -1,6 +1,5 @@
 # coding: utf-8
 # apps/admin_Product/routes/crud.py
-# إضافة - تعديل - حذف المنتجات
 
 from flask import render_template, request, jsonify, redirect, url_for, flash, session
 from flask_login import login_required
@@ -28,8 +27,6 @@ def add_product():
         try:
             raw_price = request.form.get('price')
             price_val = float(raw_price) if raw_price else 0.0
-
-            # ✅ تحويل الحالة إلى أحرف كبيرة ليتوافق مع السيرفر
             raw_status = request.form.get('status', 'DRAFT')
             status = raw_status.upper() if raw_status else 'DRAFT'
             
@@ -74,7 +71,7 @@ def add_product():
 @admin_product_bp.route('/products/edit', methods=['GET'])
 @login_required
 def edit_product():
-    """عرض صفحة تعديل المنتج مع معالجة آمنة للمتغيرات والخيارات"""
+    """عرض صفحة تعديل المنتج"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
@@ -86,14 +83,12 @@ def edit_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
     
-    # 1. جلب المنتج الأساسي
     product = services.products.get_product_by_qid(qid)
-    
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
-    # 2. استخراج المعالجة الآمنة للخيارات (Options)
+    # تنظيف الخيارات (Options) واستخراجها بشكل آمن
     raw_options = []
     if isinstance(product, dict):
         raw_options = product.get('options', [])
@@ -110,7 +105,6 @@ def edit_product():
         except Exception as e:
             print(f"⚠️ [Edit Product] تعذر جلب الخيارات عبر خدمة variants: {e}")
 
-    # تنظيف الخيارات
     cleaned_options = []
     if isinstance(raw_options, list):
         for opt in raw_options:
@@ -130,7 +124,6 @@ def edit_product():
     else:
         setattr(product, 'options', cleaned_options)
 
-    # 3. جلب بيانات إضافية
     suppliers = Supplier.query.filter_by(status='active').all()
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     assigned_supplier_id = mapping.supplier_id if mapping else None
@@ -153,7 +146,7 @@ def edit_product():
 @admin_product_bp.route('/products/save-sync', methods=['POST'])
 @login_required
 def save_sync_product():
-    """معالجة وحفظ البيانات مع مزامنة المتغيرات (نسخة آمنة 100% ضد الأخطاء)"""
+    """حفظ المنتج مع مزامنة المتغيرات والحالة"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         return jsonify({"status": "error", "message": "غير مصرح"}), 403
@@ -165,9 +158,10 @@ def save_sync_product():
 
         title = request.form.get('title', '')
         description = request.form.get('description', '')
-        # ✅ تحويل الحالة إلى أحرف كبيرة
+        
         raw_status = request.form.get('status', 'DRAFT')
         status = raw_status.upper() if raw_status else 'DRAFT'
+        
         sku = request.form.get('sku', '')
         supplier_id = request.form.get('supplier_id')
         quantity = request.form.get('quantity', 0)
@@ -188,12 +182,11 @@ def save_sync_product():
 
         collection_ids = request.form.getlist('collection_ids')
 
-        # ✅ إزالة 'status' من update_data لأنه سيتم تحديثه بشكل منفصل
+        # تجهيز بيانات التحديث الأساسية (بدون حالة المنتج)
         update_data = {
             'qid': qid,
             'name': title,
             'price': price,
-            # 'status': status, // تم الحذف
             'description': description,
             'quantity': int(quantity) if quantity else 0,
             'seo': {
@@ -212,7 +205,7 @@ def save_sync_product():
         if collection_ids:
             update_data['collectionIds'] = collection_ids
 
-        # ✅ معالجة آمنة لبيانات المتغيرات والخيارات
+        # معالجة المتغيرات والخيارات من الواجهة
         try:
             variants_payload_str = request.form.get('variants_payload', '{}')
             if variants_payload_str and variants_payload_str != '{}' and variants_payload_str != '{"input":{}}':
@@ -227,13 +220,12 @@ def save_sync_product():
         except Exception as e:
             print(f"⚠️ [Warning] تعذر قراءة المتغيرات، ولكن عملية الحفظ مستمرة: {e}")
 
-        # ✅ 1. تحديث المعلومات الأساسية أولاً
+        # تحديث البيانات الأساسية
         result = services.products.update_product_data(update_data)
-
         if not result:
             return jsonify({"status": "error", "message": "فشل حفظ التعديلات في الخدمة."}), 500
 
-        # ✅ 2. تحديث الحالة بشكل منفصل (استخدام الدالة الجديدة)
+        # تحديث حالة المنتج بشكل منفصل
         try:
             status_result = services.products.update_product_status(qid, status)
             if not status_result or not status_result.get('success'):
@@ -241,7 +233,7 @@ def save_sync_product():
         except Exception as e:
             print(f"⚠️ [Warning] حدث خطأ أثناء تحديث الحالة: {e}")
 
-        # ✅ 3. ربط المورد
+        # ربط المنتج بالمورد
         if supplier_id:
             try:
                 supplier_id_int = int(supplier_id)
@@ -296,13 +288,12 @@ def save_sync_product():
 @admin_product_bp.route('/products/delete/<qid>', methods=['POST'])
 @login_required
 def delete_product(qid):
-    """حذف المنتج من النظام"""
+    """حذف وأرشفة المنتج من النظام"""
     try:
         user_type = session.get('user_type')
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # ✅ استخدام القيمة الصحيحة التي يقبلها السيرفر
         result = services.products.update_product_data({"qid": qid, "status": "ARCHIVED"})
         
         if result:
