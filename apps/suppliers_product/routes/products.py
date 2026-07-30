@@ -19,125 +19,114 @@ def manage_supplier_products_view():
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
         
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
+        per_page = 12  # 12 منتج في الصفحة لتناسب تصميم الـ Cards
         search_query = request.args.get('title', '', type=str)
-        ajax = request.args.get('ajax', 0, type=int)
         
+        # جلب المنتجات المخصصة للمورد
         if user_type != 'admin' and supplier_id:
             supplier_mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
             supplier_qids = [m.product_qid for m in supplier_mappings]
             
             all_products = services.products.fetch_all_products_for_search() if hasattr(services.products, 'fetch_all_products_for_search') else []
             filtered_by_supplier = [p for p in all_products if p.get('qid') in supplier_qids]
-            
-            if search_query:
-                filtered = [p for p in filtered_by_supplier if search_query.lower() in p.get('title', '').lower()]
-            else:
-                filtered = filtered_by_supplier
-            
-            total_products = len(filtered)
-            total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
-            
-            if page > total_pages:
-                page = total_pages
-            
-            start = (page - 1) * per_page
-            end = start + per_page
-            products = filtered[start:end]
-            
-            pagination_info = {
-                'totalItems': total_products,
-                'totalPages': total_pages,
-                'currentPage': page,
-                'hasNextPage': page < total_pages,
-                'hasPrevPage': page > 1
-            }
         else:
-            if search_query:
-                all_products = services.products.fetch_all_products_for_search()
-                filtered = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
-                total_products = len(filtered)
-                total_pages = (total_products + per_page - 1) // per_page if total_products > 0 else 1
-                
-                if page > total_pages:
-                    page = total_pages
-                
-                start = (page - 1) * per_page
-                end = start + per_page
-                products = filtered[start:end]
-                
-                pagination_info = {
-                    'totalItems': total_products,
-                    'totalPages': total_pages,
-                    'currentPage': page,
-                    'hasNextPage': page < total_pages,
-                    'hasPrevPage': page > 1
-                }
-            else:
-                result = services.products.get_products_page(page)
-                products = result.get('data', [])
-                pagination_info = result.get('pagination', {})
-                total_products = pagination_info.get('totalItems', 0)
-                total_pages = pagination_info.get('totalPages', 1)
+            filtered_by_supplier = services.products.fetch_all_products_for_search() if hasattr(services.products, 'fetch_all_products_for_search') else []
+
+        # تصفية حسب البحث
+        if search_query:
+            filtered = [p for p in filtered_by_supplier if search_query.lower() in p.get('title', '').lower() or search_query.lower() in str(p.get('sku', '')).lower()]
+        else:
+            filtered = filtered_by_supplier
+
+        # حساب الإحصائيات
+        total_products = len(filtered_by_supplier)
+        active_products = len([p for p in filtered_by_supplier if p.get('status', '').upper() == 'PUBLISHED'])
+        draft_products = len([p for p in filtered_by_supplier if p.get('status', '').upper() == 'DRAFT'])
+
+        # التقليب اليدوي (Pagination Simulation للـ List)
+        total_items = len(filtered)
+        total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+        if page > total_pages:
+            page = total_pages
         
-        for product in products:
-            mapping = ProductSupplierMapping.query.filter_by(product_qid=product.get('qid')).first()
-            if mapping:
-                supplier = Supplier.query.get(mapping.supplier_id)
-                product['supplier_name'] = supplier.trade_name if supplier else 'غير معروف'
-                product['supplier_id'] = mapping.supplier_id
-            else:
-                product['supplier_name'] = 'غير مرتبط'
-                product['supplier_id'] = None
-        
-        pagination_data = {
-            "currentPage": pagination_info.get('currentPage', page),
-            "totalPages": pagination_info.get('totalPages', total_pages),
-            "limit": len(products),
-            "totalItems": pagination_info.get('totalItems', total_products),
-            "perPage": per_page,
-            "hasPrev": pagination_info.get('hasPrevPage', page > 1),
-            "hasNext": pagination_info.get('hasNextPage', page < total_pages)
-        }
-        
-        if ajax:
-            return render_template(
-                'suppliers/includes/_table_supplier_products.html',
-                products=products,
-                search_title=search_query,
-                pagination=pagination_data
-            )
-        
+        start = (page - 1) * per_page
+        end = start + per_page
+        current_page_items = filtered[start:end]
+
+        # تغليف المنتجات بالشكل الذي يطلبه القالب (item.product)
+        wrapped_items = []
+        for prod in current_page_items:
+            wrapped_items.append({'product': prod})
+
+        # كائن Pagination يحاكي Flask-SQLAlchemy لتوافق الدوال في القالب
+        class PaginationMock:
+            def __init__(self, items, page, per_page, total):
+                self.items = items
+                self.page = page
+                self.per_page = per_page
+                self.total = total
+                self.pages = (total + per_page - 1) // per_page if total > 0 else 1
+                self.has_prev = page > 1
+                self.has_next = page < self.pages
+                self.prev_num = page - 1 if self.has_prev else None
+                self.next_num = page + 1 if self.has_next else None
+
+            def iter_pages(self, left_edge=2, right_edge=2, left_current=2, right_current=2):
+                last = 0
+                for num in range(1, self.pages + 1):
+                    if num <= left_edge or \
+                       (num > self.page - left_current - 1 and num < self.page + right_current) or \
+                       num > self.pages - right_edge:
+                        if last + 1 != num:
+                            yield None
+                        yield num
+                        last = num
+
+        pagination_obj = PaginationMock(wrapped_items, page, per_page, total_items)
+
+        # دوال مساعدة للقالب
+        def get_status_text(status):
+            mapping_status = {
+                'PUBLISHED': 'منشور',
+                'DRAFT': 'مسودة',
+                'REJECTED': 'مرفوض',
+                'ARCHIVED': 'مؤرشف'
+            }
+            return mapping_status.get(status, status)
+
+        def format_price(price):
+            try:
+                return f"{float(price):,.2f} ر.ي"
+            except:
+                return price
+
         return render_template(
-            'suppliers/supplier_products.html',
-            products=products,
+            'suppliers/suppliers_product.html',
+            products=pagination_obj,
+            total_products=total_products,
+            active_products=active_products,
+            draft_products=draft_products,
             search_title=search_query,
-            pagination=pagination_data
+            get_status_text=get_status_text,
+            format_price=format_price
         )
         
     except Exception as e:
         print("❌ خطأ تفصيلي في manage_supplier_products_view:")
         traceback.print_exc()
         flash(f'❌ حدث خطأ في تحميل المنتجات: {str(e)}', 'danger')
-        
-        if request.args.get('ajax', 0, type=int):
-            return '<div class="alert alert-danger">حدث خطأ في تحميل المنتجات</div>'
-        
         return render_template(
-            'suppliers/supplier_products.html',
-            products=[],
-            search_title=request.args.get('title', ''),
-            pagination={
-                "currentPage": 1, 
-                "totalPages": 1, 
-                "limit": 0, 
-                "totalItems": 0,
-                "hasPrev": False,
-                "hasNext": False
-            }
+            'suppliers/suppliers_product.html',
+            products=None,
+            total_products=0,
+            active_products=0,
+            draft_products=0,
+            search_title="",
+            get_status_text=lambda s: s,
+            format_price=lambda p: p
         )
 
 
 def register_supplier_products_route(bp):
-    bp.add_url_rule('/products', view_func=manage_supplier_products_view, methods=['GET'])
+    bp.add_url_rule('/products', view_func=manage_supplier_products_view, methods=['GET'], endpoint='suppliers_product')
     return bp
