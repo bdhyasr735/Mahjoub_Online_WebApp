@@ -315,13 +315,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof TomSelect !== 'undefined') {
         const supplierSelect = document.getElementById('supplierSelect');
         if (supplierSelect) {
-            // تهيئة Tom Select مع ضمان ظهور القائمة فوق الحقل فقط
+            // ✅ التعديل النهائي: إضافة dropdownParent مع ضبط العرض
             new TomSelect(supplierSelect, {
                 plugins: ['remove_button'],
                 placeholder: 'ابحث عن المورد هنا...',
                 searchField: ['text'],
                 maxOptions: 10,
-                dropdownParent: document.body
+                dropdownParent: document.body // هذا يضمن أن القائمة تطفو فوق الحقل فقط
             });
             console.log('✅ Tom Select (المورد) تم تفعيله بنجاح');
         }
