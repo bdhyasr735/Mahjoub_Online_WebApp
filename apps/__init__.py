@@ -180,7 +180,7 @@ def create_app():
         if not path.startswith(admin_login_path):
             return redirect(admin_login_path)
 
-    # ✅ (مُعدل) إعداد السياسة الأمنية (CSP) مع إضافة النطاق المطلوب
+    # ✅ إعداد السياسة الأمنية (CSP) مع إضافة جميع النطاقات المطلوبة
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
@@ -188,8 +188,15 @@ def create_app():
             'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
             'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com"],
             'img-src': ["'self'", "data:", "https://*"],
-            # ✅ تم إضافة https://mahjoub.online هنا لحل مشكلة اتصال الـ GraphQL
-            'connect-src': ["'self'", "https://ckeditor.com", "https://*.ckeditor.com", "https://mahjoub.online"]
+            # ✅ تم إضافة النطاقات التي يمنعها السيرفر حالياً
+            'connect-src': [
+                "'self'", 
+                "https://ckeditor.com", 
+                "https://*.ckeditor.com", 
+                "https://mahjoub.online",
+                "https://cdn.jsdelivr.net", 
+                "https://cdnjs.cloudflare.com"
+            ]
         },
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
