@@ -54,11 +54,19 @@ def sync_supplier_products():
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
     
     try:
-        # ✅ جلب المنتجات الخاصة بالمورد (يمكن تمرير معرف المورد للخدمة إذا لزم الأمر)
-        result = services.products.get_all_products() or {}
-        external_products = result.get('data', [])
+        # ✅ جلب المنتجات من الخدمات (دعم الطريقتين لضمان نجاح الجلب)
+        result = services.products.get_all_products() if hasattr(services.products, 'get_all_products') else {}
+        if isinstance(result, dict):
+            external_products = result.get('data', []) or result.get('products', [])
+        elif isinstance(result, list):
+            external_products = result
+        else:
+            external_products = services.products.fetch_all_products_for_search() if hasattr(services.products, 'fetch_all_products_for_search') else []
         
         if not external_products:
+            if request.method == 'GET':
+                flash('ℹ️ لا توجد منتجات جديدة للمزامنة', 'info')
+                return redirect(url_for('suppliers_product_bp.manage_supplier_products_view'))
             return jsonify({
                 'success': True,
                 'message': 'ℹ️ لا توجد منتجات جديدة للمزامنة',
@@ -82,7 +90,6 @@ def sync_supplier_products():
                 # التحقق هل المنتج مرتبط بهذا المورد أو مسجل في النظام
                 mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
                 
-                # إذا كان مخصصاً للموردين، يمكنك تصفية المنتجات التي تخص المورد الحالي فقط هنا إذا رغبت
                 if supplier_id and hasattr(mapping, 'supplier_id') and mapping.supplier_id:
                     if str(mapping.supplier_id) != str(supplier_id) and user_type != 'admin':
                         continue # تخطي المنتجات التي لا تخص هذا المورد
@@ -90,6 +97,12 @@ def sync_supplier_products():
                 synced_count += 1
                 if not mapping:
                     created_count += 1
+                    # ربط المنتج تلقائياً بالمورد الحالي إذا لم يكن مربوطاً
+                    if supplier_id and user_type == 'supplier':
+                        new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
+                        from apps.extensions import db
+                        db.session.add(new_mapping)
+                        db.session.commit()
                 else:
                     updated_count += 1
                     
@@ -101,7 +114,7 @@ def sync_supplier_products():
         
         if request.method == 'GET':
             flash(f'✅ تمت المزامنة: {synced_count} منتج (جديد: {created_count}, محدث: {updated_count})', 'success')
-            return redirect(url_for('suppliers_product_bp.manage_supplier_products'))
+            return redirect(url_for('suppliers_product_bp.manage_supplier_products_view'))
         
         return jsonify({
             'success': True,
@@ -122,4 +135,4 @@ def sync_supplier_products():
             }), 500
         else:
             flash(f'❌ فشل المزامنة: {str(e)}', 'danger')
-            return redirect(url_for('suppliers_product_bp.manage_supplier_products'))
+            return redirect(url_for('suppliers_product_bp.manage_supplier_products_view'))
