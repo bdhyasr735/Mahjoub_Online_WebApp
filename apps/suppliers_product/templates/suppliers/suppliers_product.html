@@ -13,7 +13,7 @@
         </div>
         <div class="d-flex gap-2 mt-2 mt-sm-0">
             <!-- زر الإضافة يطابق الـ Blueprint الصحيح -->
-            <a href="{{ url_for('suppliers_product.add_product') }}" class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
+            <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none;">
                 <i class="fas fa-plus me-1"></i> رفع منتج جديد
             </a>
         </div>
@@ -83,7 +83,7 @@
     <!-- ✅ شريط البحث الاحترافي -->
     <div class="card mb-4 shadow-sm border-0">
         <div class="card-body">
-            <form method="GET" action="{{ url_for('suppliers_product.suppliers_product') }}" id="searchForm">
+            <form method="GET" action="{{ url_for('suppliers_product_bp.manage_supplier_products_view') }}" id="searchForm">
                 <div class="position-relative">
                     <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.9rem;"></i>
                     <input 
@@ -111,7 +111,7 @@
                         <i class="fas fa-search me-1"></i> نتائج البحث عن: "{{ search_title }}"
                     </span>
                 </div>
-                <a href="{{ url_for('suppliers_product.suppliers_product') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 6px 18px;">
+                <a href="{{ url_for('suppliers_product_bp.manage_supplier_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 6px 18px;">
                     <i class="fas fa-arrow-right me-1"></i> عرض الكل
                 </a>
             </div>
@@ -166,7 +166,7 @@
 
                         <!-- زر التعديل -->
                         <div class="mt-3">
-                            <a href="{{ url_for('suppliers_product.edit_product', qid=item.product.qid) }}" 
+                            <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', qid=item.product.qid) }}" 
                                class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none"
                                style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 10px; border: none; transition: all 0.3s ease;">
                                 <i class="fas fa-edit"></i> تعديل المنتج
@@ -183,7 +183,7 @@
                         <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-50"></i>
                         <h5 class="text-secondary mb-1">لا توجد منتجات مضافة حتى الآن</h5>
                         <p class="text-muted small">ابدأ برفع منتجك الأول لتظهر البطاقات هنا.</p>
-                        <a href="{{ url_for('suppliers_product.add_product') }}" class="btn mt-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                        <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn mt-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
                             <i class="fas fa-plus me-1"></i> رفع منتج جديد
                         </a>
                     </div>
@@ -198,7 +198,7 @@
         <ul class="pagination justify-content-center">
             <!-- زر السابق -->
             <li class="page-item {{ 'disabled' if not products.has_prev else '' }}">
-                <a class="page-link shadow-none" href="{{ url_for('suppliers_product.suppliers_product', page=products.prev_num, title=search_title) }}" aria-label="Previous">
+                <a class="page-link shadow-none" href="{{ url_for('suppliers_product_bp.manage_supplier_products_view', page=products.prev_num, title=search_title) }}" aria-label="Previous">
                     <span aria-hidden="true">&laquo; السابق</span>
                 </a>
             </li>
@@ -207,7 +207,7 @@
             {% for page_num in products.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                 {% if page_num %}
                     <li class="page-item {{ 'active' if page_num == products.page else '' }}">
-                        <a class="page-link shadow-none" href="{{ url_for('suppliers_product.suppliers_product', page=page_num, title=search_title) }}">{{ page_num }}</a>
+                        <a class="page-link shadow-none" href="{{ url_for('suppliers_product_bp.manage_supplier_products_view', page=page_num, title=search_title) }}">{{ page_num }}</a>
                     </li>
                 {% else %}
                     <li class="page-item disabled"><span class="page-link">…</span></li>
@@ -216,7 +216,7 @@
 
             <!-- زر التالي -->
             <li class="page-item {{ 'disabled' if not products.has_next else '' }}">
-                <a class="page-link shadow-none" href="{{ url_for('suppliers_product.suppliers_product', page=products.next_num, title=search_title) }}" aria-label="Next">
+                <a class="page-link shadow-none" href="{{ url_for('suppliers_product_bp.manage_supplier_products_view', page=products.next_num, title=search_title) }}" aria-label="Next">
                     <span aria-hidden="true">التالي &raquo;</span>
                 </a>
             </li>
@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (searchInput) {
             searchInput.value = '';
             toggleClearBtn();
-            window.location.href = "{{ url_for('suppliers_product.suppliers_product') }}";
+            window.location.href = "{{ url_for('suppliers_product_bp.manage_supplier_products_view') }}";
         }
     };
 
