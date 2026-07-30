@@ -133,12 +133,28 @@
                         </span>
                     </div>
 
-                    <!-- صورة المنتج -->
+                    <!-- صورة المنتج بمعالجة ذكية للروابط -->
+                    {%- set raw_img = none -%}
+                    {%- if item.product.images and item.product.images|length > 0 -%}
+                        {%- set first_img = item.product.images[0] -%}
+                        {%- if first_img is mapping -%}
+                            {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link or first_img.path -%}
+                        {%- elif first_img is string -%}
+                            {%- set raw_img = first_img -%}
+                        {%- endif -%}
+                    {%- elif item.product.image -%}
+                        {%- set raw_img = item.product.image -%}
+                    {%- elif item.product.thumbnail -%}
+                        {%- set raw_img = item.product.thumbnail -%}
+                    {%- endif -%}
+                    {% set p_img = raw_img or url_for('static', filename='img/default-product.png') %}
+
                     <div class="product-img-wrapper text-center bg-light p-3 position-relative" style="height: 200px; overflow: hidden;">
-                        <img src="{{ item.product.images[0].url if item.product.images else url_for('static', filename='img/default-product.png') }}" 
+                        <img src="{{ p_img }}" 
                              class="img-fluid h-100 w-100 object-fit-cover rounded-3" 
                              alt="product"
-                             style="transition: transform 0.3s ease;">
+                             style="transition: transform 0.3s ease;"
+                             onerror="this.src='{{ url_for('static', filename='img/default-product.png') }}'">
                     </div>
 
                     <!-- تفاصيل البطاقة -->
