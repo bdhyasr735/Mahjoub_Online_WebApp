@@ -1,6 +1,7 @@
 # coding: utf-8
 # 📂 apps/suppliers_product/routes/products.py
 
+import traceback
 from flask import render_template, request, redirect, url_for, flash, session
 from flask_login import login_required
 from apps.services import services
@@ -17,18 +18,15 @@ def manage_supplier_products_view():
             flash('❌ هذا القسم مخصص للموردين فقط', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
         
-        # ✅ جلب معلمات الصفحة والبحث
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         search_query = request.args.get('title', '', type=str)
         ajax = request.args.get('ajax', 0, type=int)
         
-        # إذا لم يكن المستخدم مشرفاً، نقوم بجلب المنتجات الخاصة بالمورد الحالي فقط عبر جدول الربط
         if user_type != 'admin' and supplier_id:
             supplier_mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
             supplier_qids = [m.product_qid for m in supplier_mappings]
             
-            # جلب المنتجات من الـ API وتصفيتها لتقتصر على منتجات المورد
             all_products = services.products.fetch_all_products_for_search() if hasattr(services.products, 'fetch_all_products_for_search') else []
             filtered_by_supplier = [p for p in all_products if p.get('qid') in supplier_qids]
             
@@ -55,7 +53,6 @@ def manage_supplier_products_view():
                 'hasPrevPage': page > 1
             }
         else:
-            # إذا كان المشرف (admin) هو من يتصفح صفحة الموردين، يمكنه رؤية الكل أو التحكم بحسب الحاجة
             if search_query:
                 all_products = services.products.fetch_all_products_for_search()
                 filtered = [p for p in all_products if search_query.lower() in p.get('title', '').lower()]
@@ -82,9 +79,6 @@ def manage_supplier_products_view():
                 pagination_info = result.get('pagination', {})
                 total_products = pagination_info.get('totalItems', 0)
                 total_pages = pagination_info.get('totalPages', 1)
-        
-        print(f"🔍 [DEBUG Supplier Products] Page: {page}, Total: {total_products}, Pages: {total_pages}")
-        print(f"🔍 [DEBUG Supplier Products] Products in this page: {len(products)}")
         
         for product in products:
             mapping = ProductSupplierMapping.query.filter_by(product_qid=product.get('qid')).first()
@@ -122,10 +116,11 @@ def manage_supplier_products_view():
         )
         
     except Exception as e:
-        print(f"❌ خطأ في manage_supplier_products_view: {e}")
+        print("❌ خطأ تفصيلي في manage_supplier_products_view:")
+        traceback.print_exc()
         flash(f'❌ حدث خطأ في تحميل المنتجات: {str(e)}', 'danger')
         
-        if ajax:
+        if request.args.get('ajax', 0, type=int):
             return '<div class="alert alert-danger">حدث خطأ في تحميل المنتجات</div>'
         
         return render_template(
