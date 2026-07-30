@@ -166,32 +166,81 @@ window.deleteProduct = function(qid, name) {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    // ✅ تأثير الحفظ والتوقف عن الدوران وإظهار نافذة "تم الحفظ"
+    // ✅ الحفظ الشامل والمزامنة الحقيقية عبر Fetch لجمع كل الحقول في الصفحة
     const saveBtn = document.getElementById('saveBtn');
     if (saveBtn) {
         saveBtn.addEventListener('click', function(e) {
-            const form = this.closest('form');
-            if (form && form.checkValidity()) {
-                // إظهار الدوران مؤقتاً أثناء المعالجة البسيطة
+            e.preventDefault(); // منع الإرسال التقليدي للنموذج لكي نتحكم بالمزامنة تماماً
+
+            const primaryForm = this.closest('form');
+            if (primaryForm && primaryForm.checkValidity()) {
+                // 1. تفعيل وضع التحميل والدوران
                 this.classList.add('loading');
-                this.innerHTML = `<i class="fas fa-spinner"></i><span>جاري الحفظ...</span><small class="btn-hint">يرجى الانتظار</small>`;
+                this.innerHTML = `<i class="fas fa-spinner"></i><span>جاري المزامنة والحفظ...</span><small class="btn-hint">يرجى الانتظار</small>`;
                 this.disabled = true;
 
-                // بعد جزء من الثانية يتوقف الدوران ويظهر شكل "تم الحفظ" والإشعار الناجح
-                setTimeout(() => {
-                    this.classList.remove('loading');
-                    this.innerHTML = `<i class="fas fa-check-circle"></i><span>تم الحفظ</span><small class="btn-hint">نجاح</small>`;
-                    this.style.background = '#166534'; // لون أخضر هادئ يدل على النجاح
-                    this.style.color = '#ffffff';
-                    
-                    // إظهار نافذة إشعار منبثقة أسفل الشاشة
-                    window.showNotification('تم حفظ التغييرات بنجاح!', 'success');
-                }, 600);
+                // 2. جمع البيانات من جميع النماذج والحقول في الصفحة (الداخلية والخارجية)
+                const masterFormData = new FormData();
+                document.querySelectorAll('form').forEach(form => {
+                    const formData = new FormData(form);
+                    for (const [key, value] of formData.entries()) {
+                        if (key !== 'csrf_token' || !masterFormData.has('csrf_token')) {
+                            masterFormData.append(key, value);
+                        }
+                    }
+                });
 
-                // إرسال النموذج بصورة طبيعية بعد إتمام العرض المرئي
-                setTimeout(() => {
-                    form.submit();
-                }, 1200);
+                // 3. تحديد مسار الإرسال الفعلي (تأكد من مطابقة مسار حفظ وتحديث المنتج والمورد)
+                const actionUrl = primaryForm.action || window.location.href;
+                const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+
+                // 4. إرسال البيانات المجمعة عبر Fetch لضمان مزامنة كافة الحقول
+                fetch(actionUrl, {
+                    method: 'POST',
+                    body: masterFormData,
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    this.classList.remove('loading');
+
+                    if (data.status === 'success' || data.success) {
+                        // نجاح الحفظ والمزامنة لكل الحقول
+                        this.innerHTML = `<i class="fas fa-check-circle"></i><span>تم الحفظ بنجاح</span><small class="btn-hint">محدث</small>`;
+                        this.style.background = '#166534';
+                        this.style.color = '#ffffff';
+                        
+                        window.showNotification(data.message || 'تم حفظ المنتج والمتغيرات والمورد بنجاح!', 'success');
+                        
+                        // إعادة تفعيل الزر أو العودة لشكله الطبيعي بعد ثانيتين
+                        setTimeout(() => {
+                            this.disabled = false;
+                            this.innerHTML = `<i class="fas fa-save"></i><span>حفظ التغييرات</span><small class="btn-hint">Ctrl + S</small>`;
+                            this.style.background = '';
+                            this.style.color = '';
+                        }, 2500);
+                    } else {
+                        // فشل من السيرفر
+                        this.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>فشل الحفظ</span><small class="btn-hint">أعد المحاولة</small>`;
+                        this.style.background = '#991b1b';
+                        this.style.color = '#ffffff';
+                        this.disabled = false;
+                        
+                        window.showNotification(data.message || 'حدث خطأ أثناء مزامنة الحقول', 'error');
+                    }
+                })
+                .catch(error => {
+                    this.classList.remove('loading');
+                    this.innerHTML = `<i class="fas fa-times-circle"></i><span>خطأ اتصال</span><small class="btn-hint">أعد المحاولة</small>`;
+                    this.style.background = '#991b1b';
+                    this.style.color = '#ffffff';
+                    this.disabled = false;
+                    
+                    window.showNotification('❌ خطأ في الاتصال بالخادم: ' + error.message, 'error');
+                });
             }
         });
     }
