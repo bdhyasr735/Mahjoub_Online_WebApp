@@ -44,7 +44,7 @@ def add_product():
             
             if result and 'qid' in result:
                 supplier_id = request.form.get('supplier_id')
-                if supplier_id:
+                if supplier_id and supplier_id.strip():
                     mapping = ProductSupplierMapping(
                         product_qid=result['qid'],
                         supplier_id=int(supplier_id),
@@ -233,48 +233,52 @@ def save_sync_product():
         except Exception as e:
             print(f"⚠️ [Warning] حدث خطأ أثناء تحديث الحالة: {e}")
 
-        # ربط المنتج بالمورد
-        if supplier_id:
-            try:
-                supplier_id_int = int(supplier_id)
-                supplier = Supplier.query.get(supplier_id_int)
-                
-                if not supplier:
-                    return jsonify({
-                        "status": "error",
-                        "message": f"المورد برقم {supplier_id} غير موجود."
-                    }), 404
-                
-                mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+        # ✅ (مُحسن) ربط المنتج بالمورد (يتعامل مع الحذف والإضافة بأمان)
+        try:
+            # تنظيف قيمة المورد (تحويل السلسلة الفارغة إلى None)
+            supplier_id_clean = int(supplier_id) if supplier_id and supplier_id.strip() else None
+            
+            # جلب العلاقة الحالية
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            
+            if not supplier_id_clean:
+                # الحالة 1: المستخدم اختار "-- غير مرتبط --" (حذف العلاقة)
                 if mapping:
-                    mapping.supplier_id = supplier_id_int
-                    mapping.status = 'active'
-                    mapping.updated_at = datetime.utcnow()
+                    db.session.delete(mapping)
+                    db.session.commit()
+                    print(f"ℹ️ [Supplier] تم إلغاء ربط المورد عن المنتج {qid}")
+            else:
+                # الحالة 2: المستخدم اختار مورداً جديداً (تحديث أو إضافة)
+                supplier = Supplier.query.get(supplier_id_clean)
+                if not supplier:
+                    print(f"⚠️ [Supplier] المورد برقم {supplier_id_clean} غير موجود في قاعدة البيانات المحلية")
                 else:
-                    mapping = ProductSupplierMapping(
-                        product_qid=qid,
-                        supplier_id=supplier_id_int,
-                        status='active'
-                    )
-                    db.session.add(mapping)
-                db.session.commit()
-                
-            except ValueError:
-                return jsonify({
-                    "status": "error",
-                    "message": "معرف المورد غير صحيح."
-                }), 400
-            except Exception as db_err:
-                db.session.rollback()
-                print(f"❌ خطأ في ربط المورد: {db_err}")
-                return jsonify({
-                    "status": "error",
-                    "message": f"فشل ربط المنتج بالمورد: {str(db_err)}"
-                }), 500
+                    if mapping:
+                        mapping.supplier_id = supplier_id_clean
+                        mapping.status = 'active'
+                        mapping.updated_at = datetime.utcnow()
+                        print(f"ℹ️ [Supplier] تم تحديث المورد للمنتج {qid} إلى {supplier.trade_name}")
+                    else:
+                        mapping = ProductSupplierMapping(
+                            product_qid=qid,
+                            supplier_id=supplier_id_clean,
+                            status='active'
+                        )
+                        db.session.add(mapping)
+                        print(f"ℹ️ [Supplier] تم ربط المنتج {qid} بالمورد {supplier.trade_name}")
+                    db.session.commit()
+        except Exception as db_err:
+            db.session.rollback()
+            print(f"❌ [Supplier] خطأ في ربط المورد: {db_err}")
+            # نستمر في إرجاع النجاح لأن المنتج قد حُفظ، لكن نُعلم السيرفر بوجود خطأ في المورد
+            return jsonify({
+                "status": "warning",
+                "message": "تم حفظ المنتج، ولكن حدث خطأ أثناء ربط المورد المحلي."
+            }), 200
 
         return jsonify({
             "status": "success", 
-            "message": "تم حفظ المنتج والمتغيرات بنجاح!"
+            "message": "تم حفظ المنتج والمتغيرات والمورد بنجاح!"
         })
 
     except Exception as e:
@@ -294,7 +298,6 @@ def delete_product(qid):
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # ✅ تم التعديل: استخدام update_product_status بدلاً من update_product_data
         result = services.products.update_product_status(qid, "ARCHIVED")
         
         if result and result.get('success'):
