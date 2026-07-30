@@ -146,7 +146,7 @@ def edit_product():
 @admin_product_bp.route('/products/save-sync', methods=['POST'])
 @login_required
 def save_sync_product():
-    """حفظ المنتج مع مزامنة المتغيرات والحالة"""
+    """حفظ المنتج مع مزامنة المتغيرات والحالة (محسن)"""
     user_type = session.get('user_type')
     if user_type != 'admin':
         return jsonify({"status": "error", "message": "غير مصرح"}), 403
@@ -158,10 +158,8 @@ def save_sync_product():
 
         title = request.form.get('title', '')
         description = request.form.get('description', '')
-        
         raw_status = request.form.get('status', 'DRAFT')
         status = raw_status.upper() if raw_status else 'DRAFT'
-        
         sku = request.form.get('sku', '')
         supplier_id = request.form.get('supplier_id')
         quantity = request.form.get('quantity', 0)
@@ -182,7 +180,43 @@ def save_sync_product():
 
         collection_ids = request.form.getlist('collection_ids')
 
-        # تجهيز بيانات التحديث الأساسية (بدون حالة المنتج)
+        # ============================================================
+        # ✅ 1. حفظ المورد محلياً (منفصل تماماً وقبل أي اتصال بقمرة)
+        # ============================================================
+        try:
+            supplier_id_clean = int(supplier_id) if supplier_id and supplier_id.strip() else None
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            
+            if not supplier_id_clean:
+                if mapping:
+                    db.session.delete(mapping)
+                    db.session.commit()
+                    print(f"ℹ️ [Supplier] تم إلغاء ربط المورد عن المنتج {qid}")
+            else:
+                supplier = Supplier.query.get(supplier_id_clean)
+                if not supplier:
+                    print(f"⚠️ [Supplier] المورد برقم {supplier_id_clean} غير موجود")
+                else:
+                    if mapping:
+                        mapping.supplier_id = supplier_id_clean
+                        mapping.status = 'active'
+                        mapping.updated_at = datetime.utcnow()
+                    else:
+                        mapping = ProductSupplierMapping(
+                            product_qid=qid,
+                            supplier_id=supplier_id_clean,
+                            status='active'
+                        )
+                        db.session.add(mapping)
+                    db.session.commit()
+                    print(f"ℹ️ [Supplier] تم ربط المنتج {qid} بالمورد {supplier.trade_name}")
+        except Exception as db_err:
+            db.session.rollback()
+            print(f"⚠️ [Supplier] خطأ أثناء حفظ المورد: {db_err}")
+
+        # ============================================================
+        # ✅ 2. تحديث البيانات الأساسية (رفع لقمرة) - لا يمنع من حفظ المورد حتى لو فشل
+        # ============================================================
         update_data = {
             'qid': qid,
             'name': title,
@@ -195,17 +229,14 @@ def save_sync_product():
                 'keywords': seo_keywords
             }
         }
-        
         if sku:
             update_data['sku'] = sku
-        
         if compare_price is not None:
             update_data['compareAtPrice'] = compare_price
-        
         if collection_ids:
             update_data['collectionIds'] = collection_ids
 
-        # معالجة المتغيرات والخيارات من الواجهة
+        # معالجة المتغيرات من الواجهة
         try:
             variants_payload_str = request.form.get('variants_payload', '{}')
             if variants_payload_str and variants_payload_str != '{}' and variants_payload_str != '{"input":{}}':
@@ -218,63 +249,21 @@ def save_sync_product():
                         if 'variants' in input_data:
                             update_data['variants'] = input_data['variants']
         except Exception as e:
-            print(f"⚠️ [Warning] تعذر قراءة المتغيرات، ولكن عملية الحفظ مستمرة: {e}")
+            print(f"⚠️ [Warning] تعذر قراءة المتغيرات: {e}")
 
-        # تحديث البيانات الأساسية
+        # محاولة رفع المنتج لقمرة (حتى لو فشلت، المورد قد حُفظ بالفعل)
         result = services.products.update_product_data(update_data)
         if not result:
-            return jsonify({"status": "error", "message": "فشل حفظ التعديلات في الخدمة."}), 500
+            # نعطي تحذير لكن نكمل لأن المورد حُفظ
+            print(f"⚠️ [Warning] فشل رفع معلومات المنتج لقمرة: {result}")
 
-        # تحديث حالة المنتج بشكل منفصل
+        # تحديث الحالة
         try:
             status_result = services.products.update_product_status(qid, status)
             if not status_result or not status_result.get('success'):
                 print(f"⚠️ [Warning] فشل تحديث الحالة إلى {status}")
         except Exception as e:
             print(f"⚠️ [Warning] حدث خطأ أثناء تحديث الحالة: {e}")
-
-        # ✅ (مُحسن) ربط المنتج بالمورد (يتعامل مع الحذف والإضافة بأمان)
-        try:
-            # تنظيف قيمة المورد (تحويل السلسلة الفارغة إلى None)
-            supplier_id_clean = int(supplier_id) if supplier_id and supplier_id.strip() else None
-            
-            # جلب العلاقة الحالية
-            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-            
-            if not supplier_id_clean:
-                # الحالة 1: المستخدم اختار "-- غير مرتبط --" (حذف العلاقة)
-                if mapping:
-                    db.session.delete(mapping)
-                    db.session.commit()
-                    print(f"ℹ️ [Supplier] تم إلغاء ربط المورد عن المنتج {qid}")
-            else:
-                # الحالة 2: المستخدم اختار مورداً جديداً (تحديث أو إضافة)
-                supplier = Supplier.query.get(supplier_id_clean)
-                if not supplier:
-                    print(f"⚠️ [Supplier] المورد برقم {supplier_id_clean} غير موجود في قاعدة البيانات المحلية")
-                else:
-                    if mapping:
-                        mapping.supplier_id = supplier_id_clean
-                        mapping.status = 'active'
-                        mapping.updated_at = datetime.utcnow()
-                        print(f"ℹ️ [Supplier] تم تحديث المورد للمنتج {qid} إلى {supplier.trade_name}")
-                    else:
-                        mapping = ProductSupplierMapping(
-                            product_qid=qid,
-                            supplier_id=supplier_id_clean,
-                            status='active'
-                        )
-                        db.session.add(mapping)
-                        print(f"ℹ️ [Supplier] تم ربط المنتج {qid} بالمورد {supplier.trade_name}")
-                    db.session.commit()
-        except Exception as db_err:
-            db.session.rollback()
-            print(f"❌ [Supplier] خطأ في ربط المورد: {db_err}")
-            # نستمر في إرجاع النجاح لأن المنتج قد حُفظ، لكن نُعلم السيرفر بوجود خطأ في المورد
-            return jsonify({
-                "status": "warning",
-                "message": "تم حفظ المنتج، ولكن حدث خطأ أثناء ربط المورد المحلي."
-            }), 200
 
         return jsonify({
             "status": "success", 
