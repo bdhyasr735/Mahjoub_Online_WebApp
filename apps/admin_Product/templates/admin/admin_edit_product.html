@@ -55,7 +55,7 @@ input.tabular-nums {
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="variants_payload" id="variantsPayloadInput">
 
-        <!-- ✅ جميع الأجزاء (Partials) - لاحظ أننا نستخدم الملفات المدمجة -->
+        <!-- ✅ جميع الأجزاء (Partials) -->
         <div class="edit-sections">
             {% include "admin/partials/edit/_basic_info.html" %}
             {% include "admin/partials/edit/_description.html" %}
@@ -69,10 +69,10 @@ input.tabular-nums {
     </form>
 </div>
 
-<!-- ✅ تم التصحيح: استخدام المسار المطلق المباشر لحل مشكلة 404 نهائياً -->
+<!-- ✅ المسار المطلق المباشر -->
 <script src="/static/admin_edit_product.js"></script>
 
-<!-- ✅ إضافة مكتبة Tom Select وتشغيلها -->
+<!-- ✅ إضافة مكتبة Tom Select وتشغيلها بشكل آمن وموحد -->
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
 <script>
@@ -94,18 +94,19 @@ input.tabular-nums {
         // تهيئة إدارة العلامات
         if (typeof initTagHandlers === 'function') initTagHandlers();
 
-        // ✅ تفعيل البحث المتقدم في المورد
+        // ✅ تفعيل البحث المتقدم في المورد (بشكل آمن مانع للتكرار)
         if (typeof TomSelect !== 'undefined') {
             const supplierSelect = document.getElementById('supplierSelect');
-            if (supplierSelect) {
+            if (supplierSelect && !supplierSelect.tomselect) {
                 new TomSelect(supplierSelect, {
                     plugins: ['remove_button'],
                     placeholder: 'ابحث عن المورد هنا...',
                     searchField: ['text'],
-                    maxOptions: 10
+                    maxOptions: 10,
+                    dropdownParent: document.body
                 });
                 console.log('✅ [admin_edit_product] Tom Select (المورد) تم تفعيله بنجاح');
-            } else {
+            } else if (!supplierSelect) {
                 console.log('ℹ️ [admin_edit_product] عنصر المورد (#supplierSelect) غير موجود في هذه الصفحة.');
             }
         } else {
