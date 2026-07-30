@@ -1,0 +1,1 @@
+Mahjoub_Online_WebApp/static/product/admin_edit_product.js
