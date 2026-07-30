@@ -1,8 +1,8 @@
 <!-- apps/admin_Product/templates/admin/partials/edit/_product_main_info.html -->
 
 <!-- ============================================================
-   📦 معلومات المنتج الأساسية والكمية
-   ============================================================ -->
+    📦 معلومات المنتج الأساسية والكمية
+    ============================================================ -->
 <div class="row g-3">
     <!-- SKU -->
     <div class="col-md-6">
@@ -33,8 +33,8 @@
 </div>
 
 <!-- ============================================================
-   💰 الأسعار الثلاثة
-   ============================================================ -->
+    💰 الأسعار الثلاثة
+    ============================================================ -->
 <div class="row g-3 mt-2">
     <!-- السعر الأساسي -->
     <div class="col-md-4">
@@ -95,8 +95,8 @@
 </div>
 
 <!-- ============================================================
-   ⚙️ الحالة والمورد
-   ============================================================ -->
+    ⚙️ الحالة والمورد
+    ============================================================ -->
 <div class="row g-3 mt-2">
     <!-- الحالة -->
     <div class="col-md-6">
@@ -113,11 +113,11 @@
         </div>
     </div>
     
-    <!-- المورد مع بحث متقدم (Tom Select) -->
+    <!-- المورد (محلي تماماً) -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="supplierSelect" class="form-label">
-                <i class="fas fa-store text-gold me-1"></i> المورد
+                <i class="fas fa-store text-gold me-1"></i> المورد المحلي
             </label>
             <select id="supplierSelect" name="supplier_id" class="form-select form-select-lg custom-input" 
                     placeholder="ابحث عن المورد...">
@@ -133,8 +133,8 @@
 </div>
 
 <!-- ============================================================
-   📊 ملخص سريع للبيانات
-   ============================================================ -->
+    📊 ملخص سريع للبيانات
+    ============================================================ -->
 <div class="row g-3 mt-3">
     <div class="col-12">
         <div class="summary-box">
@@ -178,10 +178,9 @@
 </div>
 
 <!-- ============================================================
-   🎨 التنسيقات والأنماط + سكربت التشغيل
-   ============================================================ -->
+    🎨 التنسيقات والأنماط + سكربت التشغيل الآمن
+    ============================================================ -->
 <style>
-/* ضبط الحقول لتبدو متساوية تماماً */
 .form-group { margin-bottom: 0; }
 .form-label { font-weight: 600; color: #2d0b36; font-size: 0.95rem; margin-bottom: 6px; }
 .text-gold { color: #D4AF37 !important; }
@@ -196,81 +195,34 @@
     border: none; font-weight: 700; border-radius: 0 10px 10px 0 !important;
     padding: 14px 20px; height: 55px; display: flex; align-items: center;
 }
-
-/* تنسيق حقول الأرقام */
 .numeric-input {
-    direction: ltr;      
-    text-align: right;    
-    letter-spacing: 0.5px;
+    direction: ltr; text-align: right; letter-spacing: 0.5px;
 }
 .numeric-input:focus {
-    border-color: #D4AF37; 
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+    border-color: #D4AF37; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
 }
-
-/* ✅ تنسيق Tom Select ليتطابق مع الحقول الأخرى وبدون تداخل */
-.ts-wrapper {
-    width: 100% !important;
-    position: relative !important;
-}
-
-.col-md-6 .form-group,
-.col-md-6 {
-    overflow: visible !important;
-}
-
+.ts-wrapper { width: 100% !important; position: relative !important; }
+.col-md-6 .form-group, .col-md-6 { overflow: visible !important; }
 .ts-wrapper.single .ts-control {
-    height: 55px !important;
-    min-height: 55px !important;
-    display: flex !important;
-    align-items: center !important;
-    border-radius: 10px !important;
-    border: 2px solid #e2e8f0 !important;
-    background: #ffffff !important;
-    font-size: 1.05rem !important;
-    box-shadow: none !important;
-    color: #1e293b !important;
-    padding: 12px 16px !important;
-    transition: all 0.3s ease !important;
+    height: 55px !important; min-height: 55px !important; display: flex !important;
+    align-items: center !important; border-radius: 10px !important;
+    border: 2px solid #e2e8f0 !important; background: #ffffff !important;
+    font-size: 1.05rem !important; box-shadow: none !important; color: #1e293b !important;
+    padding: 12px 16px !important; transition: all 0.3s ease !important;
 }
-
-.ts-wrapper.single .ts-control input {
-    font-size: 1.05rem !important;
-    color: #1e293b !important;
-    font-family: inherit !important;
-}
-
-.ts-wrapper.focus .ts-control {
-    border-color: #D4AF37 !important;
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15) !important;
-}
-
+.ts-wrapper.single .ts-control input { font-size: 1.05rem !important; color: #1e293b !important; font-family: inherit !important; }
+.ts-wrapper.focus .ts-control { border-color: #D4AF37 !important; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15) !important; }
 .ts-dropdown {
-    position: absolute !important;
-    width: 100% !important;
-    z-index: 99999 !important;
-    border: 2px solid #e2e8f0 !important;
-    border-top: none !important;
-    border-radius: 0 0 10px 10px !important;
-    background: #ffffff !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
-    margin-top: -2px !important;
+    position: absolute !important; width: 100% !important; z-index: 99999 !important;
+    border: 2px solid #e2e8f0 !important; border-top: none !important;
+    border-radius: 0 0 10px 10px !important; background: #ffffff !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important; margin-top: -2px !important;
 }
-.ts-dropdown .option.active {
-    background-color: #2d0b36 !important;
-    color: #D4AF37 !important;
-}
-.ts-wrapper .item {
-    color: #1e293b !important;
-}
-
-.summary-box {
-    padding: 16px 20px; background: linear-gradient(135deg, #faf8f6, #ffffff);
-    border-radius: 12px; border: 1px solid rgba(212, 175, 55, 0.2);
-}
+.ts-dropdown .option.active { background-color: #2d0b36 !important; color: #D4AF37 !important; }
+.ts-wrapper .item { color: #1e293b !important; }
+.summary-box { padding: 16px 20px; background: linear-gradient(135deg, #faf8f6, #ffffff); border-radius: 12px; border: 1px solid rgba(212, 175, 55, 0.2); }
 .summary-value { color: #2d0b36; font-size: 1.1rem; }
 .badge-gold-gradient { background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; padding: 8px 16px; font-weight: 600; border-radius: 8px; }
-
 @media (max-width: 768px) {
     .form-control-lg, .form-select-lg { padding: 10px 14px; font-size: 0.95rem; height: 48px; }
     .currency-addon { padding: 10px 14px; height: 48px; }
@@ -278,7 +230,6 @@
 }
 </style>
 
-<!-- سكربت تشغيل البحث المتقدم في المورد والتحكم بالأرقام -->
 <script>
 function allowNumericOnly(input) {
     input.value = input.value.replace(/[^0-9.]/g, '');
@@ -290,7 +241,8 @@ function allowNumericOnly(input) {
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof TomSelect !== 'undefined') {
         const supplierSelect = document.getElementById('supplierSelect');
-        if (supplierSelect) {
+        // التحقق الآمن لمنع تكرار التهيئة وحل مشاكل الحفظ والتعديل
+        if (supplierSelect && !supplierSelect.tomselect) {
             new TomSelect(supplierSelect, {
                 plugins: ['remove_button'],
                 placeholder: 'ابحث عن المورد هنا...',
@@ -301,7 +253,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Tom Select (المورد) تم تفعيله بنجاح وبدون تداخل');
         }
     } else {
-        console.warn('⚠️ تنبيه: مكتبة Tom Select غير محملة. تأكد من إضافتها في base.html');
+        console.warn('⚠️ تنبيه: مكتبة Tom Select غير محملة.');
     }
 });
 </script>
