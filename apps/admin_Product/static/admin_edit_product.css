@@ -1,4 +1,4 @@
-/* static/admin_edit_product.css - النسخة الاحترافية الكاملة (Purple & GoldTheme) */
+/* static/admin_edit_product.css - النسخة الاحترافية الكاملة (Purple & Gold Theme) */
 
 /* ============================================================
    🎨 الألوان الموحدة والمتغيرات
@@ -88,7 +88,7 @@
 }
 
 /* ============================================================
-   🧩 الحقول والنماذج - (تم تطويره لضبط الأبعاد)
+   🧩 الحقول والنماذج
    ============================================================ */
 .form-row {
     display: flex;
@@ -137,7 +137,7 @@ textarea {
     background: #ffffff;
     transition: all 0.3s ease;
     color: var(--gray-800);
-    height: 48px;
+    height: 55px; /* ✅ تم التعديل: توحيد الارتفاع إلى 55px */
     box-sizing: border-box;
 }
 
@@ -218,7 +218,7 @@ input[type="number"] {
     text-decoration: none;
     transition: all 0.3s ease;
     font-size: 0.9rem;
-    height: 48px;
+    height: 55px; /* ✅ تم التعديل: توحيد الارتفاع إلى 55px */
 }
 
 .btn-action:hover {
@@ -402,12 +402,12 @@ input[type="number"] {
 }
 
 /* ============================================================
-   🔍 تنسيقات مكتبة Tom Select للبحث المتقدم (مدمجة مع الثيم)
+   🔍 تنسيقات مكتبة Tom Select (معدلة لتتوافق مع 55px)
    ============================================================ */
 .ts-wrapper.single .ts-control {
-    min-height: 48px !important;
-    height: 48px !important;
-    padding: 10px 16px !important;
+    min-height: 55px !important; /* ✅ تم التعديل إلى 55px */
+    height: 55px !important;      /* ✅ تم التعديل إلى 55px */
+    padding: 12px 16px !important;
     border: 2px solid var(--gray-200) !important;
     border-radius: 10px !important;
     background: #ffffff !important;
