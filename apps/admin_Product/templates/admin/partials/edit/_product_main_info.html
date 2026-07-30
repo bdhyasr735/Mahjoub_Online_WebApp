@@ -178,7 +178,7 @@
 </div>
 
 <!-- ============================================================
-   🎨 التنسيقات المضمنة بالكامل + سكربت التشغيل
+   🎨 التنسيقات المضمنة + سكربت التشغيل النهائي
    ============================================================ -->
 <style>
 /* ضبط الحقول لتبدو متساوية تماماً (بدون ملف CSS خارجي) */
@@ -257,12 +257,14 @@
     color: #1e293b !important;
 }
 
-/* القائمة المنسدلة فوق الجميع */
+/* ✅ القائمة المنسدلة فوق حقل المورد فقط (بدون شريط عريض) */
 .ts-dropdown {
     position: absolute !important;
     top: 100% !important;
     left: 0 !important;
     width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     z-index: 9999 !important;
     border: 2px solid #e2e8f0 !important;
     border-top: none !important;
@@ -288,3 +290,32 @@
     .summary-box { padding: 14px; }
 }
 </style>
+
+<!-- سكربت تهيئة البحث المتطور والقائمة المنسدلة -->
+<script>
+function allowNumericOnly(input) {
+    input.value = input.value.replace(/[^0-9.]/g, '');
+    if ((input.value.match(/\./g) || []).length > 1) {
+        input.value = input.value.slice(0, -1);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof TomSelect !== 'undefined') {
+        const supplierSelect = document.getElementById('supplierSelect');
+        if (supplierSelect) {
+            // تهيئة Tom Select مع إصلاح تنسيق الشريط البنفسجي
+            new TomSelect(supplierSelect, {
+                plugins: ['remove_button'],
+                placeholder: 'ابحث عن المورد هنا...',
+                searchField: ['text'],
+                maxOptions: 10,
+                dropdownParent: document.body // هذا يضع القائمة فوق الصفحة لتجنب الحواف المقطوعة
+            });
+            console.log('✅ Tom Select (المورد) تم تفعيله بنجاح');
+        }
+    } else {
+        console.warn('⚠️ تنبيه: مكتبة Tom Select غير محملة. تأكد من إضافتها في base.html');
+    }
+});
+</script>
