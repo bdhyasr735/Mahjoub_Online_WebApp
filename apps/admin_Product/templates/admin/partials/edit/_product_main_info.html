@@ -288,31 +288,3 @@
     .summary-box { padding: 14px; }
 }
 </style>
-
-<!-- سكربت التشغيل المضمن (لا يحتاج JS خارجي) -->
-<script>
-function allowNumericOnly(input) {
-    input.value = input.value.replace(/[^0-9.]/g, '');
-    if ((input.value.match(/\./g) || []).length > 1) {
-        input.value = input.value.slice(0, -1);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof TomSelect !== 'undefined') {
-        const supplierSelect = document.getElementById('supplierSelect');
-        if (supplierSelect) {
-            new TomSelect(supplierSelect, {
-                plugins: ['remove_button'],
-                placeholder: 'ابحث عن المورد هنا...',
-                searchField: ['text'],
-                maxOptions: 10,
-                dropdownParent: document.body
-            });
-            console.log('✅ Tom Select (المورد) تم تفعيله بنجاح');
-        }
-    } else {
-        console.warn('⚠️ تنبيه: مكتبة Tom Select غير محملة. تأكد من إضافتها في base.html');
-    }
-});
-</script>
