@@ -1,6 +1,5 @@
 # coding: utf-8
 # apps/admin_Product/routes/stats.py
-# إحصائيات المنتجات
 
 from flask import jsonify, session
 from flask_login import login_required
@@ -11,22 +10,21 @@ from apps.services import services
 @admin_product_bp.route('/products/stats', methods=['GET'])
 @login_required
 def get_stats():
-    """جلب إحصائيات المنتجات للمراجعة (AJAX)"""
+    """جلب إحصائيات المنتجات (تستخدم الحالات الجديدة)"""
     try:
         user_type = session.get('user_type')
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # ✅ جلب المنتجات من GraphQL
         result = services.products.get_all_products() or {}
         all_products = result.get('data', [])
         
+        # الحالات الجديدة: active, draft, archived
         stats = {
             'total': len(all_products),
-            'draft': len([p for p in all_products if p.get('status', '').upper() == 'DRAFT']),
-            'published': len([p for p in all_products if p.get('status', '').upper() == 'PUBLISHED']),
-            'rejected': len([p for p in all_products if p.get('status', '').upper() == 'REJECTED']),
-            'archived': len([p for p in all_products if p.get('status', '').upper() == 'ARCHIVED'])
+            'active': len([p for p in all_products if p.get('status', '').lower() == 'active']),
+            'draft': len([p for p in all_products if p.get('status', '').lower() == 'draft']),
+            'archived': len([p for p in all_products if p.get('status', '').lower() == 'archived'])
         }
         
         return jsonify({
