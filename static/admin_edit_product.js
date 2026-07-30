@@ -692,6 +692,21 @@
         initTagHandlers();
         updateCollectionsCount();
 
+        // 🛡️ معالجة نموذج التعديل لتجنب تعليق زر الحفظ
+        const editForm = document.getElementById('editProductForm');
+        if (editForm) {
+            editForm.addEventListener('submit', function() {
+                preparePayloadBeforeSubmit();
+                const saveBtn = document.getElementById('saveBtn');
+                if (saveBtn) {
+                    saveBtn.classList.add('loading');
+                    saveBtn.disabled = true;
+                    const spanText = saveBtn.querySelector('span');
+                    if (spanText) spanText.textContent = 'جاري الحفظ...';
+                }
+            });
+        }
+
         // ربط الدوال بالـ window لضمان عمل الأزرار داخل القوالب
         window.addOptionRow = addOptionRow;
         window.removeOptionRow = removeOptionRow;
