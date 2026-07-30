@@ -93,7 +93,7 @@ def edit_product():
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('admin_product_bp.manage_products_view'))
 
-    # 2. استخراج المعالجة الآمنة للخيارات (Options) سواء قادمة من المنتج مباشرة أو من خدمة الـ variants
+    # 2. استخراج المعالجة الآمنة للخيارات (Options)
     raw_options = []
     if isinstance(product, dict):
         raw_options = product.get('options', [])
@@ -110,7 +110,7 @@ def edit_product():
         except Exception as e:
             print(f"⚠️ [Edit Product] تعذر جلب الخيارات عبر خدمة variants: {e}")
 
-    # تنظيف وتطبيع الخيارات لضمان عدم حدوث أي خطأ في القالب (مثل دالة dict.values المدمجة)
+    # تنظيف الخيارات
     cleaned_options = []
     if isinstance(raw_options, list):
         for opt in raw_options:
@@ -130,7 +130,7 @@ def edit_product():
     else:
         setattr(product, 'options', cleaned_options)
 
-    # 3. جلب بيانات إضافية (الموردين، المجموعات)
+    # 3. جلب بيانات إضافية
     suppliers = Supplier.query.filter_by(status='active').all()
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     assigned_supplier_id = mapping.supplier_id if mapping else None
@@ -188,11 +188,12 @@ def save_sync_product():
 
         collection_ids = request.form.getlist('collection_ids')
 
+        # ✅ إزالة 'status' من update_data لأنه سيتم تحديثه بشكل منفصل
         update_data = {
             'qid': qid,
             'name': title,
             'price': price,
-            'status': status,
+            # 'status': status, // تم الحذف
             'description': description,
             'quantity': int(quantity) if quantity else 0,
             'seo': {
@@ -211,7 +212,7 @@ def save_sync_product():
         if collection_ids:
             update_data['collectionIds'] = collection_ids
 
-        # ✅ معالجة آمنة لبيانات المتغيرات والخيارات المرسلة من الواجهة
+        # ✅ معالجة آمنة لبيانات المتغيرات والخيارات
         try:
             variants_payload_str = request.form.get('variants_payload', '{}')
             if variants_payload_str and variants_payload_str != '{}' and variants_payload_str != '{"input":{}}':
@@ -226,11 +227,21 @@ def save_sync_product():
         except Exception as e:
             print(f"⚠️ [Warning] تعذر قراءة المتغيرات، ولكن عملية الحفظ مستمرة: {e}")
 
+        # ✅ 1. تحديث المعلومات الأساسية أولاً
         result = services.products.update_product_data(update_data)
 
         if not result:
             return jsonify({"status": "error", "message": "فشل حفظ التعديلات في الخدمة."}), 500
 
+        # ✅ 2. تحديث الحالة بشكل منفصل (استخدام الدالة الجديدة)
+        try:
+            status_result = services.products.update_product_status(qid, status)
+            if not status_result or not status_result.get('success'):
+                print(f"⚠️ [Warning] فشل تحديث الحالة إلى {status}")
+        except Exception as e:
+            print(f"⚠️ [Warning] حدث خطأ أثناء تحديث الحالة: {e}")
+
+        # ✅ 3. ربط المورد
         if supplier_id:
             try:
                 supplier_id_int = int(supplier_id)
