@@ -126,6 +126,45 @@
 </style>
 
 <script>
+// ✅ تعريف الدوال على النطاق العام لتكون متاحة للملفات الأخرى
+window.showNotification = function(message, type = 'success') {
+    const colors = { success: '#22c55e', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; bottom: 24px; right: 24px;
+        background: white; padding: 14px 20px; border-radius: 12px;
+        box-shadow: 0 12px 48px rgba(0,0,0,0.15);
+        border-right: 4px solid ${colors[type] || '#3b82f6'};
+        z-index: 99999; font-weight: 600; font-size: 0.9rem;
+        max-width: 400px; animation: slideIn 0.4s cubic-bezier(0.4,0,0.2,1);
+        display: flex; align-items: center; gap: 10px; backdrop-filter: blur(8px);
+    `;
+    toast.innerHTML = `${icons[type] || 'ℹ️'} ${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.4s cubic-bezier(0.4,0,0.2,1)';
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+};
+
+// ✅ تعريف دالة حذف المنتج على النطاق العام
+window.deleteProduct = function(qid, name) {
+    if (!confirm(`⚠️ حذف المنتج "${name}"؟ لا يمكن التراجع!`)) return;
+    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+    fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            window.showNotification('✅ ' + data.message, 'success');
+            setTimeout(() => { window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}'; }, 1500);
+        } else {
+            window.showNotification('❌ ' + data.message, 'error');
+        }
+    }).catch(e => window.showNotification('❌ خطأ: ' + e.message, 'error'));
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // ✅ تأثير التحميل عند حفظ المنتج
     const saveBtn = document.getElementById('saveBtn');
@@ -140,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ✅ تحديث حالة المنتج
+    // ✅ تحديث حالة المنتج في الواجهة
     const statusDisplay = document.getElementById('productStatusDisplay');
     const statusDot = document.getElementById('statusDot');
     if (statusDisplay && statusDot) {
@@ -149,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
         statusDot.style.background = colors[status] || '#64748b';
     }
 
-    // ✅ تحديث حالة النموذج
+    // ✅ تحديث حالة النموذج عند التعديل
     const form = document.querySelector('form');
     const formStatus = document.getElementById('formStatus');
     if (form && formStatus) {
@@ -160,35 +199,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-// ✅ حذف المنتج
-function deleteProduct(qid, name) {
-    if (!confirm(`⚠️ حذف المنتج "${name}"؟ لا يمكن التراجع!`)) return;
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-    fetch(`{{ url_for('admin_product_bp.delete_product', qid='') }}${qid}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
-    }).then(r => r.json()).then(data => {
-        if (data.success) {
-            showNotification('✅ ' + data.message, 'success');
-            setTimeout(() => { window.location.href = '{{ url_for("admin_product_bp.manage_products_view") }}'; }, 1500);
-        } else { showNotification('❌ ' + data.message, 'error'); }
-    }).catch(e => showNotification('❌ خطأ: ' + e.message, 'error'));
-}
-
-// ✅ إشعارات
-function showNotification(message, type = 'success') {
-    const colors = { success: '#22c55e', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
-    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-    const toast = document.createElement('div');
-    toast.style.cssText = `position:fixed;bottom:24px;right:24px;background:white;padding:14px 20px;border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,0.15);border-right:4px solid ${colors[type]};z-index:99999;font-weight:600;font-size:0.9rem;max-width:400px;animation:slideIn 0.4s cubic-bezier(0.4,0,0.2,1);display:flex;align-items:center;gap:10px;backdrop-filter:blur(8px)`;
-    toast.innerHTML = `${icons[type] || 'ℹ️'} ${message}`;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.style.animation = 'slideOut 0.4s cubic-bezier(0.4,0,0.2,1)';
-        setTimeout(() => toast.remove(), 400);
-    }, 4000);
-}
 
 // ✅ أنماط الإشعارات
 (function() {
