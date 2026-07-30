@@ -69,8 +69,8 @@ input.tabular-nums {
     </form>
 </div>
 
-<!-- ✅ تم التعديل: استخدام url_for الخاص بالـ Blueprint لحل مشكلة 404 -->
-<script src="{{ url_for('admin_product_bp.static', filename='admin_edit_product.js') }}"></script>
+<!-- ✅ تم التعديل: استبدال مسار الـ Blueprint بالمسار الجذري الآمن (لحل مشكلة 0 بايت نهائياً) -->
+<script src="{{ url_for('static', filename='admin_edit_product.js') }}"></script>
 
 <!-- ✅ إضافة مكتبة Tom Select وتشغيلها -->
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
