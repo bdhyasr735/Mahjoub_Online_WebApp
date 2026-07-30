@@ -4,6 +4,7 @@
 import os
 import importlib
 from flask import Flask, redirect, session, url_for, request, jsonify
+from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
 from flask_limiter import Limiter
@@ -153,8 +154,8 @@ def create_app():
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
 
-        # ✅ إذا كان المستخدم مسجلاً دخول، لا تعيد التوجيه
-        if 'user_id' in session:
+        # ✅ الاعتماد على Flask-Login للتحقق من حالة تسجيل الدخول بشكل صحيح وثابت
+        if current_user.is_authenticated:
             user_type = session.get('user_type')
             # التحقق من صلاحية المستخدم للمسارات الإدارية
             if path.startswith('/admin') or path.startswith('/dashboard'):
