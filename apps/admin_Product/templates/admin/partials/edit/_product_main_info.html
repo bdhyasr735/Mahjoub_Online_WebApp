@@ -218,11 +218,11 @@
     -webkit-appearance: none !important; margin: 0 !important;
 }
 
-/* ✅ تنسيق Tom Select المدمج بالكامل (مطابق للحقول الأخرى) */
+/* ✅ إصلاح Tom Select (الحل النهائي) */
 .ts-wrapper {
     width: 100% !important;
     position: relative !important;
-    z-index: 9 !important;
+    z-index: 10 !important;
 }
 .ts-wrapper.form-select {
     padding: 0 !important;
@@ -257,13 +257,13 @@
     color: #1e293b !important;
 }
 
-/* ✅ القائمة المنسدلة (مضبوطة بالكامل) */
+/* القائمة المنسدلة (مضبوطة فوق الحقل مباشرة) */
 .ts-dropdown {
     position: absolute !important;
     top: 100% !important;
     left: 0 !important;
-    width: 100% !important;
-    max-height: 300px !important; /* منع القائمة من التمدد كثيراً */
+    width: 100% !important; /* تأخذ عرض الحقل فقط */
+    max-height: 300px !important;
     overflow-y: auto !important;
     z-index: 9999 !important;
     border: 2px solid #e2e8f0 !important;
@@ -302,7 +302,7 @@
 }
 </style>
 
-<!-- سكربت تهيئة البحث المتطور والقائمة المنسدلة -->
+<!-- سكربت التشغيل (بدون dropdownParent) -->
 <script>
 function allowNumericOnly(input) {
     input.value = input.value.replace(/[^0-9.]/g, '');
@@ -315,13 +315,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof TomSelect !== 'undefined') {
         const supplierSelect = document.getElementById('supplierSelect');
         if (supplierSelect) {
-            // ✅ التعديل النهائي: إضافة dropdownParent مع ضبط العرض
             new TomSelect(supplierSelect, {
                 plugins: ['remove_button'],
                 placeholder: 'ابحث عن المورد هنا...',
                 searchField: ['text'],
-                maxOptions: 10,
-                dropdownParent: document.body // هذا يضمن أن القائمة تطفو فوق الحقل فقط
+                maxOptions: 10
+                // ✅ تم حذف dropdownParent نهائياً
             });
             console.log('✅ Tom Select (المورد) تم تفعيله بنجاح');
         }
