@@ -28,11 +28,15 @@ def add_product():
         try:
             raw_price = request.form.get('price')
             price_val = float(raw_price) if raw_price else 0.0
+
+            # ✅ تحويل الحالة إلى أحرف كبيرة ليتوافق مع السيرفر
+            raw_status = request.form.get('status', 'DRAFT')
+            status = raw_status.upper() if raw_status else 'DRAFT'
             
             product_data = {
                 'name': request.form.get('title', ''),
                 'price': price_val,
-                'status': request.form.get('status', 'DRAFT'),
+                'status': status,
                 'description': request.form.get('description', '')
             }
             
@@ -161,7 +165,9 @@ def save_sync_product():
 
         title = request.form.get('title', '')
         description = request.form.get('description', '')
-        status = request.form.get('status', 'DRAFT')
+        # ✅ تحويل الحالة إلى أحرف كبيرة
+        raw_status = request.form.get('status', 'DRAFT')
+        status = raw_status.upper() if raw_status else 'DRAFT'
         sku = request.form.get('sku', '')
         supplier_id = request.form.get('supplier_id')
         quantity = request.form.get('quantity', 0)
@@ -285,6 +291,7 @@ def delete_product(qid):
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
+        # ✅ استخدام القيمة الصحيحة التي يقبلها السيرفر
         result = services.products.update_product_data({"qid": qid, "status": "ARCHIVED"})
         
         if result:
