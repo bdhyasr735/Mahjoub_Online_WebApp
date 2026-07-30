@@ -228,43 +228,42 @@ class ProductService:
             print(f"❌ [ProductService]: {e}")
             return {}
 
+    # ============================================================
+    # ✅ دالة تحديث المنتج (مصححة بناءً على الساندبوكس)
+    # ============================================================
     def update_product_data(self, input_data: dict) -> dict:
-        """تعديل معلومات المنتج (بدون الحالة - لاستخدام دالة الحالة المنفصلة)"""
+        """تعديل معلومات المنتج (لا تشمل الحالة - استخدم update_product_status للحالة)"""
+        # إزالة qid من بيانات الإدخال لأنه يُمرر بشكل منفصل
+        qid = input_data.get('qid')
+        if not qid:
+            print("❌ [ProductService] qid مفقود في update_product_data")
+            return {}
+
+        # تحضير كائن الإدخال (دون qid)
+        update_info_input = {k: v for k, v in input_data.items() if k != 'qid'}
+
         query = """
-        mutation UpdateProductInfo($input: UpdateProductInfoInput!) {
-            updateProductInfo(input: $input) {
+        mutation UpdateProductInfo($id: String!, $updateProductInfoInput: UpdateProductInfo!) {
+            updateProductInfo(id: $id, updateProductInfoInput: $updateProductInfoInput) {
                 success
                 message
-                data {
-                    qid
-                    title
-                    slug
-                    pricing {
-                        price
-                        compareAtPrice
-                        originalPrice
-                    }
-                }
             }
         }
         """
         try:
-            data = self.client.execute(query, {"input": input_data})
+            data = self.client.execute(query, {"id": qid, "updateProductInfoInput": update_info_input})
             if data and "updateProductInfo" in data:
-                result = data["updateProductInfo"]
-                if result.get("success"):
-                    return result.get("data", {})
+                return data["updateProductInfo"]
             return {}
         except Exception as e:
-            print(f"❌ [ProductService]: {e}")
+            print(f"❌ [ProductService] خطأ في تحديث المنتج: {e}")
             return {}
 
     # ============================================================
-    # ✅ دالة تحديث الحالة (المصححة بناءً على الساندبوكس)
+    # ✅ دالة تحديث الحالة (تصحيح سابق - تعمل مع updateProductStatus)
     # ============================================================
     def update_product_status(self, product_qid: str, status: str) -> dict:
-        """تحديث حالة المنتج باستخدام updateProductStatus (يتوقع id من نوع ID!)"""
-        # ✅ تم التعديل: استخدام $id بدلاً من $qid، ونوع ID!
+        """تحديث حالة المنتج باستخدام updateProductStatus"""
         query = """
         mutation UpdateProductStatus($id: ID!, $status: String!) {
             updateProductStatus(id: $id, status: $status) {
@@ -274,7 +273,6 @@ class ProductService:
         }
         """
         try:
-            # ✅ نمرر product_qid كـ id
             data = self.client.execute(query, {"id": product_qid, "status": status})
             if data and "updateProductStatus" in data:
                 return data["updateProductStatus"]
