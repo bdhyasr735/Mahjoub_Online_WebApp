@@ -237,9 +237,10 @@ class ProductService:
 
     def update_product_data(self, input_data: dict) -> dict:
         """تعديل منتج"""
+        # ✅ تم تصحيح الاستعلام بناءً على خطأ الساندبوكس: استخدام updateProductInfo بدلاً من updateProduct
         query = """
-        mutation UpdateProduct($input: UpdateProductInput!) {
-            updateProduct(input: $input) {
+        mutation UpdateProductInfo($input: UpdateProductInfoInput!) {
+            updateProductInfo(input: $input) {
                 success
                 message
                 data {
@@ -259,8 +260,8 @@ class ProductService:
         
         try:
             data = self.client.execute(query, {"input": input_data})
-            if data and "updateProduct" in data:
-                result = data["updateProduct"]
+            if data and "updateProductInfo" in data:
+                result = data["updateProductInfo"]
                 if result.get("success"):
                     return result.get("data", {})
             return {}
