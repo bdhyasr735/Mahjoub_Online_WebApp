@@ -19,10 +19,9 @@ def manage_supplier_products_view():
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
         
         page = request.args.get('page', 1, type=int)
-        per_page = 12  # 12 منتج في الصفحة لتناسب تصميم الـ Cards
+        per_page = 12
         search_query = request.args.get('title', '', type=str)
         
-        # جلب المنتجات المخصصة للمورد
         if user_type != 'admin' and supplier_id:
             supplier_mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
             supplier_qids = [m.product_qid for m in supplier_mappings]
@@ -32,18 +31,15 @@ def manage_supplier_products_view():
         else:
             filtered_by_supplier = services.products.fetch_all_products_for_search() if hasattr(services.products, 'fetch_all_products_for_search') else []
 
-        # تصفية حسب البحث
         if search_query:
             filtered = [p for p in filtered_by_supplier if search_query.lower() in p.get('title', '').lower() or search_query.lower() in str(p.get('sku', '')).lower()]
         else:
             filtered = filtered_by_supplier
 
-        # حساب الإحصائيات
         total_products = len(filtered_by_supplier)
         active_products = len([p for p in filtered_by_supplier if p.get('status', '').upper() == 'PUBLISHED'])
         draft_products = len([p for p in filtered_by_supplier if p.get('status', '').upper() == 'DRAFT'])
 
-        # التقليب اليدوي (Pagination Simulation للـ List)
         total_items = len(filtered)
         total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
         if page > total_pages:
@@ -53,12 +49,10 @@ def manage_supplier_products_view():
         end = start + per_page
         current_page_items = filtered[start:end]
 
-        # تغليف المنتجات بالشكل الذي يطلبه القالب (item.product)
         wrapped_items = []
         for prod in current_page_items:
             wrapped_items.append({'product': prod})
 
-        # كائن Pagination يحاكي Flask-SQLAlchemy لتوافق الدوال في القالب
         class PaginationMock:
             def __init__(self, items, page, per_page, total):
                 self.items = items
@@ -84,7 +78,6 @@ def manage_supplier_products_view():
 
         pagination_obj = PaginationMock(wrapped_items, page, per_page, total_items)
 
-        # دوال مساعدة للقالب
         def get_status_text(status):
             mapping_status = {
                 'PUBLISHED': 'منشور',
