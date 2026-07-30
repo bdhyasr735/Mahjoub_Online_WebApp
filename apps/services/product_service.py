@@ -143,8 +143,6 @@ class ProductService:
 
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID (النسخة النهائية الآمنة - تعتمد على الاستعلام الناجح)"""
-        
-        # ✅ هذا هو الاستعلام الذي نجح في الساندبوكس (بدون options أو variants)
         query = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -183,13 +181,10 @@ class ProductService:
             }
         }
         """
-        
         try:
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
             variables = {"qid": qid}
-            
             data = self.client.execute(query, variables, operation_name="FindProductByQid")
-            
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
                 if result.get("success"):
@@ -197,7 +192,6 @@ class ProductService:
                     print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح: {product_data.get('title')}")
                     return product_data
             return {}
-                
         except Exception as e:
             print(f"❌ [get_product_by_qid] فشل جلب المنتج: {e}")
             return {}
@@ -223,7 +217,6 @@ class ProductService:
             }
         }
         """
-        
         try:
             data = self.client.execute(query, {"input": input_data})
             if data and "createProduct" in data:
@@ -236,8 +229,8 @@ class ProductService:
             return {}
 
     def update_product_data(self, input_data: dict) -> dict:
-        """تعديل منتج"""
-        # ✅ تم تصحيح الاستعلام بناءً على خطأ الساندبوكس: استخدام updateProductInfo بدلاً من updateProduct
+        """تعديل معلومات المنتج (بدون الحالة - لاستخدام دالة الحالة المنفصلة)"""
+        # ✅ تم تصحيح الاستعلام بناءً على Schema السيرفر، وتم إزالة 'status' لأنه سيتم تحديثه بشكل منفصل
         query = """
         mutation UpdateProductInfo($input: UpdateProductInfoInput!) {
             updateProductInfo(input: $input) {
@@ -252,12 +245,10 @@ class ProductService:
                         compareAtPrice
                         originalPrice
                     }
-                    status
                 }
             }
         }
         """
-        
         try:
             data = self.client.execute(query, {"input": input_data})
             if data and "updateProductInfo" in data:
@@ -267,4 +258,27 @@ class ProductService:
             return {}
         except Exception as e:
             print(f"❌ [ProductService]: {e}")
+            return {}
+
+    # ============================================================
+    # ✅ دالة جديدة لتحديث حالة المنتج فقط
+    # ============================================================
+    def update_product_status(self, qid: str, status: str) -> dict:
+        """تحديث حالة المنتج فقط باستخدام updateProductStatus"""
+        # ✅ بناءً على الوثائق، نستخدم التطفير updateProductStatus مع qid و status
+        query = """
+        mutation UpdateProductStatus($qid: String!, $status: String!) {
+            updateProductStatus(qid: $qid, status: $status) {
+                success
+                message
+            }
+        }
+        """
+        try:
+            data = self.client.execute(query, {"qid": qid, "status": status})
+            if data and "updateProductStatus" in data:
+                return data["updateProductStatus"]
+            return {}
+        except Exception as e:
+            print(f"❌ [ProductService] خطأ في تحديث الحالة: {e}")
             return {}
