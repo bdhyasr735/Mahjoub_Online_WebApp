@@ -114,23 +114,25 @@ def create_app():
         from apps.models.supplier_db import Supplier
         from apps.models.supplier_staff_db import SupplierStaff
         
+        user_id_int = int(user_id)
         user_type = session.get('user_type')
         
         if user_type == 'admin': 
-            return db.session.get(AdminUser, int(user_id))
+            return db.session.get(AdminUser, user_id_int)
         elif user_type == 'staff': 
-            staff_admin = db.session.get(AdminStaff, int(user_id))
+            staff_admin = db.session.get(AdminStaff, user_id_int)
             if staff_admin:
                 return staff_admin
-            return db.session.get(SupplierStaff, int(user_id))
+            return db.session.get(SupplierStaff, user_id_int)
         elif user_type == 'supplier': 
-            return db.session.get(Supplier, int(user_id))
+            return db.session.get(Supplier, user_id_int)
             
+        # البحث الشامل في حال عدم توفر نوع محدد في الجلسة
         return (
-            db.session.get(AdminUser, int(user_id)) or 
-            db.session.get(AdminStaff, int(user_id)) or 
-            db.session.get(Supplier, int(user_id)) or 
-            db.session.get(SupplierStaff, int(user_id))
+            db.session.get(Supplier, user_id_int) or
+            db.session.get(SupplierStaff, user_id_int) or
+            db.session.get(AdminUser, user_id_int) or 
+            db.session.get(AdminStaff, user_id_int)
         )
 
     @login_manager.unauthorized_handler
