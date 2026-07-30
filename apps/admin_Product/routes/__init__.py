@@ -9,12 +9,13 @@ template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 't
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static')
 
 # إنشاء Blueprint الرئيسي مع المسار المطلق للقوالب والملفات الثابتة
+# تم تغيير static_url_path إلى مسار فريد لتجنب أي تضارب
 admin_product_bp = Blueprint(
     'admin_product_bp', 
     __name__, 
     template_folder=template_dir,
     static_folder=static_dir,
-    static_url_path='static'
+    static_url_path='admin_product_static'  # ✅ تم التغيير هنا
 )
 
 # ✅ استيراد جميع الـ Routes
