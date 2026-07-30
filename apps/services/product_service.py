@@ -230,7 +230,6 @@ class ProductService:
 
     def update_product_data(self, input_data: dict) -> dict:
         """تعديل معلومات المنتج (بدون الحالة - لاستخدام دالة الحالة المنفصلة)"""
-        # ✅ تم تصحيح الاستعلام بناءً على Schema السيرفر، وتم إزالة 'status' لأنه سيتم تحديثه بشكل منفصل
         query = """
         mutation UpdateProductInfo($input: UpdateProductInfoInput!) {
             updateProductInfo(input: $input) {
@@ -261,21 +260,22 @@ class ProductService:
             return {}
 
     # ============================================================
-    # ✅ دالة جديدة لتحديث حالة المنتج فقط
+    # ✅ دالة تحديث الحالة (المصححة بناءً على الساندبوكس)
     # ============================================================
-    def update_product_status(self, qid: str, status: str) -> dict:
-        """تحديث حالة المنتج فقط باستخدام updateProductStatus"""
-        # ✅ بناءً على الوثائق، نستخدم التطفير updateProductStatus مع qid و status
+    def update_product_status(self, product_qid: str, status: str) -> dict:
+        """تحديث حالة المنتج باستخدام updateProductStatus (يتوقع id من نوع ID!)"""
+        # ✅ تم التعديل: استخدام $id بدلاً من $qid، ونوع ID!
         query = """
-        mutation UpdateProductStatus($qid: String!, $status: String!) {
-            updateProductStatus(qid: $qid, status: $status) {
+        mutation UpdateProductStatus($id: ID!, $status: String!) {
+            updateProductStatus(id: $id, status: $status) {
                 success
                 message
             }
         }
         """
         try:
-            data = self.client.execute(query, {"qid": qid, "status": status})
+            # ✅ نمرر product_qid كـ id
+            data = self.client.execute(query, {"id": product_qid, "status": status})
             if data and "updateProductStatus" in data:
                 return data["updateProductStatus"]
             return {}
