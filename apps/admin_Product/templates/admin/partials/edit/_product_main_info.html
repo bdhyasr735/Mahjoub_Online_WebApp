@@ -98,17 +98,25 @@
    ⚙️ الحالة والمورد
    ============================================================ -->
 <div class="row g-3 mt-2">
-    <!-- الحالة -->
+    <!-- الحالة (مع حالات جديدة) -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="productStatus" class="form-label">
                 <i class="fas fa-circle text-gold me-1"></i> الحالة
             </label>
             <select id="productStatus" name="status" class="form-select form-select-lg custom-input" onchange="generatePayload()">
-                <option value="DRAFT" {% if product.status|upper == 'DRAFT' %}selected{% endif %}>⏳ مسودة</option>
-                <option value="PUBLISHED" {% if product.status|upper == 'PUBLISHED' %}selected{% endif %}>✅ منشور</option>
-                <option value="REJECTED" {% if product.status|upper == 'REJECTED' %}selected{% endif %}>❌ مرفوض</option>
-                <option value="ARCHIVED" {% if product.status|upper == 'ARCHIVED' %}selected{% endif %}>📦 مؤرشف</option>
+                <!-- 🟢 نشط -->
+                <option value="active" {% if (product.status|lower) == 'active' %}selected{% endif %}>
+                    🟢 نشط (متاح)
+                </option>
+                <!-- 🟡 مسودة -->
+                <option value="draft" {% if (product.status|lower) == 'draft' %}selected{% endif %}>
+                    🟡 مسودة (غير مرئي)
+                </option>
+                <!-- 🔴 مؤرشف -->
+                <option value="archived" {% if (product.status|lower) == 'archived' %}selected{% endif %}>
+                    🔴 مؤرشف (محذوف)
+                </option>
             </select>
         </div>
     </div>
