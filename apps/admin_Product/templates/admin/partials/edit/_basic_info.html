@@ -108,21 +108,25 @@
 }
 </style>
 
+<!-- ✅ السكربت المصحح: تعريف الدالة على window مباشرة -->
 <script>
+// تعريف الدالة على النطاق العام لتكون متاحة فوراً
+function updateBasicInfoStatus() {
+    const title = document.getElementById('productTitle')?.value || '';
+    const statusBadge = document.getElementById('basicInfoStatus');
+    if (!statusBadge) return;
+    if (title.trim().length > 0) {
+        statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> مكتمل';
+        statusBadge.className = 'badge-status';
+    } else {
+        statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> غير مكتمل';
+        statusBadge.className = 'badge-status dirty';
+    }
+}
+window.updateBasicInfoStatus = updateBasicInfoStatus;
+
+// استدعاء الدالة بعد تحميل الصفحة لتحديث الحالة الأولية
 document.addEventListener('DOMContentLoaded', function() {
-    window.updateBasicInfoStatus = function() {
-        const title = document.getElementById('productTitle')?.value || '';
-        const statusBadge = document.getElementById('basicInfoStatus');
-        if (!statusBadge) return;
-        if (title.trim().length > 0) {
-            statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> مكتمل';
-            statusBadge.className = 'badge-status';
-        } else {
-            statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> غير مكتمل';
-            statusBadge.className = 'badge-status dirty';
-        }
-    };
     updateBasicInfoStatus();
 });
-window.updateBasicInfoStatus = updateBasicInfoStatus;
 </script>
