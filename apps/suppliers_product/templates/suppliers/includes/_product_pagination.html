@@ -1,148 +1,68 @@
-<!-- apps/suppliers_product/templates/suppliers/includes/_product_pagination.html -->
+<!-- 📂 apps/admin_Product/templates/admin/includes/_product_pagination.html -->
+{% if pagination and pagination.totalPages > 1 %}
+<nav class="mt-4" aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <!-- زر السابق -->
+        <li class="page-item {{ 'disabled' if not pagination.hasPrev }}">
+            <a class="page-link"
+               href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.currentPage-1, title=search_title, status=current_status) if pagination.hasPrev else '#' }}"
+               style="color: #2d0b36;">
+                <i class="fas fa-chevron-right"></i> السابق
+            </a>
+        </li>
+        
+        <!-- أرقام الصفحات -->
+        {% set start_page = [1, pagination.currentPage - 2]|max %}
+        {% set end_page = [pagination.totalPages, pagination.currentPage + 2]|min %}
+        
+        {% if start_page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=1, title=search_title, status=current_status) }}" style="color: #2d0b36;">1</a>
+            </li>
+            {% if start_page > 2 %}
+                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
+            {% endif %}
+        {% endif %}
+        
+        {% for p in range(start_page, end_page + 1) %}
+            {% if p == pagination.currentPage %}
+                <li class="page-item active">
+                    <span class="page-link" style="background: linear-gradient(135deg, #2d0b36, #1a0520); border-color: #2d0b36; color: #D4AF37;">
+                        {{ p }}
+                    </span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=p, title=search_title, status=current_status) }}" style="color: #2d0b36;">
+                        {{ p }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if end_page < pagination.totalPages %}
+            {% if end_page < pagination.totalPages - 1 %}
+                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
+            {% endif %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.totalPages, title=search_title, status=current_status) }}" style="color: #2d0b36;">
+                    {{ pagination.totalPages }}
+                </a>
+            </li>
+        {% endif %}
+        
+        <!-- زر التالي -->
+        <li class="page-item {{ 'disabled' if not pagination.hasNext }}">
+            <a class="page-link"
+               href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.currentPage+1, title=search_title, status=current_status) if pagination.hasNext else '#' }}"
+               style="color: #2d0b36;">
+                التالي <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
 
-{% if pagination and pagination.pages > 1 %}
-<div class="d-flex flex-wrap justify-content-between align-items-center mt-3">
-    
-    {# ✅ معلومات العرض #}
-    <div class="text-muted small mb-2 mb-md-0">
-        <i class="fas fa-list-ul me-1"></i>
-        عرض <span class="fw-bold">{{ pagination.start }}</span> - 
-        <span class="fw-bold">{{ pagination.end }}</span> 
-        من <span class="fw-bold">{{ pagination.total }}</span> منتج
-        <span class="text-muted">({{ pagination.pages }} صفحات)</span>
-    </div>
-    
-    {# ✅ أزرار الترقيم #}
-    <nav aria-label="التنقل بين صفحات المنتجات">
-        <ul class="pagination pagination-sm mb-0">
-            
-            {# ✅ زر الصفحة الأولى #}
-            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="event.preventDefault(); goToPage(1)" 
-                   title="الصفحة الأولى" aria-label="الصفحة الأولى">
-                    <i class="fas fa-angle-double-right"></i>
-                </a>
-            </li>
-            
-            {# ✅ زر الصفحة السابقة #}
-            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="event.preventDefault(); goToPage({{ pagination.prev_page or 1 }})" 
-                   title="الصفحة السابقة" aria-label="الصفحة السابقة">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </li>
-            
-            {# ✅ أرقام الصفحات #}
-            {% for page in pagination.pages_list %}
-                {% if page == '...' %}
-                    <li class="page-item disabled">
-                        <span class="page-link" aria-hidden="true">…</span>
-                    </li>
-                {% else %}
-                    <li class="page-item {% if page == pagination.current_page %}active{% endif %}">
-                        <a class="page-link" href="#" onclick="event.preventDefault(); goToPage({{ page }})" 
-                           aria-label="الصفحة {{ page }}"
-                           aria-current="{% if page == pagination.current_page %}page{% endif %}">
-                            {{ page }}
-                        </a>
-                    </li>
-                {% endif %}
-            {% endfor %}
-            
-            {# ✅ زر الصفحة التالية #}
-            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="event.preventDefault(); goToPage({{ pagination.next_page or pagination.pages }})" 
-                   title="الصفحة التالية" aria-label="الصفحة التالية">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-            </li>
-            
-            {# ✅ زر الصفحة الأخيرة #}
-            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="event.preventDefault(); goToPage({{ pagination.pages }})" 
-                   title="الصفحة الأخيرة" aria-label="الصفحة الأخيرة">
-                    <i class="fas fa-angle-double-left"></i>
-                </a>
-            </li>
-            
-        </ul>
-    </nav>
+<div class="text-center text-muted mt-2 small">
+    عرض المنتجات (صفحة {{ pagination.currentPage }} من {{ pagination.totalPages }} - إجمالي العناصر: {{ pagination.totalItems }})
 </div>
-
-{# ✅ CSS #}
-<style>
-    .pagination .page-link {
-        border-radius: 8px;
-        margin: 0 2px;
-        color: var(--dark-purple, #2d0b36);
-        border: none;
-        padding: 6px 12px;
-        font-size: 0.85rem;
-        transition: all 0.2s ease;
-        background: transparent;
-    }
-    
-    .pagination .page-link:hover {
-        background-color: rgba(45, 11, 54, 0.08);
-        color: var(--dark-purple, #2d0b36);
-        transform: translateY(-1px);
-    }
-    
-    .pagination .page-item.active .page-link {
-        background-color: var(--dark-purple, #2d0b36);
-        color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(45, 11, 54, 0.3);
-    }
-    
-    .pagination .page-item.active .page-link:hover {
-        background-color: #4a1558;
-        transform: translateY(-1px);
-    }
-    
-    .pagination .page-item.disabled .page-link {
-        color: #adb5bd;
-        cursor: not-allowed;
-        background: transparent;
-    }
-    
-    .pagination .page-item.disabled .page-link:hover {
-        transform: none;
-        background: transparent;
-    }
-    
-    .pagination .page-item:first-child .page-link,
-    .pagination .page-item:last-child .page-link {
-        border-radius: 8px;
-    }
-    
-    /* ✅ استجابة للشاشات الصغيرة */
-    @media (max-width: 576px) {
-        .pagination .page-link {
-            padding: 4px 8px;
-            font-size: 0.75rem;
-        }
-        
-        .pagination .page-item:first-child .page-link,
-        .pagination .page-item:last-child .page-link {
-            padding: 4px 8px;
-        }
-        
-        .text-muted.small {
-            font-size: 0.7rem !important;
-        }
-    }
-    
-    @media (max-width: 400px) {
-        .pagination .page-link {
-            padding: 3px 6px;
-            font-size: 0.7rem;
-        }
-        
-        .pagination .page-item:first-child .page-link,
-        .pagination .page-item:last-child .page-link {
-            padding: 3px 6px;
-        }
-    }
-</style>
 {% endif %}
