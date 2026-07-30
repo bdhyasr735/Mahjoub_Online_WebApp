@@ -207,7 +207,7 @@
     -webkit-appearance: none !important; margin: 0 !important;
 }
 
-/* ✅ تنسيق Tom Select (حل مشكلة الشريط العريض والنقطة السوداء) */
+/* ✅ تنسيق Tom Select (لن يتحول لعرض الشاشة الكامل) */
 .ts-wrapper {
     width: 100% !important;
     position: relative !important;
@@ -235,8 +235,7 @@
     position: absolute !important;
     top: 100% !important;
     left: 0 !important;
-    width: 100% !important;
-    min-width: 100% !important;
+    width: 100% !important;  /* ✅ تأخذ فقط عرض حقل المورد */
     z-index: 9999 !important;
     border: 2px solid #e2e8f0 !important;
     border-top: none !important;
@@ -280,8 +279,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 plugins: ['remove_button'],
                 placeholder: 'ابحث عن المورد هنا...',
                 searchField: ['text'],
-                maxOptions: 10,
-                dropdownParent: document.body
+                maxOptions: 10
+                // ✅ تم إزالة "dropdownParent: document.body" نهائياً!
             });
             console.log('✅ Tom Select (المورد) تم تفعيله بنجاح');
         }
