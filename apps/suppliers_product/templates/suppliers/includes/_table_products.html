@@ -37,16 +37,27 @@
         <tbody>
             {% for product in products %}
             {% set p_name = product.title or product.name or 'منتج بدون اسم' %}
-            {% set p_img = (product.images[0].fileUrl if product.images and product.images|length > 0 else none) or 'https://via.placeholder.com/60x60?text=No+Image' %}
-            {% set p_price = product.price if product.price is defined and product.price is not none else (product.pricing.price if product.pricing and product.pricing.price else 0) %}
+            
+            {%- set raw_img = none -%}
+            {%- if product.images and product.images|length > 0 -%}
+                {%- set first_img = product.images[0] -%}
+                {%- if first_img is mapping -%}
+                    {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link -%}
+                {%- elif first_img is string -%}
+                    {%- set raw_img = first_img -%}
+                {%- endif -%}
+            {%- endif -%}
+            {% set p_img = raw_img or url_for('static', filename='img/default-product.png') %}
+            
+            {% set p_price = product.price if product.price is defined and product.price is not none else (product.pricing.price if product.pricing and product.pricing.price else (product.sale_price or product.regular_price or 0)) %}
             
             <tr id="product-row-{{ product.qid or product.id }}">
-                <td>{{ loop.index + ((pagination.currentPage - 1) * pagination.perPage) if pagination else loop.index }}</td>
+                <td>{{ loop.index }}</td>
                 <td>
                     <img src="{{ p_img }}"
                          alt="{{ p_name }}"
                          style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 2px solid #D4AF37;"
-                         onerror="this.src='https://via.placeholder.com/60x60?text=No+Image'">
+                         onerror="this.src='{{ url_for('static', filename='img/default-product.png') }}'">
                 </td>
                 <td class="fw-bold text-truncate" style="max-width: 200px; color: #2d0b36;">
                     {{ p_name }}
@@ -55,18 +66,13 @@
                     {% endif %}
                 </td>
                 <td class="fw-bold" style="color: #D4AF37;">
-                    {{ "%.2f"|format(p_price|float) }} ر.س
+                    {{ "%.2f"|format(p_price|float) }} ر.ي
                 </td>
                 <td>
-                    {% if product.quantity is defined and product.quantity is not none %}
-                        <span class="badge" style="background: {{ 'linear-gradient(135deg, #28a745, #1e7e34)' if product.quantity > 0 else 'linear-gradient(135deg, #6c757d, #495057)' }}; color: white;">
-                            {{ product.quantity }}
-                        </span>
-                    {% else %}
-                        <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
-                            غير متوفر
-                        </span>
-                    {% endif %}
+                    {% set p_qty = product.quantity if product.quantity is defined and product.quantity is not none else (product.stock if product.stock is defined else 0) %}
+                    <span class="badge" style="background: {{ 'linear-gradient(135deg, #28a745, #1e7e34)' if p_qty|int > 0 else 'linear-gradient(135deg, #6c757d, #495057)' }}; color: white;">
+                        {{ p_qty }}
+                    </span>
                 </td>
                 <td>
                     {% set status = product.status|upper if product.status else 'DRAFT' %}
@@ -129,77 +135,6 @@
         </tbody>
     </table>
 </div>
-
-<!-- ✅ الترقيم المحسّن -->
-{% if pagination and pagination.totalPages > 1 %}
-<nav class="mt-4" aria-label="Page navigation">
-    <ul class="pagination justify-content-center">
-        <!-- السابق -->
-        <li class="page-item {{ 'disabled' if not pagination.hasPrev }}">
-            <a class="page-link"
-               href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.currentPage-1, title=search_title) if pagination.hasPrev else '#' }}"
-               style="color: #2d0b36;">
-                <i class="fas fa-chevron-right"></i> السابق
-            </a>
-        </li>
-        
-        <!-- أرقام الصفحات -->
-        {% set start_page = [1, pagination.currentPage - 2]|max %}
-        {% set end_page = [pagination.totalPages, pagination.currentPage + 2]|min %}
-        
-        {% if start_page > 1 %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=1, title=search_title) }}" style="color: #2d0b36;">1</a>
-            </li>
-            {% if start_page > 2 %}
-                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
-            {% endif %}
-        {% endif %}
-        
-        {% for p in range(start_page, end_page + 1) %}
-            {% if p == pagination.currentPage %}
-                <li class="page-item active">
-                    <span class="page-link" style="background: linear-gradient(135deg, #2d0b36, #1a0520); border-color: #2d0b36; color: #D4AF37;">
-                        {{ p }}
-                    </span>
-                </li>
-            {% else %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=p, title=search_title) }}" style="color: #2d0b36;">
-                        {{ p }}
-                    </a>
-                </li>
-            {% endif %}
-        {% endfor %}
-        
-        {% if end_page < pagination.totalPages %}
-            {% if end_page < pagination.totalPages - 1 %}
-                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
-            {% endif %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.totalPages, title=search_title) }}" style="color: #2d0b36;">
-                    {{ pagination.totalPages }}
-                </a>
-            </li>
-        {% endif %}
-        
-        <!-- التالي -->
-        <li class="page-item {{ 'disabled' if not pagination.hasNext }}">
-            <a class="page-link"
-               href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.currentPage+1, title=search_title) if pagination.hasNext else '#' }}"
-               style="color: #2d0b36;">
-                التالي <i class="fas fa-chevron-left"></i>
-            </a>
-        </li>
-    </ul>
-</nav>
-
-<!-- عرض معلومات إضافية عن الترقيم -->
-<div class="text-center text-muted mt-2 small">
-    عرض {{ products|length }} من {{ pagination.totalItems }} منتج
-    (صفحة {{ pagination.currentPage }} من {{ pagination.totalPages }})
-</div>
-{% endif %}
 
 <!-- ✅ JavaScript للحذف الديناميكي -->
 <script>
@@ -280,22 +215,6 @@ function showToast(type, message) {
     .btn-group .btn {
         padding: 4px 8px;
         font-size: 0.8rem;
-    }
-    .pagination .page-link {
-        color: #2d0b36;
-        border-color: #dee2e6;
-    }
-    .pagination .page-link:hover {
-        background-color: rgba(45, 11, 54, 0.05);
-        color: #2d0b36;
-    }
-    .pagination .page-item.active .page-link {
-        background: linear-gradient(135deg, #2d0b36, #1a0520) !important;
-        border-color: #2d0b36 !important;
-        color: #D4AF37 !important;
-    }
-    .pagination .page-item.disabled .page-link {
-        color: #6c757d;
     }
     .badge {
         font-weight: 500;
