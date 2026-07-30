@@ -101,9 +101,6 @@ def login():
         return render_template('suppliers_auth_portal/login.html')
 
     try:
-        # مسح الجلسة السابقة لضمان عدم وجود تداخل
-        session.clear()
-
         # قراءة البيانات
         username = request.form.get('username', '').strip() if not request.is_json else request.get_json().get('username', '').strip()
         password = request.form.get('password', '') if not request.is_json else request.get_json().get('password', '')
