@@ -30,9 +30,10 @@ input.tabular-nums {
                 <span class="product-name">{{ product.title or product.name }}</span>
             </h1>
             <div class="edit-meta">
+                <!-- ✅ شارة الحالة المحدثة (تتوافق مع active, draft, archived) -->
                 <span class="badge-status">
-                    <i class="fas fa-circle" style="color: {{ 'var(--success)' if (product.status|string)|upper == 'PUBLISHED' else 'var(--warning)' if (product.status|string)|upper == 'DRAFT' else 'var(--danger)' }};"></i>
-                    {{ (product.status|string)|upper or 'DRAFT' }}
+                    <i class="fas fa-circle" style="color: {{ 'var(--success)' if (product.status|string)|upper == 'ACTIVE' else 'var(--warning)' if (product.status|string)|upper == 'DRAFT' else 'var(--danger)' }};"></i>
+                    {{ (product.status|string)|title or 'DRAFT' }}
                 </span>
                 <span class="badge-id">
                     <i class="fas fa-fingerprint"></i>
