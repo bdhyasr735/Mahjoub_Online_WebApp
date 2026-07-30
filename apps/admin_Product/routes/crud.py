@@ -294,9 +294,10 @@ def delete_product(qid):
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        result = services.products.update_product_data({"qid": qid, "status": "ARCHIVED"})
+        # ✅ تم التعديل: استخدام update_product_status بدلاً من update_product_data
+        result = services.products.update_product_status(qid, "ARCHIVED")
         
-        if result:
+        if result and result.get('success'):
             mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
             if mapping:
                 db.session.delete(mapping)
