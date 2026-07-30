@@ -228,11 +228,8 @@ class ProductService:
             print(f"❌ [ProductService]: {e}")
             return {}
 
-    # ============================================================
-    # ✅ دالة تحديث المنتج (مصححة بناءً على الساندبوكس)
-    # ============================================================
     def update_product_data(self, input_data: dict) -> dict:
-        """تعديل معلومات المنتج (لا تشمل الحالة - استخدم update_product_status للحالة)"""
+        """تعديل معلومات المنتج (بدون الحالة - لاستخدام دالة الحالة المنفصلة)"""
         # إزالة qid من بيانات الإدخال لأنه يُمرر بشكل منفصل
         qid = input_data.get('qid')
         if not qid:
@@ -242,16 +239,17 @@ class ProductService:
         # تحضير كائن الإدخال (دون qid)
         update_info_input = {k: v for k, v in input_data.items() if k != 'qid'}
 
+        # ✅ تم التصحيح النهائي بناءً على الساندبوكس
         query = """
-        mutation UpdateProductInfo($id: String!, $updateProductInfoInput: UpdateProductInfo!) {
-            updateProductInfo(id: $id, updateProductInfoInput: $updateProductInfoInput) {
+        mutation UpdateProductInfo($id: String!, $input: UpdateProductInfo!) {
+            updateProductInfo(id: $id, updateProductInfoInput: $input) {
                 success
                 message
             }
         }
         """
         try:
-            data = self.client.execute(query, {"id": qid, "updateProductInfoInput": update_info_input})
+            data = self.client.execute(query, {"id": qid, "input": update_info_input})
             if data and "updateProductInfo" in data:
                 return data["updateProductInfo"]
             return {}
@@ -260,10 +258,10 @@ class ProductService:
             return {}
 
     # ============================================================
-    # ✅ دالة تحديث الحالة (تصحيح سابق - تعمل مع updateProductStatus)
+    # ✅ دالة تحديث الحالة (المصححة بناءً على الساندبوكس)
     # ============================================================
     def update_product_status(self, product_qid: str, status: str) -> dict:
-        """تحديث حالة المنتج باستخدام updateProductStatus"""
+        """تحديث حالة المنتج باستخدام updateProductStatus (يتوقع id من نوع ID!)"""
         query = """
         mutation UpdateProductStatus($id: ID!, $status: String!) {
             updateProductStatus(id: $id, status: $status) {
