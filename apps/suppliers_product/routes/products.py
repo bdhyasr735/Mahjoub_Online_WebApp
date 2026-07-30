@@ -31,9 +31,9 @@ def manage_supplier_products_view():
         else:
             filtered_by_supplier = services.products.fetch_all_products_for_search() if hasattr(services.products, 'fetch_all_products_for_search') else []
 
-        # 🔍 طباعة تفاصيل أول منتج في الـ Terminal لفحص أسماء المفاتيح (الصور، السعر، إلخ)
+        # 🔍 طباعة تفاصيل أول منتج في الـ Terminal لفحص أسماء المفاتيح بدقة
         if filtered_by_supplier:
-            print("🔍 [DEBUG] عينة بيانات المنتج الأول من الـ API:", filtered_by_supplier[0])
+            print("🔍 [DEBUG API PRODUCT]:", filtered_by_supplier[0])
 
         if search_query:
             filtered = [p for p in filtered_by_supplier if search_query.lower() in p.get('title', '').lower() or search_query.lower() in str(p.get('sku', '')).lower()]
@@ -55,24 +55,35 @@ def manage_supplier_products_view():
 
         wrapped_items = []
         for prod in current_page_items:
-            # معالجة مرنة لاستخراج السعر بغض النظر عن اسم المفتاح في الـ API
-            price = prod.get('price') or prod.get('sale_price') or prod.get('regular_price') or 0
+            # استخراج السعر بجميع الاحتمالات الممكنة
+            price = prod.get('price') or prod.get('sale_price') or prod.get('regular_price') or prod.get('cost') or 0
             prod['price'] = price
             
-            # معالجة مرنة للصور للتأكد من وجود رابط صالح
-            images = prod.get('images', [])
+            # معالجة الصور بمرونة مطلقة
+            images = prod.get('images') or prod.get('photos') or prod.get('image') or []
             processed_images = []
             if isinstance(images, list):
                 for img in images:
-                    if isinstance(img, dict) and img.get('url'):
-                        processed_images.append({'url': img.get('url')})
+                    if isinstance(img, dict) and (img.get('url') or img.get('src') or img.get('link')):
+                        processed_images.append({'url': img.get('url') or img.get('src') or img.get('link')})
                     elif isinstance(img, str):
                         processed_images.append({'url': img})
             elif isinstance(images, str):
                 processed_images.append({'url': images})
             
             prod['images'] = processed_images
-            wrapped_items.append({'product': prod})
+            
+            # توفير الهيكلين معا لضمان توافقهما مع أي قالب (item.product أو item مباشرة)
+            wrapped_items.append({
+                'product': prod,
+                'title': prod.get('title'),
+                'sku': prod.get('sku'),
+                'price': price,
+                'quantity': prod.get('quantity') or prod.get('stock') or 0,
+                'status': prod.get('status'),
+                'qid': prod.get('qid'),
+                'images': processed_images
+            })
 
         class PaginationMock:
             def __init__(self, items, page, per_page, total):
@@ -106,7 +117,7 @@ def manage_supplier_products_view():
                 'REJECTED': 'مرفوض',
                 'ARCHIVED': 'مؤرشف'
             }
-            return mapping_status.get(status, status)
+            return mapping_status.get(str(status).upper(), status)
 
         def format_price(price):
             try:
