@@ -121,5 +121,5 @@ def manage_supplier_products_view():
 
 
 def register_supplier_products_route(bp):
-    bp.add_url_rule('/products', view_func=manage_supplier_products_view, methods=['GET'], endpoint='suppliers_product')
+    bp.add_url_rule('/products', view_func=manage_supplier_products_view, methods=['GET'], endpoint='manage_supplier_products_view')
     return bp
