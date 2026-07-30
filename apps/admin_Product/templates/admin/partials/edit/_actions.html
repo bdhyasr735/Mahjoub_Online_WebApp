@@ -114,7 +114,7 @@
 }
 .action-status strong { color: #0f172a; }
 .btn-action:active { transform: scale(0.96); }
-.btn-action.loading { pointer-events: none; opacity: 0.7; }
+.btn-action.loading { pointer-events: none; opacity: 0.85; }
 .btn-action.loading i { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (max-width: 768px) {
@@ -166,15 +166,32 @@ window.deleteProduct = function(qid, name) {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    // ✅ تأثير التحميل عند حفظ المنتج
+    // ✅ تأثير الحفظ والتوقف عن الدوران وإظهار نافذة "تم الحفظ"
     const saveBtn = document.getElementById('saveBtn');
     if (saveBtn) {
         saveBtn.addEventListener('click', function(e) {
             const form = this.closest('form');
             if (form && form.checkValidity()) {
+                // إظهار الدوران مؤقتاً أثناء المعالجة البسيطة
                 this.classList.add('loading');
                 this.innerHTML = `<i class="fas fa-spinner"></i><span>جاري الحفظ...</span><small class="btn-hint">يرجى الانتظار</small>`;
                 this.disabled = true;
+
+                // بعد جزء من الثانية يتوقف الدوران ويظهر شكل "تم الحفظ" والإشعار الناجح
+                setTimeout(() => {
+                    this.classList.remove('loading');
+                    this.innerHTML = `<i class="fas fa-check-circle"></i><span>تم الحفظ</span><small class="btn-hint">نجاح</small>`;
+                    this.style.background = '#166534'; // لون أخضر هادئ يدل على النجاح
+                    this.style.color = '#ffffff';
+                    
+                    // إظهار نافذة إشعار منبثقة أسفل الشاشة
+                    window.showNotification('تم حفظ التغييرات بنجاح!', 'success');
+                }, 600);
+
+                // إرسال النموذج بصورة طبيعية بعد إتمام العرض المرئي
+                setTimeout(() => {
+                    form.submit();
+                }, 1200);
             }
         });
     }
