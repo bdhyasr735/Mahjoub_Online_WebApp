@@ -1,351 +1,304 @@
-<!-- 📂 apps/suppliers_product/templates/suppliers/includes/_table_products.html -->
-
+<!-- 📂 apps/admin_Product/templates/admin/includes/_table_products.html -->
 <div class="table-responsive">
-    <table class="table table-hover align-middle" id="productsTable">
-        <thead class="table-light">
+    <!-- حقل مخفي لضمان نجاح طلبات الحذف عبر الـ AJAX -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- ✅ رسالة نتائج البحث -->
+    {% if search_title %}
+    <div class="alert alert-dismissible fade show mb-3" style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-right: 4px solid #D4AF37; border-radius: 10px;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-search text-muted me-2"></i>
+                <strong>نتائج البحث:</strong> "{{ search_title }}"
+                <span class="badge ms-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                    {{ products|length }} منتج
+                </span>
+            </div>
+            <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 4px 16px;">
+                <i class="fas fa-arrow-right me-1"></i> عرض الكل
+            </a>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <table class="table table-hover align-middle shadow-sm rounded">
+        <thead style="background: linear-gradient(135deg, #2d0b36, #1a0520);">
             <tr>
-                <th style="width: 50px;">#</th>
-                <th style="width: 80px;">الصورة</th>
-                <th>اسم المنتج</th>
-                <th style="width: 120px;">SKU</th>
-                <th style="width: 120px;">السعر (SAR)</th>
-                <th style="width: 100px;">الكمية</th>
-                <th style="width: 130px;">الحالة</th>
-                <th style="width: 130px;">الإجراءات</th>
+                <th scope="col" style="color: #D4AF37;">#</th>
+                <th scope="col" style="color: #D4AF37;">الصورة</th>
+                <th scope="col" style="color: #D4AF37;">اسم المنتج</th>
+                <th scope="col" style="color: #D4AF37;">السعر</th>
+                <th scope="col" style="color: #D4AF37;">الكمية</th>
+                <th scope="col" style="color: #D4AF37;">الحالة</th>
+                <th scope="col" style="color: #D4AF37;">الإجراءات</th>
             </tr>
         </thead>
         <tbody>
-            {% if products and products.items and products.items|length > 0 %}
-                {% for product in products.items %}
-                {# استخراج الكمية من GraphQL product #}
-                {% set prod_qty = product.product.quantity if product.product and product.product.quantity is defined else (product.quantity if product.quantity is defined else 0) %}
-                {# استخراج السعر #}
-                {% set prod_price = product.product.price if product.product and product.product.price is defined else (product.price if product.price is defined else 0) %}
-                {# استخراج SKU #}
-                {% set prod_sku = product.product.sku if product.product and product.product.sku is defined else (product.sku if product.sku is defined else '---') %}
-                {# استخراج الحالة #}
-                {% set prod_status = product.product.status if product.product and product.product.status is defined else (product.status if product.status is defined else 'DRAFT') %}
-                {# استخراج الصور #}
-                {% set prod_images = product.product.images if product.product and product.product.images is defined else (product.images if product.images is defined else []) %}
-                {# استخراج الاسم #}
-                {% set prod_name = product.title if product.title is defined else (product.product.name if product.product and product.product.name is defined else 'منتج بدون اسم') %}
-                {# استخراج الوصف #}
-                {% set prod_desc = product.product.description if product.product and product.product.description is defined else (product.description if product.description is defined else '') %}
-                {# QID #}
-                {% set prod_qid = product.qid if product.qid is defined else (product.product.qid if product.product and product.product.qid is defined else '') %}
-                
-                <tr>
-                    <td>{{ loop.index + ((pagination.current_page - 1) * pagination.per_page if pagination else 0) }}</td>
-                    <td>
-                        {% if prod_images and prod_images|length > 0 %}
-                            {% set first_image = prod_images[0] %}
-                            {% if first_image is mapping %}
-                                <img src="{{ first_image.url or first_image.fileUrl }}" 
-                                     alt="{{ prod_name }}" 
-                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"
-                                     onerror="this.src='{{ url_for('static', filename='images/no-image.png') }}'">
-                            {% else %}
-                                <img src="{{ first_image }}" 
-                                     alt="{{ prod_name }}" 
-                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"
-                                     onerror="this.src='{{ url_for('static', filename='images/no-image.png') }}'">
-                            {% endif %}
+            {% for product in products %}
+            {% set p_name = product.title or product.name or 'منتج بدون اسم' %}
+            {% set p_img = (product.images[0].fileUrl if product.images and product.images|length > 0 else none) or 'https://via.placeholder.com/60x60?text=No+Image' %}
+            {% set p_price = product.price if product.price is defined and product.price is not none else (product.pricing.price if product.pricing and product.pricing.price else 0) %}
+            
+            <tr id="product-row-{{ product.qid or product.id }}">
+                <td>{{ loop.index + ((pagination.currentPage - 1) * pagination.perPage) if pagination else loop.index }}</td>
+                <td>
+                    <img src="{{ p_img }}"
+                         alt="{{ p_name }}"
+                         style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 2px solid #D4AF37;"
+                         onerror="this.src='https://via.placeholder.com/60x60?text=No+Image'">
+                </td>
+                <td class="fw-bold text-truncate" style="max-width: 200px; color: #2d0b36;">
+                    {{ p_name }}
+                    {% if product.description %}
+                    <br><small class="text-muted">{{ product.description|striptags|truncate(40) }}</small>
+                    {% endif %}
+                </td>
+                <td class="fw-bold" style="color: #D4AF37;">
+                    {{ "%.2f"|format(p_price|float) }} ر.س
+                </td>
+                <td>
+                    {% if product.quantity is defined and product.quantity is not none %}
+                        <span class="badge" style="background: {{ 'linear-gradient(135deg, #28a745, #1e7e34)' if product.quantity > 0 else 'linear-gradient(135deg, #6c757d, #495057)' }}; color: white;">
+                            {{ product.quantity }}
+                        </span>
+                    {% else %}
+                        <span class="badge" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                            غير متوفر
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% set status = product.status|upper if product.status else 'DRAFT' %}
+                    <span class="badge" style="
+                        {% if status == 'PUBLISHED' %} background: linear-gradient(135deg, #28a745, #1e7e34); color: white;
+                        {% elif status == 'DRAFT' %} background: linear-gradient(135deg, #ffc107, #d39e00); color: #2d0b36;
+                        {% elif status == 'REJECTED' %} background: linear-gradient(135deg, #dc3545, #a71d2a); color: white;
+                        {% elif status == 'ARCHIVED' %} background: linear-gradient(135deg, #6c757d, #495057); color: white;
+                        {% else %} background: linear-gradient(135deg, #e9ecef, #ced4da); color: #2d0b36; {% endif %}">
+                        {% if status == 'PUBLISHED' %}
+                            <i class="fas fa-check-circle me-1"></i> منشور
+                        {% elif status == 'DRAFT' %}
+                            <i class="fas fa-clock me-1"></i> قيد المراجعة
+                        {% elif status == 'REJECTED' %}
+                            <i class="fas fa-times-circle me-1"></i> مرفوض
+                        {% elif status == 'ARCHIVED' %}
+                            <i class="fas fa-archive me-1"></i> مؤرشف
                         {% else %}
-                            <div style="width: 50px; height: 50px; background: #f8f5fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #dee2e6;">
-                                <i class="fas fa-image text-muted" style="opacity: 0.3; font-size: 18px;"></i>
-                            </div>
+                            {{ status }}
                         {% endif %}
-                    </td>
-                    <td>
-                        <strong>{{ prod_name }}</strong>
-                        {% if prod_desc %}
-                            <br><small class="text-muted">{{ prod_desc|striptags|truncate(50) }}</small>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <code class="small bg-light p-1 rounded">
-                            {{ prod_sku }}
-                        </code>
-                    </td>
-                    <td>
-                        <span class="fw-bold text-primary">
-                            {{ "%.2f"|format(prod_price|float) }}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="badge 
-                            {% if prod_qty > 10 %}bg-success
-                            {% elif prod_qty > 0 %}bg-warning text-dark
-                            {% else %}bg-danger{% endif %}
-                            rounded-pill px-3 py-2">
-                            {{ prod_qty }}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="badge 
-                            {% if prod_status == 'PUBLISHED' or prod_status == 'published' %}bg-success
-                            {% elif prod_status == 'DRAFT' or prod_status == 'draft' %}bg-warning text-dark
-                            {% elif prod_status == 'REJECTED' or prod_status == 'rejected' %}bg-danger
-                            {% elif prod_status == 'ARCHIVED' or prod_status == 'archived' %}bg-secondary
-                            {% else %}bg-light text-dark{% endif %}
-                            rounded-pill px-3 py-2">
-                            {% if prod_status == 'PUBLISHED' or prod_status == 'published' %}
-                                <i class="fas fa-check-circle me-1"></i> منشور
-                            {% elif prod_status == 'DRAFT' or prod_status == 'draft' %}
-                                <i class="fas fa-clock me-1"></i> مراجعة
-                            {% elif prod_status == 'REJECTED' or prod_status == 'rejected' %}
-                                <i class="fas fa-times-circle me-1"></i> مرفوض
-                            {% elif prod_status == 'ARCHIVED' or prod_status == 'archived' %}
-                                <i class="fas fa-archive me-1"></i> مؤرشف
-                            {% else %}
-                                {{ prod_status }}
-                            {% endif %}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                            {% if prod_qid %}
-                            <a href="{{ url_for('edit_product_bp.edit_product_page', qid=prod_qid) }}" 
-                               class="btn btn-outline-warning" 
-                               title="تعديل المنتج"
-                               data-bs-toggle="tooltip">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button class="btn btn-outline-secondary" 
-                                    onclick="copyProductLink('{{ prod_qid }}')" 
-                                    title="نسخ الرابط"
-                                    data-bs-toggle="tooltip">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" 
-                                    onclick="deleteProduct('{{ prod_qid }}')" 
-                                    title="حذف المنتج"
-                                    data-bs-toggle="tooltip">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                            {% else %}
-                            <span class="text-muted small">لا يوجد QID</span>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="8" class="text-center py-5">
-                        <i class="fas fa-box-open fa-4x text-muted mb-3 d-block" style="opacity: 0.2;"></i>
-                        <h5 class="text-muted">لا توجد منتجات</h5>
-                        <p class="text-muted small">لم تقم بإضافة أي منتجات حتى الآن</p>
-                        <a href="{{ url_for('add_product_bp.add_product_page') }}" class="btn btn-custom btn-sm mt-2">
-                            <i class="fas fa-plus me-1"></i> إضافة منتج
+                    </span>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <!-- زر التعديل -->
+                        <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}"
+                           class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 4px; padding: 4px 10px;" 
+                           title="تعديل المنتج">
+                            <i class="fas fa-edit"></i>
                         </a>
-                    </td>
-                </tr>
-            {% endif %}
+                        <!-- زر الحذف -->
+                        <button type="button" class="btn delete-btn" style="background: linear-gradient(135deg, #dc3545, #a71d2a); color: white; border: none; border-radius: 4px; padding: 4px 10px;" 
+                                data-delete-url="{{ url_for('admin_product_bp.delete_product', qid=product.qid or product.id) }}" 
+                                title="حذف المنتج">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <i class="fas fa-box-open fa-3x mb-3 d-block" style="color: #D4AF37;"></i>
+                    <h5 style="color: #2d0b36;">لا توجد منتجات</h5>
+                    <p class="text-muted">
+                        {% if search_title %}
+                        لا توجد نتائج مطابقة للبحث "{{ search_title }}"
+                        {% else %}
+                        لم يتم إضافة أي منتجات بعد
+                        {% endif %}
+                    </p>
+                    {% if search_title %}
+                    <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 6px 20px;">
+                        <i class="fas fa-arrow-right me-1"></i> عرض جميع المنتجات
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
         </tbody>
     </table>
 </div>
 
-<!-- ✅ الترقيم -->
-{% if pagination and pagination.pages > 1 %}
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <div class="text-muted small">
-        عرض {{ pagination.start }} - {{ pagination.end }} من {{ pagination.total }} منتج
-    </div>
-    <nav>
-        <ul class="pagination pagination-sm mb-0">
-            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="goToPage({{ pagination.prev_page or 1 }})">
-                    <i class="fas fa-chevron-right"></i>
+<!-- ✅ الترقيم المحسّن -->
+{% if pagination and pagination.totalPages > 1 %}
+<nav class="mt-4" aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <!-- السابق -->
+        <li class="page-item {{ 'disabled' if not pagination.hasPrev }}">
+            <a class="page-link"
+               href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.currentPage-1, title=search_title) if pagination.hasPrev else '#' }}"
+               style="color: #2d0b36;">
+                <i class="fas fa-chevron-right"></i> السابق
+            </a>
+        </li>
+        
+        <!-- أرقام الصفحات -->
+        {% set start_page = [1, pagination.currentPage - 2]|max %}
+        {% set end_page = [pagination.totalPages, pagination.currentPage + 2]|min %}
+        
+        {% if start_page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=1, title=search_title) }}" style="color: #2d0b36;">1</a>
+            </li>
+            {% if start_page > 2 %}
+                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
+            {% endif %}
+        {% endif %}
+        
+        {% for p in range(start_page, end_page + 1) %}
+            {% if p == pagination.currentPage %}
+                <li class="page-item active">
+                    <span class="page-link" style="background: linear-gradient(135deg, #2d0b36, #1a0520); border-color: #2d0b36; color: #D4AF37;">
+                        {{ p }}
+                    </span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=p, title=search_title) }}" style="color: #2d0b36;">
+                        {{ p }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if end_page < pagination.totalPages %}
+            {% if end_page < pagination.totalPages - 1 %}
+                <li class="page-item disabled"><span class="page-link" style="color: #2d0b36;">...</span></li>
+            {% endif %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.totalPages, title=search_title) }}" style="color: #2d0b36;">
+                    {{ pagination.totalPages }}
                 </a>
             </li>
-            {% for page in pagination.pages_list %}
-                {% if page == '...' %}
-                    <li class="page-item disabled"><span class="page-link">…</span></li>
-                {% else %}
-                    <li class="page-item {% if page == pagination.current_page %}active{% endif %}">
-                        <a class="page-link" href="#" onclick="goToPage({{ page }})">{{ page }}</a>
-                    </li>
-                {% endif %}
-            {% endfor %}
-            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link" href="#" onclick="goToPage({{ pagination.next_page or pagination.pages }})">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-            </li>
-        </ul>
-    </nav>
+        {% endif %}
+        
+        <!-- التالي -->
+        <li class="page-item {{ 'disabled' if not pagination.hasNext }}">
+            <a class="page-link"
+               href="{{ url_for('admin_product_bp.manage_products_view', page=pagination.currentPage+1, title=search_title) if pagination.hasNext else '#' }}"
+               style="color: #2d0b36;">
+                التالي <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+<!-- عرض معلومات إضافية عن الترقيم -->
+<div class="text-center text-muted mt-2 small">
+    عرض {{ products|length }} من {{ pagination.totalItems }} منتج
+    (صفحة {{ pagination.currentPage }} من {{ pagination.totalPages }})
 </div>
 {% endif %}
 
-<!-- ✅ JavaScript -->
+<!-- ✅ JavaScript للحذف الديناميكي -->
 <script>
-    function goToPage(page) {
-        if (page) {
-            const search = document.getElementById('searchInput')?.value || '';
-            const filter = document.querySelector('.filter-btn.active')?.dataset?.filter || 'all';
-            const url = new URL(window.location.href);
-            url.searchParams.set('page', page);
-            if (search) url.searchParams.set('search', search);
-            if (filter !== 'all') url.searchParams.set('filter', filter);
-            window.location.href = url.toString();
-        }
-    }
-    
-    function copyProductLink(qid) {
-        const url = `{{ request.host_url }}supplier/product/${qid}`;
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(url).then(() => {
-                showToast('✅ تم نسخ الرابط بنجاح!', 'success');
-            }).catch(() => {
-                fallbackCopy(url);
-            });
-        } else {
-            fallbackCopy(url);
-        }
-    }
-    
-    function fallbackCopy(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        textarea.remove();
-        showToast('✅ تم نسخ الرابط بنجاح!', 'success');
-    }
-    
-    function deleteProduct(qid) {
-        if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟')) return;
+document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const deleteUrl = this.getAttribute('data-delete-url');
+        if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء!')) return;
         
-        fetch(`/api/edit-product/${qid}`, {
-            method: 'DELETE',
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        
+        const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+
+        fetch(deleteUrl, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
             if (data.success) {
-                showToast('✅ تم حذف المنتج بنجاح', 'success');
+                showToast('success', '✅ ' + (data.message || 'تم حذف المنتج بنجاح'));
                 setTimeout(() => window.location.reload(), 1500);
             } else {
-                showToast('❌ فشل الحذف: ' + (data.message || 'خطأ غير معروف'), 'danger');
+                showToast('error', '❌ ' + (data.message || 'فشل الحذف'));
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash"></i>';
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('❌ حدث خطأ أثناء الحذف', 'danger');
+        .catch(err => {
+            showToast('error', '❌ حدث خطأ في الاتصال: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i>';
         });
-    }
-    
-    function showToast(message, type = 'info') {
-        const colors = {
-            success: '#28a745',
-            info: '#0d6efd',
-            warning: '#ffc107',
-            danger: '#dc3545'
-        };
-        
-        document.querySelectorAll('.custom-toast').forEach(el => el.remove());
-        
-        const toast = document.createElement('div');
-        toast.className = 'custom-toast position-fixed bottom-0 end-0 p-3';
-        toast.style.zIndex = '9999';
-        toast.style.animation = 'slideInUp 0.5s ease';
-        toast.innerHTML = `
-            <div class="toast show border-0 shadow-lg" role="alert" 
-                 style="border-right: 4px solid ${colors[type] || colors.info}; 
-                        background: white; border-radius: 12px; min-width: 280px;">
-                <div class="toast-body d-flex align-items-center gap-2 p-3">
-                    <span>${message}</span>
-                    <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast" 
-                            onclick="this.closest('.custom-toast').remove()"></button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        if (typeof bootstrap !== 'undefined') {
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        }
     });
+});
+
+function showToast(type, message) {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#0d6efd'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show border-0 shadow-lg" role="alert" 
+             style="border-right: 4px solid ${colors[type] || colors.info}; background: white; border-radius: 12px; min-width: 250px;">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <span>${message}</span>
+                <button type="button" class="btn-close btn-close-sm ms-2" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
 </script>
 
-<!-- ✅ CSS -->
 <style>
-    @keyframes slideInUp {
-        from {
-            transform: translateY(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-    
-    .btn-custom {
-        background-color: var(--dark-purple, #2d0b36);
-        color: #fff;
-        border: none;
-        transition: all 0.3s ease;
-    }
-    .btn-custom:hover {
-        background-color: #4a1558;
-        color: #fff;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(45, 11, 54, 0.3);
-    }
-    
     .table th {
         font-weight: 600;
-        color: #495057;
-        border-bottom: 2px solid #dee2e6;
-        font-size: 0.85rem;
-        white-space: nowrap;
+        border-bottom: 2px solid #D4AF37;
     }
-    
     .table td {
         vertical-align: middle;
-        font-size: 0.9rem;
     }
-    
     .table-hover tbody tr:hover {
-        background-color: rgba(45, 11, 54, 0.03);
-        transition: background-color 0.2s ease;
+        background-color: rgba(45, 11, 54, 0.05) !important;
     }
-    
-    .page-item.active .page-link {
-        background-color: var(--dark-purple, #2d0b36);
-        border-color: var(--dark-purple, #2d0b36);
+    .btn-group .btn {
+        padding: 4px 8px;
+        font-size: 0.8rem;
     }
-    
-    .page-link {
-        color: var(--dark-purple, #2d0b36);
+    .pagination .page-link {
+        color: #2d0b36;
+        border-color: #dee2e6;
     }
-    
-    .page-link:hover {
-        color: #4a1558;
+    .pagination .page-link:hover {
+        background-color: rgba(45, 11, 54, 0.05);
+        color: #2d0b36;
     }
-    
-    code {
-        font-size: 0.75rem;
-        background-color: #f8f9fa;
-        padding: 2px 8px;
-        border-radius: 4px;
+    .pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #2d0b36, #1a0520) !important;
+        border-color: #2d0b36 !important;
+        color: #D4AF37 !important;
     }
-    
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+    }
     .badge {
         font-weight: 500;
+        padding: 5px 12px;
     }
 </style>
