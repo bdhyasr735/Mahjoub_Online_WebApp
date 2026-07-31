@@ -44,24 +44,33 @@ def manage_supplier_products_view():
         max_price = request.args.get('max_price', '')
         is_ajax = request.args.get('ajax', '0') == '1'
 
-        # 2. جلب جميع المنتجات من جميع الصفحات (باستخدام get_products_page(page) فقط)
+        # 2. جلب جميع المنتجات ديناميكيًا باستخدام hasNextPage (يتكيف تلقائيًا مع أي عدد)
         all_products = []
         total_items_all = 0
+        current_page = 1
+        
         try:
-            # جلب الصفحة الأولى للحصول على العدد الكلي
-            first_result = services.products.get_products_page(1)
-            if first_result:
-                pagination_info = first_result.get('pagination', {})
-                total_items_all = pagination_info.get('totalItems', 0)
+            while True:
+                result = services.products.get_products_page(current_page)
+                if not result:
+                    break
+                    
+                page_products = result.get('data', [])
+                pagination = result.get('pagination', {})
                 
-                # جلب جميع الصفحات بناءً على العدد الكلي
-                per_page_api = 10  # الافتراضي في API
-                total_pages_all = math.ceil(total_items_all / per_page_api)
+                # حفظ العدد الكلي من أول صفحة
+                if current_page == 1:
+                    total_items_all = pagination.get('totalItems', 0)
                 
-                for p in range(1, total_pages_all + 1):
-                    result = services.products.get_products_page(p)
-                    if result:
-                        all_products.extend(result.get('data', []))
+                # إضافة منتجات الصفحة الحالية
+                all_products.extend(page_products)
+                
+                # التحقق من وجود صفحة تالية (ديناميكي وتلقائي)
+                if not pagination.get('hasNextPage', False):
+                    break
+                    
+                current_page += 1
+                
         except Exception as e:
             current_app.logger.error(f"خطأ جلب المنتجات: {traceback.format_exc()}")
 
