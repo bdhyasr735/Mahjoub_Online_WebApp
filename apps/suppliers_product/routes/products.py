@@ -49,7 +49,7 @@ def manage_supplier_products_view():
         is_ajax = request.args.get('ajax', '0') == '1'
 
         # ====================================================
-        # ✅ 2. جلب QIDs الخاصة بالمورد مع تحويلها لنصوص لضمان المقارنة
+        # ✅ 2. جلب QIDs الخاصة بالمورد من قاعدة البيانات المحلية فقط
         # ====================================================
         supplier_qids = []
         if supplier_id:
@@ -58,30 +58,38 @@ def manage_supplier_products_view():
         
         supplier_qids_set = set(supplier_qids)
 
-        # ====================================================
-        # ✅ 3. جلب المنتجات وتطبيق الفلترة الصارمة على المورد
-        # ====================================================
-        target_products = []
-        
-        # إذا لم يملك المورد أي منتجات مسجلة في قاعدة البيانات المحلية ولم يكن أدمن، تعاد قائمة فارغة مباشرة
+        # إذا لم يملك المورد أي منتجات مسجلة ولم يكن أدمن، تعاد قائمة فارغة مباشرة تفادياً لأي ضغط
         if not supplier_qids_set and not is_admin:
-            target_products = []
-        else:
-            # جلب المنتجات من API النظام الخارجي
-            max_pages = 20
-            raw_products = services.products.fetch_all_products_for_search(max_pages=max_pages) or []
-
-            if is_admin and not supplier_id:
-                target_products = raw_products  # للأدمن فقط إذا لم يُحدد مورد
-            else:
-                # تصفية حصرية: الاحتفاظ بالمنتجات التي تطابق QID الخاص بالمورد فقط
-                target_products = [
-                    p for p in raw_products 
-                    if str(p.get('qid', '')).strip() in supplier_qids_set
-                ]
+            pagination_info = {'current_page': 1, 'total_pages': 0, 'has_prev': False, 'has_next': False, 'per_page': limit, 'total_items': 0}
+            if is_ajax:
+                return jsonify({
+                    'success': True,
+                    'html': render_template('suppliers/includes/_product_grid.html', products=[], get_status_text=get_status_text, format_price=format_price),
+                    'pagination_html': render_template('suppliers/includes/_pagination.html', pagination=pagination_info)
+                })
+            return render_template('suppliers/suppliers_product.html', products=[], pagination=pagination_info, get_status_text=get_status_text, format_price=format_price)
 
         # ====================================================
-        # ✅ 4. تطبيق فلاتر البحث الإضافية (الاسم/SKU، الفئة، الحالة، السعر)
+        # ✅ 3. جلب الصفحة المطلوبة مباشرة من الـ API بدلاً من جلب كل الصفحات (منع استهلاك الذاكرة)
+        # ====================================================
+        result = services.products.get_products_page(page) or {}
+        pagination = result.get('pagination', {})
+        raw_products = result.get('data', [])
+
+        total_items_real = pagination.get('totalItems', 0)
+        total_pages = pagination.get('totalPages', 1)
+
+        if is_admin and not supplier_id:
+            target_products = raw_products  # للأدمن فقط إذا لم يُحدد مورد
+        else:
+            # تصفية حصرية للمنتجات التي تخص المورد الحالي بناءً على الـ QIDs المحلية
+            target_products = [
+                p for p in raw_products 
+                if str(p.get('qid', '')).strip() in supplier_qids_set
+            ]
+
+        # ====================================================
+        # ✅ 4. تطبيق فلاتر البحث الإضافية على الصفحة الحالية
         # ====================================================
         filtered_products = []
         for p in target_products:
@@ -105,18 +113,7 @@ def manage_supplier_products_view():
             
             filtered_products.append(p)
 
-        # ====================================================
-        # ✅ 5. حساب الترقيم وتجهيز الصفحة
-        # ====================================================
-        total_items_real = len(filtered_products)
-        per_page = limit
-        total_pages = math.ceil(total_items_real / per_page) if total_items_real > 0 else 0
-
-        # تقطيع المنتجات لعرض الصفحة الحالية فقط
-        start_idx = (page - 1) * per_page
-        end_idx = start_idx + per_page
-        paged_products = filtered_products[start_idx:end_idx]
-        formatted_products = [{'product': p} for p in paged_products]
+        formatted_products = [{'product': p} for p in filtered_products]
 
         pagination_info = {
             'current_page': page,
@@ -125,7 +122,7 @@ def manage_supplier_products_view():
             'has_next': page < total_pages,
             'prev_num': page - 1 if page > 1 else 1,
             'next_num': page + 1 if page < total_pages else page,
-            'per_page': per_page,
+            'per_page': limit,
             'total_items': total_items_real
         }
 
