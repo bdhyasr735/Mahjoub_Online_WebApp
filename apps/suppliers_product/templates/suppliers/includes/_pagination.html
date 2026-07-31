@@ -1,99 +1,23 @@
-<!-- هذا هو ملف _product_grid.html -->
-<div class="row g-4" id="productsGrid">
-    {% set product_list = products.items if products and products.items is defined else (products if products is iterable and products is not mapping else []) %}
-    
-    {% if product_list %}
-        {% for item in product_list %}
-        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-            <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden">
-                
-                <!-- شريط الحالة العلوي -->
-                <div class="position-absolute top-0 start-0 m-3 z-index-2">
-                    <span class="badge bg-gradient-{{ 'success' if item.product.status == 'PUBLISHED' else 'warning' if item.product.status == 'REVIEW' else 'secondary' }} shadow-sm px-3 py-2" style="font-size: 0.75rem; border-radius: 20px;">
-                        {{ get_status_text(item.product.status) if get_status_text is defined else item.product.status }}
-                    </span>
-                </div>
+{% if pagination.total_pages > 1 %}
+<nav class="mt-4" id="paginationNav">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if not pagination.has_prev else '' }}">
+            <button class="page-link" onclick="fetchProducts({{ pagination.prev_num }})" {{ 'disabled' if not pagination.has_prev else '' }} style="background: none; border: none; color: #2d0b36; {{ 'opacity: 0.5; cursor: not-allowed;' if not pagination.has_prev else '' }}">السابق</button>
+        </li>
 
-                {# صورة المنتج بمعالجة ذكية #}
-                {%- set raw_img = none -%}
-                {%- if item.product.image_url -%}
-                    {%- set raw_img = item.product.image_url -%}
-                {%- elif item.product.imageUrl -%}
-                    {%- set raw_img = item.product.imageUrl -%}
-                {%- elif item.product.images and item.product.images|length > 0 -%}
-                    {%- set first_img = item.product.images[0] -%}
-                    {%- if first_img is mapping -%}
-                        {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link or first_img.path -%}
-                    {%- elif first_img is string -%}
-                        {%- set raw_img = first_img -%}
-                    {%- endif -%}
-                {%- elif item.product.image -%}
-                    {%- set raw_img = item.product.image -%}
-                {%- elif item.product.thumbnail -%}
-                    {%- set raw_img = item.product.thumbnail -%}
-                {%- endif -%}
-                {% set p_img = raw_img or url_for('static', filename='img/default-product.png') %}
-
-                <div class="product-img-wrapper text-center bg-light p-3 position-relative" style="height: 200px; overflow: hidden;">
-                    <img src="{{ p_img }}" 
-                         class="img-fluid h-100 w-100 object-fit-cover rounded-3" 
-                         alt="product"
-                         style="transition: transform 0.3s ease;"
-                         onerror="this.src='{{ url_for('static', filename='img/default-product.png') }}'">
-                </div>
-
-                <!-- تفاصيل البطاقة -->
-                <div class="card-body d-flex flex-column p-4">
-                    <div class="mb-2">
-                        <span class="text-xs text-muted font-weight-bold">SKU: {{ item.product.sku }}</span>
-                        <h5 class="card-title fw-bold text-dark text-truncate mb-1" title="{{ item.product.title }}" style="font-size: 1.05rem;">
-                            {{ item.product.title }}
-                        </h5>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
-                        <div>
-                            <small class="text-muted d-block" style="font-size: 0.75rem;">السعر</small>
-                            <span class="fw-bolder fs-6" style="color: #2d0b36;">
-                                {%- set p_price = item.product.price if item.product.price is defined and item.product.price is not none 
-                                    else (item.product.pricing.price if item.product.pricing and item.product.pricing.price is defined and item.product.pricing.price is not none 
-                                    else (item.product.sale_price if item.product.sale_price is defined and item.product.sale_price is not none 
-                                    else (item.product.regular_price if item.product.regular_price is defined and item.product.regular_price is not none 
-                                    else (item.product.cost if item.product.cost is defined and item.product.cost is not none else 0)))) -%}
-                                {{ format_price(p_price) if format_price is defined else p_price }}
-                            </span>
-                        </div>
-                        <div class="text-end">
-                            <small class="text-muted d-block" style="font-size: 0.75rem;">الكمية</small>
-                            <span class="badge bg-light text-dark border px-2 py-1 fw-bold">
-                                <i class="fas fa-boxes text-muted me-1"></i> {{ item.product.quantity }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="mt-3">
-                        <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', qid=item.product.qid) }}" 
-                           class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none"
-                           style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 10px; border: none; transition: all 0.3s ease;">
-                            <i class="fas fa-edit"></i> تعديل المنتج
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- ✅ هنا نستخدم حلقة بسيطة جداً لرسم الأرقام -->
+        {% for page_num in range(1, pagination.total_pages + 1) %}
+            <li class="page-item {{ 'active' if page_num == pagination.current_page else '' }}">
+                <button class="page-link" onclick="fetchProducts({{ page_num }})" 
+                        style="{{ 'background: #2d0b36; color: #D4AF37; border-color: #2d0b36;' if page_num == pagination.current_page else 'color: #2d0b36; background: none; border: none;' }}">
+                    {{ page_num }}
+                </button>
+            </li>
         {% endfor %}
-    {% else %}
-        <div class="col-12">
-            <div class="card shadow-sm border-0 text-center py-5 rounded-4">
-                <div class="card-body">
-                    <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-50"></i>
-                    <h5 class="text-secondary mb-1">لا توجد منتجات مضافة حتى الآن</h5>
-                    <p class="text-muted small">ابدأ برفع منتجك الأول لتظهر البطاقات هنا.</p>
-                    <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn mt-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
-                        <i class="fas fa-plus me-1"></i> رفع منتج جديد
-                    </a>
-                </div>
-            </div>
-        </div>
-    {% endif %}
-</div>
+
+        <li class="page-item {{ 'disabled' if not pagination.has_next else '' }}">
+            <button class="page-link" onclick="fetchProducts({{ pagination.next_num }})" {{ 'disabled' if not pagination.has_next else '' }} style="background: none; border: none; color: #2d0b36; {{ 'opacity: 0.5; cursor: not-allowed;' if not pagination.has_next else '' }}">التالي</button>
+        </li>
+    </ul>
+</nav>
+{% endif %}
