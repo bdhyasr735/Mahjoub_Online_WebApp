@@ -1,299 +1,129 @@
 # coding: utf-8
-# 📦 خدمة المنتجات - منصة محجوب أونلاين 2026
+# 📂 apps/suppliers_product/routes/products.py
 
-import os
-import re
-from apps.services.graphql_client import GraphQLClient
+import math
+import traceback
+from flask import render_template, request, redirect, url_for, flash, session, current_app
+from flask_login import login_required
+from apps.suppliers_product.routes import suppliers_product_bp
+from apps.services import services
+from apps.models.product_supplier_map import ProductSupplierMapping
 
+def get_status_text(status):
+    status_map = {
+        'PUBLISHED': 'منشور', 'DRAFT': 'مسودة', 'ARCHIVED': 'مؤرشف',
+        'PENDING': 'قيد المراجعة', 'REJECTED': 'مرفوض',
+        'OUT_OF_STOCK': 'نفد من المخزون', 'INACTIVE': 'غير نشط'
+    }
+    return status_map.get(status, status)
 
-class ProductService:
-    """خدمة إدارة المنتجات"""
-    
-    def __init__(self, client=None):
-        self.client = client if client else GraphQLClient()
+def format_price(price):
+    if price is None: return '0.00 ر.س'
+    try: return f"{float(price):,.2f} ر.س"
+    except: return str(price)
+
+@suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
+@login_required
+def manage_supplier_products_view():
+    try:
+        user_type = session.get('user_type')
+        supplier_id = session.get('user_id') or session.get('supplier_id')
+        if user_type not in ('supplier', 'admin'):
+            flash('❌ غير مصرح لك بالدخول', 'danger')
+            return redirect(url_for('suppliers_dashboard_bp.dashboard'))
+
+        # 1. استلام المتغيرات
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        limit = max(1, limit)
         
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.query_file_path = os.path.join(current_dir, 'product_queries.graphql')
-        
-        try:
-            with open(self.query_file_path, 'r', encoding='utf-8') as f:
-                self.queries_content = f.read()
-        except FileNotFoundError:
-            print(f"⚠️ [ProductService]: لم يتم العثور على ملف الاستعلامات")
-            self.queries_content = ""
+        search_term = request.args.get('search', '').strip()
+        category = request.args.get('category', '').strip()
+        status = request.args.get('status', '').strip()
+        min_price = request.args.get('min_price', '')
+        max_price = request.args.get('max_price', '')
+        is_ajax = request.args.get('ajax', '0') == '1'
 
-    def _extract_query(self, query_name: str) -> str:
-        """استخراج استعلام معين من ملف الاستعلامات"""
-        if not self.queries_content:
-            return ""
-        
-        lines = self.queries_content.split('\n')
-        result = []
-        found = False
-        brace_count = 0
-        
-        for line in lines:
-            if f"query {query_name}" in line or f"mutation {query_name}" in line:
-                found = True
-            
-            if found:
-                result.append(line)
-                brace_count += line.count('{') - line.count('}')
-                if brace_count == 0 and len(result) > 1:
-                    break
-        
-        return '\n'.join(result)
-
-    def get_all_products(self, input_data: dict = None) -> dict:
-        """جلب جميع المنتجات مع معلومات الترقيم والأسعار والـ slug (باستخدام الصفحة الأولى افتراضياً)"""
-        return self.get_products_page(page=1)
-
-    def get_products_page(self, page: int = 1) -> dict:
-        """جلب صفحة محددة من المنتجات مع الأسعار والـ slug وتمرير المتغيرات بشكل آمن"""
-        query = """
-        query($page: Int!) {
-            findAllProducts(input: { page: $page }) {
-                success
-                message
-                data {
-                    qid
-                    title
-                    slug
-                    description
-                    status
-                    pricing {
-                        price
-                        compareAtPrice
-                        originalPrice
-                        discount {
-                            discountValue
-                            discountType
-                        }
-                    }
-                    images {
-                        fileUrl
-                    }
-                    quantity
-                    variants {
-                        qid
-                        pricing {
-                            price
-                            compareAtPrice
-                            originalPrice
-                        }
-                    }
-                }
-                pagination {
-                    totalItems
-                    totalPages
-                    currentPage
-                    limit
-                    hasNextPage
-                }
-            }
-        }
-        """
-        try:
-            safe_page = int(page) if page and str(page).isdigit() else 1
-            variables = {"page": safe_page}
-            data = self.client.execute(query, variables)
-            if data and "findAllProducts" in data:
-                return data["findAllProducts"]
-            return {}
-        except Exception as e:
-            print(f"❌ [ProductService]: {e}")
-            return {}
-
-    def fetch_all_products_for_search(self, max_pages: int = 10) -> list:
-        """جلب المنتجات من أول 10 صفحات للبحث مع Cache"""
-        if hasattr(self, '_search_cache') and self._search_cache is not None:
-            print(f"✅ [ProductService]: استخدام Cache (عدد {len(self._search_cache)} منتج)")
-            return self._search_cache
-        
+        # 2. جلب جميع المنتجات من جميع الصفحات (لأننا سنطبق الفلاتر يدوياً)
         all_products = []
-        page = 1
-        has_next = True
-        
-        print(f"🔄 [ProductService]: جاري جلب {max_pages} صفحة للبحث...")
-        
-        while has_next and page <= max_pages:
+        total_items_all = 0
+        try:
+            # جلب الصفحة الأولى للحصول على العدد الكلي
+            first_result = services.products.get_products_page(1)
+            if first_result:
+                pagination_info = first_result.get('pagination', {})
+                total_items_all = pagination_info.get('totalItems', 0)
+                
+                # جلب جميع الصفحات بناءً على العدد الكلي
+                per_page_api = 10  # الافتراضي في API
+                total_pages_all = math.ceil(total_items_all / per_page_api)
+                
+                for p in range(1, total_pages_all + 1):
+                    result = services.products.get_products_page(p)
+                    if result:
+                        all_products.extend(result.get('data', []))
+        except Exception as e:
+            current_app.logger.error(f"خطأ جلب المنتجات: {traceback.format_exc()}")
+
+        # 3. تصفية منتجات المورد الحالي
+        target_products = []
+        if all_products:
             try:
-                result = self.get_products_page(page)
-                products = result.get('data', [])
-                pagination = result.get('pagination', {})
-                
-                all_products.extend(products)
-                has_next = pagination.get('hasNextPage', False)
-                
-                print(f"📄 [ProductService]: تم جلب صفحة {page} ({len(products)} منتج)")
-                page += 1
-                
+                if user_type != 'admin' and supplier_id:
+                    supplier_mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
+                    supplier_qids = {m.product_qid for m in supplier_mappings}
+                    target_products = [p for p in all_products if p.get('qid') in supplier_qids]
+                else:
+                    target_products = all_products
             except Exception as e:
-                print(f"❌ [ProductService]: خطأ في جلب الصفحة {page}: {e}")
-                break
-        
-        self._search_cache = all_products
-        print(f"✅ [ProductService]: تم تخزين {len(all_products)} منتج في Cache")
-        return all_products
-    
-    def clear_search_cache(self):
-        """مسح Cache البحث"""
-        self._search_cache = None
-        print(f"🔄 [ProductService]: تم مسح Cache البحث")
+                current_app.logger.error(f"خطأ في التصفية: {traceback.format_exc()}")
 
-    def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID (النسخة النهائية الآمنة - تعتمد على الاستعلام الناجح)"""
-        query = """
-        query FindProductByQid($qid: String!) {
-            findProductByQid(qid: $qid) {
-                success
-                message
-                data {
-                    qid
-                    title
-                    slug
-                    description
-                    status
-                    quantity
-                    pricing {
-                        price
-                        compareAtPrice
-                        originalPrice
-                        discount {
-                            discountValue
-                            discountType
-                        }
-                    }
-                    images {
-                        fileUrl
-                    }
-                    seo {
-                        title
-                        description
-                        keywords
-                    }
-                    tags
-                    collections {
-                        title
-                        handle
-                    }
-                }
-            }
+        # 4. تطبيق البحث والفلاتر (على جميع المنتجات)
+        filtered_products = []
+        for p in target_products:
+            if search_term:
+                title = str(p.get('title', '')).lower()
+                sku = str(p.get('sku', '')).lower()
+                if search_term.lower() not in title and search_term.lower() not in sku: continue
+            if category and p.get('category') != category: continue
+            if status and p.get('status') != status: continue
+            try:
+                price_val = float(p.get('price') or p.get('sale_price') or p.get('regular_price') or 0)
+                if min_price and price_val < float(min_price): continue
+                if max_price and price_val > float(max_price): continue
+            except: pass
+            filtered_products.append(p)
+
+        # 5. تطبيق الترقيم (بناءً على limit)
+        per_page = limit
+        total_items = len(filtered_products)
+        total_pages = math.ceil(total_items / per_page) if total_items > 0 else 0
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paged_products = filtered_products[start_idx:end_idx]
+        formatted_products = [{'product': p} for p in paged_products]
+
+        # 6. معلومات الترقيم
+        pagination_info = {
+            'current_page': page,
+            'total_pages': total_pages,
+            'has_prev': page > 1,
+            'has_next': page < total_pages,
+            'prev_num': page - 1 if page > 1 else 1,
+            'next_num': page + 1 if page < total_pages else page,
+            'per_page': per_page,
+            'total_items': total_items
         }
-        """
-        try:
-            print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
-            variables = {"qid": qid}
-            data = self.client.execute(query, variables, operation_name="FindProductByQid")
-            if data and "findProductByQid" in data:
-                result = data["findProductByQid"]
-                if result.get("success"):
-                    product_data = result.get("data", {})
-                    print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح: {product_data.get('title')}")
-                    return product_data
-            return {}
-        except Exception as e:
-            print(f"❌ [get_product_by_qid] فشل جلب المنتج: {e}")
-            return {}
 
-    def create_product_data(self, input_data: dict) -> dict:
-        """إنشاء منتج جديد"""
-        query = """
-        mutation CreateProduct($input: CreateProductInput!) {
-            createProduct(input: $input) {
-                success
-                message
-                data {
-                    qid
-                    title
-                    slug
-                    pricing {
-                        price
-                        compareAtPrice
-                        originalPrice
-                    }
-                    status
-                }
-            }
-        }
-        """
-        try:
-            data = self.client.execute(query, {"input": input_data})
-            if data and "createProduct" in data:
-                result = data["createProduct"]
-                if result.get("success"):
-                    return result.get("data", {})
-            return {}
-        except Exception as e:
-            print(f"❌ [ProductService]: {e}")
-            return {}
+        return render_template(
+            'suppliers/suppliers_product.html',
+            products=formatted_products,
+            pagination=pagination_info,
+            get_status_text=get_status_text,
+            format_price=format_price
+        )
 
-    def update_product_data(self, input_data: dict) -> dict:
-        """تعديل معلومات المنتج (بدون الحالة - لاستخدام دالة الحالة المنفصلة)"""
-        qid = input_data.get('qid')
-        if not qid:
-            print("❌ [ProductService] qid مفقود في update_product_data")
-            return {}
-
-        update_info_input = {k: v for k, v in input_data.items() if k != 'qid'}
-
-        query = """
-        mutation UpdateProductInfo($id: String!, $input: UpdateProductInfo!) {
-            updateProductInfo(id: $id, updateProductInfoInput: $input) {
-                success
-                message
-            }
-        }
-        """
-        try:
-            data = self.client.execute(query, {"id": qid, "input": update_info_input})
-            if data and "updateProductInfo" in data:
-                return data["updateProductInfo"]
-            return {}
-        except Exception as e:
-            print(f"❌ [ProductService] خطأ في تحديث المنتج: {e}")
-            return {}
-
-    # ============================================================
-    # ✅ دالة تحديث الحالة (المصححة بناءً على الساندبوكس)
-    # ============================================================
-    def update_product_status(self, product_qid: str, status: str) -> dict:
-        """تحديث حالة المنتج باستخدام updateProductStatus (يتوقع id من نوع ID!)"""
-        query = """
-        mutation UpdateProductStatus($id: ID!, $status: String!) {
-            updateProductStatus(id: $id, status: $status) {
-                success
-                message
-            }
-        }
-        """
-        try:
-            data = self.client.execute(query, {"id": product_qid, "status": status})
-            if data and "updateProductStatus" in data:
-                return data["updateProductStatus"]
-            return {}
-        except Exception as e:
-            print(f"❌ [ProductService] خطأ في تحديث الحالة: {e}")
-            return {}
-
-    # ============================================================
-    # ✅ دالة تحديث التسعير والسعر (المضافة حديثاً)
-    # ============================================================
-    def update_product_pricing(self, product_qid: str, pricing_input: dict) -> dict:
-        """تحديث تسعير المنتج باستخدام updateProductPricing"""
-        query = """
-        mutation UpdateProductPricing($id: ID!, $input: UpdateProductPricingInput!) {
-            updateProductPricing(id: $id, input: $input) {
-                success
-                message
-            }
-        }
-        """
-        try:
-            data = self.client.execute(query, {"id": product_qid, "input": pricing_input})
-            if data and "updateProductPricing" in data:
-                return data["updateProductPricing"]
-            return {}
-        except Exception as e:
-            print(f"❌ [ProductService] خطأ في تحديث السعر: {e}")
-            return {}
+    except Exception as e:
+        current_app.logger.error(f"خطأ غير متوقع: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع', 'danger')
+        return render_template('suppliers/suppliers_product.html', products=[], pagination={'total_pages':0, 'total_items':0}, get_status_text=get_status_text, format_price=format_price)
