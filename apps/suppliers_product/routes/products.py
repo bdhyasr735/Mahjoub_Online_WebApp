@@ -9,7 +9,6 @@ from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 
-# ===== دوال مساعدة للقالب =====
 def get_status_text(status):
     status_map = {
         'PUBLISHED': 'منشور', 'DRAFT': 'مسودة', 'ARCHIVED': 'مؤرشف',
@@ -23,7 +22,6 @@ def format_price(price):
     try: return f"{float(price):,.2f} ر.س"
     except: return str(price)
 
-
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
 def manage_supplier_products_view():
@@ -34,10 +32,10 @@ def manage_supplier_products_view():
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
-        # 1. استلام المتغيرات (الحد مفتوح، بدون سقف 100)
+        # استلام المتغيرات
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
-        limit = max(1, limit)  # ✅ مفتوح للأعلى بلا حدود
+        limit = max(1, limit) # مفتوح للأعلى
         
         search_term = request.args.get('search', '').strip()
         category = request.args.get('category', '').strip()
@@ -46,29 +44,20 @@ def manage_supplier_products_view():
         max_price = request.args.get('max_price', '')
         is_ajax = request.args.get('ajax', '0') == '1'
 
-        # 2. جلب جميع المنتجات (حلقة تكرار لجمع جميع الصفحات)
+        # ✅ جلب صفحة واحدة فقط (Lazy Loading) - لا توجد حلقة هنا!
         all_products = []
-        current_page = 1
-        max_pages_to_fetch = 100  # حد أقصى للصفحات (يمكن زيادته حسب احتياجك)
-        has_next = True
-        
-        while has_next and current_page <= max_pages_to_fetch:
-            try:
-                result = services.products.get_products_page(current_page)
-                if not result:
-                    break
-                page_products = result.get('data', [])
-                pagination = result.get('pagination', {})
-                
-                all_products.extend(page_products)
-                has_next = pagination.get('hasNextPage', False)
-                current_page += 1
-                
-            except Exception as e:
-                current_app.logger.error(f"خطأ في جلب الصفحة {current_page}: {e}")
-                break
+        total_items = 0
+        try:
+            result = services.products.get_products_page(page)
+            if result:
+                all_products = result.get('data', [])
+                # جلب العدد الكلي من الـ GraphQL مباشرة
+                pagination_info = result.get('pagination', {})
+                total_items = pagination_info.get('totalItems', 0)
+        except Exception as e:
+            current_app.logger.error(f"خطأ جلب المنتجات: {traceback.format_exc()}")
 
-        # 3. تصفية منتجات المورد الحالي (فلترة حسب المورد)
+        # تصفية منتجات المورد الحالي (فلترة قائمة صغيرة بدلاً من الملايين)
         target_products = []
         if all_products:
             try:
@@ -81,38 +70,28 @@ def manage_supplier_products_view():
             except Exception as e:
                 current_app.logger.error(f"خطأ في التصفية: {traceback.format_exc()}")
 
-        # 4. تطبيق البحث والفلاتر
+        # تطبيق البحث والفلاتر (سيتم تطبيقها على الصفحة الحالية فقط، ولن تسبب انهياراً!)
         filtered_products = []
         for p in target_products:
             if search_term:
                 title = str(p.get('title', '')).lower()
                 sku = str(p.get('sku', '')).lower()
-                if search_term.lower() not in title and search_term.lower() not in sku:
-                    continue
-            if category and p.get('category') != category:
-                continue
-            if status and p.get('status') != status:
-                continue
+                if search_term.lower() not in title and search_term.lower() not in sku: continue
+            if category and p.get('category') != category: continue
+            if status and p.get('status') != status: continue
             try:
                 price_val = float(p.get('price') or p.get('sale_price') or p.get('regular_price') or 0)
-                if min_price and price_val < float(min_price):
-                    continue
-                if max_price and price_val > float(max_price):
-                    continue
-            except:
-                pass
+                if min_price and price_val < float(min_price): continue
+                if max_price and price_val > float(max_price): continue
+            except: pass
             filtered_products.append(p)
 
-        # 5. تطبيق الترقيم (بناءً على limit)
+        # حساب الترقيم (بناءً على totalItems الحقيقي القادم من الخادم)
         per_page = limit
-        total_items = len(filtered_products)
         total_pages = math.ceil(total_items / per_page) if total_items > 0 else 0
-        start_idx = (page - 1) * per_page
-        end_idx = start_idx + per_page
-        paged_products = filtered_products[start_idx:end_idx]
-        formatted_products = [{'product': p} for p in paged_products]
+        
+        formatted_products = [{'product': p} for p in filtered_products]
 
-        # 6. معلومات الترقيم
         pagination_info = {
             'current_page': page,
             'total_pages': total_pages,
