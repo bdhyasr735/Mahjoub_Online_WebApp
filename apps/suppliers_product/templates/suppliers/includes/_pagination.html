@@ -1,4 +1,4 @@
-{% if pagination.total_pages > 1 %}
+{% if pagination.total_items > 0 %}
 <nav class="mt-4" id="paginationNav" dir="rtl">
     <ul class="pagination justify-content-center align-items-center">
         <!-- زر السابق -->
@@ -10,22 +10,23 @@
         </li>
 
         <!-- الأرقام مع النقاط (...) - منطق محسن للكفاءة -->
-        {% set ns = namespace(pages=[]) %}
         {% set left_edge = 2 %}
         {% set left_current = 2 %}
         {% set right_current = 2 %}
         {% set right_edge = 2 %}
         {% set last = 0 %}
+        {% set current = pagination.current_page %}
+        {% set total = pagination.total_pages %}
         
-        {% for num in range(1, pagination.total_pages + 1) %}
-            {% if (num <= left_edge) or (num > pagination.current_page - left_current - 1 and num < pagination.current_page + right_current) or (num > pagination.total_pages - right_edge) %}
+        {% for num in range(1, total + 1) %}
+            {% if (num <= left_edge) or (num > current - left_current - 1 and num < current + right_current) or (num > total - right_edge) %}
                 {% if last + 1 != num %}
                     <li class="page-item disabled"><span class="page-link" style="background: none; border: none; color: #2d0b36;">...</span></li>
                 {% endif %}
                 
-                <li class="page-item {{ 'active' if num == pagination.current_page else '' }}">
+                <li class="page-item {{ 'active' if num == current else '' }}">
                     <button class="page-link" onclick="fetchProducts({{ num }})" 
-                            style="{{ 'background: #2d0b36; color: #D4AF37; border-color: #2d0b36;' if num == pagination.current_page else 'color: #2d0b36; background: none; border: none;' }}">
+                            style="{{ 'background: #2d0b36; color: #D4AF37; border-color: #2d0b36;' if num == current else 'color: #2d0b36; background: none; border: none;' }}">
                         {{ num }}
                     </button>
                 </li>
@@ -35,7 +36,7 @@
 
         <!-- زر التالي -->
         <li class="page-item {{ 'disabled' if not pagination.has_next else '' }}">
-            <button class="page-link" onclick="fetchProducts({{ pagination.next_num if pagination.has_next else pagination.total_pages }})" {{ 'disabled' if not pagination.has_next else '' }} 
+            <button class="page-link" onclick="fetchProducts({{ pagination.next_num if pagination.has_next else total }})" {{ 'disabled' if not pagination.has_next else '' }} 
                     style="color: #2d0b36; {{ 'opacity: 0.5; cursor: not-allowed;' if not pagination.has_next else '' }} border: none;">
                 التالي <i class="fas fa-chevron-left"></i>
             </button>
