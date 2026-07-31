@@ -43,9 +43,9 @@ def analyze_render_error(route_func):
 def sync_supplier_products():
     """مزامنة منتجات المورد الحالي مع رصد الأخطاء وإرجاع الإحصائيات التفصيلية"""
     user_type = session.get('user_type')
-    supplier_id = session.get('user_id') or session.get('supplier_id') # معرف المورد الحالي في الجلسة
+    supplier_id = session.get('user_id') or session.get('supplier_id')
 
-    # التحقق من أن المستخدم مسجل كـ مورد
+    # التحقق من أن المستخدم مسجل كـ مورد أو مدير
     if user_type != 'supplier' and user_type != 'admin':
         if request.method == 'POST':
             return jsonify({'success': False, 'message': 'غير مصرح لك بالوصول'}), 403
@@ -54,14 +54,19 @@ def sync_supplier_products():
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
     
     try:
-        # ✅ جلب المنتجات من الخدمات (دعم الطريقتين لضمان نجاح الجلب)
-        result = services.products.get_all_products() if hasattr(services.products, 'get_all_products') else {}
-        if isinstance(result, dict):
-            external_products = result.get('data', []) or result.get('products', [])
-        elif isinstance(result, list):
-            external_products = result
-        else:
-            external_products = services.products.fetch_all_products_for_search() if hasattr(services.products, 'fetch_all_products_for_search') else []
+        # ✅ جلب المنتجات من الخدمات مع حماية كاملة ضد الأخطاء
+        external_products = []
+        try:
+            result = services.products.get_all_products() if hasattr(services.products, 'get_all_products') else {}
+            if isinstance(result, dict):
+                external_products = result.get('data', []) or result.get('products', [])
+            elif isinstance(result, list):
+                external_products = result
+            elif hasattr(services.products, 'fetch_all_products_for_search'):
+                external_products = services.products.fetch_all_products_for_search() or []
+        except Exception as api_fetch_err:
+            print(f"⚠️ تحذير أثناء جلب المنتجات الخارجية للمزامنة: {api_fetch_err}")
+            external_products = []
         
         if not external_products:
             if request.method == 'GET':
@@ -82,6 +87,8 @@ def sync_supplier_products():
         errors = []
         
         for product in external_products:
+            if not isinstance(product, dict):
+                continue
             try:
                 qid = product.get('qid')
                 if not qid:
@@ -90,7 +97,7 @@ def sync_supplier_products():
                 # التحقق هل المنتج مرتبط بهذا المورد أو مسجل في النظام
                 mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
                 
-                if supplier_id and hasattr(mapping, 'supplier_id') and mapping.supplier_id:
+                if supplier_id and hasattr(mapping, 'supplier_id') and mapping and mapping.supplier_id:
                     if str(mapping.supplier_id) != str(supplier_id) and user_type != 'admin':
                         continue # تخطي المنتجات التي لا تخص هذا المورد
                 
