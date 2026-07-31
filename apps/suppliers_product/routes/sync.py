@@ -1,6 +1,6 @@
 # coding: utf-8
 # apps/suppliers_product/routes/sync.py
-# مزامنة منتجات الموردين - مزامنة تدريجية آمنة
+# مزامنة منتجات الموردين - مزامنة تدريجية آمنة وذكية
 
 import functools
 import math
@@ -42,7 +42,7 @@ def analyze_render_error(route_func):
 @login_required
 @analyze_render_error
 def sync_supplier_products():
-    """مزامنة منتجات المورد بشكل تدريجي (صفحة صفحة) لتجنب الانهيار"""
+    """مزامنة منتجات المورد بشكل تدريجي وذكي (صفحة صفحة) لتجنب الانهيار"""
     user_type = session.get('user_type')
     supplier_id = session.get('user_id') or session.get('supplier_id')
 
@@ -52,58 +52,76 @@ def sync_supplier_products():
     try:
         from apps.extensions import db
 
-        # 1. الحصول على إجمالي عدد المنتجات (بدون جلبها)
-        first_page = services.products.get_products_page(1)
-        if not first_page:
-            return jsonify({'success': True, 'message': 'لا توجد منتجات', 'syncedCount': 0})
-        
-        total_items = first_page.get('pagination', {}).get('totalItems', 0)
-        if total_items == 0:
-            return jsonify({'success': True, 'message': 'لا توجد منتجات', 'syncedCount': 0})
+        # ✅ 1. جلب جميع QIDs الخاصة بالمورد من قاعدة البيانات المحلية (سريع جداً)
+        supplier_qids = []
+        if supplier_id:
+            mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
+            supplier_qids = [m.product_qid for m in mappings]
 
-        # 2. إعداد المتغيرات
-        per_page = 10  # حجم الدفعة (يمكن زيادته حسب الأداء)
-        total_pages = math.ceil(total_items / per_page)
+        # إذا لم يكن لدى المورد أي منتجات مرتبطة، ننهي المزامنة فوراً
+        if not supplier_qids:
+            return jsonify({
+                'success': True,
+                'message': 'ℹ️ لا توجد منتجات مرتبطة بهذا المورد للمزامنة.',
+                'syncedCount': 0,
+                'createdCount': 0,
+                'updatedCount': 0,
+                'errors': []
+            })
+
+        supplier_qids_set = set(supplier_qids)
+
+        # ✅ 2. إعداد المتغيرات (نعتمد على عدد الـ QIDs المحلية لحساب الصفحات)
+        per_page = 10  # حجم الدفعة
+        total_items_real = len(supplier_qids_set)
+        total_pages = math.ceil(total_items_real / per_page)
+
         synced_count = 0
         created_count = 0
         updated_count = 0
         errors = []
 
-        # 3. التكرار عبر الصفحات تدريجياً
+        # ✅ 3. التكرار عبر الصفحات، ولكن نجلب فقط المنتجات التي تخص هذا المورد
         for page_num in range(1, total_pages + 1):
-            print(f"🔄 مزامنة الصفحة {page_num}/{total_pages}")
+            print(f"🔄 مزامنة الصفحة {page_num}/{total_pages} (للمورد {supplier_id})")
             try:
+                # جلب صفحة من GraphQL
                 result = services.products.get_products_page(page_num)
                 if not result:
                     continue
                 
                 page_products = result.get('data', [])
+                
+                # تصفية المنتجات: نحتفظ فقط بما هو موجود في مجموعة الـ QIDs المحلية
                 for product in page_products:
                     if not isinstance(product, dict):
                         continue
                     qid = product.get('qid')
-                    if not qid:
+                    if not qid or qid not in supplier_qids_set:
                         continue
                     
+                    # المنتج موجود في قاعدة البيانات المحلية → نقوم بتحديثه أو إنشائه
                     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-                    if supplier_id and mapping and mapping.supplier_id:
-                        if str(mapping.supplier_id) != str(supplier_id) and user_type != 'admin':
-                            continue
                     
                     synced_count += 1
                     if not mapping:
                         created_count += 1
-                        if supplier_id and user_type == 'supplier':
-                            new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
-                            db.session.add(new_mapping)
-                            db.session.commit()
+                        # إنشاء سجل ربط جديد (إذا لم يكن موجوداً)
+                        new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
+                        db.session.add(new_mapping)
+                        db.session.commit()
                     else:
                         updated_count += 1
+                        # (اختياري) هنا يمكنك تحديث حقول إضافية إذا لزم الأمر
+                        # مثلاً: تحديث تاريخ التحديث
+                        mapping.updated_at = db.func.now()
+                        db.session.commit()
+
             except Exception as page_error:
                 print(f"⚠️ خطأ في الصفحة {page_num}: {page_error}")
                 errors.append({'page': page_num, 'error': str(page_error)})
 
-        # 4. إرجاع النتيجة النهائية
+        # ✅ 4. إرجاع النتيجة النهائية
         return jsonify({
             'success': True,
             'message': f'✅ تمت مزامنة {synced_count} منتج بنجاح!',
