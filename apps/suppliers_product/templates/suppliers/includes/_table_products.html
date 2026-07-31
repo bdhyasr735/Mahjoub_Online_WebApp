@@ -1,4 +1,4 @@
-<!-- 📂 apps/admin_Product/templates/admin/includes/_table_products.html -->
+<!-- apps/suppliers_product/templates/suppliers/includes/_table_products.html -->
 <div class="table-responsive">
     <!-- حقل مخفي لضمان نجاح طلبات الحذف عبر الـ AJAX -->
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -14,7 +14,7 @@
                     {{ products|length }} منتج
                 </span>
             </div>
-            <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 4px 16px;">
+            <a href="{{ url_for('suppliers_product_bp.manage_supplier_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 4px 16px;">
                 <i class="fas fa-arrow-right me-1"></i> عرض الكل
             </a>
         </div>
@@ -35,21 +35,34 @@
             </tr>
         </thead>
         <tbody>
-            {% for product in products %}
+            {% for item in products %}
+            {% set product = item.product if item.product is defined else item %}
             {% set p_name = product.title or product.name or 'منتج بدون اسم' %}
             
             {%- set raw_img = none -%}
-            {%- if product.images and product.images|length > 0 -%}
+            {%- if product.image_url -%}
+                {%- set raw_img = product.image_url -%}
+            {%- elif product.imageUrl -%}
+                {%- set raw_img = product.imageUrl -%}
+            {%- elif product.images and product.images|length > 0 -%}
                 {%- set first_img = product.images[0] -%}
                 {%- if first_img is mapping -%}
-                    {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link -%}
+                    {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link or first_img.path -%}
                 {%- elif first_img is string -%}
                     {%- set raw_img = first_img -%}
                 {%- endif -%}
+            {%- elif product.image -%}
+                {%- set raw_img = product.image -%}
+            {%- elif product.thumbnail -%}
+                {%- set raw_img = product.thumbnail -%}
             {%- endif -%}
             {% set p_img = raw_img or url_for('static', filename='img/default-product.png') %}
             
-            {% set p_price = product.price if product.price is defined and product.price is not none else (product.pricing.price if product.pricing and product.pricing.price else (product.sale_price or product.regular_price or 0)) %}
+            {%- set p_price = product.price if product.price is defined and product.price is not none 
+                else (product.pricing.price if product.pricing and product.pricing.price is defined and product.pricing.price is not none 
+                else (product.sale_price if product.sale_price is defined and product.sale_price is not none 
+                else (product.regular_price if product.regular_price is defined and product.regular_price is not none 
+                else (product.cost if product.cost is defined and product.cost is not none else 0)))) -%}
             
             <tr id="product-row-{{ product.qid or product.id }}">
                 <td>{{ loop.index }}</td>
@@ -61,12 +74,12 @@
                 </td>
                 <td class="fw-bold text-truncate" style="max-width: 200px; color: #2d0b36;">
                     {{ p_name }}
-                    {% if product.description %}
-                    <br><small class="text-muted">{{ product.description|striptags|truncate(40) }}</small>
+                    {% if product.sku %}
+                    <br><small class="text-muted">SKU: {{ product.sku }}</small>
                     {% endif %}
                 </td>
                 <td class="fw-bold" style="color: #D4AF37;">
-                    {{ "%.2f"|format(p_price|float) }} ر.ي
+                    {{ format_price(p_price) }}
                 </td>
                 <td>
                     {% set p_qty = product.quantity if product.quantity is defined and product.quantity is not none else (product.stock if product.stock is defined else 0) %}
@@ -98,17 +111,19 @@
                 <td>
                     <div class="btn-group btn-group-sm">
                         <!-- زر التعديل -->
-                        <a href="{{ url_for('admin_product_bp.edit_product', qid=product.qid or product.id) }}"
+                        <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', qid=product.qid or product.id) }}"
                            class="btn" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 4px; padding: 4px 10px;" 
                            title="تعديل المنتج">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <!-- زر الحذف -->
+                        <!-- زر الحذف (إذا توفرت مسار لحذف المنتجات للموردين) -->
+                        {% if url_for('suppliers_product_bp.delete_supplier_product', qid=product.qid or product.id, _external=False) rescue none %}
                         <button type="button" class="btn delete-btn" style="background: linear-gradient(135deg, #dc3545, #a71d2a); color: white; border: none; border-radius: 4px; padding: 4px 10px;" 
-                                data-delete-url="{{ url_for('admin_product_bp.delete_product', qid=product.qid or product.id) }}" 
+                                data-delete-url="{{ url_for('suppliers_product_bp.delete_supplier_product', qid=product.qid or product.id) }}" 
                                 title="حذف المنتج">
                             <i class="fas fa-trash"></i>
                         </button>
+                        {% endif %}
                     </div>
                 </td>
             </tr>
@@ -125,7 +140,7 @@
                         {% endif %}
                     </p>
                     {% if search_title %}
-                    <a href="{{ url_for('admin_product_bp.manage_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 6px 20px;">
+                    <a href="{{ url_for('suppliers_product_bp.manage_supplier_products_view') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border: none; border-radius: 20px; padding: 6px 20px;">
                         <i class="fas fa-arrow-right me-1"></i> عرض جميع المنتجات
                     </a>
                     {% endif %}
