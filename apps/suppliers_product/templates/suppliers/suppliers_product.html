@@ -5,13 +5,18 @@
 {% block content %}
 <div class="container-fluid py-4">
     
-    <!-- العنوان وزر الإضافة -->
+    <!-- العنوان وزر الإضافة + زر المزامنة -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold mb-1" style="color: #2d0b36;">قائمة المنتجات</h2>
             <p class="text-muted text-sm mb-0">إدارة ومتابعة المنتجات والأسعار والكميات الخاصة بك.</p>
         </div>
-        <div>
+        <div class="d-flex gap-2">
+            <!-- ✅ زر المزامنة الجديد -->
+            <button onclick="openSyncModal()" class="btn px-4 py-2 shadow-sm d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #1a0520, #2d0b36); color: #D4AF37; border-radius: 12px; border: none;">
+                <i class="fas fa-sync-alt"></i> مزامنة
+            </button>
+
             <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn px-4 py-2 shadow-sm d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 12px; border: none;">
                 <i class="fas fa-plus-circle"></i> إضافة منتج جديد
             </a>
