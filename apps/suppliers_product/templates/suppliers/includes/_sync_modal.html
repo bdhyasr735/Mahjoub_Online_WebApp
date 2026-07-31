@@ -82,15 +82,21 @@ function openSyncModal() {
                       document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
                       '';
 
-    // ✅ استخدام المسار المباشر بدلاً من url_for لتجنب BuildError
+    // ✅ إرسال طلب POST مع جسم فارغ صريح و Content-Type صحيح
     fetch("/supplier/products/sync", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
-        }
+        },
+        body: JSON.stringify({}) // إرسال جسم فارغ لتجنب خطأ 400
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`الخادم استجاب بحالة خطأ: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         // عرض النتيجة
         if (data.success) {
