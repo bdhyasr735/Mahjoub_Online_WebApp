@@ -1,5 +1,5 @@
-<!-- 📂 apps/admin_Product/templates/admin/includes/_sync_modal.html -->
-<!-- نافذة المزامنة المنبثقة المتطورة -->
+<!-- 📂 apps/suppliers_product/templates/suppliers/includes/_sync_modal.html -->
+<!-- نافذة المزامنة المنبثقة المتطورة للمورد -->
 <div id="syncModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center;" dir="rtl">
     <div class="sync-modal-box" style="
         background: linear-gradient(145deg, #ffffff, #f8f5f0);
@@ -42,7 +42,7 @@
             <div id="syncDetails" style="font-size: 14px; color: #6c757d; margin-top: 10px;"></div>
         </div>
         
-        <!-- ✅ زر إغلاق النافذة (متوافق مع اتجاه RTL في الزاوية اليسرى العلوية أو اليمنى حسب التصميم، تم وضعه في اليسار هنا ليتناسب مع RTL) -->
+        <!-- ✅ زر إغلاق النافذة -->
         <button type="button" onclick="closeSyncModal()" style="
             position: absolute;
             top: 12px;
@@ -89,7 +89,7 @@ function updateSyncProgress(message, percentage) {
     }
 }
 
-// ✅ عرض نتيجة المزامنة
+// ✅ عرض نتيجة المزامنة (مع إعادة التحميل التلقائي)
 function showSyncResult(success, message, details) {
     const resultDiv = document.getElementById('syncResult');
     const messageDiv = document.getElementById('syncMessage');
@@ -98,7 +98,7 @@ function showSyncResult(success, message, details) {
     const statusText = document.getElementById('syncStatusText');
     const spinnerWrapper = document.querySelector('.sync-icon-wrapper');
     
-    // إخفاء شريط التقدم، نص الحالة، وأيقونة التحميل المتحركة عند انتهاء العملية
+    // إخفاء عناصر التقدم
     if (progressBar) progressBar.style.display = 'none';
     if (statusText) statusText.style.display = 'none';
     if (spinnerWrapper) spinnerWrapper.style.display = 'none';
@@ -117,14 +117,18 @@ function showSyncResult(success, message, details) {
         detailsDiv.style.display = 'none';
     }
     
-    // ✅ إظهار زر الإغلاق بشكل أكبر وأوضح بعد الانتهاء
-    const closeBtn = document.querySelector('#syncModal button[onclick="closeSyncModal()"]');
-    if (closeBtn) {
-        closeBtn.style.fontSize = '2rem';
+    // 🔄 إعادة تحميل المنتجات وإغلاق النافذة بعد ثانيتين إذا نجحت المزامنة
+    if (success) {
+        setTimeout(() => {
+            if (typeof fetchProducts === 'function') {
+                fetchProducts(1); // تحديث قائمة المنتجات من الصفحة الأولى
+            }
+            closeSyncModal();
+        }, 2000);
     }
 }
 
-// ✅ إعادة ضبط الحالة الداخلية للنافذة بدون إخفائها كلياً
+// ✅ إعادة ضبط الحالة الداخلية للنافذة
 function resetSyncModalState() {
     const resultDiv = document.getElementById('syncResult');
     const progressBar = document.getElementById('syncProgressBar');
@@ -144,7 +148,7 @@ function resetSyncModalState() {
     }
 }
 
-// ✅ إعادة ضبط النافذة وإخفائها تماماً عند الإغلاق
+// ✅ إعادة ضبط النافذة وإخفائها
 function resetSyncModal() {
     const modal = document.getElementById('syncModal');
     resetSyncModalState();
@@ -168,7 +172,7 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// ✅ إغلاق النافذة بالضغط في المساحة المجاورة خارج الصندوق
+// ✅ إغلاق النافذة بالضغط خارج الصندوق
 const syncModalEl = document.getElementById('syncModal');
 if (syncModalEl) {
     syncModalEl.addEventListener('click', function(event) {
