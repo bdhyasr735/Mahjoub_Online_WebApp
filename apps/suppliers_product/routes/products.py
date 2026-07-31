@@ -1,6 +1,5 @@
 # coding: utf-8
 # 📂 apps/suppliers_product/routes/products.py
-# (نسخة كاملة وصحيحة 100%)
 
 import math
 import traceback
@@ -12,23 +11,16 @@ from apps.models.product_supplier_map import ProductSupplierMapping
 
 def get_status_text(status):
     status_map = {
-        'PUBLISHED': 'منشور',
-        'DRAFT': 'مسودة',
-        'ARCHIVED': 'مؤرشف',
-        'PENDING': 'قيد المراجعة',
-        'REJECTED': 'مرفوض',
-        'OUT_OF_STOCK': 'نفد من المخزون',
-        'INACTIVE': 'غير نشط'
+        'PUBLISHED': 'منشور', 'DRAFT': 'مسودة', 'ARCHIVED': 'مؤرشف',
+        'PENDING': 'قيد المراجعة', 'REJECTED': 'مرفوض',
+        'OUT_OF_STOCK': 'نفد من المخزون', 'INACTIVE': 'غير نشط'
     }
     return status_map.get(status, status)
 
 def format_price(price):
-    if price is None:
-        return '0.00 ر.س'
-    try:
-        return f"{float(price):,.2f} ر.س"
-    except:
-        return str(price)
+    if price is None: return '0.00 ر.س'
+    try: return f"{float(price):,.2f} ر.س"
+    except: return str(price)
 
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
@@ -40,6 +32,7 @@ def manage_supplier_products_view():
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
+        # 1. استلام المتغيرات
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
         limit = max(1, limit)
@@ -51,19 +44,18 @@ def manage_supplier_products_view():
         max_price = request.args.get('max_price', '')
         is_ajax = request.args.get('ajax', '0') == '1'
 
-        # 🔥 بناء الفلاتر وإرسالها للخدمة (الخدمة يجب أن تدعم ذلك)
-        filters = {k: v for k, v in {
-            'search': search_term,
-            'category': category,
-            'status': status,
-            'min_price': min_price,
-            'max_price': max_price
-        }.items() if v}
+        # 2. بناء الفلاتر وإرسالها للخدمة (الخدمة تدعم ذلك الآن)
+        filters = {}
+        if search_term: filters['search'] = search_term
+        if category: filters['category'] = category
+        if status: filters['status'] = status
+        if min_price: filters['min_price'] = min_price
+        if max_price: filters['max_price'] = max_price
 
         products_data = []
         total_items_all = 0
         try:
-            # 🚀 جلب صفحة واحدة فقط مع الفلاتر - بدون حلقة!
+            # 🚀 جلب صفحة واحدة فقط مع الفلاتر - بدون حلقة تكرار!
             result = services.products.get_products_page(page, filters)
             if result:
                 products_data = result.get('data', [])
@@ -72,6 +64,7 @@ def manage_supplier_products_view():
         except Exception as e:
             current_app.logger.error(f"خطأ جلب المنتجات: {traceback.format_exc()}")
 
+        # 3. تصفية منتجات المورد الحالي (فلترة بسيطة للـ qid)
         target_products = []
         if products_data:
             try:
@@ -86,6 +79,7 @@ def manage_supplier_products_view():
 
         formatted_products = [{'product': p} for p in target_products]
 
+        # 4. حساب الترقيم بناءً على العدد الكلي الذي أتى من الخادم (بعد الفلترة)
         per_page = limit
         total_pages = math.ceil(total_items_all / per_page) if total_items_all > 0 else 0
 
