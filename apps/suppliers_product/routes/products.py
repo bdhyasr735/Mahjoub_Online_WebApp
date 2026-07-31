@@ -58,7 +58,7 @@ def manage_supplier_products_view():
         
         supplier_qids_set = set(supplier_qids)
 
-        # إذا لم يملك المورد أي منتجات مسجلة ولم يكن أدمن، تعاد قائمة فارغة مباشرة تفادياً لأي ضغط
+        # إذا لم يملك المورد أي منتجات مسجلة ولم يكن أدمن، تعاد قائمة فارغة مباشرة
         if not supplier_qids_set and not is_admin:
             pagination_info = {'current_page': 1, 'total_pages': 0, 'has_prev': False, 'has_next': False, 'per_page': limit, 'total_items': 0}
             if is_ajax:
@@ -70,26 +70,42 @@ def manage_supplier_products_view():
             return render_template('suppliers/suppliers_product.html', products=[], pagination=pagination_info, get_status_text=get_status_text, format_price=format_price)
 
         # ====================================================
-        # ✅ 3. جلب الصفحة المطلوبة مباشرة من الـ API بدلاً من جلب كل الصفحات (منع استهلاك الذاكرة)
+        # ✅ 3. جلب منتجات المورد بذكاء دون انهيار الذاكرة
         # ====================================================
-        result = services.products.get_products_page(page) or {}
-        pagination = result.get('pagination', {})
-        raw_products = result.get('data', [])
-
-        total_items_real = pagination.get('totalItems', 0)
-        total_pages = pagination.get('totalPages', 1)
-
+        target_products = []
+        
         if is_admin and not supplier_id:
-            target_products = raw_products  # للأدمن فقط إذا لم يُحدد مورد
+            # للأدمن في حال عدم تحديد مورد، نجلب الصفحة العادية
+            result = services.products.get_products_page(page) or {}
+            target_products = result.get('data', [])
+            pagination = result.get('pagination', {})
+            total_items_real = pagination.get('totalItems', 0)
+            total_pages = pagination.get('totalPages', 1)
         else:
-            # تصفية حصرية للمنتجات التي تخص المورد الحالي بناءً على الـ QIDs المحلية
-            target_products = [
-                p for p in raw_products 
-                if str(p.get('qid', '')).strip() in supplier_qids_set
-            ]
+            # للمورد: نقوم بالبحث الفعال في قمرة كلاود للحصول على منتجاته الخاصة المسجلة محلياً فقط
+            # (نظراً لأن قمرة كلاود تعتمد على الصفحات، نقوم بالمرور بحد أقصى معقول أو جلب البيانات المتوفرة)
+            all_matched_products = []
+            max_check_pages = 30  # نطاق آمن للبحث
+            
+            for p_num in range(1, max_check_pages + 1):
+                res = services.products.get_products_page(p_num)
+                if not res or not res.get('data'):
+                    break
+                page_items = res.get('data', [])
+                
+                # استخراج المنتجات التي تطابق QIDs المورد فقط في هذه الصفحة
+                for p in page_items:
+                    if str(p.get('qid', '')).strip() in supplier_qids_set:
+                        all_matched_products.append(p)
+                
+                # إذا وجدنا جميع منتجات المورد المسجلة، نتوقف فوراً لتسريع الأداء
+                if len(all_matched_products) >= len(supplier_qids_set):
+                    break
+
+            target_products = all_matched_products
 
         # ====================================================
-        # ✅ 4. تطبيق فلاتر البحث الإضافية على الصفحة الحالية
+        # ✅ 4. تطبيق فلاتر البحث الإضافية
         # ====================================================
         filtered_products = []
         for p in target_products:
@@ -113,7 +129,20 @@ def manage_supplier_products_view():
             
             filtered_products.append(p)
 
-        formatted_products = [{'product': p} for p in filtered_products]
+        # ====================================================
+        # ✅ 5. الترقيم المحلي لمنتجات المورد فقط
+        # ====================================================
+        if supplier_id or not is_admin:
+            total_items_real = len(filtered_products)
+            total_pages = math.ceil(total_items_real / limit) if total_items_real > 0 else 0
+            
+            start_idx = (page - 1) * limit
+            end_idx = start_idx + limit
+            paged_products = filtered_products[start_idx:end_idx]
+        else:
+            paged_products = filtered_products
+
+        formatted_products = [{'product': p} for p in paged_products]
 
         pagination_info = {
             'current_page': page,
