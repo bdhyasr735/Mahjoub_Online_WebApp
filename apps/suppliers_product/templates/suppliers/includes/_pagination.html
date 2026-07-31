@@ -9,7 +9,8 @@
             </button>
         </li>
 
-        <!-- الأرقام مع النقاط (...) -->
+        <!-- الأرقام مع النقاط (...) - منطق محسن للكفاءة -->
+        {% set ns = namespace(pages=[]) %}
         {% set left_edge = 2 %}
         {% set left_current = 2 %}
         {% set right_current = 2 %}
@@ -41,7 +42,7 @@
         </li>
     </ul>
 
-    <!-- ✅ الإحصائية أسفل الأزرار -->
+    <!-- الإحصائية أسفل الأزرار -->
     <div class="text-center mt-2 text-muted small" style="font-size: 0.9rem; color: #6c757d;">
         عرض {{ pagination.per_page }} من {{ pagination.total_items }} منتج (صفحة {{ pagination.current_page }} من {{ pagination.total_pages }})
     </div>
