@@ -1,4 +1,4 @@
-<!-- apps/admin_Product/templates/admin/partials/edit/_basic_info.html -->
+<!-- apps/suppliers_product/templates/suppliers/partials/edit/_basic_info.html -->
 
 <!-- ================= المعلومات الأساسية ================= -->
 <div class="form-section basic-info-card">
@@ -46,7 +46,7 @@
         </div>
 
         <div class="main-info-wrapper">
-            {% include "admin/partials/edit/_product_main_info.html" %}
+            {% include "suppliers/partials/edit/_product_main_info.html" %}
         </div>
     </div>
 </div>
@@ -110,7 +110,6 @@
 
 <!-- ✅ السكربت المصحح: تعريف الدالة على window مباشرة -->
 <script>
-// تعريف الدالة على النطاق العام لتكون متاحة فوراً
 function updateBasicInfoStatus() {
     const title = document.getElementById('productTitle')?.value || '';
     const statusBadge = document.getElementById('basicInfoStatus');
@@ -125,7 +124,6 @@ function updateBasicInfoStatus() {
 }
 window.updateBasicInfoStatus = updateBasicInfoStatus;
 
-// استدعاء الدالة بعد تحميل الصفحة لتحديث الحالة الأولية
 document.addEventListener('DOMContentLoaded', function() {
     updateBasicInfoStatus();
 });
