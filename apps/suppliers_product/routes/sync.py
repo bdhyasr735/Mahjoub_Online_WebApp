@@ -31,7 +31,9 @@ def sync_supplier_products():
     
     try:
         from apps.extensions import db
-        data = request.get_json() or {}
+        
+        # ✅ استخدام silent=True لمنع انهيار الخادم إذا كان جسم الطلب فارغاً أو غير مكتمل
+        data = request.get_json(silent=True) or {}
         
         # استقبال رقم الصفحة الحالية من الطلب (إذا لم ترسل، نبدأ بالصفحة 1)
         page_num = int(data.get('page', 1))
@@ -75,7 +77,7 @@ def sync_supplier_products():
             # التحقق مما إذا كان المنتج مرتبطاً بمورد آخر
             existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
             
-            # إذا كان المنتج مرتبطاً بمورد مختلف ( والمستخدم ليس أدمن)، نتجاهله
+            # إذا كان المنتج مرتبطاً بمورد مختلف (والمستخدم ليس أدمن)، نتجاهله
             if existing_mapping and existing_mapping.supplier_id != supplier_id and user_type != 'admin':
                 continue
             
