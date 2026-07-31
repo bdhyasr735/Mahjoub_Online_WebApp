@@ -44,13 +44,13 @@ def manage_supplier_products_view():
         max_price = request.args.get('max_price', '')
         is_ajax = request.args.get('ajax', '0') == '1'
 
-        # 2. جلب جميع المنتجات ديناميكيًا باستخدام hasNextPage (يتكيف تلقائيًا مع أي عدد)
+        # 2. جلب المنتجات مع حد أقصى للصفحات (لمنع الانهيار)
         all_products = []
         total_items_all = 0
-        current_page = 1
-        
+        max_pages_to_fetch = 10  # ✅ يمكنك تعديل هذا الرقم حسب قوة الخادم
+
         try:
-            while True:
+            for current_page in range(1, max_pages_to_fetch + 1):
                 result = services.products.get_products_page(current_page)
                 if not result:
                     break
@@ -58,19 +58,14 @@ def manage_supplier_products_view():
                 page_products = result.get('data', [])
                 pagination = result.get('pagination', {})
                 
-                # حفظ العدد الكلي من أول صفحة
                 if current_page == 1:
                     total_items_all = pagination.get('totalItems', 0)
                 
-                # إضافة منتجات الصفحة الحالية
                 all_products.extend(page_products)
                 
-                # التحقق من وجود صفحة تالية (ديناميكي وتلقائي)
+                # إذا لم توجد صفحة تالية، نكسر الحلقة
                 if not pagination.get('hasNextPage', False):
                     break
-                    
-                current_page += 1
-                
         except Exception as e:
             current_app.logger.error(f"خطأ جلب المنتجات: {traceback.format_exc()}")
 
