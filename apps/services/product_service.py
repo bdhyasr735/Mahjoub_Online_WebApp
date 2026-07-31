@@ -49,7 +49,7 @@ class ProductService:
         return self.get_products_page(page=1)
 
     def get_products_page(self, page: int = 1) -> dict:
-        """جلب صفحة محددة من المنتجات مع الأسعار والـ slug وتمرير المتغيرات بشكل آمن"""
+        """جلب صفحة محددة من المنتجات مع الأسعار والـ slug وتمرير المتغيرات بشكل آمن (مع معالجة الأخطاء لمنع 500)"""
         query = """
         query($page: Int!) {
             findAllProducts(input: { page: $page }) {
@@ -97,12 +97,17 @@ class ProductService:
             safe_page = int(page) if page and str(page).isdigit() else 1
             variables = {"page": safe_page}
             data = self.client.execute(query, variables)
-            if data and "findAllProducts" in data:
-                return data["findAllProducts"]
-            return {}
+            
+            if data and isinstance(data, dict) and "findAllProducts" in data:
+                result = data["findAllProducts"]
+                if result:
+                    return result
+            
+            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "hasNextPage": False}}
+            
         except Exception as e:
             print(f"❌ [ProductService]: {e}")
-            return {}
+            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "hasNextPage": False}}
 
     def fetch_all_products_for_search(self, max_pages: int = 10) -> list:
         """جلب المنتجات من أول 10 صفحات للبحث مع Cache"""
@@ -254,9 +259,6 @@ class ProductService:
             print(f"❌ [ProductService] خطأ في تحديث المنتج: {e}")
             return {}
 
-    # ============================================================
-    # ✅ دالة تحديث الحالة (المصححة بناءً على الساندبوكس)
-    # ============================================================
     def update_product_status(self, product_qid: str, status: str) -> dict:
         """تحديث حالة المنتج باستخدام updateProductStatus (يتوقع id من نوع ID!)"""
         query = """
@@ -276,9 +278,6 @@ class ProductService:
             print(f"❌ [ProductService] خطأ في تحديث الحالة: {e}")
             return {}
 
-    # ============================================================
-    # ✅ دالة تحديث التسعير والسعر (المضافة حديثاً)
-    # ============================================================
     def update_product_pricing(self, product_qid: str, pricing_input: dict) -> dict:
         """تحديث تسعير المنتج باستخدام updateProductPricing"""
         query = """
