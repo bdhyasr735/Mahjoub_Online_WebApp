@@ -3,7 +3,7 @@
 
 import math
 import traceback
-from flask import render_template, request, redirect, url_for, flash, session, current_app
+from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from flask_login import login_required
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
@@ -57,20 +57,18 @@ def manage_supplier_products_view():
         supplier_qids_set = set(supplier_qids) if supplier_qids else None
 
         # ====================================================
-        # 3. منطق جلب المنتجات من GraphQL (بناءً على الصفحة)
+        # 3. منطق جلب المنتجات من GraphQL
         # ====================================================
         raw_products = []
         total_items_system = 0
         
         if has_filters:
-            # في حالة البحث أو الفلاتر: نستخدم التخزين المؤقت الآمن (20 صفحة كحد أقصى)
             max_pages = 20
             raw_products = services.products.fetch_all_products_for_search(max_pages=max_pages)
             first_res = services.products.get_products_page(1)
             if first_res:
                 total_items_system = first_res.get('pagination', {}).get('totalItems', 0)
         else:
-            # بدون فلاتر: نجلب صفحة واحدة فقط (سريع جدًا)
             result = services.products.get_products_page(page)
             if result:
                 raw_products = result.get('data', [])
@@ -83,8 +81,10 @@ def manage_supplier_products_view():
         target_products = []
         if raw_products and supplier_qids_set is not None:
             target_products = [p for p in raw_products if p.get('qid') in supplier_qids_set]
-        elif raw_products:
-            target_products = raw_products  # في حالة الأدمن (بدون فلترة مورد)
+        elif raw_products and user_type == 'admin':
+            target_products = raw_products  # للأدمن فقط يعرض الكل
+        else:
+            target_products = []
 
         # ====================================================
         # 5. تطبيق الفلاتر الإضافية (بحث، فئة، سعر، حالة)
@@ -107,23 +107,20 @@ def manage_supplier_products_view():
         # ====================================================
         # 6. حساب العدد الإجمالي للمنتجات الخاصة بهذا المورد
         # ====================================================
-        # إذا لم يكن هناك فلاتر، العدد الإجمالي هو عدد القيم في مجموعة الـ QIDs
         if not has_filters:
             if supplier_qids_set is not None:
                 total_items_real = len(supplier_qids_set)
             else:
                 total_items_real = len(target_products)
         else:
-            # إذا كان هناك فلاتر، نعتمد على النتائج المصفاة
             total_items_real = len(filtered_products)
 
         # ====================================================
-        # 7. تطبيق الترقيم (على قائمة المنتجات الكاملة لهذا المورد)
+        # 7. تطبيق الترقيم
         # ====================================================
         per_page = limit
         total_pages = math.ceil(total_items_real / per_page) if total_items_real > 0 else 0
 
-        # قطع الصفحة الحالية
         start_idx = (page - 1) * per_page
         end_idx = start_idx + per_page
         paged_products = filtered_products[start_idx:end_idx]
@@ -140,6 +137,22 @@ def manage_supplier_products_view():
             'total_items': total_items_real
         }
 
+        # دعم طلبات الـ AJAX إذا كانت مطلوبة لتحديث الجدول مباشرة دون إعادة تحميل الصفحة
+        if is_ajax:
+            return jsonify({
+                'success': True,
+                'html': render_template(
+                    'suppliers/includes/_products_table_body.html',
+                    products=formatted_products,
+                    get_status_text=get_status_text,
+                    format_price=format_price
+                ),
+                'pagination_html': render_template(
+                    'suppliers/includes/_pagination.html',
+                    pagination=pagination_info
+                )
+            })
+
         return render_template(
             'suppliers/suppliers_product.html',
             products=formatted_products,
@@ -151,4 +164,10 @@ def manage_supplier_products_view():
     except Exception as e:
         current_app.logger.error(f"خطأ غير متوقع: {traceback.format_exc()}")
         flash('❌ حدث خطأ غير متوقع', 'danger')
-        return render_template('suppliers/suppliers_product.html', products=[], pagination={'total_pages':0, 'total_items':0}, get_status_text=get_status_text, format_price=format_price)
+        return render_template(
+            'suppliers/suppliers_product.html',
+            products=[],
+            pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1},
+            get_status_text=get_status_text,
+            format_price=format_price
+        )
