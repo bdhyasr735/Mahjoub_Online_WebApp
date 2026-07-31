@@ -112,9 +112,9 @@ def sync_supplier_products():
                         db.session.commit()
                     else:
                         updated_count += 1
-                        # (اختياري) هنا يمكنك تحديث حقول إضافية إذا لزم الأمر
-                        # مثلاً: تحديث تاريخ التحديث
-                        mapping.updated_at = db.func.now()
+                        # ✅ تم التصحيح: تم إزالة السطر الذي قد يسبب تعارضاً في SQLAlchemy.
+                        # تحديث حقل updated_at سيتم تلقائياً بواسطة onupdate=datetime.utcnow في المودل.
+                        # نكتفي بحفظ التغيير.
                         db.session.commit()
 
             except Exception as page_error:
