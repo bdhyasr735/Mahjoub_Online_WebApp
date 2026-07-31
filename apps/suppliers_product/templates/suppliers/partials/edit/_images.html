@@ -1,1 +1,233 @@
+<!-- apps/suppliers_product/templates/suppliers/partials/edit/_images.html -->
 
+<!-- ================= صور المنتج ================= -->
+<div class="form-section images-card">
+    <div class="form-section-title">
+        <i class="fas fa-images"></i>
+        صور المنتج
+        <span class="badge-count" id="imagesCount">
+            {{ product.images|length if product.images else 0 }}
+        </span>
+        <span class="badge-status" id="imagesStatus">
+            {% if product.images and product.images|length > 0 %}
+            <i class="fas fa-check-circle"></i> مكتمل
+            {% else %}
+            <i class="fas fa-exclamation-circle"></i> فارغ
+            {% endif %}
+        </span>
+    </div>
+    
+    <!-- ✅ منطقة رفع الصور -->
+    <div class="upload-zone" id="imageUploadArea">
+        <div class="upload-zone-content">
+            <div class="upload-icon-wrapper"><i class="fas fa-cloud-upload-alt"></i></div>
+            <h4>اسحب الصور هنا</h4>
+            <p>أو انقر لاختيار الملفات</p>
+            <div class="upload-formats">
+                <span class="format-badge">JPG</span>
+                <span class="format-badge">PNG</span>
+                <span class="format-badge">WebP</span>
+            </div>
+            <div class="upload-size-limit"><i class="fas fa-info-circle"></i> الحد الأقصى: 5MB</div>
+        </div>
+        <input type="file" id="imageInput" accept="image/*" multiple>
+    </div>
+    
+    <!-- ✅ معرض الصور -->
+    <div class="image-gallery" id="imagePreviewGrid">
+        {% if product.images and product.images|length > 0 %}
+            {% for image in product.images %}
+            <div class="gallery-item">
+                <img src="{{ image.fileUrl }}" alt="صورة المنتج" loading="lazy" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=No+Image';">
+                <button class="gallery-item-remove" 
+                        onclick="if(confirm('حذف الصورة؟')){this.parentElement.remove();updateImagesCount();}">✕</button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="gallery-empty">
+                <i class="fas fa-image"></i>
+                <p>لا توجد صور</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- ✅ شريط المعلومات السفلية -->
+    <div class="gallery-footer">
+        <div class="gallery-stats">
+            <span><i class="fas fa-images"></i> <strong id="imagesCountFooter">{{ product.images|length if product.images else 0 }}</strong> صورة</span>
+            <span><i class="fas fa-upload"></i> <span id="uploadStatus">جاهز للرفع</span></span>
+        </div>
+        <button class="btn-clear-images" onclick="clearAllImages()">🗑️ حذف الكل</button>
+    </div>
+</div>
+
+<style>
+.images-card {
+    border-color: rgba(212, 175, 55, 0.15);
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+}
+.images-card .badge-status {
+    font-size: 0.65rem; font-weight: 600; padding: 3px 12px;
+    border-radius: 20px; margin-left: 8px;
+    display: inline-flex; align-items: center; gap: 4px;
+}
+.badge-status.has-images { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+.badge-status.empty { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.upload-zone {
+    border: 2px dashed #e2e8f0; border-radius: 12px;
+    padding: 32px 20px; text-align: center; cursor: pointer;
+    transition: all 0.3s ease; background: #faf8f6;
+    margin-bottom: 16px;
+}
+.upload-zone:hover { border-color: #D4AF37; background: #f5f0eb; }
+.upload-zone.dragover { border-color: #D4AF37; background: rgba(212,175,55,0.05); }
+.upload-zone-content { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.upload-icon-wrapper {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+}
+.upload-icon-wrapper i { font-size: 1.5rem; color: #D4AF37; }
+.upload-zone h4 { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0; }
+.upload-zone p { font-size: 0.85rem; color: #64748b; margin: 0; }
+.upload-formats { display: flex; gap: 4px; margin-top: 2px; }
+.format-badge {
+    background: #f1f5f9; color: #475569; padding: 2px 8px;
+    border-radius: 10px; font-size: 0.6rem; font-weight: 600;
+}
+.upload-size-limit { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+.image-gallery {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px; min-height: 80px;
+}
+.gallery-item {
+    position: relative; border-radius: 10px; overflow: hidden;
+    aspect-ratio: 1; background: #f8f9fa;
+    border: 2px solid #e2e8f0; transition: all 0.3s ease;
+}
+.gallery-item:hover { transform: scale(1.03); border-color: #D4AF37; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-item-remove {
+    position: absolute; top: 4px; right: 4px;
+    width: 24px; height: 24px; background: rgba(239,68,68,0.9);
+    color: #fff; border: none; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; opacity: 0; transition: all 0.3s ease;
+}
+.gallery-item:hover .gallery-item-remove { opacity: 1; }
+.gallery-item-remove:hover { background: #ef4444; transform: scale(1.1); }
+.gallery-empty {
+    grid-column: 1/-1; text-align: center; padding: 30px;
+    color: #94a3b8; background: #f8fafc; border-radius: 10px;
+}
+.gallery-empty i { font-size: 2rem; color: #D4AF37; }
+.gallery-footer {
+    display: flex; flex-wrap: wrap; justify-content: space-between;
+    align-items: center; padding-top: 12px; margin-top: 12px;
+    border-top: 1px solid #e2e8f0; gap: 8px;
+}
+.gallery-stats { display: flex; gap: 16px; font-size: 0.8rem; color: #64748b; }
+.gallery-stats i { color: #D4AF37; margin-right: 4px; }
+.gallery-stats strong { color: #0f172a; }
+.btn-clear-images {
+    background: none; border: none; color: #ef4444;
+    font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 6px; transition: all 0.2s ease;
+}
+.btn-clear-images:hover { background: rgba(239,68,68,0.06); color: #dc2626; }
+@media (max-width: 768px) {
+    .image-gallery { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+    .upload-zone { padding: 24px 16px; }
+    .upload-icon-wrapper { width: 48px; height: 48px; }
+    .upload-icon-wrapper i { font-size: 1.2rem; }
+    .gallery-footer { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ تحديث عدد الصور
+    window.updateImagesCount = function() {
+        const items = document.querySelectorAll('.gallery-item');
+        const count = items.length;
+        const countBadge = document.getElementById('imagesCount');
+        const countFooter = document.getElementById('imagesCountFooter');
+        const statusBadge = document.getElementById('imagesStatus');
+        const clearBtn = document.querySelector('.btn-clear-images');
+        const emptyState = document.querySelector('.gallery-empty');
+        if (countBadge) countBadge.textContent = count;
+        if (countFooter) countFooter.textContent = count;
+        if (statusBadge) {
+            if (count > 0) {
+                statusBadge.className = 'badge-status has-images';
+                statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> مكتمل';
+            } else {
+                statusBadge.className = 'badge-status empty';
+                statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> فارغ';
+            }
+        }
+        if (clearBtn) clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+        if (emptyState) emptyState.style.display = count > 0 ? 'none' : 'flex';
+        const uploadStatus = document.getElementById('uploadStatus');
+        if (uploadStatus) uploadStatus.textContent = count > 0 ? `${count} صورة` : 'جاهز للرفع';
+    };
+    
+    // ✅ حذف جميع الصور
+    window.clearAllImages = function() {
+        if (!confirm('⚠️ حذف جميع الصور؟')) return;
+        document.querySelectorAll('.gallery-item').forEach(item => item.remove());
+        updateImagesCount();
+        showNotification('🗑️ تم حذف جميع الصور', 'info');
+    };
+    
+    // ✅ إضافة صورة
+    window.addImageToGallery = function(url) {
+        const grid = document.getElementById('imagePreviewGrid');
+        if (!grid) return;
+        const emptyState = grid.querySelector('.gallery-empty');
+        if (emptyState) emptyState.remove();
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        item.innerHTML = `
+            <img src="${url}" alt="صورة" loading="lazy" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=No+Image';">
+            <button class="gallery-item-remove" onclick="if(confirm('حذف الصورة؟')){this.parentElement.remove();updateImagesCount();}">✕</button>
+        `;
+        grid.appendChild(item);
+        updateImagesCount();
+    };
+    
+    updateImagesCount();
+});
+
+// ✅ رفع الصور
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadZone = document.getElementById('imageUploadArea');
+    const fileInput = document.getElementById('imageInput');
+    if (!uploadZone || !fileInput) return;
+    
+    fileInput.addEventListener('change', function() {
+        const files = this.files;
+        for (let i = 0; i < files.length; i++) {
+            const reader = new FileReader();
+            reader.onload = function(e) { addImageToGallery(e.target.result); };
+            reader.readAsDataURL(files[i]);
+        }
+        this.value = '';
+    });
+    
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault(); this.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', function(e) {
+        e.preventDefault(); this.classList.remove('dragover');
+    });
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault(); this.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        }
+    });
+});
+</script>
