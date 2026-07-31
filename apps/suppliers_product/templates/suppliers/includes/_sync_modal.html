@@ -87,7 +87,8 @@ function openSyncModal() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': csrfToken,
+            'X-CSRF-Token': csrfToken  // دعم إضافي لبعض الخوادم
         },
         body: JSON.stringify({}) // إرسال جسم فارغ لتجنب خطأ 400
     })
