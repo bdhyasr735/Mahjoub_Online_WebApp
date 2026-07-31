@@ -86,8 +86,6 @@ def sync_supplier_products():
                 continue
 
             # التحقق مما إذا كان المنتج يتبع هذا المورد حصرياً
-            # (يمكنك تعديل هذا الشرط بناءً على حقل المورد في بنية بيانات المنتج القادم من الـ API إن وجد، مثلاً: product.get('supplier_id') == supplier_id)
-            # إذا لم يكن هناك حقل مباشر، نكتفي بالتحقق من جدول الربط أو ترك الخيار للأدمن
             product_supplier = product.get('supplier_id') or product.get('vendor_id')
             
             if not is_admin and product_supplier and str(product_supplier) != str(supplier_id):
