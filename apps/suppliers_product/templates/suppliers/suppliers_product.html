@@ -133,9 +133,13 @@
                         </span>
                     </div>
 
-                    <!-- صورة المنتج بمعالجة ذكية للروابط -->
+                    {# صورة المنتج بمعالجة ذكية وشاملة لجميع الاحتمالات #}
                     {%- set raw_img = none -%}
-                    {%- if item.product.images and item.product.images|length > 0 -%}
+                    {%- if item.product.image_url -%}
+                        {%- set raw_img = item.product.image_url -%}
+                    {%- elif item.product.imageUrl -%}
+                        {%- set raw_img = item.product.imageUrl -%}
+                    {%- elif item.product.images and item.product.images|length > 0 -%}
                         {%- set first_img = item.product.images[0] -%}
                         {%- if first_img is mapping -%}
                             {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link or first_img.path -%}
@@ -170,7 +174,14 @@
                         <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
                             <div>
                                 <small class="text-muted d-block" style="font-size: 0.75rem;">السعر</small>
-                                <span class="fw-bolder fs-6" style="color: #2d0b36;">{{ format_price(item.product.price) }}</span>
+                                <span class="fw-bolder fs-6" style="color: #2d0b36;">
+                                    {%- set p_price = item.product.price if item.product.price is defined and item.product.price is not none 
+                                        else (item.product.pricing.price if item.product.pricing and item.product.pricing.price is defined and item.product.pricing.price is not none 
+                                        else (item.product.sale_price if item.product.sale_price is defined and item.product.sale_price is not none 
+                                        else (item.product.regular_price if item.product.regular_price is defined and item.product.regular_price is not none 
+                                        else (item.product.cost if item.product.cost is defined and item.product.cost is not none else 0)))) -%}
+                                    {{ format_price(p_price) }}
+                                </span>
                             </div>
                             <div class="text-end">
                                 <small class="text-muted d-block" style="font-size: 0.75rem;">الكمية</small>
