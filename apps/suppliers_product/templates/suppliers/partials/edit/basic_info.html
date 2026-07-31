@@ -1,1 +1,131 @@
 
+<!-- apps/suppliers_product/templates/suppliers/partials/edit/_basic_info.html -->
+
+<!-- ================= المعلومات الأساسية ================= -->
+<div class="form-section basic-info-card">
+    <div class="form-section-title">
+        <i class="fas fa-info-circle"></i>
+        المعلومات الأساسية
+        <span class="badge-count">أساسي</span>
+        <span class="badge-status" id="basicInfoStatus">
+            <i class="fas fa-check-circle"></i> مكتمل
+        </span>
+    </div>
+    
+    <div class="basic-info-content">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="productTitle" class="form-label">
+                        <i class="fas fa-heading"></i> اسم المنتج
+                        <span class="label-badge required">مطلوب</span>
+                    </label>
+                    <input type="text" class="form-control form-control-lg" id="productTitle" 
+                           name="title" value="{{ product.title or product.name or '' }}" 
+                           placeholder="أدخل اسم المنتج..." 
+                           oninput="generatePayload(); updateBasicInfoStatus();" required>
+                    <small class="form-hint"><i class="fas fa-lightbulb"></i> اسم واضح وجذاب</small>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="productSlug" class="form-label">
+                        <i class="fas fa-link"></i> الرابط (Slug)
+                        <span class="label-badge">تلقائي</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-globe"></i></span>
+                        <input type="text" class="form-control form-control-lg" id="productSlug" 
+                               name="slug" value="{{ product.slug or '' }}" 
+                               placeholder="product-slug-url" dir="ltr" 
+                               oninput="generatePayload(); updateBasicInfoStatus();">
+                    </div>
+                    <small class="form-hint"><i class="fas fa-info-circle"></i> يُنشأ تلقائياً من الاسم</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-info-wrapper">
+            {% include "suppliers/partials/edit/_product_main_info.html" %}
+        </div>
+    </div>
+</div>
+
+<style>
+.basic-info-card {
+    border-color: rgba(212, 175, 55, 0.15);
+    background: linear-gradient(135deg, #ffffff, #faf8f6);
+    padding: 24px 28px !important;
+}
+.basic-info-card .badge-status {
+    font-size: 0.65rem; font-weight: 600; padding: 3px 12px;
+    border-radius: 20px; margin-left: 8px;
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(34, 197, 94, 0.1); color: #22c55e;
+    transition: all 0.3s ease;
+}
+.basic-info-card .badge-status.dirty {
+    background: rgba(245, 158, 11, 0.1); color: #f59e0b;
+}
+.basic-info-content { display: flex; flex-direction: column; gap: 16px; }
+.basic-info-card .form-group { margin-bottom: 0; }
+.basic-info-card .form-label {
+    font-size: 0.82rem; font-weight: 600; color: #1e293b;
+    margin-bottom: 4px; display: flex; align-items: center; gap: 6px;
+}
+.basic-info-card .form-label i { color: #D4AF37; }
+.basic-info-card .label-badge {
+    font-size: 0.6rem; font-weight: 400; padding: 2px 10px;
+    border-radius: 12px; background: #f1f5f9; color: #64748b;
+    margin-left: 6px;
+}
+.basic-info-card .label-badge.required {
+    background: rgba(239, 68, 68, 0.08); color: #ef4444;
+}
+.basic-info-card .form-control {
+    border: 2px solid #e2e8f0; border-radius: 10px;
+    padding: 10px 16px; font-size: 0.95rem;
+    transition: all 0.3s ease; background: #ffffff;
+}
+.basic-info-card .form-control:focus {
+    border-color: #D4AF37; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.08);
+}
+.basic-info-card .form-control-lg { padding: 12px 16px; font-size: 1rem; }
+.basic-info-card .form-hint {
+    display: block; font-size: 0.7rem; color: #94a3b8; margin-top: 2px;
+}
+.basic-info-card .form-hint i { color: #D4AF37; margin-right: 4px; }
+.basic-info-card .input-group-text {
+    border: 2px solid #e2e8f0; border-right: none;
+    border-radius: 10px 0 0 10px; background: #f8fafc; padding: 10px 14px;
+}
+.basic-info-card .input-group .form-control { border-radius: 0 10px 10px 0; }
+.main-info-wrapper { margin-top: 4px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+@media (max-width: 768px) {
+    .basic-info-card { padding: 16px 14px !important; }
+    .basic-info-card .form-control-lg { padding: 8px 12px; font-size: 0.9rem; }
+    .basic-info-card .input-group-text { padding: 8px 10px; }
+}
+</style>
+
+<!-- ✅ السكربت المصحح: تعريف الدالة على window مباشرة -->
+<script>
+function updateBasicInfoStatus() {
+    const title = document.getElementById('productTitle')?.value || '';
+    const statusBadge = document.getElementById('basicInfoStatus');
+    if (!statusBadge) return;
+    if (title.trim().length > 0) {
+        statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> مكتمل';
+        statusBadge.className = 'badge-status';
+    } else {
+        statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> غير مكتمل';
+        statusBadge.className = 'badge-status dirty';
+    }
+}
+window.updateBasicInfoStatus = updateBasicInfoStatus;
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateBasicInfoStatus();
+});
+</script>
