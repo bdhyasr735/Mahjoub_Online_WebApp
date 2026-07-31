@@ -5,7 +5,7 @@
 import functools
 import traceback
 from flask import request, jsonify, session
-from flask_login import login_required
+from flask_login import login_required, current_user
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
@@ -23,10 +23,13 @@ except ImportError:
 @csrf_exempt
 def sync_supplier_products():
     """مزامنة منتجات المورد تدريجياً (تستقبل الصفحة الحالية وتتم معالجتها لتفادي Timeout)"""
-    user_type = session.get('user_type')
-    supplier_id = session.get('user_id') or session.get('supplier_id')
+    from apps.extensions import db
 
-    if user_type not in ('supplier', 'admin'):
+    # ✅ الحصول على معرف المستخدم ونوعه بشكل مضمون من current_user أو الـ session
+    supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
+    user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
+
+    if user_type not in ('supplier', 'admin') and not getattr(current_user, 'is_admin', False):
         return jsonify({'success': False, 'message': 'غير مصرح لك بالوصول'}), 403
     
     # ✅ حماية إضافية للتأكد من وجود معرف صالح للمورد أو المستخدم
@@ -38,8 +41,6 @@ def sync_supplier_products():
         }), 400
     
     try:
-        from apps.extensions import db
-        
         # ✅ استخدام silent=True لمنع انهيار الخادم إذا كان جسم الطلب فارغاً أو غير مكتمل
         data = request.get_json(silent=True) or {}
         
@@ -116,6 +117,7 @@ def sync_supplier_products():
         })
 
     except Exception as e:
+        db.session.rollback()  # ✅ إرجاع قاعدة البيانات للحالة السليمة عند حدوث استثناء
         print(f"❌ [Sync] خطأ غير متوقع: {traceback.format_exc()}")
         return jsonify({
             'success': False, 
