@@ -24,7 +24,6 @@ def format_price(price):
     except: return str(price)
 
 
-# ✅ تمت إضافة endpoint لربطه مع url_for في القالب
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
 def manage_supplier_products_view():
@@ -35,10 +34,10 @@ def manage_supplier_products_view():
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
-        # 1. استلام المتغيرات (limit جديد)
+        # 1. استلام المتغيرات (الحد مفتوح، بدون سقف 100)
         page = request.args.get('page', 1, type=int)
-        limit = request.args.get('limit', 10, type=int)     # ✅ إضافة متغير الحد
-        limit = max(1, min(limit, 100))                     # ✅ حماية: لا يقل عن 1 ولا يزيد عن 100
+        limit = request.args.get('limit', 10, type=int)
+        limit = max(1, limit)  # ✅ مفتوح للأعلى بلا حدود
         
         search_term = request.args.get('search', '').strip()
         category = request.args.get('category', '').strip()
@@ -47,16 +46,29 @@ def manage_supplier_products_view():
         max_price = request.args.get('max_price', '')
         is_ajax = request.args.get('ajax', '0') == '1'
 
-        # 2. جلب جميع المنتجات
+        # 2. جلب جميع المنتجات (حلقة تكرار لجمع جميع الصفحات)
         all_products = []
-        try:
-            result = services.products.get_all_products()
-            if result and isinstance(result, dict): all_products = result.get('data', [])
-            elif isinstance(result, list): all_products = result
-        except Exception as e:
-            current_app.logger.error(f"خطأ جلب المنتجات: {traceback.format_exc()}")
+        current_page = 1
+        max_pages_to_fetch = 100  # حد أقصى للصفحات (يمكن زيادته حسب احتياجك)
+        has_next = True
+        
+        while has_next and current_page <= max_pages_to_fetch:
+            try:
+                result = services.products.get_products_page(current_page)
+                if not result:
+                    break
+                page_products = result.get('data', [])
+                pagination = result.get('pagination', {})
+                
+                all_products.extend(page_products)
+                has_next = pagination.get('hasNextPage', False)
+                current_page += 1
+                
+            except Exception as e:
+                current_app.logger.error(f"خطأ في جلب الصفحة {current_page}: {e}")
+                break
 
-        # 3. تصفية منتجات المورد الحالي
+        # 3. تصفية منتجات المورد الحالي (فلترة حسب المورد)
         target_products = []
         if all_products:
             try:
@@ -75,14 +87,20 @@ def manage_supplier_products_view():
             if search_term:
                 title = str(p.get('title', '')).lower()
                 sku = str(p.get('sku', '')).lower()
-                if search_term.lower() not in title and search_term.lower() not in sku: continue
-            if category and p.get('category') != category: continue
-            if status and p.get('status') != status: continue
+                if search_term.lower() not in title and search_term.lower() not in sku:
+                    continue
+            if category and p.get('category') != category:
+                continue
+            if status and p.get('status') != status:
+                continue
             try:
                 price_val = float(p.get('price') or p.get('sale_price') or p.get('regular_price') or 0)
-                if min_price and price_val < float(min_price): continue
-                if max_price and price_val > float(max_price): continue
-            except: pass
+                if min_price and price_val < float(min_price):
+                    continue
+                if max_price and price_val > float(max_price):
+                    continue
+            except:
+                pass
             filtered_products.append(p)
 
         # 5. تطبيق الترقيم (بناءً على limit)
