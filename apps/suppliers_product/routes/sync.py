@@ -1,6 +1,6 @@
 # coding: utf-8
 # apps/suppliers_product/routes/sync.py
-# مزامنة منتجات الموردين
+# مزامنة منتجات الموردين - تم إصلاحها لجلب جميع الصفحات
 
 import functools
 import traceback
@@ -54,24 +54,48 @@ def sync_supplier_products():
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
     
     try:
-        # ✅ جلب المنتجات من الخدمات مع حماية كاملة ضد الأخطاء
-        external_products = []
-        try:
-            result = services.products.get_all_products() if hasattr(services.products, 'get_all_products') else {}
-            if isinstance(result, dict):
-                external_products = result.get('data', []) or result.get('products', [])
-            elif isinstance(result, list):
-                external_products = result
-            elif hasattr(services.products, 'fetch_all_products_for_search'):
-                external_products = services.products.fetch_all_products_for_search() or []
-        except Exception as api_fetch_err:
-            print(f"⚠️ تحذير أثناء جلب المنتجات الخارجية للمزامنة: {api_fetch_err}")
-            external_products = []
+        # ✅ 1. جلب جميع المنتجات من الخدمة (صفحة صفحة)
+        all_external_products = []
+        current_page = 1
+        page_limit = 100  # يمكنك زيادة هذا الرقم لتسريع الجلب
+        has_more_pages = True
         
-        if not external_products:
+        while has_more_pages:
+            try:
+                # هنا يجب أن تدعم الخدمة استقبال صفحة. إذا كانت لا تدعم، يجب عليك توسيع service
+                # افترضنا أن services.products.get_all_products يقبل `page` و `limit`
+                result = services.products.get_all_products(page=current_page, limit=page_limit)
+                
+                if isinstance(result, dict):
+                    page_products = result.get('data', []) or result.get('products', [])
+                    # التحقق من وجود صفحات أخرى (إذا كانت الخدمة ترجع pagination info)
+                    pagination_info = result.get('pagination', {})
+                    has_more_pages = pagination_info.get('hasNextPage', False)
+                    total_pages = pagination_info.get('totalPages', 0)
+                elif isinstance(result, list):
+                    page_products = result
+                    # إذا كانت القائمة فارغة، نعتبر أننا وصلنا للنهاية
+                    has_more_pages = False
+                else:
+                    page_products = []
+                    has_more_pages = False
+                
+                all_external_products.extend(page_products)
+                
+                # إذا لم يكن هناك معلومات ترقيم، نعتبر أننا انتهينا
+                if not has_more_pages:
+                    break
+                    
+                current_page += 1
+                
+            except Exception as api_fetch_err:
+                print(f"⚠️ تحذير أثناء جلب الصفحة {current_page}: {api_fetch_err}")
+                break
+        
+        if not all_external_products:
             if request.method == 'GET':
                 flash('ℹ️ لا توجد منتجات جديدة للمزامنة', 'info')
-                return redirect(url_for('suppliers_product_bp.manage_supplier_products_view'))
+                return redirect(url_for('suppliers_product_bp.list_supplier_products'))
             return jsonify({
                 'success': True,
                 'message': 'ℹ️ لا توجد منتجات جديدة للمزامنة',
@@ -86,7 +110,7 @@ def sync_supplier_products():
         updated_count = 0
         errors = []
         
-        for product in external_products:
+        for product in all_external_products:
             if not isinstance(product, dict):
                 continue
             try:
@@ -121,7 +145,7 @@ def sync_supplier_products():
         
         if request.method == 'GET':
             flash(f'✅ تمت المزامنة: {synced_count} منتج (جديد: {created_count}, محدث: {updated_count})', 'success')
-            return redirect(url_for('suppliers_product_bp.manage_supplier_products_view'))
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
         
         return jsonify({
             'success': True,
@@ -142,4 +166,4 @@ def sync_supplier_products():
             }), 500
         else:
             flash(f'❌ فشل المزامنة: {str(e)}', 'danger')
-            return redirect(url_for('suppliers_product_bp.manage_supplier_products_view'))
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
