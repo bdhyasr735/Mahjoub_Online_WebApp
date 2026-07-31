@@ -38,7 +38,7 @@ def analyze_render_error(route_func):
     return wrapper
 
 
-@suppliers_product_bp.route('/products/sync', methods=['POST'])
+@suppliers_product_bp.route('/products/sync', methods=['POST'], endpoint='sync_supplier_products')
 @login_required
 @analyze_render_error
 def sync_supplier_products():
@@ -102,9 +102,6 @@ def sync_supplier_products():
                         db.session.commit()
                 else:
                     updated_count += 1
-
-            # (اختياري) هنا يمكنك إرسال تحديث تقدم إلى الواجهة إذا كنت تستخدم WebSocket،
-            # لكن في هذا التطبيق سنرجع النتيجة في النهاية فقط.
 
         # 4. إرجاع النتيجة النهائية
         return jsonify({
