@@ -11,9 +11,10 @@ MODULE_ICON = "fa-boxes"
 SHOW_IN_SUPPLIER = True
 
 LINKS = {
-    "suppliers_product_bp.manage_supplier_products_view": "📦 منتجاتي",
-    "suppliers_product_bp.add_supplier_product": "➕ إضافة منتج جديد",
-    "suppliers_product_bp.review_supplier_products": "📋 مراجعة الحالات"
+    # ✅ تم التصحيح: تغيير اسم الدالة ليتطابق مع endpoint المحدد في products.py
+    "suppliers_product_bp.list_supplier_products": "📦 منتجاتي",
+    "suppliers_product_bp.add_supplier_product": "➕ إضافة منتج جديد"
+    # ✅ تم حذف مراجعة الحالات لأن المسار غير موجود حالياً (يمكنك إضافته لاحقاً)
 }
 
 
@@ -86,7 +87,8 @@ def get_module_stats():
 def get_module_link():
     """الحصول على رابط موديول الموردين"""
     try:
-        return url_for('suppliers_product_bp.manage_supplier_products_view')
+        # ✅ تم التصحيح: تغيير الاسم ليتطابق مع products.py
+        return url_for('suppliers_product_bp.list_supplier_products')
     except Exception as e:
         print(f"❌ [Registry Supplier Link Error]: {e}")
         return '#'
