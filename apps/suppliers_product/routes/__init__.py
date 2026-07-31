@@ -14,12 +14,9 @@ suppliers_product_bp = Blueprint(
     template_folder=template_dir
 )
 
-# ✅ استيراد ملفات العمليات والمراجعة الخاصة بالموردين
+# ✅ استيراد ملفات العمليات والمراجعة ومنتجات الموردين لتسجيل الـ Routes تلقائياً
 from . import crud
 from . import reviews
-
-# ✅ استيراد products.py وتسجيل الـ Route الخاص بجدول منتجات الموردين
-from .products import register_supplier_products_route
-register_supplier_products_route(suppliers_product_bp)
+from . import products
 
 __all__ = ['suppliers_product_bp']
