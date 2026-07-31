@@ -52,14 +52,18 @@ def sync_supplier_products():
     try:
         from apps.extensions import db
 
+        print(f"🔍 [Sync] بدء المزامنة للمورد {supplier_id}")
+
         # ✅ 1. جلب جميع QIDs الخاصة بالمورد من قاعدة البيانات المحلية (سريع جداً)
         supplier_qids = []
         if supplier_id:
             mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
             supplier_qids = [m.product_qid for m in mappings]
+            print(f"🔍 [Sync] تم جلب {len(supplier_qids)} QID للمورد")
 
         # إذا لم يكن لدى المورد أي منتجات مرتبطة، ننهي المزامنة فوراً
         if not supplier_qids:
+            print(f"⚠️ [Sync] لا توجد منتجات مرتبطة بهذا المورد")
             return jsonify({
                 'success': True,
                 'message': 'ℹ️ لا توجد منتجات مرتبطة بهذا المورد للمزامنة.',
@@ -81,16 +85,20 @@ def sync_supplier_products():
         updated_count = 0
         errors = []
 
+        print(f"🔄 [Sync] سيتم جلب {total_pages} صفحة (إجمالي {total_items_real} منتج)")
+
         # ✅ 3. التكرار عبر الصفحات، ولكن نجلب فقط المنتجات التي تخص هذا المورد
         for page_num in range(1, total_pages + 1):
-            print(f"🔄 مزامنة الصفحة {page_num}/{total_pages} (للمورد {supplier_id})")
+            print(f"🔄 [Sync] مزامنة الصفحة {page_num}/{total_pages} (للمورد {supplier_id})")
             try:
                 # جلب صفحة من GraphQL
                 result = services.products.get_products_page(page_num)
                 if not result:
+                    print(f"⚠️ [Sync] صفحة {page_num} لم تُرجع بيانات")
                     continue
                 
                 page_products = result.get('data', [])
+                print(f"📄 [Sync] الصفحة {page_num} تحتوي على {len(page_products)} منتج")
                 
                 # تصفية المنتجات: نحتفظ فقط بما هو موجود في مجموعة الـ QIDs المحلية
                 for product in page_products:
@@ -110,16 +118,18 @@ def sync_supplier_products():
                         new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
                         db.session.add(new_mapping)
                         db.session.commit()
+                        print(f"✅ [Sync] إنشاء ربط جديد للمنتج {qid}")
                     else:
                         updated_count += 1
-                        # ✅ تم التصحيح: تم إزالة السطر الذي قد يسبب تعارضاً في SQLAlchemy.
-                        # تحديث حقل updated_at سيتم تلقائياً بواسطة onupdate=datetime.utcnow في المودل.
-                        # نكتفي بحفظ التغيير.
+                        # تحديث تاريخ التحديث (سيتم تلقائياً بواسطة onupdate في المودل)
                         db.session.commit()
+                        print(f"🔄 [Sync] تحديث ربط المنتج {qid}")
 
             except Exception as page_error:
-                print(f"⚠️ خطأ في الصفحة {page_num}: {page_error}")
+                print(f"⚠️ [Sync] خطأ في الصفحة {page_num}: {page_error}")
                 errors.append({'page': page_num, 'error': str(page_error)})
+
+        print(f"✅ [Sync] تمت المزامنة بنجاح: {synced_count} منتج")
 
         # ✅ 4. إرجاع النتيجة النهائية
         return jsonify({
@@ -133,7 +143,7 @@ def sync_supplier_products():
         })
 
     except Exception as e:
-        print(f"❌ خطأ في sync_supplier_products: {traceback.format_exc()}")
+        print(f"❌ [Sync] خطأ غير متوقع في sync_supplier_products: {traceback.format_exc()}")
         return jsonify({
             'success': False, 
             'message': f'❌ فشل المزامنة: {str(e)}',
