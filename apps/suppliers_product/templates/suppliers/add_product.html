@@ -13,7 +13,17 @@
         border: 2px dashed #dee2e6;
         border-radius: 16px;
         padding: 40px 20px;
-        text-align: center;
+        text-align: center;{% extends "suppliers/base.html" %}
+{% block title %}إضافة منتج جديد{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="fw-bold mb-1" style="color: #2d0b36;">➕ إضافة منتج جديد</h2>
+    <p class="text-muted text-sm mb-0">أدخل بيانات المنتج الجديد ليظهر في قائمتك.</p>
+    <div class="card mt-4 shadow-sm border-0 rounded-4 p-4">
+        <p class="text-center text-muted">نموذج إضافة المنتج قيد الإنشاء...</p>
+    </div>
+</div>
+{% endblock %}
         transition: all 0.3s ease;
         cursor: pointer;
         background: #f8f9fa;
