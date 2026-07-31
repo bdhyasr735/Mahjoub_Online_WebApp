@@ -11,15 +11,11 @@ MODULE_ICON = "fa-boxes"
 SHOW_IN_SUPPLIER = True
 
 LINKS = {
-    # ✅ تم التصحيح: تغيير اسم الدالة ليتطابق مع endpoint المحدد في products.py
     "suppliers_product_bp.list_supplier_products": "📦 منتجاتي",
     "suppliers_product_bp.add_supplier_product": "➕ إضافة منتج جديد"
-    # ✅ تم حذف مراجعة الحالات لأن المسار غير موجود حالياً (يمكنك إضافته لاحقاً)
 }
 
-
 def register_module(app):
-    """تسجيل موديول منتجات الموردين في التطبيق"""
     try:
         from apps.suppliers_product.routes import suppliers_product_bp
         if 'suppliers_product_bp' not in app.blueprints:
@@ -33,9 +29,7 @@ def register_module(app):
         print(f"❌ [Registry Supplier]: خطأ في تسجيل suppliers_product: {e}")
     return app
 
-
 def get_module_stats():
-    """جلب إحصائيات منتجات المورد الحالي"""
     try:
         from apps.services import services
         from apps.models.product_supplier_map import ProductSupplierMapping
@@ -53,49 +47,30 @@ def get_module_stats():
         else:
             products = all_products
         
-        stats = {
-            'total': len(products), 
-            'active': 0, 
-            'draft': 0, 
-            'archived': 0,
-            'has_products': len(products) > 0
-        }
-        
+        stats = {'total': len(products), 'active': 0, 'draft': 0, 'archived': 0, 'has_products': len(products) > 0}
         for p in products:
             status = p.get('status', '').upper()
             is_active = p.get('isActive', False)
-            
             if status in ['ACTIVE', 'PUBLISHED'] or is_active:
                 stats['active'] += 1
             elif status == 'DRAFT':
                 stats['draft'] += 1
             elif status == 'ARCHIVED':
                 stats['archived'] += 1
-                
         return stats
     except Exception as e:
         print(f"❌ [Registry Supplier Stats Error]: {e}")
-        return {
-            'total': 0, 
-            'active': 0, 
-            'draft': 0, 
-            'archived': 0, 
-            'has_products': False
-        }
-
+        return {'total': 0, 'active': 0, 'draft': 0, 'archived': 0, 'has_products': False}
 
 def get_module_link():
-    """الحصول على رابط موديول الموردين"""
     try:
-        # ✅ تم التصحيح: تغيير الاسم ليتطابق مع products.py
         return url_for('suppliers_product_bp.list_supplier_products')
     except Exception as e:
         print(f"❌ [Registry Supplier Link Error]: {e}")
-        return '#'
-
+        # ✅ حل آمن: استخدام المسار المباشر لضمان ظهور الرابط دائماً
+        return '/supplier/products'
 
 def get_dashboard_card():
-    """الحصول على بطاقة موديول الموردين لوحة التحكم"""
     stats = get_module_stats()
     return {
         'title': MODULE_NAME,
@@ -107,14 +82,4 @@ def get_dashboard_card():
         'subtitle': f"{stats.get('active', 0)} نشط، {stats.get('draft', 0)} مسودة"
     }
 
-
-__all__ = [
-    'MODULE_NAME', 
-    'MODULE_ICON', 
-    'SHOW_IN_SUPPLIER', 
-    'LINKS',
-    'register_module', 
-    'get_module_stats', 
-    'get_module_link', 
-    'get_dashboard_card'
-]
+__all__ = ['MODULE_NAME', 'MODULE_ICON', 'SHOW_IN_SUPPLIER', 'LINKS', 'register_module', 'get_module_stats', 'get_module_link', 'get_dashboard_card']
