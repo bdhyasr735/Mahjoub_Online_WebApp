@@ -4,7 +4,7 @@
 import math
 import traceback
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
@@ -26,9 +26,11 @@ def format_price(price):
 @login_required
 def manage_supplier_products_view():
     try:
-        user_type = session.get('user_type')
-        supplier_id = session.get('user_id') or session.get('supplier_id')
-        if user_type not in ('supplier', 'admin'):
+        # ✅ استخدام الطرق الآمنة لجلب معرف المورد والنوع لتجنب مشاكل الـ None
+        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
+        user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
+
+        if user_type not in ('supplier', 'admin') and not getattr(current_user, 'is_admin', False):
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
@@ -81,7 +83,7 @@ def manage_supplier_products_view():
         target_products = []
         if raw_products and supplier_qids_set is not None:
             target_products = [p for p in raw_products if p.get('qid') in supplier_qids_set]
-        elif raw_products and user_type == 'admin':
+        elif raw_products and (user_type == 'admin' or getattr(current_user, 'is_admin', False)):
             target_products = raw_products  # للأدمن فقط يعرض الكل
         else:
             target_products = []
@@ -142,7 +144,7 @@ def manage_supplier_products_view():
             return jsonify({
                 'success': True,
                 'html': render_template(
-                    'suppliers/includes/_products_table_body.html',
+                    'suppliers/includes/_product_grid.html',
                     products=formatted_products,
                     get_status_text=get_status_text,
                     format_price=format_price
