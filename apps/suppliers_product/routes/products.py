@@ -55,17 +55,28 @@ def manage_supplier_products_view():
 
         wrapped_items = []
         for prod in current_page_items:
-            # استخراج السعر بجميع الاحتمالات الممكنة
-            price = prod.get('price') or prod.get('sale_price') or prod.get('regular_price') or prod.get('cost') or 0
+            # استخراج السعر بجميع الاحتمالات الممكنة (بما فيها الحقول المتداخلة مثل pricing)
+            pricing = prod.get('pricing') or {}
+            price = (
+                prod.get('price') 
+                or pricing.get('price') 
+                or prod.get('sale_price') 
+                or prod.get('regular_price') 
+                or prod.get('cost') 
+                or 0
+            )
             prod['price'] = price
             
-            # معالجة الصور بمرونة مطلقة
+            # معالجة الصور بمرونة مطلقة لتدعم fileUrl و url و src وغيرها
             images = prod.get('images') or prod.get('photos') or prod.get('image') or []
             processed_images = []
+            
             if isinstance(images, list):
                 for img in images:
-                    if isinstance(img, dict) and (img.get('url') or img.get('src') or img.get('link')):
-                        processed_images.append({'url': img.get('url') or img.get('src') or img.get('link')})
+                    if isinstance(img, dict):
+                        img_url = img.get('fileUrl') or img.get('url') or img.get('src') or img.get('link') or img.get('path')
+                        if img_url:
+                            processed_images.append({'url': img_url})
                     elif isinstance(img, str):
                         processed_images.append({'url': img})
             elif isinstance(images, str):
