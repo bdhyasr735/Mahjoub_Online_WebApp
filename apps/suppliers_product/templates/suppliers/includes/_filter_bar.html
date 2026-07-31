@@ -1,9 +1,11 @@
-<!-- ✅ شريط الفلاتر والبحث المتقدم -->
+<!-- 📂 apps/suppliers_product/templates/suppliers/includes/_filter_bar.html -->
+<!-- شريط الفلاتر والبحث المتقدم - نسخة محسنة -->
 <div class="card mb-4 shadow-sm border-0 rounded-4">
     <div class="card-body p-3 p-md-4">
         <div class="row g-3 align-items-end">
+            
             <!-- البحث -->
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="searchInput" class="form-label fw-bold small text-muted">🔍 بحث</label>
                 <input type="text" id="searchInput" class="form-control" placeholder="اسم المنتج أو SKU..." style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
             </div>
@@ -29,12 +31,24 @@
                 </div>
             </div>
 
-            <!-- زر إعادة تعيين -->
+            <!-- ✅ قائمة اختيار عدد المنتجات في الصفحة -->
             <div class="col-md-2">
+                <label class="form-label fw-bold small text-muted">عدد</label>
+                <select id="limitSelect" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36; font-size: 0.9rem;">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
+            <!-- زر إعادة تعيين -->
+            <div class="col-md-1">
                 <button onclick="clearAllFilters()" class="btn btn-outline-secondary w-100" style="border-radius: 10px; height: 45px;" title="إعادة تعيين">
                     <i class="fas fa-undo"></i>
                 </button>
             </div>
+            
         </div>
     </div>
 </div>
