@@ -29,6 +29,14 @@ def sync_supplier_products():
     if user_type not in ('supplier', 'admin'):
         return jsonify({'success': False, 'message': 'غير مصرح لك بالوصول'}), 403
     
+    # ✅ حماية إضافية للتأكد من وجود معرف صالح للمورد أو المستخدم
+    if not supplier_id:
+        print("❌ [Sync Error]: تعذر معرفة معرف المستخدم أو المورد (supplier_id is None)")
+        return jsonify({
+            'success': False, 
+            'message': '❌ فشل المزامنة: لم يتم العثور على معرف المورد في الجلسة، يرجى إعادة تسجيل الدخول.'
+        }), 400
+    
     try:
         from apps.extensions import db
         
@@ -74,8 +82,9 @@ def sync_supplier_products():
             if not qid:
                 continue
             
-            # التحقق مما إذا كان المنتج مرتبطاً بمورد آخر
-            existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            # ✅ استخدام no_autoflush لمنع حدوث فلاش مبكر يؤدي لخطأ القيود
+            with db.session.no_autoflush:
+                existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
             
             # إذا كان المنتج مرتبطاً بمورد مختلف (والمستخدم ليس أدمن)، نتجاهله
             if existing_mapping and existing_mapping.supplier_id != supplier_id and user_type != 'admin':
