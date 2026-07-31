@@ -1,101 +1,104 @@
 # coding: utf-8
-# apps/suppliers_product/routes/sync.py
+# 📂 apps/suppliers_product/routes/products.py
+# (تم تعديله ليكون فوري العرض مع تخزين مؤقت ذكي)
 
-import functools
 import math
 import traceback
-from flask import request, jsonify, session
+from flask import render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_required
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 
-def analyze_render_error(route_func):
-    @functools.wraps(route_func)
-    def wrapper(*args, **kwargs):
-        try:
-            return route_func(*args, **kwargs)
-        except Exception as e:
-            tb = traceback.format_exc()
-            print(f"🚨 خطأ في {route_func.__name__}:\n{tb}")
-            return jsonify({
-                "success": False,
-                "message": f"❌ خطأ داخلي: {str(e)}",
-                "traceback": tb
-            }), 500
-    return wrapper
+# ... (دوال get_status_text, format_price كما هي) ...
 
-@suppliers_product_bp.route('/products/sync', methods=['POST'], endpoint='sync_supplier_products')
+@suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
-@analyze_render_error
-def sync_supplier_products():
-    user_type = session.get('user_type')
-    supplier_id = session.get('user_id') or session.get('supplier_id')
-
-    if user_type not in ('supplier', 'admin'):
-        return jsonify({'success': False, 'message': 'غير مصرح لك'}), 403
-
+def manage_supplier_products_view():
     try:
-        from apps.extensions import db
+        user_type = session.get('user_type')
+        supplier_id = session.get('user_id') or session.get('supplier_id')
+        if user_type not in ('supplier', 'admin'):
+            flash('❌ غير مصرح لك بالدخول', 'danger')
+            return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
-        # جلب الصفحة الأولى لتقدير العدد
-        first_page = services.products.get_products_page(1)
-        if not first_page:
-            return jsonify({'success': True, 'message': 'لا توجد منتجات', 'syncedCount': 0})
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)
+        limit = max(1, limit)
         
-        total_items = first_page.get('pagination', {}).get('totalItems', 0)
-        if total_items == 0:
-            return jsonify({'success': True, 'message': 'لا توجد منتجات', 'syncedCount': 0})
+        search_term = request.args.get('search', '').strip()
+        category = request.args.get('category', '').strip()
+        status = request.args.get('status', '').strip()
+        min_price = request.args.get('min_price', '')
+        max_price = request.args.get('max_price', '')
+        is_ajax = request.args.get('ajax', '0') == '1'
 
-        per_page = 10
-        total_pages = math.ceil(total_items / per_page)
-        synced_count = 0
-        created_count = 0
-        updated_count = 0
-        errors = []
+        # 1. جلب صفحة واحدة فقط فوراً (الواجهة تظهر فوراً ولا تنتظر)
+        current_products = []
+        total_items_all = 0
+        try:
+            result = services.products.get_products_page(page)
+            if result:
+                current_products = result.get('data', [])
+                pagination_info = result.get('pagination', {})
+                total_items_all = pagination_info.get('totalItems', 0)
+        except Exception as e:
+            current_app.logger.error(f"خطأ جلب المنتجات: {traceback.format_exc()}")
 
-        for page_num in range(1, total_pages + 1):
-            print(f"🔄 مزامنة الصفحة {page_num}/{total_pages}")
-            result = services.products.get_products_page(page_num)
-            if not result:
-                continue
-            page_products = result.get('data', [])
-            for product in page_products:
-                if not isinstance(product, dict):
-                    continue
-                qid = product.get('qid')
-                if not qid:
-                    continue
-                
-                mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-                if supplier_id and mapping and mapping.supplier_id:
-                    if str(mapping.supplier_id) != str(supplier_id) and user_type != 'admin':
-                        continue
-                
-                synced_count += 1
-                if not mapping:
-                    created_count += 1
-                    if supplier_id and user_type == 'supplier':
-                        new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
-                        db.session.add(new_mapping)
-                        db.session.commit()
+        # 2. تصفية منتجات المورد الحالي
+        target_products = []
+        if current_products:
+            try:
+                if user_type != 'admin' and supplier_id:
+                    supplier_mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
+                    supplier_qids = {m.product_qid for m in supplier_mappings}
+                    target_products = [p for p in current_products if p.get('qid') in supplier_qids]
                 else:
-                    updated_count += 1
+                    target_products = current_products
+            except Exception as e:
+                current_app.logger.error(f"خطأ في التصفية: {traceback.format_exc()}")
 
-        return jsonify({
-            'success': True,
-            'message': f'✅ تمت مزامنة {synced_count} منتج بنجاح!',
-            'syncedCount': synced_count,
-            'createdCount': created_count,
-            'updatedCount': updated_count,
-            'errors': errors,
-            'reload': True
-        })
+        # 3. تطبيق البحث والفلاتر (على الصفحة الحالية فقط - لسرعة الواجهة)
+        filtered_products = []
+        for p in target_products:
+            if search_term:
+                title = str(p.get('title', '')).lower()
+                sku = str(p.get('sku', '')).lower()
+                if search_term.lower() not in title and search_term.lower() not in sku: continue
+            if category and p.get('category') != category: continue
+            if status and p.get('status') != status: continue
+            try:
+                price_val = float(p.get('price') or p.get('sale_price') or p.get('regular_price') or 0)
+                if min_price and price_val < float(min_price): continue
+                if max_price and price_val > float(max_price): continue
+            except: pass
+            filtered_products.append(p)
+
+        # 4. حساب الترقيم (بناءً على العدد الكلي الفعلي للترقيم)
+        per_page = limit
+        total_pages = math.ceil(total_items_all / per_page) if total_items_all > 0 else 0
+        formatted_products = [{'product': p} for p in filtered_products]
+
+        pagination_info = {
+            'current_page': page,
+            'total_pages': total_pages,
+            'has_prev': page > 1,
+            'has_next': page < total_pages,
+            'prev_num': page - 1 if page > 1 else 1,
+            'next_num': page + 1 if page < total_pages else page,
+            'per_page': per_page,
+            'total_items': total_items_all
+        }
+
+        return render_template(
+            'suppliers/suppliers_product.html',
+            products=formatted_products,
+            pagination=pagination_info,
+            get_status_text=get_status_text,
+            format_price=format_price
+        )
 
     except Exception as e:
-        print(f"❌ خطأ في sync_supplier_products: {traceback.format_exc()}")
-        return jsonify({
-            'success': False,
-            'message': f"❌ فشل المزامنة: {str(e)}",
-            'traceback': traceback.format_exc()
-        }), 500
+        current_app.logger.error(f"خطأ غير متوقع: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع', 'danger')
+        return render_template('suppliers/suppliers_product.html', products=[], pagination={'total_pages':0, 'total_items':0}, get_status_text=get_status_text, format_price=format_price)
