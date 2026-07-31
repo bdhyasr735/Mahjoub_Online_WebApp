@@ -1,1 +1,28 @@
-
+<div class="row g-4" id="productsGrid">
+    {% set product_list = products.items if products and products.items is defined else (products if products is iterable and products is not mapping else []) %}
+    
+    {% if product_list %}
+        {% for item in product_list %}
+        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+            <!-- ضع هنا كل كود البطاقة (Card) كما هو عندك تماماً، مع الصور و SKU والأسعار -->
+            <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden">
+                <!-- ... كود البطاقة بالكامل ... -->
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <!-- رسالة عدم وجود منتجات -->
+            <div class="card shadow-sm border-0 text-center py-5 rounded-4">
+                <div class="card-body">
+                    <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-50"></i>
+                    <h5 class="text-secondary mb-1">لا توجد منتجات مضافة حتى الآن</h5>
+                    <p class="text-muted small">ابدأ برفع منتجك الأول لتظهر البطاقات هنا.</p>
+                    <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn mt-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                        <i class="fas fa-plus me-1"></i> رفع منتج جديد
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
