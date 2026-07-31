@@ -109,7 +109,10 @@
 <!-- ✅ 3. استدعاء نافذة المزامنة -->
 {% include "suppliers/includes/_sync_modal.html" %}
 
-<!-- ✅ 4. كود JavaScript الخاص بربط الفلاتر والترقيم -->
+<!-- حقل مخفي لتوفر الـ CSRF Token إن لم يكن متوفراً في نموذج سابق -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+
+<!-- ✅ 4. كود JavaScript الخاص بربط الفلاتر والترقيم والمزامنة -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     window.clearAllFilters = function() {
@@ -137,6 +140,60 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('maxPrice').addEventListener('input', function() { fetchProducts(1); });
     document.getElementById('limitSelect').addEventListener('change', function() { fetchProducts(1); });
 });
+
+// ✅ دالة المزامنة الفعالة والمتصلة بالخادم
+function openSyncModal() {
+    const modal = document.getElementById('syncModal');
+    if (modal) {
+        if (typeof resetSyncModalState === 'function') {
+            resetSyncModalState();
+        }
+        modal.style.display = 'flex';
+        
+        if (typeof updateSyncProgress === 'function') {
+            updateSyncProgress('جاري الاتصال بالخادم وجلب المنتجات...', 25);
+        }
+
+        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+
+        fetch("{{ url_for('suppliers_product_bp.sync_supplier_products') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (typeof updateSyncProgress === 'function') {
+                updateSyncProgress('جاري معالجة وربط المنتجات...', 75);
+            }
+            if (!response.ok) {
+                throw new Error('فشل الاتصال بالخادم (رمز الاستجابة: ' + response.status + ')');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (typeof updateSyncProgress === 'function') {
+                updateSyncProgress('اكتملت المزامنة بنجاح!', 100);
+            }
+            setTimeout(() => {
+                if (typeof showSyncResult === 'function') {
+                    showSyncResult(true, data.message || 'تمت مزامنة المنتجات بنجاح', data.details || '');
+                }
+                setTimeout(() => {
+                    fetchProducts(1);
+                }, 1500);
+            }, 500);
+        })
+        .catch(error => {
+            console.error('Sync Error:', error);
+            if (typeof showSyncResult === 'function') {
+                showSyncResult(false, 'حدث خطأ أثناء المزامنة', error.message);
+            }
+        });
+    }
+}
 
 // ✅ الدالة الشاملة لجلب المنتجات عبر Ajax (تدعم limit الآن)
 function fetchProducts(page = 1) {
@@ -195,7 +252,7 @@ function attachPaginationEvents() {
     /* تأثيرات البطاقة الرئيسية */
     .product-card {
         background: #ffffff;
-        transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* حركة سلسة */
+        transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         will-change: transform, box-shadow;
     }
     
