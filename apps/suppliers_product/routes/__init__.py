@@ -18,5 +18,6 @@ suppliers_product_bp = Blueprint(
 from . import crud
 from . import reviews
 from . import products
+from . import sync  # ✅ إضافة استيراد ملف المزامنة ليتم تسجيل مساره
 
 __all__ = ['suppliers_product_bp']
