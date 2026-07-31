@@ -5,12 +5,16 @@
 import functools
 import math
 import traceback
-from flask import request, jsonify, session
+from flask import request, jsonify, session, current_app
 from flask_login import login_required
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 
+# ملاحظة: إذا كنت تستخدم Flask-WTF وترغب في تعطيل CSRF لهذا المسار مؤقتاً،
+# يمكنك إضافة @app.csrf_exempt أو استخدام `csrf_exempt` من flask_wtf.csrf
+# ولكن في هذا الحل، سنقوم بتعطيل التحقق من CSRF عن طريق إزالة التوكن من المتطلبات إذا كان الخادم لا يتطلبه.
+# ولكنني سأترك الكود كما هو وسأضيف معالجة للخطأ 400.
 
 def analyze_render_error(route_func):
     """مزيّن لتحليل أخطاء سيرفر Render"""
