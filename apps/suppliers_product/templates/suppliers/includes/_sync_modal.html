@@ -77,13 +77,13 @@ function openSyncModal() {
     modal.style.display = 'flex';
     isSyncing = true;
 
-    // إرسال طلب المزامنة إلى الخادم (بشكل غير متزامن)
-    // نستخدم CSRF token من أي عنصر موجود أو meta tag
+    // الحصول على CSRF token بأمان (من meta أو input)
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
                       document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
                       '';
 
-    fetch("{{ url_for('suppliers_product_bp.sync_supplier_products') }}", {
+    // ✅ استخدام المسار المباشر بدلاً من url_for لتجنب BuildError
+    fetch("/supplier/products/sync", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
