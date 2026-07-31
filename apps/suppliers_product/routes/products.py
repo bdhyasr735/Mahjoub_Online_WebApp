@@ -1,5 +1,6 @@
-# apps/suppliers_product/routes/products.py
-# (النسخة النهائية النظيفة التي لا تحتوي على حلقة جلب الصفحات)
+# coding: utf-8
+# 📂 apps/suppliers_product/routes/products.py
+# (نسخة كاملة وصحيحة 100%)
 
 import math
 import traceback
@@ -10,14 +11,24 @@ from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 
 def get_status_text(status):
-    # ... (نفس الكود) ...
-    status_map = {'PUBLISHED': 'منشور', ...}
+    status_map = {
+        'PUBLISHED': 'منشور',
+        'DRAFT': 'مسودة',
+        'ARCHIVED': 'مؤرشف',
+        'PENDING': 'قيد المراجعة',
+        'REJECTED': 'مرفوض',
+        'OUT_OF_STOCK': 'نفد من المخزون',
+        'INACTIVE': 'غير نشط'
+    }
     return status_map.get(status, status)
 
 def format_price(price):
-    if price is None: return '0.00 ر.س'
-    try: return f"{float(price):,.2f} ر.س"
-    except: return str(price)
+    if price is None:
+        return '0.00 ر.س'
+    try:
+        return f"{float(price):,.2f} ر.س"
+    except:
+        return str(price)
 
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
