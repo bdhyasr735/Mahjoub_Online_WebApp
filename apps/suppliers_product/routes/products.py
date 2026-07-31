@@ -46,9 +46,8 @@ def manage_supplier_products_view():
 
 
 def register_supplier_products_route(target_app):
-    """دالة تسجيل مسارات وموديول منتجات الموردين المطلوبة من الـ Registry"""
+    """دالة تسجيل مسارات وموديول منتجات الموردين المطلوبة"""
     try:
-        # التحقق إذا كان المرسل هو Blueprint أو Flask App مع مرونة تامة
         if hasattr(target_app, 'register_blueprint'):
             blueprint_name = getattr(suppliers_product_bp, 'name', 'suppliers_product_bp')
             if blueprint_name not in target_app.blueprints:
