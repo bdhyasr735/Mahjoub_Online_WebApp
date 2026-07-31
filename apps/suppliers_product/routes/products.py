@@ -45,11 +45,14 @@ def manage_supplier_products_view():
         return render_template('suppliers/suppliers_product.html', products=[])
 
 
-def register_supplier_products_route(app):
+def register_supplier_products_route(target_app):
     """دالة تسجيل مسارات وموديول منتجات الموردين المطلوبة من الـ Registry"""
     try:
-        if 'suppliers_product_bp' not in app.blueprints:
-            app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
+        # التحقق إذا كان المرسل هو Blueprint أو Flask App مع مرونة تامة
+        if hasattr(target_app, 'register_blueprint'):
+            blueprint_name = getattr(suppliers_product_bp, 'name', 'suppliers_product_bp')
+            if blueprint_name not in target_app.blueprints:
+                target_app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
         print("✅ [Supplier Products Route]: تم تسجيل مسارات منتجات الموردين بنجاح.")
     except Exception as e:
         print(f"❌ [Supplier Products Route Error]: {e}")
