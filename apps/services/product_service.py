@@ -45,25 +45,14 @@ class ProductService:
         return '\n'.join(result)
 
     def get_all_products(self, input_data: dict = None) -> dict:
-        """جلب جميع المنتجات (لأغراض الإحصائيات والأدمن) - تبقى كما هي"""
-        # سنقوم بجلب الصفحة الأولى فقط للحفاظ على الأداء
+        """جلب جميع المنتجات مع معلومات الترقيم والأسعار والـ slug (باستخدام الصفحة الأولى افتراضياً)"""
         return self.get_products_page(page=1)
 
-    def get_products_page(self, page: int = 1, filters: dict = None) -> dict:
-        """
-        جلب صفحة محددة من المنتجات مع دعم الفلاتر (اختياري)
-        يمكن تمرير: search, category, status, min_price, max_price
-        """
+    def get_products_page(self, page: int = 1) -> dict:
+        """جلب صفحة محددة من المنتجات مع الأسعار والـ slug وتمرير المتغيرات بشكل آمن"""
         query = """
-        query($page: Int!, $search: String, $category: String, $status: String, $minPrice: Float, $maxPrice: Float) {
-            findAllProducts(input: { 
-                page: $page,
-                search: $search,
-                category: $category,
-                status: $status,
-                minPrice: $minPrice,
-                maxPrice: $maxPrice
-            }) {
+        query($page: Int!) {
+            findAllProducts(input: { page: $page }) {
                 success
                 message
                 data {
@@ -106,17 +95,7 @@ class ProductService:
         """
         try:
             safe_page = int(page) if page and str(page).isdigit() else 1
-            variables = {
-                "page": safe_page,
-                "search": filters.get('search') if filters else None,
-                "category": filters.get('category') if filters else None,
-                "status": filters.get('status') if filters else None,
-                "minPrice": float(filters.get('min_price')) if filters and filters.get('min_price') else None,
-                "maxPrice": float(filters.get('max_price')) if filters and filters.get('max_price') else None,
-            }
-            # إزالة أي متغير قيمته None لعدم إرسالها للـ GraphQL
-            variables = {k: v for k, v in variables.items() if v is not None}
-            
+            variables = {"page": safe_page}
             data = self.client.execute(query, variables)
             if data and "findAllProducts" in data:
                 return data["findAllProducts"]
@@ -126,7 +105,7 @@ class ProductService:
             return {}
 
     def fetch_all_products_for_search(self, max_pages: int = 10) -> list:
-        """جلب المنتجات من أول 10 صفحات للبحث مع Cache (للأغراض القديمة)"""
+        """جلب المنتجات من أول 10 صفحات للبحث مع Cache"""
         if hasattr(self, '_search_cache') and self._search_cache is not None:
             print(f"✅ [ProductService]: استخدام Cache (عدد {len(self._search_cache)} منتج)")
             return self._search_cache
@@ -163,7 +142,7 @@ class ProductService:
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID"""
+        """جلب منتج بواسطة QID (النسخة النهائية الآمنة - تعتمد على الاستعلام الناجح)"""
         query = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -250,7 +229,7 @@ class ProductService:
             return {}
 
     def update_product_data(self, input_data: dict) -> dict:
-        """تعديل معلومات المنتج (بدون الحالة)"""
+        """تعديل معلومات المنتج (بدون الحالة - لاستخدام دالة الحالة المنفصلة)"""
         qid = input_data.get('qid')
         if not qid:
             print("❌ [ProductService] qid مفقود في update_product_data")
@@ -275,8 +254,11 @@ class ProductService:
             print(f"❌ [ProductService] خطأ في تحديث المنتج: {e}")
             return {}
 
+    # ============================================================
+    # ✅ دالة تحديث الحالة (المصححة بناءً على الساندبوكس)
+    # ============================================================
     def update_product_status(self, product_qid: str, status: str) -> dict:
-        """تحديث حالة المنتج"""
+        """تحديث حالة المنتج باستخدام updateProductStatus (يتوقع id من نوع ID!)"""
         query = """
         mutation UpdateProductStatus($id: ID!, $status: String!) {
             updateProductStatus(id: $id, status: $status) {
@@ -294,8 +276,11 @@ class ProductService:
             print(f"❌ [ProductService] خطأ في تحديث الحالة: {e}")
             return {}
 
+    # ============================================================
+    # ✅ دالة تحديث التسعير والسعر (المضافة حديثاً)
+    # ============================================================
     def update_product_pricing(self, product_qid: str, pricing_input: dict) -> dict:
-        """تحديث تسعير المنتج"""
+        """تحديث تسعير المنتج باستخدام updateProductPricing"""
         query = """
         mutation UpdateProductPricing($id: ID!, $input: UpdateProductPricingInput!) {
             updateProductPricing(id: $id, input: $input) {
@@ -310,5 +295,5 @@ class ProductService:
                 return data["updateProductPricing"]
             return {}
         except Exception as e:
-            print(f"❌ [ProductService]: خطأ في تحديث السعر: {e}")
+            print(f"❌ [ProductService] خطأ في تحديث السعر: {e}")
             return {}
