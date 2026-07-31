@@ -135,7 +135,24 @@
 {% set prod_weight = prod.weight or 0 %}
 {% set prod_status = prod.status or 'DRAFT' %}
 {% set prod_images = prod.images or [] %}
-{% set first_image_url = prod_images[0].url or prod_images[0] if prod_images|length > 0 else (product.image or '') %}
+
+{# ✅ استخراج رابط الصورة الأولى بكافة الاحتمالات الممكنة #}
+{%- set raw_img = none -%}
+{%- if prod_images and prod_images|length > 0 -%}
+    {%- set first_img = prod_images[0] -%}
+    {%- if first_img is mapping -%}
+        {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link or first_img.path -%}
+    {%- elif first_img is string -%}
+        {%- set raw_img = first_img -%}
+    {%- endif -%}
+{%- elif prod.image -%}
+    {%- set raw_img = prod.image -%}
+{%- elif prod.thumbnail -%}
+    {%- set raw_img = prod.thumbnail -%}
+{%- elif product.image -%}
+    {%- set raw_img = product.image -%}
+{%- endif -%}
+{% set first_image_url = raw_img or '' %}
 
 {# ✅ المحتوى الرئيسي #}
 <div class="container-fluid py-4">
