@@ -32,7 +32,7 @@
             <div 
                 id="syncProgressBar"
                 class="progress-bar progress-bar-striped progress-bar-animated" 
-                style="width: 100%; background: linear-gradient(90deg, #2d0b36, #D4AF37, #ffd700); background-size: 200% 100%;"
+                style="width: 0%; background: linear-gradient(90deg, #2d0b36, #D4AF37, #ffd700); background-size: 200% 100%;"
             ></div>
         </div>
         
@@ -67,62 +67,77 @@
 // ✅ متغير لمنع النقر المتكرر
 let isSyncing = false;
 
-// ✅ فتح نافذة المزامنة وإرسال الطلب فوراً
-function openSyncModal() {
+// ✅ فتح نافذة المزامنة وبدء المزامنة التدريجية صفحة بصفحة
+async function openSyncModal() {
     const modal = document.getElementById('syncModal');
     if (!modal || isSyncing) return;
 
-    // إظهار النافذة
     resetSyncModalState();
     modal.style.display = 'flex';
     isSyncing = true;
 
     // الحصول على CSRF token بأمان (من meta أو input)
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
-                      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                      '';
+                        document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                        '';
 
-    // ✅ إرسال طلب POST مع جسم فارغ صريح و Content-Type صحيح
-    fetch("/supplier/products/sync", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-CSRF-Token': csrfToken  // دعم إضافي لبعض الخوادم
-        },
-        body: JSON.stringify({}) // إرسال جسم فارغ لتجنب خطأ 400
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`الخادم استجاب بحالة خطأ: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        // عرض النتيجة
-        if (data.success) {
-            showSyncResult(true, data.message, `تمت معالجة ${data.syncedCount} منتج`);
-        } else {
-            showSyncResult(false, data.message);
+    let currentPage = 1;
+    let hasNext = true;
+    let totalSynced = 0;
+    let totalPages = 1;
+
+    try {
+        while (hasNext) {
+            let progressPercentage = totalPages > 1 ? Math.min(Math.round((currentPage / totalPages) * 100), 95) : 50;
+            updateSyncProgress(`جاري مزامنة الصفحة ${currentPage} من ${totalPages}...`, progressPercentage);
+
+            const response = await fetch("/supplier/products/sync", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-CSRF-Token': csrfToken  // دعم إضافي لبعض الخوادم
+                },
+                body: JSON.stringify({ page: currentPage })
+            });
+
+            if (!response.ok) {
+                throw new Error(`الخادم استجاب بحالة خطأ: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.message || 'فشلت عملية المزامنة');
+            }
+
+            // تحديث مؤشرات التتبع من الرد
+            totalSynced += data.syncedCount || 0;
+            totalPages = data.total_pages || totalPages;
+            hasNext = data.has_next || false;
+            currentPage = data.next_page || (currentPage + 1);
         }
 
-        // إغلاق النافذة بعد ثانية ونصف، وتحديث المنتجات
+        // ✅ اكتمال المزامنة بنجاح لجميع الصفحات
+        updateSyncProgress('اكتملت المزامنة بنجاح!', 100);
+        showSyncResult(true, 'تمت مزامنة جميع المنتجات بنجاح.', `إجمالي المنتجات المعالجة: ${totalSynced}`);
+
         setTimeout(() => {
             closeSyncModal();
             isSyncing = false;
             if (typeof fetchProducts === 'function') {
-                fetchProducts(1); // تحديث قائمة المنتجات من الصفحة الأولى
+                fetchProducts(1); // تحديث جدول المنتجات من الصفحة الأولى
             }
         }, 1500);
-    })
-    .catch(error => {
+
+    } catch (error) {
         console.error('Sync Error:', error);
-        showSyncResult(false, 'حدث خطأ في الاتصال بالخادم، حاول لاحقاً.');
+        showSyncResult(false, error.message || 'حدث خطأ في الاتصال بالخادم، حاول لاحقاً.');
         setTimeout(() => {
             closeSyncModal();
             isSyncing = false;
-        }, 2000);
-    });
+        }, 2500);
+    }
 }
 
 // ✅ تحديث شريط التقدم مع النص
@@ -181,12 +196,12 @@ function resetSyncModalState() {
     if (spinnerWrapper) spinnerWrapper.style.display = 'inline-block';
     if (progressBar) {
         progressBar.style.display = 'block';
-        progressBar.style.width = '100%';
-        progressBar.textContent = '';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
     }
     if (statusText) {
         statusText.style.display = 'block';
-        statusText.textContent = 'يرجى الانتظار، جلب البيانات من الخادم...';
+        statusText.textContent = 'يرجى الانتظار، جاري بدء مزامنة المنتجات...';
     }
 }
 
