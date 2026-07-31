@@ -24,7 +24,8 @@ def format_price(price):
     except: return str(price)
 
 
-@suppliers_product_bp.route('/products', methods=['GET'])
+# ✅ تمت إضافة endpoint لربطه مع url_for في القالب
+@suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
 def manage_supplier_products_view():
     try:
@@ -46,7 +47,7 @@ def manage_supplier_products_view():
         max_price = request.args.get('max_price', '')
         is_ajax = request.args.get('ajax', '0') == '1'
 
-        # 2. جلب جميع المنتجات (لأننا سنقوم بالفلترة يدوياً)
+        # 2. جلب جميع المنتجات
         all_products = []
         try:
             result = services.products.get_all_products()
@@ -93,7 +94,7 @@ def manage_supplier_products_view():
         paged_products = filtered_products[start_idx:end_idx]
         formatted_products = [{'product': p} for p in paged_products]
 
-        # 6. معلومات الترقيم (نبسطها للقالب)
+        # 6. معلومات الترقيم
         pagination_info = {
             'current_page': page,
             'total_pages': total_pages,
@@ -101,8 +102,8 @@ def manage_supplier_products_view():
             'has_next': page < total_pages,
             'prev_num': page - 1 if page > 1 else 1,
             'next_num': page + 1 if page < total_pages else page,
-            'per_page': per_page,         # ✅ تمت الإضافة للإحصائية
-            'total_items': total_items    # ✅ تمت الإضافة للإحصائية
+            'per_page': per_page,
+            'total_items': total_items
         }
 
         return render_template(
