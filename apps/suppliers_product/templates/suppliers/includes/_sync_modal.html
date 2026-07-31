@@ -64,13 +64,58 @@
 </div>
 
 <script>
-// ✅ فتح نافذة المزامنة
+// ✅ متغير لمنع النقر المتكرر
+let isSyncing = false;
+
+// ✅ فتح نافذة المزامنة وإرسال الطلب فوراً
 function openSyncModal() {
     const modal = document.getElementById('syncModal');
-    if (modal) {
-        resetSyncModalState();
-        modal.style.display = 'flex';
-    }
+    if (!modal || isSyncing) return;
+
+    // إظهار النافذة
+    resetSyncModalState();
+    modal.style.display = 'flex';
+    isSyncing = true;
+
+    // إرسال طلب المزامنة إلى الخادم (بشكل غير متزامن)
+    // نستخدم CSRF token من أي عنصر موجود أو meta tag
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
+                      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                      '';
+
+    fetch("{{ url_for('suppliers_product_bp.sync_supplier_products') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // عرض النتيجة
+        if (data.success) {
+            showSyncResult(true, data.message, `تمت معالجة ${data.syncedCount} منتج`);
+        } else {
+            showSyncResult(false, data.message);
+        }
+
+        // إغلاق النافذة بعد ثانية ونصف، وتحديث المنتجات
+        setTimeout(() => {
+            closeSyncModal();
+            isSyncing = false;
+            if (typeof fetchProducts === 'function') {
+                fetchProducts(1); // تحديث قائمة المنتجات من الصفحة الأولى
+            }
+        }, 1500);
+    })
+    .catch(error => {
+        console.error('Sync Error:', error);
+        showSyncResult(false, 'حدث خطأ في الاتصال بالخادم، حاول لاحقاً.');
+        setTimeout(() => {
+            closeSyncModal();
+            isSyncing = false;
+        }, 2000);
+    });
 }
 
 // ✅ تحديث شريط التقدم مع النص
@@ -116,16 +161,6 @@ function showSyncResult(success, message, details) {
     } else if (detailsDiv) {
         detailsDiv.style.display = 'none';
     }
-    
-    // 🔄 إعادة تحميل المنتجات وإغلاق النافذة بعد ثانيتين إذا نجحت المزامنة
-    if (success) {
-        setTimeout(() => {
-            if (typeof fetchProducts === 'function') {
-                fetchProducts(1); // تحديث قائمة المنتجات من الصفحة الأولى
-            }
-            closeSyncModal();
-        }, 2000);
-    }
 }
 
 // ✅ إعادة ضبط الحالة الداخلية للنافذة
@@ -155,6 +190,7 @@ function resetSyncModal() {
     if (modal) {
         modal.style.display = 'none';
     }
+    isSyncing = false;
 }
 
 // ✅ إغلاق النافذة يدوياً
