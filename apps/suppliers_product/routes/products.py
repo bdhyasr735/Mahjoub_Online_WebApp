@@ -43,3 +43,13 @@ def manage_supplier_products_view():
         print(f"❌ خطأ في manage_supplier_products_view: {e}")
         flash('❌ حدث خطأ في تحميل المنتجات', 'danger')
         return render_template('suppliers/suppliers_product.html', products=[])
+
+
+def register_supplier_products_route(app):
+    """دالة تسجيل مسارات وموديول منتجات الموردين المطلوبة من الـ Registry"""
+    try:
+        if 'suppliers_product_bp' not in app.blueprints:
+            app.register_blueprint(suppliers_product_bp, url_prefix='/supplier')
+        print("✅ [Supplier Products Route]: تم تسجيل مسارات منتجات الموردين بنجاح.")
+    except Exception as e:
+        print(f"❌ [Supplier Products Route Error]: {e}")
