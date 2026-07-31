@@ -34,8 +34,11 @@ def manage_supplier_products_view():
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
-        # استلام المتغيرات
+        # 1. استلام المتغيرات (limit جديد)
         page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)     # ✅ إضافة متغير الحد
+        limit = max(1, min(limit, 100))                     # ✅ حماية: لا يقل عن 1 ولا يزيد عن 100
+        
         search_term = request.args.get('search', '').strip()
         category = request.args.get('category', '').strip()
         status = request.args.get('status', '').strip()
@@ -43,7 +46,7 @@ def manage_supplier_products_view():
         max_price = request.args.get('max_price', '')
         is_ajax = request.args.get('ajax', '0') == '1'
 
-        # جلب جميع المنتجات (لأننا سنقوم بالفلترة يدوياً)
+        # 2. جلب جميع المنتجات (لأننا سنقوم بالفلترة يدوياً)
         all_products = []
         try:
             result = services.products.get_all_products()
@@ -52,7 +55,7 @@ def manage_supplier_products_view():
         except Exception as e:
             current_app.logger.error(f"خطأ جلب المنتجات: {traceback.format_exc()}")
 
-        # تصفية منتجات المورد الحالي
+        # 3. تصفية منتجات المورد الحالي
         target_products = []
         if all_products:
             try:
@@ -65,7 +68,7 @@ def manage_supplier_products_view():
             except Exception as e:
                 current_app.logger.error(f"خطأ في التصفية: {traceback.format_exc()}")
 
-        # تطبيق البحث والفلاتر
+        # 4. تطبيق البحث والفلاتر
         filtered_products = []
         for p in target_products:
             if search_term:
@@ -81,8 +84,8 @@ def manage_supplier_products_view():
             except: pass
             filtered_products.append(p)
 
-        # تطبيق الترقيم
-        per_page = 10
+        # 5. تطبيق الترقيم (بناءً على limit)
+        per_page = limit
         total_items = len(filtered_products)
         total_pages = math.ceil(total_items / per_page) if total_items > 0 else 0
         start_idx = (page - 1) * per_page
@@ -90,20 +93,22 @@ def manage_supplier_products_view():
         paged_products = filtered_products[start_idx:end_idx]
         formatted_products = [{'product': p} for p in paged_products]
 
-        # معلومات الترقيم (نبسطها للقالب)
+        # 6. معلومات الترقيم (نبسطها للقالب)
         pagination_info = {
             'current_page': page,
             'total_pages': total_pages,
             'has_prev': page > 1,
             'has_next': page < total_pages,
             'prev_num': page - 1 if page > 1 else 1,
-            'next_num': page + 1 if page < total_pages else page
+            'next_num': page + 1 if page < total_pages else page,
+            'per_page': per_page,         # ✅ تمت الإضافة للإحصائية
+            'total_items': total_items    # ✅ تمت الإضافة للإحصائية
         }
 
         return render_template(
             'suppliers/suppliers_product.html',
             products=formatted_products,
-            pagination=pagination_info,  # تم تمرير معلومات الترقيم بشكل منفصل
+            pagination=pagination_info,
             get_status_text=get_status_text,
             format_price=format_price
         )
@@ -111,4 +116,4 @@ def manage_supplier_products_view():
     except Exception as e:
         current_app.logger.error(f"خطأ غير متوقع: {traceback.format_exc()}")
         flash('❌ حدث خطأ غير متوقع', 'danger')
-        return render_template('suppliers/suppliers_product.html', products=[], pagination={'total_pages':0}, get_status_text=get_status_text, format_price=format_price)
+        return render_template('suppliers/suppliers_product.html', products=[], pagination={'total_pages':0, 'total_items':0}, get_status_text=get_status_text, format_price=format_price)
