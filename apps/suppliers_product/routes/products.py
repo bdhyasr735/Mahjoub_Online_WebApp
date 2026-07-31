@@ -44,45 +44,45 @@ def manage_supplier_products_view():
         max_price = request.args.get('max_price', '')
         is_ajax = request.args.get('ajax', '0') == '1'
 
-        # 2. جلب المنتجات مع حد أقصى للصفحات (لمنع الانهيار)
-        all_products = []
-        total_items_all = 0
-        max_pages_to_fetch = 10  # ✅ يمكنك تعديل هذا الرقم حسب قوة الخادم
+        has_filters = any([search_term, category, status, min_price, max_price])
 
-        try:
-            for current_page in range(1, max_pages_to_fetch + 1):
-                result = services.products.get_products_page(current_page)
-                if not result:
-                    break
-                    
-                page_products = result.get('data', [])
+        # ====================================================
+        # 2. منطق جلب المنتجات (مثل الأدمن تماماً: كسول وسريع)
+        # ====================================================
+        current_products = []
+        total_items_system = 0
+
+        if has_filters:
+            # عند البحث/فلترة: نستخدم التخزين المؤقت (آمن ولا ينهار)
+            # 20 صفحة = 200 منتج. يمكنك زيادتها لـ 50 إذا أردت بحثاً أعمق
+            max_pages = 20 
+            all_cached = services.products.fetch_all_products_for_search(max_pages=max_pages)
+            # نحتاج العدد الكلي للنظام لنعرض الترقيم التقريبي
+            first_res = services.products.get_products_page(1)
+            if first_res:
+                total_items_system = first_res.get('pagination', {}).get('totalItems', 0)
+        else:
+            # الحالة العادية (بدون فلاتر): نطلب صفحة واحدة فقط - سريع جداً!
+            result = services.products.get_products_page(page)
+            if result:
+                current_products = result.get('data', [])
                 pagination = result.get('pagination', {})
-                
-                if current_page == 1:
-                    total_items_all = pagination.get('totalItems', 0)
-                
-                all_products.extend(page_products)
-                
-                # إذا لم توجد صفحة تالية، نكسر الحلقة
-                if not pagination.get('hasNextPage', False):
-                    break
-        except Exception as e:
-            current_app.logger.error(f"خطأ جلب المنتجات: {traceback.format_exc()}")
+                total_items_system = pagination.get('totalItems', 0)
 
-        # 3. تصفية منتجات المورد الحالي
+        # 3. تصفية منتجات المورد الحالي (الفلترة الأساسية)
         target_products = []
-        if all_products:
+        if current_products:
             try:
                 if user_type != 'admin' and supplier_id:
                     supplier_mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
                     supplier_qids = {m.product_qid for m in supplier_mappings}
-                    target_products = [p for p in all_products if p.get('qid') in supplier_qids]
+                    target_products = [p for p in current_products if p.get('qid') in supplier_qids]
                 else:
-                    target_products = all_products
+                    target_products = current_products
             except Exception as e:
                 current_app.logger.error(f"خطأ في التصفية: {traceback.format_exc()}")
 
-        # 4. تطبيق البحث والفلاتر (على جميع المنتجات)
+        # 4. تطبيق الفلاتر الإضافية (بحث، سعر، حالة)
         filtered_products = []
         for p in target_products:
             if search_term:
@@ -98,16 +98,30 @@ def manage_supplier_products_view():
             except: pass
             filtered_products.append(p)
 
-        # 5. تطبيق الترقيم (بناءً على limit)
+        # ====================================================
+        # 5. حساب الترقيم الذكي (تقديري وسريع جداً)
+        # ====================================================
+        # لو كان لدينا فلاتر، نستخدم العدد الحقيقي للمنتجات التي ظهرت
+        if has_filters:
+            total_items_estimate = len(filtered_products)
+        else:
+            # الحالة العادية: نقوم بتقدير عدد منتجات المورد
+            if total_items_system > 0 and len(target_products) > 0:
+                # نأخذ عينة من الصفحة الحالية لتقدير عدد المنتجات الإجمالي للمورد
+                ratio = len(target_products) / len(current_products) if len(current_products) > 0 else 1
+                total_items_estimate = int(total_items_system * ratio)
+            else:
+                total_items_estimate = len(filtered_products)
+
         per_page = limit
-        total_items = len(filtered_products)
-        total_pages = math.ceil(total_items / per_page) if total_items > 0 else 0
+        total_pages = math.ceil(total_items_estimate / per_page) if total_items_estimate > 0 else 0
+        
+        # نقوم بقطع الصفحة الحالية
         start_idx = (page - 1) * per_page
         end_idx = start_idx + per_page
         paged_products = filtered_products[start_idx:end_idx]
         formatted_products = [{'product': p} for p in paged_products]
 
-        # 6. معلومات الترقيم
         pagination_info = {
             'current_page': page,
             'total_pages': total_pages,
@@ -116,7 +130,7 @@ def manage_supplier_products_view():
             'prev_num': page - 1 if page > 1 else 1,
             'next_num': page + 1 if page < total_pages else page,
             'per_page': per_page,
-            'total_items': total_items
+            'total_items': total_items_estimate
         }
 
         return render_template(
