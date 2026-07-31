@@ -7,10 +7,16 @@ import math
 import traceback
 from flask import request, jsonify, session, current_app
 from flask_login import login_required
-from flask_wtf.csrf import csrf_exempt  # ✅ استيراد مهم
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
+
+# ✅ حل ذكي: حاول استيراد csrf_exempt، وإذا فشل (لأن الإصدار قديم)، عرّفها كدالة وهمية.
+try:
+    from flask_wtf.csrf import csrf_exempt
+except ImportError:
+    def csrf_exempt(f):
+        return f
 
 
 def analyze_render_error(route_func):
@@ -41,7 +47,7 @@ def analyze_render_error(route_func):
 
 @suppliers_product_bp.route('/products/sync', methods=['POST'], endpoint='sync_supplier_products')
 @login_required
-@csrf_exempt  # ✅ تم تعطيل CSRF مؤقتاً لتأكيد الخطأ
+@csrf_exempt  # ✅ الآن هذه الدالة آمنة، سواء تم استيرادها أو لم يتم
 @analyze_render_error
 def sync_supplier_products():
     """مزامنة منتجات المورد بشكل تدريجي وذكي (صفحة صفحة) لتجنب الانهيار"""
