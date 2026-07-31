@@ -29,7 +29,9 @@ def sync_supplier_products():
     supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
     user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
 
-    if user_type not in ('supplier', 'admin') and not getattr(current_user, 'is_admin', False):
+    is_admin = (user_type == 'admin' or getattr(current_user, 'is_admin', False))
+
+    if user_type not in ('supplier', 'admin') and not is_admin:
         return jsonify({'success': False, 'message': 'غير مصرح لك بالوصول'}), 403
     
     # ✅ حماية إضافية للتأكد من وجود معرف صالح للمورد أو المستخدم
@@ -82,21 +84,32 @@ def sync_supplier_products():
             qid = product.get('qid')
             if not qid:
                 continue
+
+            # التحقق مما إذا كان المنتج يتبع هذا المورد حصرياً
+            # (يمكنك تعديل هذا الشرط بناءً على حقل المورد في بنية بيانات المنتج القادم من الـ API إن وجد، مثلاً: product.get('supplier_id') == supplier_id)
+            # إذا لم يكن هناك حقل مباشر، نكتفي بالتحقق من جدول الربط أو ترك الخيار للأدمن
+            product_supplier = product.get('supplier_id') or product.get('vendor_id')
             
+            if not is_admin and product_supplier and str(product_supplier) != str(supplier_id):
+                continue  # تخطي المنتجات التي تخص مورداً آخر تماماً
+
             # ✅ استخدام no_autoflush لمنع حدوث فلاش مبكر يؤدي لخطأ القيود
             with db.session.no_autoflush:
-                existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+                existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=str(qid)).first()
             
-            # إذا كان المنتج مرتبطاً بمورد مختلف (والمستخدم ليس أدمن)، نتجاهله
-            if existing_mapping and existing_mapping.supplier_id != supplier_id and user_type != 'admin':
+            # إذا كان المنتج مرتبطاً بمورد مختلف مسبقاً (والمستخدم ليس أدمن)، نتجاهله
+            if existing_mapping and str(existing_mapping.supplier_id) != str(supplier_id) and not is_admin:
                 continue
             
             synced_count += 1
             if not existing_mapping:
-                new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
+                new_mapping = ProductSupplierMapping(product_qid=str(qid), supplier_id=supplier_id)
                 db.session.add(new_mapping)
                 created_count += 1
             else:
+                # تحديث المورد إذا لزم الأمر أو الاحتفاظ بالرابط الحالي
+                if is_admin and existing_mapping.supplier_id != supplier_id:
+                    existing_mapping.supplier_id = supplier_id
                 updated_count += 1
 
         db.session.commit()
