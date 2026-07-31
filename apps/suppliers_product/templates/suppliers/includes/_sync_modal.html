@@ -78,8 +78,8 @@ async function openSyncModal() {
 
     // الحصول على CSRF token بأمان (من meta أو input)
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
-                        document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                        '';
+                      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                      '';
 
     let currentPage = 1;
     let hasNext = true;
@@ -127,6 +127,8 @@ async function openSyncModal() {
             isSyncing = false;
             if (typeof fetchProducts === 'function') {
                 fetchProducts(1); // تحديث جدول المنتجات من الصفحة الأولى
+            } else {
+                window.location.reload(); // ✅ إعادة تحميل الصفحة تلقائياً لتحديث جدول المنتجات فوراً للمورد
             }
         }, 1500);
 
