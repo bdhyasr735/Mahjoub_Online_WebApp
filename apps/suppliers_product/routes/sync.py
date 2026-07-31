@@ -11,7 +11,7 @@ from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 
-# ✅ حل ذكي: حاول استيراد csrf_exempt، وإذا فشل (لأن الإصدار قديم)، عرّفها كدالة وهمية.
+# ✅ حل ذكي لـ CSRF
 try:
     from flask_wtf.csrf import csrf_exempt
 except ImportError:
@@ -20,7 +20,6 @@ except ImportError:
 
 
 def analyze_render_error(route_func):
-    """مزيّن لتحليل أخطاء سيرفر Render"""
     @functools.wraps(route_func)
     def wrapper(*args, **kwargs):
         try:
@@ -47,10 +46,10 @@ def analyze_render_error(route_func):
 
 @suppliers_product_bp.route('/products/sync', methods=['POST'], endpoint='sync_supplier_products')
 @login_required
-@csrf_exempt  # ✅ الآن هذه الدالة آمنة، سواء تم استيرادها أو لم يتم
+@csrf_exempt
 @analyze_render_error
 def sync_supplier_products():
-    """مزامنة منتجات المورد بشكل تدريجي وذكي (صفحة صفحة) لتجنب الانهيار"""
+    """مزامنة منتجات المورد بشكل تدريجي وذكي"""
     user_type = session.get('user_type')
     supplier_id = session.get('user_id') or session.get('supplier_id')
 
@@ -62,84 +61,65 @@ def sync_supplier_products():
 
         print(f"🔍 [Sync] بدء المزامنة للمورد {supplier_id}")
 
-        # ✅ 1. جلب جميع QIDs الخاصة بالمورد من قاعدة البيانات المحلية (سريع جداً)
-        supplier_qids = []
-        if supplier_id:
-            mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
-            supplier_qids = [m.product_qid for m in mappings]
-            print(f"🔍 [Sync] تم جلب {len(supplier_qids)} QID للمورد")
+        # ✅ 1. حساب إجمالي الصفحات من GraphQL (جلب كل المنتجات)
+        first_page = services.products.get_products_page(1)
+        if not first_page:
+            return jsonify({'success': True, 'message': 'لا توجد منتجات', 'syncedCount': 0})
+        
+        total_items = first_page.get('pagination', {}).get('totalItems', 0)
+        if total_items == 0:
+            return jsonify({'success': True, 'message': 'لا توجد منتجات', 'syncedCount': 0})
 
-        # إذا لم يكن لدى المورد أي منتجات مرتبطة، ننهي المزامنة فوراً
-        if not supplier_qids:
-            print(f"⚠️ [Sync] لا توجد منتجات مرتبطة بهذا المورد")
-            return jsonify({
-                'success': True,
-                'message': 'ℹ️ لا توجد منتجات مرتبطة بهذا المورد للمزامنة.',
-                'syncedCount': 0,
-                'createdCount': 0,
-                'updatedCount': 0,
-                'errors': []
-            })
-
-        supplier_qids_set = set(supplier_qids)
-
-        # ✅ 2. إعداد المتغيرات (نعتمد على عدد الـ QIDs المحلية لحساب الصفحات)
-        per_page = 10  # حجم الدفعة
-        total_items_real = len(supplier_qids_set)
-        total_pages = math.ceil(total_items_real / per_page)
-
+        per_page = 10
+        total_pages = math.ceil(total_items / per_page)
+        
+        # ✅ 2. جلب جميع المنتجات من GraphQL وربطها بالمورد
         synced_count = 0
         created_count = 0
         updated_count = 0
         errors = []
 
-        print(f"🔄 [Sync] سيتم جلب {total_pages} صفحة (إجمالي {total_items_real} منتج)")
-
-        # ✅ 3. التكرار عبر الصفحات، ولكن نجلب فقط المنتجات التي تخص هذا المورد
         for page_num in range(1, total_pages + 1):
-            print(f"🔄 [Sync] مزامنة الصفحة {page_num}/{total_pages} (للمورد {supplier_id})")
+            print(f"🔄 [Sync] معالجة الصفحة {page_num}/{total_pages}")
             try:
-                # جلب صفحة من GraphQL
                 result = services.products.get_products_page(page_num)
                 if not result:
-                    print(f"⚠️ [Sync] صفحة {page_num} لم تُرجع بيانات")
                     continue
                 
                 page_products = result.get('data', [])
-                print(f"📄 [Sync] الصفحة {page_num} تحتوي على {len(page_products)} منتج")
                 
-                # تصفية المنتجات: نحتفظ فقط بما هو موجود في مجموعة الـ QIDs المحلية
                 for product in page_products:
                     if not isinstance(product, dict):
                         continue
                     qid = product.get('qid')
-                    if not qid or qid not in supplier_qids_set:
+                    if not qid:
                         continue
                     
-                    # المنتج موجود في قاعدة البيانات المحلية → نقوم بتحديثه أو إنشائه
-                    mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+                    # ✅ التحقق مما إذا كان المنتج مرتبطاً بمورد آخر
+                    existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+                    
+                    # إذا كان المنتج مرتبطاً بمورد مختلف (والمستخدم ليس أدمن)، نتجاهله
+                    if existing_mapping and existing_mapping.supplier_id != supplier_id and user_type != 'admin':
+                        continue
                     
                     synced_count += 1
-                    if not mapping:
-                        created_count += 1
-                        # إنشاء سجل ربط جديد (إذا لم يكن موجوداً)
+                    if not existing_mapping:
+                        # إنشاء ربط جديد
                         new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
                         db.session.add(new_mapping)
-                        db.session.commit()
-                        print(f"✅ [Sync] إنشاء ربط جديد للمنتج {qid}")
+                        created_count += 1
                     else:
+                        # تحديث التاريخ (موجود بالفعل)
                         updated_count += 1
-                        # تحديث تاريخ التحديث (سيتم تلقائياً بواسطة onupdate في المودل)
-                        db.session.commit()
-                        print(f"🔄 [Sync] تحديث ربط المنتج {qid}")
+
+                db.session.commit()  # حفظ بعد كل صفحة لتخفيف الحمل
 
             except Exception as page_error:
                 print(f"⚠️ [Sync] خطأ في الصفحة {page_num}: {page_error}")
                 errors.append({'page': page_num, 'error': str(page_error)})
 
-        print(f"✅ [Sync] تمت المزامنة بنجاح: {synced_count} منتج")
+        print(f"✅ [Sync] تمت المزامنة بنجاح. تم إنشاء {created_count} منتج جديد، تحديث {updated_count} منتج.")
 
-        # ✅ 4. إرجاع النتيجة النهائية
         return jsonify({
             'success': True,
             'message': f'✅ تمت مزامنة {synced_count} منتج بنجاح!',
@@ -151,7 +131,7 @@ def sync_supplier_products():
         })
 
     except Exception as e:
-        print(f"❌ [Sync] خطأ غير متوقع في sync_supplier_products: {traceback.format_exc()}")
+        print(f"❌ [Sync] خطأ غير متوقع: {traceback.format_exc()}")
         return jsonify({
             'success': False, 
             'message': f'❌ فشل المزامنة: {str(e)}',
