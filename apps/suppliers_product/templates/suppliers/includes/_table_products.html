@@ -116,14 +116,12 @@
                            title="تعديل المنتج">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <!-- زر الحذف (إذا توفرت مسار لحذف المنتجات للموردين) -->
-                        {% if url_for('suppliers_product_bp.delete_supplier_product', qid=product.qid or product.id, _external=False) rescue none %}
+                        <!-- زر الحذف الآمن -->
                         <button type="button" class="btn delete-btn" style="background: linear-gradient(135deg, #dc3545, #a71d2a); color: white; border: none; border-radius: 4px; padding: 4px 10px;" 
                                 data-delete-url="{{ url_for('suppliers_product_bp.delete_supplier_product', qid=product.qid or product.id) }}" 
                                 title="حذف المنتج">
                             <i class="fas fa-trash"></i>
                         </button>
-                        {% endif %}
                     </div>
                 </td>
             </tr>
