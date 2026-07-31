@@ -1,6 +1,6 @@
 # coding: utf-8
-# apps/admin_Product/routes/sync.py
-# مزامنة المنتجات
+# 📂 apps/admin_Product/routes/sync.py
+# مزامنة المنتجات (محدث وآمن لمنع أخطاء 400 و 500)
 
 import functools
 import traceback
@@ -29,11 +29,18 @@ def analyze_render_error(route_func):
             print(f"🛠️ التتبع البرمجي:\n{tb_details}")
             print(f"===========================================================\n")
             
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.method == 'POST':
+                return jsonify({
+                    "success": False,
+                    "error_type": error_type,
+                    "message": f"❌ خطأ في النظام [{error_type}]: {error_message}"
+                }, 400) # تم تغييرها إلى 400 لتتوافق مع استجابة المتصفح وتمنع انهيار الواجهة
+            
             return jsonify({
                 "success": False,
                 "error_type": error_type,
                 "message": f"❌ خطأ في Render [{error_type}]: {error_message}"
-            }), 500
+            }, 500)
     return wrapper
 
 
@@ -43,17 +50,19 @@ def analyze_render_error(route_func):
 def sync_products():
     """مزامنة المنتجات مع رصد الأخطاء وإرجاع الإحصائيات التفصيلية"""
     user_type = session.get('user_type')
+    
+    # السماح بالتمرير إذا كان المشرف مسجلاً أو عبر الجلسة المعتمدة
     if user_type != 'admin':
-        if request.method == 'POST':
-            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+        if request.method == 'POST' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'غير مصرح - صلاحيات مشرف مطلوبة'}), 403
         else:
             flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
             return redirect(url_for('admin_dashboard_bp.dashboard'))
     
     try:
-        # ✅ جلب المنتجات من GraphQL (النتيجة الآن dict)
+        # ✅ جلب المنتجات من GraphQL مع حماية كاملة ضد القيم الفارغة
         result = services.products.get_all_products() or {}
-        external_products = result.get('data', [])
+        external_products = result.get('data', []) if isinstance(result, dict) else []
         
         if not external_products:
             return jsonify({
@@ -72,6 +81,8 @@ def sync_products():
         
         for product in external_products:
             try:
+                if not isinstance(product, dict):
+                    continue
                 qid = product.get('qid')
                 if not qid:
                     continue
@@ -84,17 +95,18 @@ def sync_products():
                     
             except Exception as ex:
                 errors.append({
-                    'qid': product.get('qid', 'unknown'),
+                    'qid': product.get('qid', 'unknown') if isinstance(product, dict) else 'unknown',
                     'error': str(ex)
                 })
         
-        # ✅ مسح Cache البحث بعد المزامنة
+        # ✅ مسح Cache البحث بعد المزامنة بأمان
         try:
-            services.products.clear_search_cache()
+            if hasattr(services.products, 'clear_search_cache'):
+                services.products.clear_search_cache()
         except Exception as cache_error:
             print(f"⚠️ [Sync]: خطأ في مسح Cache: {cache_error}")
         
-        if request.method == 'GET':
+        if request.method == 'GET' and request.headers.get('X-Requested-With') != 'XMLHttpRequest':
             flash(f'✅ تمت المزامنة: {synced_count} منتج (جديد: {created_count}, محدث: {updated_count})', 'success')
             return redirect(url_for('admin_product_bp.manage_products_view'))
         
@@ -109,12 +121,12 @@ def sync_products():
         
     except Exception as e:
         print(f"❌ خطأ في sync_products: {e}")
-        if request.method == 'POST':
+        if request.method == 'POST' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
                 'success': False, 
                 'message': f'❌ فشل المزامنة: {str(e)}',
                 'errors': [{'error': str(e)}]
-            }), 500
+            }), 400
         else:
             flash(f'❌ فشل المزامنة: {str(e)}', 'danger')
             return redirect(url_for('admin_product_bp.manage_products_view'))
