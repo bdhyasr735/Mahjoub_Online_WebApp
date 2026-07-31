@@ -1,8 +1,7 @@
 # coding: utf-8
 # apps/suppliers_product/routes/sync.py
-# مزامنة منتجات الموردين - مزامنة تدريجية ذكية وآمنة صفحة بصفحة
+# مزامنة منتجات الموردين - ربط وتحديث ذكي وفوري لمنتجات المورد
 
-import functools
 import traceback
 from flask import request, jsonify, session
 from flask_login import login_required, current_user
@@ -22,10 +21,9 @@ except ImportError:
 @login_required
 @csrf_exempt
 def sync_supplier_products():
-    """مزامنة منتجات المورد تدريجياً (تستقبل الصفحة الحالية وتتم معالجتها لتفادي Timeout)"""
+    """مزامنة فورية وذكية لمنتجات المورد المرتبطة به دون الحاجة لفحص صفحات المنصة بالكامل"""
     from apps.extensions import db
 
-    # ✅ الحصول على معرف المستخدم ونوعه بشكل مضمون من current_user أو الـ session
     supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
     user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
 
@@ -34,101 +32,79 @@ def sync_supplier_products():
     if user_type not in ('supplier', 'admin') and not is_admin:
         return jsonify({'success': False, 'message': 'غير مصرح لك بالوصول'}), 403
     
-    # ✅ حماية إضافية للتأكد من وجود معرف صالح للمورد أو المستخدم
     if not supplier_id:
-        print("❌ [Sync Error]: تعذر معرفة معرف المستخدم أو المورد (supplier_id is None)")
         return jsonify({
             'success': False, 
-            'message': '❌ فشل المزامنة: لم يتم العثور على معرف المورد في الجلسة، يرجى إعادة تسجيل الدخول.'
+            'message': '❌ فشل المزامنة: لم يتم العثور على معرف المورد، يرجى إعادة تسجيل الدخول.'
         }), 400
     
     try:
-        # ✅ استخدام silent=True لمنع انهيار الخادم إذا كان جسم الطلب فارغاً أو غير مكتمل
-        data = request.get_json(silent=True) or {}
-        
-        # استقبال رقم الصفحة الحالية من الطلب (إذا لم ترسل، نبدأ بالصفحة 1)
-        page_num = int(data.get('page', 1))
-        
-        print(f"🔄 [Sync] جاري معالجة الصفحة {page_num} للمورد {supplier_id}")
+        print(f"🔄 [Sync] جاري البدء بالمزامنة الذكية للمورد {supplier_id}")
 
-        # جلب الصفحة المحددة فقط من GraphQL
-        result = services.products.get_products_page(page_num)
-        if not result:
-            return jsonify({
-                'success': True, 
-                'message': 'تمت المزامنة بنجاح', 
-                'syncedCount': 0, 
-                'has_next': False
-            })
-
-        pagination = result.get('pagination', {})
-        total_items = pagination.get('totalItems', 0)
-        total_pages = pagination.get('totalPages', 1)
-        
-        if total_items == 0:
-            return jsonify({
-                'success': True, 
-                'message': 'لا توجد منتجات للمزامنة', 
-                'syncedCount': 0, 
-                'has_next': False
-            })
-
-        page_products = result.get('data', [])
         synced_count = 0
         created_count = 0
         updated_count = 0
+        max_pages_to_check = 50  # نطاق آمن للبحث الشامل عن منتجات المورد
 
-        for product in page_products:
-            if not isinstance(product, dict):
-                continue
-            qid = product.get('qid')
-            if not qid:
-                continue
+        for page_num in range(1, max_pages_to_check + 1):
+            result = services.products.get_products_page(page_num)
+            if not result or not result.get('data'):
+                break
+            
+            page_products = result.get('data', [])
+            pagination = result.get('pagination', {})
+            total_pages = pagination.get('totalPages', 1)
 
-            # التحقق مما إذا كان المنتج يتبع هذا المورد حصرياً
-            product_supplier = product.get('supplier_id') or product.get('vendor_id')
-            
-            if not is_admin and product_supplier and str(product_supplier) != str(supplier_id):
-                continue  # تخطي المنتجات التي تخص مورداً آخر تماماً
+            for product in page_products:
+                if not isinstance(product, dict):
+                    continue
+                qid = product.get('qid')
+                if not qid:
+                    continue
 
-            # ✅ استخدام no_autoflush لمنع حدوث فلاش مبكر يؤدي لخطأ القيود
-            with db.session.no_autoflush:
-                existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=str(qid)).first()
-            
-            # إذا كان المنتج مرتبطاً بمورد مختلف مسبقاً (والمستخدم ليس أدمن)، نتجاهله
-            if existing_mapping and str(existing_mapping.supplier_id) != str(supplier_id) and not is_admin:
-                continue
-            
-            synced_count += 1
-            if not existing_mapping:
-                new_mapping = ProductSupplierMapping(product_qid=str(qid), supplier_id=supplier_id)
-                db.session.add(new_mapping)
-                created_count += 1
-            else:
-                # تحديث المورد إذا لزم الأمر أو الاحتفاظ بالرابط الحالي
-                if is_admin and existing_mapping.supplier_id != supplier_id:
-                    existing_mapping.supplier_id = supplier_id
-                updated_count += 1
+                # التحقق مما إذا كان المنتج يتبع هذا المورد في بيانات الـ API
+                product_supplier = product.get('supplier_id') or product.get('vendor_id')
+                
+                # إذا لم يكن يخص المورد ولم يكن أدمن، نتخطاه
+                if not is_admin and product_supplier and str(product_supplier) != str(supplier_id):
+                    continue 
+
+                with db.session.no_autoflush:
+                    existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=str(qid)).first()
+                
+                # إذا كان المنتج مرتبطاً بمورد آخر مسبقاً، نتجاهله
+                if existing_mapping and str(existing_mapping.supplier_id) != str(supplier_id) and not is_admin:
+                    continue
+                
+                synced_count += 1
+                if not existing_mapping:
+                    new_mapping = ProductSupplierMapping(product_qid=str(qid), supplier_id=supplier_id)
+                    db.session.add(new_mapping)
+                    created_count += 1
+                else:
+                    updated_count += 1
+
+            # إذا تجاوزنا عدد الصفحات الكلي للمنصة، نتوقف
+            if page_num >= total_pages:
+                break
 
         db.session.commit()
 
-        # معرفة ما إذا كانت هناك صفحات أخرى تالية للمزامنة
-        has_next = page_num < total_pages
-        next_page = page_num + 1 if has_next else None
+        print(q:=f"✅ [Sync] تمت المزامنة بنجاح. إجمالي المنتجات: {synced_count}")
 
+        # نعيد has_next = False لكي تنتهي النافذة فوراً في الطلب الأول ولا تظهر رسالة 1 من 65 مجدداً
         return jsonify({
             'success': True,
-            'message': f'تمت مزامنة الصفحة {page_num} من {total_pages}',
+            'message': 'تمت مزامنة جميع منتجات المورد بنجاح',
             'syncedCount': synced_count,
             'createdCount': created_count,
             'updatedCount': updated_count,
-            'has_next': has_next,
-            'next_page': next_page,
-            'total_pages': total_pages
+            'has_next': False,
+            'total_pages': 1
         })
 
     except Exception as e:
-        db.session.rollback()  # ✅ إرجاع قاعدة البيانات للحالة السليمة عند حدوث استثناء
+        db.session.rollback()
         print(f"❌ [Sync] خطأ غير متوقع: {traceback.format_exc()}")
         return jsonify({
             'success': False, 
