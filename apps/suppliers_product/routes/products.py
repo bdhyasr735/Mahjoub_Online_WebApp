@@ -7,6 +7,30 @@ from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 
+# ===== دوال مساعدة للقالب =====
+def get_status_text(status):
+    """تحويل حالة المنتج إلى نص عربي"""
+    status_map = {
+        'PUBLISHED': 'منشور',
+        'DRAFT': 'مسودة',
+        'ARCHIVED': 'مؤرشف',
+        'PENDING': 'قيد المراجعة',
+        'REJECTED': 'مرفوض',
+        'OUT_OF_STOCK': 'نفد من المخزون',
+        'INACTIVE': 'غير نشط'
+    }
+    return status_map.get(status, status)
+
+def format_price(price):
+    """تنسيق السعر مع رمز العملة"""
+    if price is None:
+        return '0.00 ر.س'
+    try:
+        return f"{float(price):,.2f} ر.س"
+    except (ValueError, TypeError):
+        return str(price)
+
+# ===== المسارات =====
 @suppliers_product_bp.route('/products', methods=['GET'])
 @login_required
 def manage_supplier_products_view():
@@ -34,15 +58,23 @@ def manage_supplier_products_view():
         # تغليف المنتجات لتتطابق مع هيكل القالب (item.product)
         formatted_products = [{'product': p} for p in target_products]
 
+        # ===== تمرير الدوال المساعدة إلى القالب =====
         return render_template(
             'suppliers/suppliers_product.html',
-            products=formatted_products
+            products=formatted_products,
+            get_status_text=get_status_text,   # ✅ إضافة الدالة
+            format_price=format_price          # ✅ إضافة الدالة
         )
 
     except Exception as e:
         print(f"❌ خطأ في manage_supplier_products_view: {e}")
         flash('❌ حدث خطأ في تحميل المنتجات', 'danger')
-        return render_template('suppliers/suppliers_product.html', products=[])
+        return render_template(
+            'suppliers/suppliers_product.html',
+            products=[],
+            get_status_text=get_status_text,
+            format_price=format_price
+        )
 
 
 def register_supplier_products_route(target_app):
