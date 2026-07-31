@@ -104,8 +104,7 @@
 <!-- ✅ 3. استدعاء نافذة المزامنة -->
 {% include "suppliers/includes/_sync_modal.html" %}
 
-
-<!-- ✅ 4. كود JavaScript الخاص بربط الفلاتر والترقيم (تم تحديثه ليدعم limit) -->
+<!-- ✅ 4. كود JavaScript الخاص بربط الفلاتر والترقيم -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     window.clearAllFilters = function() {
@@ -131,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('statusFilter').addEventListener('change', function() { fetchProducts(1); });
     document.getElementById('minPrice').addEventListener('input', function() { fetchProducts(1); });
     document.getElementById('maxPrice').addEventListener('input', function() { fetchProducts(1); });
-    document.getElementById('limitSelect').addEventListener('change', function() { fetchProducts(1); }); // ✅ حدث القائمة المنسدلة
+    document.getElementById('limitSelect').addEventListener('change', function() { fetchProducts(1); });
 });
 
 // ✅ الدالة الشاملة لجلب المنتجات عبر Ajax (تدعم limit الآن)
@@ -146,7 +145,7 @@ function fetchProducts(page = 1) {
         status: document.getElementById('statusFilter').value,
         min_price: document.getElementById('minPrice').value,
         max_price: document.getElementById('maxPrice').value,
-        limit: document.getElementById('limitSelect').value, // ✅ إرسال الحد الجديد
+        limit: document.getElementById('limitSelect').value,
         ajax: '1'
     });
 
@@ -185,4 +184,59 @@ function attachPaginationEvents() {
     });
 }
 </script>
+
+<!-- ✅ 5. كود CSS لجعل البطاقات تفاعلية وترتفع -->
+<style>
+    /* تأثيرات البطاقة الرئيسية */
+    .product-card {
+        background: #ffffff;
+        transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* حركة سلسة */
+        will-change: transform, box-shadow;
+    }
+    
+    /* رفع البطاقة عند التمرير */
+    .product-card:hover {
+        transform: translateY(-10px) scale(1.01);
+        box-shadow: 0 18px 35px rgba(45, 11, 54, 0.2) !important;
+    }
+
+    /* تكبير الصورة عند التمرير على البطاقة */
+    .product-card:hover .product-img-wrapper img {
+        transform: scale(1.08);
+    }
+
+    /* تفاعل صورة المنتج */
+    .product-img-wrapper img {
+        transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* تفاعل زر التعديل */
+    .product-card .btn {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .product-card .btn:hover {
+        transform: scale(1.03);
+        box-shadow: 0 4px 15px rgba(45, 11, 54, 0.35);
+    }
+    
+    /* تفاعل شريط الترقيم */
+    .page-link {
+        transition: all 0.25s ease;
+        position: relative;
+    }
+    .page-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* عناوين البطاقات */
+    .product-card .card-title {
+        transition: color 0.3s ease;
+    }
+    .product-card:hover .card-title {
+        color: #2d0b36 !important;
+    }
+</style>
 {% endblock %}
