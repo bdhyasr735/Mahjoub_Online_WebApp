@@ -1,1 +1,24 @@
-
+{% if products and products.pages is defined and products.pages > 1 %}
+<nav class="mt-4" id="paginationNav">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if not products.has_prev else '' }}">
+            <button class="page-link" onclick="fetchProducts({{ products.prev_num if products.has_prev else 1 }})" {{ 'disabled' if not products.has_prev else '' }} style="background: none; border: none; color: #2d0b36;">السابق</button>
+        </li>
+        {% for page_num in products.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                <li class="page-item {{ 'active' if products.page == page_num else '' }}">
+                    <button class="page-link" onclick="fetchProducts({{ page_num }})" 
+                            style="{{ 'background: #2d0b36; color: #D4AF37; border-color: #2d0b36;' if products.page == page_num else 'color: #2d0b36; background: none; border: none;' }}">
+                        {{ page_num }}
+                    </button>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link" style="background: none; border: none;">...</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not products.has_next else '' }}">
+            <button class="page-link" onclick="fetchProducts({{ products.next_num if products.has_next else products.page }})" {{ 'disabled' if not products.has_next else '' }} style="background: none; border: none; color: #2d0b36;">التالي</button>
+        </li>
+    </ul>
+</nav>
+{% endif %}
