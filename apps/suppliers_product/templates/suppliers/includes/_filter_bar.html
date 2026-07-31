@@ -3,19 +3,9 @@
     <div class="card-body p-3 p-md-4">
         <div class="row g-3 align-items-end">
             <!-- البحث -->
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label for="searchInput" class="form-label fw-bold small text-muted">🔍 بحث</label>
                 <input type="text" id="searchInput" class="form-control" placeholder="اسم المنتج أو SKU..." style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
-            </div>
-            <!-- فلتر الفئة -->
-            <div class="col-md-3">
-                <label for="categoryFilter" class="form-label fw-bold small text-muted">📂 الفئة</label>
-                <select id="categoryFilter" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
-                    <option value="">جميع الفئات</option>
-                    <option value="cookware">أواني طهي</option>
-                    <option value="bakeware">أدوات خبز</option>
-                    <option value="storage">تخزين</option>
-                </select>
             </div>
             <!-- فلتر الحالة -->
             <div class="col-md-3">
@@ -28,7 +18,7 @@
                 </select>
             </div>
             <!-- فلتر السعر -->
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <label class="form-label fw-bold small text-muted">💰 السعر (ر.س)</label>
                 <div class="input-group">
                     <input type="number" id="minPrice" class="form-control" placeholder="من" style="height: 45px; border-radius: 10px 0 0 10px; border-color: #2d0b36;">
@@ -37,7 +27,7 @@
                 </div>
             </div>
             <!-- زر إعادة تعيين -->
-            <div class="col-md-1">
+            <div class="col-md-2">
                 <button onclick="clearAllFilters()" class="btn btn-outline-secondary w-100" style="border-radius: 10px; height: 45px;" title="إعادة تعيين">
                     <i class="fas fa-undo"></i>
                 </button>
