@@ -34,7 +34,7 @@ def format_price(price):
 @suppliers_product_bp.route('/products', methods=['GET'])
 @login_required
 def manage_supplier_products_view():
-    """عرض وإدارة منتجات المورد الحالي (متوافق مع Registry)"""
+    """عرض وإدارة منتجات المورد الحالي"""
     try:
         user_type = session.get('user_type')
         supplier_id = session.get('user_id') or session.get('supplier_id')
@@ -43,11 +43,9 @@ def manage_supplier_products_view():
             flash('❌ غير مصرح لك بالدخول لهذه الصفحة', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
-        # جلب المنتجات من الخدمة
         result = services.products.get_all_products() or {}
         all_products = result.get('data', [])
 
-        # تصفية المنتجات للمورد الحالي
         if user_type != 'admin' and supplier_id:
             supplier_mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
             supplier_qids = {m.product_qid for m in supplier_mappings}
@@ -55,15 +53,14 @@ def manage_supplier_products_view():
         else:
             target_products = all_products
 
-        # تغليف المنتجات لتتطابق مع هيكل القالب (item.product)
         formatted_products = [{'product': p} for p in target_products]
 
-        # ===== تمرير الدوال المساعدة إلى القالب =====
+        # ✅ تمرير الدوال المساعدة إلى القالب
         return render_template(
             'suppliers/suppliers_product.html',
             products=formatted_products,
-            get_status_text=get_status_text,   # ✅ إضافة الدالة
-            format_price=format_price          # ✅ إضافة الدالة
+            get_status_text=get_status_text,
+            format_price=format_price
         )
 
     except Exception as e:
@@ -78,7 +75,7 @@ def manage_supplier_products_view():
 
 
 def register_supplier_products_route(target_app):
-    """دالة تسجيل مسارات وموديول منتجات الموردين المطلوبة"""
+    """تسجيل مسارات الموديول"""
     try:
         if hasattr(target_app, 'register_blueprint'):
             blueprint_name = getattr(suppliers_product_bp, 'name', 'suppliers_product_bp')
