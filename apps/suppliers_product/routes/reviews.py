@@ -55,9 +55,12 @@ def review_supplier_products():
         total_published = len([p for p in target_products if p.get('status', '').upper() == 'PUBLISHED'])
         total_rejected = len([p for p in target_products if p.get('status', '').upper() == 'REJECTED'])
         
+        # تغليف المنتجات لتتطابق مع توقعات القالب (item.product)
+        formatted_products = [{'product': p} for p in draft_products]
+        
         return render_template(
             'suppliers/supplier_review_products.html',
-            products=draft_products,
+            products=formatted_products,
             total_count=total_draft,
             total_published=total_published,
             total_rejected=total_rejected
