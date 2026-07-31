@@ -1,10 +1,11 @@
 # coding: utf-8
 # apps/suppliers_product/routes/sync.py
-# مزامنة منتجات الموردين - مع جلب جميع المنتجات وتحديث الواجهة
+# مزامنة منتجات الموردين - مزامنة تدريجية آمنة
 
 import functools
+import math
 import traceback
-from flask import request, jsonify, redirect, url_for, flash, session
+from flask import request, jsonify, session
 from flask_login import login_required
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
@@ -41,7 +42,7 @@ def analyze_render_error(route_func):
 @login_required
 @analyze_render_error
 def sync_supplier_products():
-    """مزامنة منتجات المورد مع جلب جميع المنتجات من كافة الصفحات"""
+    """مزامنة منتجات المورد بشكل تدريجي (صفحة صفحة) لتجنب الانهيار"""
     user_type = session.get('user_type')
     supplier_id = session.get('user_id') or session.get('supplier_id')
 
@@ -49,55 +50,45 @@ def sync_supplier_products():
         return jsonify({'success': False, 'message': 'غير مصرح لك بالوصول'}), 403
     
     try:
-        # ✅ 1. جلب جميع المنتجات من جميع الصفحات (حلقة تكرار ذكية)
-        all_external_products = []
-        current_page = 1
-        has_next = True
-        max_pages = 100  # الحد الأقصى للصفحات للحماية
+        from apps.extensions import db
+
+        # 1. الحصول على إجمالي عدد المنتجات (بدون جلبها)
+        first_page = services.products.get_products_page(1)
+        if not first_page:
+            return jsonify({'success': True, 'message': 'لا توجد منتجات', 'syncedCount': 0})
         
-        while has_next and current_page <= max_pages:
-            try:
-                result = services.products.get_products_page(current_page)
-                if not result:
-                    break
-                page_products = result.get('data', [])
-                pagination = result.get('pagination', {})
-                
-                all_external_products.extend(page_products)
-                has_next = pagination.get('hasNextPage', False)
-                current_page += 1
-            except Exception as api_fetch_err:
-                print(f"⚠️ تحذير أثناء جلب الصفحة {current_page}: {api_fetch_err}")
-                break
-        
-        if not all_external_products:
-            return jsonify({
-                'success': True,
-                'message': 'ℹ️ لا توجد منتجات جديدة للمزامنة',
-                'syncedCount': 0,
-                'createdCount': 0,
-                'updatedCount': 0,
-                'errors': []
-            })
-        
-        # ✅ 2. معالجة المنتجات (ربطها بالمورد أو تحديثها)
+        total_items = first_page.get('pagination', {}).get('totalItems', 0)
+        if total_items == 0:
+            return jsonify({'success': True, 'message': 'لا توجد منتجات', 'syncedCount': 0})
+
+        # 2. إعداد المتغيرات
+        per_page = 10  # حجم الدفعة (يمكن زيادته حسب الأداء)
+        total_pages = math.ceil(total_items / per_page)
         synced_count = 0
         created_count = 0
         updated_count = 0
         errors = []
         
-        from apps.extensions import db
-        
-        for product in all_external_products:
-            if not isinstance(product, dict):
+        # 3. التكرار عبر الصفحات تدريجياً
+        for page_num in range(1, total_pages + 1):
+            # جلب صفحة واحدة
+            result = services.products.get_products_page(page_num)
+            if not result:
                 continue
-            try:
+            
+            page_products = result.get('data', [])
+            
+            # معالجة كل منتج في الصفحة
+            for product in page_products:
+                if not isinstance(product, dict):
+                    continue
                 qid = product.get('qid')
                 if not qid:
                     continue
                 
                 mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
                 
+                # تصفية المنتجات التي لا تخص هذا المورد
                 if supplier_id and mapping and mapping.supplier_id:
                     if str(mapping.supplier_id) != str(supplier_id) and user_type != 'admin':
                         continue
@@ -111,24 +102,21 @@ def sync_supplier_products():
                         db.session.commit()
                 else:
                     updated_count += 1
-                    
-            except Exception as ex:
-                errors.append({
-                    'qid': product.get('qid', 'unknown'),
-                    'error': str(ex)
-                })
-        
-        # ✅ 3. إرجاع النتيجة
+
+            # (اختياري) هنا يمكنك إرسال تحديث تقدم إلى الواجهة إذا كنت تستخدم WebSocket،
+            # لكن في هذا التطبيق سنرجع النتيجة في النهاية فقط.
+
+        # 4. إرجاع النتيجة النهائية
         return jsonify({
             'success': True,
-            'message': '✅ تمت مزامنة منتجات المورد بنجاح وجلب جميع المنتجات.',
+            'message': f'✅ تمت مزامنة {synced_count} منتج بنجاح!',
             'syncedCount': synced_count,
             'createdCount': created_count,
             'updatedCount': updated_count,
             'errors': errors,
-            'reload': True  # 🟢 إشارة للواجهة لإعادة التحميل فوراً
+            'reload': True
         })
-        
+
     except Exception as e:
         print(f"❌ خطأ في sync_supplier_products: {e}")
         return jsonify({
