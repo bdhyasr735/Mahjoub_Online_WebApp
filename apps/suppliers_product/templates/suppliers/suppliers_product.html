@@ -1,11 +1,11 @@
 {% extends "suppliers/base.html" %}
 
-{% block title %}إدارة منتجات الموردين{% endblock %}
+{% block title %}إدارة منتجاتي{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
     <!-- عنوان الصفحة وزر الإضافة -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold mb-1" style="color: #2d0b36;">قائمة المنتجات</h2>
             <p class="text-muted text-sm mb-0">إدارة ومتابعة المنتجات والأسعار والكميات الخاصة بك.</p>
@@ -32,143 +32,280 @@
         {% endif %}
     {% endwith %}
 
-    <!-- ✅ عرض المنتجات كبطاقات (Cards) -->
-    <div class="row g-4">
-        {# تحديد ما إذا كانت products عبارة عن كائن pagination أو قائمة عادية #}
-        {% set product_list = products.items if products and products.items is defined else (products if products is iterable and products is not mapping else []) %}
-        
-        {% if product_list %}
-            {% for item in product_list %}
-            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-                <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden">
-                    
-                    <!-- شريط الحالة العلوي -->
-                    <div class="position-absolute top-0 start-0 m-3 z-index-2">
-                        <span class="badge bg-gradient-{{ 'success' if item.product.status == 'PUBLISHED' else 'secondary' }} shadow-sm px-3 py-2" style="font-size: 0.75rem; border-radius: 20px;">
-                            {{ get_status_text(item.product.status) if get_status_text is defined else item.product.status }}
-                        </span>
-                    </div>
+    <!-- ✅ شريط الفلاتر والبحث المتقدم -->
+    <div class="card mb-4 shadow-sm border-0 rounded-4">
+        <div class="card-body p-3 p-md-4">
+            <div class="row g-3 align-items-end">
+                
+                <!-- البحث -->
+                <div class="col-md-3">
+                    <label for="searchInput" class="form-label fw-bold small text-muted">🔍 بحث</label>
+                    <input type="text" id="searchInput" class="form-control" placeholder="اسم المنتج أو SKU..." style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
+                </div>
 
-                    {# صورة المنتج بمعالجة ذكية وشاملة لجميع الاحتمالات #}
-                    {%- set raw_img = none -%}
-                    {%- if item.product.image_url -%}
-                        {%- set raw_img = item.product.image_url -%}
-                    {%- elif item.product.imageUrl -%}
-                        {%- set raw_img = item.product.imageUrl -%}
-                    {%- elif item.product.images and item.product.images|length > 0 -%}
-                        {%- set first_img = item.product.images[0] -%}
-                        {%- if first_img is mapping -%}
-                            {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link or first_img.path -%}
-                        {%- elif first_img is string -%}
-                            {%- set raw_img = first_img -%}
+                <!-- فلتر الفئة -->
+                <div class="col-md-3">
+                    <label for="categoryFilter" class="form-label fw-bold small text-muted">📂 الفئة</label>
+                    <select id="categoryFilter" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
+                        <option value="">جميع الفئات</option>
+                        <option value="cookware">أواني طهي</option>
+                        <option value="bakeware">أدوات خبز</option>
+                        <option value="storage">تخزين</option>
+                    </select>
+                </div>
+
+                <!-- فلتر الحالة (منشور، قيد المراجعة) -->
+                <div class="col-md-3">
+                    <label for="statusFilter" class="form-label fw-bold small text-muted">📌 الحالة</label>
+                    <select id="statusFilter" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
+                        <option value="">الكل</option>
+                        <option value="PUBLISHED">منشور</option>
+                        <option value="REVIEW">قيد المراجعة</option>
+                        <option value="DRAFT">مسودة</option>
+                    </select>
+                </div>
+
+                <!-- فلتر السعر -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted">💰 السعر (ر.س)</label>
+                    <div class="input-group">
+                        <input type="number" id="minPrice" class="form-control" placeholder="من" style="height: 45px; border-radius: 10px 0 0 10px; border-color: #2d0b36;">
+                        <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">إلى</span>
+                        <input type="number" id="maxPrice" class="form-control" placeholder="إلى" style="height: 45px; border-radius: 0 10px 10px 0; border-color: #2d0b36;">
+                    </div>
+                </div>
+
+                <!-- أزرار التحكم -->
+                <div class="col-md-1">
+                    <button onclick="clearAllFilters()" class="btn btn-outline-secondary w-100" style="border-radius: 10px; height: 45px;" title="إعادة تعيين">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ حاوية المنتجات (سيتم تحديثها عند البحث/الفلاتر/الترقيم) -->
+    <div id="productsContainer">
+        <div class="row g-4" id="productsGrid">
+            {% set product_list = products.items if products and products.items is defined else (products if products is iterable and products is not mapping else []) %}
+            
+            {% if product_list %}
+                {% for item in product_list %}
+                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                    <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden">
+                        
+                        <!-- شريط الحالة العلوي -->
+                        <div class="position-absolute top-0 start-0 m-3 z-index-2">
+                            <span class="badge bg-gradient-{{ 'success' if item.product.status == 'PUBLISHED' else 'warning' if item.product.status == 'REVIEW' else 'secondary' }} shadow-sm px-3 py-2" style="font-size: 0.75rem; border-radius: 20px;">
+                                {{ get_status_text(item.product.status) if get_status_text is defined else item.product.status }}
+                            </span>
+                        </div>
+
+                        {# صورة المنتج بمعالجة ذكية وشاملة #}
+                        {%- set raw_img = none -%}
+                        {%- if item.product.image_url -%}
+                            {%- set raw_img = item.product.image_url -%}
+                        {%- elif item.product.imageUrl -%}
+                            {%- set raw_img = item.product.imageUrl -%}
+                        {%- elif item.product.images and item.product.images|length > 0 -%}
+                            {%- set first_img = item.product.images[0] -%}
+                            {%- if first_img is mapping -%}
+                                {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link or first_img.path -%}
+                            {%- elif first_img is string -%}
+                                {%- set raw_img = first_img -%}
+                            {%- endif -%}
+                        {%- elif item.product.image -%}
+                            {%- set raw_img = item.product.image -%}
+                        {%- elif item.product.thumbnail -%}
+                            {%- set raw_img = item.product.thumbnail -%}
                         {%- endif -%}
-                    {%- elif item.product.image -%}
-                        {%- set raw_img = item.product.image -%}
-                    {%- elif item.product.thumbnail -%}
-                        {%- set raw_img = item.product.thumbnail -%}
-                    {%- endif -%}
-                    {% set p_img = raw_img or url_for('static', filename='img/default-product.png') %}
+                        {% set p_img = raw_img or url_for('static', filename='img/default-product.png') %}
 
-                    <div class="product-img-wrapper text-center bg-light p-3 position-relative" style="height: 200px; overflow: hidden;">
-                        <img src="{{ p_img }}" 
-                             class="img-fluid h-100 w-100 object-fit-cover rounded-3" 
-                             alt="product"
-                             style="transition: transform 0.3s ease;"
-                             onerror="this.src='{{ url_for('static', filename='img/default-product.png') }}'">
+                        <div class="product-img-wrapper text-center bg-light p-3 position-relative" style="height: 200px; overflow: hidden;">
+                            <img src="{{ p_img }}" 
+                                 class="img-fluid h-100 w-100 object-fit-cover rounded-3" 
+                                 alt="product"
+                                 style="transition: transform 0.3s ease;"
+                                 onerror="this.src='{{ url_for('static', filename='img/default-product.png') }}'">
+                        </div>
+
+                        <!-- تفاصيل البطاقة -->
+                        <div class="card-body d-flex flex-column p-4">
+                            <div class="mb-2">
+                                <span class="text-xs text-muted font-weight-bold">SKU: {{ item.product.sku }}</span>
+                                <h5 class="card-title fw-bold text-dark text-truncate mb-1" title="{{ item.product.title }}" style="font-size: 1.05rem;">
+                                    {{ item.product.title }}
+                                </h5>
+                            </div>
+
+                            <!-- السعر والكمية -->
+                            <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
+                                <div>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">السعر</small>
+                                    <span class="fw-bolder fs-6" style="color: #2d0b36;">
+                                        {%- set p_price = item.product.price if item.product.price is defined and item.product.price is not none 
+                                            else (item.product.pricing.price if item.product.pricing and item.product.pricing.price is defined and item.product.pricing.price is not none 
+                                            else (item.product.sale_price if item.product.sale_price is defined and item.product.sale_price is not none 
+                                            else (item.product.regular_price if item.product.regular_price is defined and item.product.regular_price is not none 
+                                            else (item.product.cost if item.product.cost is defined and item.product.cost is not none else 0)))) -%}
+                                        {{ format_price(p_price) if format_price is defined else p_price }}
+                                    </span>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">الكمية</small>
+                                    <span class="badge bg-light text-dark border px-2 py-1 fw-bold">
+                                        <i class="fas fa-boxes text-muted me-1"></i> {{ item.product.quantity }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- زر التعديل -->
+                            <div class="mt-3">
+                                <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', qid=item.product.qid) }}" 
+                                   class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none"
+                                   style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 10px; border: none; transition: all 0.3s ease;">
+                                    <i class="fas fa-edit"></i> تعديل المنتج
+                                </a>
+                            </div>
+                        </div>
                     </div>
-
-                    <!-- تفاصيل البطاقة -->
-                    <div class="card-body d-flex flex-column p-4">
-                        <div class="mb-2">
-                            <span class="text-xs text-muted font-weight-bold">SKU: {{ item.product.sku }}</span>
-                            <h5 class="card-title fw-bold text-dark text-truncate mb-1" title="{{ item.product.title }}" style="font-size: 1.05rem;">
-                                {{ item.product.title }}
-                            </h5>
-                        </div>
-
-                        <!-- السعر والكمية بتنسيق مميز -->
-                        <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
-                            <div>
-                                <small class="text-muted d-block" style="font-size: 0.75rem;">السعر</small>
-                                <span class="fw-bolder fs-6" style="color: #2d0b36;">
-                                    {%- set p_price = item.product.price if item.product.price is defined and item.product.price is not none 
-                                        else (item.product.pricing.price if item.product.pricing and item.product.pricing.price is defined and item.product.pricing.price is not none 
-                                        else (item.product.sale_price if item.product.sale_price is defined and item.product.sale_price is not none 
-                                        else (item.product.regular_price if item.product.regular_price is defined and item.product.regular_price is not none 
-                                        else (item.product.cost if item.product.cost is defined and item.product.cost is not none else 0)))) -%}
-                                    {{ format_price(p_price) if format_price is defined else p_price }}
-                                </span>
-                            </div>
-                            <div class="text-end">
-                                <small class="text-muted d-block" style="font-size: 0.75rem;">الكمية</small>
-                                <span class="badge bg-light text-dark border px-2 py-1 fw-bold">
-                                    <i class="fas fa-boxes text-muted me-1"></i> {{ item.product.quantity }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- زر التعديل -->
-                        <div class="mt-3">
-                            <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', qid=item.product.qid) }}" 
-                               class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none"
-                               style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 10px; border: none; transition: all 0.3s ease;">
-                                <i class="fas fa-edit"></i> تعديل المنتج
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 text-center py-5 rounded-4">
+                        <div class="card-body">
+                            <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-50"></i>
+                            <h5 class="text-secondary mb-1">لا توجد منتجات مضافة حتى الآن</h5>
+                            <p class="text-muted small">ابدأ برفع منتجك الأول لتظهر البطاقات هنا.</p>
+                            <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn mt-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                                <i class="fas fa-plus me-1"></i> رفع منتج جديد
                             </a>
                         </div>
                     </div>
                 </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12">
-                <div class="card shadow-sm border-0 text-center py-5 rounded-4">
-                    <div class="card-body">
-                        <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-50"></i>
-                        <h5 class="text-secondary mb-1">لا توجد منتجات مضافة حتى الآن</h5>
-                        <p class="text-muted small">ابدأ برفع منتجك الأول لتظهر البطاقات هنا.</p>
-                        <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn mt-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
-                            <i class="fas fa-plus me-1"></i> رفع منتج جديد
-                        </a>
-                    </div>
-                </div>
-            </div>
+            {% endif %}
+        </div>
+
+        <!-- ✅ ترقيم الصفحات التفاعلي (10 منتجات في كل صفحة) -->
+        {% if products and products.pages is defined and products.pages > 1 %}
+        <nav class="mt-4" id="paginationNav">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {{ 'disabled' if not products.has_prev else '' }}">
+                    <button class="page-link" onclick="fetchProducts({{ products.prev_num if products.has_prev else 1 }})" {{ 'disabled' if not products.has_prev else '' }} style="background: none; border: none; color: #2d0b36;">السابق</button>
+                </li>
+                {% for page_num in products.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {{ 'active' if products.page == page_num else '' }}">
+                            <button class="page-link" onclick="fetchProducts({{ page_num }})" 
+                                    style="{{ 'background: #2d0b36; color: #D4AF37; border-color: #2d0b36;' if products.page == page_num else 'color: #2d0b36; background: none; border: none;' }}">
+                                {{ page_num }}
+                            </button>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link" style="background: none; border: none;">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {{ 'disabled' if not products.has_next else '' }}">
+                    <button class="page-link" onclick="fetchProducts({{ products.next_num if products.has_next else products.page }})" {{ 'disabled' if not products.has_next else '' }} style="background: none; border: none; color: #2d0b36;">التالي</button>
+                </li>
+            </ul>
+        </nav>
         {% endif %}
     </div>
-
-    <!-- ترقيم الصفحات (Pagination) في حال توفره -->
-    {% if products and products.pages is defined and products.pages > 1 %}
-    <nav class="mt-4">
-        <ul class="pagination justify-content-center">
-            <li class="page-item {{ 'disabled' if not products.has_prev else '' }}">
-                <a class="page-link" href="{{ url_for('suppliers_product_bp.list_supplier_products', page=products.prev_num) if products.has_prev else '#' }}" tabindex="-1">السابق</a>
-            </li>
-            {% for page_num in products.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                {% if page_num %}
-                    <li class="page-item {{ 'active' if products.page == page_num else '' }}">
-                        <a class="page-link" href="{{ url_for('suppliers_product_bp.list_supplier_products', page=page_num) }}">{{ page_num }}</a>
-                    </li>
-                {% else %}
-                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                {% endif %}
-            {% endfor %}
-            <li class="page-item {{ 'disabled' if not products.has_next else '' }}">
-                <a class="page-link" href="{{ url_for('suppliers_product_bp.list_supplier_products', page=products.next_num) if products.has_next else '#' }}">التالي</a>
-            </li>
-        </ul>
-    </nav>
-    {% endif %}
 </div>
 
 <style>
-    .product-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .product-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(45, 11, 54, 0.15) !important;
-    }
-    .product-card:hover .product-img-wrapper img {
-        transform: scale(1.05);
-    }
+    .product-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(45, 11, 54, 0.15) !important; }
+    .product-card:hover .product-img-wrapper img { transform: scale(1.05); }
+    .page-link { cursor: pointer; }
 </style>
+
+<!-- ✅ كود JavaScript الخاص بربط الفلاتر والترقيم -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // دالة مسح الفلاتر وإعادة الضبط
+    window.clearAllFilters = function() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('categoryFilter').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('minPrice').value = '';
+        document.getElementById('maxPrice').value = '';
+        fetchProducts(1); // الرجوع إلى الصفحة الأولى
+    };
+
+    // ربط الأحداث (فلاتر حية فورية)
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        let timeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => fetchProducts(1), 500); // بحث بعد التوقف عن الكتابة بنصف ثانية
+        });
+    }
+    
+    document.getElementById('categoryFilter').addEventListener('change', function() { fetchProducts(1); });
+    document.getElementById('statusFilter').addEventListener('change', function() { fetchProducts(1); });
+    document.getElementById('minPrice').addEventListener('input', function() { fetchProducts(1); });
+    document.getElementById('maxPrice').addEventListener('input', function() { fetchProducts(1); });
+});
+
+// الدالة الشاملة لجلب المنتجات عبر Ajax
+function fetchProducts(page = 1) {
+    const container = document.getElementById('productsContainer');
+    // عرض مؤشر تحميل أنيق
+    container.innerHTML = '<div class="text-center py-5"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2 text-muted">جاري تحميل المنتجات...</p></div>';
+
+    // بناء معلمات البحث والفلاتر
+    const params = new URLSearchParams({
+        page: page,
+        search: document.getElementById('searchInput').value,
+        category: document.getElementById('categoryFilter').value,
+        status: document.getElementById('statusFilter').value,
+        min_price: document.getElementById('minPrice').value,
+        max_price: document.getElementById('maxPrice').value,
+        ajax: '1' // علامة للباك إند أن هذا طلب Ajax
+    });
+
+    // إرسال الطلب إلى الراوت
+    fetch("{{ url_for('suppliers_product_bp.list_supplier_products') }}" + "?" + params.toString())
+        .then(response => {
+            if (!response.ok) throw new Error('فشل في تحميل البيانات');
+            return response.text();
+        })
+        .then(html => {
+            // استخراج المحتوى الجديد باستخدام DOMParser
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newContent = doc.getElementById('productsContainer');
+            
+            if (newContent) {
+                container.innerHTML = newContent.innerHTML;
+                attachPaginationEvents(); // إعادة ربط الأزرار لأن الـ DOM تم تحديثه
+            } else {
+                container.innerHTML = html; // في حال كان الرد لا يحتوي على الحاوية
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            container.innerHTML = '<div class="alert alert-danger text-center">حدث خطأ أثناء جلب المنتجات. حاول مرة أخرى.</div>';
+        });
+}
+
+// إعادة ربط النقرات على أزرار الترقيم الجديدة
+function attachPaginationEvents() {
+    document.querySelectorAll('#paginationNav .page-link').forEach(btn => {
+        btn.onclick = function(e) {
+            e.preventDefault();
+            const onclickAttr = this.getAttribute('onclick');
+            if (onclickAttr) {
+                const page = parseInt(onclickAttr.match(/\d+/)?.[0] || 1);
+                if (!isNaN(page)) fetchProducts(page);
+            }
+        };
+    });
+}
+</script>
 {% endblock %}
