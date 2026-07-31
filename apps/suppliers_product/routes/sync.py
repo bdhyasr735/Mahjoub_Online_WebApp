@@ -30,10 +30,12 @@ def analyze_render_error(route_func):
             print(f"🛠️ التتبع البرمجي:\n{tb_details}")
             print(f"===========================================================\n")
             
+            # إرجاع التفاصيل للمتصل (للمساعدة في التصحيح)
             return jsonify({
                 "success": False,
                 "error_type": error_type,
-                "message": f"❌ خطأ في Render [{error_type}]: {error_message}"
+                "message": f"❌ خطأ في Render [{error_type}]: {error_message}",
+                "traceback": tb_details  # إضافة التتبع للرد
             }), 500
     return wrapper
 
@@ -61,8 +63,10 @@ def sync_supplier_products():
         if total_items == 0:
             return jsonify({'success': True, 'message': 'لا توجد منتجات', 'syncedCount': 0})
 
+        print(f"🔄 [Sync] إجمالي المنتجات: {total_items}")
+
         # 2. إعداد المتغيرات
-        per_page = 10  # حجم الدفعة (يمكن زيادته حسب الأداء)
+        per_page = 10  # حجم الدفعة
         total_pages = math.ceil(total_items / per_page)
         synced_count = 0
         created_count = 0
@@ -71,39 +75,43 @@ def sync_supplier_products():
         
         # 3. التكرار عبر الصفحات تدريجياً
         for page_num in range(1, total_pages + 1):
-            # جلب صفحة واحدة
-            result = services.products.get_products_page(page_num)
-            if not result:
-                continue
-            
-            page_products = result.get('data', [])
-            
-            # معالجة كل منتج في الصفحة
-            for product in page_products:
-                if not isinstance(product, dict):
+            print(f"📄 [Sync] جاري معالجة الصفحة {page_num} من {total_pages}")
+            try:
+                result = services.products.get_products_page(page_num)
+                if not result:
                     continue
-                qid = product.get('qid')
-                if not qid:
-                    continue
+                page_products = result.get('data', [])
+                print(f"   - عدد المنتجات في هذه الصفحة: {len(page_products)}")
                 
-                mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-                
-                # تصفية المنتجات التي لا تخص هذا المورد
-                if supplier_id and mapping and mapping.supplier_id:
-                    if str(mapping.supplier_id) != str(supplier_id) and user_type != 'admin':
+                for product in page_products:
+                    if not isinstance(product, dict):
                         continue
-                
-                synced_count += 1
-                if not mapping:
-                    created_count += 1
-                    if supplier_id and user_type == 'supplier':
-                        new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
-                        db.session.add(new_mapping)
-                        db.session.commit()
-                else:
-                    updated_count += 1
+                    qid = product.get('qid')
+                    if not qid:
+                        continue
+                    
+                    # البحث عن علاقة المنتج بالمورد
+                    mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+                    
+                    # تصفية المنتجات التي لا تخص هذا المورد
+                    if supplier_id and mapping and mapping.supplier_id:
+                        if str(mapping.supplier_id) != str(supplier_id) and user_type != 'admin':
+                            continue
+                    
+                    synced_count += 1
+                    if not mapping:
+                        created_count += 1
+                        if supplier_id and user_type == 'supplier':
+                            new_mapping = ProductSupplierMapping(product_qid=qid, supplier_id=supplier_id)
+                            db.session.add(new_mapping)
+                            db.session.commit()
+                    else:
+                        updated_count += 1
+            except Exception as page_error:
+                print(f"⚠️ خطأ في الصفحة {page_num}: {page_error}")
+                errors.append({'page': page_num, 'error': str(page_error)})
 
-        # 4. إرجاع النتيجة النهائية
+        print(f"✅ [Sync] اكتملت المزامنة. تم مزامنة {synced_count} منتج.")
         return jsonify({
             'success': True,
             'message': f'✅ تمت مزامنة {synced_count} منتج بنجاح!',
@@ -116,8 +124,10 @@ def sync_supplier_products():
 
     except Exception as e:
         print(f"❌ خطأ في sync_supplier_products: {e}")
+        print(traceback.format_exc())
         return jsonify({
             'success': False, 
             'message': f'❌ فشل المزامنة: {str(e)}',
-            'errors': [{'error': str(e)}]
+            'errors': [{'error': str(e)}],
+            'traceback': traceback.format_exc()
         }), 500
