@@ -112,7 +112,7 @@
 <!-- حقل مخفي لتوفر الـ CSRF Token إن لم يكن متوفراً في نموذج سابق -->
 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
 
-<!-- ✅ 4. كود JavaScript الخاص بربط الفلاتر والترقيم والمزامنة -->
+<!-- ✅ 4. كود JavaScript المعدل للتعامل مع استجابة الـ JSON بدلاً من HTML الخام -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     window.clearAllFilters = function() {
@@ -195,7 +195,7 @@ function openSyncModal() {
     }
 }
 
-// ✅ الدالة الشاملة لجلب المنتجات عبر Ajax (تدعم limit الآن)
+// ✅ الدالة الشاملة لجلب المنتجات عبر Ajax (معدلة لاستقبال JSON وتجنب مشكلة رموز الـ \n)
 function fetchProducts(page = 1) {
     const container = document.getElementById('productsContainer');
     container.innerHTML = '<div class="text-center py-5"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2 text-muted">جاري تحميل المنتجات...</p></div>';
@@ -211,26 +211,27 @@ function fetchProducts(page = 1) {
         ajax: '1'
     });
 
-    fetch("{{ url_for('suppliers_product_bp.list_supplier_products') }}" + "?" + params.toString())
-        .then(response => {
-            if (!response.ok) throw new Error('فشل في تحميل البيانات');
-            return response.text();
-        })
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newContent = doc.getElementById('productsContainer');
-            if (newContent) {
-                container.innerHTML = newContent.innerHTML;
-                attachPaginationEvents();
-            } else {
-                container.innerHTML = html;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            container.innerHTML = '<div class="alert alert-danger text-center">حدث خطأ أثناء جلب المنتجات.</div>';
-        });
+    fetch("{{ url_for('suppliers_product_bp.list_supplier_products') }}" + "?" + params.toString(), {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('فشل في تحميل البيانات');
+        return response.json(); // ✅ استقبال الرد كـ JSON بناءً على إعدادات الـ Backend لديك
+    })
+    .then(data => {
+        if (data.success && data.html) {
+            container.innerHTML = data.html;
+            attachPaginationEvents();
+        } else {
+            container.innerHTML = '<div class="alert alert-warning text-center">لا توجد منتجات مطابقة.</div>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        container.innerHTML = '<div class="alert alert-danger text-center">حدث خطأ أثناء جلب المنتجات.</div>';
+    });
 }
 
 function attachPaginationEvents() {
