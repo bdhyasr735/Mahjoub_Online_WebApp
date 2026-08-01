@@ -22,6 +22,10 @@
 {% set prod_weight = prod.weight or 0 %}
 {% set prod_images = prod.images or [] %}
 {% set prod_qid = prod.qid or (mapping.product_qid if mapping else '') %}
+{% set prod_tags = prod.tags or [] %}
+{% set prod_seo = prod.seo or {} %}
+{% set prod_variants = prod.variants or [] %}
+{% set prod_collections = prod.collections or [] %}
 
 <div class="container-fluid py-4">
     <!-- رأس الصفحة -->
@@ -75,14 +79,54 @@
                         {% include 'suppliers/edit/_images.html' ignore missing %}
                     </div>
                 </div>
+
+                <!-- 4. بطاقة المتغيرات (للقراءة فقط) -->
+                <div class="card mb-4">
+                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-random me-2" style="color: var(--dark-purple, #2d0b36);"></i> خيارات ومتغيرات المنتج</h5></div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_variants.html' ignore missing %}
+                    </div>
+                </div>
             </div>
 
             <div class="col-lg-4">
-                <!-- 4. بطاقة الإجراءات (حفظ وإلغاء فقط) -->
+                <!-- 5. بطاقة الإجراءات (حفظ وإلغاء فقط) -->
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-tasks me-2" style="color: var(--dark-purple, #2d0b36);"></i> الإجراءات</h5></div>
                     <div class="card-body p-4">
                         {% include 'suppliers/edit/_actions.html' ignore missing %}
+                    </div>
+                </div>
+
+                <!-- 6. بطاقة التصنيفات (للقراءة فقط) -->
+                <div class="card mb-4">
+                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-tags me-2" style="color: var(--dark-purple, #2d0b36);"></i> التصنيفات</h5></div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_collections.html' ignore missing %}
+                    </div>
+                </div>
+
+                <!-- 7. بطاقة السيو (للقراءة فقط) -->
+                <div class="card mb-4">
+                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-search me-2" style="color: var(--dark-purple, #2d0b36);"></i> تحسين محركات البحث (SEO)</h5></div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_seo.html' ignore missing %}
+                    </div>
+                </div>
+
+                <!-- 8. بطاقة العلامات (للقراءة فقط) -->
+                <div class="card mb-4">
+                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-tag me-2" style="color: var(--dark-purple, #2d0b36);"></i> العلامات (Tags)</h5></div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_tags.html' ignore missing %}
+                    </div>
+                </div>
+
+                <!-- 9. بطاقة معلومات إضافية (للقراءة فقط) -->
+                <div class="card mb-4">
+                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-info-circle me-2" style="color: var(--dark-purple, #2d0b36);"></i> معلومات إضافية</h5></div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_basic_info.html' ignore missing %}
                     </div>
                 </div>
             </div>
