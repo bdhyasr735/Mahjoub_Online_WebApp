@@ -1,9 +1,114 @@
-<div class="mb-3">
-    <label class="form-label fw-bold">التصنيفات (Collections)</label>
-    <select name="collections" class="form-select" multiple size="3">
-        <!-- هنا يتم جلب التصنيفات من قمرة أو قاعدة البيانات -->
-        <option value="collection_1" {% if 'collection_1' in prod_collections %}selected{% endif %}>تصنيف تجريبي 1</option>
-        <option value="collection_2" {% if 'collection_2' in prod_collections %}selected{% endif %}>تصنيف تجريبي 2</option>
-    </select>
-    <small class="text-muted">اضغط مع زر Ctrl (أو Cmd) لتحديد أكثر من تصنيف.</small>
+<!-- ============================================================
+   📁 المجموعات (Collections) - عرض فقط للمورد
+   ============================================================ -->
+<div class="card shadow-sm meta-variants-card">
+    <div class="card-header">
+        <h5 class="mb-0 text-dark d-flex align-items-center" style="color: #2d0b36;">
+            <i class="fas fa-folder-open me-2" style="color: #2d0b36;"></i> المجموعات (Collections)
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- العرض المبسط للمجموعات (للقراءة فقط) -->
+        <div class="selected-collections-box">
+            <div class="selected-badges" id="selectedBadgesContainer">
+                {% if prod_collections and prod_collections|length > 0 %}
+                    {% for col in prod_collections %}
+                    <span class="collection-badge">
+                        <i class="fas fa-folder"></i> {{ col.title or col.name }}
+                    </span>
+                    {% endfor %}
+                {% else %}
+                    <span class="placeholder-text">
+                        <i class="fas fa-folder-open"></i> لا توجد مجموعات مضافة لهذا المنتج.
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="collections-footer">
+            <div class="collections-stats">
+                <span><i class="fas fa-list-ul"></i> <strong id="totalCollectionsCount">{{ prod_collections|length if prod_collections else 0 }}</strong> مجموعة</span>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+.meta-variants-card {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+}
+.meta-variants-card .card-header {
+    background: white;
+    border-bottom: 2px solid #f8f9fa;
+    padding: 16px 20px;
+}
+.meta-variants-card .card-body {
+    padding: 20px;
+    background: linear-gradient(135deg, #ffffff, #faf8f6);
+}
+
+.selected-collections-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    min-height: 44px;
+}
+.placeholder-text {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.placeholder-text i { color: #2d0b36; }
+.selected-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+}
+
+.collection-badge {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    color: #D4AF37;
+    padding: 4px 12px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    font-size: 0.8rem;
+}
+
+.collections-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 1px solid #e2e8f0;
+    gap: 8px;
+}
+.collections-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+.collections-stats strong { color: #0f172a; font-size: 0.9rem; }
+
+@media (max-width: 768px) {
+    .selected-collections-box { min-height: 38px; padding: 8px 12px; }
+    .collection-badge { font-size: 0.7rem; padding: 2px 10px; }
+}
+</style>
