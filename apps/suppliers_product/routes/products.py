@@ -114,12 +114,8 @@ def manage_supplier_products_view():
             qid = mapping.product_qid
             product = services.products.get_product_by_qid(qid)
             
+            # ✅ تم التعديل هنا: نستبعد أي منتج لا نجد له بيانات في قاعدة البيانات (منتجات شبح)
             if not product:
-                # إذا لم يوجد في API، نعرض البيانات المحلية فقط
-                products_data.append({
-                    'mapping': mapping,
-                    'product': None
-                })
                 continue
 
             # تطبيق فلتر البحث (اسم المنتج أو SKU)
@@ -148,18 +144,21 @@ def manage_supplier_products_view():
         # ============================================================
         # 4. تجهيز بيانات الترقيم (مع مراعاة الفلاتر)
         # ============================================================
-        # ملاحظة: في حالة وجود فلاتر، يكون الترقيم بناءً على النتائج المفلترة
-        # لهذا نستخدم العدد الفعلي للمنتجات المفلترة
+        # ✅ تم التعديل هنا: حساب العدد الفعلي للصفحات بناءً على النتائج الحقيقية بعد الفلترة
         total_filtered = len(products_data)
+        
+        # حساب عدد الصفحات الصحيح بناءً على العدد الفعلي
+        total_pages = (total_filtered + per_page - 1) // per_page if total_filtered > 0 else 1
+
         pagination_info = {
-            'current_page': pagination.page,
-            'total_pages': pagination.pages,
-            'has_prev': pagination.has_prev,
-            'has_next': pagination.has_next,
-            'prev_num': pagination.prev_num,
-            'next_num': pagination.next_num,
-            'per_page': pagination.per_page,
-            'total_items': pagination.total
+            'current_page': page,
+            'total_pages': total_pages,
+            'has_prev': page > 1,
+            'has_next': page < total_pages,
+            'prev_num': page - 1 if page > 1 else None,
+            'next_num': page + 1 if page < total_pages else None,
+            'per_page': per_page,
+            'total_items': total_filtered
         }
 
         # ============================================================
