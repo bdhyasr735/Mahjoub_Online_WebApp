@@ -271,20 +271,23 @@ def delete_supplier_product(qid):
             if not mapping or str(mapping.supplier_id) != str(supplier_id):
                 return jsonify({'success': False, 'message': 'غير مصرح لك بحذف هذا المنتج'}), 403
         
-        result = services.products.update_product_status(qid, "ARCHIVED")
+        # محاولة أرشفة المنتج خارجيًا، ولكن بغض النظر عن النتيجة، سنقوم بفك الارتباط محليًا
+        try:
+            services.products.update_product_status(qid, "ARCHIVED")
+        except Exception as ext_err:
+            print(f"⚠️ [Warning] فشل الأرشفة الخارجية للمنتج {qid}: {ext_err}")
+
+        # حذف الربط محلياً بشكل مؤكد لمنع عودته نهائياً
+        if mapping:
+            db.session.delete(mapping)
+            db.session.commit()
         
-        if result and result.get('success'):
-            if mapping:
-                db.session.delete(mapping)
-                db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': '✅ تم حذف/أرشفة المنتج بنجاح'
-            })
-        else:
-            return jsonify({'success': False, 'message': '❌ فشل حذف المنتج'}), 500
+        return jsonify({
+            'success': True,
+            'message': '✅ تم حذف المنتج وفك ارتباطه بنجاح'
+        })
             
     except Exception as e:
+        db.session.rollback()
         print(f"❌ خطأ في delete_supplier_product: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
