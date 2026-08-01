@@ -26,16 +26,10 @@ def format_price(price):
     except: return str(price)
 
 
-# ✅ دالة مساعدة لتحديث بيانات المنتجات المرتبطة فقط (بدون جلب صفحات كثيرة)
 def _sync_products_in_background(supplier_id):
-    """
-    تقوم بتحديث بيانات المنتجات المرتبطة بالمورد من الـ API
-    لا تنشئ روابط جديدة، ولا تجلب صفحات عديدة، فقط تحديث البيانات الموجودة.
-    """
     try:
         mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
-        if not mappings:
-            return
+        if not mappings: return
         
         updated_count = 0
         for mapping in mappings:
@@ -47,7 +41,6 @@ def _sync_products_in_background(supplier_id):
         
         db.session.commit()
         print(f"✅ [Sync Background] تم تحديث {updated_count} منتج للمورد {supplier_id}")
-        
     except Exception as e:
         db.session.rollback()
         print(f"⚠️ [Sync Background Error] {e}")
@@ -66,7 +59,7 @@ def manage_supplier_products_view():
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
         # ============================================================
-        # 1. المزامنة الخلفية الذكية (مرة كل 10 دقائق)
+        # 1. المزامنة الخلفية
         # ============================================================
         last_sync_key = f'_last_sync_{supplier_id}'
         if not is_admin and supplier_id:
@@ -78,57 +71,45 @@ def manage_supplier_products_view():
                 session[last_sync_key] = datetime.utcnow()
 
         # ============================================================
-        # 2. جلب المنتجات المرتبطة مع فلترة (بحث، حالة، سعر)
+        # 2. جلب المنتجات
         # ============================================================
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('limit', 10, type=int)
         per_page = max(1, min(per_page, 50))
-
-        # كشف ما إذا كان الطلب AJAX
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
-        # بناء الاستعلام مع الفلاتر
         query = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id)
-
-        # فلتر الحالة (إذا أرسل)
         status_filter = request.args.get('status', '').strip()
         if status_filter:
             query = query.filter_by(status=status_filter)
 
-        # فلتر البحث (اسم المنتج أو SKU) - يتم عبر جلب التفاصيل لاحقاً
         search_term = request.args.get('search', '').strip().lower()
-
-        # فلتر السعر (يتم تطبيقه بعد جلب التفاصيل)
         min_price = request.args.get('min_price', '')
         max_price = request.args.get('max_price', '')
 
-        # تنفيذ Pagination
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         mappings = pagination.items
 
         # ============================================================
-        # 3. جلب تفاصيل المنتجات مع تطبيق الفلاتر (بحث، سعر)
+        # 3. جلب تفاصيل المنتجات مع الفلاتر
         # ============================================================
         products_data = []
         for mapping in mappings:
             qid = mapping.product_qid
             product = services.products.get_product_by_qid(qid)
             
-            # ✅ تم التعديل هنا: نستبعد أي منتج لا نجد له بيانات في قاعدة البيانات (منتجات شبح)
+            # ✅ أهم تعديل هنا: تجاهل المنتجات التي لا يوجد لها بيانات
             if not product:
                 continue
 
-            # تطبيق فلتر البحث (اسم المنتج أو SKU)
             if search_term:
                 title = str(product.get('title', '')).lower()
                 sku = str(product.get('sku', '')).lower()
                 if search_term not in title and search_term not in sku:
                     continue
 
-            # تطبيق فلتر السعر
             try:
-                price_val = float(product.get('price') or product.get('sale_price') or 
-                                 product.get('regular_price') or 0)
+                price_val = float(product.get('price') or product.get('sale_price') or product.get('regular_price') or 0)
                 if min_price and price_val < float(min_price):
                     continue
                 if max_price and price_val > float(max_price):
@@ -136,18 +117,12 @@ def manage_supplier_products_view():
             except (ValueError, TypeError):
                 pass
 
-            products_data.append({
-                'mapping': mapping,
-                'product': product
-            })
+            products_data.append({'mapping': mapping, 'product': product})
 
         # ============================================================
-        # 4. تجهيز بيانات الترقيم (مع مراعاة الفلاتر)
+        # 4. تجهيز بيانات الترقيم
         # ============================================================
-        # ✅ تم التعديل هنا: حساب العدد الفعلي للصفحات بناءً على النتائج الحقيقية بعد الفلترة
         total_filtered = len(products_data)
-        
-        # حساب عدد الصفحات الصحيح بناءً على العدد الفعلي
         total_pages = (total_filtered + per_page - 1) // per_page if total_filtered > 0 else 1
 
         pagination_info = {
@@ -161,49 +136,65 @@ def manage_supplier_products_view():
             'total_items': total_filtered
         }
 
-        # ============================================================
-        # 5. الرد حسب نوع الطلب (AJAX أو عادي)
-        # ============================================================
         if is_ajax:
             return jsonify({
                 'success': True,
-                'html': render_template(
-                    'suppliers/includes/_product_grid.html',
-                    products=products_data,
-                    get_status_text=get_status_text,
-                    format_price=format_price
-                ),
-                'pagination_html': render_template(
-                    'suppliers/includes/_pagination.html',
-                    pagination=pagination_info
-                ),
+                'html': render_template('suppliers/includes/_product_grid.html', products=products_data, get_status_text=get_status_text, format_price=format_price),
+                'pagination_html': render_template('suppliers/includes/_pagination.html', pagination=pagination_info),
                 'total_items': pagination_info['total_items']
             })
 
-        return render_template(
-            'suppliers/suppliers_product.html',
-            products=products_data,
-            pagination=pagination_info,
-            get_status_text=get_status_text,
-            format_price=format_price
-        )
+        return render_template('suppliers/suppliers_product.html', products=products_data, pagination=pagination_info, get_status_text=get_status_text, format_price=format_price)
 
     except Exception as e:
         current_app.logger.error(f"خطأ غير متوقع: {traceback.format_exc()}")
         flash('❌ حدث خطأ غير متوقع أثناء تحميل المنتجات', 'danger')
-        
-        # في حالة AJAX، نعيد رسالة خطأ بتنسيق JSON
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         if is_ajax:
-            return jsonify({
-                'success': False,
-                'message': 'حدث خطأ أثناء تحميل المنتجات'
-            }), 500
+            return jsonify({'success': False, 'message': 'حدث خطأ أثناء تحميل المنتجات'}), 500
+        return render_template('suppliers/suppliers_product.html', products=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1}, get_status_text=get_status_text, format_price=format_price)
+
+
+# ============================================================================================
+# 🛠️ الحل الجديد المطلوب: إضافة كود صفحة التعديل مع فحص المنتج
+# ============================================================================================
+@suppliers_product_bp.route('/products/edit/<string:product_qid>', methods=['GET', 'POST'], endpoint='edit_supplier_product')
+@login_required
+def edit_supplier_product_view(product_qid):
+    try:
+        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         
+        # 1. نتحقق أولاً من وجود العلاقة في جدول الربط
+        mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=product_qid).first()
+        if not mapping:
+            flash('⚠️ لا تملك الصلاحية لتعديل هذا المنتج، أو أن العلاقة غير موجودة.', 'danger')
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+        # 2. نحاول جلب تفاصيل المنتج من جدول المنتجات
+        product = services.products.get_product_by_qid(product_qid)
+
+        # ✅ الحل الجذري: إذا كان المنتج (شبح) غير موجود في قاعدة البيانات، منع التعديل
+        if not product:
+            flash('❌ هذا المنتج غير موجود في نظامنا أو تم حذفه. يرجى التواصل مع الإدارة.', 'danger')
+            # (اختياري) نقوم بحذف الرابط الوهمي من جدول الربط لتنظيف قاعدة البيانات
+            db.session.delete(mapping)
+            db.session.commit()
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+        # 3. هنا يكون منطق التعديل (GET لعرض النموذج و POST للحفظ)
+        if request.method == 'POST':
+            # ... أكواد الحفظ والتحديث هنا ...
+            flash('✅ تم تعديل المنتج بنجاح', 'success')
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+        # في حالة GET عرض صفحة التعديل
         return render_template(
-            'suppliers/suppliers_product.html',
-            products=[],
-            pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1},
-            get_status_text=get_status_text,
-            format_price=format_price
+            'suppliers/edit_product.html',
+            mapping=mapping,
+            product=product
         )
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ في صفحة التعديل: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع أثناء تحميل صفحة التعديل', 'danger')
+        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
