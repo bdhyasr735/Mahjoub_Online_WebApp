@@ -1,208 +1,68 @@
 <!-- apps/suppliers_product/templates/suppliers/partials/edit/_variants.html -->
 
-<!-- ============================================================
-    🔀 خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)
-    ============================================================ -->
-<div class="form-section variants-card shadow-sm">
-    <div class="form-section-title d-flex align-items-center justify-content-between">
-        <div>
-            <i class="fas fa-layer-group text-gold me-2"></i> 
-            <span>خيارات ومتغيرات المنتج (اللون، المقاس، إلخ...)</span>
-        </div>
-        <span class="badge badge-gold-soft">
-            <i class="fas fa-sliders-h me-1"></i> المتغيرات
-        </span>
-    </div>
-    
-    <div class="form-group mb-4">
-        <label class="form-label fw-bold text-dark-purple mb-2">إدارة خيارات المنتج:</label>
-        <div id="optionsContainer" class="d-flex flex-column gap-3">
-            
-            {% if product and product.options and product.options|length > 0 %}
-                <!-- ✅ تكرار آمن عبر الخيارات المخزنة (مع الحماية ضد خطأ الدالة المدمجة) -->
-                {% for opt in product.options %}
-                <div class="option-row p-3 rounded-3 bg-white">
-                    <div class="option-header d-flex gap-2 mb-2 flex-wrap">
-                        <input type="text" class="form-control custom-input opt-name" 
-                               value="{{ opt.name }}" 
-                               placeholder="اسم الخيار (مثل: اللون)" 
-                               oninput="generatePayload()" style="flex: 1; min-width: 150px;">
-                        
-                        <button class="btn btn-outline-danger btn-sm px-3 delete-opt-btn" type="button" onclick="removeOptionRow(this)" title="حذف الخيار">
-                            <i class="fas fa-trash-alt"></i> حذف
-                        </button>
-                    </div>
-                    
-                    <label class="form-label text-muted" style="font-size: 0.85rem; margin-bottom: 6px;">القيم المتعددة:</label>
-                    <div class="values-container d-flex flex-wrap gap-2 mb-2">
-                        {% if opt.values and opt.values is iterable and opt.values is not mapping and opt.values is not string %}
-                            {% for val in opt.values %}
-                            <div class="value-tag">
-                                {{ val.label if val.label is defined else val }} 
-                                <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
-                            </div>
-                            {% endfor %}
-                        {% elif opt.get is defined and opt.get('values') %}
-                            {% for val in opt.get('values') %}
-                            <div class="value-tag">
-                                {{ val.label if val.label is defined else val }} 
-                                <span onclick="this.closest('.value-tag').remove(); updateVariantsTable(); generatePayload();">&times;</span>
-                            </div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                    
-                    <div class="add-value-group input-group input-group-sm">
-                        <input type="text" class="form-control custom-input val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
-                        <button class="btn btn-gold-gradient" type="button" onclick="addValueToRow(this)">
-                            <i class="fas fa-plus me-1"></i> إضافة قيمة
-                        </button>
-                    </div>
-                </div>
-                {% endfor %}
-                
-            {% else %}
-                <!-- ✅ صف فارغ افتراضي عند عدم وجود خيارات -->
-                <div class="option-row p-3 rounded-3 bg-white">
-                    <div class="option-header d-flex gap-2 mb-2 flex-wrap">
-                        <input type="text" class="form-control custom-input opt-name" placeholder="اسم الخيار (مثل: اللون)" oninput="generatePayload()" style="flex: 1; min-width: 150px;">
-                        <button class="btn btn-outline-danger btn-sm px-3 delete-opt-btn" type="button" onclick="removeOptionRow(this)" title="حذف الخيار">
-                            <i class="fas fa-trash-alt"></i> حذف
-                        </button>
-                    </div>
-                    <label class="form-label text-muted" style="font-size: 0.85rem; margin-bottom: 6px;">القيم المتعددة:</label>
-                    <div class="values-container d-flex flex-wrap gap-2 mb-2"></div>
-                    <div class="add-value-group input-group input-group-sm">
-                        <input type="text" class="form-control custom-input val-input" placeholder="أدخل قيمة ثم اضغط إضافة (مثل: أحمر)">
-                        <button class="btn btn-gold-gradient" type="button" onclick="addValueToRow(this)">
-                            <i class="fas fa-plus me-1"></i> إضافة قيمة
-                        </button>
-                    </div>
-                </div>
-            {% endif %}
-
-        </div>
-        <button class="btn btn-outline-purple w-100 mt-3 py-2 fw-bold" type="button" onclick="addOptionRow()">
-            <i class="fas fa-plus-circle me-1"></i> إضافة خيار جديد
+<div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <label class="form-label fw-bold mb-0">
+            <i class="fas fa-random text-muted me-1"></i> خيارات ومتغيرات المنتج (Variants)
+        </label>
+        <button type="button" class="btn btn-outline-custom btn-sm" id="addVariantOptionBtn" style="border-color: var(--dark-purple, #2d0b36); color: var(--dark-purple, #2d0b36);">
+            <i class="fas fa-plus me-1"></i> إضافة خاصية جديدة
         </button>
     </div>
 
-    <div class="form-group mb-0">
-        <label class="form-label fw-bold text-dark-purple mb-2">تخصيص السعر، الكمية، وصورة لكل متغير:</label>
-        <div id="variantsTableContainer" class="table-responsive">
-            <p class="text-muted text-center p-4 bg-light rounded-3 border border-dashed" style="font-size: 0.9rem;">
-                <i class="fas fa-info-circle me-1"></i> قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...
-            </p>
-        </div>
+    <p class="text-muted small">أضف خصائص مثل المقاس أو اللون لتسهيل اختيار العملاء للمنتج.</p>
+
+    <!-- ✅ حاوية المتغيرات الديناميكية -->
+    <div id="variantsContainer" class="vstack gap-3">
+        <!-- يتم توليد خيارات المتغيرات هنا برمجياً أو عرضها إن وجدت -->
+        {% if prod_variants and prod_variants|length > 0 %}
+            {% for variant in prod_variants %}
+            <div class="card p-3 border shadow-sm variant-item">
+                <div class="row align-items-center">
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <input type="text" name="variant_name[]" class="form-control form-control-sm" placeholder="اسم الخيار (مثال: اللون)" value="{{ variant.name }}">
+                    </div>
+                    <div class="col-md-6 mb-2 mb-md-0">
+                        <input type="text" name="variant_values[]" class="form-control form-control-sm" placeholder="القِيَم مَفصولة بفاصلة (مثال: أحمر, أزرق)" value="{{ variant.values }}">
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.closest('.variant-item').remove()">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
     </div>
 </div>
 
-<!-- ============================================================
-    🎨 التنسيقات والأنماط (Styles)
-    ============================================================ -->
-<style>
-.variants-card {
-    background: linear-gradient(135deg, #faf8f6, #ffffff);
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-}
-
-.form-section-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #2d0b36;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
-}
-
-.text-gold { color: #D4AF37 !important; }
-.text-dark-purple { color: #2d0b36 !important; }
-
-.badge-gold-soft {
-    background: rgba(212, 175, 55, 0.2);
-    color: #D4AF37;
-    font-weight: 600;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-}
-
-.custom-input {
-    border-color: #e2e8f0;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    padding: 10px 14px;
-    font-size: 0.95rem;
-    height: 45px;
-}
-
-.custom-input:focus {
-    border-color: #D4AF37;
-    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
-}
-
-.option-row {
-    border: 1px solid rgba(212, 175, 55, 0.3) !important;
-    border-radius: 10px !important;
-    background: #ffffff !important;
-    transition: all 0.3s ease;
-}
-.option-row:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
-
-.delete-opt-btn {
-    height: 45px; display: flex; align-items: center; border-radius: 8px !important;
-}
-
-.btn-gold-gradient {
-    background: linear-gradient(135deg, #2d0b36, #1a0520);
-    color: #D4AF37; border: none; font-weight: 600;
-    padding: 8px 16px; height: 45px;
-    border-radius: 0 10px 10px 0 !important;
-    transition: all 0.3s ease; display: flex; align-items: center;
-}
-.btn-gold-gradient:hover {
-    opacity: 0.95; color: #ffffff; box-shadow: 0 4px 12px rgba(45, 11, 54, 0.2);
-}
-
-.btn-outline-purple {
-    color: #2d0b36; border: 2px dashed #2d0b36;
-    background: transparent; border-radius: 10px; transition: all 0.3s ease; height: 50px;
-}
-.btn-outline-purple:hover {
-    background: #2d0b36; color: #D4AF37; border-color: #2d0b36;
-}
-
-.border-dashed { border-style: dashed !important; border-color: #cbd5e1 !important; }
-
-#variantsTableContainer table th,
-#variantsTableContainer table td {
-    text-align: center; vertical-align: middle;
-}
-#variantsTableContainer table input[type="text"] {
-    height: 42px; text-align: center; direction: ltr;
-}
-
-@media (max-width: 768px) {
-    .variants-card { padding: 16px; }
-}
-</style>
-
-<!-- ============================================================
-    🚀 سكربت ضمان توليد الجدول (آمن 100%)
-    ============================================================ -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        if (typeof generatePayload === 'function' && typeof updateVariantsTable === 'function') {
-            console.log('✅ [variants] جاري تحديث جدول المتغيرات عند التحميل...');
-            updateVariantsTable();
-            generatePayload();
-        } else {
-            console.warn('⚠️ [variants] دوال الـ JS لم يتم تحميلها بعد.');
+    document.addEventListener('DOMContentLoaded', function() {
+        const addBtn = document.getElementById('addVariantOptionBtn');
+        const container = document.getElementById('variantsContainer');
+
+        if (addBtn && container) {
+            addBtn.addEventListener('click', function() {
+                const variantCard = document.createElement('div');
+                variantCard.className = 'card p-3 border shadow-sm variant-item';
+                variantCard.innerHTML = `
+                    <div class="row align-items-center">
+                        <div class="col-md-4 mb-2 mb-md-0">
+                            <input type="text" name="variant_name[]" class="form-control form-control-sm" placeholder="اسم الخيار (مثال: المقاس)">
+                        </div>
+                        <div class="col-md-6 mb-2 mb-md-0">
+                            <input type="text" name="variant_values[]" class="form-control form-control-sm" placeholder="القِيَم (مثال: S, M, L)">
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.closest('.variant-item').remove()">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(variantCard);
+            });
         }
-    }, 500);
-});
+    });
 </script>
