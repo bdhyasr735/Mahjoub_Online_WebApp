@@ -13,7 +13,7 @@
         
         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
             <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden" 
-                 onclick="window.location.href='{{ url_for('suppliers_product_bp.edit_supplier_product', qid=product_qid) }}'"
+                 onclick="window.location.href='{{ url_for('suppliers_product_bp.edit_supplier_product', product_qid=product_qid) }}'"
                  style="cursor: pointer;">
                 
                 <!-- شريط الحالة العلوي -->
@@ -81,7 +81,7 @@
                     </div>
 
                     <div class="mt-3">
-                        <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', qid=product_qid) }}" 
+                        <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', product_qid=product_qid) }}" 
                            class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none"
                            style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 10px; border: none; transition: all 0.3s ease;">
                             <i class="fas fa-edit"></i> تعديل المنتج
