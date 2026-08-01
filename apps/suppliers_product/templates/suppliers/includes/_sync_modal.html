@@ -1,5 +1,6 @@
 <!-- 📂 apps/suppliers_product/templates/suppliers/includes/_sync_modal.html -->
 <!-- نافذة المزامنة المنبثقة المتطورة للمورد -->
+
 <div id="syncModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center;" dir="rtl">
     <div class="sync-modal-box" style="
         background: linear-gradient(145deg, #ffffff, #f8f5f0);
@@ -60,12 +61,26 @@
            onmouseout="this.style.color='#999'; this.style.background='none'">
             ✕
         </button>
+
+        <!-- ✅ زر إلغاء أثناء التحميل -->
+        <button id="cancelSyncBtn" onclick="cancelSync()" style="
+            margin-top: 15px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: #6c757d;
+            display: none;
+        ">إلغاء المزامنة</button>
     </div>
 </div>
 
 <script>
-// ✅ متغير لمنع النقر المتكرر
+// ✅ متغيرات التحكم
 let isSyncing = false;
+let syncCancelled = false;
 
 // ✅ فتح نافذة المزامنة وبدء المزامنة التدريجية صفحة بصفحة
 async function openSyncModal() {
@@ -75,8 +90,13 @@ async function openSyncModal() {
     resetSyncModalState();
     modal.style.display = 'flex';
     isSyncing = true;
+    syncCancelled = false;
 
-    // الحصول على CSRF token بأمان (من meta أو input)
+    // إظهار زر الإلغاء
+    const cancelBtn = document.getElementById('cancelSyncBtn');
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+
+    // الحصول على CSRF token
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
                       document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
                       '';
@@ -85,25 +105,31 @@ async function openSyncModal() {
     let hasNext = true;
     let totalSynced = 0;
     let totalPages = 1;
+    let totalProcessed = 0;
 
     try {
-        while (hasNext) {
-            let progressPercentage = totalPages > 1 ? Math.min(Math.round((currentPage / totalPages) * 100), 95) : 50;
-            updateSyncProgress(`جاري مزامنة الصفحة ${currentPage} من ${totalPages}...`, progressPercentage);
+        while (hasNext && !syncCancelled) {
+            totalPages = Math.max(totalPages, currentPage);
+            let progressPercentage = Math.min(Math.round((currentPage / totalPages) * 95), 95);
+            updateSyncProgress(`جاري مزامنة الصفحة ${currentPage}...`, progressPercentage);
 
-            // 🛑 تم تعديل اسم الرابط هنا إلى save_sync_supplier_product 
-            const response = await fetch("{{ url_for('suppliers_product_bp.save_sync_supplier_product') }}", {
+            // ✅ استخدام نقطة النهاية الجديدة sync_batch_products
+            const response = await fetch("{{ url_for('suppliers_product_bp.sync_batch_products') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken,
-                    'X-CSRF-Token': csrfToken  // دعم إضافي لبعض الخوادم
+                    'X-CSRF-Token': csrfToken
                 },
-                body: JSON.stringify({ page: currentPage })
+                body: JSON.stringify({ 
+                    page: currentPage,
+                    limit: 12 
+                })
             });
 
             if (!response.ok) {
-                throw new Error(`الخادم استجاب بحالة خطأ: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`الخادم استجاب بحالة خطأ: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
@@ -112,38 +138,74 @@ async function openSyncModal() {
                 throw new Error(data.message || 'فشلت عملية المزامنة');
             }
 
-            // تحديث مؤشرات التتبع من الرد
+            // تحديث المؤشرات من الرد
             totalSynced += data.syncedCount || 0;
+            totalProcessed += (data.syncedCount || 0) + (data.updatedCount || 0);
             totalPages = data.total_pages || totalPages;
             hasNext = data.has_next || false;
             currentPage = data.next_page || (currentPage + 1);
+
+            // تحديث تفاصيل التقدم
+            let detailMsg = `تمت مزامنة ${totalSynced} منتج جديد`;
+            if (data.updatedCount > 0) detailMsg += `، تحديث ${data.updatedCount} منتج`;
+            document.getElementById('syncDetails').textContent = detailMsg;
         }
 
-        // ✅ اكتمال المزامنة بنجاح لجميع الصفحات
+        // ✅ التحقق إذا تم الإلغاء
+        if (syncCancelled) {
+            showSyncResult(false, 'تم إلغاء المزامنة يدوياً.', `تمت معالجة ${totalProcessed} منتج قبل الإلغاء.`);
+            setTimeout(() => { closeSyncModal(); isSyncing = false; }, 2000);
+            return;
+        }
+
+        // ✅ اكتمال المزامنة بنجاح
         updateSyncProgress('اكتملت المزامنة بنجاح!', 100);
-        showSyncResult(true, 'تمت مزامنة جميع المنتجات بنجاح.', `إجمالي المنتجات المعالجة: ${totalSynced}`);
+        showSyncResult(
+            true, 
+            'تمت مزامنة جميع المنتجات بنجاح.', 
+            `تمت إضافة ${totalSynced} منتج جديد إلى حسابك. إجمالي المعالجة: ${totalProcessed} منتج.`
+        );
+
+        // إخفاء زر الإلغاء
+        if (cancelBtn) cancelBtn.style.display = 'none';
 
         setTimeout(() => {
             closeSyncModal();
             isSyncing = false;
+            // تحديث الصفحة الرئيسية
             if (typeof fetchProducts === 'function') {
-                fetchProducts(1); // تحديث جدول المنتجات من الصفحة الأولى
+                fetchProducts(1);
             } else {
-                window.location.reload(); // ✅ إعادة تحميل الصفحة تلقائياً لتحديث جدول المنتجات فوراً للمورد
+                window.location.reload();
             }
         }, 1500);
 
     } catch (error) {
         console.error('Sync Error:', error);
-        showSyncResult(false, error.message || 'حدث خطأ في الاتصال بالخادم، حاول لاحقاً.');
+        if (!syncCancelled) {
+            showSyncResult(false, error.message || 'حدث خطأ في الاتصال بالخادم، حاول لاحقاً.');
+        }
+        if (cancelBtn) cancelBtn.style.display = 'none';
         setTimeout(() => {
             closeSyncModal();
             isSyncing = false;
-        }, 2500);
+        }, 3000);
     }
 }
 
-// ✅ تحديث شريط التقدم مع النص
+// ✅ دالة إلغاء المزامنة
+function cancelSync() {
+    syncCancelled = true;
+    const statusText = document.getElementById('syncStatusText');
+    if (statusText) statusText.textContent = 'جاري إلغاء المزامنة...';
+    const cancelBtn = document.getElementById('cancelSyncBtn');
+    if (cancelBtn) {
+        cancelBtn.disabled = true;
+        cancelBtn.textContent = 'جاري الإلغاء...';
+    }
+}
+
+// ✅ تحديث شريط التقدم
 function updateSyncProgress(message, percentage) {
     const progressBar = document.getElementById('syncProgressBar');
     const statusText = document.getElementById('syncStatusText');
@@ -159,7 +221,7 @@ function updateSyncProgress(message, percentage) {
     }
 }
 
-// ✅ عرض نتيجة المزامنة (مع إعادة التحميل التلقائي)
+// ✅ عرض نتيجة المزامنة
 function showSyncResult(success, message, details) {
     const resultDiv = document.getElementById('syncResult');
     const messageDiv = document.getElementById('syncMessage');
@@ -168,12 +230,10 @@ function showSyncResult(success, message, details) {
     const statusText = document.getElementById('syncStatusText');
     const spinnerWrapper = document.querySelector('.sync-icon-wrapper');
     
-    // إخفاء عناصر التقدم
     if (progressBar) progressBar.style.display = 'none';
     if (statusText) statusText.style.display = 'none';
     if (spinnerWrapper) spinnerWrapper.style.display = 'none';
     
-    // عرض النتيجة
     if (resultDiv) resultDiv.style.display = 'block';
     if (messageDiv) {
         messageDiv.className = `alert alert-${success ? 'success' : 'danger'}`;
@@ -188,12 +248,13 @@ function showSyncResult(success, message, details) {
     }
 }
 
-// ✅ إعادة ضبط الحالة الداخلية للنافذة
+// ✅ إعادة ضبط الحالة
 function resetSyncModalState() {
     const resultDiv = document.getElementById('syncResult');
     const progressBar = document.getElementById('syncProgressBar');
     const statusText = document.getElementById('syncStatusText');
     const spinnerWrapper = document.querySelector('.sync-icon-wrapper');
+    const cancelBtn = document.getElementById('cancelSyncBtn');
     
     if (resultDiv) resultDiv.style.display = 'none';
     if (spinnerWrapper) spinnerWrapper.style.display = 'inline-block';
@@ -206,24 +267,33 @@ function resetSyncModalState() {
         statusText.style.display = 'block';
         statusText.textContent = 'يرجى الانتظار، جاري بدء مزامنة المنتجات...';
     }
+    if (cancelBtn) {
+        cancelBtn.style.display = 'none';
+        cancelBtn.disabled = false;
+        cancelBtn.textContent = 'إلغاء المزامنة';
+    }
+    syncCancelled = false;
 }
 
-// ✅ إعادة ضبط النافذة وإخفائها
+// ✅ إخفاء النافذة
 function resetSyncModal() {
     const modal = document.getElementById('syncModal');
     resetSyncModalState();
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    if (modal) modal.style.display = 'none';
     isSyncing = false;
 }
 
-// ✅ إغلاق النافذة يدوياً
 function closeSyncModal() {
+    if (isSyncing) {
+        if (!confirm('المزامنة ما زالت قيد التنفيذ. هل تريد إلغاءها وإغلاق النافذة؟')) {
+            return;
+        }
+        syncCancelled = true;
+    }
     resetSyncModal();
 }
 
-// ✅ إغلاق النافذة بالضغط على زر ESC
+// ✅ إغلاق بالضغط على ESC
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         const modal = document.getElementById('syncModal');
@@ -233,7 +303,7 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// ✅ إغلاق النافذة بالضغط خارج الصندوق
+// ✅ إغلاق بالضغط خارج الصندوق
 const syncModalEl = document.getElementById('syncModal');
 if (syncModalEl) {
     syncModalEl.addEventListener('click', function(event) {
@@ -270,12 +340,6 @@ if (syncModalEl) {
     animation: modalFadeIn 0.4s ease-out forwards;
 }
 
-/* ✅ تحسين الأزرار */
-.sync-modal-box .btn-close-custom {
-    transition: all 0.3s ease;
-}
-
-/* ✅ تحسين مظهر الرسائل */
 .alert-success {
     background: linear-gradient(135deg, #d4edda, #c3e6cb) !important;
     color: #155724 !important;
