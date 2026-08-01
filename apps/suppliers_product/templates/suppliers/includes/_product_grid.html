@@ -72,7 +72,9 @@
                     </div>
 
                     <div class="mt-3">
-                        <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', qid=item.product.qid) }}" 
+                        {# ✅ تصحيح اسم الـ endpoint واستخراج الـ qid بدقة لفتح قالب التعديل بالمسار الصحيح #}
+                        {% set product_qid = item.product.qid or item.product.id or (item.mapping.product_qid if item.mapping else '') %}
+                        <a href="{{ url_for('suppliers_product_bp.edit_product_view', qid=product_qid) }}" 
                            class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none"
                            style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 10px; border: none; transition: all 0.3s ease;">
                             <i class="fas fa-edit"></i> تعديل المنتج
