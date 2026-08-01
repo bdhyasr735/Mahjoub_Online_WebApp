@@ -1,8 +1,9 @@
 <!-- ============================================================
    📦 معلومات المنتج الأساسية (للمورد - سعر التكلفة، الكمية، الوزن)
+   يعتمد على المتغيرات القادمة من الباك إند: mapping, product
    ============================================================ -->
 <div class="row g-3">
-    <!-- SKU (للقراءة فقط) -->
+    <!-- SKU (يأتي من product، للقراءة فقط) -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="productSku" class="form-label">
@@ -10,25 +11,25 @@
                 <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">للقراءة فقط</span>
             </label>
             <input type="text" id="productSku" class="form-control form-control-lg custom-input" 
-                   value="{{ prod_sku }}" readonly
+                   value="{{ product.sku or '' }}" readonly
                    style="background-color: #f8f9fa; cursor: default;">
             <small class="text-muted"><i class="fas fa-lock me-1" style="color: #2d0b36;"></i> يديره الأدمن ولا يمكن تعديله</small>
         </div>
     </div>
     
-    <!-- الكمية (قابلة للتعديل) -->
+    <!-- الكمية (تأتي من mapping، قابلة للتعديل) -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="productQuantity" class="form-label">
                 <i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية المتاحة
             </label>
             <input type="text" id="productQuantity" name="quantity" class="form-control form-control-lg custom-input numeric-input" 
-                   value="{{ prod_qty|string if prod_qty is not none else '0' }}" 
+                   value="{{ mapping.quantity|string if mapping.quantity is not none else '0' }}" 
                    oninput="allowNumericOnly(this);">
         </div>
     </div>
 
-    <!-- سعر التكلفة (قابل للتعديل) -->
+    <!-- سعر التكلفة (يأتي من mapping، قابل للتعديل) -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="productCostPrice" class="form-label">
@@ -37,7 +38,7 @@
             </label>
             <div class="input-group input-group-lg">
                 <input type="text" id="productCostPrice" name="price" class="form-control custom-input numeric-input" 
-                       value="{{ prod_price|string if prod_price is not none else '0' }}" 
+                       value="{{ mapping.price|string if mapping.price is not none else '0' }}" 
                        oninput="allowNumericOnly(this);">
                 <span class="input-group-text currency-addon">ر.س</span>
             </div>
@@ -45,14 +46,14 @@
         </div>
     </div>
     
-    <!-- الوزن (قابل للتعديل) -->
+    <!-- الوزن (يأتي من mapping، قابل للتعديل) -->
     <div class="col-md-6">
         <div class="form-group">
             <label for="productWeight" class="form-label">
                 <i class="fas fa-weight me-1" style="color: #2d0b36;"></i> الوزن (كجم)
             </label>
             <input type="text" id="productWeight" name="weight" class="form-control form-control-lg custom-input numeric-input" 
-                   value="{{ prod_weight|string if prod_weight is not none else '0' }}" 
+                   value="{{ mapping.weight|string if mapping.weight is not none else '0' }}" 
                    oninput="allowNumericOnly(this);">
             <small class="text-muted"><i class="fas fa-info-circle me-1" style="color: #2d0b36;"></i> الوزن بوحدة الكيلوجرام</small>
         </div>
