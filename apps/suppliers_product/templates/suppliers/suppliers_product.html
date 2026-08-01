@@ -35,88 +35,8 @@
         {% endif %}
     {% endwith %}
 
-    <!-- ✅ شريط الفلاتر المتطور (بدون فئات) -->
-    <div class="card mb-4 shadow-sm border-0 rounded-4">
-        <div class="card-body p-3 p-md-4">
-            <div class="row g-3 align-items-end">
-                <!-- 🔍 البحث (يتم عبر جميع الصفحات) -->
-                <div class="col-md-4">
-                    <label for="searchInput" class="form-label fw-bold small text-muted">
-                        <i class="fas fa-search me-1"></i> بحث
-                    </label>
-                    <div class="input-group">
-                        <input type="text" id="searchInput" class="form-control" 
-                               placeholder="اسم المنتج أو SKU..." 
-                               style="border-radius: 10px 0 0 10px; height: 45px; border-color: #2d0b36;">
-                        <button class="btn" type="button" onclick="fetchProducts(1)" 
-                                style="background: #2d0b36; color: #D4AF37; border-radius: 0 10px 10px 0; border: none; height: 45px; width: 50px;">
-                            <i class="fas fa-arrow-right"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 📌 الحالة -->
-                <div class="col-md-2">
-                    <label for="statusFilter" class="form-label fw-bold small text-muted">
-                        <i class="fas fa-tag me-1"></i> الحالة
-                    </label>
-                    <select id="statusFilter" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
-                        <option value="">الكل</option>
-                        <option value="PUBLISHED">منشور</option>
-                        <option value="PENDING">قيد المراجعة</option>
-                        <option value="DRAFT">مسودة</option>
-                        <option value="ARCHIVED">مؤرشف</option>
-                    </select>
-                </div>
-
-                <!-- 💰 نطاق السعر -->
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">
-                        <i class="fas fa-coins me-1"></i> السعر (ر.س)
-                    </label>
-                    <div class="input-group">
-                        <input type="number" id="minPrice" class="form-control" placeholder="من" 
-                               style="height: 45px; border-radius: 10px 0 0 10px; border-color: #2d0b36;">
-                        <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; height: 45px;">-</span>
-                        <input type="number" id="maxPrice" class="form-control" placeholder="إلى" 
-                               style="height: 45px; border-radius: 0 10px 10px 0; border-color: #2d0b36;">
-                    </div>
-                </div>
-
-                <!-- 📊 عدد المنتجات لكل صفحة -->
-                <div class="col-md-2">
-                    <label for="limitSelect" class="form-label fw-bold small text-muted">
-                        <i class="fas fa-list me-1"></i> عرض
-                    </label>
-                    <select id="limitSelect" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </div>
-
-                <!-- 🔄 زر إعادة تعيين -->
-                <div class="col-md-1">
-                    <label class="form-label fw-bold small text-muted invisible">.</label>
-                    <button onclick="clearAllFilters()" class="btn btn-outline-secondary w-100" 
-                            style="border-radius: 10px; height: 45px;" title="إعادة تعيين الفلاتر">
-                        <i class="fas fa-undo-alt"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- ✅ عداد النتائج (يظهر عدد المنتجات الإجمالي) -->
-            <div class="row mt-3">
-                <div class="col-12">
-                    <small class="text-muted" id="resultsCount">
-                        <i class="fas fa-database me-1"></i> 
-                        إجمالي المنتجات: <strong id="totalItemsCount">{{ pagination.total_items if pagination else 0 }}</strong>
-                    </small>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- ✅ استدعاء شريط الفلاتر من ملف منفصل -->
+    {% include "suppliers/includes/_filter_bar.html" %}
 
     <!-- ✅ حاوية المنتجات والترقيم -->
     <div id="productsContainer">
@@ -131,6 +51,15 @@
 
 <!-- ✅ كود JavaScript المتطور -->
 <script>
+// ✅ دالة منع التكرار (Debounce) للبحث ونطاق السعر
+let debounceTimer;
+function debounceFetchProducts() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        fetchProducts(1);
+    }, 500);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // دالة إعادة تعيين الفلاتر
     window.clearAllFilters = function() {
@@ -142,15 +71,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchProducts(1);
     };
 
-    // ربط الأحداث مع تأخير للبحث
+    // البحث عند الضغط على Enter
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        let timeout;
-        searchInput.addEventListener('input', function() {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => fetchProducts(1), 600);
-        });
-        // البحث عند الضغط على Enter
         searchInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -159,10 +82,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ربط باقي الفلاتر
+    // ربط باقي الفلاتر (باستخدام onchange من الـ HTML أو هنا)
     document.getElementById('statusFilter').addEventListener('change', function() { fetchProducts(1); });
-    document.getElementById('minPrice').addEventListener('input', function() { fetchProducts(1); });
-    document.getElementById('maxPrice').addEventListener('input', function() { fetchProducts(1); });
     document.getElementById('limitSelect').addEventListener('change', function() { fetchProducts(1); });
 });
 
@@ -207,7 +128,8 @@ function fetchProducts(page = 1) {
             container.innerHTML = data.html;
             // تحديث عداد النتائج
             if (data.total_items !== undefined) {
-                document.getElementById('totalItemsCount').textContent = data.total_items;
+                const totalItems = document.getElementById('totalItemsCount');
+                if (totalItems) totalItems.textContent = data.total_items;
             }
             attachPaginationEvents();
         } else {
@@ -251,7 +173,6 @@ function attachPaginationEvents() {
 document.addEventListener('DOMContentLoaded', function() {
     const totalItems = document.getElementById('totalItemsCount');
     if (totalItems && totalItems.textContent === '0') {
-        // إذا كان العدد صفراً، نتحقق من وجود منتجات
         const grid = document.querySelector('#productsGrid');
         if (grid && grid.children.length === 0) {
             totalItems.textContent = '0';
@@ -260,9 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- ✅ كود CSS المحسن -->
+<!-- ✅ كود CSS المحسن (مدمج) -->
 <style>
-    /* تأثيرات البطاقة */
     .product-card {
         background: #ffffff;
         transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -301,23 +221,13 @@ document.addEventListener('DOMContentLoaded', function() {
     .product-card:hover .card-title {
         color: #2d0b36 !important;
     }
-
-    /* تحسين شريط الفلاتر */
     .form-control:focus, .form-select:focus {
         border-color: #D4AF37 !important;
         box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25) !important;
     }
-
-    /* تأثير دخول البطاقات */
     @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     .product-card {
         animation: fadeInUp 0.5s ease-out forwards;
