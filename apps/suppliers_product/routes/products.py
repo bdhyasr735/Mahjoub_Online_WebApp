@@ -156,11 +156,11 @@ def manage_supplier_products_view():
 
 
 # ============================================================================================
-# 🛠️ عرض صفحة التعديل (GET)
+# 🛠️ صفحة تعديل المنتج (دمج GET لعرض النموذج و POST للحفظ في مسار واحد)
 # ============================================================================================
-@suppliers_product_bp.route('/products/edit/<string:product_qid>', methods=['GET'], endpoint='edit_supplier_product')
+@suppliers_product_bp.route('/products/edit/<string:product_qid>', methods=['GET', 'POST'], endpoint='edit_supplier_product')
 @login_required
-def edit_supplier_product_view(product_qid):
+def edit_supplier_product(product_qid):
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         
@@ -180,51 +180,29 @@ def edit_supplier_product_view(product_qid):
             db.session.commit()
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        # عرض صفحة التعديل
+        # 3. معالجة زر الحفظ (POST)
+        if request.method == 'POST':
+            price = request.form.get('price')
+            quantity = request.form.get('quantity')
+            status = request.form.get('status')
+
+            if price is not None and price != '':
+                mapping.price = float(price)
+            if quantity is not None and quantity != '':
+                mapping.quantity = int(quantity)
+            if status:
+                mapping.status = status
+
+            mapping.updated_at = datetime.utcnow()
+            db.session.commit()
+
+            flash('✅ تم حفظ وتعديل المنتج بنجاح!', 'success')
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+        # 4. عرض صفحة التعديل (GET)
         return render_template('suppliers/edit_product.html', mapping=mapping, product=product)
 
     except Exception as e:
         current_app.logger.error(f"خطأ في صفحة التعديل: {traceback.format_exc()}")
         flash('❌ حدث خطأ غير متوقع أثناء تحميل صفحة التعديل', 'danger')
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-
-# ============================================================================================
-# 🆕 مسار حفظ المنتج (POST) - الجديد والمفقود
-# ============================================================================================
-@suppliers_product_bp.route('/products/save', methods=['POST'], endpoint='save_sync_supplier_product')
-@login_required
-def save_sync_supplier_product_view():
-    try:
-        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
-        
-        # 1. جلب البيانات من النموذج
-        qid = request.form.get('qid')
-        price = request.form.get('price')
-        quantity = request.form.get('quantity')
-        status = request.form.get('status')
-        
-        # 2. التحقق من وجود المنتج المراد تعديله
-        mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=qid).first()
-        if not mapping:
-            flash('⚠️ حدث خطأ، لم نتمكن من العثور على المنتج المراد تعديله.', 'danger')
-            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-        # 3. تحديث البيانات في جدول الربط فقط (لأن السعر والكمية خاصة بالمورد)
-        if price is not None:
-            mapping.price = float(price)
-        if quantity is not None:
-            mapping.quantity = int(quantity)
-        if status:
-            mapping.status = status
-            
-        mapping.updated_at = datetime.utcnow()
-        db.session.commit()
-
-        flash('✅ تم حفظ وتعديل المنتج بنجاح!', 'success')
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-    except Exception as e:
-        current_app.logger.error(f"خطأ أثناء حفظ المنتج: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء حفظ المنتج', 'danger')
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
