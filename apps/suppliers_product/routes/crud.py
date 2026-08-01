@@ -76,10 +76,15 @@ def add_supplier_product():
     )
 
 
+@suppliers_product_bp.route('/products/edit', methods=['GET'])
 @suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'])
 @login_required
-def edit_supplier_product(qid):
+def edit_supplier_product(qid=None):
     """عرض صفحة تعديل المنتج للمورد المحلي"""
+    # التقاط الqid من الquery parameters إذا لم يكن موجوداً في المسار
+    if not qid:
+        qid = request.args.get('qid')
+
     user_type = session.get('user_type')
     supplier_id = session.get('user_id') or session.get('supplier_id')
 
