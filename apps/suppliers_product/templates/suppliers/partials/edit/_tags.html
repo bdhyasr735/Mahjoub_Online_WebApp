@@ -1,4 +1,89 @@
-<div class="mb-3">
-    <label class="form-label fw-bold">العلامات (Tags)</label>
-    <input type="text" name="tags" class="form-control" value="{{ prod_tags | join(', ') if prod_tags else '' }}" placeholder="أضف علامات مفصولة بفواصل (مثال: حديد، مطبخ، قدور)">
+<!-- ============================================================
+   🏷️ العلامات والوسوم (Tags) - للمورد (عرض فقط)
+   ============================================================ -->
+<div class="form-section tags-card shadow-sm">
+    <div class="form-section-title d-flex align-items-center justify-content-between">
+        <div>
+            <i class="fas fa-tags me-2" style="color: #2d0b36;"></i> 
+            <span>العلامات (Tags)</span>
+        </div>
+        <span class="badge badge-purple-soft">
+            <i class="fas fa-lock me-1"></i> للقراءة فقط
+        </span>
+    </div>
+    
+    <div class="form-group mb-0">
+        <!-- حاوية العلامات الحالية (عرض فقط) -->
+        <div class="d-flex flex-wrap gap-2 mb-3" id="tagsContainer">
+            {% if prod_tags and prod_tags|length > 0 %}
+                {% for tag in prod_tags %}
+                <span class="tag-item">
+                    <span class="tag-text">{{ tag }}</span>
+                </span>
+                {% endfor %}
+            {% else %}
+                <span class="text-muted fst-italic">
+                    <i class="fas fa-info-circle me-1"></i> لا توجد علامات حالياً
+                </span>
+            {% endif %}
+        </div>
+        
+        <!-- رسالة توضيحية -->
+        <small class="text-muted mt-2 d-block">
+            <i class="fas fa-lock me-1" style="color: #2d0b36;"></i> العلامات تدار بواسطة الإدارة ولا يمكن تعديلها.
+        </small>
+    </div>
 </div>
+
+<!-- ============================================================
+   🎨 التنسيقات والأنماط (للمورد)
+   ============================================================ -->
+<style>
+.tags-card {
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.form-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d0b36;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
+}
+
+.badge-purple-soft {
+    background: rgba(45, 11, 54, 0.1);
+    color: #2d0b36;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.tag-item {
+    display: inline-flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: #2d0b36;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.tag-text {
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .tags-card {
+        padding: 16px;
+    }
+}
+</style>
