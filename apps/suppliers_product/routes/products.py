@@ -58,16 +58,25 @@ def manage_supplier_products_view():
         
         supplier_qids_set = set(supplier_qids)
 
-        # إذا لم يملك المورد أي منتجات مسجلة ولم يكن أدمن، تعاد قائمة فارغة مباشرة
+        # إذا لم يملك المورد أي منتجات مسجلة ولم يكن أدمن، تعاد قائمة فارغة مباشرة مع رسالة واضحة
         if not supplier_qids_set and not is_admin:
             pagination_info = {'current_page': 1, 'total_pages': 0, 'has_prev': False, 'has_next': False, 'per_page': limit, 'total_items': 0}
+            no_products_msg = "عذراً، لا توجد لديك أي منتجات مسجلة حالياً. يمكنك الضغط على زر المزامنة لجلب منتجاتك."
+            
             if is_ajax:
                 return jsonify({
                     'success': True,
-                    'html': render_template('suppliers/includes/_product_grid.html', products=[], get_status_text=get_status_text, format_price=format_price),
+                    'html': render_template('suppliers/includes/_product_grid.html', products=[], get_status_text=get_status_text, format_price=format_price, no_products_message=no_products_msg),
                     'pagination_html': render_template('suppliers/includes/_pagination.html', pagination=pagination_info)
                 })
-            return render_template('suppliers/suppliers_product.html', products=[], pagination=pagination_info, get_status_text=get_status_text, format_price=format_price)
+            return render_template(
+                'suppliers/suppliers_product.html', 
+                products=[], 
+                pagination=pagination_info, 
+                get_status_text=get_status_text, 
+                format_price=format_price,
+                no_products_message=no_products_msg
+            )
 
         # ====================================================
         # ✅ 3. جلب منتجات المورد بذكاء دون انهيار الذاكرة
@@ -75,15 +84,12 @@ def manage_supplier_products_view():
         target_products = []
         
         if is_admin and not supplier_id:
-            # للأدمن في حال عدم تحديد مورد، نجلب الصفحة العادية
             result = services.products.get_products_page(page) or {}
             target_products = result.get('data', [])
             pagination = result.get('pagination', {})
             total_items_real = pagination.get('totalItems', 0)
             total_pages = pagination.get('totalPages', 1)
         else:
-            # للمورد: نقوم بالبحث الفعال في قمرة كلاود للحصول على منتجاته الخاصة المسجلة محلياً فقط
-            # (نظراً لأن قمرة كلاود تعتمد على الصفحات، نقوم بالمرور بحد أقصى معقول أو جلب البيانات المتوفرة)
             all_matched_products = []
             max_check_pages = 30  # نطاق آمن للبحث
             
@@ -93,12 +99,10 @@ def manage_supplier_products_view():
                     break
                 page_items = res.get('data', [])
                 
-                # استخراج المنتجات التي تطابق QIDs المورد فقط في هذه الصفحة
                 for p in page_items:
                     if str(p.get('qid', '')).strip() in supplier_qids_set:
                         all_matched_products.append(p)
                 
-                # إذا وجدنا جميع منتجات المورد المسجلة، نتوقف فوراً لتسريع الأداء
                 if len(all_matched_products) >= len(supplier_qids_set):
                     break
 
@@ -155,7 +159,6 @@ def manage_supplier_products_view():
             'total_items': total_items_real
         }
 
-        # استجابة AJAX للمزامنة والفلترة الفورية
         if is_ajax:
             return jsonify({
                 'success': True,
