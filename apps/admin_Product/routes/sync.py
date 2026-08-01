@@ -10,7 +10,6 @@ from apps.admin_Product.routes import admin_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 
-
 def analyze_render_error(route_func):
     """مزيّن لتحليل أخطاء سيرفر Render"""
     @functools.wraps(route_func)
@@ -34,7 +33,7 @@ def analyze_render_error(route_func):
                     "success": False,
                     "error_type": error_type,
                     "message": f"❌ خطأ في النظام [{error_type}]: {error_message}"
-                }, 400) # تم تغييرها إلى 400 لتتوافق مع استجابة المتصفح وتمنع انهيار الواجهة
+                }, 400)
             
             return jsonify({
                 "success": False,
@@ -43,7 +42,6 @@ def analyze_render_error(route_func):
             }, 500)
     return wrapper
 
-
 @admin_product_bp.route('/products/sync', methods=['GET', 'POST'])
 @login_required
 @analyze_render_error
@@ -51,7 +49,6 @@ def sync_products():
     """مزامنة المنتجات مع رصد الأخطاء وإرجاع الإحصائيات التفصيلية"""
     user_type = session.get('user_type')
     
-    # السماح بالتمرير إذا كان المشرف مسجلاً أو عبر الجلسة المعتمدة
     if user_type != 'admin':
         if request.method == 'POST' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'غير مصرح - صلاحيات مشرف مطلوبة'}), 403
@@ -60,7 +57,6 @@ def sync_products():
             return redirect(url_for('admin_dashboard_bp.dashboard'))
     
     try:
-        # ✅ جلب المنتجات من GraphQL مع حماية كاملة ضد القيم الفارغة
         result = services.products.get_all_products() or {}
         external_products = result.get('data', []) if isinstance(result, dict) else []
         
@@ -87,6 +83,7 @@ def sync_products():
                 if not qid:
                     continue
                 
+                # التحقق فقط من وجود الارتباط دون تعديله أو إعادة إنشائه تلقائياً
                 mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
                 if not mapping:
                     created_count += 1
@@ -99,7 +96,6 @@ def sync_products():
                     'error': str(ex)
                 })
         
-        # ✅ مسح Cache البحث بعد المزامنة بأمان
         try:
             if hasattr(services.products, 'clear_search_cache'):
                 services.products.clear_search_cache()
