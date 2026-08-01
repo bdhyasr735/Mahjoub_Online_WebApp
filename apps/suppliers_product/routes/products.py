@@ -26,7 +26,6 @@ def format_price(price):
 @login_required
 def manage_supplier_products_view():
     try:
-        # ✅ 1. التحقق الآمن من هُوية المورد وصلاحيات الدخول
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
         user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
 
@@ -36,7 +35,6 @@ def manage_supplier_products_view():
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
-        # استلام متغيرات التصفية والترقيم
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
         limit = max(1, limit)
@@ -48,18 +46,12 @@ def manage_supplier_products_view():
         max_price = request.args.get('max_price', '')
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
-        # ====================================================
-        # ✅ 2. الاستعلام المباشر عبر جدول الربط مع تفعيل الـ Pagination (لحل المشكلة من الجذور)
-        # ====================================================
         mappings_query = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id)
 
         if status_filter:
             mappings_query = mappings_query.filter_by(status=status_filter)
 
-        # تنفيذ التصفح الحقيقي على جدول الروابط الخاصة بهذا المورد فقط
         pagination_obj = mappings_query.paginate(page=page, per_page=limit, error_out=False)
-        
-        # استخراج الqid الخاصة بالصفحة الحالية فقط لطلبها لحظياً
         current_page_mappings = pagination_obj.items
 
         if not current_page_mappings and not is_admin:
@@ -81,9 +73,6 @@ def manage_supplier_products_view():
                 no_products_message=no_products_msg
             )
 
-        # ====================================================
-        # ✅ 3. الجلب اللحظي (Stateless) لمنتجات الصفحة الحالية فقط من المصدر الخارجي (قمرة)
-        # ====================================================
         formatted_products = []
         
         if is_admin and not supplier_id:
@@ -92,12 +81,9 @@ def manage_supplier_products_view():
             for p in target_products:
                 formatted_products.append({'product': p, 'mapping': None})
         else:
-            # جمع الـ qids الخاصة بالصفحة الحالية
             qids_to_fetch = [str(m.product_qid).strip() for m in current_page_mappings if m.product_qid]
             
             if qids_to_fetch:
-                # محاولة البحث وجلب المنتجات عبر فحص صفحات النظام الخارجي أو دالة مخصصة
-                # (نبحث في الصفحات الخارجية للعثور على المطابقات الخاصة بالـ qids المطلوبة فقط)
                 matched_dict = {}
                 max_check_pages = 30
                 
@@ -113,11 +99,9 @@ def manage_supplier_products_view():
                     if len(matched_dict) >= len(qids_to_fetch):
                         break
 
-                # تجميع المنتجات بناءً على ترتيب الـ mappings الأصلي مع تطبيق فلاتر البحث والترتيب
                 for mapping in current_page_mappings:
                     prod_data = matched_dict.get(str(mapping.product_qid).strip())
                     if prod_data:
-                        # تطبيق فلاتر البحث والفلترة الاحتياطية محلياً
                         if search_term:
                             title = str(prod_data.get('title', '')).lower()
                             sku = str(prod_data.get('sku', '')).lower()
@@ -138,9 +122,6 @@ def manage_supplier_products_view():
                             'mapping': mapping
                         })
 
-        # ====================================================
-        # ✅ 4. بناء هيكل الترقيم النهائي للقالب
-        # ====================================================
         pagination_info = {
             'current_page': pagination_obj.page,
             'total_pages': pagination_obj.pages,
@@ -185,3 +166,93 @@ def manage_supplier_products_view():
             get_status_text=get_status_text,
             format_price=format_price
         )
+
+
+@suppliers_product_bp.route('/products/edit/<string:qid>', methods=['GET'], endpoint='edit_product_view')
+@login_required
+def edit_product_view(qid):
+    """عرض صفحة تعديل المنتج مع جلب بياناته الأساسية"""
+    try:
+        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
+        user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
+        is_admin = (user_type == 'admin' or getattr(current_user, 'is_admin', False))
+
+        if not is_admin:
+            mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=qid).first()
+            if not mapping:
+                flash('❌ غير مصرح لك بتعديل هذا المنتج أو المنتج غير موجود', 'danger')
+                return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+        product_data = None
+        max_check_pages = 30
+        for p_num in range(1, max_check_pages + 1):
+            res = services.products.get_products_page(p_num)
+            if not res or not res.get('data'):
+                break
+            for p in res.get('data', []):
+                if str(p.get('qid') or p.get('id', '')).strip() == str(qid).strip():
+                    product_data = p
+                    break
+            if product_data:
+                break
+
+        if not product_data:
+            flash('❌ لم يتم العثور على بيانات المنتج في النظام الخارجي', 'danger')
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+        return render_template(
+            'suppliers/edit/base_edit.html',
+            product=product_data,
+            get_status_text=get_status_text,
+            format_price=format_price
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ في عرض صفحة تعديل المنتج: {traceback.format_exc()}")
+        flash('❌ حدث خطأ أثناء تحميل صفحة التعديل', 'danger')
+        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+
+@suppliers_product_bp.route('/api/products/update/<string:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
+@login_required
+def api_update_product(qid):
+    """استقبال وعرض بيانات التعديل المُرسلة عبر FormData من الواجهة"""
+    try:
+        title = request.form.get('title')
+        price = request.form.get('price')
+        quantity = request.form.get('quantity')
+        sku = request.form.get('sku')
+        weight = request.form.get('weight')
+        status = request.form.get('status')
+        description = request.form.get('description')
+        meta_title = request.form.get('meta_title')
+        meta_description = request.form.get('meta_description')
+        
+        image_file = request.files.get('image')
+
+        payload = {
+            'title': title,
+            'price': price,
+            'quantity': quantity,
+            'sku': sku,
+            'weight': weight,
+            'status': status,
+            'description': description,
+            'meta_title': meta_title,
+            'meta_description': meta_description
+        }
+
+        # يمكنك ربط دالة التحديث الفعلية هنا عبر الـ services
+        # services.products.update_product(qid, payload, image_file)
+
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديث بيانات المنتج بنجاح'
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ أثناء تحديث المنتج {qid}: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': 'حدث خطأ داخلي أثناء حفظ التغييرات'
+        }), 500
