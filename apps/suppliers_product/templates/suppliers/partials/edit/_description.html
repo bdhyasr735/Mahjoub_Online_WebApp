@@ -1,38 +1,4 @@
-<!-- apps/suppliers_product/templates/suppliers/partials/edit/_description.html -->
-
 <div class="mb-3">
-    <label class="form-label fw-bold" for="productDescription">
-        <i class="fas fa-align-right text-muted me-1"></i> وصف المنتج التفصيلي
-    </label>
-    <textarea name="description" id="productDescription"
-              class="form-control" rows="5"
-              maxlength="2000"
-              placeholder="اكتب تفاصيل ومواصفات المنتج هنا...">{{ prod_desc }}</textarea>
-    <div class="d-flex justify-content-between align-items-center mt-1">
-        <small class="text-muted">اشرح مميزات الاستخدام والمواصفات الفنية بدقة.</small>
-        <small class="text-muted fw-bold">
-            <span id="charCount">{{ prod_desc|length }}</span> / 2000 حرف
-        </small>
-    </div>
+    <label class="form-label fw-bold">الوصف التفصيلي للمنتج</label>
+    <textarea name="description" class="form-control" rows="6" placeholder="اكتب وصفاً تفصيلياً للمنتج...">{{ prod_desc }}</textarea>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const descriptionInput = document.getElementById('productDescription');
-        const charCountSpan = document.getElementById('charCount');
-        
-        if (descriptionInput && charCountSpan) {
-            descriptionInput.addEventListener('input', function() {
-                const currentLength = this.value.length;
-                charCountSpan.textContent = currentLength;
-                
-                // تنبيه مرئي عند الاقتراب من الحد الأقصى
-                if (currentLength > 1900) {
-                    charCountSpan.style.color = '#dc3545';
-                } else {
-                    charCountSpan.style.color = '';
-                }
-            });
-        }
-    });
-</script>
