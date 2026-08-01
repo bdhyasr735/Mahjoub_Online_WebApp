@@ -1,3 +1,4 @@
+<!-- 📂 apps/suppliers_product/templates/suppliers/includes/_product_grid.html -->
 <div class="row g-4" id="productsGrid">
     {% set product_list = products.items if products and products.items is defined else (products if products is iterable and products is not mapping else []) %}
     
@@ -86,9 +87,9 @@
             <div class="card shadow-sm border-0 text-center py-5 rounded-4">
                 <div class="card-body">
                     <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-50"></i>
-                    <h5 class="text-secondary mb-1">لا توجد منتجات مضافة حتى الآن</h5>
+                    <h5 class="text-secondary mb-1">{{ no_products_message if no_products_message is defined else 'لا توجد منتجات مضافة حتى الآن' }}</h5>
                     <p class="text-muted small">ابدأ برفع منتجك الأول لتظهر البطاقات هنا.</p>
-                    <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn mt-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;">
+                    <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn mt-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 10px;">
                         <i class="fas fa-plus me-1"></i> رفع منتج جديد
                     </a>
                 </div>
