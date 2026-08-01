@@ -1,8 +1,8 @@
 <div class="form-group">
     <label class="form-label fw-bold">وصف المنتج <span class="text-muted">(للقراءة فقط)</span></label>
     <div class="p-3 bg-light rounded-3 border">
-        {% if prod_desc %}
-            {{ prod_desc|safe }}
+        {% if product.description %}
+            {{ product.description|safe }}
         {% else %}
             <p class="text-muted text-center py-3"><i class="fas fa-file-alt me-2"></i> لا يوجد وصف لهذا المنتج.</p>
         {% endif %}
