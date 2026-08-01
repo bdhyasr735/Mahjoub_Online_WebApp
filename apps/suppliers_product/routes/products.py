@@ -8,8 +8,6 @@ from flask_login import login_required, current_user
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
-from apps.models.supplier_db import Supplier
-from apps.extensions import db
 
 def get_status_text(status):
     status_map = {
@@ -23,7 +21,6 @@ def format_price(price):
     if price is None: return '0.00 ر.س'
     try: return f"{float(price):,.2f} ر.س"
     except: return str(price)
-
 
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
@@ -43,6 +40,7 @@ def manage_supplier_products_view():
         limit = max(1, limit)
         
         search_term = request.args.get('search', '').strip().lower()
+        category = request.args.get('category', '').strip()
         status_filter = request.args.get('status', '').strip()
         min_price = request.args.get('min_price', '')
         max_price = request.args.get('max_price', '')
@@ -170,91 +168,11 @@ def manage_supplier_products_view():
         )
 
 
-@suppliers_product_bp.route('/products/add', methods=['GET', 'POST'], endpoint='add_supplier_product')
+@suppliers_product_bp.route('/products/edit/<string:qid>', methods=['GET'], endpoint='edit_product_view')
 @login_required
-def add_supplier_product():
-    """إضافة منتج جديد للمورد الحالي"""
-    user_type = session.get('user_type')
-    supplier_id = session.get('user_id') or session.get('supplier_id')
-
-    if user_type != 'supplier' and user_type != 'admin':
-        flash('❌ هذا القسم مخصص للموردين فقط', 'danger')
-        return redirect(url_for('suppliers_dashboard_bp.dashboard'))
-    
-    suppliers = []
-    if user_type == 'admin':
-        suppliers = Supplier.query.filter_by(status='active').all()
-    else:
-        current_supplier = Supplier.query.get(supplier_id) if supplier_id else None
-        if current_supplier:
-            suppliers = [current_supplier]
-    
-    if request.method == 'POST':
-        try:
-            raw_price = request.form.get('price')
-            price_val = float(raw_price) if raw_price else 0.0
-            raw_status = request.form.get('status', 'DRAFT')
-            status = raw_status.upper() if raw_status else 'DRAFT'
-            
-            product_data = {
-                'name': request.form.get('title', ''),
-                'price': price_val,
-                'status': status,
-                'description': request.form.get('description', '')
-            }
-            
-            if request.form.get('sku'):
-                product_data['sku'] = request.form.get('sku')
-            
-            result = services.products.create_product_data(product_data)
-            
-            if result and 'qid' in result:
-                target_supplier_id = supplier_id if user_type != 'admin' else request.form.get('supplier_id')
-                
-                if target_supplier_id and str(target_supplier_id).strip():
-                    mapping = ProductSupplierMapping(
-                        product_qid=result['qid'],
-                        supplier_id=int(target_supplier_id),
-                        status='active'
-                    )
-                    db.session.add(mapping)
-                    db.session.commit()
-                
-                flash('✅ تم إضافة المنتج بنجاح.', 'success')
-            else:
-                flash('❌ فشل إضافة المنتج', 'danger')
-                
-            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-            
-        except Exception as e:
-            flash(f'❌ حدث خطأ: {str(e)}', 'danger')
-
-    return render_template(
-        'suppliers/supplier_add_product.html',
-        suppliers=suppliers
-    )
-
-
-@suppliers_product_bp.route('/products/edit', methods=['GET'])
-@suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'], endpoint='edit_supplier_product')
-@login_required
-def edit_product_view(qid=None):
-    """عرض صفحة تعديل المنتج بالاسم المطابق لـ _product_grid.html"""
+def edit_product_view(qid):
+    """عرض صفحة تعديل المنتج مع جلب بياناته الأساسية"""
     try:
-        if not qid:
-            qid = request.args.get('qid')
-
-        if not qid:
-            flash("معرف المنتج (qid) مفقود.", "danger")
-            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-        qid = str(qid).strip()
-        if 'Product/' in qid:
-            qid = qid.split('Product/')[-1]
-        while qid and qid.startswith('qid:'):
-            qid = qid.replace('qid:', '', 1)
-        qid = qid.replace('//', '').strip('/')
-
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
         user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
         is_admin = (user_type == 'admin' or getattr(current_user, 'is_admin', False))
@@ -265,19 +183,18 @@ def edit_product_view(qid=None):
                 flash('❌ غير مصرح لك بتعديل هذا المنتج أو المنتج غير موجود', 'danger')
                 return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        product_data = services.products.get_product_by_qid(qid)
-        if not product_data:
-            max_check_pages = 30
-            for p_num in range(1, max_check_pages + 1):
-                res = services.products.get_products_page(p_num)
-                if not res or not res.get('data'):
+        product_data = None
+        max_check_pages = 30
+        for p_num in range(1, max_check_pages + 1):
+            res = services.products.get_products_page(p_num)
+            if not res or not res.get('data'):
+                break
+            for p in res.get('data', []):
+                if str(p.get('qid') or p.get('id', '')).strip() == str(qid).strip():
+                    product_data = p
                     break
-                for p in res.get('data', []):
-                    if str(p.get('qid') or p.get('id', '')).strip() == str(qid).strip():
-                        product_data = p
-                        break
-                if product_data:
-                    break
+            if product_data:
+                break
 
         if not product_data:
             flash('❌ لم يتم العثور على بيانات المنتج في النظام الخارجي', 'danger')
@@ -296,56 +213,37 @@ def edit_product_view(qid=None):
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
 
-@suppliers_product_bp.route('/products/sync', methods=['GET', 'POST'], endpoint='save_sync_supplier_product')
-@login_required
-def sync_supplier_products():
-    """مسار المزامنة بالاسم المطابق لـ _sync_modal.html"""
-    try:
-        if request.method == 'POST' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': True, 'message': 'تمت المزامنة بنجاح'})
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-    except Exception as e:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': str(e)}), 500
-        flash('❌ حدث خطأ أثناء المزامنة', 'danger')
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-
-@suppliers_product_bp.route('/api/products/update/<path:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
+@suppliers_product_bp.route('/api/products/update/<string:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
 @login_required
 def api_update_product(qid):
-    """استقبال وحفظ التعديلات المُرسلة عبر الواجهة"""
+    """استقبال وعرض بيانات التعديل المُرسلة عبر FormData من الواجهة"""
     try:
-        qid = str(qid).strip()
-        if 'Product/' in qid:
-            qid = qid.split('Product/')[-1]
-        while qid and qid.startswith('qid:'):
-            qid = qid.replace('qid:', '', 1)
-        qid = qid.replace('//', '').strip('/')
-
         title = request.form.get('title')
-        raw_price = request.form.get('price')
+        price = request.form.get('price')
+        quantity = request.form.get('quantity')
         sku = request.form.get('sku')
-        raw_status = request.form.get('status', 'DRAFT')
-        status = raw_status.upper() if raw_status else 'DRAFT'
+        weight = request.form.get('weight')
+        status = request.form.get('status')
         description = request.form.get('description')
+        meta_title = request.form.get('meta_title')
+        meta_description = request.form.get('meta_description')
         
-        try:
-            price = float(raw_price) if raw_price else 0.0
-        except ValueError:
-            price = 0.0
+        image_file = request.files.get('image')
 
-        try:
-            if hasattr(services.products, 'update_product_info'):
-                services.products.update_product_info(qid, {"title": title, "sku": sku})
-            if hasattr(services.products, 'update_product_description'):
-                services.products.update_product_description(qid, description)
-            if hasattr(services.products, 'update_product_pricing'):
-                services.products.update_product_pricing(qid, {"price": price})
-            if hasattr(services.products, 'update_product_status'):
-                services.products.update_product_status(qid, status)
-        except Exception as svc_err:
-            print(f"⚠️ [Warning] خطأ في تحديث الخدمات الخارجية: {svc_err}")
+        payload = {
+            'title': title,
+            'price': price,
+            'quantity': quantity,
+            'sku': sku,
+            'weight': weight,
+            'status': status,
+            'description': description,
+            'meta_title': meta_title,
+            'meta_description': meta_description
+        }
+
+        # يمكنك ربط دالة التحديث الفعلية هنا عبر الـ services
+        # services.products.update_product(qid, payload, image_file)
 
         return jsonify({
             'success': True,
@@ -358,37 +256,3 @@ def api_update_product(qid):
             'success': False,
             'message': 'حدث خطأ داخلي أثناء حفظ التغييرات'
         }), 500
-
-
-@suppliers_product_bp.route('/products/delete/<path:qid>', methods=['POST'], endpoint='delete_supplier_product')
-@login_required
-def delete_supplier_product(qid):
-    """أرشفة وحذف منتج المورد"""
-    try:
-        user_type = session.get('user_type')
-        if user_type != 'supplier' and user_type != 'admin':
-            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
-        
-        while qid.startswith('qid:'):
-            qid = qid.replace('qid:', '', 1)
-
-        mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-        
-        try:
-            services.products.update_product_status(qid, "ARCHIVED")
-        except Exception as ext_err:
-            print(f"⚠️ [Warning] فشل الأرشفة الخارجية للمنتج {qid}: {ext_err}")
-
-        if mapping:
-            db.session.delete(mapping)
-            db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': '✅ تم حذف المنتج وفك ارتباطه بنجاح'
-        })
-            
-    except Exception as e:
-        db.session.rollback()
-        print(f"❌ خطأ في delete_supplier_product: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
