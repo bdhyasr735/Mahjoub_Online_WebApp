@@ -15,9 +15,10 @@ from datetime import datetime
 # دالة مساعدة لاستخراج المعرف الخام من صيغة QID
 # =============================================
 def _extract_raw_id(qid):
+    """تستخرج المعرف الخام (مثل 01KNSQ2Z4NH8VDJ8KVR0EXEDRC) من صيغ مختلفة"""
     if not qid:
-        return qid
-    qid_str = str(qid)
+        return None
+    qid_str = str(qid).strip()
     if 'qid://' in qid_str or 'qumra/' in qid_str:
         parts = qid_str.split('/')
         return parts[-1] if parts else qid_str
@@ -86,8 +87,12 @@ def add_supplier_product():
 @suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_supplier_product(qid=None):
+    # ✅ سجل الـ qid الذي وصل للتصحيح
+    print(f"🔍 [edit_supplier_product] QID المستلم: {qid}")
+    
     if not qid:
         qid = request.args.get('qid')
+        print(f"🔍 [edit_supplier_product] QID من query: {qid}")
 
     user_type = session.get('user_type') or getattr(current_user, 'user_type', None)
     supplier_id = session.get('user_id') or session.get('supplier_id') or getattr(current_user, 'id', None)
@@ -100,20 +105,30 @@ def edit_supplier_product(qid=None):
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
     
+    # استخراج المعرف الخام
     raw_qid_for_api = _extract_raw_id(qid)
+    print(f"🔍 [edit_supplier_product] raw_qid_for_api: {raw_qid_for_api}")
+    
+    # جلب المنتج من الـ API باستخدام المعرف الخام
     product = services.products.get_product_by_qid(raw_qid_for_api)
     if not product:
+        # محاولة ثانية باستخدام المعرف الأصلي
         product = services.products.get_product_by_qid(qid)
-
+    
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
+    # البحث في جدول الربط باستخدام المعرف المخزن (كامل)
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+    # إذا لم نجده، نحاول بالمعرف الخام
+    if not mapping and raw_qid_for_api:
+        mapping = ProductSupplierMapping.query.filter_by(product_qid=raw_qid_for_api).first()
 
     if user_type != 'admin':
         if not mapping and supplier_id:
             try:
+                # نستخدم المعرف الأصلي للتخزين (وليس الخام)
                 mapping = ProductSupplierMapping(
                     product_qid=qid,
                     supplier_id=int(supplier_id),
@@ -132,7 +147,7 @@ def edit_supplier_product(qid=None):
             except Exception as e:
                 db.session.rollback()
 
-    # جلب الخيارات (variants/options)
+    # جلب الخيارات (variants/options) - إذا كانت متوفرة
     raw_options = []
     if isinstance(product, dict):
         raw_options = product.get('options', [])
@@ -209,6 +224,7 @@ def save_sync_supplier_product():
 
         raw_qid_for_api = _extract_raw_id(qid)
 
+        # تحديث الربط إن وجد
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         if user_type != 'admin':
             if not mapping:
@@ -244,6 +260,7 @@ def save_sync_supplier_product():
 
         collection_ids = request.form.getlist('collection_ids')
 
+        # تحديث بيانات المنتج في الـ API باستخدام المعرف الخام
         try:
             if hasattr(services.products, 'update_product_info'):
                 services.products.update_product_info(raw_qid_for_api, {"title": title, "sku": sku})
@@ -363,6 +380,7 @@ def sync_batch_products():
                     mapping.updated_at = datetime.utcnow()
                     updated_count += 1
                 else:
+                    # لا ننشئ روابط جديدة تلقائياً
                     pass
 
             db.session.commit()
