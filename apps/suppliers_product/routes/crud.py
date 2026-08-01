@@ -22,7 +22,6 @@ def add_supplier_product():
         flash('❌ هذا القسم مخصص للموردين فقط', 'danger')
         return redirect(url_for('suppliers_dashboard_bp.dashboard'))
     
-    # جلب بيانات المورد الحالي فقط
     suppliers = []
     if user_type == 'admin':
         suppliers = Supplier.query.filter_by(status='active').all()
@@ -51,7 +50,6 @@ def add_supplier_product():
             result = services.products.create_product_data(product_data)
             
             if result and 'qid' in result:
-                # إذا كان المورد هو من يضيف، نربطه تلقائياً بـ supplier_id الخاص به
                 target_supplier_id = supplier_id if user_type != 'admin' else request.form.get('supplier_id')
                 
                 if target_supplier_id and str(target_supplier_id).strip():
@@ -94,7 +92,6 @@ def edit_supplier_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('suppliers_product_bp.manage_supplier_products'))
     
-    # التحقق من أن المنتج يخص هذا المورد (إلا إذا كان المستخدم مشرفاً admin)
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     if user_type != 'admin':
         if not mapping or str(mapping.supplier_id) != str(supplier_id):
@@ -106,7 +103,6 @@ def edit_supplier_product():
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('suppliers_product_bp.manage_supplier_products'))
 
-    # تنظيف الخيارات (Options) واستخراجها بشكل آمن
     raw_options = []
     if isinstance(product, dict):
         raw_options = product.get('options', [])
@@ -182,7 +178,6 @@ def save_sync_supplier_product():
         if not qid:
             return jsonify({"status": "error", "message": "معرف المنتج (qid) مفقود."}), 400
 
-        # التحقق من ملكية المنتج للمورد
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         if user_type != 'admin':
             if not mapping or str(mapping.supplier_id) != str(supplier_id):
@@ -206,7 +201,6 @@ def save_sync_supplier_product():
 
         collection_ids = request.form.getlist('collection_ids')
 
-        # تحديث بيانات المنتج عبر خدمات الـ GraphQL
         try:
             if hasattr(services.products, 'update_product_info'):
                 services.products.update_product_info(qid, {"title": title, "sku": sku})
@@ -265,19 +259,16 @@ def delete_supplier_product(qid):
         if user_type != 'supplier' and user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # التحقق من ملكية المنتج
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         if user_type != 'admin':
             if not mapping or str(mapping.supplier_id) != str(supplier_id):
                 return jsonify({'success': False, 'message': 'غير مصرح لك بحذف هذا المنتج'}), 403
         
-        # محاولة أرشفة المنتج خارجيًا، ولكن بغض النظر عن النتيجة، سنقوم بفك الارتباط محليًا
         try:
             services.products.update_product_status(qid, "ARCHIVED")
         except Exception as ext_err:
             print(f"⚠️ [Warning] فشل الأرشفة الخارجية للمنتج {qid}: {ext_err}")
 
-        # حذف الربط محلياً بشكل مؤكد لمنع عودته نهائياً
         if mapping:
             db.session.delete(mapping)
             db.session.commit()
