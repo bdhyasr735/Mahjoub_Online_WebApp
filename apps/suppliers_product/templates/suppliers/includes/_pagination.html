@@ -1,10 +1,11 @@
+<!-- 📂 apps/suppliers_product/templates/suppliers/includes/_pagination.html -->
 {% if pagination.total_items > 0 %}
 <nav class="mt-4" id="paginationNav" dir="rtl">
     <ul class="pagination justify-content-center align-items-center">
         <!-- زر السابق -->
         <li class="page-item {{ 'disabled' if not pagination.has_prev else '' }}">
             <button class="page-link" onclick="fetchProducts({{ pagination.prev_num if pagination.has_prev else 1 }})" {{ 'disabled' if not pagination.has_prev else '' }} 
-                    style="color: #2d0b36; {{ 'opacity: 0.5; cursor: not-allowed;' if not pagination.has_prev else '' }} border: none;">
+                    style="color: #2d0b36; {{ 'opacity: 0.5; cursor: not-allowed;' if not pagination.has_prev else '' }} border: none; background: none;">
                 <i class="fas fa-chevron-right"></i> السابق
             </button>
         </li>
@@ -26,7 +27,7 @@
                 
                 <li class="page-item {{ 'active' if num == current else '' }}">
                     <button class="page-link" onclick="fetchProducts({{ num }})" 
-                            style="{{ 'background: #2d0b36; color: #D4AF37; border-color: #2d0b36;' if num == current else 'color: #2d0b36; background: none; border: none;' }}">
+                            style="{{ 'background: #2d0b36 !important; color: #D4AF37 !important; border-color: #2d0b36 !important; border-radius: 8px;' if num == current else 'color: #2d0b36; background: none; border: none;' }}">
                         {{ num }}
                     </button>
                 </li>
@@ -37,7 +38,7 @@
         <!-- زر التالي -->
         <li class="page-item {{ 'disabled' if not pagination.has_next else '' }}">
             <button class="page-link" onclick="fetchProducts({{ pagination.next_num if pagination.has_next else total }})" {{ 'disabled' if not pagination.has_next else '' }} 
-                    style="color: #2d0b36; {{ 'opacity: 0.5; cursor: not-allowed;' if not pagination.has_next else '' }} border: none;">
+                    style="color: #2d0b36; {{ 'opacity: 0.5; cursor: not-allowed;' if not pagination.has_next else '' }} border: none; background: none;">
                 التالي <i class="fas fa-chevron-left"></i>
             </button>
         </li>
@@ -45,7 +46,7 @@
 
     <!-- الإحصائية أسفل الأزرار -->
     <div class="text-center mt-2 text-muted small" style="font-size: 0.9rem; color: #6c757d;">
-        عرض {{ pagination.per_page }} من {{ pagination.total_items }} منتج (صفحة {{ pagination.current_page }} من {{ pagination.total_pages }})
+        عرض المنتجات (صفحة {{ pagination.current_page }} من {{ pagination.total_pages }} - الإجمالي: {{ pagination.total_items }} منتج)
     </div>
 </nav>
 {% endif %}
