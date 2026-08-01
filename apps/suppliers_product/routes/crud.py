@@ -125,7 +125,7 @@ def add_supplier_product():
 
 
 # ============================================================
-# 2. تعديل المنتج (عرض صفحة التعديل) - ✅ النسخة المحسنة مع البحث الاحتياطي
+# 2. تعديل المنتج (عرض صفحة التعديل)
 # ============================================================
 @suppliers_product_bp.route('/products/edit', methods=['GET'])
 @suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'])
@@ -150,7 +150,7 @@ def edit_supplier_product(qid=None):
             flash("معرف المنتج (qid) مفقود.", "danger")
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
         
-        # استخراج المعرف الخام
+        # استخراج المعرف الخام (يُستخدم فقط للـ API)
         raw_qid_for_api = _extract_raw_id(qid)
         current_app.logger.info(f"🔍 [edit_supplier_product] raw_qid_for_api: {raw_qid_for_api}")
         
@@ -159,7 +159,7 @@ def edit_supplier_product(qid=None):
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
         
         # ============================================================
-        # المحاولة 1: جلب المنتج باستخدام المعرف الخام (الأكثر نجاحاً)
+        # المحاولة 1: جلب المنتج باستخدام المعرف الخام
         # ============================================================
         product = None
         try:
@@ -182,7 +182,7 @@ def edit_supplier_product(qid=None):
                 _log_error(api_err, f'get_product_by_qid(full={qid})', 'warning')
         
         # ============================================================
-        # المحاولة 3: البحث عبر صفحات الـ API (حل احتياطي قوي)
+        # المحاولة 3: البحث عبر صفحات الـ API (حل احتياطي)
         # ============================================================
         if not product:
             current_app.logger.info("🔄 [edit_supplier_product] المعرفان فشلا، نبحث عبر صفحات الـ API...")
@@ -214,7 +214,7 @@ def edit_supplier_product(qid=None):
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
         # ============================================================
-        # البحث في جدول الربط
+        # البحث في جدول الربط (نستخدم المعرف الأصلي للتخزين)
         # ============================================================
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         if not mapping and raw_qid_for_api:
@@ -242,7 +242,7 @@ def edit_supplier_product(qid=None):
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
         # ============================================================
-        # جلب الخيارات (إذا كانت متوفرة)
+        # جلب الخيارات (variants/options)
         # ============================================================
         raw_options = []
         try:
@@ -382,7 +382,7 @@ def save_sync_supplier_product():
 
         collection_ids = request.form.getlist('collection_ids')
 
-        # تحديث البيانات في الـ API
+        # تحديث البيانات في الـ API باستخدام المعرف الخام
         errors = []
         try:
             if hasattr(services.products, 'update_product_info'):
@@ -458,7 +458,7 @@ def delete_supplier_product(qid):
         if not mapping:
             return _json_error('المنتج غير موجود في قائمتك', 404)
 
-        # أرشفة المنتج في الـ API
+        # أرشفة المنتج في الـ API باستخدام المعرف الخام
         try:
             services.products.update_product_status(raw_qid_for_api, "ARCHIVED")
         except Exception as ext_err:
@@ -483,7 +483,7 @@ def delete_supplier_product(qid):
 
 
 # ============================================================
-# 5. المزامنة الجماعية (للإستخدام المستقبلي)
+# 5. المزامنة الجماعية (للاستخدام المستقبلي)
 # ============================================================
 @suppliers_product_bp.route('/products/sync-batch', methods=['POST'])
 @login_required
