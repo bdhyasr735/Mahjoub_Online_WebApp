@@ -7,9 +7,9 @@
         {% set product = item.product if item.product is defined else item %}
         {% set mapping = item.mapping if item.mapping is defined else none %}
         
-        {# ✅ استخراج الـ qid من المابينغ أولاً (لأنه المخزن في قاعدة البيانات) #}
+        {# ✅ استخراج الـ qid من المابينغ كاملاً دون قص البادئة #}
         {% set raw_qid = mapping.product_qid if mapping and mapping.product_qid else (product.qid or product.id or '') %}
-        {% set product_qid = raw_qid.split('/')[-1] if '/' in raw_qid else raw_qid %}
+        {% set product_qid = raw_qid %}  {# ✅ تم إزالة عملية القص هنا #}
         
         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
             <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden" 
