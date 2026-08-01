@@ -44,7 +44,6 @@ def _sync_products_in_background(supplier_id):
             if product_data:
                 mapping.updated_at = datetime.utcnow()
                 updated_count += 1
-            # إذا لم يوجد المنتج في الـ API، نتركه (لا نحذفه)
         
         db.session.commit()
         print(f"✅ [Sync Background] تم تحديث {updated_count} منتج للمورد {supplier_id}")
@@ -72,48 +71,86 @@ def manage_supplier_products_view():
         last_sync_key = f'_last_sync_{supplier_id}'
         if not is_admin and supplier_id:
             last_sync_time = session.get(last_sync_key)
-            # ✅ إصلاح خطأ الوقت: تحويل last_sync_time إلى naive إذا كان aware
             if last_sync_time and hasattr(last_sync_time, 'tzinfo') and last_sync_time.tzinfo is not None:
                 last_sync_time = last_sync_time.replace(tzinfo=None)
-            if not last_sync_time or (datetime.utcnow() - last_sync_time).seconds > 600:  # 10 دقائق
+            if not last_sync_time or (datetime.utcnow() - last_sync_time).seconds > 600:
                 _sync_products_in_background(supplier_id)
                 session[last_sync_key] = datetime.utcnow()
 
         # ============================================================
-        # 2. جلب المنتجات المرتبطة فقط مع Pagination من قاعدة البيانات
+        # 2. جلب المنتجات المرتبطة مع فلترة (بحث، حالة، سعر)
         # ============================================================
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('limit', 10, type=int)
         per_page = max(1, min(per_page, 50))
 
+        # كشف ما إذا كان الطلب AJAX
+        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        # بناء الاستعلام مع الفلاتر
         query = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id)
-        # يمكن إضافة فلترة حسب الحالة إذا أردت:
-        # query = query.filter_by(status='active')
+
+        # فلتر الحالة (إذا أرسل)
+        status_filter = request.args.get('status', '').strip()
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+
+        # فلتر البحث (اسم المنتج أو SKU) - يتم عبر جلب التفاصيل لاحقاً
+        search_term = request.args.get('search', '').strip().lower()
+
+        # فلتر السعر (يتم تطبيقه بعد جلب التفاصيل)
+        min_price = request.args.get('min_price', '')
+        max_price = request.args.get('max_price', '')
+
+        # تنفيذ Pagination
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         mappings = pagination.items
 
         # ============================================================
-        # 3. جلب تفاصيل المنتجات من الـ API (لكل منتج على حدة)
+        # 3. جلب تفاصيل المنتجات مع تطبيق الفلاتر (بحث، سعر)
         # ============================================================
         products_data = []
         for mapping in mappings:
             qid = mapping.product_qid
             product = services.products.get_product_by_qid(qid)
-            if product:
-                products_data.append({
-                    'mapping': mapping,
-                    'product': product
-                })
-            else:
-                # إذا لم يوجد في الـ API، نعرض البيانات المحلية فقط
+            
+            if not product:
+                # إذا لم يوجد في API، نعرض البيانات المحلية فقط
                 products_data.append({
                     'mapping': mapping,
                     'product': None
                 })
+                continue
+
+            # تطبيق فلتر البحث (اسم المنتج أو SKU)
+            if search_term:
+                title = str(product.get('title', '')).lower()
+                sku = str(product.get('sku', '')).lower()
+                if search_term not in title and search_term not in sku:
+                    continue
+
+            # تطبيق فلتر السعر
+            try:
+                price_val = float(product.get('price') or product.get('sale_price') or 
+                                 product.get('regular_price') or 0)
+                if min_price and price_val < float(min_price):
+                    continue
+                if max_price and price_val > float(max_price):
+                    continue
+            except (ValueError, TypeError):
+                pass
+
+            products_data.append({
+                'mapping': mapping,
+                'product': product
+            })
 
         # ============================================================
-        # 4. تجهيز بيانات الترقيم
+        # 4. تجهيز بيانات الترقيم (مع مراعاة الفلاتر)
         # ============================================================
+        # ملاحظة: في حالة وجود فلاتر، يكون الترقيم بناءً على النتائج المفلترة
+        # لهذا نستخدم العدد الفعلي للمنتجات المفلترة
+        total_filtered = len(products_data)
         pagination_info = {
             'current_page': pagination.page,
             'total_pages': pagination.pages,
@@ -124,6 +161,25 @@ def manage_supplier_products_view():
             'per_page': pagination.per_page,
             'total_items': pagination.total
         }
+
+        # ============================================================
+        # 5. الرد حسب نوع الطلب (AJAX أو عادي)
+        # ============================================================
+        if is_ajax:
+            return jsonify({
+                'success': True,
+                'html': render_template(
+                    'suppliers/includes/_product_grid.html',
+                    products=products_data,
+                    get_status_text=get_status_text,
+                    format_price=format_price
+                ),
+                'pagination_html': render_template(
+                    'suppliers/includes/_pagination.html',
+                    pagination=pagination_info
+                ),
+                'total_items': pagination_info['total_items']
+            })
 
         return render_template(
             'suppliers/suppliers_product.html',
@@ -136,6 +192,15 @@ def manage_supplier_products_view():
     except Exception as e:
         current_app.logger.error(f"خطأ غير متوقع: {traceback.format_exc()}")
         flash('❌ حدث خطأ غير متوقع أثناء تحميل المنتجات', 'danger')
+        
+        # في حالة AJAX، نعيد رسالة خطأ بتنسيق JSON
+        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        if is_ajax:
+            return jsonify({
+                'success': False,
+                'message': 'حدث خطأ أثناء تحميل المنتجات'
+            }), 500
+        
         return render_template(
             'suppliers/suppliers_product.html',
             products=[],
