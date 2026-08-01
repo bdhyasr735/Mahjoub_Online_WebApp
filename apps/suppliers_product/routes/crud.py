@@ -125,18 +125,19 @@ def add_supplier_product():
 
 
 # ============================================================
-# 2. تعديل المنتج (عرض صفحة التعديل)
+# 2. تعديل المنتج (عرض صفحة التعديل) - ✅ النسخة المحسنة مع البحث الاحتياطي
 # ============================================================
 @suppliers_product_bp.route('/products/edit', methods=['GET'])
 @suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_supplier_product(qid=None):
     try:
+        # ✅ سجل الـ qid للتصحيح
+        current_app.logger.info(f"🔍 [edit_supplier_product] QID المستلم: {qid}")
+        
         if not qid:
             qid = request.args.get('qid')
-            if not qid:
-                flash("معرف المنتج (qid) مفقود.", "danger")
-                return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+            current_app.logger.info(f"🔍 [edit_supplier_product] QID من query: {qid}")
 
         user_type = session.get('user_type') or getattr(current_user, 'user_type', None)
         supplier_id = session.get('user_id') or session.get('supplier_id') or getattr(current_user, 'id', None)
@@ -145,25 +146,76 @@ def edit_supplier_product(qid=None):
             flash('❌ هذا القسم مخصص للموردين فقط', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
         
+        if not qid:
+            flash("معرف المنتج (qid) مفقود.", "danger")
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+        
+        # استخراج المعرف الخام
         raw_qid_for_api = _extract_raw_id(qid)
+        current_app.logger.info(f"🔍 [edit_supplier_product] raw_qid_for_api: {raw_qid_for_api}")
+        
         if not raw_qid_for_api:
             flash("❌ معرف المنتج غير صالح", "danger")
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
         
-        # جلب المنتج من الـ API
+        # ============================================================
+        # المحاولة 1: جلب المنتج باستخدام المعرف الخام (الأكثر نجاحاً)
+        # ============================================================
+        product = None
         try:
             product = services.products.get_product_by_qid(raw_qid_for_api)
-            if not product:
-                product = services.products.get_product_by_qid(qid)
+            if product:
+                current_app.logger.info(f"✅ [edit_supplier_product] تم جلب المنتج بالمعرف الخام: {raw_qid_for_api}")
         except Exception as api_err:
-            _log_error(api_err, f'get_product_by_qid({qid})', 'warning')
-            product = None
-
+            _log_error(api_err, f'get_product_by_qid(raw={raw_qid_for_api})', 'warning')
+        
+        # ============================================================
+        # المحاولة 2: جلب المنتج باستخدام المعرف الأصلي (الكامل)
+        # ============================================================
+        if not product:
+            try:
+                current_app.logger.info(f"⚠️ [edit_supplier_product] المعرف الخام فشل، نحاول بالكامل: {qid}")
+                product = services.products.get_product_by_qid(qid)
+                if product:
+                    current_app.logger.info(f"✅ [edit_supplier_product] تم جلب المنتج بالمعرف الكامل: {qid}")
+            except Exception as api_err:
+                _log_error(api_err, f'get_product_by_qid(full={qid})', 'warning')
+        
+        # ============================================================
+        # المحاولة 3: البحث عبر صفحات الـ API (حل احتياطي قوي)
+        # ============================================================
+        if not product:
+            current_app.logger.info("🔄 [edit_supplier_product] المعرفان فشلا، نبحث عبر صفحات الـ API...")
+            max_pages = 30
+            for page_num in range(1, max_pages + 1):
+                try:
+                    result = services.products.get_products_page(page_num)
+                    if not result or not result.get('data'):
+                        break
+                    for p in result.get('data', []):
+                        p_qid = str(p.get('qid') or p.get('id', '')).strip()
+                        # نبحث باستخدام المعرف الخام أو الكامل أو أي جزء منهما
+                        if (raw_qid_for_api in p_qid or qid in p_qid or 
+                            p_qid == raw_qid_for_api or p_qid == qid):
+                            product = p
+                            current_app.logger.info(f"✅ [edit_supplier_product] وجدنا المنتج في الصفحة {page_num}: {product.get('title')}")
+                            break
+                    if product:
+                        break
+                except Exception as page_err:
+                    current_app.logger.warning(f"⚠️ [edit_supplier_product] خطأ في الصفحة {page_num}: {page_err}")
+                    continue
+        
+        # ============================================================
+        # إذا لم نجد المنتج بعد كل المحاولات
+        # ============================================================
         if not product:
             flash("❌ لم يتم العثور على المنتج في النظام الخارجي", "danger")
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
+        # ============================================================
         # البحث في جدول الربط
+        # ============================================================
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         if not mapping and raw_qid_for_api:
             mapping = ProductSupplierMapping.query.filter_by(product_qid=raw_qid_for_api).first()
@@ -178,6 +230,7 @@ def edit_supplier_product(qid=None):
                 )
                 db.session.add(mapping)
                 db.session.commit()
+                current_app.logger.info(f"✅ [edit_supplier_product] تم إنشاء ربط تلقائي للمورد {supplier_id}")
             except Exception as map_err:
                 db.session.rollback()
                 _log_error(map_err, f'إنشاء ربط تلقائي للمورد {supplier_id}', 'warning')
@@ -188,7 +241,9 @@ def edit_supplier_product(qid=None):
             flash("❌ هذا المنتج مرتبط بمورد آخر، لا يمكنك تعديله.", "danger")
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
+        # ============================================================
         # جلب الخيارات (إذا كانت متوفرة)
+        # ============================================================
         raw_options = []
         try:
             if isinstance(product, dict):
@@ -227,7 +282,9 @@ def edit_supplier_product(qid=None):
         else:
             setattr(product, 'options', cleaned_options)
 
-        # تجهيز قائمة الموردين للأدمن
+        # ============================================================
+        # تجهيز القالب
+        # ============================================================
         suppliers = []
         if user_type == 'admin':
             suppliers = Supplier.query.filter_by(status='active').all()
@@ -238,7 +295,6 @@ def edit_supplier_product(qid=None):
 
         assigned_supplier_id = mapping.supplier_id if mapping else None
 
-        # جلب المجموعات (collections)
         all_collections = []
         try:
             if hasattr(services, 'collections') and hasattr(services.collections, 'get_all_collections'):
