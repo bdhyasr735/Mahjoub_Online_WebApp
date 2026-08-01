@@ -5,21 +5,22 @@
 {% block content %}
 <div class="container-fluid py-4">
     
-    <!-- العنوان وزر الإضافة فقط (تم إزالة زر المزامنة) -->
+    <!-- ✅ العنوان وزر الإضافة -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold mb-1" style="color: #2d0b36;">قائمة المنتجات</h2>
+            <h2 class="fw-bold mb-1" style="color: #2d0b36;">📦 قائمة المنتجات</h2>
             <p class="text-muted text-sm mb-0">إدارة ومتابعة المنتجات والأسعار والكميات الخاصة بك.</p>
         </div>
         <div class="d-flex gap-2">
-            <!-- ✅ تم إزالة زر المزامنة نهائياً، المزامنة تحدث تلقائياً في الخلفية -->
-            <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" class="btn px-4 py-2 shadow-sm d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 12px; border: none;">
+            <a href="{{ url_for('suppliers_product_bp.add_supplier_product') }}" 
+               class="btn px-4 py-2 shadow-sm d-flex align-items-center gap-2"
+               style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 12px; border: none;">
                 <i class="fas fa-plus-circle"></i> إضافة منتج جديد
             </a>
         </div>
     </div>
 
-    <!-- رسائل التنبيه -->
+    <!-- ✅ رسائل التنبيه -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -34,49 +35,60 @@
         {% endif %}
     {% endwith %}
 
-    <!-- شريط الفلاتر -->
+    <!-- ✅ شريط الفلاتر المتطور (بدون فئات) -->
     <div class="card mb-4 shadow-sm border-0 rounded-4">
         <div class="card-body p-3 p-md-4">
             <div class="row g-3 align-items-end">
-                <!-- البحث -->
-                <div class="col-md-3">
-                    <label for="searchInput" class="form-label fw-bold small text-muted">🔍 بحث</label>
-                    <input type="text" id="searchInput" class="form-control" placeholder="اسم المنتج أو SKU..." style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
-                </div>
-                <!-- الفئة -->
-                <div class="col-md-3">
-                    <label for="categoryFilter" class="form-label fw-bold small text-muted">📂 الفئة</label>
-                    <select id="categoryFilter" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
-                        <option value="">جميع الفئات</option>
-                        <option value="cookware">أواني طهي</option>
-                        <option value="bakeware">أدوات خبز</option>
-                        <option value="storage">تخزين</option>
-                    </select>
-                </div>
-                <!-- الحالة -->
-                <div class="col-md-2">
-                    <label for="statusFilter" class="form-label fw-bold small text-muted">📌 الحالة</label>
-                    <select id="statusFilter" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
-                        <option value="">الكل</option>
-                        <option value="PUBLISHED">منشور</option>
-                        <option value="REVIEW">قيد المراجعة</option>
-                        <option value="DRAFT">مسودة</option>
-                    </select>
-                </div>
-                <!-- السعر -->
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">💰 السعر (ر.س)</label>
+                <!-- 🔍 البحث (يتم عبر جميع الصفحات) -->
+                <div class="col-md-4">
+                    <label for="searchInput" class="form-label fw-bold small text-muted">
+                        <i class="fas fa-search me-1"></i> بحث
+                    </label>
                     <div class="input-group">
-                        <input type="number" id="minPrice" class="form-control" placeholder="من" style="height: 45px; border-radius: 10px 0 0 10px; border-color: #2d0b36;">
-                        <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">إلى</span>
-                        <input type="number" id="maxPrice" class="form-control" placeholder="إلى" style="height: 45px; border-radius: 0 10px 10px 0; border-color: #2d0b36;">
+                        <input type="text" id="searchInput" class="form-control" 
+                               placeholder="اسم المنتج أو SKU..." 
+                               style="border-radius: 10px 0 0 10px; height: 45px; border-color: #2d0b36;">
+                        <button class="btn" type="button" onclick="fetchProducts(1)" 
+                                style="background: #2d0b36; color: #D4AF37; border-radius: 0 10px 10px 0; border: none; height: 45px; width: 50px;">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
                     </div>
                 </div>
 
-                <!-- عدد المنتجات لكل صفحة -->
-                <div class="col-md-1">
-                    <label class="form-label fw-bold small text-muted">عدد</label>
-                    <select id="limitSelect" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36; font-size: 0.9rem;">
+                <!-- 📌 الحالة -->
+                <div class="col-md-2">
+                    <label for="statusFilter" class="form-label fw-bold small text-muted">
+                        <i class="fas fa-tag me-1"></i> الحالة
+                    </label>
+                    <select id="statusFilter" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
+                        <option value="">الكل</option>
+                        <option value="PUBLISHED">منشور</option>
+                        <option value="PENDING">قيد المراجعة</option>
+                        <option value="DRAFT">مسودة</option>
+                        <option value="ARCHIVED">مؤرشف</option>
+                    </select>
+                </div>
+
+                <!-- 💰 نطاق السعر -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">
+                        <i class="fas fa-coins me-1"></i> السعر (ر.س)
+                    </label>
+                    <div class="input-group">
+                        <input type="number" id="minPrice" class="form-control" placeholder="من" 
+                               style="height: 45px; border-radius: 10px 0 0 10px; border-color: #2d0b36;">
+                        <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none; height: 45px;">-</span>
+                        <input type="number" id="maxPrice" class="form-control" placeholder="إلى" 
+                               style="height: 45px; border-radius: 0 10px 10px 0; border-color: #2d0b36;">
+                    </div>
+                </div>
+
+                <!-- 📊 عدد المنتجات لكل صفحة -->
+                <div class="col-md-2">
+                    <label for="limitSelect" class="form-label fw-bold small text-muted">
+                        <i class="fas fa-list me-1"></i> عرض
+                    </label>
+                    <select id="limitSelect" class="form-select" style="border-radius: 10px; height: 45px; border-color: #2d0b36;">
                         <option value="10">10</option>
                         <option value="20">20</option>
                         <option value="50">50</option>
@@ -84,17 +96,29 @@
                     </select>
                 </div>
 
-                <!-- زر إعادة تعيين -->
+                <!-- 🔄 زر إعادة تعيين -->
                 <div class="col-md-1">
-                    <button onclick="clearAllFilters()" class="btn btn-outline-secondary w-100" style="border-radius: 10px; height: 45px;" title="إعادة تعيين">
-                        <i class="fas fa-undo"></i>
+                    <label class="form-label fw-bold small text-muted invisible">.</label>
+                    <button onclick="clearAllFilters()" class="btn btn-outline-secondary w-100" 
+                            style="border-radius: 10px; height: 45px;" title="إعادة تعيين الفلاتر">
+                        <i class="fas fa-undo-alt"></i>
                     </button>
+                </div>
+            </div>
+
+            <!-- ✅ عداد النتائج (يظهر عدد المنتجات الإجمالي) -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <small class="text-muted" id="resultsCount">
+                        <i class="fas fa-database me-1"></i> 
+                        إجمالي المنتجات: <strong id="totalItemsCount">{{ pagination.total_items if pagination else 0 }}</strong>
+                    </small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- حاوية المنتجات والترقيم -->
+    <!-- ✅ حاوية المنتجات والترقيم -->
     <div id="productsContainer">
         {% include "suppliers/includes/_product_grid.html" %}
         {% include "suppliers/includes/_pagination.html" %}
@@ -102,17 +126,15 @@
 
 </div>
 
-<!-- ✅ تم إزالة تضمين نافذة المزامنة (_sync_modal.html) نهائياً -->
-
-<!-- حقل مخفي لتوفر الـ CSRF Token إن لم يكن متوفراً في نموذج سابق -->
+<!-- حقل CSRF Token -->
 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
 
-<!-- ✅ كود JavaScript المختصر (بدون أي إشارة للمزامنة) -->
+<!-- ✅ كود JavaScript المتطور -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // دالة إعادة تعيين الفلاتر
     window.clearAllFilters = function() {
         document.getElementById('searchInput').value = '';
-        document.getElementById('categoryFilter').value = '';
         document.getElementById('statusFilter').value = '';
         document.getElementById('minPrice').value = '';
         document.getElementById('maxPrice').value = '';
@@ -120,31 +142,43 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchProducts(1);
     };
 
-    // ربط الأحداث
+    // ربط الأحداث مع تأخير للبحث
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         let timeout;
         searchInput.addEventListener('input', function() {
             clearTimeout(timeout);
-            timeout = setTimeout(() => fetchProducts(1), 500);
+            timeout = setTimeout(() => fetchProducts(1), 600);
+        });
+        // البحث عند الضغط على Enter
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                fetchProducts(1);
+            }
         });
     }
-    document.getElementById('categoryFilter').addEventListener('change', function() { fetchProducts(1); });
+
+    // ربط باقي الفلاتر
     document.getElementById('statusFilter').addEventListener('change', function() { fetchProducts(1); });
     document.getElementById('minPrice').addEventListener('input', function() { fetchProducts(1); });
     document.getElementById('maxPrice').addEventListener('input', function() { fetchProducts(1); });
     document.getElementById('limitSelect').addEventListener('change', function() { fetchProducts(1); });
 });
 
-// ✅ الدالة الشاملة لجلب المنتجات عبر Ajax
+// ✅ الدالة الشاملة لجلب المنتجات عبر Ajax (مع دعم جميع الفلاتر)
 function fetchProducts(page = 1) {
     const container = document.getElementById('productsContainer');
-    container.innerHTML = '<div class="text-center py-5"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2 text-muted">جاري تحميل المنتجات...</p></div>';
+    container.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border" style="color: #D4AF37;" role="status"></div>
+            <p class="mt-2 text-muted">⏳ جاري تحميل المنتجات...</p>
+        </div>
+    `;
 
     const params = new URLSearchParams({
         page: page,
-        search: document.getElementById('searchInput').value,
-        category: document.getElementById('categoryFilter').value,
+        search: document.getElementById('searchInput').value.trim(),
         status: document.getElementById('statusFilter').value,
         min_price: document.getElementById('minPrice').value,
         max_price: document.getElementById('maxPrice').value,
@@ -152,45 +186,83 @@ function fetchProducts(page = 1) {
         ajax: '1'
     });
 
-    fetch("{{ url_for('suppliers_product_bp.list_supplier_products') }}" + "?" + params.toString(), {
+    // إزالة المعاملات الفارغة
+    for (const [key, value] of params.entries()) {
+        if (!value || value === '') {
+            params.delete(key);
+        }
+    }
+
+    fetch("{{ url_for('suppliers_product_bp.list_supplier_products') }}?" + params.toString(), {
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => {
         if (!response.ok) throw new Error('فشل في تحميل البيانات');
-        return response.json(); 
+        return response.json();
     })
     .then(data => {
         if (data.success && data.html) {
             container.innerHTML = data.html;
+            // تحديث عداد النتائج
+            if (data.total_items !== undefined) {
+                document.getElementById('totalItemsCount').textContent = data.total_items;
+            }
             attachPaginationEvents();
         } else {
-            container.innerHTML = '<div class="alert alert-warning text-center">لا توجد منتجات مطابقة.</div>';
+            container.innerHTML = `
+                <div class="alert alert-warning text-center py-4 rounded-4">
+                    <i class="fas fa-search fa-2x d-block mb-3 opacity-50"></i>
+                    لا توجد منتجات مطابقة للبحث.
+                </div>
+            `;
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        container.innerHTML = '<div class="alert alert-danger text-center">حدث خطأ أثناء جلب المنتجات.</div>';
+        container.innerHTML = `
+            <div class="alert alert-danger text-center py-4 rounded-4">
+                <i class="fas fa-exclamation-triangle fa-2x d-block mb-3"></i>
+                حدث خطأ أثناء جلب المنتجات. يرجى المحاولة مرة أخرى.
+            </div>
+        `;
     });
 }
 
+// ✅ ربط أحداث الترقيم
 function attachPaginationEvents() {
     document.querySelectorAll('#paginationNav .page-link').forEach(btn => {
         btn.onclick = function(e) {
             e.preventDefault();
             const onclickAttr = this.getAttribute('onclick');
             if (onclickAttr) {
-                const page = parseInt(onclickAttr.match(/\d+/)?.[0] || 1);
-                if (!isNaN(page)) fetchProducts(page);
+                const pageMatch = onclickAttr.match(/\d+/);
+                if (pageMatch) {
+                    const page = parseInt(pageMatch[0]);
+                    if (!isNaN(page)) fetchProducts(page);
+                }
             }
         };
     });
 }
+
+// ✅ تحديث عداد النتائج من الـ HTML (إذا تم تحميل الصفحة مباشرة)
+document.addEventListener('DOMContentLoaded', function() {
+    const totalItems = document.getElementById('totalItemsCount');
+    if (totalItems && totalItems.textContent === '0') {
+        // إذا كان العدد صفراً، نتحقق من وجود منتجات
+        const grid = document.querySelector('#productsGrid');
+        if (grid && grid.children.length === 0) {
+            totalItems.textContent = '0';
+        }
+    }
+});
 </script>
 
-<!-- ✅ كود CSS لتنسيق البطاقات -->
+<!-- ✅ كود CSS المحسن -->
 <style>
+    /* تأثيرات البطاقة */
     .product-card {
         background: #ffffff;
         transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -229,5 +301,38 @@ function attachPaginationEvents() {
     .product-card:hover .card-title {
         color: #2d0b36 !important;
     }
+
+    /* تحسين شريط الفلاتر */
+    .form-control:focus, .form-select:focus {
+        border-color: #D4AF37 !important;
+        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25) !important;
+    }
+
+    /* تأثير دخول البطاقات */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .product-card {
+        animation: fadeInUp 0.5s ease-out forwards;
+    }
+    .product-card:nth-child(1) { animation-delay: 0.05s; }
+    .product-card:nth-child(2) { animation-delay: 0.10s; }
+    .product-card:nth-child(3) { animation-delay: 0.15s; }
+    .product-card:nth-child(4) { animation-delay: 0.20s; }
+    .product-card:nth-child(5) { animation-delay: 0.25s; }
+    .product-card:nth-child(6) { animation-delay: 0.30s; }
+    .product-card:nth-child(7) { animation-delay: 0.35s; }
+    .product-card:nth-child(8) { animation-delay: 0.40s; }
+    .product-card:nth-child(9) { animation-delay: 0.45s; }
+    .product-card:nth-child(10) { animation-delay: 0.50s; }
+    .product-card:nth-child(11) { animation-delay: 0.55s; }
+    .product-card:nth-child(12) { animation-delay: 0.60s; }
 </style>
 {% endblock %}
