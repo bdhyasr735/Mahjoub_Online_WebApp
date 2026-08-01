@@ -3,7 +3,7 @@
 # مراجعة منتجات الموردين
 
 from flask import render_template, request, jsonify, redirect, url_for, flash, session
-from flask_login import login_required
+from flask_login import login_required, current_user
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
@@ -15,34 +15,75 @@ from datetime import datetime
 @suppliers_product_bp.route('/products/review', methods=['GET'])
 @login_required
 def review_supplier_products():
-    """صفحة مراجعة منتجات المورد - تعرض المنتجات الخاصة بالمورد الحالي"""
+    """صفحة مراجعة منتجات المورد - تعرض المنتجات الخاصة بالمورد الحالي لحظياً"""
     try:
-        user_type = session.get('user_type')
-        supplier_id = session.get('user_id') or session.get('supplier_id')
+        # ✅ 1. التحقق الآمن من الهُوية وصلاحيات الدخول
+        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
+        user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
+        is_admin = (user_type == 'admin' or getattr(current_user, 'is_admin', False))
 
-        if user_type != 'supplier' and user_type != 'admin':
-            flash('❌ هذا القسم مخصص للموردين فقط', 'danger')
+        if user_type not in ('supplier', 'admin') and not is_admin:
+            flash('❌ هذا القسم مخصص للموردين والمشرفين فقط', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
         
-        # جلب المنتجات عبر الخدمة
-        result = services.products.get_all_products() or {}
-        all_products = result.get('data', [])
-        
-        # إذا كان المستخدم مورداً، نقوم بتصفية المنتجات لتقتصر على منتجاته المرتبطة في جدول الربط فقط
-        if user_type != 'admin' and supplier_id:
-            supplier_mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
-            supplier_qids = {m.product_qid for m in supplier_mappings}
-            target_products = [p for p in all_products if p.get('qid') in supplier_qids]
-        else:
-            target_products = all_products
+        # ====================================================
+        # ✅ 2. جلب الـ QIDs المرتبطة بالمورد من قاعدة البيانات المحلية
+        # ====================================================
+        supplier_qids_set = set()
+        if not is_admin and supplier_id:
+            mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
+            supplier_qids_set = {str(m.product_qid).strip() for m in mappings if m.product_qid}
+            
+            if not supplier_qids_set:
+                # إذا لم تكن لديه أي منتجات مرتبطة
+                return render_template(
+                    'suppliers/supplier_review_products.html',
+                    products=[],
+                    total_count=0,
+                    total_published=0,
+                    total_rejected=0,
+                    no_products_message="عذراً، لا توجد لديك أي منتجات مسجلة للمراجعة حالياً."
+                )
 
-        # تصفية المنتجات بحالة DRAFT للمورد
-        draft_products = [p for p in target_products if p.get('status', '').upper() == 'DRAFT']
+        # ====================================================
+        # ✅ 3. الجلب اللحظي (Stateless) للمنتجات وتصفيتها
+        # ====================================================
+        target_products = []
+        max_check_pages = 30
         
-        for product in draft_products:
-            mapping = ProductSupplierMapping.query.filter_by(
-                product_qid=product.get('qid')
-            ).first()
+        for p_num in range(1, max_check_pages + 1):
+            res = services.products.get_products_page(p_num)
+            if not res or not res.get('data'):
+                break
+            
+            page_items = res.get('data', [])
+            for p in page_items:
+                p_qid = str(p.get('qid') or p.get('id', '')).strip()
+                
+                # إذا لم يكن مشرفاً، نتحقق أن المنتج يتبع المورد حصراً
+                if not is_admin:
+                    if p_qid in supplier_qids_set:
+                        target_products.append(p)
+                else:
+                    target_products.append(p)
+            
+            # إذا استوفَينا جميع منتجات المورد، نتوقف عن التصفح الخارجي لتسريع الصفحة
+            if not is_admin and len(target_products) >= len(supplier_qids_set):
+                break
+
+        # ====================================================
+        # ✅ 4. تصنيف الحالات (مسودة، منشور، مرفوض)
+        # ====================================================
+        draft_products = []
+        total_published = 0
+        total_rejected = 0
+
+        for product in draft_products if False else target_products:
+            status = str(product.get('status', '')).upper()
+            
+            # إثراء بيانات المنتج بمعلومات المورد إذا كان المشرف هو من يتصفح
+            p_qid = str(product.get('qid') or product.get('id', '')).strip()
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=p_qid).first()
             if mapping:
                 supplier = Supplier.query.get(mapping.supplier_id)
                 product['supplier_name'] = supplier.trade_name if supplier else 'غير معروف'
@@ -50,10 +91,15 @@ def review_supplier_products():
             else:
                 product['supplier_name'] = 'غير مرتبط'
                 product['supplier_id'] = None
-        
+
+            if status == 'DRAFT':
+                draft_products.append(product)
+            elif status == 'PUBLISHED':
+                total_published += 1
+            elif status == 'REJECTED':
+                total_rejected += 1
+
         total_draft = len(draft_products)
-        total_published = len([p for p in target_products if p.get('status', '').upper() == 'PUBLISHED'])
-        total_rejected = len([p for p in target_products if p.get('status', '').upper() == 'REJECTED'])
         
         # تغليف المنتجات لتتطابق مع توقعات القالب (item.product)
         formatted_products = [{'product': p} for p in draft_products]
@@ -69,7 +115,7 @@ def review_supplier_products():
     except Exception as e:
         print(f"❌ خطأ في review_supplier_products: {e}")
         flash('❌ حدث خطأ في تحميل صفحة المراجعة', 'danger')
-        return redirect(url_for('suppliers_product_bp.manage_supplier_products'))
+        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
 
 @suppliers_product_bp.route('/products/change-status/<qid>', methods=['POST'])
@@ -77,22 +123,22 @@ def review_supplier_products():
 def change_supplier_product_status(qid):
     """تغيير حالة منتج المورد (بصلاحيات مقيدة)"""
     try:
-        user_type = session.get('user_type')
-        supplier_id = session.get('user_id') or session.get('supplier_id')
+        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
+        user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
+        is_admin = (user_type == 'admin' or getattr(current_user, 'is_admin', False))
 
-        if user_type != 'supplier' and user_type != 'admin':
+        if user_type not in ('supplier', 'admin') and not is_admin:
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
         # التحقق من أن المنتج يخص هذا المورد (إلا إذا كان المشرف هو من يقوم بالعملية)
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-        if user_type != 'admin':
+        if not is_admin:
             if not mapping or str(mapping.supplier_id) != str(supplier_id):
                 return jsonify({'success': False, 'message': 'غير مصرح لك بتعديل هذا المنتج'}), 403
         
         data = request.get_json() or {}
         new_status = data.get('status', '').upper()
         
-        # المورد قد يكون مسموحاً له حالات محدودة مثل DRAFT أو إعادة إرسال للمراجعة، بينما الإدارة تملك كل الصلاحيات
         valid_statuses = ['PUBLISHED', 'REJECTED', 'DRAFT', 'ARCHIVED']
         if new_status not in valid_statuses:
             return jsonify({'success': False, 'message': 'حالة غير صالحة'}), 400
