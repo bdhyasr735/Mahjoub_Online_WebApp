@@ -112,7 +112,7 @@
 <!-- حقل مخفي لتوفر الـ CSRF Token إن لم يكن متوفراً في نموذج سابق -->
 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
 
-<!-- ✅ 4. كود JavaScript المعدل للتعامل مع استجابة الـ JSON بدلاً من HTML الخام -->
+<!-- ✅ 4. كود JavaScript المعدل (تم الاعتماد على دالة المزامنة من ملف _sync_modal.html لمنع التعارض) -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     window.clearAllFilters = function() {
@@ -141,61 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('limitSelect').addEventListener('change', function() { fetchProducts(1); });
 });
 
-// ✅ دالة المزامنة الفعالة والمتصلة بالخادم
-function openSyncModal() {
-    const modal = document.getElementById('syncModal');
-    if (modal) {
-        if (typeof resetSyncModalState === 'function') {
-            resetSyncModalState();
-        }
-        modal.style.display = 'flex';
-        
-        if (typeof updateSyncProgress === 'function') {
-            updateSyncProgress('جاري الاتصال بالخادم وجلب المنتجات...', 25);
-        }
-
-        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
-
-        fetch("{{ url_for('suppliers_product_bp.sync_supplier_products') }}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (typeof updateSyncProgress === 'function') {
-                updateSyncProgress('جاري معالجة وربط المنتجات...', 75);
-            }
-            if (!response.ok) {
-                throw new Error('فشل الاتصال بالخادم (رمز الاستجابة: ' + response.status + ')');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (typeof updateSyncProgress === 'function') {
-                updateSyncProgress('اكتملت المزامنة بنجاح!', 100);
-            }
-            setTimeout(() => {
-                if (typeof showSyncResult === 'function') {
-                    showSyncResult(true, data.message || 'تمت مزامنة المنتجات بنجاح', data.details || '');
-                }
-                setTimeout(() => {
-                    fetchProducts(1);
-                }, 1500);
-            }, 500);
-        })
-        .catch(error => {
-            console.error('Sync Error:', error);
-            if (typeof showSyncResult === 'function') {
-                showSyncResult(false, 'حدث خطأ أثناء المزامنة', error.message);
-            }
-        });
-    }
-}
-
-// ✅ الدالة الشاملة لجلب المنتجات عبر Ajax (معدلة لاستقبال JSON وتجنب مشكلة رموز الـ \n)
+// ✅ الدالة الشاملة لجلب المنتجات عبر Ajax
 function fetchProducts(page = 1) {
     const container = document.getElementById('productsContainer');
     container.innerHTML = '<div class="text-center py-5"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2 text-muted">جاري تحميل المنتجات...</p></div>';
@@ -218,7 +164,7 @@ function fetchProducts(page = 1) {
     })
     .then(response => {
         if (!response.ok) throw new Error('فشل في تحميل البيانات');
-        return response.json(); // ✅ استقبال الرد كـ JSON بناءً على إعدادات الـ Backend لديك
+        return response.json(); 
     })
     .then(data => {
         if (data.success && data.html) {
