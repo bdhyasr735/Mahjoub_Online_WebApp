@@ -168,17 +168,30 @@ def manage_supplier_products_view():
         )
 
 
-@suppliers_product_bp.route('/products/edit/<string:qid>', methods=['GET'], endpoint='edit_product_view')
+@suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'], endpoint='edit_supplier_product')
 @login_required
 def edit_product_view(qid):
     """عرض صفحة تعديل المنتج مع جلب بياناته الأساسية"""
     try:
+        # تنظيف qid ليكون فقط الجزء الأخير (الرقم أو المعرف الصافي)
+        clean_qid = str(qid).strip()
+        if 'Product/' in clean_qid:
+            clean_qid = clean_qid.split('Product/')[-1]
+        while clean_qid and clean_qid.startswith('qid:'):
+            clean_qid = clean_qid.replace('qid:', '', 1)
+        clean_qid = clean_qid.replace('//', '').strip('/')
+
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
         user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
         is_admin = (user_type == 'admin' or getattr(current_user, 'is_admin', False))
 
         if not is_admin:
-            mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=qid).first()
+            # استخدام ilike بدلاً من filter_by للسماح بالتطابق الجزئي
+            mapping = ProductSupplierMapping.query.filter(
+                ProductSupplierMapping.supplier_id == supplier_id,
+                ProductSupplierMapping.product_qid.ilike(f'%{clean_qid}%')
+            ).first()
+
             if not mapping:
                 flash('❌ غير مصرح لك بتعديل هذا المنتج أو المنتج غير موجود', 'danger')
                 return redirect(url_for('suppliers_product_bp.list_supplier_products'))
@@ -190,7 +203,9 @@ def edit_product_view(qid):
             if not res or not res.get('data'):
                 break
             for p in res.get('data', []):
-                if str(p.get('qid') or p.get('id', '')).strip() == str(qid).strip():
+                p_current_qid = str(p.get('qid') or p.get('id', '')).strip()
+                # البحث في API بالمعرف الصافي
+                if clean_qid in p_current_qid or p_current_qid.endswith(clean_qid):
                     product_data = p
                     break
             if product_data:
@@ -213,7 +228,7 @@ def edit_product_view(qid):
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
 
-@suppliers_product_bp.route('/api/products/update/<string:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
+@suppliers_product_bp.route('/api/products/update/<path:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
 @login_required
 def api_update_product(qid):
     """استقبال وعرض بيانات التعديل المُرسلة عبر FormData من الواجهة"""
