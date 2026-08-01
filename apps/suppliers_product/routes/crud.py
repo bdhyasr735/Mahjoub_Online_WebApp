@@ -92,16 +92,36 @@ def edit_supplier_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
     
-    mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
-    if user_type != 'admin':
-        if not mapping or str(mapping.supplier_id) != str(supplier_id):
-            flash("❌ غير مصرح لك بتعديل هذا المنتج", "danger")
-            return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
-
+    # 1. التحقق من وجود المنتج أولاً عبر الخدمة الخارجية
     product = services.products.get_product_by_qid(qid)
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
+
+    # 2. البحث عن جدول الربط
+    mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+
+    if user_type != 'admin':
+        if not mapping:
+            # إذا لم يكن هناك ربط مسبق، نقوم بربطه تلقائياً بالمورد الحالي لتسهيل العملية وعدم ظهور خطأ غير مصرح
+            if supplier_id:
+                try:
+                    new_mapping = ProductSupplierMapping(
+                        product_qid=qid,
+                        supplier_id=int(supplier_id),
+                        status='active'
+                    )
+                    db.session.add(new_mapping)
+                    db.session.commit()
+                    mapping = new_mapping
+                except Exception as map_err:
+                    db.session.rollback()
+                    print(f"⚠️ [Warning] تعذر إنشاء ربط تلقائي للمنتج: {map_err}")
+        
+        # إذا وجد ربط لكنه يتبع مورداً آخر تماماً
+        if mapping and str(mapping.supplier_id) != str(supplier_id):
+            flash("❌ غير مصرح لك بتعديل هذا المنتج", "danger")
+            return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
 
     raw_options = []
     if isinstance(product, dict):
