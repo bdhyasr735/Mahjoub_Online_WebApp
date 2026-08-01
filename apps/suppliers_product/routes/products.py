@@ -46,6 +46,18 @@ def _sync_products_in_background(supplier_id):
         print(f"⚠️ [Sync Background Error] {e}")
 
 
+# ============================================================
+# ✅ الحل الجذري رقم 1: تطبيع الـ QID لتجنب خطأ GraphQL 400
+# ============================================================
+def normalize_qid(qid):
+    if not qid:
+        return qid
+    # إذا لم يبدأ بالبادئة، أضفها
+    if not qid.startswith('qid://'):
+        return f"qid://qumra/Product/{qid}"
+    return qid
+
+
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
 def manage_supplier_products_view():
@@ -95,10 +107,11 @@ def manage_supplier_products_view():
         # ============================================================
         products_data = []
         for mapping in mappings:
-            qid = mapping.product_qid
+            qid_raw = mapping.product_qid
+            # ✅ تطبيق الحل الجذري: تصحيح الـ QID قبل استدعاء الخدمة
+            qid = normalize_qid(qid_raw)
             product = services.products.get_product_by_qid(qid)
             
-            # ✅ تجاهل المنتجات التي لا يوجد لها بيانات
             if not product:
                 continue
 
@@ -156,75 +169,70 @@ def manage_supplier_products_view():
 
 
 # ============================================================================================
-# 🛠️ عرض صفحة التعديل (GET)
+# 🛠️ صفحة تعديل المنتج (دمج GET و POST في مسار واحد)
 # ============================================================================================
-@suppliers_product_bp.route('/products/edit/<string:product_qid>', methods=['GET'], endpoint='edit_supplier_product')
+@suppliers_product_bp.route('/products/edit/<string:product_qid>', methods=['GET', 'POST'], endpoint='edit_supplier_product')
 @login_required
-def edit_supplier_product_view(product_qid):
+def edit_supplier_product(product_qid):
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         
-        # 1. نتحقق أولاً من وجود العلاقة في جدول الربط
         mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=product_qid).first()
         if not mapping:
-            flash('⚠️ لا تملك الصلاحية لتعديل هذا المنتج، أو أن العلاقة غير موجودة.', 'danger')
+            flash('⚠️ لا تملك الصلاحية لتعديل هذا المنتج.', 'danger')
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        # 2. نحاول جلب تفاصيل المنتج من جدول المنتجات
         product = services.products.get_product_by_qid(product_qid)
-
-        # ✅ إذا كان المنتج (شبح) غير موجود في قاعدة البيانات، منع التعديل
         if not product:
-            flash('❌ هذا المنتج غير موجود في نظامنا أو تم حذفه. يرجى التواصل مع الإدارة.', 'danger')
-            db.session.delete(mapping) # تنظيف الرابط الوهمي
+            flash('❌ هذا المنتج غير موجود أو تم حذفه.', 'danger')
+            db.session.delete(mapping)
             db.session.commit()
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        # عرض صفحة التعديل
+        if request.method == 'POST':
+            price = request.form.get('price')
+            quantity = request.form.get('quantity')
+            status = request.form.get('status')
+
+            if price is not None and price != '':
+                mapping.price = float(price)
+            if quantity is not None and quantity != '':
+                mapping.quantity = int(quantity)
+            if status:
+                mapping.status = status
+
+            mapping.updated_at = datetime.utcnow()
+            db.session.commit()
+
+            flash('✅ تم حفظ وتعديل المنتج بنجاح!', 'success')
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
         return render_template('suppliers/edit_product.html', mapping=mapping, product=product)
 
     except Exception as e:
         current_app.logger.error(f"خطأ في صفحة التعديل: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء تحميل صفحة التعديل', 'danger')
+        flash('❌ حدث خطأ غير متوقع أثناء تحميل الصفحة', 'danger')
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
 
 # ============================================================================================
-# 🆕 مسار حفظ المنتج (POST) - الجديد والمفقود
+# 🆕 إضافة صفحة منتج جديد (احتياطية)
 # ============================================================================================
-@suppliers_product_bp.route('/products/save', methods=['POST'], endpoint='save_sync_supplier_product')
+@suppliers_product_bp.route('/products/add', methods=['GET'], endpoint='add_supplier_product')
 @login_required
-def save_sync_supplier_product_view():
-    try:
-        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
-        
-        # 1. جلب البيانات من النموذج
-        qid = request.form.get('qid')
-        price = request.form.get('price')
-        quantity = request.form.get('quantity')
-        status = request.form.get('status')
-        
-        # 2. التحقق من وجود المنتج المراد تعديله
-        mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=qid).first()
-        if not mapping:
-            flash('⚠️ حدث خطأ، لم نتمكن من العثور على المنتج المراد تعديله.', 'danger')
-            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+def add_supplier_product():
+    flash('⚠️ صفحة إضافة منتج جديد قيد التطوير حالياً.', 'warning')
+    return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        # 3. تحديث البيانات في جدول الربط فقط (لأن السعر والكمية خاصة بالمورد)
-        if price is not None:
-            mapping.price = float(price)
-        if quantity is not None:
-            mapping.quantity = int(quantity)
-        if status:
-            mapping.status = status
-            
-        mapping.updated_at = datetime.utcnow()
-        db.session.commit()
 
-        flash('✅ تم حفظ وتعديل المنتج بنجاح!', 'success')
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-    except Exception as e:
-        current_app.logger.error(f"خطأ أثناء حفظ المنتج: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء حفظ المنتج', 'danger')
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+# ============================================================================================
+# ✅ الحل الجذري رقم 2: دالة تسجيل المسارات لضمان عدم فشل url_for
+# ============================================================================================
+def register_products_route(bp):
+    """
+    نقوم بإعادة تعريف المسارات باستخدام add_url_rule بدلاً من الديكورات.
+    هذا يضمن أن الـ endpoint مسجل بشكل صحيح في الـ blueprint ويحل مشكلة BuildError.
+    """
+    bp.add_url_rule('/products', view_func=manage_supplier_products_view, methods=['GET'], endpoint='list_supplier_products')
+    bp.add_url_rule('/products/edit/<string:product_qid>', view_func=edit_supplier_product, methods=['GET', 'POST'], endpoint='edit_supplier_product')
+    bp.add_url_rule('/products/add', view_func=add_supplier_product, methods=['GET'], endpoint='add_supplier_product')
