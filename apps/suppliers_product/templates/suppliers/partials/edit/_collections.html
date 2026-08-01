@@ -1,10 +1,9 @@
 <div class="mb-3">
-    <label class="form-label fw-bold">التصنيفات</label>
-    <select name="categories" class="form-select" multiple size="3">
-        <option value="electronics">إلكترونيات</option>
-        <option value="kitchen">أدوات مطبخ</option>
-        <option value="furniture">أثاث</option>
-        <option value="clothing">ملابس</option>
+    <label class="form-label fw-bold">التصنيفات (Collections)</label>
+    <select name="collections" class="form-select" multiple size="3">
+        <!-- هنا يتم جلب التصنيفات من قمرة أو قاعدة البيانات -->
+        <option value="collection_1" {% if 'collection_1' in prod_collections %}selected{% endif %}>تصنيف تجريبي 1</option>
+        <option value="collection_2" {% if 'collection_2' in prod_collections %}selected{% endif %}>تصنيف تجريبي 2</option>
     </select>
     <small class="text-muted">اضغط مع زر Ctrl (أو Cmd) لتحديد أكثر من تصنيف.</small>
 </div>
