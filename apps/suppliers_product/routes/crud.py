@@ -92,7 +92,11 @@ def edit_supplier_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
     
-    # 1. جلب المنتج أولاً للتأكد من وجوده عبر الـ qid
+    # تنظيف الـ qid تلقائياً لمعالجة أي تكرار محتمل (مثل qid:qumra/...)
+    while qid.startswith('qid:'):
+        qid = qid.replace('qid:', '', 1)
+    
+    # 1. جلب المنتج أولاً للتأكد من وجوده عبر الـ qid النظيف
     product = services.products.get_product_by_qid(qid)
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
@@ -198,6 +202,9 @@ def save_sync_supplier_product():
         if not qid:
             return jsonify({"status": "error", "message": "معرف المنتج (qid) مفقود."}), 400
 
+        while qid.startswith('qid:'):
+            qid = qid.replace('qid:', '', 1)
+
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         if user_type != 'admin':
             if not mapping:
@@ -291,6 +298,9 @@ def delete_supplier_product(qid):
         if user_type != 'supplier' and user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
+        while qid.startswith('qid:'):
+            qid = qid.replace('qid:', '', 1)
+
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         
         try:
