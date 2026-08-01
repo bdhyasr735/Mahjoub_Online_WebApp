@@ -7,30 +7,33 @@
         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
             <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden">
                 
+                {# ✅ التحقق من وجود product داخل item #}
+                {% set product = item.product if item.product is defined else item %}
+                
                 <!-- شريط الحالة العلوي -->
                 <div class="position-absolute top-0 start-0 m-3 z-index-2">
-                    <span class="badge bg-gradient-{{ 'success' if item.product.status == 'PUBLISHED' else 'warning' if item.product.status == 'REVIEW' else 'secondary' }} shadow-sm px-3 py-2" style="font-size: 0.75rem; border-radius: 20px;">
-                        {{ get_status_text(item.product.status) if get_status_text is defined else item.product.status }}
+                    <span class="badge bg-gradient-{{ 'success' if product.status == 'PUBLISHED' else 'warning' if product.status == 'REVIEW' else 'secondary' }} shadow-sm px-3 py-2" style="font-size: 0.75rem; border-radius: 20px;">
+                        {{ get_status_text(product.status) if get_status_text is defined else product.status }}
                     </span>
                 </div>
 
                 {# صورة المنتج بمعالجة ذكية #}
                 {%- set raw_img = none -%}
-                {%- if item.product.image_url -%}
-                    {%- set raw_img = item.product.image_url -%}
-                {%- elif item.product.imageUrl -%}
-                    {%- set raw_img = item.product.imageUrl -%}
-                {%- elif item.product.images and item.product.images|length > 0 -%}
-                    {%- set first_img = item.product.images[0] -%}
+                {%- if product.image_url -%}
+                    {%- set raw_img = product.image_url -%}
+                {%- elif product.imageUrl -%}
+                    {%- set raw_img = product.imageUrl -%}
+                {%- elif product.images and product.images|length > 0 -%}
+                    {%- set first_img = product.images[0] -%}
                     {%- if first_img is mapping -%}
                         {%- set raw_img = first_img.fileUrl or first_img.url or first_img.src or first_img.link or first_img.path -%}
                     {%- elif first_img is string -%}
                         {%- set raw_img = first_img -%}
                     {%- endif -%}
-                {%- elif item.product.image -%}
-                    {%- set raw_img = item.product.image -%}
-                {%- elif item.product.thumbnail -%}
-                    {%- set raw_img = item.product.thumbnail -%}
+                {%- elif product.image -%}
+                    {%- set raw_img = product.image -%}
+                {%- elif product.thumbnail -%}
+                    {%- set raw_img = product.thumbnail -%}
                 {%- endif -%}
                 {% set p_img = raw_img or url_for('static', filename='img/default-product.png') %}
 
@@ -45,9 +48,9 @@
                 <!-- تفاصيل البطاقة -->
                 <div class="card-body d-flex flex-column p-4">
                     <div class="mb-2">
-                        <span class="text-xs text-muted font-weight-bold">SKU: {{ item.product.sku }}</span>
-                        <h5 class="card-title fw-bold text-dark text-truncate mb-1" title="{{ item.product.title }}" style="font-size: 1.05rem;">
-                            {{ item.product.title }}
+                        <span class="text-xs text-muted font-weight-bold">SKU: {{ product.sku or '—' }}</span>
+                        <h5 class="card-title fw-bold text-dark text-truncate mb-1" title="{{ product.title }}" style="font-size: 1.05rem;">
+                            {{ product.title or 'بدون عنوان' }}
                         </h5>
                     </div>
 
@@ -55,25 +58,25 @@
                         <div>
                             <small class="text-muted d-block" style="font-size: 0.75rem;">السعر</small>
                             <span class="fw-bolder fs-6" style="color: #2d0b36;">
-                                {%- set p_price = item.product.price if item.product.price is defined and item.product.price is not none 
-                                    else (item.product.pricing.price if item.product.pricing and item.product.pricing.price is defined and item.product.pricing.price is not none 
-                                    else (item.product.sale_price if item.product.sale_price is defined and item.product.sale_price is not none 
-                                    else (item.product.regular_price if item.product.regular_price is defined and item.product.regular_price is not none 
-                                    else (item.product.cost if item.product.cost is defined and item.product.cost is not none else 0)))) -%}
+                                {%- set p_price = product.price if product.price is defined and product.price is not none 
+                                    else (product.pricing.price if product.pricing and product.pricing.price is defined and product.pricing.price is not none 
+                                    else (product.sale_price if product.sale_price is defined and product.sale_price is not none 
+                                    else (product.regular_price if product.regular_price is defined and product.regular_price is not none 
+                                    else (product.cost if product.cost is defined and product.cost is not none else 0)))) -%}
                                 {{ format_price(p_price) if format_price is defined else p_price }}
                             </span>
                         </div>
                         <div class="text-end">
                             <small class="text-muted d-block" style="font-size: 0.75rem;">الكمية</small>
                             <span class="badge bg-light text-dark border px-2 py-1 fw-bold">
-                                <i class="fas fa-boxes text-muted me-1"></i> {{ item.product.quantity }}
+                                <i class="fas fa-boxes text-muted me-1"></i> {{ product.quantity or 0 }}
                             </span>
                         </div>
                     </div>
 
                     <div class="mt-3">
-                        {# ✅ استخراج وتنقية الـ qid بدقة لمنع أي مشاكل في مسار الرابط #}
-                        {% set raw_qid = item.product.qid or item.product.id or (item.mapping.product_qid if item.mapping else '') %}
+                        {# ✅ استخراج وتنقية الـ qid بدقة مع استخدام دالة _extract_raw_id إن وجدت #}
+                        {% set raw_qid = product.qid or product.id or (item.mapping.product_qid if item.mapping else '') %}
                         {% set product_qid = raw_qid.split('/')[-1] if '/' in raw_qid else raw_qid %}
                         
                         <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', qid=product_qid) }}" 
