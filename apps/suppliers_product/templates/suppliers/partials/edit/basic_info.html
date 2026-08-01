@@ -1,27 +1,10 @@
-<!-- apps/suppliers_product/templates/suppliers/partials/edit/basic_info.html -->
-
-<div class="card mb-4 border-0 shadow-sm" style="border-radius: 16px; overflow: hidden;">
-    <div class="card-header bg-white p-4 border-bottom">
-        <h5 class="fw-bold mb-0" style="color: var(--dark-purple, #2d0b36);">
-            <i class="fas fa-info-circle me-2"></i> معلومات إضافية للمنتج
-        </h5>
+<div class="row">
+    <div class="col-12 mb-3">
+        <label class="form-label fw-bold text-muted small">معرف المنتج الفريد (QID)</label>
+        <input type="text" class="form-control bg-light font-monospace" value="{{ prod_qid }}" readonly>
     </div>
-    <div class="card-body p-4">
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label fw-bold text-muted small">تاريخ الإنشاء</label>
-                <input type="text" class="form-control bg-light" value="{{ prod.created_at or 'غير متوفر' }}" readonly>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label fw-bold text-muted small">آخر تحديث</label>
-                <input type="text" class="form-control bg-light" value="{{ prod.updated_at or 'غير متوفر' }}" readonly>
-            </div>
-        </div>
-        
-        <div class="mb-3">
-            <label class="form-label fw-bold text-muted small">معرف المنتج الفريد (QID)</label>
-            <input type="text" class="form-control bg-light font-monospace" value="{{ prod_qid }}" readonly>
-            <small class="text-muted">هذا المعرف يستخدمه النظام داخلياً للربط ومعالجة البيانات عبر API.</small>
-        </div>
+    <div class="col-12">
+        <label class="form-label fw-bold text-muted small">SKU</label>
+        <input type="text" class="form-control bg-light" value="{{ prod_sku }}" readonly>
     </div>
 </div>
