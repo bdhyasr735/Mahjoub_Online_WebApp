@@ -1,13 +1,18 @@
-<!-- apps/suppliers_product/templates/suppliers/partials/edit/_actions.html -->
+<div class="mb-3">
+    <label class="form-label fw-bold">حالة المنتج</label>
+    <select name="status" class="form-select">
+        <option value="PUBLISHED" {% if prod_status == 'PUBLISHED' %}selected{% endif %}>منشور (متاح للبيع)</option>
+        <option value="DRAFT" {% if prod_status == 'DRAFT' %}selected{% endif %}>مسودة (غير منشور)</option>
+        <option value="OUT_OF_STOCK" {% if prod_status == 'OUT_OF_STOCK' %}selected{% endif %}>نفد من المخزون</option>
+        <option value="INACTIVE" {% if prod_status == 'INACTIVE' %}selected{% endif %}>غير نشط</option>
+    </select>
+</div>
 
-<div class="d-grid gap-2">
-    <button type="submit" class="btn btn-custom btn-lg" id="submitBtn">
-        <i class="fas fa-save me-2"></i> حفظ التغييرات
+<div class="d-grid gap-2 mt-4">
+    <button type="submit" form="productEditForm" class="btn btn-custom btn-lg fw-bold">
+        <i class="fas fa-save me-2"></i> حفظ المنتج
     </button>
-    <a href="{{ url_for('suppliers_product_bp.products') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-right me-1"></i> رجوع لقائمة المنتجات
+    <a href="{{ url_for('suppliers_product_bp.list_supplier_products') }}" class="btn btn-outline-secondary mt-2">
+        <i class="fas fa-times me-1"></i> إلغاء والعودة
     </a>
-    <button type="reset" class="btn btn-outline-danger">
-        <i class="fas fa-undo me-1"></i> إعادة تعيين الحقول
-    </button>
 </div>
