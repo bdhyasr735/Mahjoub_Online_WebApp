@@ -1,4 +1,4 @@
-<!-- apps/suppliers_product/templates/suppliers/edit/base_edit.html -->
+<!-- apps/suppliers_product/templates/suppliers/edit_product.html -->
 
 {% extends "suppliers/base.html" %}
 
@@ -74,7 +74,10 @@
         </div>
     </div>
 
-    <form id="editProductForm" enctype="multipart/form-data" novalidate>
+    <form id="productEditForm" action="{{ url_for('suppliers_product_bp.save_sync_supplier_product') }}" method="POST" enctype="multipart/form-data" novalidate>
+        
+        {# حقل مخفي يحمل معرف المنتج QID لإرساله مع الـ FormData #}
+        <input type="hidden" name="qid" value="{{ prod_qid }}">
 
         <div class="row">
             <div class="col-lg-8">
@@ -88,7 +91,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_product_main_info.html' %}
+                        {% include 'suppliers/edit/_product_main_info.html' ignore missing %}
                     </div>
                 </div>
 
@@ -101,7 +104,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_description.html' %}
+                        {% include 'suppliers/edit/_description.html' ignore missing %}
                     </div>
                 </div>
 
@@ -114,7 +117,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_images.html' %}
+                        {% include 'suppliers/edit/_images.html' ignore missing %}
                     </div>
                 </div>
 
@@ -127,7 +130,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_variants.html' %}
+                        {% include 'suppliers/edit/_variants.html' ignore missing %}
                     </div>
                 </div>
 
@@ -144,7 +147,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_actions.html' %}
+                        {% include 'suppliers/edit/_actions.html' ignore missing %}
                     </div>
                 </div>
 
@@ -157,7 +160,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_collections.html' %}
+                        {% include 'suppliers/edit/_collections.html' ignore missing %}
                     </div>
                 </div>
 
@@ -170,7 +173,7 @@
                         </h5>
                     </div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_meta_variants.htm' %}
+                        {% include 'suppliers/edit/_meta_variants.htm' ignore missing %}
                     </div>
                 </div>
 
@@ -180,4 +183,9 @@
     </form>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('suppliers_product_bp.static', filename='suppliers/js/suppliers_edit_product.js') }}"></script>
 {% endblock %}
