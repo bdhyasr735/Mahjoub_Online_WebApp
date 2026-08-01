@@ -9,7 +9,7 @@ from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.extensions import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 def get_status_text(status):
     status_map = {
@@ -74,6 +74,12 @@ def manage_supplier_products_view():
         last_sync_key = f'_last_sync_{supplier_id}'
         if not is_admin and supplier_id:
             last_sync_time = session.get(last_sync_key)
+            
+            # ✅ إصلاح مشكلة الوقت: تحويل last_sync_time إلى naive إذا كان aware
+            if last_sync_time and isinstance(last_sync_time, datetime):
+                if last_sync_time.tzinfo is not None:
+                    last_sync_time = last_sync_time.replace(tzinfo=None)
+            
             if not last_sync_time or (datetime.utcnow() - last_sync_time).seconds > 600:  # 10 دقائق
                 # تشغيل المزامنة الخلفية (بدون انتظار)
                 _sync_products_in_background(supplier_id)
