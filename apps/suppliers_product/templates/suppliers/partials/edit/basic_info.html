@@ -1,10 +1,76 @@
-<div class="row">
-    <div class="col-12 mb-3">
-        <label class="form-label fw-bold text-muted small">معرف المنتج الفريد (QID)</label>
-        <input type="text" class="form-control bg-light font-monospace" value="{{ prod_qid }}" readonly>
+<!-- ================= المعلومات الأساسية (للمورد) ================= -->
+<div class="form-section basic-info-card">
+    <div class="form-section-title">
+        <i class="fas fa-info-circle"></i>
+        المعلومات الأساسية
     </div>
-    <div class="col-12">
-        <label class="form-label fw-bold text-muted small">SKU</label>
-        <input type="text" class="form-control bg-light" value="{{ prod_sku }}" readonly>
+    
+    <div class="basic-info-content">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-heading"></i> اسم المنتج
+                    </label>
+                    <input type="text" class="form-control form-control-lg" 
+                           value="{{ prod_title }}" readonly
+                           style="background-color: #f8f9fa; cursor: default;">
+                    <small class="form-hint"><i class="fas fa-lock"></i> للقراءة فقط – يديره الأدمن</small>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-barcode"></i> الرمز التعريفي (SKU)
+                    </label>
+                    <input type="text" class="form-control form-control-lg" 
+                           value="{{ prod_sku }}" readonly
+                           style="background-color: #f8f9fa; cursor: default;">
+                    <small class="form-hint"><i class="fas fa-lock"></i> للقراءة فقط</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- تضمين بطاقة المعلومات القابلة للتعديل (سعر التكلفة، الكمية، الوزن) -->
+        <div class="main-info-wrapper">
+            {% include 'suppliers/edit/_product_main_info.html' ignore missing %}
+        </div>
     </div>
 </div>
+
+<style>
+.basic-info-card {
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    background: linear-gradient(135deg, #ffffff, #faf8f6);
+    padding: 24px 28px !important;
+    border-radius: 16px;
+}
+.basic-info-content { display: flex; flex-direction: column; gap: 16px; }
+.basic-info-card .form-group { margin-bottom: 0; }
+.basic-info-card .form-label {
+    font-size: 0.82rem; font-weight: 600; color: #1e293b;
+    margin-bottom: 4px; display: flex; align-items: center; gap: 6px;
+}
+.basic-info-card .form-label i { color: #2d0b36; }
+.basic-info-card .form-control {
+    border: 2px solid #e2e8f0; border-radius: 10px;
+    padding: 10px 16px; font-size: 0.95rem;
+    background: #ffffff; transition: all 0.3s ease;
+}
+.basic-info-card .form-control:focus {
+    border-color: #2d0b36; box-shadow: 0 0 0 4px rgba(45, 11, 54, 0.08);
+}
+.basic-info-card .form-control-lg { padding: 12px 16px; font-size: 1rem; }
+.basic-info-card .form-hint {
+    display: block; font-size: 0.7rem; color: #94a3b8; margin-top: 2px;
+}
+.basic-info-card .form-hint i { color: #2d0b36; margin-right: 4px; }
+.basic-info-card .main-info-wrapper {
+    margin-top: 4px; padding-top: 12px; border-top: 1px solid #e2e8f0;
+}
+@media (max-width: 768px) {
+    .basic-info-card { padding: 16px 14px !important; }
+    .basic-info-card .form-control-lg { padding: 8px 12px; font-size: 0.9rem; }
+}
+</style>
