@@ -168,14 +168,18 @@ def manage_supplier_products_view():
         )
 
 
-@suppliers_product_bp.route('/products/edit/<string:qid>', methods=['GET'], endpoint='edit_product_view')
+@suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'], endpoint='edit_product_view')
 @login_required
 def edit_product_view(qid):
     """عرض صفحة تعديل المنتج مع جلب بياناته الأساسية"""
     try:
-        # تنظيف الـ qid تلقائياً من أي تكرار محتمل (مثل qid:qid)
+        # تنظيف شامل للـ qid وإزالة أي بادئات أو مسارات خارجية
+        qid = str(qid).strip()
+        if 'Product/' in qid:
+            qid = qid.split('Product/')[-1]
         while qid and qid.startswith('qid:'):
             qid = qid.replace('qid:', '', 1)
+        qid = qid.replace('//', '').strip('/')
 
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
         user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
@@ -217,14 +221,18 @@ def edit_product_view(qid):
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
 
-@suppliers_product_bp.route('/api/products/update/<string:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
+@suppliers_product_bp.route('/api/products/update/<path:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
 @login_required
 def api_update_product(qid):
     """استقبال وعرض بيانات التعديل المُرسلة عبر FormData من الواجهة"""
     try:
-        # تنظيف الـ qid تلقائياً
+        # تنظيف شامل للـ qid
+        qid = str(qid).strip()
+        if 'Product/' in qid:
+            qid = qid.split('Product/')[-1]
         while qid and qid.startswith('qid:'):
             qid = qid.replace('qid:', '', 1)
+        qid = qid.replace('//', '').strip('/')
 
         title = request.form.get('title')
         price = request.form.get('price')
