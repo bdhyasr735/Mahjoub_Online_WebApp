@@ -1,95 +1,22 @@
-<!-- apps/suppliers_product/templates/suppliers/partials/edit/_product_main_info.html -->
-
-<!-- ✅ اسم المنتج -->
-<div class="mb-3">
-    <label class="form-label fw-bold" for="productTitle">
-        <i class="fas fa-tag text-muted me-1"></i> اسم المنتج
-        <span class="text-danger">*</span>
-    </label>
-    <input type="text" name="title" id="productTitle"
-           class="form-control form-control-lg"
-           value="{{ prod_title }}"
-           required minlength="3" maxlength="255"
-           placeholder="أدخل اسم المنتج...">
-    <div class="invalid-feedback">يرجى إدخال اسم المنتج (3 أحرف على الأقل)</div>
-</div>
-
-<!-- ✅ السعر والكمية -->
-<div class="row">
-    <div class="col-md-6 mb-3">
-        <label class="form-label fw-bold" for="productPrice">
-            <i class="fas fa-money-bill-wave text-muted me-1"></i> السعر (SAR)
-            <span class="text-danger">*</span>
-        </label>
-        <input type="number" name="price" id="productPrice"
-               class="form-control form-control-lg"
-               value="{{ prod_price }}"
-               step="0.01" min="0" required
-               placeholder="0.00">
-        <div class="invalid-feedback">يرجى إدخال سعر صحيح</div>
+<div class="row g-3">
+    <div class="col-md-6">
+        <label class="form-label fw-bold">اسم المنتج <span class="text-danger">*</span></label>
+        <input type="text" name="title" class="form-control" value="{{ prod_title }}" required>
     </div>
-    <div class="col-md-6 mb-3">
-        <label class="form-label fw-bold" for="productQuantity">
-            <i class="fas fa-boxes text-muted me-1"></i> الكمية
-        </label>
-        <input type="number" name="quantity" id="productQuantity"
-               class="form-control form-control-lg"
-               value="{{ prod_qty }}" min="0"
-               placeholder="0">
+    <div class="col-md-6">
+        <label class="form-label fw-bold">الرمز التعريفي (SKU)</label>
+        <input type="text" name="sku" class="form-control bg-light" value="{{ prod_sku }}" readonly>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-bold">السعر (ر.س) <span class="text-danger">*</span></label>
+        <input type="number" step="0.01" name="price" class="form-control" value="{{ prod_price }}" required>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-bold">الكمية المتاحة</label>
+        <input type="number" name="quantity" class="form-control" value="{{ prod_qty }}">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-bold">الوزن (كجم)</label>
+        <input type="number" step="0.01" name="weight" class="form-control" value="{{ prod_weight }}">
     </div>
 </div>
-
-<!-- ✅ SKU والوزن -->
-<div class="row">
-    <div class="col-md-6 mb-3">
-        <label class="form-label fw-bold" for="productSku">
-            <i class="fas fa-barcode text-muted me-1"></i> SKU (رمز المنتج)
-        </label>
-        <div class="input-group">
-            <input type="text" name="sku" id="productSku"
-                   class="form-control"
-                   value="{{ prod_sku }}" maxlength="50"
-                   placeholder="رمز فريد للمنتج">
-            <button type="button" class="btn btn-outline-secondary" id="generateSkuBtn" title="توليد SKU تلقائي">
-                <i class="fas fa-sync"></i>
-            </button>
-        </div>
-    </div>
-    <div class="col-md-6 mb-3">
-        <label class="form-label fw-bold" for="productWeight">
-            <i class="fas fa-weight-scale text-muted me-1"></i> الوزن (كجم)
-        </label>
-        <input type="number" name="weight" id="productWeight"
-               class="form-control"
-               value="{{ prod_weight }}" step="0.01" min="0"
-               placeholder="0.00">
-    </div>
-</div>
-
-<!-- ✅ الحالة -->
-<div class="mb-3">
-    <label class="form-label fw-bold" for="productStatus">
-        <i class="fas fa-circle text-muted me-1"></i> حالة المنتج
-    </label>
-    <select name="status" id="productStatus" class="form-select">
-        <option value="DRAFT" {% if prod_status == 'DRAFT' %}selected{% endif %}>📝 مسودة</option>
-        <option value="PUBLISHED" {% if prod_status == 'PUBLISHED' %}selected{% endif %}>✅ منشور</option>
-        <option value="ARCHIVED" {% if prod_status == 'ARCHIVED' %}selected{% endif %}>📦 مؤرشف</option>
-    </select>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const generateSkuBtn = document.getElementById('generateSkuBtn');
-        if (generateSkuBtn) {
-            generateSkuBtn.addEventListener('click', function() {
-                const skuInput = document.getElementById('productSku');
-                const titleInput = document.getElementById('productTitle');
-                const title = titleInput ? titleInput.value.trim() : 'PRD';
-                const prefix = title.substring(0, 3).toUpperCase() || 'PRD';
-                const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-                skuInput.value = prefix + '-' + random;
-            });
-        }
-    });
-</script>
