@@ -49,14 +49,12 @@ def manage_supplier_products_view():
         is_ajax = request.args.get('ajax', '0') == '1'
 
         # ====================================================
-        # ✅ 2. جلب QIDs الخاصة بالمورد من قاعدة البيانات المحلية فقط
+        # ✅ 2. جلب QIDs الخاصة بالمورد وتوحيدها كنصوص نظيفة
         # ====================================================
-        supplier_qids = []
+        supplier_qids_set = set()
         if supplier_id:
             mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
-            supplier_qids = [str(m.product_qid).strip() for m in mappings if m.product_qid]
-        
-        supplier_qids_set = set(supplier_qids)
+            supplier_qids_set = {str(m.product_qid).strip() for m in mappings if m.product_qid}
 
         # إذا لم يملك المورد أي منتجات مسجلة ولم يكن أدمن، تعاد قائمة فارغة مباشرة مع رسالة واضحة
         if not supplier_qids_set and not is_admin:
@@ -79,7 +77,7 @@ def manage_supplier_products_view():
             )
 
         # ====================================================
-        # ✅ 3. جلب منتجات المورد بذكاء دون انهيار الذاكرة
+        # ✅ 3. جلب منتجات المورد الخاصة به فقط وبدقة متناهية
         # ====================================================
         target_products = []
         
@@ -91,7 +89,7 @@ def manage_supplier_products_view():
             total_pages = pagination.get('totalPages', 1)
         else:
             all_matched_products = []
-            max_check_pages = 30  # نطاق آمن للبحث
+            max_check_pages = 50  # نطاق أوسع لضمان فحص جميع الصفحات وجلب منتجات المورد فقط
             
             for p_num in range(1, max_check_pages + 1):
                 res = services.products.get_products_page(p_num)
@@ -100,11 +98,10 @@ def manage_supplier_products_view():
                 page_items = res.get('data', [])
                 
                 for p in page_items:
-                    if str(p.get('qid', '')).strip() in supplier_qids_set:
+                    p_qid = str(p.get('qid', '')).strip()
+                    # مطابقة صارمة: المنتج يجب أن يكون موجوداً في قائمة ربط هذا المورد حصراً
+                    if p_qid and p_qid in supplier_qids_set:
                         all_matched_products.append(p)
-                
-                if len(all_matched_products) >= len(supplier_qids_set):
-                    break
 
             target_products = all_matched_products
 
