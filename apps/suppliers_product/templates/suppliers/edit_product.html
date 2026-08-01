@@ -1,4 +1,4 @@
-<!-- apps/suppliers_product/templates/suppliers/edit_product.html -->
+<!-- apps/suppliers_product/templates/suppliers/edit/base_edit.html -->
 
 {% extends "suppliers/base.html" %}
 
@@ -36,69 +36,6 @@
         box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.15);
     }
     
-    .image-preview {
-        max-width: 150px;
-        max-height: 150px;
-        object-fit: cover;
-        border-radius: 8px;
-        border: 2px solid #e9ecef;
-    }
-    
-    .preview-container {
-        position: relative;
-        display: inline-block;
-    }
-    
-    .btn-remove-image {
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        background: #dc3545;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        cursor: pointer;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-    }
-    .btn-remove-image:hover {
-        transform: scale(1.1);
-        background: #c82333;
-    }
-    
-    .upload-area {
-        border: 2px dashed #dee2e6;
-        border-radius: 12px;
-        padding: 30px;
-        text-align: center;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        background: #f8f9fa;
-    }
-    .upload-area:hover {
-        border-color: var(--dark-purple, #2d0b36);
-        background: #f8f5fa;
-    }
-    .upload-area.dragover {
-        border-color: var(--dark-purple, #2d0b36);
-        background: #f0ecf3;
-        transform: scale(1.02);
-    }
-    .upload-area .upload-icon {
-        color: var(--dark-purple, #2d0b36);
-        opacity: 0.5;
-        transition: all 0.3s ease;
-    }
-    .upload-area:hover .upload-icon {
-        opacity: 0.8;
-        transform: translateY(-3px);
-    }
-    
     .card {
         border: none;
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
@@ -110,28 +47,20 @@
         border-bottom: 2px solid #f8f9fa;
         border-radius: 16px 16px 0 0 !important;
     }
-    
-    .form-label .required {
-        color: #dc3545;
-        margin-right: 4px;
-    }
-    
-    .toast-container {
-        z-index: 9999;
-    }
-    
-    @media (max-width: 576px) {
-        .upload-area {
-            padding: 20px 15px;
-        }
-        .image-preview {
-            max-width: 120px;
-            max-height: 120px;
-        }
-    }
 </style>
 
-{# ✅ المحتوى الرئيسي #}
+{# ✅ استخراج بيانات المنتج الأساسية من GraphQL أو الكائن المرسل #}
+{% set prod = product.product if product and product.product else product %}
+{% set prod_title = prod.name or prod.title or '' %}
+{% set prod_desc = prod.description or '' %}
+{% set prod_price = prod.price or 0 %}
+{% set prod_qty = prod.quantity or 0 %}
+{% set prod_sku = prod.sku or (prod.identification.sku if prod.identification else '') %}
+{% set prod_weight = prod.weight or 0 %}
+{% set prod_status = prod.status or 'DRAFT' %}
+{% set prod_images = prod.images or [] %}
+{% set prod_qid = prod.qid or product.qid or '' %}
+
 <div class="container-fluid py-4">
     
     <!-- ✅ رأس الصفحة -->
@@ -141,424 +70,162 @@
         </div>
         <div>
             <h3 class="fw-bold text-dark mb-0">تعديل المنتج</h3>
-            <p class="text-muted mb-0">✏️ تحديث بيانات المنتج</p>
+            <p class="text-muted mb-0">✏️ تحديث بيانات المنتج وإدارة الأقسام المقسمة</p>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="card">
-                <div class="card-header bg-white p-4">
-                    <h5 class="fw-bold mb-0">
-                        <i class="fas fa-box me-2" style="color: var(--dark-purple, #2d0b36);"></i>
-                        بيانات المنتج
-                    </h5>
+    <form id="editProductForm" enctype="multipart/form-data" novalidate>
+
+        <div class="row">
+            <div class="col-lg-8">
+                
+                <!-- 1. المعلومات الأساسية -->
+                <div class="card mb-4">
+                    <div class="card-header p-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-box me-2" style="color: var(--dark-purple, #2d0b36);"></i>
+                            المعلومات الأساسية
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_product_main_info.html' %}
+                    </div>
                 </div>
-                <div class="card-body p-4">
 
-                    <form id="editProductForm" enctype="multipart/form-data" novalidate>
-
-                        {# ✅ استخراج البيانات من product (GraphQL) #}
-                        {% set prod = product.product if product and product.product else product %}
-                        {% set prod_title = prod.name or prod.title or '' %}
-                        {% set prod_desc = prod.description or '' %}
-                        {% set prod_price = prod.price or 0 %}
-                        {% set prod_qty = prod.quantity or 0 %}
-                        {% set prod_sku = prod.sku or (prod.identification.sku if prod.identification else '') %}
-                        {% set prod_weight = prod.weight or 0 %}
-                        {% set prod_status = prod.status or 'DRAFT' %}
-                        {% set prod_images = prod.images or [] %}
-                        {% set prod_qid = prod.qid or product.qid or '' %}
-
-                        <!-- ✅ اسم المنتج -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold" for="productTitle">
-                                <i class="fas fa-tag text-muted me-1"></i> اسم المنتج
-                                <span class="required">*</span>
-                            </label>
-                            <input type="text" name="title" id="productTitle"
-                                   class="form-control form-control-lg"
-                                   value="{{ prod_title }}"
-                                   required
-                                   minlength="3"
-                                   maxlength="255">
-                            <div class="invalid-feedback">يرجى إدخال اسم المنتج (3 أحرف على الأقل)</div>
-                        </div>
-
-                        <!-- ✅ الوصف -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold" for="productDescription">
-                                <i class="fas fa-align-right text-muted me-1"></i> الوصف
-                            </label>
-                            <textarea name="description" id="productDescription"
-                                      class="form-control" rows="4"
-                                      maxlength="2000">{{ prod_desc }}</textarea>
-                            <small class="text-muted">
-                                <span id="charCount">{{ prod_desc|length }}</span> / 2000 حرف
-                            </small>
-                        </div>
-
-                        <!-- ✅ السعر والكمية -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold" for="productPrice">
-                                    <i class="fas fa-money-bill-wave text-muted me-1"></i> السعر (SAR)
-                                    <span class="required">*</span>
-                                </label>
-                                <input type="number" name="price" id="productPrice"
-                                       class="form-control form-control-lg"
-                                       value="{{ prod_price }}"
-                                       step="0.01" min="0" required>
-                                <div class="invalid-feedback">يرجى إدخال سعر صحيح</div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold" for="productQuantity">
-                                    <i class="fas fa-boxes text-muted me-1"></i> الكمية
-                                </label>
-                                <input type="number" name="quantity" id="productQuantity"
-                                       class="form-control form-control-lg"
-                                       value="{{ prod_qty }}"
-                                       min="0">
-                            </div>
-                        </div>
-
-                        <!-- ✅ SKU والوزن -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold" for="productSku">
-                                    <i class="fas fa-barcode text-muted me-1"></i> SKU
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" name="sku" id="productSku"
-                                           class="form-control"
-                                           value="{{ prod_sku }}"
-                                           maxlength="50">
-                                    <button type="button" class="btn btn-outline-secondary" id="generateSkuBtn" title="توليد SKU تلقائي">
-                                        <i class="fas fa-sync"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold" for="productWeight">
-                                    <i class="fas fa-weight-scale text-muted me-1"></i> الوزن (كجم)
-                                </label>
-                                <input type="number" name="weight" id="productWeight"
-                                       class="form-control"
-                                       value="{{ prod_weight }}"
-                                       step="0.01" min="0">
-                            </div>
-                        </div>
-
-                        <!-- ✅ الحالة -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold" for="productStatus">
-                                <i class="fas fa-circle text-muted me-1"></i> الحالة
-                            </label>
-                            <select name="status" id="productStatus" class="form-select">
-                                <option value="DRAFT" {% if prod_status == 'DRAFT' %}selected{% endif %}>📝 مسودة</option>
-                                <option value="PUBLISHED" {% if prod_status == 'PUBLISHED' %}selected{% endif %}>✅ منشور</option>
-                                <option value="ARCHIVED" {% if prod_status == 'ARCHIVED' %}selected{% endif %}>📦 مؤرشف</option>
-                            </select>
-                        </div>
-
-                        <!-- ✅ صورة المنتج -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-image text-muted me-1"></i> صورة المنتج
-                            </label>
-
-                            {# ✅ الصورة الحالية #}
-                            {% if prod_images and prod_images|length > 0 %}
-                            <div class="mb-2" id="currentImageContainer">
-                                <div class="preview-container">
-                                    {% set first_image = prod_images[0] %}
-                                    {% if first_image is mapping %}
-                                        <img src="{{ first_image.url or first_image.fileUrl }}"
-                                             alt="{{ prod_title }}"
-                                             class="image-preview">
-                                    {% else %}
-                                        <img src="{{ first_image }}"
-                                             alt="{{ prod_title }}"
-                                             class="image-preview">
-                                    {% endif %}
-                                    <button type="button" class="btn-remove-image" onclick="removeCurrentImage()" title="حذف الصورة">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                                <input type="hidden" name="current_image_id" value="{{ first_image.id or first_image._id or '' }}">
-                            </div>
-                            {% endif %}
-
-                            {# ✅ رفع صورة جديدة #}
-                            <div class="upload-area" id="uploadArea">
-                                <i class="fas fa-cloud-upload-alt fa-2x upload-icon"></i>
-                                <p class="mb-0 fw-bold">اسحب صورة جديدة أو اضغط للاختيار</p>
-                                <small class="text-muted">jpg, png, gif, webp - حد أقصى 5MB</small>
-                                <input type="file" name="image" id="imageInput" accept="image/*" style="display: none;">
-                            </div>
-
-                            {# ✅ معاينة الصورة الجديدة #}
-                            <div class="image-preview mt-2" id="imagePreview" style="display: none;">
-                                <div class="preview-container">
-                                    <img id="previewImage" src="#" alt="معاينة الصورة" class="image-preview">
-                                    <button type="button" class="btn-remove-image" onclick="removeNewImage()">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ✅ أزرار الإجراء -->
-                        <div class="d-flex flex-wrap gap-2 mt-4">
-                            <button type="submit" class="btn btn-custom px-5" id="submitBtn">
-                                <i class="fas fa-save me-2"></i> حفظ التغييرات
-                            </button>
-                            <a href="{{ url_for('suppliers_product_bp.products') }}" class="btn btn-outline-secondary px-4">
-                                <i class="fas fa-arrow-right me-1"></i> رجوع
-                            </a>
-                            <button type="reset" class="btn btn-outline-danger px-4">
-                                <i class="fas fa-undo me-1"></i> إعادة تعيين
-                            </button>
-                        </div>
-
-                    </form>
-
+                <!-- 2. الوصف -->
+                <div class="card mb-4">
+                    <div class="card-header p-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-align-right me-2" style="color: var(--dark-purple, #2d0b36);"></i>
+                            وصف المنتج
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_description.html' %}
+                    </div>
                 </div>
+
+                <!-- 3. الصور -->
+                <div class="card mb-4">
+                    <div class="card-header p-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-image me-2" style="color: var(--dark-purple, #2d0b36);"></i>
+                            صور المنتج
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_images.html' %}
+                    </div>
+                </div>
+
+                <!-- 4. المتغيرات (Variants) -->
+                <div class="card mb-4">
+                    <div class="card-header p-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-random me-2" style="color: var(--dark-purple, #2d0b36);"></i>
+                            خيارات ومتغيرات المنتج
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_variants.html' %}
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4">
+                
+                <!-- 5. الإجراءات والحالة -->
+                <div class="card mb-4">
+                    <div class="card-header p-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-tasks me-2" style="color: var(--dark-purple, #2d0b36);"></i>
+                            حالة وحفظ المنتج
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_actions.html' %}
+                    </div>
+                </div>
+
+                <!-- 6. التصنيفات -->
+                <div class="card mb-4">
+                    <div class="card-header p-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-tags me-2" style="color: var(--dark-purple, #2d0b36);"></i>
+                            التصنيفات
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_collections.html' %}
+                    </div>
+                </div>
+
+                <!-- 7. بيانات السيو والمتغيرات الوصفية -->
+                <div class="card mb-4">
+                    <div class="card-header p-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-search me-2" style="color: var(--dark-purple, #2d0b36);"></i>
+                            محركات البحث (SEO)
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        {% include 'suppliers/edit/_meta_variants.htm' %}
+                    </div>
+                </div>
+
             </div>
         </div>
-    </div>
+
+    </form>
 </div>
 
-{# ✅ JavaScript #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const editForm = document.getElementById('editProductForm');
     
-    // ============================================================
-    // ✅ عداد الأحرف
-    // ============================================================
-    const description = document.getElementById('productDescription');
-    const charCount = document.getElementById('charCount');
-    
-    if (description && charCount) {
-        description.addEventListener('input', function() {
-            charCount.textContent = this.value.length;
-            charCount.style.color = this.value.length > 1900 ? '#dc3545' : '';
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!this.checkValidity()) {
+                this.classList.add('was-validated');
+                if (typeof showToast === 'function') {
+                    showToast('❌ يرجى تعبئة الحقول المطلوبة', 'warning');
+                }
+                return;
+            }
+
+            const formData = new FormData(this);
+            const qid = '{{ prod_qid }}';
+
+            fetch('{{ url_for("edit_product_bp.api_update_product", qid=prod_qid) }}', {
+                method: 'PUT',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (typeof showToast === 'function') {
+                        showToast('✅ ' + (data.message || 'تم التحديث بنجاح'), 'success');
+                    }
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    if (typeof showToast === 'function') {
+                        showToast('❌ ' + (data.message || 'فشل التحديث'), 'danger');
+                    }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                if (typeof showToast === 'function') {
+                    showToast('❌ خطأ في الاتصال بالخادم', 'danger');
+                }
+            });
         });
     }
-
-    // ============================================================
-    // ✅ رفع الصورة
-    // ============================================================
-    const uploadArea = document.getElementById('uploadArea');
-    const imageInput = document.getElementById('imageInput');
-    const imagePreview = document.getElementById('imagePreview');
-    const previewImage = document.getElementById('previewImage');
-
-    uploadArea.addEventListener('click', function(e) {
-        if (!e.target.closest('.btn-remove-image')) {
-            imageInput.click();
-        }
-    });
-
-    imageInput.addEventListener('change', function(e) {
-        const file = this.files[0];
-        if (file) {
-            // ✅ التحقق من حجم الملف
-            if (file.size > 5 * 1024 * 1024) {
-                showToast('❌ حجم الصورة كبير جداً. الحد الأقصى 5MB', 'danger');
-                this.value = '';
-                return;
-            }
-            
-            // ✅ التحقق من نوع الملف
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            if (!allowedTypes.includes(file.type)) {
-                showToast('❌ نوع الملف غير مدعوم', 'danger');
-                this.value = '';
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                previewImage.src = e.target.result;
-                imagePreview.style.display = 'block';
-                const currentContainer = document.getElementById('currentImageContainer');
-                if (currentContainer) {
-                    currentContainer.style.display = 'none';
-                }
-                // ✅ إخفاء أيقونات الرفع
-                uploadArea.querySelector('.upload-icon').style.display = 'none';
-                uploadArea.querySelector('p').style.display = 'none';
-                uploadArea.querySelector('small').style.display = 'none';
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // ✅ Drag and Drop
-    uploadArea.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.classList.add('dragover');
-    });
-
-    uploadArea.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-    });
-
-    uploadArea.addEventListener('drop', function(e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            imageInput.files = files;
-            imageInput.dispatchEvent(new Event('change'));
-        }
-    });
-
-    // ✅ حذف الصورة الحالية
-    window.removeCurrentImage = function() {
-        const container = document.getElementById('currentImageContainer');
-        if (container) {
-            container.style.display = 'none';
-        }
-        // إظهار منطقة الرفع
-        uploadArea.querySelector('.upload-icon').style.display = 'block';
-        uploadArea.querySelector('p').style.display = 'block';
-        uploadArea.querySelector('small').style.display = 'block';
-    };
-
-    // ✅ حذف الصورة الجديدة
-    window.removeNewImage = function() {
-        imageInput.value = '';
-        imagePreview.style.display = 'none';
-        previewImage.src = '#';
-        const currentContainer = document.getElementById('currentImageContainer');
-        if (currentContainer) {
-            currentContainer.style.display = 'block';
-        }
-        // إظهار منطقة الرفع
-        uploadArea.querySelector('.upload-icon').style.display = 'block';
-        uploadArea.querySelector('p').style.display = 'block';
-        uploadArea.querySelector('small').style.display = 'block';
-    };
-
-    // ============================================================
-    // ✅ توليد SKU تلقائي
-    // ============================================================
-    document.getElementById('generateSkuBtn').addEventListener('click', function() {
-        const skuInput = document.getElementById('productSku');
-        const title = document.getElementById('productTitle').value.trim() || 'PRD';
-        const prefix = title.substring(0, 3).toUpperCase() || 'PRD';
-        const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        skuInput.value = prefix + '-' + random;
-    });
-
-    // ============================================================
-    // ✅ إرسال النموذج (AJAX)
-    // ============================================================
-    document.getElementById('editProductForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // ✅ التحقق من صحة النموذج
-        if (!this.checkValidity()) {
-            this.classList.add('was-validated');
-            showToast('❌ يرجى تعبئة جميع الحقول المطلوبة', 'warning');
-            return;
-        }
-
-        const submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
-
-        const qid = '{{ prod_qid }}';
-        const formData = new FormData(this);
-
-        fetch('{{ url_for("edit_product_bp.api_update_product", qid=prod_qid) }}', {
-            method: 'PUT',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('✅ ' + (data.message || 'تم تحديث المنتج بنجاح'), 'success');
-                setTimeout(function() {
-                    window.location.href = '{{ url_for("suppliers_product_bp.products") }}';
-                }, 1500);
-            } else {
-                showToast('❌ ' + (data.message || 'فشل تحديث المنتج'), 'danger');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التغييرات';
-            }
-        })
-        .catch(function(error) {
-            console.error('❌ خطأ:', error);
-            showToast('❌ خطأ في الاتصال بالخادم', 'danger');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> حفظ التغييرات';
-        });
-    });
-
-    // ============================================================
-    // ✅ إشعارات (Toast)
-    // ============================================================
-    window.showToast = function(message, type = 'info') {
-        const colors = {
-            success: '#28a745',
-            danger: '#dc3545',
-            warning: '#ffc107',
-            info: '#0d6efd'
-        };
-        
-        document.querySelectorAll('.custom-toast').forEach(el => el.remove());
-        
-        const toast = document.createElement('div');
-        toast.className = 'custom-toast position-fixed bottom-0 end-0 p-3';
-        toast.style.zIndex = '9999';
-        toast.style.animation = 'slideInUp 0.4s ease';
-        toast.innerHTML = `
-            <div class="toast show border-0 shadow-lg" role="alert" 
-                 style="border-right: 4px solid ${colors[type] || colors.info}; 
-                        background: white; border-radius: 12px; min-width: 280px;">
-                <div class="toast-body d-flex align-items-center gap-2 p-3">
-                    <span>${message}</span>
-                    <button type="button" class="btn-close btn-close-sm ms-2" 
-                            onclick="this.closest('.custom-toast').remove()"></button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    };
-
-    // ============================================================
-    // ✅ إضافة CSS للإشعارات
-    // ============================================================
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideInUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .custom-toast .toast {
-            min-width: 280px;
-            max-width: 400px;
-        }
-    `;
-    document.head.appendChild(style);
-
-    console.log('📦 صفحة تعديل المنتج جاهزة');
 });
-
-// ============================================================
-// ✅ دالة showToast للاستخدام من أي مكان
-// ============================================================
-window.showToast = window.showToast || function(message, type) {
-    console.log(message, type);
-};
 </script>
 
 {% endblock %}
