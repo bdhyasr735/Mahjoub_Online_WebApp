@@ -98,7 +98,7 @@ def manage_supplier_products_view():
             qid = mapping.product_qid
             product = services.products.get_product_by_qid(qid)
             
-            # ✅ أهم تعديل هنا: تجاهل المنتجات التي لا يوجد لها بيانات
+            # ✅ تجاهل المنتجات التي لا يوجد لها بيانات
             if not product:
                 continue
 
@@ -156,9 +156,9 @@ def manage_supplier_products_view():
 
 
 # ============================================================================================
-# 🛠️ الحل الجديد المطلوب: إضافة كود صفحة التعديل مع فحص المنتج
+# 🛠️ عرض صفحة التعديل (GET)
 # ============================================================================================
-@suppliers_product_bp.route('/products/edit/<string:product_qid>', methods=['GET', 'POST'], endpoint='edit_supplier_product')
+@suppliers_product_bp.route('/products/edit/<string:product_qid>', methods=['GET'], endpoint='edit_supplier_product')
 @login_required
 def edit_supplier_product_view(product_qid):
     try:
@@ -173,28 +173,58 @@ def edit_supplier_product_view(product_qid):
         # 2. نحاول جلب تفاصيل المنتج من جدول المنتجات
         product = services.products.get_product_by_qid(product_qid)
 
-        # ✅ الحل الجذري: إذا كان المنتج (شبح) غير موجود في قاعدة البيانات، منع التعديل
+        # ✅ إذا كان المنتج (شبح) غير موجود في قاعدة البيانات، منع التعديل
         if not product:
             flash('❌ هذا المنتج غير موجود في نظامنا أو تم حذفه. يرجى التواصل مع الإدارة.', 'danger')
-            # (اختياري) نقوم بحذف الرابط الوهمي من جدول الربط لتنظيف قاعدة البيانات
-            db.session.delete(mapping)
+            db.session.delete(mapping) # تنظيف الرابط الوهمي
             db.session.commit()
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        # 3. هنا يكون منطق التعديل (GET لعرض النموذج و POST للحفظ)
-        if request.method == 'POST':
-            # ... أكواد الحفظ والتحديث هنا ...
-            flash('✅ تم تعديل المنتج بنجاح', 'success')
-            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-        # في حالة GET عرض صفحة التعديل
-        return render_template(
-            'suppliers/edit_product.html',
-            mapping=mapping,
-            product=product
-        )
+        # عرض صفحة التعديل
+        return render_template('suppliers/edit_product.html', mapping=mapping, product=product)
 
     except Exception as e:
         current_app.logger.error(f"خطأ في صفحة التعديل: {traceback.format_exc()}")
         flash('❌ حدث خطأ غير متوقع أثناء تحميل صفحة التعديل', 'danger')
+        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+
+# ============================================================================================
+# 🆕 مسار حفظ المنتج (POST) - الجديد والمفقود
+# ============================================================================================
+@suppliers_product_bp.route('/products/save', methods=['POST'], endpoint='save_sync_supplier_product')
+@login_required
+def save_sync_supplier_product_view():
+    try:
+        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
+        
+        # 1. جلب البيانات من النموذج
+        qid = request.form.get('qid')
+        price = request.form.get('price')
+        quantity = request.form.get('quantity')
+        status = request.form.get('status')
+        
+        # 2. التحقق من وجود المنتج المراد تعديله
+        mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=qid).first()
+        if not mapping:
+            flash('⚠️ حدث خطأ، لم نتمكن من العثور على المنتج المراد تعديله.', 'danger')
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+        # 3. تحديث البيانات في جدول الربط فقط (لأن السعر والكمية خاصة بالمورد)
+        if price is not None:
+            mapping.price = float(price)
+        if quantity is not None:
+            mapping.quantity = int(quantity)
+        if status:
+            mapping.status = status
+            
+        mapping.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        flash('✅ تم حفظ وتعديل المنتج بنجاح!', 'success')
+        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ أثناء حفظ المنتج: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع أثناء حفظ المنتج', 'danger')
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
