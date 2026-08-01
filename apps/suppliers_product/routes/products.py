@@ -4,7 +4,7 @@
 import traceback
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import or_  # ✅ تم إضافة هذا الاستيراد
+from sqlalchemy import or_  # ✅ الاستيراد الصحيح لـ SQLAlchemy
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
@@ -161,8 +161,9 @@ def edit_supplier_product(product_qid):
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         
-        # ✅ الحل الجذري: البحث عن المابينغ بأي صيغة (قصير أو كامل)
         full_qid = normalize_qid(product_qid)
+        
+        # ✅ البحث عن المابينغ بأي صيغة (قصير أو كامل)
         mapping = ProductSupplierMapping.query.filter(
             ProductSupplierMapping.supplier_id == supplier_id,
             or_(
@@ -184,16 +185,14 @@ def edit_supplier_product(product_qid):
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
         if request.method == 'POST':
-            price = request.form.get('price')
+            # ✅ استقبال سعر التكلفة والكمية فقط
+            cost_price = request.form.get('price')
             quantity = request.form.get('quantity')
-            status = request.form.get('status')
 
-            if price is not None and price != '':
-                mapping.price = float(price)
+            if cost_price is not None and cost_price != '':
+                mapping.price = float(cost_price)
             if quantity is not None and quantity != '':
                 mapping.quantity = int(quantity)
-            if status:
-                mapping.status = status
 
             mapping.updated_at = datetime.utcnow()
             db.session.commit()
