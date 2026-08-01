@@ -31,24 +31,31 @@ def sync_supplier_products():
         return jsonify({'success': False, 'message': '❌ لم يتم العثور على معرف المورد، يرجى إعادة تسجيل الدخول.'}), 400
     
     try:
-        # قراءة الصفحة الحالية المرسلة من النافذة المنبثقة
-        req_data = request.get_json() or {}
+        # قراءة الصفحة الحالية المرسلة من النافذة المنبثقة مع حماية ضد البيانات الفارغة
+        req_data = request.get_json(silent=True) or {}
         page_num = int(req_data.get('page', 1))
 
         print(f"🔄 [Sync] جاري مزامنة الصفحة {page_num} للمورد: {supplier_id}")
 
-        result = services.products.get_products_page(page_num)
+        # حماية إضافية للخدمة الخارجية لمنع انهيار الخادم (رمز 500)
+        try:
+            result = services.products.get_products_page(page_num)
+        except Exception as svc_err:
+            print(f"⚠️ [Sync Service Error]: {svc_err}")
+            result = {}
+
         if not result or not isinstance(result, dict):
             return jsonify({
                 'success': True,
                 'syncedCount': 0,
                 'has_next': False,
-                'total_pages': page_num
+                'total_pages': page_num,
+                'message': 'انتهت الصفحات أو لم يتم استجابة من الخدمة'
             })
 
         page_products = result.get('data', [])
         pagination = result.get('pagination', {})
-        total_pages = pagination.get('totalPages', 1)
+        total_pages = pagination.get('totalPages', pagination.get('total_pages', 1))
         
         synced_count = 0
         created_count = 0
@@ -57,7 +64,9 @@ def sync_supplier_products():
         for product in page_products:
             if not isinstance(product, dict):
                 continue
-            qid = product.get('qid')
+            
+            # البحث عن معرف المنتج بأكثر من احتمال لتجنب الفقدان
+            qid = product.get('qid') or product.get('id')
             if not qid:
                 continue
 
@@ -73,7 +82,7 @@ def sync_supplier_products():
             
             synced_count += 1
             if not existing_mapping:
-                new_mapping = ProductSupplierMapping(product_qid=str(qid), supplier_id=supplier_id)
+                new_mapping = ProductSupplierMapping(product_qid=str(qid), supplier_id=supplier_id, status='active')
                 db.session.add(new_mapping)
                 created_count += 1
             else:
