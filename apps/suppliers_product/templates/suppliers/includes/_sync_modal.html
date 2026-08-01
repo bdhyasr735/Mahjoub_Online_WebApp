@@ -91,7 +91,8 @@ async function openSyncModal() {
             let progressPercentage = totalPages > 1 ? Math.min(Math.round((currentPage / totalPages) * 100), 95) : 50;
             updateSyncProgress(`جاري مزامنة الصفحة ${currentPage} من ${totalPages}...`, progressPercentage);
 
-            const response = await fetch("{{ url_for('suppliers_product_bp.sync_supplier_products') }}", {
+            // 🛑 تم تعديل اسم الرابط هنا إلى save_sync_supplier_product 
+            const response = await fetch("{{ url_for('suppliers_product_bp.save_sync_supplier_product') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
