@@ -3,10 +3,16 @@
 {% block title %}تعديل المنتج | محجوب{% endblock %}
 
 {% block content %}
-<!-- نفس الـ style -->
-<style>...</style>
+<style>
+    :root { --dark-purple: #2d0b36; }
+    .btn-custom { background-color: var(--dark-purple, #2d0b36); color: #fff; border: none; transition: all 0.3s ease; padding: 10px 30px; border-radius: 8px; }
+    .btn-custom:hover { background-color: #4a1558; color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(45, 11, 54, 0.3); }
+    .form-control:focus, .form-select:focus { border-color: var(--dark-purple, #2d0b36); box-shadow: 0 0 0 0.2rem rgba(45, 11, 54, 0.15); }
+    .card { border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08); border-radius: 16px; overflow: hidden; }
+    .card-header { background: white; border-bottom: 2px solid #f8f9fa; border-radius: 16px 16px 0 0 !important; }
+</style>
 
-{# استخراج البيانات #}
+{# ✅ استخراج بيانات المنتج الأساسية #}
 {% set prod = product if product else {} %}
 {% set prod_title = prod.title or prod.name or 'بدون عنوان' %}
 {% set prod_desc = prod.description or '' %}
@@ -19,10 +25,18 @@
 {% set prod_qid = prod.qid or (mapping.product_qid if mapping else '') %}
 
 <div class="container-fluid py-4">
-    <!-- نفس الرأس -->
-    <div class="d-flex align-items-center mb-4">...</div>
+    <!-- رأس الصفحة -->
+    <div class="d-flex align-items-center mb-4">
+        <div class="bg-white p-3 rounded-circle shadow-sm me-3" style="border: 2px solid var(--dark-purple, #2d0b36);">
+            <i class="fas fa-edit fa-2x" style="color: var(--dark-purple, #2d0b36);"></i>
+        </div>
+        <div>
+            <h3 class="fw-bold text-dark mb-0">تعديل المنتج</h3>
+            <p class="text-muted mb-0">✏️ تحديث بيانات المنتج</p>
+        </div>
+    </div>
 
-    <!-- معلومات المنتج -->
+    <!-- معلومات المنتج الأساسية -->
     <div class="alert alert-info d-flex align-items-center gap-3 mb-4 shadow-sm rounded-4 border-0">
         <div><i class="fas fa-box fa-2x text-primary"></i></div>
         <div>
@@ -33,14 +47,16 @@
         </div>
     </div>
 
-    <form id="productEditForm" ...>
+    <form id="productEditForm" action="{{ url_for('suppliers_product_bp.edit_supplier_product', product_qid=prod_qid) }}" method="POST" enctype="multipart/form-data" novalidate>
+        <!-- CSRF Token -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
         <input type="hidden" name="qid" value="{{ prod_qid }}">
 
         <div class="row">
             <div class="col-lg-8">
-                <!-- 1. المعلومات الأساسية -->
+                <!-- المعلومات الأساسية -->
                 <div class="card mb-4">
-                    <div class="card-header p-4"><h5 class="fw-bold mb-0">المعلومات الأساسية</h5></div>
+                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-box me-2" style="color: var(--dark-purple, #2d0b36);"></i> المعلومات الأساسية</h5></div>
                     <div class="card-body p-4">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -59,9 +75,9 @@
                     </div>
                 </div>
 
-                <!-- 2. الوصف -->
+                <!-- الوصف -->
                 <div class="card mb-4">
-                    <div class="card-header p-4">وصف المنتج</div>
+                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-align-right me-2" style="color: var(--dark-purple, #2d0b36);"></i> وصف المنتج</h5></div>
                     <div class="card-body p-4">
                         <div class="mb-3">
                             <label class="form-label fw-bold">الوصف التفصيلي</label>
@@ -70,9 +86,9 @@
                     </div>
                 </div>
 
-                <!-- 3. الصور -->
+                <!-- الصور -->
                 <div class="card mb-4">
-                    <div class="card-header p-4">صور المنتج</div>
+                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-image me-2" style="color: var(--dark-purple, #2d0b36);"></i> صور المنتج</h5></div>
                     <div class="card-body p-4">
                         <div class="mb-3">
                             <label class="form-label fw-bold">الصور الحالية</label>
@@ -93,9 +109,9 @@
             </div>
 
             <div class="col-lg-4">
-                <!-- الإجراءات -->
+                <!-- حالة المنتج والإجراءات -->
                 <div class="card mb-4">
-                    <div class="card-header p-4">حالة المنتج</div>
+                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-tasks me-2" style="color: var(--dark-purple, #2d0b36);"></i> حالة المنتج والإجراءات</h5></div>
                     <div class="card-body p-4">
                         <div class="mb-3">
                             <label class="form-label fw-bold">حالة المنتج</label>
