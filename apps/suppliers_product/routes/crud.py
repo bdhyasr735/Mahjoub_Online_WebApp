@@ -76,9 +76,9 @@ def add_supplier_product():
     )
 
 
-@suppliers_product_bp.route('/products/edit', methods=['GET'])
+@suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'])
 @login_required
-def edit_supplier_product():
+def edit_supplier_product(qid):
     """عرض صفحة تعديل المنتج للمورد"""
     user_type = session.get('user_type')
     supplier_id = session.get('user_id') or session.get('supplier_id')
@@ -87,7 +87,6 @@ def edit_supplier_product():
         flash('❌ هذا القسم مخصص للموردين فقط', 'danger')
         return redirect(url_for('suppliers_dashboard_bp.dashboard'))
     
-    qid = request.args.get('qid')
     if not qid:
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
@@ -95,7 +94,10 @@ def edit_supplier_product():
     # تنظيف الـ qid تلقائياً لمعالجة أي تكرار محتمل (مثل qid:qumra/...)
     while qid.startswith('qid:'):
         qid = qid.replace('qid:', '', 1)
-    
+        
+    if not qid.startswith('qid://') and 'qumra/Product/' in qid:
+        qid = 'qid://' + qid
+
     # 1. جلب المنتج أولاً للتأكد من وجوده عبر الـ qid النظيف
     product = services.products.get_product_by_qid(qid)
     if not product:
