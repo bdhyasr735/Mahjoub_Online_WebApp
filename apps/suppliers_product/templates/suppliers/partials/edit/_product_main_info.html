@@ -1,29 +1,18 @@
 <div class="row g-3">
     <div class="col-md-6">
-        <div class="form-group">
-            <label class="form-label"><i class="fas fa-barcode me-1" style="color: #2d0b36;"></i> SKU</label>
-            <input type="text" class="form-control" value="{{ prod_sku }}" readonly style="background-color: #f8f9fa;">
-        </div>
+        <label class="form-label"><i class="fas fa-barcode me-1"></i> SKU</label>
+        <input type="text" class="form-control" value="{{ prod_sku or '' }}" readonly>
     </div>
     <div class="col-md-6">
-        <div class="form-group">
-            <label class="form-label"><i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية</label>
-            <input type="text" name="quantity" class="form-control" value="{{ prod_qty or 0 }}">
-        </div>
+        <label class="form-label"><i class="fas fa-cubes me-1"></i> الكمية</label>
+        <input type="text" name="quantity" class="form-control" value="{{ prod_qty or 0 }}">
     </div>
     <div class="col-md-6">
-        <div class="form-group">
-            <label class="form-label"><i class="fas fa-tag me-1" style="color: #2d0b36;"></i> سعر التكلفة (ر.س)</label>
-            <div class="input-group">
-                <input type="text" name="price" class="form-control" value="{{ prod_cost_price or 0.0 }}">
-                <span class="input-group-text">ر.س</span>
-            </div>
-        </div>
+        <label class="form-label"><i class="fas fa-tag me-1"></i> سعر التكلفة (ر.س)</label>
+        <input type="text" name="price" class="form-control" value="{{ prod_cost_price or 0.0 }}">
     </div>
     <div class="col-md-6">
-        <div class="form-group">
-            <label class="form-label"><i class="fas fa-weight me-1" style="color: #2d0b36;"></i> الوزن (كجم)</label>
-            <input type="text" name="weight" class="form-control" value="{{ prod_weight or 0.0 }}">
-        </div>
+        <label class="form-label"><i class="fas fa-weight me-1"></i> الوزن (كجم)</label>
+        <input type="text" name="weight" class="form-control" value="{{ prod_weight or 0.0 }}">
     </div>
 </div>
