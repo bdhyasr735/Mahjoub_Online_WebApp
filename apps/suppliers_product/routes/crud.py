@@ -79,7 +79,7 @@ def add_supplier_product():
 @suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'])
 @login_required
 def edit_supplier_product(qid):
-    """عرض صفحة تعديل المنتج للمورد"""
+    """عرض صفحة تعديل المنتج للمورد المحلي"""
     user_type = session.get('user_type')
     supplier_id = session.get('user_id') or session.get('supplier_id')
 
@@ -91,20 +91,25 @@ def edit_supplier_product(qid):
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
     
-    # تنظيف الـ qid تلقائياً لمعالجة أي تكرار محتمل (مثل qid:qumra/...)
+    # تنظيف الـ qid مع دعم المعرفات المحلية البسيطة
     while qid.startswith('qid:'):
         qid = qid.replace('qid:', '', 1)
-        
-    if not qid.startswith('qid://') and 'qumra/Product/' in qid:
-        qid = 'qid://' + qid
 
-    # 1. جلب المنتج أولاً للتأكد من وجوده عبر الـ qid النظيف
+    # 1. جلب المنتج عبر المعرف (سواء كان محلياً أو قياسياً)
     product = services.products.get_product_by_qid(qid)
+    
+    # إذا لم يجده مباشرة، نجرب البحث بدعم بادئة الـ qid القياسية إن أمكن أو العكس
+    if not product and not qid.startswith('qid://') and 'qumra/' in qid:
+        qid_full = 'qid://' + qid
+        product = services.products.get_product_by_qid(qid_full)
+        if product:
+            qid = qid_full
+
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
 
-    # 2. التحقق من جدول الربط ومعالجته جذرياً لمنع أي خطأ صلاحيات
+    # 2. التحقق من جدول الربط للمورد المحلي
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
 
     if user_type != 'admin':
@@ -192,7 +197,7 @@ def edit_supplier_product(qid):
 @suppliers_product_bp.route('/products/save-sync', methods=['POST'])
 @login_required
 def save_sync_supplier_product():
-    """حفظ وتحديث منتج المورد مع المزامنة"""
+    """حفظ وتحديث منتج المورد المحلي مع المزامنة"""
     user_type = session.get('user_type')
     supplier_id = session.get('user_id') or session.get('supplier_id')
 
@@ -289,10 +294,10 @@ def save_sync_supplier_product():
         }), 500
 
 
-@suppliers_product_bp.route('/products/delete/<qid>', methods=['POST'])
+@suppliers_product_bp.route('/products/delete/<path:qid>', methods=['POST'])
 @login_required
 def delete_supplier_product(qid):
-    """أرشفة وحذف منتج المورد"""
+    """أرشفة وحذف منتج المورد المحلي"""
     try:
         user_type = session.get('user_type')
         supplier_id = session.get('user_id') or session.get('supplier_id')
