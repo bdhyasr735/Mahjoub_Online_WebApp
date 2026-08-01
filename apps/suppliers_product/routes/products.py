@@ -156,7 +156,7 @@ def manage_supplier_products_view():
 
 
 # ============================================================================================
-# 🛠️ صفحة تعديل المنتج (دمج GET لعرض النموذج و POST للحفظ في مسار واحد)
+# 🛠️ صفحة تعديل المنتج (الحل النهائي: تقبل GET و POST معاً)
 # ============================================================================================
 @suppliers_product_bp.route('/products/edit/<string:product_qid>', methods=['GET', 'POST'], endpoint='edit_supplier_product')
 @login_required
@@ -164,23 +164,21 @@ def edit_supplier_product(product_qid):
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         
-        # 1. نتحقق أولاً من وجود العلاقة في جدول الربط
+        # 1. التحقق من وجود العلاقة
         mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=product_qid).first()
         if not mapping:
-            flash('⚠️ لا تملك الصلاحية لتعديل هذا المنتج، أو أن العلاقة غير موجودة.', 'danger')
+            flash('⚠️ لا تملك الصلاحية لتعديل هذا المنتج.', 'danger')
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        # 2. نحاول جلب تفاصيل المنتج من جدول المنتجات
+        # 2. جلب المنتج
         product = services.products.get_product_by_qid(product_qid)
-
-        # ✅ إذا كان المنتج (شبح) غير موجود في قاعدة البيانات، منع التعديل
         if not product:
-            flash('❌ هذا المنتج غير موجود في نظامنا أو تم حذفه. يرجى التواصل مع الإدارة.', 'danger')
-            db.session.delete(mapping) # تنظيف الرابط الوهمي
+            flash('❌ هذا المنتج غير موجود أو تم حذفه.', 'danger')
+            db.session.delete(mapping)
             db.session.commit()
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        # 3. معالجة زر الحفظ (POST)
+        # 3. معالجة الحفظ (POST)
         if request.method == 'POST':
             price = request.form.get('price')
             quantity = request.form.get('quantity')
@@ -204,5 +202,5 @@ def edit_supplier_product(product_qid):
 
     except Exception as e:
         current_app.logger.error(f"خطأ في صفحة التعديل: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء تحميل صفحة التعديل', 'danger')
+        flash('❌ حدث خطأ غير متوقع أثناء تحميل الصفحة', 'danger')
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
