@@ -1,12 +1,116 @@
-<div class="mb-3">
-    <label class="form-label fw-bold">عنوان الصفحة (Meta Title)</label>
-    <input type="text" name="meta_title" class="form-control" value="{{ prod_seo.title or '' }}" placeholder="أدخل عنوان الصفحة لظهوره في نتائج البحث">
+<!-- ============================================================
+   🔍 تحسين محركات البحث (SEO) - عرض فقط للمورد
+   ============================================================ -->
+<div class="form-section seo-card shadow-sm">
+    <div class="form-section-title d-flex align-items-center justify-content-between">
+        <div>
+            <i class="fas fa-code me-2" style="color: #2d0b36;"></i> 
+            <span>تحسين محركات البحث (SEO)</span>
+        </div>
+        <span class="badge badge-purple-soft">
+            <i class="fas fa-lock me-1"></i> للقراءة فقط
+        </span>
+    </div>
+    
+    <div class="row g-3">
+        <!-- عنوان SEO -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-heading me-1" style="color: #2d0b36;"></i> عنوان SEO
+                </label>
+                <input type="text" 
+                       class="form-control custom-input" 
+                       value="{{ product.seo.title if product.seo and product.seo.title else '' }}" 
+                       readonly
+                       style="background-color: #f8f9fa; cursor: default;">
+                <small class="text-muted mt-1 d-block">
+                    <i class="fas fa-lock me-1" style="color: #2d0b36;"></i> يُدار بواسطة الإدارة
+                </small>
+            </div>
+        </div>
+        
+        <!-- وصف SEO -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-align-left me-1" style="color: #2d0b36;"></i> وصف SEO
+                </label>
+                <input type="text" 
+                       class="form-control custom-input" 
+                       value="{{ product.seo.description if product.seo and product.seo.description else '' }}" 
+                       readonly
+                       style="background-color: #f8f9fa; cursor: default;">
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-3 mt-1">
+        <!-- الكلمات المفتاحية -->
+        <div class="col-12">
+            <div class="form-group">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-tags me-1" style="color: #2d0b36;"></i> الكلمات المفتاحية
+                </label>
+                <input type="text" 
+                       class="form-control custom-input" 
+                       value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" 
+                       readonly
+                       style="background-color: #f8f9fa; cursor: default;">
+                <small class="text-muted mt-1 d-block">
+                    <i class="fas fa-info-circle me-1" style="color: #2d0b36;"></i> تساعد هذه الكلمات محركات البحث في فهم محتوى المنتج.
+                </small>
+            </div>
+        </div>
+    </div>
 </div>
-<div class="mb-3">
-    <label class="form-label fw-bold">وصف الميتا (Meta Description)</label>
-    <textarea name="meta_description" class="form-control" rows="2" placeholder="وصف مختصر للظهور تحت العنوان في البحث">{{ prod_seo.description or '' }}</textarea>
-</div>
-<div class="mb-3">
-    <label class="form-label fw-bold">الكلمات المفتاحية (Keywords)</label>
-    <input type="text" name="meta_keywords" class="form-control" value="{{ prod_seo.keywords or '' }}" placeholder="كلمات مفتاحية مفصولة بفواصل">
-</div>
+
+<!-- ============================================================
+   🎨 التنسيقات والأنماط (للمورد)
+   ============================================================ -->
+<style>
+.seo-card {
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.form-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d0b36;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
+}
+
+.badge-purple-soft {
+    background: rgba(45, 11, 54, 0.1);
+    color: #2d0b36;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.custom-input {
+    border-color: #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    background-color: #f8f9fa;
+    cursor: default;
+}
+
+.form-group {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .seo-card {
+        padding: 16px;
+    }
+}
+</style>
