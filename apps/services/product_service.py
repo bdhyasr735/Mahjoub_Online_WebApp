@@ -146,8 +146,29 @@ class ProductService:
         self._search_cache = None
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
+    # ============================================================
+    # ✅ الدالة المعدلة: استخراج المعرف الخام قبل الإرسال إلى GraphQL
+    # ============================================================
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID (النسخة النهائية الآمنة - تعتمد على الاستعلام الناجح)"""
+        """جلب منتج بواسطة QID (يستخرج المعرف الخام تلقائياً من صيغ مختلفة)"""
+        # استخراج المعرف الخام من الصيغ المختلفة
+        raw_qid = None
+        if qid:
+            qid_str = str(qid).strip()
+            if 'qid://' in qid_str or 'qumra/' in qid_str:
+                parts = qid_str.split('/')
+                raw_qid = parts[-1] if parts else qid_str
+            elif qid_str.startswith('qid:'):
+                raw_qid = qid_str[4:]
+            else:
+                raw_qid = qid_str
+        
+        if not raw_qid:
+            print(f"❌ [get_product_by_qid] معرف غير صالح: {qid}")
+            return {}
+        
+        print(f"🔍 [get_product_by_qid] جلب المنتج بـ Raw QID: {raw_qid}")
+        
         query = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -187,8 +208,7 @@ class ProductService:
         }
         """
         try:
-            print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
-            variables = {"qid": qid}
+            variables = {"qid": raw_qid}
             data = self.client.execute(query, variables, operation_name="FindProductByQid")
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
@@ -196,6 +216,8 @@ class ProductService:
                     product_data = result.get("data", {})
                     print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح: {product_data.get('title')}")
                     return product_data
+                else:
+                    print(f"⚠️ [get_product_by_qid] فشل الاستعلام: {result.get('message')}")
             return {}
         except Exception as e:
             print(f"❌ [get_product_by_qid] فشل جلب المنتج: {e}")
