@@ -1,32 +1,95 @@
+<!-- ============================================================
+   📦 معلومات المنتج الأساسية (للمورد - سعر التكلفة، الكمية، الوزن)
+   ============================================================ -->
 <div class="row g-3">
+    <!-- SKU (للقراءة فقط) -->
     <div class="col-md-6">
-        <label class="form-label fw-bold">اسم المنتج <span class="text-danger">*</span></label>
-        <input type="text" name="title" class="form-control" value="{{ prod_title }}" required>
+        <div class="form-group">
+            <label for="productSku" class="form-label">
+                <i class="fas fa-barcode me-1" style="color: #2d0b36;"></i> رمز التخزين التعريفي (SKU)
+                <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">للقراءة فقط</span>
+            </label>
+            <input type="text" id="productSku" class="form-control form-control-lg custom-input" 
+                   value="{{ prod_sku }}" readonly
+                   style="background-color: #f8f9fa; cursor: default;">
+            <small class="text-muted"><i class="fas fa-lock me-1" style="color: #2d0b36;"></i> يديره الأدمن ولا يمكن تعديله</small>
+        </div>
     </div>
+    
+    <!-- الكمية (قابلة للتعديل) -->
     <div class="col-md-6">
-        <label class="form-label fw-bold">الرمز التعريفي (SKU)</label>
-        <input type="text" name="sku" class="form-control" value="{{ prod_sku }}">
+        <div class="form-group">
+            <label for="productQuantity" class="form-label">
+                <i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية المتاحة
+            </label>
+            <input type="text" id="productQuantity" name="quantity" class="form-control form-control-lg custom-input numeric-input" 
+                   value="{{ prod_qty|string if prod_qty is not none else '0' }}" 
+                   oninput="allowNumericOnly(this);">
+        </div>
     </div>
 
-    <div class="col-md-4">
-        <label class="form-label fw-bold">السعر الأساسي (ر.س)</label>
-        <input type="number" step="0.01" name="price" class="form-control" value="{{ prod_price }}" required>
-    </div>
-    <div class="col-md-4">
-        <label class="form-label fw-bold">سعر المقارنة (ر.س)</label>
-        <input type="number" step="0.01" name="compare_price" class="form-control" value="{{ prod_compare_price }}">
-    </div>
-    <div class="col-md-4">
-        <label class="form-label fw-bold">السعر الأصلي (ر.س)</label>
-        <input type="number" step="0.01" name="original_price" class="form-control" value="{{ prod_original_price }}">
-    </div>
-
+    <!-- سعر التكلفة (قابل للتعديل) -->
     <div class="col-md-6">
-        <label class="form-label fw-bold">الكمية المتاحة</label>
-        <input type="number" name="quantity" class="form-control" value="{{ prod_qty }}">
+        <div class="form-group">
+            <label for="productCostPrice" class="form-label">
+                <i class="fas fa-tag me-1" style="color: #2d0b36;"></i> سعر التكلفة (ر.س)
+                <span class="badge bg-light text-muted ms-1" style="font-size: 0.6rem; font-weight: 400;">قابل للتعديل</span>
+            </label>
+            <div class="input-group input-group-lg">
+                <input type="text" id="productCostPrice" name="price" class="form-control custom-input numeric-input" 
+                       value="{{ prod_price|string if prod_price is not none else '0' }}" 
+                       oninput="allowNumericOnly(this);">
+                <span class="input-group-text currency-addon">ر.س</span>
+            </div>
+            <small class="text-muted"><i class="fas fa-info-circle me-1" style="color: #2d0b36;"></i> سعر التكلفة الذي يتحمله المورد (لن يظهر للعملاء)</small>
+        </div>
     </div>
+    
+    <!-- الوزن (قابل للتعديل) -->
     <div class="col-md-6">
-        <label class="form-label fw-bold">الوزن (كجم)</label>
-        <input type="number" step="0.01" name="weight" class="form-control" value="{{ prod_weight }}">
+        <div class="form-group">
+            <label for="productWeight" class="form-label">
+                <i class="fas fa-weight me-1" style="color: #2d0b36;"></i> الوزن (كجم)
+            </label>
+            <input type="text" id="productWeight" name="weight" class="form-control form-control-lg custom-input numeric-input" 
+                   value="{{ prod_weight|string if prod_weight is not none else '0' }}" 
+                   oninput="allowNumericOnly(this);">
+            <small class="text-muted"><i class="fas fa-info-circle me-1" style="color: #2d0b36;"></i> الوزن بوحدة الكيلوجرام</small>
+        </div>
     </div>
 </div>
+
+<!-- ============================================================
+   🎨 التنسيقات والأنماط + السكربت الأساسي
+   ============================================================ -->
+<style>
+.form-group { margin-bottom: 0; }
+.form-label { font-weight: 600; color: #2d0b36; font-size: 0.95rem; margin-bottom: 6px; }
+.custom-input {
+    border-color: #e2e8f0; border-radius: 10px; transition: all 0.3s ease;
+    padding: 12px 16px; font-size: 1rem; height: 55px; 
+}
+.custom-input:focus { border-color: #2d0b36; box-shadow: 0 0 0 4px rgba(45, 11, 54, 0.15); }
+.form-control-lg, .form-select-lg { padding: 14px 18px; font-size: 1.05rem; }
+.currency-addon {
+    background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37;
+    border: none; font-weight: 700; border-radius: 0 10px 10px 0 !important;
+    padding: 14px 20px; height: 55px; display: flex; align-items: center;
+}
+.numeric-input { direction: ltr; text-align: right; letter-spacing: 0.5px; }
+.numeric-input:focus { border-color: #2d0b36; box-shadow: 0 0 0 4px rgba(45, 11, 54, 0.15); }
+@media (max-width: 768px) {
+    .form-control-lg, .form-select-lg { padding: 10px 14px; font-size: 0.95rem; height: 48px; }
+    .currency-addon { padding: 10px 14px; height: 48px; }
+}
+</style>
+
+<script>
+// ✅ دالة السماح بالأرقام والفواصل العشرية فقط
+function allowNumericOnly(input) {
+    input.value = input.value.replace(/[^0-9.]/g, '');
+    if ((input.value.match(/\./g) || []).length > 1) {
+        input.value = input.value.slice(0, -1);
+    }
+}
+</script>
