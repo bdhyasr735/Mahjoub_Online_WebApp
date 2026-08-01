@@ -29,6 +29,10 @@ class ProductSupplierMapping(db.Model):
     # المعرف الخاص بالمورد في نظامنا (الرابط)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     
+    # ⚡️ الحقول الجديدة لتخزين سعر وكمية المورد (يمكن تحديثها يدوياً)
+    price = db.Column(db.Float, nullable=True)
+    quantity = db.Column(db.Integer, nullable=True)
+    
     # حالة الربط (لإدارة المنتجات المعلقة أو النشطة)
     status = db.Column(db.String(20), default='active', nullable=False)
     
@@ -69,6 +73,8 @@ class ProductSupplierMapping(db.Model):
             'id': self.id,
             'product_qid': self.product_qid,
             'supplier_id': self.supplier_id,
+            'price': self.price,
+            'quantity': self.quantity,
             'status': self.status,
             'internal_notes': self.internal_notes,
             'created_at': self.created_at.isoformat() if self.created_at else None,
