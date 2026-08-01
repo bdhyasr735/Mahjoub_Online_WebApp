@@ -46,13 +46,9 @@ def _sync_products_in_background(supplier_id):
         print(f"⚠️ [Sync Background Error] {e}")
 
 
-# ============================================================
-# ✅ الحل الجذري رقم 1: تطبيع الـ QID لتجنب خطأ GraphQL 400
-# ============================================================
 def normalize_qid(qid):
     if not qid:
         return qid
-    # إذا لم يبدأ بالبادئة، أضفها
     if not qid.startswith('qid://'):
         return f"qid://qumra/Product/{qid}"
     return qid
@@ -70,9 +66,6 @@ def manage_supplier_products_view():
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
-        # ============================================================
-        # 1. المزامنة الخلفية
-        # ============================================================
         last_sync_key = f'_last_sync_{supplier_id}'
         if not is_admin and supplier_id:
             last_sync_time = session.get(last_sync_key)
@@ -82,9 +75,6 @@ def manage_supplier_products_view():
                 _sync_products_in_background(supplier_id)
                 session[last_sync_key] = datetime.utcnow()
 
-        # ============================================================
-        # 2. جلب المنتجات
-        # ============================================================
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('limit', 10, type=int)
         per_page = max(1, min(per_page, 50))
@@ -102,17 +92,16 @@ def manage_supplier_products_view():
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         mappings = pagination.items
 
-        # ============================================================
-        # 3. جلب تفاصيل المنتجات مع الفلاتر
-        # ============================================================
         products_data = []
         for mapping in mappings:
             qid_raw = mapping.product_qid
-            # ✅ تطبيق الحل الجذري: تصحيح الـ QID قبل استدعاء الخدمة
             qid = normalize_qid(qid_raw)
             product = services.products.get_product_by_qid(qid)
             
+            # ✅ إضافة الحل الجذري: حذف الرابط الميت فوراً
             if not product:
+                db.session.delete(mapping)
+                db.session.commit()
                 continue
 
             if search_term:
@@ -132,9 +121,6 @@ def manage_supplier_products_view():
 
             products_data.append({'mapping': mapping, 'product': product})
 
-        # ============================================================
-        # 4. تجهيز بيانات الترقيم
-        # ============================================================
         total_filtered = len(products_data)
         total_pages = (total_filtered + per_page - 1) // per_page if total_filtered > 0 else 1
 
@@ -168,9 +154,6 @@ def manage_supplier_products_view():
         return render_template('suppliers/suppliers_product.html', products=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1}, get_status_text=get_status_text, format_price=format_price)
 
 
-# ============================================================================================
-# 🛠️ صفحة تعديل المنتج (دمج GET و POST في مسار واحد)
-# ============================================================================================
 @suppliers_product_bp.route('/products/edit/<string:product_qid>', methods=['GET', 'POST'], endpoint='edit_supplier_product')
 @login_required
 def edit_supplier_product(product_qid):
@@ -215,9 +198,6 @@ def edit_supplier_product(product_qid):
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
 
-# ============================================================================================
-# 🆕 إضافة صفحة منتج جديد (احتياطية)
-# ============================================================================================
 @suppliers_product_bp.route('/products/add', methods=['GET'], endpoint='add_supplier_product')
 @login_required
 def add_supplier_product():
@@ -225,14 +205,7 @@ def add_supplier_product():
     return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
 
-# ============================================================================================
-# ✅ الحل الجذري رقم 2: دالة تسجيل المسارات لضمان عدم فشل url_for
-# ============================================================================================
 def register_products_route(bp):
-    """
-    نقوم بإعادة تعريف المسارات باستخدام add_url_rule بدلاً من الديكورات.
-    هذا يضمن أن الـ endpoint مسجل بشكل صحيح في الـ blueprint ويحل مشكلة BuildError.
-    """
     bp.add_url_rule('/products', view_func=manage_supplier_products_view, methods=['GET'], endpoint='list_supplier_products')
     bp.add_url_rule('/products/edit/<string:product_qid>', view_func=edit_supplier_product, methods=['GET', 'POST'], endpoint='edit_supplier_product')
     bp.add_url_rule('/products/add', view_func=add_supplier_product, methods=['GET'], endpoint='add_supplier_product')
