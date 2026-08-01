@@ -56,10 +56,10 @@ def manage_supplier_products_view():
             mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
             supplier_qids_set = {str(m.product_qid).strip() for m in mappings if m.product_qid}
 
-        # إذا لم يملك المورد أي منتجات مسجلة ولم يكن أدمن، تعاد قائمة فارغة مباشرة مع رسالة واضحة
-        if not supplier_qids_set and not is_admin:
+        # 🛑 حماية صارمة مطلقة: إذا لم تكن مشرفاً ولم تكن تمتلك أي منتجات في جدول الربط، أوقف التنفيذ فوراً
+        if not is_admin and not supplier_qids_set:
             pagination_info = {'current_page': 1, 'total_pages': 0, 'has_prev': False, 'has_next': False, 'per_page': limit, 'total_items': 0}
-            no_products_msg = "عذراً، لا توجد لديك أي منتجات مسجلة حالياً. يمكنك الضغط على زر المزامنة لجلب منتجاتك."
+            no_products_msg = "عذراً، لا توجد لديك أي منتجات مسجلة حالياً."
             
             if is_ajax:
                 return jsonify({
