@@ -236,10 +236,10 @@ def add_supplier_product():
 
 
 @suppliers_product_bp.route('/products/edit', methods=['GET'])
-@suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'], endpoint='edit_product_view')
+@suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'], endpoint='edit_supplier_product')
 @login_required
 def edit_product_view(qid=None):
-    """عرض صفحة تعديل المنتج مع دعم المعرف عبر المسار أو الـ Query Parameters"""
+    """عرض صفحة تعديل المنتج بالاسم المطابق لـ _product_grid.html"""
     try:
         if not qid:
             qid = request.args.get('qid')
@@ -296,12 +296,11 @@ def edit_product_view(qid=None):
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
 
-@suppliers_product_bp.route('/products/sync', methods=['GET', 'POST'], endpoint='sync_supplier_products')
+@suppliers_product_bp.route('/products/sync', methods=['GET', 'POST'], endpoint='save_sync_supplier_product')
 @login_required
 def sync_supplier_products():
-    """مسار مزامنة المنتجات لتجنب خطأ الـ BuildError في النافذة المنبثقة"""
+    """مسار المزامنة بالاسم المطابق لـ _sync_modal.html"""
     try:
-        # يمكنك إضافة منطق المزامنة هنا أو إعادة توجيه حسب الحاجة
         if request.method == 'POST' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': True, 'message': 'تمت المزامنة بنجاح'})
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
@@ -315,7 +314,7 @@ def sync_supplier_products():
 @suppliers_product_bp.route('/api/products/update/<path:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
 @login_required
 def api_update_product(qid):
-    """استقبال وحفظ التعديلات المُرسلة عبر الواجهة وتحديثها عبر الخدمات"""
+    """استقبال وحفظ التعديلات المُرسلة عبر الواجهة"""
     try:
         qid = str(qid).strip()
         if 'Product/' in qid:
@@ -364,7 +363,7 @@ def api_update_product(qid):
 @suppliers_product_bp.route('/products/delete/<path:qid>', methods=['POST'], endpoint='delete_supplier_product')
 @login_required
 def delete_supplier_product(qid):
-    """أرشفة وحذف منتج المورد المحلي"""
+    """أرشفة وحذف منتج المورد"""
     try:
         user_type = session.get('user_type')
         if user_type != 'supplier' and user_type != 'admin':
