@@ -1,153 +1,305 @@
 # coding: utf-8
-# 📂 apps/suppliers_product/routes/crud.py
+# apps/admin_Product/routes/crud.py
 
-import traceback
-from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
-from flask_login import login_required, current_user
-from apps.suppliers_product.routes import suppliers_product_bp
+from flask import render_template, request, jsonify, redirect, url_for, flash, session
+from flask_login import login_required
+from apps.admin_Product.routes import admin_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
+from apps.models.supplier_db import Supplier
 from apps.extensions import db
 from datetime import datetime
+import json
 
-# ============================================================================================
-# 🔍 عرض صفحة البحث عن منتجات جديدة من قمرة لربطها بالمورد
-# ============================================================================================
-@suppliers_product_bp.route('/products/search', methods=['GET'], endpoint='search_supplier_products')
+
+@admin_product_bp.route('/products/add', methods=['GET', 'POST'])
 @login_required
-def search_supplier_products():
-    """
-    صفحة للمورد للبحث عن منتجات قمرة وإضافتها إلى متجره.
-    """
+def add_product():
+    """إضافة منتج جديد"""
+    user_type = session.get('user_type')
+    if user_type != 'admin':
+        flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
+        return redirect(url_for('admin_dashboard_bp.dashboard'))
+    
+    suppliers = Supplier.query.filter_by(status='active').all()
+    
+    if request.method == 'POST':
+        try:
+            raw_price = request.form.get('price')
+            price_val = float(raw_price) if raw_price else 0.0
+            raw_status = request.form.get('status', 'DRAFT')
+            status = raw_status.upper() if raw_status else 'DRAFT'
+            
+            product_data = {
+                'name': request.form.get('title', ''),
+                'price': price_val,
+                'status': status,
+                'description': request.form.get('description', '')
+            }
+            
+            if request.form.get('sku'):
+                product_data['sku'] = request.form.get('sku')
+            
+            result = services.products.create_product_data(product_data)
+            
+            if result and 'qid' in result:
+                supplier_id = request.form.get('supplier_id')
+                if supplier_id and supplier_id.strip():
+                    mapping = ProductSupplierMapping(
+                        product_qid=result['qid'],
+                        supplier_id=int(supplier_id),
+                        status='active'
+                    )
+                    db.session.add(mapping)
+                    db.session.commit()
+                
+                flash('✅ تم إضافة المنتج بنجاح.', 'success')
+            else:
+                flash('❌ فشل إضافة المنتج', 'danger')
+                
+            return redirect(url_for('admin_product_bp.manage_products_view'))
+            
+        except Exception as e:
+            flash(f'❌ حدث خطأ: {str(e)}', 'danger')
+
+    return render_template(
+        'admin/admin_add_product.html',
+        suppliers=suppliers
+    )
+
+
+@admin_product_bp.route('/products/edit', methods=['GET'])
+@login_required
+def edit_product():
+    """عرض صفحة تعديل المنتج"""
+    user_type = session.get('user_type')
+    if user_type != 'admin':
+        flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
+        return redirect(url_for('admin_dashboard_bp.dashboard'))
+    
+    qid = request.args.get('qid')
+    
+    if not qid:
+        flash("معرف المنتج (qid) مفقود.", "danger")
+        return redirect(url_for('admin_product_bp.manage_products_view'))
+    
+    product = services.products.get_product_by_qid(qid)
+    if not product:
+        flash("❌ لم يتم العثور على المنتج", "danger")
+        return redirect(url_for('admin_product_bp.manage_products_view'))
+
+    # تنظيف الخيارات (Options) واستخراجها بشكل آمن
+    raw_options = []
+    if isinstance(product, dict):
+        raw_options = product.get('options', [])
+    else:
+        raw_options = getattr(product, 'options', [])
+
+    if not raw_options and hasattr(services, 'variants'):
+        try:
+            options_data = services.variants.get_all_options_for_product(qid)
+            if isinstance(options_data, list):
+                raw_options = options_data
+            elif isinstance(options_data, dict):
+                raw_options = [options_data]
+        except Exception as e:
+            print(f"⚠️ [Edit Product] تعذر جلب الخيارات عبر خدمة variants: {e}")
+
+    cleaned_options = []
+    if isinstance(raw_options, list):
+        for opt in raw_options:
+            if isinstance(opt, dict):
+                vals = opt.get('values', [])
+                if callable(vals) or not isinstance(vals, list):
+                    vals = []
+                cleaned_options.append({
+                    "qid": opt.get('qid'),
+                    "name": opt.get('name'),
+                    "type": opt.get('type'),
+                    "values": vals
+                })
+
+    if isinstance(product, dict):
+        product['options'] = cleaned_options
+    else:
+        setattr(product, 'options', cleaned_options)
+
+    suppliers = Supplier.query.filter_by(status='active').all()
+    mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+    assigned_supplier_id = mapping.supplier_id if mapping else None
+
     try:
-        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
+        all_collections = services.collections.get_all_collections() if hasattr(services, 'collections') else []
+    except Exception as e:
+        print(f"❌ [DEBUG] Error loading collections: {e}")
+        all_collections = []
+
+    return render_template(
+        'admin/admin_edit_product.html',
+        product=product,
+        suppliers=suppliers,
+        assigned_supplier_id=assigned_supplier_id,
+        all_collections=all_collections
+    )
+
+
+@admin_product_bp.route('/products/save-sync', methods=['POST'])
+@login_required
+def save_sync_product():
+    """حفظ المنتج مع مزامنة المتغيرات والحالة (محسن ومجزأ ليتوافق مع الـ API)"""
+    user_type = session.get('user_type')
+    if user_type != 'admin':
+        return jsonify({"status": "error", "message": "غير مصرح"}), 403
+    
+    try:
+        qid = request.form.get('qid')
+        if not qid:
+            return jsonify({"status": "error", "message": "معرف المنتج (qid) مفقود."}), 400
+
+        title = request.form.get('title', '')
+        description = request.form.get('description', '')
+        raw_status = request.form.get('status', 'DRAFT')
+        status = raw_status.upper() if raw_status else 'DRAFT'
+        sku = request.form.get('sku', '')
+        supplier_id = request.form.get('supplier_id')
         
-        # جلب معاملات البحث والترقيم
-        page = request.args.get('page', 1, type=int)
-        search_term = request.args.get('search', '').strip()
+        seo_title = request.form.get('seo_title', '')
+        seo_description = request.form.get('seo_description', '')
+        seo_keywords = request.form.get('seo_keywords', '')
         
-        # جلب منتجات قمرة للصفحة الحالية
-        result = services.products.get_products_page(page)
-        all_products = result.get('data', [])
-        pagination = result.get('pagination', {})
+        try:
+            price = float(request.form.get('price', 0))
+        except ValueError:
+            price = 0.0
         
-        # فلترة البحث إذا وجد
-        if search_term:
-            filtered = [p for p in all_products if search_term.lower() in p.get('title', '').lower()]
+        try:
+            compare_price = float(request.form.get('compare_price', 0)) if request.form.get('compare_price') else None
+        except ValueError:
+            compare_price = None
+
+        collection_ids = request.form.getlist('collection_ids')
+
+        # ============================================================
+        # ✅ 1. حفظ المورد محلياً
+        # ============================================================
+        try:
+            supplier_id_clean = int(supplier_id) if supplier_id and supplier_id.strip() else None
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            
+            if not supplier_id_clean:
+                if mapping:
+                    db.session.delete(mapping)
+                    db.session.commit()
+            else:
+                supplier = Supplier.query.get(supplier_id_clean)
+                if supplier:
+                    if mapping:
+                        mapping.supplier_id = supplier_id_clean
+                        mapping.status = 'active'
+                        mapping.updated_at = datetime.utcnow()
+                    else:
+                        mapping = ProductSupplierMapping(
+                            product_qid=qid,
+                            supplier_id=supplier_id_clean,
+                            status='active'
+                        )
+                        db.session.add(mapping)
+                    db.session.commit()
+        except Exception as db_err:
+            db.session.rollback()
+            print(f"⚠️ [Supplier] خطأ أثناء حفظ المورد: {db_err}")
+
+        # ============================================================
+        # ✅ 2. تحديث البيانات عبر الـ Mutations المجزأة للـ GraphQL
+        # ============================================================
+        
+        # أ. تحديث المعلومات الأساسية (الاسم والـ SKU)
+        try:
+            if hasattr(services.products, 'update_product_info'):
+                services.products.update_product_info(qid, {"title": title, "sku": sku})
+        except Exception as e:
+            print(f"⚠️ [Warning] فشل تحديث معلومات المنتج: {e}")
+
+        # ب. تحديث الوصف
+        try:
+            if hasattr(services.products, 'update_product_description'):
+                services.products.update_product_description(qid, description)
+        except Exception as e:
+            print(f"⚠️ [Warning] فشل تحديث وصف المنتج: {e}")
+
+        # ج. تحديث التسعير
+        try:
+            if hasattr(services.products, 'update_product_pricing'):
+                pricing_data = {"price": price}
+                if compare_price is not None:
+                    pricing_data["compareAtPrice"] = compare_price
+                services.products.update_product_pricing(qid, pricing_data)
+        except Exception as e:
+            print(f"⚠️ [Warning] فشل تحديث التسعير: {e}")
+
+        # د. تحديث الـ SEO
+        try:
+            if hasattr(services.products, 'update_product_seo'):
+                services.products.update_product_seo(qid, {
+                    "title": seo_title,
+                    "description": seo_description,
+                    "keywords": seo_keywords
+                })
+        except Exception as e:
+            print(f"⚠️ [Warning] فشل تحديث الـ SEO: {e}")
+
+        # هـ. تحديث المجموعات
+        if collection_ids:
+            try:
+                if hasattr(services.products, 'update_product_collection'):
+                    services.products.update_product_collection(qid, collection_ids)
+            except Exception as e:
+                print(f"⚠️ [Warning] فشل تحديث مجموعات المنتج: {e}")
+
+        # و. تحديث الحالة
+        try:
+            if hasattr(services.products, 'update_product_status'):
+                services.products.update_product_status(qid, status)
+        except Exception as e:
+            print(f"⚠️ [Warning] حدث خطأ أثناء تحديث الحالة: {e}")
+
+        return jsonify({
+            "status": "success", 
+            "message": "تم حفظ وتحديث المنتج بنجاح!"
+        })
+
+    except Exception as e:
+        print(f"❌ خطأ غير متوقع في save_sync_product: {e}")
+        return jsonify({
+            "status": "error", 
+            "message": f"حدث خطأ أثناء معالجة الطلب: {str(e)}"
+        }), 500
+
+
+@admin_product_bp.route('/products/delete/<qid>', methods=['POST'])
+@login_required
+def delete_product(qid):
+    """حذف وأرشفة المنتج من النظام"""
+    try:
+        user_type = session.get('user_type')
+        if user_type != 'admin':
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+        
+        result = services.products.update_product_status(qid, "ARCHIVED")
+        
+        if result and result.get('success'):
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+            if mapping:
+                db.session.delete(mapping)
+                db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': '✅ تم حذف/أرشفة المنتج بنجاح'
+            })
         else:
-            filtered = all_products
-
-        # جلب المنتجات التي ربطها المورد بالفعل لمنع ازدواجية العرض
-        existing_mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
-        existing_qids = {m.product_qid for m in existing_mappings}
-
-        # إضافة علم لكل منتج هل هو مرتبط أم لا
-        for p in filtered:
-            p['is_linked'] = p.get('qid') in existing_qids
-
-        return render_template(
-            'suppliers/search_products.html', 
-            products=filtered, 
-            search_term=search_term,
-            pagination=pagination
-        )
-
+            return jsonify({'success': False, 'message': '❌ فشل حذف المنتج'}), 500
+            
     except Exception as e:
-        current_app.logger.error(f"خطأ في البحث عن المنتجات: {traceback.format_exc()}")
-        flash('❌ حدث خطأ أثناء تحميل منتجات البحث.', 'danger')
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-
-# ============================================================================================
-# ➕ ربط منتج جديد للمورد (إضافة ربطة في جدول product_supplier_mapping)
-# ============================================================================================
-@suppliers_product_bp.route('/products/link/<string:product_qid>', methods=['POST'], endpoint='link_supplier_product')
-@login_required
-def link_supplier_product(product_qid):
-    """
-    عملية ربط منتج قمرة بالمورد الحالي.
-    """
-    try:
-        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
-        
-        # التحقق من عدم وجود الربط مسبقاً
-        existing = ProductSupplierMapping.query.filter_by(
-            supplier_id=supplier_id, 
-            product_qid=product_qid
-        ).first()
-        
-        if existing:
-            flash('⚠️ هذا المنتج موجود بالفعل في قائمتك.', 'warning')
-            return redirect(url_for('suppliers_product_bp.search_supplier_products'))
-
-        # التأكد من أن المنتج موجود في قمرة
-        product = services.products.get_product_by_qid(product_qid)
-        if not product:
-            flash('❌ المنتج غير موجود في قمرة أو تم حذفه.', 'danger')
-            return redirect(url_for('suppliers_product_bp.search_supplier_products'))
-
-        # إنشاء سجل ربط جديد
-        new_mapping = ProductSupplierMapping(
-            product_qid=product_qid,
-            supplier_id=supplier_id,
-            status='PENDING',  # الحالة الافتراضية كما طلبت: قيد المراجعة
-            price=0.0,         # سعر التكلفة الافتراضي
-            quantity=0         # الكمية الافتراضية
-        )
-        db.session.add(new_mapping)
-        db.session.commit()
-
-        flash('✅ تم ربط المنتج بنجاح، بإمكانك الآن تعديل سعر التكلفة والكمية.', 'success')
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"خطأ في ربط المنتج: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء ربط المنتج.', 'danger')
-        return redirect(url_for('suppliers_product_bp.search_supplier_products'))
-
-
-# ============================================================================================
-# ❌ حذف منتج من قائمة المورد (إزالة الربط)
-# ============================================================================================
-@suppliers_product_bp.route('/products/unlink/<string:product_qid>', methods=['POST'], endpoint='unlink_supplier_product')
-@login_required
-def unlink_supplier_product(product_qid):
-    """
-    حذف الربط بين المورد والمنتج (لا يحذف المنتج من قمرة، بل يزيله فقط من قائمة المورد).
-    """
-    try:
-        supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
-        
-        mapping = ProductSupplierMapping.query.filter_by(
-            supplier_id=supplier_id, 
-            product_qid=product_qid
-        ).first()
-        
-        if not mapping:
-            flash('⚠️ لا تملك الصلاحية لحذف هذا المنتج.', 'danger')
-            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-        
-        db.session.delete(mapping)
-        db.session.commit()
-        
-        flash('✅ تم إزالة المنتج من قائمتك بنجاح.', 'success')
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-        
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"خطأ في حذف الربط: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء إزالة المنتج.', 'danger')
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-
-# ============================================================================================
-# ✍️ دالة تسجيل مسارات CRUD (اختياري، إذا كنت تريد ربطها بـ __init__.py مثل products.py)
-# ============================================================================================
-def register_crud_route(bp):
-    # مسار البحث عن المنتجات
-    bp.add_url_rule('/products/search', view_func=search_supplier_products, methods=['GET'], endpoint='search_supplier_products')
-    # مسار ربط منتج جديد
-    bp.add_url_rule('/products/link/<string:product_qid>', view_func=link_supplier_product, methods=['POST'], endpoint='link_supplier_product')
-    # مسار حذف منتج (فك الارتباط)
-    bp.add_url_rule('/products/unlink/<string:product_qid>', view_func=unlink_supplier_product, methods=['POST'], endpoint='unlink_supplier_product')
+        print(f"❌ خطأ في delete_product: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
