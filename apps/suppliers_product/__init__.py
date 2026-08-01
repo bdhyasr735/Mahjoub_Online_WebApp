@@ -1,4 +1,3 @@
-
 # coding: utf-8
 # 📂 apps/suppliers_product/__init__.py
 
