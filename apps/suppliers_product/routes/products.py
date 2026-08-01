@@ -77,7 +77,7 @@ def manage_supplier_products_view():
             )
 
         # ====================================================
-        # ✅ 3. جلب منتجات المورد بديناميكية تامة وحساب الترقيم بناءً على العدد الفعلي
+        # ✅ 3. جلب منتجات المورد بديناميكية تامة ومطابقة دقيقة جداً
         # ====================================================
         target_products = []
         total_items_real = len(supplier_qids_set)
@@ -101,11 +101,20 @@ def manage_supplier_products_view():
                     page_items = res.get('data', [])
                     
                     for p in page_items:
-                        p_qid = str(p.get('qid', '')).strip()
-                        if p_qid and p_qid in supplier_qids_set:
-                            all_matched_products.append(p)
+                        # فحص كلا الاحتمالين qid أو id لضمان عدم ضياع أي منتج
+                        p_qid = str(p.get('qid') or p.get('id', '')).strip()
+                        p_supplier = str(p.get('supplier_id') or p.get('vendor_id', '')).strip()
+                        
+                        # المطابقة إما بـ QID الموجود في جدول الربط أو بـ supplier_id المباشر في المنتج
+                        is_matched_by_map = p_qid and p_qid in supplier_qids_set
+                        is_matched_by_vendor = p_supplier and supplier_id and p_supplier == str(supplier_id)
+                        
+                        if is_matched_by_map or is_matched_by_vendor:
+                            # منع تكرار المنتجات في القائمة
+                            if not any(str(x.get('qid') or x.get('id', '')) == p_qid for x in all_matched_products):
+                                all_matched_products.append(p)
                     
-                    # التوقف المبكر عند اكتمال جلب كافة منتجات المورد المسجلة لتسريع الأداء
+                    # التوقف المبكر عند اكتمال جلب كافة منتجات المورد لتسريع الأداء
                     if len(all_matched_products) >= total_items_real:
                         break
 
