@@ -1,1 +1,41 @@
+<!-- apps/suppliers_product/templates/suppliers/partials/edit/_collections.html -->
 
+<div class="mb-3">
+    <label class="form-label fw-bold" for="productCollections">
+        <i class="fas fa-tags text-muted me-1"></i> التصنيفات والأقسام
+    </label>
+    
+    <!-- ✅ قائمة متعددة الخيارات مع تصميم أنيق -->
+    <select name="collections" id="productCollections" class="form-select" multiple size="4" style="border-radius: 10px;">
+        {% if collections_list %}
+            {% for collection in collections_list %}
+                <option value="{{ collection.id or collection.qid }}" 
+                    {% if collection.id in prod_collection_ids or collection.qid in prod_collection_ids %}selected{% endif %}>
+                    📁 {{ collection.name or collection.title }}
+                </option>
+            {% endfor %}
+        {% else %}
+            <option value="" disabled>لا توجد تصنيفات متاحة حالياً</option>
+            <option value="general" selected>📁 تصنيف عام</option>
+        {% endif %}
+    </select>
+    
+    <div class="form-text text-muted mt-2">
+        <i class="fas fa-info-circle me-1"></i> اضغط مع الاستمرار على زر <code>Ctrl</code> (أو <code>Cmd</code> في أبل) لتحديد أكثر من تصنيف.
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // يمكنك إضافة تحسينات إضافية هنا لاحقاً (مثل تفعيل Select2 إذا أردت بحثاً سريعاً داخل التصنيفات)
+        const collectionsSelect = document.getElementById('productCollections');
+        if (collectionsSelect && typeof jQuery !== 'undefined' && jQuery.fn.select2) {
+            $(collectionsSelect).select2({
+                theme: 'bootstrap-5',
+                placeholder: 'اختر التصنيفات...',
+                allowClear: true,
+                dir: 'rtl'
+            });
+        }
+    });
+</script>
