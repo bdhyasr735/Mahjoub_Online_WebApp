@@ -1,1 +1,12 @@
-
+<div class="mb-3">
+    <label class="form-label fw-bold">عنوان الصفحة (Meta Title)</label>
+    <input type="text" name="meta_title" class="form-control" value="{{ prod_seo.title or '' }}" placeholder="أدخل عنوان الصفحة لظهوره في نتائج البحث">
+</div>
+<div class="mb-3">
+    <label class="form-label fw-bold">وصف الميتا (Meta Description)</label>
+    <textarea name="meta_description" class="form-control" rows="2" placeholder="وصف مختصر للظهور تحت العنوان في البحث">{{ prod_seo.description or '' }}</textarea>
+</div>
+<div class="mb-3">
+    <label class="form-label fw-bold">الكلمات المفتاحية (Keywords)</label>
+    <input type="text" name="meta_keywords" class="form-control" value="{{ prod_seo.keywords or '' }}" placeholder="كلمات مفتاحية مفصولة بفواصل">
+</div>
