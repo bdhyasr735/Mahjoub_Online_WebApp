@@ -1,5 +1,79 @@
-<div class="mb-3">
-    <label class="form-label fw-bold">الوصف التفصيلي (للقراءة فقط)</label>
-    <textarea name="description" class="form-control" rows="4" readonly style="background-color: #f8f9fa;">{{ prod_desc }}</textarea>
-    <small class="text-muted mt-1">الوصف يدار من قبل الإدارة ولا يمكن تعديله.</small>
+<!-- ================= وصف المنتج (للمورد - للقراءة فقط) ================= -->
+<div class="form-section description-card">
+    <div class="form-section-title">
+        <i class="fas fa-align-left"></i>
+        وصف المنتج
+        <span class="badge-count"><i class="fas fa-lock"></i> للقراءة فقط</span>
+    </div>
+    
+    <div class="description-content">
+        <!-- ✅ تنبيه للمورد -->
+        <div class="description-info">
+            <span><i class="fas fa-info-circle"></i> الوصف يدار من قبل الإدارة ولا يمكن تعديله.</span>
+        </div>
+        
+        <!-- ✅ عرض الوصف كـ HTML مشفر (للقراءة فقط) -->
+        <div class="editor-wrapper">
+            <div class="description-viewer">
+                {{ prod_desc|safe if prod_desc else '<p class="text-muted text-center py-4"><i class="fas fa-file-alt fa-2x d-block mb-2"></i> لا يوجد وصف لهذا المنتج.</p>' }}
+            </div>
+        </div>
+        
+        <!-- ✅ معلومات بسيطة -->
+        <div class="description-footer">
+            <span><i class="fas fa-file-word"></i> <span id="descriptionLength">{{ prod_desc|length if prod_desc else 0 }}</span> حرف</span>
+        </div>
+    </div>
 </div>
+
+<style>
+.description-card {
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    background: linear-gradient(135deg, #ffffff, #faf8f6);
+    padding: 24px 28px !important;
+    border-radius: 16px;
+}
+.description-card .badge-count {
+    font-size: 0.65rem; font-weight: 400; padding: 2px 10px;
+    border-radius: 12px; background: #f1f5f9; color: #64748b;
+    margin-left: 8px; display: inline-flex; align-items: center; gap: 4px;
+}
+.description-content { display: flex; flex-direction: column; gap: 14px; }
+.description-info {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    padding: 10px 16px; background: #f8fafc;
+    border-radius: 10px; border: 1px solid #e2e8f0;
+    font-size: 0.8rem; color: #64748b;
+}
+.description-info i { color: #2d0b36; margin-right: 4px; }
+.editor-wrapper {
+    border-radius: 10px; overflow: hidden;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 4px;
+    min-height: 200px;
+}
+.description-viewer {
+    padding: 16px 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: #1e293b;
+}
+.description-viewer p { margin-bottom: 0.8rem; }
+.description-viewer img { max-width: 100%; height: auto; border-radius: 8px; }
+.description-viewer table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.description-viewer th, .description-viewer td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: right; }
+.description-viewer th { background: #f1f5f9; }
+.description-footer {
+    display: flex; flex-wrap: wrap; justify-content: flex-end;
+    align-items: center; padding-top: 10px; gap: 10px;
+    font-size: 0.75rem; color: #94a3b8;
+}
+.description-footer i { color: #2d0b36; margin-right: 4px; }
+@media (max-width: 768px) {
+    .description-card { padding: 16px 14px !important; }
+    .description-info { flex-direction: column; gap: 6px; padding: 8px 12px; }
+}
+</style>
