@@ -4,6 +4,7 @@
 import traceback
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from flask_login import login_required, current_user
+from sqlalchemy import or_  # ✅ تم إضافة هذا الاستيراد
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
@@ -98,7 +99,7 @@ def manage_supplier_products_view():
             qid = normalize_qid(qid_raw)
             product = services.products.get_product_by_qid(qid)
             
-            # ✅ إضافة الحل الجذري: حذف الرابط الميت فوراً
+            # ✅ حذف الرابط الميت فوراً
             if not product:
                 db.session.delete(mapping)
                 db.session.commit()
@@ -160,12 +161,22 @@ def edit_supplier_product(product_qid):
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         
-        mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=product_qid).first()
+        # ✅ الحل الجذري: البحث عن المابينغ بأي صيغة (قصير أو كامل)
+        full_qid = normalize_qid(product_qid)
+        mapping = ProductSupplierMapping.query.filter(
+            ProductSupplierMapping.supplier_id == supplier_id,
+            or_(
+                ProductSupplierMapping.product_qid == product_qid,
+                ProductSupplierMapping.product_qid == full_qid
+            )
+        ).first()
+        
         if not mapping:
             flash('⚠️ لا تملك الصلاحية لتعديل هذا المنتج.', 'danger')
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        product = services.products.get_product_by_qid(product_qid)
+        # ✅ استخدام الـ QID الكامل لجلب المنتج من قمرة
+        product = services.products.get_product_by_qid(full_qid)
         if not product:
             flash('❌ هذا المنتج غير موجود أو تم حذفه.', 'danger')
             db.session.delete(mapping)
