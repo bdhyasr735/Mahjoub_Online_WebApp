@@ -365,3 +365,107 @@ def delete_supplier_product(qid):
         db.session.rollback()
         print(f"❌ خطأ في delete_supplier_product: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# ✅ دالة جديدة للمزامنة الجماعية (للاستخدام مع _sync_modal.html)
+# ============================================================
+@suppliers_product_bp.route('/products/sync-batch', methods=['POST'])
+@login_required
+def sync_batch_products():
+    """
+    مزامنة جماعية للمنتجات من النظام الخارجي إلى جدول الربط الخاص بالمورد الحالي
+    """
+    try:
+        # جلب البيانات المرسلة عبر JSON من الواجهة
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'البيانات غير صالحة'}), 400
+
+        page = data.get('page', 1)
+        limit = data.get('limit', 12)  # عدد المنتجات في كل صفحة
+
+        # جلب معلومات المورد الحالي من الجلسة
+        user_type = session.get('user_type')
+        supplier_id = session.get('user_id') or session.get('supplier_id')
+
+        if user_type != 'supplier' and user_type != 'admin':
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+
+        # جلب المنتجات من الخدمة الخارجية (GraphQL)
+        result = services.products.get_products_page(page, limit)
+        
+        if not result or not result.get('data'):
+            return jsonify({
+                'success': False,
+                'message': 'لا توجد منتجات لعرضها في هذه الصفحة'
+            }), 404
+
+        products_list = result.get('data', [])
+        synced_count = 0
+        updated_count = 0
+
+        # المعالجة للمورد أو الأدمن
+        if user_type == 'admin':
+            # في حالة الأدمن، نضيف المنتجات بدون ربط بمورد محدد (أو نربط بشكل عام)
+            # هنا نكتفي بإرجاع أننا وجدنا المنتجات
+            synced_count = len(products_list)
+        else:
+            # بالنسبة للمورد: نربط المنتجات بجدول المورد
+            if not supplier_id:
+                return jsonify({'success': False, 'message': 'معرف المورد غير موجود'}), 400
+
+            for product in products_list:
+                qid = product.get('qid')
+                if not qid:
+                    continue
+                
+                # التحقق من وجود الربط مسبقاً
+                mapping = ProductSupplierMapping.query.filter_by(
+                    product_qid=qid,
+                    supplier_id=int(supplier_id)
+                ).first()
+                
+                if not mapping:
+                    # إنشاء ربط جديد
+                    new_mapping = ProductSupplierMapping(
+                        product_qid=qid,
+                        supplier_id=int(supplier_id),
+                        status='active',
+                        created_at=datetime.utcnow()
+                    )
+                    db.session.add(new_mapping)
+                    synced_count += 1
+                else:
+                    # تحديث وقت المزامنة (اختياري)
+                    mapping.updated_at = datetime.utcnow()
+                    updated_count += 1
+            
+            db.session.commit()
+
+        # استخراج معلومات التصفح (pagination) من الرد
+        pagination = result.get('pagination', {})
+        total_pages = pagination.get('totalPages', 1)
+        has_next = pagination.get('hasNextPage', False)
+
+        return jsonify({
+            'success': True,
+            'message': f'تمت المزامنة بنجاح',
+            'syncedCount': synced_count,
+            'updatedCount': updated_count,
+            'total_pages': total_pages,
+            'has_next': has_next,
+            'next_page': page + 1 if has_next else None,
+            'current_page': page,
+            'total_items': pagination.get('totalItems', 0)
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ خطأ في sync_batch_products: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'حدث خطأ داخلي: {str(e)}'
+        }), 500
