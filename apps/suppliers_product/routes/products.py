@@ -41,23 +41,28 @@ def manage_supplier_products_view():
         limit = request.args.get('limit', 10, type=int)
         limit = max(1, limit)
         
-        search_term = request.args.get('search', '').strip()
+        search_term = request.args.get('search', '').strip().lower()
         category = request.args.get('category', '').strip()
-        status = request.args.get('status', '').strip()
+        status_filter = request.args.get('status', '').strip()
         min_price = request.args.get('min_price', '')
         max_price = request.args.get('max_price', '')
-        is_ajax = request.args.get('ajax', '0') == '1'
+        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
         # ====================================================
-        # ✅ 2. جلب QIDs الخاصة بالمورد وتوحيدها كنصوص نظيفة
+        # ✅ 2. الاستعلام المباشر عبر جدول الربط مع تفعيل الـ Pagination (لحل المشكلة من الجذور)
         # ====================================================
-        supplier_qids_set = set()
-        if supplier_id:
-            mappings = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id).all()
-            supplier_qids_set = {str(m.product_qid).strip() for m in mappings if m.product_qid}
+        mappings_query = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id)
 
-        # 🛑 حماية صارمة مطلقة: إذا لم تكن مشرفاً ولم تكن تمتلك أي منتجات في جدول الربط، أوقف التنفيذ فوراً
-        if not is_admin and not supplier_qids_set:
+        if status_filter:
+            mappings_query = mappings_query.filter_by(status=status_filter)
+
+        # تنفيذ التصفح الحقيقي على جدول الروابط الخاصة بهذا المورد فقط
+        pagination_obj = mappings_query.paginate(page=page, per_page=limit, error_out=False)
+        
+        # استخراج الqid الخاصة بالصفحة الحالية فقط لطلبها لحظياً
+        current_page_mappings = pagination_obj.items
+
+        if not current_page_mappings and not is_admin:
             pagination_info = {'current_page': 1, 'total_pages': 0, 'has_prev': False, 'has_next': False, 'per_page': limit, 'total_items': 0}
             no_products_msg = "عذراً، لا توجد لديك أي منتجات مسجلة حالياً."
             
@@ -77,98 +82,74 @@ def manage_supplier_products_view():
             )
 
         # ====================================================
-        # ✅ 3. جلب منتجات المورد بديناميكية تامة ومطابقة دقيقة جداً
+        # ✅ 3. الجلب اللحظي (Stateless) لمنتجات الصفحة الحالية فقط من المصدر الخارجي (قمرة)
         # ====================================================
-        target_products = []
-        total_items_real = len(supplier_qids_set)
-        total_pages = math.ceil(total_items_real / limit) if total_items_real > 0 else 1
-
+        formatted_products = []
+        
         if is_admin and not supplier_id:
             result = services.products.get_products_page(page) or {}
             target_products = result.get('data', [])
-            pagination = result.get('pagination', {})
-            total_items_real = pagination.get('totalItems', 0)
-            total_pages = pagination.get('totalPages', 1)
+            for p in target_products:
+                formatted_products.append({'product': p, 'mapping': None})
         else:
-            if total_items_real > 0:
-                all_matched_products = []
-                max_check_pages = 50  # نطاق آمن لتغطية جميع صفحات النظام الخارجية
+            # جمع الـ qids الخاصة بالصفحة الحالية
+            qids_to_fetch = [str(m.product_qid).strip() for m in current_page_mappings if m.product_qid]
+            
+            if qids_to_fetch:
+                # محاولة البحث وجلب المنتجات عبر فحص صفحات النظام الخارجي أو دالة مخصصة
+                # (نبحث في الصفحات الخارجية للعثور على المطابقات الخاصة بالـ qids المطلوبة فقط)
+                matched_dict = {}
+                max_check_pages = 30
                 
                 for p_num in range(1, max_check_pages + 1):
                     res = services.products.get_products_page(p_num)
                     if not res or not res.get('data'):
                         break
-                    page_items = res.get('data', [])
-                    
-                    for p in page_items:
-                        # فحص كلا الاحتمالين qid أو id لضمان عدم ضياع أي منتج
+                    for p in res.get('data', []):
                         p_qid = str(p.get('qid') or p.get('id', '')).strip()
-                        p_supplier = str(p.get('supplier_id') or p.get('vendor_id', '')).strip()
-                        
-                        # المطابقة إما بـ QID الموجود في جدول الربط أو بـ supplier_id المباشر في المنتج
-                        is_matched_by_map = p_qid and p_qid in supplier_qids_set
-                        is_matched_by_vendor = p_supplier and supplier_id and p_supplier == str(supplier_id)
-                        
-                        if is_matched_by_map or is_matched_by_vendor:
-                            # منع تكرار المنتجات في القائمة
-                            if not any(str(x.get('qid') or x.get('id', '')) == p_qid for x in all_matched_products):
-                                all_matched_products.append(p)
-                    
-                    # التوقف المبكر عند اكتمال جلب كافة منتجات المورد لتسريع الأداء
-                    if len(all_matched_products) >= total_items_real:
+                        if p_qid in qids_to_fetch:
+                            matched_dict[p_qid] = p
+                            
+                    if len(matched_dict) >= len(qids_to_fetch):
                         break
 
-                target_products = all_matched_products
+                # تجميع المنتجات بناءً على ترتيب الـ mappings الأصلي مع تطبيق فلاتر البحث والترتيب
+                for mapping in current_page_mappings:
+                    prod_data = matched_dict.get(str(mapping.product_qid).strip())
+                    if prod_data:
+                        # تطبيق فلاتر البحث والفلترة الاحتياطية محلياً
+                        if search_term:
+                            title = str(prod_data.get('title', '')).lower()
+                            sku = str(prod_data.get('sku', '')).lower()
+                            if search_term not in title and search_term not in sku:
+                                continue
+                        
+                        try:
+                            price_val = float(prod_data.get('price') or prod_data.get('sale_price') or prod_data.get('regular_price') or 0)
+                            if min_price and price_val < float(min_price):
+                                continue
+                            if max_price and price_val > float(max_price):
+                                continue
+                        except (ValueError, TypeError):
+                            pass
+
+                        formatted_products.append({
+                            'product': prod_data,
+                            'mapping': mapping
+                        })
 
         # ====================================================
-        # ✅ 4. تطبيق فلاتر البحث الإضافية
+        # ✅ 4. بناء هيكل الترقيم النهائي للقالب
         # ====================================================
-        filtered_products = []
-        for p in target_products:
-            if search_term:
-                title = str(p.get('title', '')).lower()
-                sku = str(p.get('sku', '')).lower()
-                if search_term.lower() not in title and search_term.lower() not in sku:
-                    continue
-            if category and p.get('category') != category:
-                continue
-            if status and p.get('status') != status:
-                continue
-            try:
-                price_val = float(p.get('price') or p.get('sale_price') or p.get('regular_price') or 0)
-                if min_price and price_val < float(min_price):
-                    continue
-                if max_price and price_val > float(max_price):
-                    continue
-            except (ValueError, TypeError):
-                pass
-            
-            filtered_products.append(p)
-
-        # ====================================================
-        # ✅ 5. الترقيم المحلي الديناميكي لمنتجات المورد
-        # ====================================================
-        if supplier_id or not is_admin:
-            total_items_real = len(filtered_products)
-            total_pages = math.ceil(total_items_real / limit) if total_items_real > 0 else 0
-            
-            start_idx = (page - 1) * limit
-            end_idx = start_idx + limit
-            paged_products = filtered_products[start_idx:end_idx]
-        else:
-            paged_products = filtered_products
-
-        formatted_products = [{'product': p} for p in paged_products]
-
         pagination_info = {
-            'current_page': page,
-            'total_pages': total_pages,
-            'has_prev': page > 1,
-            'has_next': page < total_pages,
-            'prev_num': page - 1 if page > 1 else 1,
-            'next_num': page + 1 if page < total_pages else page,
-            'per_page': limit,
-            'total_items': total_items_real
+            'current_page': pagination_obj.page,
+            'total_pages': pagination_obj.pages,
+            'has_prev': pagination_obj.has_prev,
+            'has_next': pagination_obj.has_next,
+            'prev_num': pagination_obj.prev_num,
+            'next_num': pagination_obj.next_num,
+            'per_page': pagination_obj.per_page,
+            'total_items': pagination_obj.total
         }
 
         if is_ajax:
@@ -195,8 +176,8 @@ def manage_supplier_products_view():
         )
 
     except Exception as e:
-        current_app.logger.error(f"خطأ غير متوقع: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع', 'danger')
+        current_app.logger.error(f"خطأ غير متوقع في إدارة منتجات المورد: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع أثناء تحميل المنتجات', 'danger')
         return render_template(
             'suppliers/suppliers_product.html',
             products=[],
