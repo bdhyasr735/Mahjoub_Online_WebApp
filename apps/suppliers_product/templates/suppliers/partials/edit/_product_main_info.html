@@ -5,17 +5,27 @@
     </div>
     <div class="col-md-6">
         <label class="form-label fw-bold">الرمز التعريفي (SKU)</label>
-        <input type="text" name="sku" class="form-control bg-light" value="{{ prod_sku }}" readonly>
+        <input type="text" name="sku" class="form-control" value="{{ prod_sku }}">
     </div>
+
     <div class="col-md-4">
-        <label class="form-label fw-bold">السعر (ر.س) <span class="text-danger">*</span></label>
+        <label class="form-label fw-bold">السعر الأساسي (ر.س)</label>
         <input type="number" step="0.01" name="price" class="form-control" value="{{ prod_price }}" required>
     </div>
     <div class="col-md-4">
+        <label class="form-label fw-bold">سعر المقارنة (ر.س)</label>
+        <input type="number" step="0.01" name="compare_price" class="form-control" value="{{ prod_compare_price }}">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-bold">السعر الأصلي (ر.س)</label>
+        <input type="number" step="0.01" name="original_price" class="form-control" value="{{ prod_original_price }}">
+    </div>
+
+    <div class="col-md-6">
         <label class="form-label fw-bold">الكمية المتاحة</label>
         <input type="number" name="quantity" class="form-control" value="{{ prod_qty }}">
     </div>
-    <div class="col-md-4">
+    <div class="col-md-6">
         <label class="form-label fw-bold">الوزن (كجم)</label>
         <input type="number" step="0.01" name="weight" class="form-control" value="{{ prod_weight }}">
     </div>
