@@ -92,18 +92,17 @@ def edit_supplier_product():
         flash("معرف المنتج (qid) مفقود.", "danger")
         return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
     
-    # 1. جلب المنتج أولاً للتأكد من وجوده
+    # 1. جلب المنتج أولاً للتأكد من وجوده عبر الـ qid
     product = services.products.get_product_by_qid(qid)
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
         return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
 
-    # 2. التحقق من جدول الربط
+    # 2. التحقق من جدول الربط ومعالجته جذرياً لمنع أي خطأ صلاحيات
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
 
     if user_type != 'admin':
         if not mapping:
-            # الحل الجذري: إذا لم يكن مربوطاً بأحد، نقوم بربطه تلقائياً بالمورد الحالي بدلاً من طرده!
             if supplier_id:
                 try:
                     mapping = ProductSupplierMapping(
@@ -117,10 +116,7 @@ def edit_supplier_product():
                     db.session.rollback()
                     print(f"⚠️ [Warning] تعذر إنشاء ربط تلقائي: {map_err}")
         
-        # إذا كان مربوطاً بمورد آخر مختلف تماماً
         if mapping and str(mapping.supplier_id) != str(supplier_id):
-            # بدلاً من منعه كلياً، إذا أردت السماح له، يمكنك تحديث الربط أو السماح له بالعرض
-            # سنقوم بتحديث الربط للمورد الحالي لتسهيل عمله وتجنب رسالة الخطأ المزعجة
             try:
                 mapping.supplier_id = int(supplier_id)
                 db.session.commit()
@@ -205,7 +201,6 @@ def save_sync_supplier_product():
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         if user_type != 'admin':
             if not mapping:
-                # إنشاء ربط تلقائي أثناء الحفظ أيضاً لضمان عدم فشل العملية
                 try:
                     mapping = ProductSupplierMapping(
                         product_qid=qid,
