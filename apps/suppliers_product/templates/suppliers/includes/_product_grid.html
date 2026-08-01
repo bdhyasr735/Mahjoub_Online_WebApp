@@ -4,11 +4,17 @@
     
     {% if product_list %}
         {% for item in product_list %}
+        {% set product = item.product if item.product is defined else item %}
+        {% set mapping = item.mapping if item.mapping is defined else none %}
+        
+        {# ✅ استخراج الـ qid من المابينغ أولاً (لأنه المخزن في قاعدة البيانات) #}
+        {% set raw_qid = mapping.product_qid if mapping and mapping.product_qid else (product.qid or product.id or '') %}
+        {% set product_qid = raw_qid.split('/')[-1] if '/' in raw_qid else raw_qid %}
+        
         <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
-            <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden">
-                
-                {# ✅ التحقق من وجود product داخل item #}
-                {% set product = item.product if item.product is defined else item %}
+            <div class="card product-card h-100 shadow-sm border-0 rounded-4 position-relative overflow-hidden" 
+                 onclick="window.location.href='{{ url_for('suppliers_product_bp.edit_supplier_product', qid=product_qid) }}'"
+                 style="cursor: pointer;">
                 
                 <!-- شريط الحالة العلوي -->
                 <div class="position-absolute top-0 start-0 m-3 z-index-2">
@@ -17,7 +23,7 @@
                     </span>
                 </div>
 
-                {# صورة المنتج بمعالجة ذكية #}
+                {# صورة المنتج #}
                 {%- set raw_img = none -%}
                 {%- if product.image_url -%}
                     {%- set raw_img = product.image_url -%}
@@ -75,10 +81,6 @@
                     </div>
 
                     <div class="mt-3">
-                        {# ✅ استخراج وتنقية الـ qid بدقة مع استخدام دالة _extract_raw_id إن وجدت #}
-                        {% set raw_qid = product.qid or product.id or (item.mapping.product_qid if item.mapping else '') %}
-                        {% set product_qid = raw_qid.split('/')[-1] if '/' in raw_qid else raw_qid %}
-                        
                         <a href="{{ url_for('suppliers_product_bp.edit_supplier_product', qid=product_qid) }}" 
                            class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none"
                            style="background: linear-gradient(135deg, #2d0b36, #1a0520); color: #D4AF37; border-radius: 10px; border: none; transition: all 0.3s ease;">
