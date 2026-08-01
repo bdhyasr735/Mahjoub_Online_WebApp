@@ -14,16 +14,16 @@
 </style>
 
 {# ✅ استخراج بيانات المنتج الأساسية #}
-{% set prod = product.product if product and product.product else product %}
-{% set prod_title = prod.name or prod.title or '' %}
+{% set prod = product if product else {} %}
+{% set prod_title = prod.title or prod.name or 'بدون عنوان' %}
 {% set prod_desc = prod.description or '' %}
-{% set prod_price = prod.price or 0 %}
-{% set prod_qty = prod.quantity or 0 %}
-{% set prod_sku = prod.sku or (prod.identification.sku if prod.identification else '') %}
+{% set prod_price = mapping.price if mapping and mapping.price is not none else 0 %}
+{% set prod_qty = mapping.quantity if mapping and mapping.quantity is not none else 0 %}
+{% set prod_sku = prod.sku or '' %}
 {% set prod_weight = prod.weight or 0 %}
-{% set prod_status = prod.status or 'DRAFT' %}
+{% set prod_status = mapping.status if mapping and mapping.status else 'DRAFT' %}
 {% set prod_images = prod.images or [] %}
-{% set prod_qid = prod.qid or product.qid or '' %}
+{% set prod_qid = prod.qid or (mapping.product_qid if mapping else '') %}
 
 <div class="container-fluid py-4">
     <div class="d-flex align-items-center mb-4">
@@ -33,6 +33,19 @@
         <div>
             <h3 class="fw-bold text-dark mb-0">تعديل المنتج</h3>
             <p class="text-muted mb-0">✏️ تحديث بيانات المنتج والأقسام المقسمة</p>
+        </div>
+    </div>
+
+    <!-- ✅ معلومات المنتج الأساسية (اسم ومعرف) تظهر دائماً حتى لو الملفات مفقودة -->
+    <div class="alert alert-info d-flex align-items-center gap-3 mb-4 shadow-sm rounded-4 border-0">
+        <div>
+            <i class="fas fa-box fa-2x text-primary"></i>
+        </div>
+        <div>
+            <h5 class="fw-bold mb-0 text-dark">{{ prod_title }}</h5>
+            <small class="text-muted"><i class="fas fa-fingerprint me-1"></i> المعرف: {{ prod_qid }}</small>
+            <br>
+            <small class="text-muted"><i class="fas fa-barcode me-1"></i> SKU: {{ prod_sku }}</small>
         </div>
     </div>
 
@@ -46,6 +59,23 @@
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-box me-2" style="color: var(--dark-purple, #2d0b36);"></i> المعلومات الأساسية</h5></div>
                     <div class="card-body p-4">
                         {% include 'suppliers/edit/_product_main_info.html' ignore missing %}
+                        <!-- ✅ عرض مباشر في حال كان الملف الفرعي مفقوداً -->
+                        {% if not include_file_rendered %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">السعر (ر.س)</label>
+                                <input type="number" step="0.01" name="price" class="form-control" value="{{ prod_price }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الكمية المتاحة</label>
+                                <input type="number" name="quantity" class="form-control" value="{{ prod_qty }}">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">الوزن (كجم)</label>
+                                <input type="number" step="0.01" name="weight" class="form-control" value="{{ prod_weight }}">
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -54,6 +84,12 @@
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-align-right me-2" style="color: var(--dark-purple, #2d0b36);"></i> وصف المنتج</h5></div>
                     <div class="card-body p-4">
                         {% include 'suppliers/edit/_description.html' ignore missing %}
+                        {% if not include_file_rendered %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">الوصف التفصيلي</label>
+                            <textarea name="description" class="form-control" rows="4">{{ prod_desc }}</textarea>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -62,17 +98,24 @@
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-image me-2" style="color: var(--dark-purple, #2d0b36);"></i> صور المنتج</h5></div>
                     <div class="card-body p-4">
                         {% include 'suppliers/edit/_images.html' ignore missing %}
+                        {% if not include_file_rendered %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">الصور الحالية</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if prod_images %}
+                                    {% for img in prod_images %}
+                                    <div class="border rounded p-1 bg-light" style="width:70px; height:70px;">
+                                        <img src="{{ img if img is string else img.fileUrl }}" class="w-100 h-100 object-fit-cover rounded">
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted small">لا توجد صور مرفوعة.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-
-                <!-- 4. المتغيرات -->
-                <div class="card mb-4">
-                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-random me-2" style="color: var(--dark-purple, #2d0b36);"></i> خيارات ومتغيرات المنتج</h5></div>
-                    <div class="card-body p-4">
-                        {% include 'suppliers/edit/_variants.html' ignore missing %}
-                    </div>
-                </div>
-
             </div>
 
             <div class="col-lg-4">
@@ -81,33 +124,37 @@
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-tasks me-2" style="color: var(--dark-purple, #2d0b36);"></i> حالة وحفظ المنتج</h5></div>
                     <div class="card-body p-4">
                         {% include 'suppliers/edit/_actions.html' ignore missing %}
+                        {% if not include_file_rendered %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">حالة المنتج</label>
+                            <select name="status" class="form-select">
+                                <option value="PUBLISHED" {% if prod_status == 'PUBLISHED' %}selected{% endif %}>منشور</option>
+                                <option value="DRAFT" {% if prod_status == 'DRAFT' %}selected{% endif %}>مسودة</option>
+                                <option value="OUT_OF_STOCK" {% if prod_status == 'OUT_OF_STOCK' %}selected{% endif %}>نفد من المخزون</option>
+                                <option value="INACTIVE" {% if prod_status == 'INACTIVE' %}selected{% endif %}>غير نشط</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-custom btn-lg w-100 fw-bold"><i class="fas fa-save me-2"></i> حفظ التغييرات</button>
+                        <a href="{{ url_for('suppliers_product_bp.list_supplier_products') }}" class="btn btn-outline-secondary w-100 mt-2">إلغاء والعودة</a>
+                        {% endif %}
                     </div>
                 </div>
 
-                <!-- 6. معلومات إضافية (الملف الثامن الجديد) -->
+                <!-- 6. معلومات إضافية -->
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-info-circle me-2" style="color: var(--dark-purple, #2d0b36);"></i> معلومات إضافية</h5></div>
                     <div class="card-body p-4">
                         {% include 'suppliers/partials/edit/basic_info.html' ignore missing %}
+                        {% if not include_file_rendered %}
+                        <div class="row">
+                            <div class="col-12">
+                                <label class="form-label fw-bold">المعرف الفريد (QID)</label>
+                                <input type="text" class="form-control bg-light" value="{{ prod_qid }}" readonly>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-
-                <!-- 7. التصنيفات -->
-                <div class="card mb-4">
-                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-tags me-2" style="color: var(--dark-purple, #2d0b36);"></i> التصنيفات</h5></div>
-                    <div class="card-body p-4">
-                        {% include 'suppliers/edit/_collections.html' ignore missing %}
-                    </div>
-                </div>
-
-                <!-- 8. السيو -->
-                <div class="card mb-4">
-                    <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-search me-2" style="color: var(--dark-purple, #2d0b36);"></i> محركات البحث (SEO)</h5></div>
-                    <div class="card-body p-4">
-                        {% include 'suppliers/edit/_meta_variants.html' ignore missing %}
-                    </div>
-                </div>
-
             </div>
         </div>
     </form>
