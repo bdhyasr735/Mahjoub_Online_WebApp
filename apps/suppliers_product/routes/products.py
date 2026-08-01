@@ -4,7 +4,7 @@
 import traceback
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import or_  # ✅ الاستيراد الصحيح لـ SQLAlchemy
+from sqlalchemy import or_
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
@@ -99,7 +99,6 @@ def manage_supplier_products_view():
             qid = normalize_qid(qid_raw)
             product = services.products.get_product_by_qid(qid)
             
-            # ✅ حذف الرابط الميت فوراً
             if not product:
                 db.session.delete(mapping)
                 db.session.commit()
@@ -163,7 +162,6 @@ def edit_supplier_product(product_qid):
         
         full_qid = normalize_qid(product_qid)
         
-        # ✅ البحث عن المابينغ بأي صيغة (قصير أو كامل)
         mapping = ProductSupplierMapping.query.filter(
             ProductSupplierMapping.supplier_id == supplier_id,
             or_(
@@ -176,7 +174,6 @@ def edit_supplier_product(product_qid):
             flash('⚠️ لا تملك الصلاحية لتعديل هذا المنتج.', 'danger')
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-        # ✅ استخدام الـ QID الكامل لجلب المنتج من قمرة
         product = services.products.get_product_by_qid(full_qid)
         if not product:
             flash('❌ هذا المنتج غير موجود أو تم حذفه.', 'danger')
@@ -185,17 +182,16 @@ def edit_supplier_product(product_qid):
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
         if request.method == 'POST':
-            # ✅ استقبال سعر التكلفة والكمية والوزن
             cost_price = request.form.get('price')
             quantity = request.form.get('quantity')
-            weight = request.form.get('weight')  # ✅ تمت إضافة الوزن هنا
+            weight = request.form.get('weight')
 
             if cost_price is not None and cost_price != '':
                 mapping.price = float(cost_price)
             if quantity is not None and quantity != '':
                 mapping.quantity = int(quantity)
             if weight is not None and weight != '':
-                mapping.weight = float(weight)  # ✅ حفظ الوزن
+                mapping.weight = float(weight)
 
             mapping.updated_at = datetime.utcnow()
             db.session.commit()
