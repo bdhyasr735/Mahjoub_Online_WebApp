@@ -204,3 +204,13 @@ def edit_supplier_product(product_qid):
         current_app.logger.error(f"خطأ في صفحة التعديل: {traceback.format_exc()}")
         flash('❌ حدث خطأ غير متوقع أثناء تحميل الصفحة', 'danger')
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+
+# ============================================================================================
+# 🆕 إضافة صفحة منتج جديد (احتياطية، لمنع 404 مستقبلاً)
+# ============================================================================================
+@suppliers_product_bp.route('/products/add', methods=['GET'], endpoint='add_supplier_product')
+@login_required
+def add_supplier_product():
+    flash('⚠️ صفحة إضافة منتج جديد قيد التطوير حالياً.', 'warning')
+    return redirect(url_for('suppliers_product_bp.list_supplier_products'))
