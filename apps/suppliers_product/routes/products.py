@@ -173,6 +173,10 @@ def manage_supplier_products_view():
 def edit_product_view(qid):
     """عرض صفحة تعديل المنتج مع جلب بياناته الأساسية"""
     try:
+        # تنظيف الـ qid تلقائياً من أي تكرار محتمل (مثل qid:qid)
+        while qid and qid.startswith('qid:'):
+            qid = qid.replace('qid:', '', 1)
+
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
         user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
         is_admin = (user_type == 'admin' or getattr(current_user, 'is_admin', False))
@@ -218,6 +222,10 @@ def edit_product_view(qid):
 def api_update_product(qid):
     """استقبال وعرض بيانات التعديل المُرسلة عبر FormData من الواجهة"""
     try:
+        # تنظيف الـ qid تلقائياً
+        while qid and qid.startswith('qid:'):
+            qid = qid.replace('qid:', '', 1)
+
         title = request.form.get('title')
         price = request.form.get('price')
         quantity = request.form.get('quantity')
