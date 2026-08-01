@@ -31,51 +31,58 @@ def sync_supplier_products():
         return jsonify({'success': False, 'message': '❌ لم يتم العثور على معرف المورد، يرجى إعادة تسجيل الدخول.'}), 400
     
     try:
-        print(f"🔄 [Sync] بدء المزامنة للمورد: {supplier_id}")
-        synced_count, created_count, updated_count = 0, 0, 0
-        max_pages = 20  # تقليل العدد لتسريع الاستجابة وتفادي Timeout
+        # قراءة الصفحة الحالية المرسلة من النافذة المنبثقة
+        req_data = request.get_json() or {}
+        page_num = int(req_data.get('page', 1))
 
-        for page_num in range(1, max_pages + 1):
-            try:
-                result = services.products.get_products_page(page_num)
-            except Exception as api_err:
-                print(q:=f"⚠️ [Sync API Warning] خطأ في جلب الصفحة {page_num}: {api_err}")
-                break
+        print(f"🔄 [Sync] جاري مزامنة الصفحة {page_num} للمورد: {supplier_id}")
 
-            if not result or not isinstance(result, dict):
-                break
+        result = services.products.get_products_page(page_num)
+        if not result or not isinstance(result, dict):
+            return jsonify({
+                'success': True,
+                'syncedCount': 0,
+                'has_next': False,
+                'total_pages': page_num
+            })
+
+        page_products = result.get('data', [])
+        pagination = result.get('pagination', {})
+        total_pages = pagination.get('totalPages', 1)
+        
+        synced_count = 0
+        created_count = 0
+        updated_count = 0
+
+        for product in page_products:
+            if not isinstance(product, dict):
+                continue
+            qid = product.get('qid')
+            if not qid:
+                continue
+
+            product_supplier = product.get('supplier_id') or product.get('vendor_id')
+            if not is_admin and product_supplier and str(product_supplier) != str(supplier_id):
+                continue 
+
+            with db.session.no_autoflush:
+                existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=str(qid)).first()
             
-            page_products = result.get('data', [])
-            if not page_products:
-                break
-
-            for product in page_products:
-                if not isinstance(product, dict):
-                    continue
-                qid = product.get('qid')
-                if not qid:
-                    continue
-
-                product_supplier = product.get('supplier_id') or product.get('vendor_id')
-                if not is_admin and product_supplier and str(product_supplier) != str(supplier_id):
-                    continue 
-
-                with db.session.no_autoflush:
-                    existing_mapping = ProductSupplierMapping.query.filter_by(product_qid=str(qid)).first()
-                
-                if existing_mapping and str(existing_mapping.supplier_id) != str(supplier_id) and not is_admin:
-                    continue
-                
-                synced_count += 1
-                if not existing_mapping:
-                    new_mapping = ProductSupplierMapping(product_qid=str(qid), supplier_id=supplier_id)
-                    db.session.add(new_mapping)
-                    created_count += 1
-                else:
-                    updated_count += 1
+            if existing_mapping and str(existing_mapping.supplier_id) != str(supplier_id) and not is_admin:
+                continue
+            
+            synced_count += 1
+            if not existing_mapping:
+                new_mapping = ProductSupplierMapping(product_qid=str(qid), supplier_id=supplier_id)
+                db.session.add(new_mapping)
+                created_count += 1
+            else:
+                updated_count += 1
 
         db.session.commit()
-        print(f"✅ [Sync Success] تمت المزامنة بنجاح. المنتجات المرتبطة: {synced_count}")
+
+        # تحديد هل توجد صفحة تالية للمتابعة في النافذة المنبثقة
+        has_next = page_num < total_pages
 
         return jsonify({
             'success': True,
@@ -83,7 +90,9 @@ def sync_supplier_products():
             'syncedCount': synced_count,
             'createdCount': created_count,
             'updatedCount': updated_count,
-            'has_next': False
+            'has_next': has_next,
+            'next_page': page_num + 1,
+            'total_pages': total_pages
         })
 
     except Exception as e:
@@ -92,5 +101,5 @@ def sync_supplier_products():
         print(f"❌ [Sync Critical Error]:\n{err_details}")
         return jsonify({
             'success': False, 
-            'message': f'❌ حدث خطأ داخلي في الخادم: {str(e)}'
+            'message': f'❌ خطأ في الخادم: {str(e)}'
         }), 500
