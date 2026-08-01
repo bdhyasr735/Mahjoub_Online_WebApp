@@ -11,35 +11,6 @@ from apps.extensions import db
 from datetime import datetime
 
 
-# =============================================
-# دالة مساعدة لاستخراج المعرف الخام من صيغة QID
-# =============================================
-def _extract_raw_id(qid):
-    """
-    تستخرج المعرف الخام (مثل 01KNSQ2Z4NH8VDJ8KVR0EXEDRC)
-    من صيغ مختلفة مثل:
-    - qid://qumra/Product/01KNSQ2Z4NH8VDJ8KVR0EXEDRC
-    - qid:01KNSQ2Z4NH8VDJ8KVR0EXEDRC
-    - 01KNSQ2Z4NH8VDJ8KVR0EXEDRC (ترجع كما هي)
-    """
-    if not qid:
-        return qid
-    
-    qid_str = str(qid)
-    
-    # إذا كانت الصيغة qid://.../... نأخذ الجزء الأخير
-    if 'qid://' in qid_str or 'qumra/' in qid_str:
-        parts = qid_str.split('/')
-        return parts[-1] if parts else qid_str
-    
-    # إذا كانت الصيغة qid:XXXX
-    if qid_str.startswith('qid:'):
-        return qid_str[4:]
-    
-    # افتراضياً نعيد نفس القيمة
-    return qid_str
-
-
 @suppliers_product_bp.route('/products/add', methods=['GET', 'POST'])
 @login_required
 def add_supplier_product():
@@ -94,8 +65,7 @@ def add_supplier_product():
             else:
                 flash('❌ فشل إضافة المنتج', 'danger')
                 
-            # ✅ التصحيح: تغيير المسار إلى list_supplier_products بدلاً من sync_supplier_products
-            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+            return redirect(url_for('suppliers_product_bp.save_sync_supplier_product'))
             
         except Exception as e:
             flash(f'❌ حدث خطأ: {str(e)}', 'danger')
@@ -111,7 +81,7 @@ def add_supplier_product():
 @login_required
 def edit_supplier_product(qid=None):
     """عرض صفحة تعديل المنتج للمورد المحلي"""
-    # التقاط الqid من الquery parameters إذا لم يكن موجوداً في المسار
+    # التقاط ال qid من ال query parameters إذا لم يكن موجوداً في المسار
     if not qid:
         qid = request.args.get('qid')
 
@@ -124,25 +94,34 @@ def edit_supplier_product(qid=None):
     
     if not qid:
         flash("معرف المنتج (qid) مفقود.", "danger")
-        # ✅ التصحيح: تغيير المسار إلى list_supplier_products
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+        return redirect(url_for('suppliers_product_bp.save_sync_supplier_product'))
     
-    # ✅ التصحيح الجوهري: استخراج المعرف الخام لاستخدامه مع GraphQL
-    raw_qid_for_api = _extract_raw_id(qid)
+    # تنظيف الـ qid مع دعم المعرفات المحلية البسيطة
+    while qid.startswith('qid:'):
+        qid = qid.replace('qid:', '', 1)
 
-    # 1. جلب المنتج عبر المعرف الخام (لتجنب خطأ 24 حرف)
-    product = services.products.get_product_by_qid(raw_qid_for_api)
-    
-    # إذا لم يجده، نحاول بالمعرف الأصلي (كحل احتياطي)
-    if not product:
+    # 1. جلب المنتج عبر المعرف مع معالجة وتفادي أخطاء تنسيق الـ GraphQL (إذا كان المعرف يتطلب صيغة معينة أو 24 حرفاً)
+    product = None
+    try:
         product = services.products.get_product_by_qid(qid)
+    except Exception as query_err:
+        print(f"⚠️ [Warning] خطأ أثناء استعلام جلب المنتج: {query_err}")
+
+    # إذا لم يجده مباشرة، نجرب البحث بدعم بادئة الـ qid القياسية إن أمكن أو العكس
+    if not product and not qid.startswith('qid://') and 'qumra/' in qid:
+        qid_full = 'qid://' + qid
+        try:
+            product = services.products.get_product_by_qid(qid_full)
+            if product:
+                qid = qid_full
+        except Exception:
+            pass
 
     if not product:
-        flash("❌ لم يتم العثور على المنتج", "danger")
-        # ✅ التصحيح: تغيير المسار إلى list_supplier_products
-        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+        flash("❌ لم يتم العثور على المنتج أو أن معرف المعالجة غير مدعوم بالـ API", "danger")
+        return redirect(url_for('suppliers_product_bp.save_sync_supplier_product'))
 
-    # 2. التحقق من جدول الربط للمورد المحلي (نستخدم المعرف الأصلي الكامل للتخزين)
+    # 2. التحقق من جدول الربط للمورد المحلي
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
 
     if user_type != 'admin':
@@ -242,10 +221,9 @@ def save_sync_supplier_product():
         if not qid:
             return jsonify({"status": "error", "message": "معرف المنتج (qid) مفقود."}), 400
 
-        # ✅ التصحيح: استخراج المعرف الخام لاستخدامه مع خدمات التحديث
-        raw_qid_for_api = _extract_raw_id(qid)
+        while qid.startswith('qid:'):
+            qid = qid.replace('qid:', '', 1)
 
-        # التعامل مع جدول الربط (نخزن المعرف الأصلي الكامل)
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         if user_type != 'admin':
             if not mapping:
@@ -281,16 +259,15 @@ def save_sync_supplier_product():
 
         collection_ids = request.form.getlist('collection_ids')
 
-        # ✅ التصحيح: استخدام raw_qid_for_api في جميع استدعاءات الخدمات
         try:
             if hasattr(services.products, 'update_product_info'):
-                services.products.update_product_info(raw_qid_for_api, {"title": title, "sku": sku})
+                services.products.update_product_info(qid, {"title": title, "sku": sku})
         except Exception as e:
             print(f"⚠️ [Warning] فشل تحديث معلومات المنتج: {e}")
 
         try:
             if hasattr(services.products, 'update_product_description'):
-                services.products.update_product_description(raw_qid_for_api, description)
+                services.products.update_product_description(qid, description)
         except Exception as e:
             print(f"⚠️ [Warning] فشل تحديث وصف المنتج: {e}")
 
@@ -299,20 +276,20 @@ def save_sync_supplier_product():
                 pricing_data = {"price": price}
                 if compare_price is not None:
                     pricing_data["compareAtPrice"] = compare_price
-                services.products.update_product_pricing(raw_qid_for_api, pricing_data)
+                services.products.update_product_pricing(qid, pricing_data)
         except Exception as e:
             print(f"⚠️ [Warning] فشل تحديث التسعير: {e}")
 
         if collection_ids:
             try:
                 if hasattr(services.products, 'update_product_collection'):
-                    services.products.update_product_collection(raw_qid_for_api, collection_ids)
+                    services.products.update_product_collection(qid, collection_ids)
             except Exception as e:
                 print(f"⚠️ [Warning] فشل تحديث مجموعات المنتج: {e}")
 
         try:
             if hasattr(services.products, 'update_product_status'):
-                services.products.update_product_status(raw_qid_for_api, status)
+                services.products.update_product_status(qid, status)
         except Exception as e:
             print(f"⚠️ [Warning] حدث خطأ أثناء تحديث الحالة: {e}")
 
@@ -340,15 +317,13 @@ def delete_supplier_product(qid):
         if user_type != 'supplier' and user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # ✅ التصحيح: استخراج المعرف الخام للأرشفة عبر API
-        raw_qid_for_api = _extract_raw_id(qid)
+        while qid.startswith('qid:'):
+            qid = qid.replace('qid:', '', 1)
 
-        # التعامل مع جدول الربط (نستخدم المعرف الأصلي)
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         
-        # ✅ التصحيح: استخدام raw_qid_for_api لتحديث الحالة
         try:
-            services.products.update_product_status(raw_qid_for_api, "ARCHIVED")
+            services.products.update_product_status(qid, "ARCHIVED")
         except Exception as ext_err:
             print(f"⚠️ [Warning] فشل الأرشفة الخارجية للمنتج {qid}: {ext_err}")
 
