@@ -77,10 +77,12 @@ def manage_supplier_products_view():
             )
 
         # ====================================================
-        # ✅ 3. جلب منتجات المورد الخاصة به فقط وبدقة متناهية
+        # ✅ 3. جلب منتجات المورد بديناميكية تامة وحساب الترقيم بناءً على العدد الفعلي
         # ====================================================
         target_products = []
-        
+        total_items_real = len(supplier_qids_set)
+        total_pages = math.ceil(total_items_real / limit) if total_items_real > 0 else 1
+
         if is_admin and not supplier_id:
             result = services.products.get_products_page(page) or {}
             target_products = result.get('data', [])
@@ -88,22 +90,26 @@ def manage_supplier_products_view():
             total_items_real = pagination.get('totalItems', 0)
             total_pages = pagination.get('totalPages', 1)
         else:
-            all_matched_products = []
-            max_check_pages = 50  # نطاق أوسع لضمان فحص جميع الصفحات وجلب منتجات المورد فقط
-            
-            for p_num in range(1, max_check_pages + 1):
-                res = services.products.get_products_page(p_num)
-                if not res or not res.get('data'):
-                    break
-                page_items = res.get('data', [])
+            if total_items_real > 0:
+                all_matched_products = []
+                max_check_pages = 50  # نطاق آمن لتغطية جميع صفحات النظام الخارجية
                 
-                for p in page_items:
-                    p_qid = str(p.get('qid', '')).strip()
-                    # مطابقة صارمة: المنتج يجب أن يكون موجوداً في قائمة ربط هذا المورد حصراً
-                    if p_qid and p_qid in supplier_qids_set:
-                        all_matched_products.append(p)
+                for p_num in range(1, max_check_pages + 1):
+                    res = services.products.get_products_page(p_num)
+                    if not res or not res.get('data'):
+                        break
+                    page_items = res.get('data', [])
+                    
+                    for p in page_items:
+                        p_qid = str(p.get('qid', '')).strip()
+                        if p_qid and p_qid in supplier_qids_set:
+                            all_matched_products.append(p)
+                    
+                    # التوقف المبكر عند اكتمال جلب كافة منتجات المورد المسجلة لتسريع الأداء
+                    if len(all_matched_products) >= total_items_real:
+                        break
 
-            target_products = all_matched_products
+                target_products = all_matched_products
 
         # ====================================================
         # ✅ 4. تطبيق فلاتر البحث الإضافية
@@ -131,7 +137,7 @@ def manage_supplier_products_view():
             filtered_products.append(p)
 
         # ====================================================
-        # ✅ 5. الترقيم المحلي لمنتجات المورد فقط
+        # ✅ 5. الترقيم المحلي الديناميكي لمنتجات المورد
         # ====================================================
         if supplier_id or not is_admin:
             total_items_real = len(filtered_products)
