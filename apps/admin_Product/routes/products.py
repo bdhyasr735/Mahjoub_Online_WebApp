@@ -53,7 +53,9 @@ def manage_products_view():
         print(f"🔍 [DEBUG] Products in this page: {len(products)}")
         
         for product in products:
-            mapping = ProductSupplierMapping.query.filter_by(product_qid=product.get('qid')).first()
+            # ربط دقيق بـ qid أو id لتفادي أي تضارب
+            p_qid = str(product.get('qid') or product.get('id', '')).strip()
+            mapping = ProductSupplierMapping.query.filter_by(product_qid=p_qid).first()
             if mapping:
                 supplier = Supplier.query.get(mapping.supplier_id)
                 product['supplier_name'] = supplier.trade_name if supplier else 'غير معروف'
