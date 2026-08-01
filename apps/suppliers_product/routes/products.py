@@ -185,14 +185,17 @@ def edit_supplier_product(product_qid):
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
         if request.method == 'POST':
-            # ✅ استقبال سعر التكلفة والكمية فقط
+            # ✅ استقبال سعر التكلفة والكمية والوزن
             cost_price = request.form.get('price')
             quantity = request.form.get('quantity')
+            weight = request.form.get('weight')  # ✅ تمت إضافة الوزن هنا
 
             if cost_price is not None and cost_price != '':
                 mapping.price = float(cost_price)
             if quantity is not None and quantity != '':
                 mapping.quantity = int(quantity)
+            if weight is not None and weight != '':
+                mapping.weight = float(weight)  # ✅ حفظ الوزن
 
             mapping.updated_at = datetime.utcnow()
             db.session.commit()
