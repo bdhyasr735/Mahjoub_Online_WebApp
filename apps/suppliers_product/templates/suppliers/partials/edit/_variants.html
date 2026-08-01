@@ -1,68 +1,8 @@
-<!-- apps/suppliers_product/templates/suppliers/partials/edit/_variants.html -->
-
 <div class="mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <label class="form-label fw-bold mb-0">
-            <i class="fas fa-random text-muted me-1"></i> خيارات ومتغيرات المنتج (Variants)
-        </label>
-        <button type="button" class="btn btn-outline-custom btn-sm" id="addVariantOptionBtn" style="border-color: var(--dark-purple, #2d0b36); color: var(--dark-purple, #2d0b36);">
-            <i class="fas fa-plus me-1"></i> إضافة خاصية جديدة
-        </button>
+    <p class="text-muted small">🔹 هذا القسم مخصص لإضافة خيارات المنتج (مثل: اللون، المقاس).</p>
+    <div class="d-flex align-items-center gap-2 border rounded-3 p-3 bg-light">
+        <i class="fas fa-cubes text-muted"></i>
+        <span class="text-muted">المنتج الحالي لا يحتوي على خيارات متغيرة (Variants).</span>
     </div>
-
-    <p class="text-muted small">أضف خصائص مثل المقاس أو اللون لتسهيل اختيار العملاء للمنتج.</p>
-
-    <!-- ✅ حاوية المتغيرات الديناميكية -->
-    <div id="variantsContainer" class="vstack gap-3">
-        <!-- يتم توليد خيارات المتغيرات هنا برمجياً أو عرضها إن وجدت -->
-        {% if prod_variants and prod_variants|length > 0 %}
-            {% for variant in prod_variants %}
-            <div class="card p-3 border shadow-sm variant-item">
-                <div class="row align-items-center">
-                    <div class="col-md-4 mb-2 mb-md-0">
-                        <input type="text" name="variant_name[]" class="form-control form-control-sm" placeholder="اسم الخيار (مثال: اللون)" value="{{ variant.name }}">
-                    </div>
-                    <div class="col-md-6 mb-2 mb-md-0">
-                        <input type="text" name="variant_values[]" class="form-control form-control-sm" placeholder="القِيَم مَفصولة بفاصلة (مثال: أحمر, أزرق)" value="{{ variant.values }}">
-                    </div>
-                    <div class="col-md-2 text-end">
-                        <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.closest('.variant-item').remove()">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% endif %}
-    </div>
+    <!-- إذا أردت دعم المتغيرات يمكنك استخدام جافاسكربت لإضافة حقول هنا -->
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const addBtn = document.getElementById('addVariantOptionBtn');
-        const container = document.getElementById('variantsContainer');
-
-        if (addBtn && container) {
-            addBtn.addEventListener('click', function() {
-                const variantCard = document.createElement('div');
-                variantCard.className = 'card p-3 border shadow-sm variant-item';
-                variantCard.innerHTML = `
-                    <div class="row align-items-center">
-                        <div class="col-md-4 mb-2 mb-md-0">
-                            <input type="text" name="variant_name[]" class="form-control form-control-sm" placeholder="اسم الخيار (مثال: المقاس)">
-                        </div>
-                        <div class="col-md-6 mb-2 mb-md-0">
-                            <input type="text" name="variant_values[]" class="form-control form-control-sm" placeholder="القِيَم (مثال: S, M, L)">
-                        </div>
-                        <div class="col-md-2 text-end">
-                            <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.closest('.variant-item').remove()">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(variantCard);
-            });
-        }
-    });
-</script>
