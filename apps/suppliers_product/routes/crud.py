@@ -65,7 +65,7 @@ def add_supplier_product():
             else:
                 flash('❌ فشل إضافة المنتج', 'danger')
                 
-            return redirect(url_for('suppliers_product_bp.manage_supplier_products'))
+            return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
             
         except Exception as e:
             flash(f'❌ حدث خطأ: {str(e)}', 'danger')
@@ -90,18 +90,18 @@ def edit_supplier_product():
     qid = request.args.get('qid')
     if not qid:
         flash("معرف المنتج (qid) مفقود.", "danger")
-        return redirect(url_for('suppliers_product_bp.manage_supplier_products'))
+        return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
     
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
     if user_type != 'admin':
         if not mapping or str(mapping.supplier_id) != str(supplier_id):
             flash("❌ غير مصرح لك بتعديل هذا المنتج", "danger")
-            return redirect(url_for('suppliers_product_bp.manage_supplier_products'))
+            return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
 
     product = services.products.get_product_by_qid(qid)
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
-        return redirect(url_for('suppliers_product_bp.manage_supplier_products'))
+        return redirect(url_for('suppliers_product_bp.sync_supplier_products'))
 
     raw_options = []
     if isinstance(product, dict):
@@ -155,7 +155,7 @@ def edit_supplier_product():
         all_collections = []
 
     return render_template(
-        'suppliers/supplier_edit_product.html',
+        'suppliers/edit_product.html',
         product=product,
         suppliers=suppliers,
         assigned_supplier_id=assigned_supplier_id,
