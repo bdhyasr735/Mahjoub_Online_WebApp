@@ -1,18 +1,18 @@
 <div class="row g-3">
     <div class="col-md-6">
         <label class="form-label"><i class="fas fa-barcode me-1"></i> SKU</label>
-        <input type="text" class="form-control" value="{{ prod_sku or '' }}" readonly>
+        <input type="text" class="form-control" value="{{ product.sku or '' }}" readonly>
     </div>
     <div class="col-md-6">
         <label class="form-label"><i class="fas fa-cubes me-1"></i> الكمية</label>
-        <input type="text" name="quantity" class="form-control" value="{{ prod_qty or 0 }}">
+        <input type="text" name="quantity" class="form-control" value="{{ mapping.quantity if mapping else 0 }}">
     </div>
     <div class="col-md-6">
         <label class="form-label"><i class="fas fa-tag me-1"></i> سعر التكلفة (ر.س)</label>
-        <input type="text" name="price" class="form-control" value="{{ prod_cost_price or 0.0 }}">
+        <input type="text" name="price" class="form-control" value="{{ mapping.price if mapping else 0.0 }}">
     </div>
     <div class="col-md-6">
         <label class="form-label"><i class="fas fa-weight me-1"></i> الوزن (كجم)</label>
-        <input type="text" name="weight" class="form-control" value="{{ prod_weight or 0.0 }}">
+        <input type="text" name="weight" class="form-control" value="{{ mapping.weight if mapping else 0.0 }}">
     </div>
 </div>
