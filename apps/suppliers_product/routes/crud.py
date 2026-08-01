@@ -27,16 +27,13 @@ def _extract_raw_id(qid):
     
     qid_str = str(qid)
     
-    # إذا كانت الصيغة qid://.../... نأخذ الجزء الأخير
     if 'qid://' in qid_str or 'qumra/' in qid_str:
         parts = qid_str.split('/')
         return parts[-1] if parts else qid_str
     
-    # إذا كانت الصيغة qid:XXXX
     if qid_str.startswith('qid:'):
         return qid_str[4:]
     
-    # افتراضياً نعيد نفس القيمة
     return qid_str
 
 
@@ -94,7 +91,6 @@ def add_supplier_product():
             else:
                 flash('❌ فشل إضافة المنتج', 'danger')
                 
-            # ✅ التصحيح: تغيير المسار إلى list_supplier_products بدلاً من sync_supplier_products
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
             
         except Exception as e:
@@ -111,7 +107,6 @@ def add_supplier_product():
 @login_required
 def edit_supplier_product(qid=None):
     """عرض صفحة تعديل المنتج للمورد المحلي"""
-    # التقاط الqid من الquery parameters إذا لم يكن موجوداً في المسار
     if not qid:
         qid = request.args.get('qid')
 
@@ -124,41 +119,33 @@ def edit_supplier_product(qid=None):
     
     if not qid:
         flash("معرف المنتج (qid) مفقود.", "danger")
-        # ✅ التصحيح: تغيير المسار إلى list_supplier_products
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
     
-    # ✅ التصحيح الجوهري: استخراج المعرف الخام لاستخدامه مع GraphQL
     raw_qid_for_api = _extract_raw_id(qid)
 
-    # 1. جلب المنتج عبر المعرف الخام (لتجنب خطأ 24 حرف)
     product = services.products.get_product_by_qid(raw_qid_for_api)
-    
-    # إذا لم يجده، نحاول بالمعرف الأصلي (كحل احتياطي)
     if not product:
         product = services.products.get_product_by_qid(qid)
 
     if not product:
         flash("❌ لم يتم العثور على المنتج", "danger")
-        # ✅ التصحيح: تغيير المسار إلى list_supplier_products
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
-    # 2. التحقق من جدول الربط للمورد المحلي (نستخدم المعرف الأصلي الكامل للتخزين)
     mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
 
     if user_type != 'admin':
-        if not mapping:
-            if supplier_id:
-                try:
-                    mapping = ProductSupplierMapping(
-                        product_qid=qid,
-                        supplier_id=int(supplier_id),
-                        status='active'
-                    )
-                    db.session.add(mapping)
-                    db.session.commit()
-                except Exception as map_err:
-                    db.session.rollback()
-                    print(f"⚠️ [Warning] تعذر إنشاء ربط تلقائي: {map_err}")
+        if not mapping and supplier_id:
+            try:
+                mapping = ProductSupplierMapping(
+                    product_qid=qid,
+                    supplier_id=int(supplier_id),
+                    status='active'
+                )
+                db.session.add(mapping)
+                db.session.commit()
+            except Exception as map_err:
+                db.session.rollback()
+                print(f"⚠️ [Warning] تعذر إنشاء ربط تلقائي: {map_err}")
         
         if mapping and str(mapping.supplier_id) != str(supplier_id):
             try:
@@ -242,10 +229,8 @@ def save_sync_supplier_product():
         if not qid:
             return jsonify({"status": "error", "message": "معرف المنتج (qid) مفقود."}), 400
 
-        # ✅ التصحيح: استخراج المعرف الخام لاستخدامه مع خدمات التحديث
         raw_qid_for_api = _extract_raw_id(qid)
 
-        # التعامل مع جدول الربط (نخزن المعرف الأصلي الكامل)
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         if user_type != 'admin':
             if not mapping:
@@ -281,7 +266,6 @@ def save_sync_supplier_product():
 
         collection_ids = request.form.getlist('collection_ids')
 
-        # ✅ التصحيح: استخدام raw_qid_for_api في جميع استدعاءات الخدمات
         try:
             if hasattr(services.products, 'update_product_info'):
                 services.products.update_product_info(raw_qid_for_api, {"title": title, "sku": sku})
@@ -340,13 +324,10 @@ def delete_supplier_product(qid):
         if user_type != 'supplier' and user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
         
-        # ✅ التصحيح: استخراج المعرف الخام للأرشفة عبر API
         raw_qid_for_api = _extract_raw_id(qid)
 
-        # التعامل مع جدول الربط (نستخدم المعرف الأصلي)
         mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
         
-        # ✅ التصحيح: استخدام raw_qid_for_api لتحديث الحالة
         try:
             services.products.update_product_status(raw_qid_for_api, "ARCHIVED")
         except Exception as ext_err:
@@ -368,7 +349,7 @@ def delete_supplier_product(qid):
 
 
 # ============================================================
-# ✅ دالة جديدة للمزامنة الجماعية (للاستخدام مع _sync_modal.html)
+# ✅ دالة المزامنة الجماعية (المعدلة جذرياً)
 # ============================================================
 @suppliers_product_bp.route('/products/sync-batch', methods=['POST'])
 @login_required
@@ -377,23 +358,21 @@ def sync_batch_products():
     مزامنة جماعية للمنتجات من النظام الخارجي إلى جدول الربط الخاص بالمورد الحالي
     """
     try:
-        # جلب البيانات المرسلة عبر JSON من الواجهة
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'message': 'البيانات غير صالحة'}), 400
 
         page = data.get('page', 1)
-        limit = data.get('limit', 12)  # عدد المنتجات في كل صفحة
+        # limit نأخذه من البيانات إذا أرسل، لكننا لن نمرره للدالة
 
-        # جلب معلومات المورد الحالي من الجلسة
         user_type = session.get('user_type')
         supplier_id = session.get('user_id') or session.get('supplier_id')
 
         if user_type != 'supplier' and user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        # جلب المنتجات من الخدمة الخارجية (GraphQL)
-        result = services.products.get_products_page(page, limit)
+        # ✅ استدعاء الدالة بصفحة فقط (لا نمرر limit)
+        result = services.products.get_products_page(page)
         
         if not result or not result.get('data'):
             return jsonify({
@@ -405,13 +384,9 @@ def sync_batch_products():
         synced_count = 0
         updated_count = 0
 
-        # المعالجة للمورد أو الأدمن
         if user_type == 'admin':
-            # في حالة الأدمن، نضيف المنتجات بدون ربط بمورد محدد (أو نربط بشكل عام)
-            # هنا نكتفي بإرجاع أننا وجدنا المنتجات
             synced_count = len(products_list)
         else:
-            # بالنسبة للمورد: نربط المنتجات بجدول المورد
             if not supplier_id:
                 return jsonify({'success': False, 'message': 'معرف المورد غير موجود'}), 400
 
@@ -420,14 +395,12 @@ def sync_batch_products():
                 if not qid:
                     continue
                 
-                # التحقق من وجود الربط مسبقاً
                 mapping = ProductSupplierMapping.query.filter_by(
                     product_qid=qid,
                     supplier_id=int(supplier_id)
                 ).first()
                 
                 if not mapping:
-                    # إنشاء ربط جديد
                     new_mapping = ProductSupplierMapping(
                         product_qid=qid,
                         supplier_id=int(supplier_id),
@@ -437,20 +410,19 @@ def sync_batch_products():
                     db.session.add(new_mapping)
                     synced_count += 1
                 else:
-                    # تحديث وقت المزامنة (اختياري)
                     mapping.updated_at = datetime.utcnow()
                     updated_count += 1
             
             db.session.commit()
 
-        # استخراج معلومات التصفح (pagination) من الرد
+        # استخراج معلومات التصفح من الرد (بدون الاعتماد على limit)
         pagination = result.get('pagination', {})
         total_pages = pagination.get('totalPages', 1)
         has_next = pagination.get('hasNextPage', False)
 
         return jsonify({
             'success': True,
-            'message': f'تمت المزامنة بنجاح',
+            'message': 'تمت المزامنة بنجاح',
             'syncedCount': synced_count,
             'updatedCount': updated_count,
             'total_pages': total_pages,
