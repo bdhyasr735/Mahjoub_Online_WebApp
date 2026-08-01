@@ -49,7 +49,7 @@
     }
 </style>
 
-{# ✅ استخراج بيانات المنتج الأساسية من GraphQL أو الكائن المرسل #}
+{# ✅ استخراج بيانات المنتج الأساسية #}
 {% set prod = product.product if product and product.product else product %}
 {% set prod_title = prod.name or prod.title or '' %}
 {% set prod_desc = prod.description or '' %}
@@ -70,7 +70,7 @@
         </div>
         <div>
             <h3 class="fw-bold text-dark mb-0">تعديل المنتج</h3>
-            <p class="text-muted mb-0">✏️ تحديث بيانات المنتج وإدارة الأقسام المقسمة</p>
+            <p class="text-muted mb-0">✏️ تحديث بيانات المنتج والأقسام المقسمة</p>
         </div>
     </div>
 
@@ -118,7 +118,7 @@
                     </div>
                 </div>
 
-                <!-- 4. المتغيرات (Variants) -->
+                <!-- 4. المتغيرات -->
                 <div class="card mb-4">
                     <div class="card-header p-4">
                         <h5 class="fw-bold mb-0">
@@ -135,7 +135,7 @@
 
             <div class="col-lg-4">
                 
-                <!-- 5. الإجراءات والحالة -->
+                <!-- 5. الإجراءات -->
                 <div class="card mb-4">
                     <div class="card-header p-4">
                         <h5 class="fw-bold mb-0">
@@ -161,7 +161,7 @@
                     </div>
                 </div>
 
-                <!-- 7. بيانات السيو والمتغيرات الوصفية -->
+                <!-- 7. السيو -->
                 <div class="card mb-4">
                     <div class="card-header p-4">
                         <h5 class="fw-bold mb-0">
@@ -179,53 +179,5 @@
 
     </form>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const editForm = document.getElementById('editProductForm');
-    
-    if (editForm) {
-        editForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (!this.checkValidity()) {
-                this.classList.add('was-validated');
-                if (typeof showToast === 'function') {
-                    showToast('❌ يرجى تعبئة الحقول المطلوبة', 'warning');
-                }
-                return;
-            }
-
-            const formData = new FormData(this);
-            const qid = '{{ prod_qid }}';
-
-            fetch('{{ url_for("edit_product_bp.api_update_product", qid=prod_qid) }}', {
-                method: 'PUT',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    if (typeof showToast === 'function') {
-                        showToast('✅ ' + (data.message || 'تم التحديث بنجاح'), 'success');
-                    }
-                    setTimeout(() => window.location.reload(), 1500);
-                } else {
-                    if (typeof showToast === 'function') {
-                        showToast('❌ ' + (data.message || 'فشل التحديث'), 'danger');
-                    }
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                if (typeof showToast === 'function') {
-                    showToast('❌ خطأ في الاتصال بالخادم', 'danger');
-                }
-            });
-        });
-    }
-});
-</script>
 
 {% endblock %}
