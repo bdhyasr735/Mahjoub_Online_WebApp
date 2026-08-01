@@ -19,7 +19,7 @@
 {% set prod_cost_price = mapping.price if mapping and mapping.price is not none else 0 %}
 {% set prod_qty = mapping.quantity if mapping and mapping.quantity is not none else 0 %}
 {% set prod_sku = prod.sku or '' %}
-{% set prod_weight = prod.weight or 0 %}
+{% set prod_weight = mapping.weight if mapping and mapping.weight is not none else 0 %}
 {% set prod_images = prod.images or [] %}
 {% set prod_qid = prod.qid or (mapping.product_qid if mapping else '') %}
 {% set prod_tags = prod.tags or [] %}
@@ -60,7 +60,7 @@
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-box me-2" style="color: var(--dark-purple, #2d0b36);"></i> المعلومات الأساسية</h5></div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_product_main_info.html' ignore missing %}
+                        {% include 'suppliers/edit/_product_main_info.html' with context ignore missing %}
                     </div>
                 </div>
 
@@ -68,7 +68,7 @@
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-align-right me-2" style="color: var(--dark-purple, #2d0b36);"></i> وصف المنتج</h5></div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_description.html' ignore missing %}
+                        {% include 'suppliers/edit/_description.html' with context ignore missing %}
                     </div>
                 </div>
 
@@ -76,7 +76,7 @@
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-image me-2" style="color: var(--dark-purple, #2d0b36);"></i> صور المنتج</h5></div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_images.html' ignore missing %}
+                        {% include 'suppliers/edit/_images.html' with context ignore missing %}
                     </div>
                 </div>
 
@@ -84,7 +84,7 @@
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-random me-2" style="color: var(--dark-purple, #2d0b36);"></i> خيارات ومتغيرات المنتج</h5></div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_variants.html' ignore missing %}
+                        {% include 'suppliers/edit/_variants.html' with context ignore missing %}
                     </div>
                 </div>
             </div>
@@ -94,7 +94,7 @@
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-tasks me-2" style="color: var(--dark-purple, #2d0b36);"></i> الإجراءات</h5></div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_actions.html' ignore missing %}
+                        {% include 'suppliers/edit/_actions.html' with context ignore missing %}
                     </div>
                 </div>
 
@@ -102,7 +102,7 @@
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-tags me-2" style="color: var(--dark-purple, #2d0b36);"></i> التصنيفات</h5></div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_collections.html' ignore missing %}
+                        {% include 'suppliers/edit/_collections.html' with context ignore missing %}
                     </div>
                 </div>
 
@@ -110,7 +110,7 @@
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-search me-2" style="color: var(--dark-purple, #2d0b36);"></i> تحسين محركات البحث (SEO)</h5></div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_seo.html' ignore missing %}
+                        {% include 'suppliers/edit/_seo.html' with context ignore missing %}
                     </div>
                 </div>
 
@@ -118,7 +118,7 @@
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-tag me-2" style="color: var(--dark-purple, #2d0b36);"></i> العلامات (Tags)</h5></div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_tags.html' ignore missing %}
+                        {% include 'suppliers/edit/_tags.html' with context ignore missing %}
                     </div>
                 </div>
 
@@ -126,7 +126,7 @@
                 <div class="card mb-4">
                     <div class="card-header p-4"><h5 class="fw-bold mb-0"><i class="fas fa-info-circle me-2" style="color: var(--dark-purple, #2d0b36);"></i> معلومات إضافية</h5></div>
                     <div class="card-body p-4">
-                        {% include 'suppliers/edit/_basic_info.html' ignore missing %}
+                        {% include 'suppliers/edit/_basic_info.html' with context ignore missing %}
                     </div>
                 </div>
             </div>
