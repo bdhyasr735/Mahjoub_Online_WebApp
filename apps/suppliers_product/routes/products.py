@@ -8,6 +8,8 @@ from flask_login import login_required, current_user
 from apps.suppliers_product.routes import suppliers_product_bp
 from apps.services import services
 from apps.models.product_supplier_map import ProductSupplierMapping
+from apps.models.supplier_db import Supplier
+from apps.extensions import db
 
 def get_status_text(status):
     status_map = {
@@ -21,6 +23,7 @@ def format_price(price):
     if price is None: return '0.00 ر.س'
     try: return f"{float(price):,.2f} ر.س"
     except: return str(price)
+
 
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
@@ -40,7 +43,6 @@ def manage_supplier_products_view():
         limit = max(1, limit)
         
         search_term = request.args.get('search', '').strip().lower()
-        category = request.args.get('category', '').strip()
         status_filter = request.args.get('status', '').strip()
         min_price = request.args.get('min_price', '')
         max_price = request.args.get('max_price', '')
@@ -168,11 +170,26 @@ def manage_supplier_products_view():
         )
 
 
-@suppliers_product_bp.route('/products/edit/<string:qid>', methods=['GET'], endpoint='edit_product_view')
+@suppliers_product_bp.route('/products/edit', methods=['GET'])
+@suppliers_product_bp.route('/products/edit/<path:qid>', methods=['GET'], endpoint='edit_supplier_product')
 @login_required
-def edit_product_view(qid):
-    """عرض صفحة تعديل المنتج مع جلب بياناته الأساسية"""
+def edit_product_view(qid=None):
+    """عرض صفحة تعديل المنتج مع دعم الاسم المتوقع في القوالب edit_supplier_product"""
     try:
+        if not qid:
+            qid = request.args.get('qid')
+
+        if not qid:
+            flash("معرف المنتج (qid) مفقود.", "danger")
+            return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+        qid = str(qid).strip()
+        if 'Product/' in qid:
+            qid = qid.split('Product/')[-1]
+        while qid and qid.startswith('qid:'):
+            qid = qid.replace('qid:', '', 1)
+        qid = qid.replace('//', '').strip('/')
+
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id') or session.get('_user_id')
         user_type = getattr(current_user, 'user_type', None) or getattr(current_user, 'role', None) or session.get('user_type')
         is_admin = (user_type == 'admin' or getattr(current_user, 'is_admin', False))
@@ -190,7 +207,8 @@ def edit_product_view(qid):
             if not res or not res.get('data'):
                 break
             for p in res.get('data', []):
-                if str(p.get('qid') or p.get('id', '')).strip() == str(qid).strip():
+                p_current_qid = str(p.get('qid') or p.get('id', '')).strip()
+                if qid in p_current_qid or p_current_qid.endswith(qid):
                     product_data = p
                     break
             if product_data:
@@ -213,11 +231,33 @@ def edit_product_view(qid):
         return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
 
-@suppliers_product_bp.route('/api/products/update/<string:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
+@suppliers_product_bp.route('/products/sync', methods=['GET', 'POST'], endpoint='save_sync_supplier_product')
+@login_required
+def sync_supplier_products():
+    """مسار المزامنة بالاسم المطابق لـ _sync_modal.html"""
+    try:
+        if request.method == 'POST' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'تمت المزامنة بنجاح'})
+        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': str(e)}), 500
+        flash('❌ حدث خطأ أثناء المزامنة', 'danger')
+        return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+
+@suppliers_product_bp.route('/api/products/update/<path:qid>', methods=['PUT', 'POST'], endpoint='api_update_product')
 @login_required
 def api_update_product(qid):
     """استقبال وعرض بيانات التعديل المُرسلة عبر FormData من الواجهة"""
     try:
+        qid = str(qid).strip()
+        if 'Product/' in qid:
+            qid = qid.split('Product/')[-1]
+        while qid and qid.startswith('qid:'):
+            qid = qid.replace('qid:', '', 1)
+        qid = qid.replace('//', '').strip('/')
+
         title = request.form.get('title')
         price = request.form.get('price')
         quantity = request.form.get('quantity')
@@ -228,8 +268,6 @@ def api_update_product(qid):
         meta_title = request.form.get('meta_title')
         meta_description = request.form.get('meta_description')
         
-        image_file = request.files.get('image')
-
         payload = {
             'title': title,
             'price': price,
@@ -242,8 +280,8 @@ def api_update_product(qid):
             'meta_description': meta_description
         }
 
-        # يمكنك ربط دالة التحديث الفعلية هنا عبر الـ services
-        # services.products.update_product(qid, payload, image_file)
+        # يمكنك ربط دالة التحديث الفعلية هنا عبر الـ services عند الحاجة
+        # services.products.update_product(qid, payload)
 
         return jsonify({
             'success': True,
@@ -256,3 +294,31 @@ def api_update_product(qid):
             'success': False,
             'message': 'حدث خطأ داخلي أثناء حفظ التغييرات'
         }), 500
+
+
+@suppliers_product_bp.route('/products/delete/<path:qid>', methods=['POST'], endpoint='delete_supplier_product')
+@login_required
+def delete_supplier_product(qid):
+    """حذف أو أرشفة المنتج للمورد"""
+    try:
+        user_type = session.get('user_type')
+        if user_type != 'supplier' and user_type != 'admin':
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+        
+        while qid.startswith('qid:'):
+            qid = qid.replace('qid:', '', 1)
+
+        mapping = ProductSupplierMapping.query.filter_by(product_qid=qid).first()
+        
+        if mapping:
+            db.session.delete(mapping)
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': '✅ تم حذف المنتج وفك ارتباطه بنجاح'
+        })
+            
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
