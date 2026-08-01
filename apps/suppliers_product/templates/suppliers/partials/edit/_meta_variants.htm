@@ -1,43 +1,8 @@
-<!-- apps/suppliers_product/templates/suppliers/partials/edit/_meta_variants.htm -->
-
 <div class="mb-3">
-    <label class="form-label fw-bold" for="metaTitle">
-        <i class="fas id-card text-muted me-1"></i> عنوان صفحة البحث (SEO Title)
-    </label>
-    <input type="text" name="meta_title" id="metaTitle"
-           class="form-control"
-           value="{{ prod_title }}"
-           maxlength="60"
-           placeholder="عنوان يظهر في محركات البحث">
-    <small class="text-muted">يوصى بأن يكون بين 50 إلى 60 حرفاً.</small>
+    <label class="form-label fw-bold">عنوان صفحة المنتج (Meta Title)</label>
+    <input type="text" name="meta_title" class="form-control" value="{{ prod_title }}" placeholder="عنوان يظهر في جوجل">
 </div>
-
 <div class="mb-3">
-    <label class="form-label fw-bold" for="metaDescription">
-        <i class="fas fa-file-alt text-muted me-1"></i> وصف محركات البحث (SEO Description)
-    </label>
-    <textarea name="meta_description" id="metaDescription"
-              class="form-control" rows="3"
-              maxlength="160"
-              placeholder="وصف مختصر يظهر تحت العنوان في جوجل...">{{ prod_desc[:160] if prod_desc else '' }}</textarea>
-    <div class="d-flex justify-content-between align-items-center mt-1">
-        <small class="text-muted">يُفضل ألا يتجاوز 160 حرفاً.</small>
-        <small class="text-muted fw-bold">
-            <span id="metaDescCount">{{ (prod_desc[:160]|length) if prod_desc else 0 }}</span> / 160
-        </small>
-    </div>
+    <label class="form-label fw-bold">الوصف الميتا (Meta Description)</label>
+    <textarea name="meta_description" class="form-control" rows="2" placeholder="وصف مختصر للظهور في نتائج البحث">{{ prod_desc[:160] }}</textarea>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const metaDescInput = document.getElementById('metaDescription');
-        const metaDescCount = document.getElementById('metaDescCount');
-        
-        if (metaDescInput && metaDescCount) {
-            metaDescInput.addEventListener('input', function() {
-                metaDescCount.textContent = this.value.length;
-                metaDescCount.style.color = this.value.length > 150 ? '#dc3545' : '';
-            });
-        }
-    });
-</script>
