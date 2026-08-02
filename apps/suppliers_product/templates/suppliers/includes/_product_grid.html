@@ -62,20 +62,16 @@
 
                     <div class="d-flex justify-content-between align-items-center mt-auto pt-3 border-top">
                         <div>
-                            <small class="text-muted d-block" style="font-size: 0.75rem;">السعر</small>
+                            <small class="text-muted d-block" style="font-size: 0.75rem;">سعر التكلفة</small>
                             <span class="fw-bolder fs-6" style="color: #2d0b36;">
-                                {%- set p_price = product.price if product.price is defined and product.price is not none 
-                                    else (product.pricing.price if product.pricing and product.pricing.price is defined and product.pricing.price is not none 
-                                    else (product.sale_price if product.sale_price is defined and product.sale_price is not none 
-                                    else (product.regular_price if product.regular_price is defined and product.regular_price is not none 
-                                    else (product.cost if product.cost is defined and product.cost is not none else 0)))) -%}
-                                {{ format_price(p_price) if format_price is defined else p_price }}
+                                <!-- ✅ عرض سعر التكلفة الخاص بالمورد من mapping.price -->
+                                {{ format_price(mapping.price) if mapping and mapping.price is not none else '0.00 ر.س' }}
                             </span>
                         </div>
                         <div class="text-end">
                             <small class="text-muted d-block" style="font-size: 0.75rem;">الكمية</small>
                             <span class="badge bg-light text-dark border px-2 py-1 fw-bold">
-                                <i class="fas fa-boxes text-muted me-1"></i> {{ product.quantity or 0 }}
+                                <i class="fas fa-boxes text-muted me-1"></i> {{ mapping.quantity if mapping and mapping.quantity is not none else 0 }}
                             </span>
                         </div>
                     </div>
