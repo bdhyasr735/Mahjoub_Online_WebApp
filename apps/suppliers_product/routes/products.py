@@ -186,7 +186,7 @@ def edit_supplier_product(product_qid):
             title = request.form.get('title')
             slug = request.form.get('slug')
             description = request.form.get('description')
-            cost_price = request.form.get('price')
+            cost_price = request.form.get('cost_price')   # ✅ تم التعديل هنا: من price إلى cost_price
             quantity = request.form.get('quantity')
             weight = request.form.get('weight')
 
