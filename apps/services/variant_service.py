@@ -48,29 +48,34 @@ class VariantService:
 
     def get_by_product(self, product_id: str, pagination_input: Optional[Dict] = None) -> List[Dict[str, Any]]:
         """
-        جلب جميع المتغيرات الخاصة بالمنتج مع خياراتها، كمياتها، وأسعارها
+        جلب جميع المتغيرات الخاصة بالمنتج مع خياراتها، كمياتها، أسعارها، وصورها بدقة تامة
         """
         query = """
-        query FindAllVariantsByProductId($productId: String!, $getAllVariantsInput: GetAllVariantsInput) {
+        query FindAllVariantsByProductId($productId: ID!, $getAllVariantsInput: GetAllVariantsInput) {
             findAllVariantsByProductId(productId: $productId, getAllVariantsInput: $getAllVariantsInput) {
                 data {
                     qid
-                    sku
-                    barcode
+                    _id
                     quantity
-                    position
-                    isActive
-                    isAvailable
+                    images
                     pricing {
                         price
                         compareAtPrice
                         originalPrice
                     }
-                    options {
-                        name
-                        value
+                    identification {
+                        sku
+                        barcode
                     }
+                    options {
+                        option
+                        label
+                    }
+                    trackQuantity
+                    allowBackorder
                 }
+                success
+                message
             }
         }
         """
@@ -87,12 +92,15 @@ class VariantService:
         جلب متغير محدد بواسطة المعرف (id)
         """
         query = """
-        query FindVariantById($id: String!) {
+        query FindVariantById($id: ID!) {
             findVariantById(id: $id) {
                 data {
                     qid
-                    sku
                     quantity
+                    pricing {
+                        price
+                        compareAtPrice
+                    }
                 }
             }
         }
@@ -110,7 +118,7 @@ class VariantService:
         تحديث أسعار المتغير باستخدام كائن pricing الصحيح
         """
         query = """
-        mutation UpdateVariantPricing($variantId: String!, $pricing: UpdateVariantPricingInput!) {
+        mutation UpdateVariantPricing($variantId: ID!, $pricing: UpdateVariantPricingInput!) {
             updateVariantPricing(variantId: $variantId, pricing: $pricing) {
                 data {
                     qid
@@ -131,7 +139,7 @@ class VariantService:
         تحديث وسائط المتغير
         """
         query = """
-        mutation UpdateVariantMedia($variantId: String!, $media: [String!]!) {
+        mutation UpdateVariantMedia($variantId: ID!, $media: [String!]!) {
             updateVariantMedia(variantId: $variantId, media: $media) {
                 data {
                     qid
@@ -152,7 +160,7 @@ class VariantService:
         حذف متغير بواسطة المعرف id
         """
         query = """
-        mutation RemoveVariantById($id: String!) {
+        mutation RemoveVariantById($id: ID!) {
             removeVariantById(id: $id)
         }
         """
@@ -169,7 +177,7 @@ class VariantService:
         التحديث الجماعي للمتغيرات باستخدام المدخل الصحيح bulkUpdateVariantsInput
         """
         query = """
-        mutation BulkVariantUpdate($bulkUpdateVariantsInput: BulkUpdateVariantsInput!) {
+        mutation BulkVariantUpdate($bulkUpdateVariantsInput: BulkVariantUpdateVariantsInput!) {
             bulkVariantUpdate(bulkUpdateVariantsInput: $bulkUpdateVariantsInput) {
                 data {
                     qid
