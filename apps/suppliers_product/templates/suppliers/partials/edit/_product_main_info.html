@@ -23,21 +23,21 @@
             <label class="form-label fw-bold"><i class="fas fa-tag me-1" style="color: #2d0b36;"></i> سعر التكلفة (ر.س)</label>
             <div class="input-group">
                 <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">ر.س</span>
-                <!-- ✅ التصحيح النهائي: يعرض 0.0 إذا لم يكن هناك سعر تكلفة مخزن -->
-                <input type="text" name="cost_price" class="form-control" value="{{ mapping.price if mapping.price is not none else 0.0 }}">
+                <!-- ✅ استخدام قيمة افتراضية أكثر أماناً -->
+                <input type="text" name="cost_price" class="form-control" value="{{ mapping.price if mapping and mapping.price is not none else 0.0 }}">
             </div>
         </div>
     </div>
     <div class="col-md-6 col-12">
         <div class="form-group">
             <label class="form-label fw-bold"><i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية المتاحة</label>
-            <input type="text" name="quantity" class="form-control" value="{{ mapping.quantity if mapping.quantity is not none else 0 }}">
+            <input type="text" name="quantity" class="form-control" value="{{ mapping.quantity if mapping and mapping.quantity is not none else 0 }}">
         </div>
     </div>
     <div class="col-12">
         <div class="form-group">
             <label class="form-label fw-bold"><i class="fas fa-weight me-1" style="color: #2d0b36;"></i> الوزن (كجم)</label>
-            <input type="text" name="weight" class="form-control" value="{{ mapping.weight if mapping.weight is not none else 0.0 }}">
+            <input type="text" name="weight" class="form-control" value="{{ mapping.weight if mapping and mapping.weight is not none else 0.0 }}">
         </div>
     </div>
 </div>
