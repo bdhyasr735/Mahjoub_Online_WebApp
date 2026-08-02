@@ -146,10 +146,10 @@ class ProductService:
         self._search_cache = None
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
-    # ✅ الحل الذكي: محاولة جلب المتغيرات، فإن فشل نعود للاستعلام الأساسي
+    # ✅ الحل الذكي مع طباعة تفصيلية لمعرفة السبب
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع محاولة جلب المتغيرات"""
-        # الاستعلام الذي يجلب المتغيرات
+        # استعلام أكثر توافقاً مع هياكل قمرة الشائعة
         query_with_variants = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -174,11 +174,11 @@ class ProductService:
                     images {
                         fileUrl
                     }
-                    # --- محاولة جلب المتغيرات ---
+                    # --- صيغة أكثر توافقاً ---
                     variants {
                         qid
                         options {
-                            key
+                            name
                             value
                         }
                         pricing {
@@ -187,7 +187,7 @@ class ProductService:
                             originalPrice
                         }
                         quantity
-                        image {
+                        images {
                             url
                         }
                     }
@@ -207,19 +207,28 @@ class ProductService:
         }
         """
         try:
-            print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
+            print(f"🔍 [get_product_by_qid] محاولة جلب المتغيرات لـ QID: {qid}")
             variables = {"qid": qid}
             data = self.client.execute(query_with_variants, variables, operation_name="FindProductByQid")
+            
+            # طباعة الرد الخام لمعرفة الخطأ إذا فشل
+            if data and "errors" in data:
+                print(f"❌ [get_product_by_qid] خطأ GraphQL: {data['errors']}")
+            else:
+                print(f"✅ [get_product_by_qid] الرد الخام: {data}")
+
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
                 if result.get("success"):
                     product_data = result.get("data", {})
                     print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح مع المتغيرات: {product_data.get('title')}")
                     return product_data
-            print(f"⚠️ [get_product_by_qid] فشل جلب المتغيرات، ننتقل للاستعلام الأساسي...")
+                else:
+                    print(f"⚠️ [get_product_by_qid] فشل بسبب success=false: {result.get('message')}")
+            print(f"⚠️ [get_product_by_qid] لم يتم العثور على المنتج أو حدث خطأ، ننتقل للاستعلام الأساسي...")
             return self._get_product_basic(qid)
         except Exception as e:
-            print(f"❌ [get_product_by_qid] فشل جلب المنتج مع المتغيرات: {e}")
+            print(f"❌ [get_product_by_qid] استثناء أثناء جلب المتغيرات: {e}")
             return self._get_product_basic(qid)
 
     def _get_product_basic(self, qid: str) -> dict:
@@ -263,7 +272,7 @@ class ProductService:
         }
         """
         try:
-            print(f"🔍 [_get_product_basic] جلب المنتج الأساسي بـ QID: {qid}")
+            print(f"🔍 [_get_product_basic] جلب المنتج الأساسي لـ QID: {qid}")
             variables = {"qid": qid}
             data = self.client.execute(query_basic, variables, operation_name="FindProductByQid")
             if data and "findProductByQid" in data:
