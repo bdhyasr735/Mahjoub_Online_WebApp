@@ -173,6 +173,21 @@ class ProductService:
                     images {
                         fileUrl
                     }
+                    # --- ✅ تم إضافة المتغيرات هنا ---
+                    variants {
+                        qid
+                        options {
+                            key
+                            value
+                        }
+                        pricing {
+                            price
+                            compareAtPrice
+                            originalPrice
+                        }
+                        quantity
+                    }
+                    # --------------------------------
                     seo {
                         title
                         description
