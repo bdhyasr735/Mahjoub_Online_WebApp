@@ -146,7 +146,7 @@ class ProductService:
         self._search_cache = None
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
-    # ✅ الدالة الأصلية (تعود كما كانت - بدون استخراج المعرف)
+    # ✅ النسخة المعدلة: تمت إضافة طلب المتغيرات (variants) بشكل آمن
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID"""
         query = """
@@ -173,6 +173,24 @@ class ProductService:
                     images {
                         fileUrl
                     }
+                    # --- ✅ إضافة المتغيرات المطلوبة للمورد ---
+                    variants {
+                        qid
+                        options {
+                            key
+                            value
+                        }
+                        pricing {
+                            price
+                            compareAtPrice
+                            originalPrice
+                        }
+                        quantity
+                        image {
+                            url
+                        }
+                    }
+                    # ------------------------------------------
                     seo {
                         title
                         description
@@ -257,7 +275,7 @@ class ProductService:
                 return data["updateProductInfo"]
             return {}
         except Exception as e:
-            print(f"❌ [ProductService] خطأ في تحديث المنتج: {e}")
+            print(f"❌ [ProductService]: خطأ في تحديث المنتج: {e}")
             return {}
 
     def update_product_status(self, product_qid: str, status: str) -> dict:
@@ -276,7 +294,7 @@ class ProductService:
                 return data["updateProductStatus"]
             return {}
         except Exception as e:
-            print(f"❌ [ProductService] خطأ في تحديث الحالة: {e}")
+            print(f"❌ [ProductService]: خطأ في تحديث الحالة: {e}")
             return {}
 
     def update_product_pricing(self, product_qid: str, pricing_input: dict) -> dict:
@@ -295,5 +313,5 @@ class ProductService:
                 return data["updateProductPricing"]
             return {}
         except Exception as e:
-            print(f"❌ [ProductService] خطأ في تحديث السعر: {e}")
+            print(f"❌ [ProductService]: خطأ في تحديث السعر: {e}")
             return {}
