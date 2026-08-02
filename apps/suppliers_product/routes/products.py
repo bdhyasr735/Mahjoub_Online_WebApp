@@ -58,7 +58,6 @@ def normalize_qid(qid):
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
 def manage_supplier_products_view():
-    # ... (باقي الكود كما هو) ...
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         user_type = getattr(current_user, 'user_type', None) or session.get('user_type')
@@ -175,25 +174,13 @@ def edit_supplier_product(product_qid):
             flash('⚠️ لا تملك الصلاحية لتعديل هذا المنتج.', 'danger')
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
+        # ✅ جلب المنتج من قمرة (وسيحمل المتغيرات إذا كان الاستعلام صحيحاً)
         product = services.products.get_product_by_qid(full_qid)
         if not product:
             flash('❌ هذا المنتج غير موجود أو تم حذفه.', 'danger')
             db.session.delete(mapping)
             db.session.commit()
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
-
-        # ✅ الحل الجذري: جلب الخيارات والمتغيرات عبر variant_service
-        try:
-            options_data = services.variants.get_all_options_for_product(full_qid)
-            product['options'] = options_data if options_data is not None else []
-        except:
-            product['options'] = []
-            
-        try:
-            variants_data = services.variants.get_by_product(full_qid)
-            product['variants'] = variants_data if variants_data is not None else []
-        except:
-            product['variants'] = []
 
         if request.method == 'POST':
             title = request.form.get('title', '')
