@@ -174,12 +174,27 @@ def edit_supplier_product(product_qid):
             flash('⚠️ لا تملك الصلاحية لتعديل هذا المنتج.', 'danger')
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
+        # 1. جلب بيانات المنتج الأساسية من قمرة
         product = services.products.get_product_by_qid(full_qid)
         if not product:
             flash('❌ هذا المنتج غير موجود أو تم حذفه.', 'danger')
             db.session.delete(mapping)
             db.session.commit()
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
+
+        # 2. جلب الخيارات والمتغيرات بشكل منفصل (تماماً كما يفعل الأدمن)
+        try:
+            # جلب الخيارات
+            options_data = services.variants.get_all_options_for_product(full_qid)
+            if options_data:
+                product['options'] = options_data
+            # جلب المتغيرات (مع أسعارها وكمياتها وصورها)
+            variants_data = services.variants.get_by_product(full_qid)
+            if variants_data:
+                product['variants'] = variants_data
+        except Exception as e:
+            print(f"⚠️ [Supplier Edit] تعذر جلب المتغيرات عبر خدمة variants: {e}")
+            # إذا فشل، نتركها فارغة
 
         if request.method == 'POST':
             title = request.form.get('title', '')
@@ -202,7 +217,6 @@ def edit_supplier_product(product_qid):
                     )
             except Exception as e:
                 print(f"⚠️ فشل تحديث معلومات قمرة: {e}")
-                # نستمر رغم الخطأ لكي تُحفظ البيانات المحلية
 
             # ✅ تحديث بيانات المورد المحلية
             if cost_price is not None and cost_price != '':
