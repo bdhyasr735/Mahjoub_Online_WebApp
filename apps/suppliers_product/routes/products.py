@@ -182,10 +182,26 @@ def edit_supplier_product(product_qid):
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
         if request.method == 'POST':
+            # ✅ استقبال الحقول الجديدة
+            title = request.form.get('title')
+            slug = request.form.get('slug')
+            description = request.form.get('description')
             cost_price = request.form.get('price')
             quantity = request.form.get('quantity')
             weight = request.form.get('weight')
 
+            # 1. تحديث المعلومات العامة في قمرة (العنوان، الرابط، الوصف)
+            if title or slug or description:
+                services.products.update_product_info(
+                    full_qid,  # يجب استخدام الـ QID الكامل لتحديث قمرة
+                    {
+                        "title": title,
+                        "slug": slug,
+                        "description": description
+                    }
+                )
+
+            # 2. تحديث بيانات المورد المحلية (التكلفة، الكمية، الوزن)
             if cost_price is not None and cost_price != '':
                 mapping.price = float(cost_price)
             if quantity is not None and quantity != '':
