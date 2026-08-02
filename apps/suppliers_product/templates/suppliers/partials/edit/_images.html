@@ -1,17 +1,41 @@
-<!-- ================= صور المنتج (للمورد - للقراءة فقط) ================= -->
+<!-- ============================================================
+   🖼️ صور المنتج - قابلة للتعديل للمورد
+   ============================================================ -->
 <div class="form-section images-card">
-    <div class="form-section-title">
-        <i class="fas fa-images"></i>
-        صور المنتج
-        <span class="badge-count"><i class="fas fa-lock"></i> للقراءة فقط</span>
+    <div class="form-section-title d-flex align-items-center justify-content-between">
+        <div>
+            <i class="fas fa-images me-1" style="color: #2d0b36;"></i> 
+            <span>صور المنتج</span>
+        </div>
+        <span class="badge badge-purple-soft">
+            <i class="fas fa-pen me-1"></i> قابل للتعديل
+        </span>
     </div>
     
-    <!-- ✅ معرض الصور (عرض فقط) -->
+    <!-- ✅ منطقة رفع الصور (سحب وإفلات + اختيار) -->
+    <div class="upload-zone" id="imageUploadArea">
+        <div class="upload-zone-content">
+            <div class="upload-icon-wrapper"><i class="fas fa-cloud-upload-alt"></i></div>
+            <h4>اسحب الصور هنا</h4>
+            <p>أو انقر لاختيار الملفات</p>
+            <div class="upload-formats">
+                <span class="format-badge">JPG</span>
+                <span class="format-badge">PNG</span>
+                <span class="format-badge">WebP</span>
+            </div>
+            <div class="upload-size-limit"><i class="fas fa-info-circle"></i> الحد الأقصى: 5MB</div>
+        </div>
+        <input type="file" id="imageInput" accept="image/*" multiple>
+    </div>
+    
+    <!-- ✅ معرض الصور (مع أزرار حذف) -->
     <div class="image-gallery" id="imagePreviewGrid">
         {% if prod_images and prod_images|length > 0 %}
             {% for image in prod_images %}
             <div class="gallery-item">
                 <img src="{{ image.fileUrl if image.fileUrl else image }}" alt="صورة المنتج" loading="lazy">
+                <button class="gallery-item-remove" 
+                        onclick="if(confirm('حذف الصورة؟')){this.parentElement.remove();updateImagesCount();}">✕</button>
             </div>
             {% endfor %}
         {% else %}
@@ -22,51 +46,318 @@
         {% endif %}
     </div>
     
-    <!-- ✅ معلومات بسيطة -->
+    <!-- ✅ معلومات وعدادات -->
     <div class="gallery-footer">
         <div class="gallery-stats">
             <span><i class="fas fa-images"></i> <strong id="imagesCountDisplay">{{ prod_images|length if prod_images else 0 }}</strong> صورة</span>
         </div>
+        <button class="btn-clear-images" onclick="clearAllImages()">🗑️ حذف الكل</button>
     </div>
 </div>
 
 <style>
 .images-card {
-    border: 1px solid rgba(212, 175, 55, 0.15);
     background: linear-gradient(135deg, #faf8f6, #ffffff);
-    padding: 24px 28px !important;
-    border-radius: 16px;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
 }
-.images-card .badge-count {
-    font-size: 0.65rem; font-weight: 400; padding: 2px 10px;
-    border-radius: 12px; background: #f1f5f9; color: #64748b;
-    margin-left: 8px; display: inline-flex; align-items: center; gap: 4px;
+
+.form-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d0b36;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
 }
+
+.badge-purple-soft {
+    background: rgba(45, 11, 54, 0.1);
+    color: #2d0b36;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.upload-zone {
+    border: 2px dashed #e2e8f0;
+    border-radius: 12px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #faf8f6;
+    margin-bottom: 16px;
+}
+.upload-zone:hover {
+    border-color: #D4AF37;
+    background: #f5f0eb;
+}
+.upload-zone.dragover {
+    border-color: #D4AF37;
+    background: rgba(212,175,55,0.05);
+}
+
+.upload-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.upload-icon-wrapper {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.upload-icon-wrapper i {
+    font-size: 1.5rem;
+    color: #D4AF37;
+}
+.upload-formats {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+}
+.format-badge {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.6rem;
+    font-weight: 600;
+}
+.upload-size-limit {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
 .image-gallery {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 12px; min-height: 80px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    min-height: 80px;
 }
 .gallery-item {
-    position: relative; border-radius: 10px; overflow: hidden;
-    aspect-ratio: 1; background: #f8f9fa;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    aspect-ratio: 1;
+    background: #f8f9fa;
     border: 2px solid #e2e8f0;
+    transition: all 0.3s ease;
 }
-.gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-item:hover {
+    transform: scale(1.03);
+    border-color: #D4AF37;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.gallery-item-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    background: rgba(239,68,68,0.9);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+.gallery-item:hover .gallery-item-remove {
+    opacity: 1;
+}
+.gallery-item-remove:hover {
+    background: #ef4444;
+    transform: scale(1.1);
+}
 .gallery-empty {
-    grid-column: 1/-1; text-align: center; padding: 30px;
-    color: #94a3b8; background: #f8fafc; border-radius: 10px;
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 30px;
+    color: #94a3b8;
+    background: #f8fafc;
+    border-radius: 10px;
 }
-.gallery-empty i { font-size: 2rem; color: #2d0b36; }
+.gallery-empty i {
+    font-size: 2rem;
+    color: #2d0b36;
+}
+
 .gallery-footer {
-    display: flex; flex-wrap: wrap; justify-content: flex-start;
-    align-items: center; padding-top: 12px; margin-top: 12px;
-    border-top: 1px solid #e2e8f0; gap: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid #e2e8f0;
+    gap: 8px;
 }
-.gallery-stats { display: flex; gap: 8px; font-size: 0.8rem; color: #64748b; }
-.gallery-stats i { color: #2d0b36; margin-right: 4px; }
-.gallery-stats strong { color: #0f172a; }
+.gallery-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+.gallery-stats i {
+    color: #2d0b36;
+    margin-right: 4px;
+}
+.gallery-stats strong {
+    color: #0f172a;
+}
+.btn-clear-images {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+.btn-clear-images:hover {
+    background: rgba(239,68,68,0.06);
+    color: #dc2626;
+}
+
 @media (max-width: 768px) {
-    .images-card { padding: 16px 14px !important; }
+    .images-card { padding: 16px; }
     .image-gallery { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+    .upload-zone { padding: 24px 16px; }
+    .upload-icon-wrapper { width: 48px; height: 48px; }
+    .upload-icon-wrapper i { font-size: 1.2rem; }
+    .gallery-footer { flex-direction: column; align-items: flex-start; }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ تحديث عدد الصور وواجهة المستخدم
+    window.updateImagesCount = function() {
+        const items = document.querySelectorAll('.gallery-item');
+        const count = items.length;
+        const countDisplay = document.getElementById('imagesCountDisplay');
+        const clearBtn = document.querySelector('.btn-clear-images');
+        const emptyState = document.querySelector('.gallery-empty');
+
+        if (countDisplay) countDisplay.textContent = count;
+        if (clearBtn) clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+        if (emptyState) emptyState.style.display = count > 0 ? 'none' : 'flex';
+    };
+
+    // ✅ حذف جميع الصور
+    window.clearAllImages = function() {
+        if (!confirm('⚠️ حذف جميع الصور؟')) return;
+        document.querySelectorAll('.gallery-item').forEach(item => item.remove());
+        updateImagesCount();
+        showNotification('🗑️ تم حذف جميع الصور', 'info');
+    };
+
+    // ✅ إضافة صورة إلى المعرض
+    window.addImageToGallery = function(url) {
+        const grid = document.getElementById('imagePreviewGrid');
+        if (!grid) return;
+        const emptyState = grid.querySelector('.gallery-empty');
+        if (emptyState) emptyState.remove();
+
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        item.innerHTML = `
+            <img src="${url}" alt="صورة" loading="lazy">
+            <button class="gallery-item-remove" onclick="if(confirm('حذف الصورة؟')){this.parentElement.remove();updateImagesCount();}">✕</button>
+        `;
+        grid.appendChild(item);
+        updateImagesCount();
+    };
+
+    // ✅ تهيئة العداد عند التحميل
+    updateImagesCount();
+});
+
+// ✅ رفع الصور (معاينة Base64)
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadZone = document.getElementById('imageUploadArea');
+    const fileInput = document.getElementById('imageInput');
+    if (!uploadZone || !fileInput) return;
+    
+    fileInput.addEventListener('change', function() {
+        const files = this.files;
+        for (let i = 0; i < files.length; i++) {
+            const reader = new FileReader();
+            reader.onload = function(e) { addImageToGallery(e.target.result); };
+            reader.readAsDataURL(files[i]);
+        }
+        this.value = '';
+        showNotification('📸 تم رفع الصور بنجاح (ستُحفظ عند حفظ المنتج)', 'success');
+    });
+    
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault(); this.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', function(e) {
+        e.preventDefault(); this.classList.remove('dragover');
+    });
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault(); this.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        }
+    });
+});
+
+// ✅ دالة عرض الإشعارات (موحدة)
+window.showNotification = function(message, type = 'success') {
+    const colors = { success: '#22c55e', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; bottom: 24px; right: 24px;
+        background: white; padding: 14px 20px; border-radius: 12px;
+        box-shadow: 0 12px 48px rgba(0,0,0,0.15);
+        border-right: 4px solid ${colors[type] || '#3b82f6'};
+        z-index: 99999; font-weight: 600; font-size: 0.9rem;
+        max-width: 400px; animation: slideIn 0.4s cubic-bezier(0.4,0,0.2,1);
+        display: flex; align-items: center; gap: 10px; backdrop-filter: blur(8px);
+    `;
+    toast.innerHTML = `${icons[type] || 'ℹ️'} ${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.4s cubic-bezier(0.4,0,0.2,1)';
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+};
+
+// ✅ أنماط الإشعارات
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100px); opacity: 0; } }
+    `;
+    document.head.appendChild(style);
+})();
+</script>
