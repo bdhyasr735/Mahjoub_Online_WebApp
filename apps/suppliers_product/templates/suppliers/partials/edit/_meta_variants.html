@@ -1,54 +1,96 @@
-<div class="row g-3">
-    <!-- 1. عنوان المنتج و SKU -->
-    <div class="col-md-6 col-12">
-        <div class="form-group">
-            <label class="form-label fw-bold"><i class="fas fa-heading me-1" style="color: #2d0b36;"></i> عنوان المنتج</label>
-            <input type="text" name="title" class="form-control" value="{{ product.title or product.name or '' }}" placeholder="أدخل عنوان المنتج">
+<!-- ============================================================
+   📄 معلومات SEO والميتا - للمورد (عرض فقط)
+   ============================================================ -->
+<div class="form-section meta-card shadow-sm">
+    <div class="form-section-title d-flex align-items-center justify-content-between">
+        <div>
+            <i class="fas fa-code me-2" style="color: #2d0b36;"></i> 
+            <span>معلومات SEO</span>
         </div>
+        <span class="badge badge-purple-soft">
+            <i class="fas fa-lock me-1"></i> للقراءة فقط
+        </span>
     </div>
-    <div class="col-md-6 col-12">
-        <div class="form-group">
-            <label class="form-label fw-bold"><i class="fas fa-barcode me-1" style="color: #2d0b36;"></i> SKU <span class="text-muted fw-normal small">(للقراءة فقط)</span></label>
-            <input type="text" class="form-control" value="{{ product.sku or '' }}" readonly style="background-color: #f8f9fa;">
+    
+    <div class="row g-3">
+        <!-- Meta Title -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-heading me-1" style="color: #2d0b36;"></i> عنوان SEO (Meta Title)
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       value="{{ product.seo.title if product.seo and product.seo.title else '' }}" 
+                       readonly
+                       style="background-color: #f8f9fa; cursor: default;">
+                <small class="text-muted mt-1 d-block">
+                    <i class="fas fa-lock me-1" style="color: #2d0b36;"></i> يُدار بواسطة الإدارة
+                </small>
+            </div>
         </div>
-    </div>
-
-    <!-- 2. الرابط (Slug) -->
-    <div class="col-12">
-        <div class="form-group">
-            <label class="form-label fw-bold"><i class="fas fa-link me-1" style="color: #2d0b36;"></i> الرابط (Slug)</label>
-            <input type="text" name="slug" class="form-control" value="{{ product.slug or '' }}" placeholder="product-url-slug" dir="ltr">
-            <small class="text-muted d-block">يُستخدم في الرابط الإلكتروني للمنتج.</small>
+        
+        <!-- Meta Description -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-align-left me-1" style="color: #2d0b36;"></i> وصف SEO (Meta Description)
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       value="{{ product.seo.description if product.seo and product.seo.description else '' }}" 
+                       readonly
+                       style="background-color: #f8f9fa; cursor: default;">
+            </div>
         </div>
-    </div>
-
-    <!-- 3. سعر التكلفة (قابل للتعديل ويرسل إلى الباك إند) -->
-    <div class="col-md-6 col-12">
-        <div class="form-group">
-            <label class="form-label fw-bold"><i class="fas fa-tag me-1" style="color: #2d0b36;"></i> سعر التكلفة (ر.س)</label>
-            <div class="input-group">
-                <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">ر.س</span>
-                <!-- ✅ تم تسمية الحقل cost_price وسيتم إرساله -->
-                <input type="text" name="cost_price" class="form-control" value="{{ mapping.price if mapping.price is not none else (product.pricing.originalPrice if product.pricing else 0) }}">
+        
+        <!-- Meta Keywords -->
+        <div class="col-12">
+            <div class="form-group">
+                <label class="form-label fw-bold" style="color: #2d0b36;">
+                    <i class="fas fa-tags me-1" style="color: #2d0b36;"></i> الكلمات المفتاحية (Keywords)
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" 
+                       readonly
+                       style="background-color: #f8f9fa; cursor: default;">
+                <small class="text-muted mt-1 d-block">
+                    <i class="fas fa-lock me-1" style="color: #2d0b36;"></i> تُدار بواسطة الإدارة
+                </small>
             </div>
         </div>
     </div>
-
-    <!-- 4. الكمية المتاحة (قابلة للتعديل وترسل إلى الباك إند) -->
-    <div class="col-md-6 col-12">
-        <div class="form-group">
-            <label class="form-label fw-bold"><i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية المتاحة (للمورد)</label>
-            <!-- ✅ تم تسمية الحقل quantity وسيتم إرساله -->
-            <input type="text" name="quantity" class="form-control" value="{{ mapping.quantity if mapping.quantity is not none else (product.quantity if product.quantity is not none else 0) }}">
-        </div>
-    </div>
-
-    <!-- 5. الوزن (قابل للتعديل ويرسل إلى الباك إند) -->
-    <div class="col-12">
-        <div class="form-group">
-            <label class="form-label fw-bold"><i class="fas fa-weight me-1" style="color: #2d0b36;"></i> الوزن (كجم)</label>
-            <!-- ✅ تم تسمية الحقل weight وسيتم إرساله -->
-            <input type="text" name="weight" class="form-control" value="{{ mapping.weight if mapping.weight is not none else 0.0 }}">
-        </div>
-    </div>
 </div>
+
+<style>
+.meta-card {
+    background: linear-gradient(135deg, #faf8f6, #ffffff);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.form-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d0b36;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
+}
+
+.badge-purple-soft {
+    background: rgba(45, 11, 54, 0.1);
+    color: #2d0b36;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+.form-group {
+    margin-bottom: 0;
+}
+</style>
