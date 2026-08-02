@@ -15,6 +15,7 @@ query FindAllOptionsForProduct($qid: String!) {
                 option
                 label
                 sortOrder
+                fileUrl
             }
         }
     }
@@ -25,7 +26,9 @@ query FindAllVariantsByProductId($productId: ID!, $getAllVariantsInput: GetAllVa
         data {
             qid
             quantity
-            images
+            images {
+                fileUrl
+            }
             pricing {
                 price
                 compareAtPrice
@@ -115,7 +118,6 @@ mutation BulkVariantUpdate($bulkUpdateVariantsInput: BulkVariantUpdateVariantsIn
     }
 }
 
-# ✅ طفرة تحديث الكمية (مضافة حديثاً)
 mutation UpdateVariantQuantity($variantId: ID!, $quantity: Int!) {
     updateVariantQuantity(variantId: $variantId, quantity: $quantity) {
         data {
