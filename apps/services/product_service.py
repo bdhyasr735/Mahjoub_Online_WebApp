@@ -74,14 +74,6 @@ class ProductService:
                         fileUrl
                     }
                     quantity
-                    variants {
-                        qid
-                        pricing {
-                            price
-                            compareAtPrice
-                            originalPrice
-                        }
-                    }
                 }
                 pagination {
                     totalItems
@@ -146,7 +138,6 @@ class ProductService:
         self._search_cache = None
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
-    # ✅ الدالة الأصلية (تعود كما كانت - بدون استخراج المعرف)
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID"""
         query = """
@@ -173,21 +164,6 @@ class ProductService:
                     images {
                         fileUrl
                     }
-                    # --- ✅ تم إضافة المتغيرات هنا ---
-                    variants {
-                        qid
-                        options {
-                            key
-                            value
-                        }
-                        pricing {
-                            price
-                            compareAtPrice
-                            originalPrice
-                        }
-                        quantity
-                    }
-                    # --------------------------------
                     seo {
                         title
                         description
