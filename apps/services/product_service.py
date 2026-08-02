@@ -146,10 +146,11 @@ class ProductService:
         self._search_cache = None
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
-    # ✅ النسخة المعدلة: تمت إضافة طلب المتغيرات (variants) بشكل آمن
+    # ✅ الحل الذكي: محاولة جلب المتغيرات، فإن فشل نعود للاستعلام الأساسي
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID"""
-        query = """
+        """جلب منتج بواسطة QID مع محاولة جلب المتغيرات"""
+        # الاستعلام الذي يجلب المتغيرات
+        query_with_variants = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
                 success
@@ -173,7 +174,7 @@ class ProductService:
                     images {
                         fileUrl
                     }
-                    # --- ✅ إضافة المتغيرات المطلوبة للمورد ---
+                    # --- محاولة جلب المتغيرات ---
                     variants {
                         qid
                         options {
@@ -190,7 +191,7 @@ class ProductService:
                             url
                         }
                     }
-                    # ------------------------------------------
+                    # ---------------------------
                     seo {
                         title
                         description
@@ -208,16 +209,72 @@ class ProductService:
         try:
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
             variables = {"qid": qid}
-            data = self.client.execute(query, variables, operation_name="FindProductByQid")
+            data = self.client.execute(query_with_variants, variables, operation_name="FindProductByQid")
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
                 if result.get("success"):
                     product_data = result.get("data", {})
-                    print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح: {product_data.get('title')}")
+                    print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح مع المتغيرات: {product_data.get('title')}")
+                    return product_data
+            print(f"⚠️ [get_product_by_qid] فشل جلب المتغيرات، ننتقل للاستعلام الأساسي...")
+            return self._get_product_basic(qid)
+        except Exception as e:
+            print(f"❌ [get_product_by_qid] فشل جلب المنتج مع المتغيرات: {e}")
+            return self._get_product_basic(qid)
+
+    def _get_product_basic(self, qid: str) -> dict:
+        """جلب المنتج باستخدام استعلام أساسي (بدون المتغيرات)"""
+        query_basic = """
+        query FindProductByQid($qid: String!) {
+            findProductByQid(qid: $qid) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    slug
+                    description
+                    status
+                    quantity
+                    pricing {
+                        price
+                        compareAtPrice
+                        originalPrice
+                        discount {
+                            discountValue
+                            discountType
+                        }
+                    }
+                    images {
+                        fileUrl
+                    }
+                    seo {
+                        title
+                        description
+                        keywords
+                    }
+                    tags
+                    collections {
+                        title
+                        handle
+                    }
+                }
+            }
+        }
+        """
+        try:
+            print(f"🔍 [_get_product_basic] جلب المنتج الأساسي بـ QID: {qid}")
+            variables = {"qid": qid}
+            data = self.client.execute(query_basic, variables, operation_name="FindProductByQid")
+            if data and "findProductByQid" in data:
+                result = data["findProductByQid"]
+                if result.get("success"):
+                    product_data = result.get("data", {})
+                    print(f"✅ [_get_product_basic] تم جلب المنتج بنجاح: {product_data.get('title')}")
                     return product_data
             return {}
         except Exception as e:
-            print(f"❌ [get_product_by_qid] فشل جلب المنتج: {e}")
+            print(f"❌ [_get_product_basic] فشل جلب المنتج الأساسي: {e}")
             return {}
 
     def create_product_data(self, input_data: dict) -> dict:
