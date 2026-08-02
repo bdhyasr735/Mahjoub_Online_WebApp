@@ -184,17 +184,14 @@ def edit_supplier_product(product_qid):
 
         # 2. جلب الخيارات والمتغيرات بشكل منفصل (تماماً كما يفعل الأدمن)
         try:
-            # جلب الخيارات
             options_data = services.variants.get_all_options_for_product(full_qid)
-            if options_data:
-                product['options'] = options_data
-            # جلب المتغيرات (مع أسعارها وكمياتها وصورها)
+            product['options'] = options_data if options_data is not None else []
             variants_data = services.variants.get_by_product(full_qid)
-            if variants_data:
-                product['variants'] = variants_data
+            product['variants'] = variants_data if variants_data is not None else []
         except Exception as e:
             print(f"⚠️ [Supplier Edit] تعذر جلب المتغيرات عبر خدمة variants: {e}")
-            # إذا فشل، نتركها فارغة
+            product['options'] = []
+            product['variants'] = []
 
         if request.method == 'POST':
             title = request.form.get('title', '')
