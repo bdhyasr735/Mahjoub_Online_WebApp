@@ -35,10 +35,10 @@
                         
                         <!-- عرض القيم (للقراءة فقط) -->
                         <div class="d-flex flex-wrap gap-2 mb-3">
-                            {% if variant.values and variant.values|length > 0 %}
-                                {% for val in variant.values %}
+                            {% if variant.options and variant.options|length > 0 %}
+                                {% for opt in variant.options %}
                                 <span class="badge bg-light text-dark border px-3 py-2">
-                                    {{ val.label if val.label is defined else val }}
+                                    {{ opt.value if opt.value is defined else opt.key }} ({{ opt.key }})
                                 </span>
                                 {% endfor %}
                             {% else %}
@@ -51,15 +51,17 @@
                             <div class="col-6">
                                 <label class="small text-muted">سعر التكلفة (ر.س)</label>
                                 <div class="input-group input-group-sm">
-                                    <input type="text" name="variant_cost_price_{{ variant.qid }}" class="form-control" 
-                                           value="{{ variant.price if variant.price is not none else 0.0 }}" 
+                                    <!-- ✅ تم توحيد الاسم ليكون variant_cost_ + qid -->
+                                    <input type="text" name="variant_cost_{{ variant.qid }}" class="form-control" 
+                                           value="{{ variant.pricing.price if variant.pricing and variant.pricing.price is not none else 0.0 }}" 
                                            placeholder="0.0">
                                     <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">ر.س</span>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <label class="small text-muted">الكمية</label>
-                                <input type="text" name="variant_quantity_{{ variant.qid }}" class="form-control" 
+                                <!-- ✅ تم توحيد الاسم ليكون variant_qty_ + qid -->
+                                <input type="text" name="variant_qty_{{ variant.qid }}" class="form-control" 
                                        value="{{ variant.quantity if variant.quantity is not none else 0 }}">
                             </div>
                         </div>
