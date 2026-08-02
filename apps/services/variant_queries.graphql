@@ -114,3 +114,12 @@ mutation BulkVariantUpdate($bulkUpdateVariantsInput: BulkVariantUpdateVariantsIn
         }
     }
 }
+
+# ✅ طفرة تحديث الكمية (مضافة حديثاً)
+mutation UpdateVariantQuantity($variantId: ID!, $quantity: Int!) {
+    updateVariantQuantity(variantId: $variantId, quantity: $quantity) {
+        data {
+            qid
+        }
+    }
+}
