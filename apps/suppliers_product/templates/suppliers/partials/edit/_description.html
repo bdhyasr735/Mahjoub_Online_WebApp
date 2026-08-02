@@ -1,10 +1,63 @@
-<div class="form-group">
-    <label class="form-label fw-bold">وصف المنتج <span class="text-muted">(للقراءة فقط)</span></label>
-    <div class="p-3 bg-light rounded-3 border">
-        {% if product.description %}
-            {{ product.description|safe }}
-        {% else %}
-            <p class="text-muted text-center py-3"><i class="fas fa-file-alt me-2"></i> لا يوجد وصف لهذا المنتج.</p>
-        {% endif %}
+<div class="row g-3">
+    <!-- 1. عنوان المنتج و SKU -->
+    <div class="col-md-6 col-12">
+        <div class="form-group">
+            <label class="form-label fw-bold"><i class="fas fa-heading me-1" style="color: #2d0b36;"></i> عنوان المنتج</label>
+            <input type="text" name="title" class="form-control" value="{{ product.title or product.name or '' }}" placeholder="أدخل عنوان المنتج">
+        </div>
+    </div>
+    <div class="col-md-6 col-12">
+        <div class="form-group">
+            <label class="form-label fw-bold"><i class="fas fa-barcode me-1" style="color: #2d0b36;"></i> SKU <span class="text-muted fw-normal small">(للقراءة فقط)</span></label>
+            <input type="text" class="form-control" value="{{ product.sku or '' }}" readonly style="background-color: #f8f9fa;">
+        </div>
+    </div>
+
+    <!-- 2. الرابط (Slug) -->
+    <div class="col-12">
+        <div class="form-group">
+            <label class="form-label fw-bold"><i class="fas fa-link me-1" style="color: #2d0b36;"></i> الرابط (Slug)</label>
+            <input type="text" name="slug" class="form-control" value="{{ product.slug or '' }}" placeholder="product-url-slug" dir="ltr">
+            <small class="text-muted d-block">يُستخدم في الرابط الإلكتروني للمنتج.</small>
+        </div>
+    </div>
+
+    <!-- 3. عرض السعر الأصلي (مرجع للمورد) + سعر التكلفة (قابل للتعديل) -->
+    <div class="col-md-6 col-12">
+        <div class="form-group">
+            <label class="form-label fw-bold"><i class="fas fa-history me-1" style="color: #2d0b36;"></i> السعر الأصلي (مرجع)</label>
+            <input type="text" class="form-control" value="{{ product.pricing.originalPrice if product.pricing and product.pricing.originalPrice is not none else 0 }}" readonly style="background-color: #f8f9fa;">
+        </div>
+    </div>
+    <div class="col-md-6 col-12">
+        <div class="form-group">
+            <label class="form-label fw-bold"><i class="fas fa-tag me-1" style="color: #2d0b36;"></i> سعر التكلفة (ر.س)</label>
+            <div class="input-group">
+                <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">ر.س</span>
+                <input type="text" name="cost_price" class="form-control" value="{{ prod_cost_price }}">
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. عرض الكمية الحالية (للقراءة فقط) + الكمية المتاحة (قابل للتعديل) -->
+    <div class="col-md-6 col-12">
+        <div class="form-group">
+            <label class="form-label fw-bold"><i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية الحالية (المخزون)</label>
+            <input type="text" class="form-control" value="{{ product.quantity if product.quantity is not none else 0 }}" readonly style="background-color: #f8f9fa;">
+        </div>
+    </div>
+    <div class="col-md-6 col-12">
+        <div class="form-group">
+            <label class="form-label fw-bold"><i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية المتاحة (للمورد)</label>
+            <input type="text" name="quantity" class="form-control" value="{{ prod_qty }}">
+        </div>
+    </div>
+
+    <!-- 5. الوزن -->
+    <div class="col-12">
+        <div class="form-group">
+            <label class="form-label fw-bold"><i class="fas fa-weight me-1" style="color: #2d0b36;"></i> الوزن (كجم)</label>
+            <input type="text" name="weight" class="form-control" value="{{ prod_weight }}">
+        </div>
     </div>
 </div>
