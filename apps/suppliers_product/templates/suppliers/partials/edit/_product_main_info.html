@@ -1,4 +1,5 @@
 <div class="row g-3">
+    <!-- 1. عنوان المنتج و SKU -->
     <div class="col-md-6 col-12">
         <div class="form-group">
             <label class="form-label fw-bold"><i class="fas fa-heading me-1" style="color: #2d0b36;"></i> عنوان المنتج</label>
@@ -11,6 +12,8 @@
             <input type="text" class="form-control" value="{{ product.sku or '' }}" readonly style="background-color: #f8f9fa;">
         </div>
     </div>
+
+    <!-- 2. الرابط (Slug) -->
     <div class="col-12">
         <div class="form-group">
             <label class="form-label fw-bold"><i class="fas fa-link me-1" style="color: #2d0b36;"></i> الرابط (Slug)</label>
@@ -18,28 +21,34 @@
             <small class="text-muted d-block">يُستخدم في الرابط الإلكتروني للمنتج.</small>
         </div>
     </div>
+
+    <!-- 3. سعر التكلفة (قابل للتعديل ويرسل إلى الباك إند) -->
     <div class="col-md-6 col-12">
         <div class="form-group">
             <label class="form-label fw-bold"><i class="fas fa-tag me-1" style="color: #2d0b36;"></i> سعر التكلفة (ر.س)</label>
             <div class="input-group">
                 <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">ر.س</span>
-                <!-- ✅ التعديل الأساسي: اعتماد prod_cost_price القادم من السياق -->
-                <input type="text" name="cost_price" class="form-control" value="{{ prod_cost_price }}">
+                <!-- ✅ تم تسمية الحقل cost_price وسيتم إرساله -->
+                <input type="text" name="cost_price" class="form-control" value="{{ mapping.price if mapping.price is not none else (product.pricing.originalPrice if product.pricing else 0) }}">
             </div>
         </div>
     </div>
+
+    <!-- 4. الكمية المتاحة (قابلة للتعديل وترسل إلى الباك إند) -->
     <div class="col-md-6 col-12">
         <div class="form-group">
-            <label class="form-label fw-bold"><i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية المتاحة</label>
-            <!-- ✅ التعديل الأساسي: اعتماد prod_qty القادم من السياق -->
-            <input type="text" name="quantity" class="form-control" value="{{ prod_qty }}">
+            <label class="form-label fw-bold"><i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية المتاحة (للمورد)</label>
+            <!-- ✅ تم تسمية الحقل quantity وسيتم إرساله -->
+            <input type="text" name="quantity" class="form-control" value="{{ mapping.quantity if mapping.quantity is not none else (product.quantity if product.quantity is not none else 0) }}">
         </div>
     </div>
+
+    <!-- 5. الوزن (قابل للتعديل ويرسل إلى الباك إند) -->
     <div class="col-12">
         <div class="form-group">
             <label class="form-label fw-bold"><i class="fas fa-weight me-1" style="color: #2d0b36;"></i> الوزن (كجم)</label>
-            <!-- ✅ التعديل الأساسي: اعتماد prod_weight القادم من السياق -->
-            <input type="text" name="weight" class="form-control" value="{{ prod_weight }}">
+            <!-- ✅ تم تسمية الحقل weight وسيتم إرساله -->
+            <input type="text" name="weight" class="form-control" value="{{ mapping.weight if mapping.weight is not none else 0.0 }}">
         </div>
     </div>
 </div>
