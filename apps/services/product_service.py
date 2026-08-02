@@ -146,10 +146,10 @@ class ProductService:
         self._search_cache = None
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
-    # ✅ الحل الذكي مع طباعة تفصيلية لمعرفة السبب
+    # ✅ الحل الذكي: محاولة جلب المتغيرات، فإن فشل نعود للاستعلام الأساسي
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع محاولة جلب المتغيرات"""
-        # استعلام متوافق مع السكيما الحقيقية (تم تعديله بناءً على variant_queries.graphql)
+        # الاستعلام المصحح: استخدام fileUrl بدلاً من url
         query_with_variants = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -174,7 +174,7 @@ class ProductService:
                     images {
                         fileUrl
                     }
-                    # --- المتغيرات بالصيغة الصحيحة ---
+                    # --- المتغيرات بالصيغة الصحيحة (fileUrl) ---
                     variants {
                         qid
                         options {
@@ -187,7 +187,7 @@ class ProductService:
                         }
                         quantity
                         images {
-                            url
+                            fileUrl
                         }
                     }
                     # ----------------------------------
@@ -210,7 +210,6 @@ class ProductService:
             variables = {"qid": qid}
             data = self.client.execute(query_with_variants, variables, operation_name="FindProductByQid")
             
-            # طباعة الرد الخام لمعرفة الخطأ إذا فشل
             if data and "errors" in data:
                 print(f"❌ [get_product_by_qid] خطأ GraphQL: {data['errors']}")
             else:
