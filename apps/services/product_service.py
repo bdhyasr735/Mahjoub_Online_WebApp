@@ -149,7 +149,7 @@ class ProductService:
     # ✅ الحل الذكي: محاولة جلب المتغيرات، فإن فشل نعود للاستعلام الأساسي
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع محاولة جلب المتغيرات"""
-        # الاستعلام المصحح: استخدام fileUrl بدلاً من url
+        # الاستعلام المصحح (استخدام name بدلاً من option)
         query_with_variants = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -174,11 +174,11 @@ class ProductService:
                     images {
                         fileUrl
                     }
-                    # --- المتغيرات بالصيغة الصحيحة (fileUrl) ---
+                    # --- المتغيرات بالصيغة الصحيحة ---
                     variants {
                         qid
                         options {
-                            option
+                            name
                             label
                         }
                         pricing {
