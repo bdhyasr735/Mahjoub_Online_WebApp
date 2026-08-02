@@ -1,160 +1,128 @@
-# ============================================
-# 12. استعلام جلب المخزون فقط
-# ============================================
-query GetProductInventory($productId: ID!) {
-  findProductByQid(qid: $productId) {
-    id
-    qid
-    name
-    quantity
-    inventory {
-      id
-      quantity
-      available
-      reserved
-      location
-      warehouse
-    }
-    variants {
-      id
-      sku
-      price
-      quantity
-      isAvailable
-      options {
-        name
-        value
-      }
-      inventory {
-        id
-        quantity
-        available
-        reserved
-        location
-        warehouse
-      }
-    }
-  }
-}
+"""
+خدمة المتغيرات والخيارات - Variant Service Queries (النسخة النهائية المحدثة)
+"""
 
-# ============================================
-# 13. استعلام جلب الألوان والأسعار فقط
-# ============================================
-query GetProductColorsAndPrices($qid: String!) {
-  findProductByQid(qid: $qid) {
-    id
-    qid
-    name
-    price
-    compareAtPrice
-    currency
-    options {
-      id
-      name
-      values {
-        id
-        value
-        hexCode
-        image {
-          url
-          altText
+# ============================================================
+# ✅ استعلامات الخيارات والمتغيرات المدعومة رسمياً
+# ============================================================
+
+query FindAllOptionsForProduct($qid: String!) {
+    findAllOptionsForProduct(qid: $qid) {
+        data {
+            qid
+            name
+            values {
+                option
+                label
+                sortOrder
+                fileUrl
+            }
         }
-      }
     }
-    variants {
-      id
-      sku
-      price
-      compareAtPrice
-      quantity
-      isAvailable
-      options {
-        name
-        value
-      }
-      image {
-        url
-        altText
-      }
-      inventory {
-        quantity
-        available
-      }
-    }
-  }
 }
 
-# ============================================
-# 14. استعلام جلب الأسعار فقط
-# ============================================
-query GetProductPrices($productId: ID!) {
-  findProductByQid(qid: $productId) {
-    id
-    qid
-    name
-    price
-    compareAtPrice
-    costPerItem
-    currency
-    taxRate
-    variants {
-      id
-      sku
-      price
-      compareAtPrice
-      costPerItem
-      quantity
+query FindAllVariantsByProductId($productId: ID!, $getAllVariantsInput: GetAllVariantsInput) {
+    findAllVariantsByProductId(productId: $productId, getAllVariantsInput: $getAllVariantsInput) {
+        data {
+            qid
+            quantity
+            images {
+                fileUrl
+            }
+            pricing {
+                price
+                compareAtPrice
+                originalPrice
+            }
+            identification {
+                sku
+                barcode
+            }
+            options {
+                option
+                label
+                updatedAt
+                sortOrder
+                qid
+                createdAt
+            }
+            product
+            dimensions {
+                length
+                width
+                height
+                unit
+            }
+            allowBackorder
+            _id
+            weight {
+                weight
+                unit
+            }
+            trackQuantity
+        }
+        success
+        pagination {
+            totalItems
+            totalPages
+            currentPage
+            limit
+            hasNextPage
+        }
+        message
     }
-    discounts {
-      id
-      type
-      value
-      minQuantity
-    }
-  }
 }
 
-# ============================================
-# 15. استعلام جلب الصور والمكتبة فقط
-# ============================================
-query GetProductMedia($productId: ID!) {
-  findProductByQid(qid: $productId) {
-    id
-    qid
-    name
-    mainImage {
-      id
-      url
-      altText
-      width
-      height
+query FindVariantById($id: ID!) {
+    findVariantById(id: $id) {
+        data {
+            qid
+            quantity
+            pricing {
+                price
+                compareAtPrice
+            }
+        }
     }
-    images {
-      id
-      url
-      altText
-      width
-      height
-      position
+}
+
+# ============================================================
+# 🔄 التحويرات (Mutations) المدعومة للمتغيرات
+# ============================================================
+
+mutation UpdateVariantPricing($variantId: ID!, $pricing: UpdateVariantPricingInput!) {
+    updateVariantPricing(variantId: $variantId, pricing: $pricing) {
+        data {
+            qid
+        }
     }
-    media {
-      id
-      url
-      altText
-      type
-      position
-      createdAt
+}
+
+mutation UpdateVariantMedia($variantId: ID!, $media: [String!]!) {
+    updateVariantMedia(variantId: $variantId, media: $media) {
+        data {
+            qid
+        }
     }
-    variants {
-      id
-      image {
-        url
-        altText
-      }
-      options {
-        name
-        value
-      }
+}
+
+mutation RemoveVariantById($id: ID!) {
+    removeVariantById(id: $id)
+}
+
+mutation BulkVariantUpdate($bulkUpdateVariantsInput: BulkVariantUpdateVariantsInput!) {
+    bulkVariantUpdate(bulkUpdateVariantsInput: $bulkUpdateVariantsInput) {
+        data {
+            qid
+        }
     }
-  }
+}
+
+# ✅ طفرة تحديث الكمية (مضافة حديثاً)
+mutation UpdateVariantQuantity($variantId: ID!, $quantity: Int!) {
+    updateVariantQuantity(variantId: $variantId, quantity: $quantity) {
+        data {
+            qid
+        }
+    }
 }
