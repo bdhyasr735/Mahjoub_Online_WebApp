@@ -22,34 +22,24 @@
         </div>
     </div>
 
-    <!-- 3. عرض السعر الأصلي (مرجع للمورد) + سعر التكلفة (قابل للتعديل) -->
-    <div class="col-md-6 col-12">
-        <div class="form-group">
-            <label class="form-label fw-bold"><i class="fas fa-history me-1" style="color: #2d0b36;"></i> السعر الأصلي (مرجع)</label>
-            <input type="text" class="form-control" value="{{ product.pricing.originalPrice if product.pricing and product.pricing.originalPrice is not none else 0 }}" readonly style="background-color: #f8f9fa;">
-        </div>
-    </div>
+    <!-- 3. سعر التكلفة (قابل للتعديل) -->
     <div class="col-md-6 col-12">
         <div class="form-group">
             <label class="form-label fw-bold"><i class="fas fa-tag me-1" style="color: #2d0b36;"></i> سعر التكلفة (ر.س)</label>
             <div class="input-group">
                 <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">ر.س</span>
-                <input type="text" name="cost_price" class="form-control" value="{{ prod_cost_price }}">
+                <!-- القيمة الافتراضية تكون سعر التكلفة الخاص بالمورد، فإن لم يكن موجودًا فالسعر الأصلي من قمرة -->
+                <input type="text" name="cost_price" class="form-control" value="{{ mapping.price if mapping.price is not none else (product.pricing.originalPrice if product.pricing else 0) }}">
             </div>
         </div>
     </div>
 
-    <!-- 4. عرض الكمية الحالية (للقراءة فقط) + الكمية المتاحة (قابل للتعديل) -->
-    <div class="col-md-6 col-12">
-        <div class="form-group">
-            <label class="form-label fw-bold"><i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية الحالية (المخزون)</label>
-            <input type="text" class="form-control" value="{{ product.quantity if product.quantity is not none else 0 }}" readonly style="background-color: #f8f9fa;">
-        </div>
-    </div>
+    <!-- 4. الكمية المتاحة (للمورد) -->
     <div class="col-md-6 col-12">
         <div class="form-group">
             <label class="form-label fw-bold"><i class="fas fa-cubes me-1" style="color: #2d0b36;"></i> الكمية المتاحة (للمورد)</label>
-            <input type="text" name="quantity" class="form-control" value="{{ prod_qty }}">
+            <!-- القيمة الافتراضية تكون كمية المورد، فإن لم تكن موجودة فكمية قمرة -->
+            <input type="text" name="quantity" class="form-control" value="{{ mapping.quantity if mapping.quantity is not none else (product.quantity if product.quantity is not none else 0) }}">
         </div>
     </div>
 
@@ -57,7 +47,7 @@
     <div class="col-12">
         <div class="form-group">
             <label class="form-label fw-bold"><i class="fas fa-weight me-1" style="color: #2d0b36;"></i> الوزن (كجم)</label>
-            <input type="text" name="weight" class="form-control" value="{{ prod_weight }}">
+            <input type="text" name="weight" class="form-control" value="{{ mapping.weight if mapping.weight is not none else 0.0 }}">
         </div>
     </div>
 </div>
