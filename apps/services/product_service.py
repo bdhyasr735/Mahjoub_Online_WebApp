@@ -74,6 +74,14 @@ class ProductService:
                         fileUrl
                     }
                     quantity
+                    variants {
+                        qid
+                        pricing {
+                            price
+                            compareAtPrice
+                            originalPrice
+                        }
+                    }
                 }
                 pagination {
                     totalItems
@@ -138,27 +146,57 @@ class ProductService:
         self._search_cache = None
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
-    # ✅ النسخة المعدلة: تستخرج الاستعلام من product_queries.graphql
-    # وهو يجلب المتغيرات، الأسعار، الكميات، والصور بشكل تلقائي
+    # ✅ الدالة الأصلية (تعود كما كانت - بدون استخراج المعرف)
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID مع كافة تفاصيله (شاملاً المتغيرات والأسعار والصور)"""
-        query = self._extract_query("FindProductByQid")
-        variables = {"qid": qid}
+        """جلب منتج بواسطة QID"""
+        query = """
+        query FindProductByQid($qid: String!) {
+            findProductByQid(qid: $qid) {
+                success
+                message
+                data {
+                    qid
+                    title
+                    slug
+                    description
+                    status
+                    quantity
+                    pricing {
+                        price
+                        compareAtPrice
+                        originalPrice
+                        discount {
+                            discountValue
+                            discountType
+                        }
+                    }
+                    images {
+                        fileUrl
+                    }
+                    seo {
+                        title
+                        description
+                        keywords
+                    }
+                    tags
+                    collections {
+                        title
+                        handle
+                    }
+                }
+            }
+        }
+        """
         try:
             print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
+            variables = {"qid": qid}
             data = self.client.execute(query, variables, operation_name="FindProductByQid")
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
-                # التحقق من صحة البيانات (يدعم هيكل success أو الهيكل المباشر)
-                if isinstance(result, dict):
-                    if result.get("success"):
-                        product_data = result.get("data", {})
-                        print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح: {product_data.get('name')}")
-                        return product_data
-                    elif result.get("id"):
-                        print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح: {result.get('name')}")
-                        return result
-            print(f"⚠️ [get_product_by_qid] لم يتم العثور على المنتج أو حدث خطأ")
+                if result.get("success"):
+                    product_data = result.get("data", {})
+                    print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح: {product_data.get('title')}")
+                    return product_data
             return {}
         except Exception as e:
             print(f"❌ [get_product_by_qid] فشل جلب المنتج: {e}")
