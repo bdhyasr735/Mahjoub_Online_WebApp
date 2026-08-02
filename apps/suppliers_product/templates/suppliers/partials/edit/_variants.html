@@ -16,7 +16,7 @@
     <div class="form-group mb-4">
         <label class="form-label fw-bold text-dark-purple mb-2">إدارة الخيارات (الألوان، المقاسات...)</label>
         <div id="optionsContainer" class="d-flex flex-column gap-3">
-            <!-- يتم تحميل الخيارات الحالية عبر JavaScript من product.options -->
+            <!-- سيتم تحميل الخيارات الحالية عبر JavaScript -->
         </div>
         <button class="btn btn-outline-purple w-100 mt-3 py-2 fw-bold" type="button" onclick="addOptionRow()">
             <i class="fas fa-plus-circle me-1"></i> إضافة خيار جديد
@@ -27,13 +27,12 @@
     <div class="form-group mb-0">
         <label class="form-label fw-bold text-dark-purple mb-2">تخصيص سعر التكلفة والكمية لكل متغير</label>
         <div id="variantsTableContainer" class="table-responsive">
-            <!-- يتم توليد الجدول تلقائياً من product.variants -->
+            <!-- يتم توليد الجدول تلقائياً -->
         </div>
     </div>
 </div>
 
 <style>
-/* (نفس الـ Styles السابقة، أضف فقط هذا) */
 .variants-card {
     background: linear-gradient(135deg, #faf8f6, #ffffff);
     border: 1px solid rgba(212, 175, 55, 0.2);
@@ -41,7 +40,61 @@
     padding: 24px;
     margin-bottom: 24px;
 }
-/* ... باقي الـ Styles كما هي ... */
+.form-section-title {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d0b36;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(212, 175, 55, 0.15);
+}
+.text-gold { color: #D4AF37 !important; }
+.text-dark-purple { color: #2d0b36 !important; }
+.badge-gold-soft {
+    background: rgba(212, 175, 55, 0.2);
+    color: #D4AF37;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+.custom-input {
+    border-color: #e2e8f0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    height: 45px;
+}
+.custom-input:focus { border-color: #D4AF37; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15); }
+.option-row {
+    border: 1px solid rgba(212, 175, 55, 0.3) !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    transition: all 0.3s ease;
+}
+.option-row:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+.delete-opt-btn { height: 45px; display: flex; align-items: center; border-radius: 8px !important; }
+.btn-gold-gradient {
+    background: linear-gradient(135deg, #2d0b36, #1a0520);
+    color: #D4AF37; border: none; font-weight: 600;
+    padding: 8px 16px; height: 45px;
+    border-radius: 0 10px 10px 0 !important;
+    transition: all 0.3s ease; display: flex; align-items: center;
+}
+.btn-gold-gradient:hover { opacity: 0.95; color: #ffffff; box-shadow: 0 4px 12px rgba(45, 11, 54, 0.2); }
+.btn-outline-purple {
+    color: #2d0b36; border: 2px dashed #2d0b36;
+    background: transparent; border-radius: 10px; transition: all 0.3s ease; height: 50px;
+}
+.btn-outline-purple:hover { background: #2d0b36; color: #D4AF37; border-color: #2d0b36; }
+.variant-img {
+    width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0;
+}
 </style>
 
 <script>
@@ -86,6 +139,9 @@ function addValueToRow(btn) {
     updateVariantsTable();
 }
 
+// ============================================================
+// دوال توليد جدول المتغيرات
+// ============================================================
 function updateVariantsTable() {
     const rows = document.querySelectorAll('.option-row');
     const container = document.getElementById('variantsTableContainer');
@@ -125,7 +181,7 @@ function updateVariantsTable() {
     // إنشاء الجدول
     let html = `<div class="table-responsive"><table class="table table-bordered align-middle"><thead class="bg-light"><tr><th>#</th><th>الصورة</th><th>الخيارات</th><th>السعر الحالي (ر.س)</th><th>الكمية الحالية</th><th>سعر التكلفة (للمورد)</th><th>الكمية (للمورد)</th></tr></thead><tbody>`;
     combinations.forEach((combo, index) => {
-        let qid = `variant_${index}_${Date.now()}`;
+        let qid = `variant_${index}_${Date.now()}`; // QID مؤقت
         let optsHtml = combo.map(o => `<span class="badge bg-light text-dark border me-1">${o.key}: ${o.value}</span>`).join(' ');
         html += `
             <tr>
@@ -150,12 +206,14 @@ function updateVariantsTable() {
     container.innerHTML = html;
 }
 
-// تهيئة الصفحة عند التحميل
+// ============================================================
+// تهيئة أولية (تحميل الخيارات والمتغيرات الموجودة)
+// ============================================================
 document.addEventListener('DOMContentLoaded', function() {
     const optionsContainer = document.getElementById('optionsContainer');
     const variantsContainer = document.getElementById('variantsTableContainer');
 
-    // تحميل الخيارات الموجودة من product.options (القادم من قمرة)
+    // تحميل الخيارات الموجودة من product.options
     {% if product.options and product.options|length > 0 %}
         {% for opt in product.options %}
             (function() {
@@ -185,14 +243,14 @@ document.addEventListener('DOMContentLoaded', function() {
         {% endfor %}
     {% endif %}
 
-    // إذا كانت المتغيرات موجودة بالفعل (من product.variants)، قم بإنشاء جدول منها
+    // تحميل المتغيرات الموجودة من product.variants
     {% if product.variants and product.variants|length > 0 %}
         let html = `<div class="table-responsive"><table class="table table-bordered align-middle"><thead class="bg-light"><tr><th>#</th><th>الصورة</th><th>الخيارات</th><th>السعر الحالي (ر.س)</th><th>الكمية الحالية</th><th>سعر التكلفة (للمورد)</th><th>الكمية (للمورد)</th></tr></thead><tbody>`;
         {% for variant in product.variants %}
             let optsHtml = '';
             {% if variant.options and variant.options|length > 0 %}
                 {% for opt in variant.options %}
-                    optsHtml += `<span class="badge bg-light text-dark border me-1">{{ opt.label if opt.label is defined else opt.value }}</span>`;
+                    optsHtml += `<span class="badge bg-light text-dark border me-1">{{ opt.option if opt.option is defined else opt.name }}: {{ opt.label if opt.label is defined else opt.value }}</span>`;
                 {% endfor %}
             {% else %}
                 optsHtml = '<span class="text-muted">—</span>';
@@ -200,15 +258,15 @@ document.addEventListener('DOMContentLoaded', function() {
             let imgUrl = '';
             {% if variant.images and variant.images|length > 0 %}
                 {% for img in variant.images %}
-                    {% if img.url or img.fileUrl %}
-                        imgUrl = '{{ img.url if img.url else img.fileUrl }}';
+                    {% if img.fileUrl %}
+                        imgUrl = '{{ img.fileUrl }}';
                         break;
                     {% endif %}
                 {% endfor %}
             {% endif %}
             let price = '{{ variant.pricing.price if variant.pricing else 0.0 }}';
             let qty = '{{ variant.quantity if variant.quantity is not none else 0 }}';
-            let variantQid = '{{ variant.qid if variant.qid else '' }}';
+            let variantQid = '{{ variant.qid }}';
             html += `
                 <tr>
                     <td>{{ loop.index }}</td>
