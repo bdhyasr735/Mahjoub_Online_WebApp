@@ -1,14 +1,14 @@
 <!-- ============================================================
-   📄 معلومات SEO والميتا - للمورد (عرض فقط)
+   📄 معلومات SEO والميتا - للمورد (قابلة للتعديل)
    ============================================================ -->
 <div class="form-section meta-card shadow-sm">
     <div class="form-section-title d-flex align-items-center justify-content-between">
         <div>
             <i class="fas fa-code me-2" style="color: #2d0b36;"></i> 
-            <span>معلومات SEO</span>
+            <span>تحسين محركات البحث (SEO)</span>
         </div>
         <span class="badge badge-purple-soft">
-            <i class="fas fa-lock me-1"></i> للقراءة فقط
+            <i class="fas fa-pen me-1"></i> قابل للتعديل
         </span>
     </div>
     
@@ -17,16 +17,11 @@
         <div class="col-md-6">
             <div class="form-group">
                 <label class="form-label fw-bold" style="color: #2d0b36;">
-                    <i class="fas fa-heading me-1" style="color: #2d0b36;"></i> عنوان SEO (Meta Title)
+                    <i class="fas fa-heading me-1" style="color: #2d0b36;"></i> عنوان SEO
                 </label>
-                <input type="text" 
-                       class="form-control" 
+                <input type="text" name="seo_title" class="form-control" 
                        value="{{ product.seo.title if product.seo and product.seo.title else '' }}" 
-                       readonly
-                       style="background-color: #f8f9fa; cursor: default;">
-                <small class="text-muted mt-1 d-block">
-                    <i class="fas fa-lock me-1" style="color: #2d0b36;"></i> يُدار بواسطة الإدارة
-                </small>
+                       placeholder="أدخل عنوان SEO">
             </div>
         </div>
         
@@ -34,13 +29,11 @@
         <div class="col-md-6">
             <div class="form-group">
                 <label class="form-label fw-bold" style="color: #2d0b36;">
-                    <i class="fas fa-align-left me-1" style="color: #2d0b36;"></i> وصف SEO (Meta Description)
+                    <i class="fas fa-align-left me-1" style="color: #2d0b36;"></i> وصف SEO
                 </label>
-                <input type="text" 
-                       class="form-control" 
+                <input type="text" name="seo_description" class="form-control" 
                        value="{{ product.seo.description if product.seo and product.seo.description else '' }}" 
-                       readonly
-                       style="background-color: #f8f9fa; cursor: default;">
+                       placeholder="أدخل وصف SEO">
             </div>
         </div>
         
@@ -48,15 +41,13 @@
         <div class="col-12">
             <div class="form-group">
                 <label class="form-label fw-bold" style="color: #2d0b36;">
-                    <i class="fas fa-tags me-1" style="color: #2d0b36;"></i> الكلمات المفتاحية (Keywords)
+                    <i class="fas fa-tags me-1" style="color: #2d0b36;"></i> الكلمات المفتاحية
                 </label>
-                <input type="text" 
-                       class="form-control" 
+                <input type="text" name="seo_keywords" class="form-control" 
                        value="{{ product.seo.keywords if product.seo and product.seo.keywords else '' }}" 
-                       readonly
-                       style="background-color: #f8f9fa; cursor: default;">
+                       placeholder="كلمات مفتاحية مفصولة بفواصل">
                 <small class="text-muted mt-1 d-block">
-                    <i class="fas fa-lock me-1" style="color: #2d0b36;"></i> تُدار بواسطة الإدارة
+                    <i class="fas fa-info-circle me-1" style="color: #2d0b36;"></i> تساعد هذه الكلمات محركات البحث في فهم المنتج.
                 </small>
             </div>
         </div>
