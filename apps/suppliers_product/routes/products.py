@@ -58,7 +58,6 @@ def normalize_qid(qid):
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
 def manage_supplier_products_view():
-    # (بقية الكود كما هو ...)
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         user_type = getattr(current_user, 'user_type', None) or session.get('user_type')
@@ -68,7 +67,6 @@ def manage_supplier_products_view():
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
-        # ... المزامنة الخلفية ...
         last_sync_key = f'_last_sync_{supplier_id}'
         if not is_admin and supplier_id:
             last_sync_time = session.get(last_sync_key)
@@ -78,7 +76,6 @@ def manage_supplier_products_view():
                 _sync_products_in_background(supplier_id)
                 session[last_sync_key] = datetime.utcnow()
 
-        # ... جلب المنتجات ...
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('limit', 10, type=int)
         per_page = max(1, min(per_page, 50))
@@ -124,7 +121,6 @@ def manage_supplier_products_view():
 
             products_data.append({'mapping': mapping, 'product': product})
 
-        # ... تجهيز الترقيم ...
         total_filtered = len(products_data)
         total_pages = (total_filtered + per_page - 1) // per_page if total_filtered > 0 else 1
 
