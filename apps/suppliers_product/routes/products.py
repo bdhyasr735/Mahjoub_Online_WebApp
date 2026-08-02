@@ -58,6 +58,7 @@ def normalize_qid(qid):
 @suppliers_product_bp.route('/products', methods=['GET'], endpoint='list_supplier_products')
 @login_required
 def manage_supplier_products_view():
+    # (بقية الكود كما هو ...)
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         user_type = getattr(current_user, 'user_type', None) or session.get('user_type')
@@ -67,6 +68,7 @@ def manage_supplier_products_view():
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
+        # ... المزامنة الخلفية ...
         last_sync_key = f'_last_sync_{supplier_id}'
         if not is_admin and supplier_id:
             last_sync_time = session.get(last_sync_key)
@@ -76,6 +78,7 @@ def manage_supplier_products_view():
                 _sync_products_in_background(supplier_id)
                 session[last_sync_key] = datetime.utcnow()
 
+        # ... جلب المنتجات ...
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('limit', 10, type=int)
         per_page = max(1, min(per_page, 50))
@@ -121,6 +124,7 @@ def manage_supplier_products_view():
 
             products_data.append({'mapping': mapping, 'product': product})
 
+        # ... تجهيز الترقيم ...
         total_filtered = len(products_data)
         total_pages = (total_filtered + per_page - 1) // per_page if total_filtered > 0 else 1
 
@@ -182,26 +186,29 @@ def edit_supplier_product(product_qid):
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
 
         if request.method == 'POST':
-            # ✅ استقبال الحقول الجديدة
-            title = request.form.get('title')
-            slug = request.form.get('slug')
-            description = request.form.get('description')
-            cost_price = request.form.get('cost_price')   # ✅ تم التعديل هنا: من price إلى cost_price
+            title = request.form.get('title', '')
+            slug = request.form.get('slug', '')
+            description = request.form.get('description', '')
+            cost_price = request.form.get('cost_price')
             quantity = request.form.get('quantity')
             weight = request.form.get('weight')
 
-            # 1. تحديث المعلومات العامة في قمرة (العنوان، الرابط، الوصف)
-            if title or slug or description:
-                services.products.update_product_info(
-                    full_qid,  # يجب استخدام الـ QID الكامل لتحديث قمرة
-                    {
-                        "title": title,
-                        "slug": slug,
-                        "description": description
-                    }
-                )
+            # ✅ تحديث قمرة (مع حماية من الفشل)
+            try:
+                if title or slug or description:
+                    services.products.update_product_info(
+                        full_qid,
+                        {
+                            "title": title,
+                            "slug": slug,
+                            "description": description
+                        }
+                    )
+            except Exception as e:
+                print(f"⚠️ فشل تحديث معلومات قمرة: {e}")
+                # نستمر رغم الخطأ لكي تُحفظ البيانات المحلية
 
-            # 2. تحديث بيانات المورد المحلية (التكلفة، الكمية، الوزن)
+            # ✅ تحديث بيانات المورد المحلية
             if cost_price is not None and cost_price != '':
                 mapping.price = float(cost_price)
             if quantity is not None and quantity != '':
