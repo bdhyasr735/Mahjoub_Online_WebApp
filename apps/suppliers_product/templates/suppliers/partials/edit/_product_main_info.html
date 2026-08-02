@@ -23,7 +23,9 @@
             <label class="form-label fw-bold"><i class="fas fa-tag me-1" style="color: #2d0b36;"></i> سعر التكلفة (ر.س)</label>
             <div class="input-group">
                 <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">ر.س</span>
-                <input type="text" name="cost_price" class="form-control" value="{{ mapping.price if mapping.price is not none else 0.0 }}">
+                <!-- ✅ التعديل هنا: إذا كان mapping.price فارغاً، اجلب السعر من قمرة -->
+                <input type="text" name="cost_price" class="form-control" 
+                       value="{{ mapping.price if mapping.price is not none else (product.pricing.price if product.pricing else '0.0') }}">
             </div>
         </div>
     </div>
