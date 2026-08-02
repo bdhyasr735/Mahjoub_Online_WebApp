@@ -12,7 +12,6 @@
         </span>
     </div>
 
-    <!-- ✅ إدارة الخيارات -->
     <div class="form-group mb-4">
         <label class="form-label fw-bold text-dark-purple mb-2">إدارة الخيارات (الألوان، المقاسات...)</label>
         <div id="optionsContainer" class="d-flex flex-column gap-3">
@@ -23,11 +22,10 @@
         </button>
     </div>
 
-    <!-- ✅ جدول المتغيرات (يظهر بعد إضافة الخيارات) -->
     <div class="form-group mb-0">
         <label class="form-label fw-bold text-dark-purple mb-2">تخصيص سعر التكلفة والكمية لكل متغير</label>
         <div id="variantsTableContainer" class="table-responsive">
-            <!-- يتم توليد الجدول تلقائياً -->
+            <!-- يتم توليد الجدول تلقائياً إذا وجدت متغيرات -->
         </div>
     </div>
 </div>
@@ -139,15 +137,12 @@ function addValueToRow(btn) {
     updateVariantsTable();
 }
 
-// ============================================================
-// دوال توليد جدول المتغيرات (مع تحميل البيانات الموجودة)
-// ============================================================
 function updateVariantsTable() {
     const rows = document.querySelectorAll('.option-row');
     const container = document.getElementById('variantsTableContainer');
     
     if (!rows.length || rows.length === 0) {
-        container.innerHTML = `<p class="text-muted text-center p-4 bg-light rounded-3 border border-dashed"><i class="fas fa-info-circle me-1"></i> قم بإضافة الخيارات والقيم لتوليد جدول المتغيرات تلقائياً...</p>`;
+        container.innerHTML = `<div class="alert alert-light text-center p-4 rounded-3 border border-dashed"><i class="fas fa-info-circle me-2" style="color: #2d0b36;"></i> هذا المنتج لا يحتوي على خيارات أو متغيرات حالياً.</div>`;
         return;
     }
 
@@ -206,9 +201,7 @@ function updateVariantsTable() {
     container.innerHTML = html;
 }
 
-// ============================================================
 // دالة تهيئة أولية (تحميل الخيارات والمتغيرات الموجودة)
-// ============================================================
 function initVariants() {
     const optionsContainer = document.getElementById('optionsContainer');
     const variantsContainer = document.getElementById('variantsTableContainer');
@@ -250,7 +243,7 @@ function initVariants() {
             let optsHtml = '';
             {% if variant.options and variant.options|length > 0 %}
                 {% for opt in variant.options %}
-                    optsHtml += `<span class="badge bg-light text-dark border me-1">{{ opt.name }}: {{ opt.value }}</span>`;
+                    optsHtml += `<span class="badge bg-light text-dark border me-1">{{ opt.label if opt.label is defined else opt.value }}</span>`;
                 {% endfor %}
             {% else %}
                 optsHtml = '<span class="text-muted">—</span>';
