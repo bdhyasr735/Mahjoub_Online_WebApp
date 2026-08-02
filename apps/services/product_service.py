@@ -149,7 +149,7 @@ class ProductService:
     # ✅ الحل الذكي مع طباعة تفصيلية لمعرفة السبب
     def get_product_by_qid(self, qid: str) -> dict:
         """جلب منتج بواسطة QID مع محاولة جلب المتغيرات"""
-        # استعلام أكثر توافقاً مع هياكل قمرة الشائعة
+        # استعلام متوافق مع السكيما الحقيقية (تم تعديله بناءً على variant_queries.graphql)
         query_with_variants = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -174,24 +174,23 @@ class ProductService:
                     images {
                         fileUrl
                     }
-                    # --- صيغة أكثر توافقاً ---
+                    # --- المتغيرات بالصيغة الصحيحة ---
                     variants {
                         qid
                         options {
-                            name
-                            value
+                            option
+                            label
                         }
                         pricing {
                             price
                             compareAtPrice
-                            originalPrice
                         }
                         quantity
                         images {
                             url
                         }
                     }
-                    # ---------------------------
+                    # ----------------------------------
                     seo {
                         title
                         description
