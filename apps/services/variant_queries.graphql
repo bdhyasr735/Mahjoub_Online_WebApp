@@ -1,5 +1,5 @@
 """
-خدمة المتغيرات والخيارات - Variant Service Queries (نسخة محدثة 2026 - متوافقة مع السيرفر)
+خدمة المتغيرات والخيارات - Variant Service Queries (النسخة النهائية المحدثة)
 """
 
 # ============================================================
@@ -20,35 +20,65 @@ query FindAllOptionsForProduct($qid: String!) {
     }
 }
 
-query FindAllVariantsByProductId($productId: String!, $getAllVariantsInput: GetAllVariantsInput) {
+query FindAllVariantsByProductId($productId: ID!, $getAllVariantsInput: GetAllVariantsInput) {
     findAllVariantsByProductId(productId: $productId, getAllVariantsInput: $getAllVariantsInput) {
         data {
             qid
-            sku
-            barcode
             quantity
-            position
-            isActive
-            isAvailable
+            images
             pricing {
                 price
                 compareAtPrice
                 originalPrice
             }
-            options {
-                name
-                value
+            identification {
+                sku
+                barcode
             }
+            options {
+                option
+                label
+                updatedAt
+                sortOrder
+                qid
+                createdAt
+            }
+            product
+            dimensions {
+                length
+                width
+                height
+                unit
+            }
+            allowBackorder
+            _id
+            weight {
+                weight
+                unit
+            }
+            trackQuantity
         }
+        success
+        pagination {
+            totalItems
+            totalPages
+            currentPage
+            limit
+            hasNextPage
+        }
+        message
     }
 }
 
-query FindVariantById($id: String!) {
+query FindVariantById($id: ID!) {
     findVariantById(id: $id) {
         data {
             qid
-            sku
             quantity
+            pricing {
+                price
+                compareAtPrice
+            }
         }
     }
 }
@@ -57,7 +87,7 @@ query FindVariantById($id: String!) {
 # 🔄 التحويرات (Mutations) المدعومة للمتغيرات
 # ============================================================
 
-mutation UpdateVariantPricing($variantId: String!, $pricing: UpdateVariantPricingInput!) {
+mutation UpdateVariantPricing($variantId: ID!, $pricing: UpdateVariantPricingInput!) {
     updateVariantPricing(variantId: $variantId, pricing: $pricing) {
         data {
             qid
@@ -65,7 +95,7 @@ mutation UpdateVariantPricing($variantId: String!, $pricing: UpdateVariantPricin
     }
 }
 
-mutation UpdateVariantMedia($variantId: String!, $media: [String!]!) {
+mutation UpdateVariantMedia($variantId: ID!, $media: [String!]!) {
     updateVariantMedia(variantId: $variantId, media: $media) {
         data {
             qid
@@ -73,7 +103,7 @@ mutation UpdateVariantMedia($variantId: String!, $media: [String!]!) {
     }
 }
 
-mutation RemoveVariantById($id: String!) {
+mutation RemoveVariantById($id: ID!) {
     removeVariantById(id: $id)
 }
 
