@@ -1,89 +1,71 @@
 <!-- ============================================================
-   🎨 خيارات ومتغيرات المنتج (قابلة للتعديل للمورد)
+   🔀 خيارات ومتغيرات المنتج (للمورد)
    ============================================================ -->
-<div class="form-section variants-card">
-    <!-- رأس البطاقة -->
-    <div class="form-section-title">
-        <div class="d-flex align-items-center gap-2">
-            <i class="fas fa-palette" style="color: #2d0b36;"></i> 
+<div class="form-section variants-card shadow-sm">
+    <div class="form-section-title d-flex align-items-center justify-content-between">
+        <div>
+            <i class="fas fa-layer-group me-2" style="color: #2d0b36;"></i>
             <span>خيارات ومتغيرات المنتج</span>
         </div>
         <span class="badge badge-purple-soft">
-            <i class="fas fa-pen me-1"></i> قابل للتعديل
+            <i class="fas fa-pen me-1"></i> تعديل السعر والكمية
         </span>
     </div>
 
-    <!-- المحتوى -->
-    <div class="variants-content">
-        {% if prod_variants and prod_variants|length > 0 %}
-            <!-- عرض الخيارات كشبكة مع حقول قابلة للتعديل -->
-            <div class="row g-3">
-                {% for variant in prod_variants %}
-                <div class="col-md-6">
-                    <div class="p-3 border rounded-3 bg-white shadow-sm h-100">
-                        <!-- معلومات الخيار (للقراءة فقط) -->
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-bold text-dark">
-                                {% if variant.name %}
-                                    {{ variant.name }}
-                                {% else %}
-                                    خيار
-                                {% endif %}
-                            </span>
-                            <span class="text-muted small">الكمية الحالية: <strong class="text-dark">{{ variant.quantity or 0 }}</strong></span>
-                        </div>
-                        
-                        <!-- عرض القيم (للقراءة فقط) -->
-                        <div class="d-flex flex-wrap gap-2 mb-3">
+    {% if prod_variants and prod_variants|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="bg-light">
+                    <tr>
+                        <th>الخيارات</th>
+                        <th style="width: 150px;">سعر التكلفة (ر.س)</th>
+                        <th style="width: 100px;">الكمية</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for variant in prod_variants %}
+                    <tr>
+                        <td>
                             {% if variant.options and variant.options|length > 0 %}
                                 {% for opt in variant.options %}
-                                <span class="badge bg-light text-dark border px-3 py-2">
-                                    {{ opt.value if opt.value is defined else opt.key }} ({{ opt.key }})
-                                </span>
+                                    <span class="badge bg-light text-dark border me-1">
+                                        {{ opt.key }}: {{ opt.value }}
+                                    </span>
                                 {% endfor %}
                             {% else %}
-                                <span class="text-muted small">لا توجد قيم متاحة</span>
+                                <span class="text-muted">—</span>
                             {% endif %}
-                        </div>
-
-                        <!-- حقول التعديل (سعر التكلفة والكمية للمورد) -->
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <label class="small text-muted">سعر التكلفة (ر.س)</label>
-                                <div class="input-group input-group-sm">
-                                    <!-- ✅ تم توحيد الاسم ليكون variant_cost_ + qid -->
-                                    <input type="text" name="variant_cost_{{ variant.qid }}" class="form-control" 
-                                           value="{{ variant.pricing.price if variant.pricing and variant.pricing.price is not none else 0.0 }}" 
-                                           placeholder="0.0">
-                                    <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">ر.س</span>
-                                </div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="0.01" name="variant_cost_{{ variant.qid }}"
+                                       class="form-control text-center"
+                                       value="{{ variant.pricing.price if variant.pricing and variant.pricing.price is not none else 0.0 }}">
+                                <span class="input-group-text" style="background: #2d0b36; color: #D4AF37; border: none;">ر.س</span>
                             </div>
-                            <div class="col-6">
-                                <label class="small text-muted">الكمية</label>
-                                <!-- ✅ تم توحيد الاسم ليكون variant_qty_ + qid -->
-                                <input type="text" name="variant_qty_{{ variant.qid }}" class="form-control" 
-                                       value="{{ variant.quantity if variant.quantity is not none else 0 }}">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <!-- إذا لم يكن هناك خيارات -->
-            <div class="variants-empty-state">
-                <i class="fas fa-info-circle mb-2" style="font-size: 1.5rem; color: #2d0b36;"></i>
-                <p class="mb-0 text-muted">هذا المنتج لا يحتوي على خيارات حالياً.</p>
-            </div>
-        {% endif %}
-        
-        <!-- تذييل البطاقة -->
-        <div class="variants-footer mt-3">
-            <small class="text-muted d-block">
-                <i class="fas fa-info-circle me-1" style="color: #2d0b36;"></i>
-                يمكنك تعديل سعر التكلفة والكمية لكل متغير على حدة.
-            </small>
+                        </td>
+                        <td>
+                            <input type="number" name="variant_qty_{{ variant.qid }}"
+                                   class="form-control text-center"
+                                   value="{{ variant.quantity if variant.quantity is not none else 0 }}">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+    {% else %}
+        <div class="variants-empty-state">
+            <i class="fas fa-info-circle mb-2" style="font-size: 1.5rem; color: #2d0b36;"></i>
+            <p class="mb-0 text-muted">هذا المنتج لا يحتوي على خيارات أو متغيرات حالياً.</p>
+        </div>
+    {% endif %}
+
+    <div class="variants-footer mt-3">
+        <small class="text-muted d-block">
+            <i class="fas fa-info-circle me-1" style="color: #2d0b36;"></i>
+            يمكنك تعديل سعر التكلفة والكمية لكل متغير على حدة.
+        </small>
     </div>
 </div>
 
@@ -118,10 +100,14 @@
     font-size: 0.75rem;
 }
 
-.variants-content {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+.table thead th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e2e8f0;
+    color: #2d0b36;
+}
+.table td {
+    vertical-align: middle;
+    border-color: #e2e8f0;
 }
 
 .variants-empty-state {
