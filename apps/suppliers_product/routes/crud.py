@@ -11,6 +11,15 @@ from apps.extensions import db
 from datetime import datetime
 
 
+# ✅ دالة تطبيع الـ QID (لضمان التوافق مع نظام قمرة)
+def normalize_qid(qid):
+    if not qid:
+        return qid
+    if not qid.startswith('qid://'):
+        return f"qid://qumra/Product/{qid}"
+    return qid
+
+
 @suppliers_product_bp.route('/products/search', methods=['GET'], endpoint='search_supplier_products')
 @login_required
 def search_supplier_products():
@@ -63,21 +72,24 @@ def link_supplier_product(product_qid):
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         
+        # ✅ تحويل الـ QID إلى الصيغة الكاملة
+        full_qid = normalize_qid(product_qid)
+        
         # التحقق من عدم وجود الربط مسبقاً
-        existing = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=product_qid).first()
+        existing = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=full_qid).first()
         if existing:
             flash('⚠️ هذا المنتج موجود بالفعل في قائمتك.', 'warning')
             return redirect(url_for('suppliers_product_bp.search_supplier_products'))
 
-        # التحقق من وجود المنتج في قمرة
-        product = services.products.get_product_by_qid(product_qid)
+        # التحقق من وجود المنتج في قمرة (باستخدام الصيغة الكاملة)
+        product = services.products.get_product_by_qid(full_qid)
         if not product:
             flash('❌ المنتج غير موجود في قمرة أو تم حذفه.', 'danger')
             return redirect(url_for('suppliers_product_bp.search_supplier_products'))
 
         # إنشاء سجل الربط (الحالة الافتراضية: PENDING)
         new_mapping = ProductSupplierMapping(
-            product_qid=product_qid,
+            product_qid=full_qid,
             supplier_id=supplier_id,
             status='PENDING',
             price=0.0,
@@ -105,7 +117,10 @@ def unlink_supplier_product(product_qid):
     try:
         supplier_id = getattr(current_user, 'id', None) or session.get('supplier_id') or session.get('user_id')
         
-        mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=product_qid).first()
+        # ✅ تحويل الـ QID إلى الصيغة الكاملة
+        full_qid = normalize_qid(product_qid)
+        
+        mapping = ProductSupplierMapping.query.filter_by(supplier_id=supplier_id, product_qid=full_qid).first()
         if not mapping:
             flash('⚠️ لا تملك الصلاحية لحذف هذا المنتج.', 'danger')
             return redirect(url_for('suppliers_product_bp.list_supplier_products'))
