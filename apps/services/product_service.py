@@ -74,14 +74,6 @@ class ProductService:
                         fileUrl
                     }
                     quantity
-                    variants {
-                        qid
-                        pricing {
-                            price
-                            compareAtPrice
-                            originalPrice
-                        }
-                    }
                 }
                 pagination {
                     totalItems
@@ -146,91 +138,9 @@ class ProductService:
         self._search_cache = None
         print(f"🔄 [ProductService]: تم مسح Cache البحث")
 
-    # ✅ الحل الذكي: محاولة جلب المتغيرات، فإن فشل نعود للاستعلام الأساسي
+    # ✅ النسخة الأساسية الآمنة (بدون المتغيرات)
     def get_product_by_qid(self, qid: str) -> dict:
-        """جلب منتج بواسطة QID مع محاولة جلب المتغيرات"""
-        # الاستعلام المصحح (استخدام name بدلاً من option)
-        query_with_variants = """
-        query FindProductByQid($qid: String!) {
-            findProductByQid(qid: $qid) {
-                success
-                message
-                data {
-                    qid
-                    title
-                    slug
-                    description
-                    status
-                    quantity
-                    pricing {
-                        price
-                        compareAtPrice
-                        originalPrice
-                        discount {
-                            discountValue
-                            discountType
-                        }
-                    }
-                    images {
-                        fileUrl
-                    }
-                    # --- المتغيرات بالصيغة الصحيحة ---
-                    variants {
-                        qid
-                        options {
-                            name
-                            label
-                        }
-                        pricing {
-                            price
-                            compareAtPrice
-                        }
-                        quantity
-                        images {
-                            fileUrl
-                        }
-                    }
-                    # ----------------------------------
-                    seo {
-                        title
-                        description
-                        keywords
-                    }
-                    tags
-                    collections {
-                        title
-                        handle
-                    }
-                }
-            }
-        }
-        """
-        try:
-            print(f"🔍 [get_product_by_qid] محاولة جلب المتغيرات لـ QID: {qid}")
-            variables = {"qid": qid}
-            data = self.client.execute(query_with_variants, variables, operation_name="FindProductByQid")
-            
-            if data and "errors" in data:
-                print(f"❌ [get_product_by_qid] خطأ GraphQL: {data['errors']}")
-            else:
-                print(f"✅ [get_product_by_qid] الرد الخام: {data}")
-
-            if data and "findProductByQid" in data:
-                result = data["findProductByQid"]
-                if result.get("success"):
-                    product_data = result.get("data", {})
-                    print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح مع المتغيرات: {product_data.get('title')}")
-                    return product_data
-                else:
-                    print(f"⚠️ [get_product_by_qid] فشل بسبب success=false: {result.get('message')}")
-            print(f"⚠️ [get_product_by_qid] لم يتم العثور على المنتج أو حدث خطأ، ننتقل للاستعلام الأساسي...")
-            return self._get_product_basic(qid)
-        except Exception as e:
-            print(f"❌ [get_product_by_qid] استثناء أثناء جلب المتغيرات: {e}")
-            return self._get_product_basic(qid)
-
-    def _get_product_basic(self, qid: str) -> dict:
-        """جلب المنتج باستخدام استعلام أساسي (بدون المتغيرات)"""
+        """جلب منتج بواسطة QID (نسخة أساسية آمنة)"""
         query_basic = """
         query FindProductByQid($qid: String!) {
             findProductByQid(qid: $qid) {
@@ -270,18 +180,18 @@ class ProductService:
         }
         """
         try:
-            print(f"🔍 [_get_product_basic] جلب المنتج الأساسي لـ QID: {qid}")
+            print(f"🔍 [get_product_by_qid] جلب المنتج بـ QID: {qid}")
             variables = {"qid": qid}
             data = self.client.execute(query_basic, variables, operation_name="FindProductByQid")
             if data and "findProductByQid" in data:
                 result = data["findProductByQid"]
                 if result.get("success"):
                     product_data = result.get("data", {})
-                    print(f"✅ [_get_product_basic] تم جلب المنتج بنجاح: {product_data.get('title')}")
+                    print(f"✅ [get_product_by_qid] تم جلب المنتج بنجاح: {product_data.get('title')}")
                     return product_data
             return {}
         except Exception as e:
-            print(f"❌ [_get_product_basic] فشل جلب المنتج الأساسي: {e}")
+            print(f"❌ [get_product_by_qid] فشل جلب المنتج: {e}")
             return {}
 
     def create_product_data(self, input_data: dict) -> dict:
