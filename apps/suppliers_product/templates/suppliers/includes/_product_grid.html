@@ -64,8 +64,8 @@
                         <div>
                             <small class="text-muted d-block" style="font-size: 0.75rem;">سعر التكلفة</small>
                             <span class="fw-bolder fs-6" style="color: #2d0b36;">
-                                <!-- ✅ هنا التغيير: استخدام mapping.price بدلاً من سعر المنتج -->
-                                {%- set cost_price = mapping.price if mapping and mapping.price is not none else 0 -%}
+                                <!-- ✅ منطق العرض الذكي: يعرض سعر التكلفة إذا كان موجوداً وأكبر من صفر، وإلا يعرض السعر الأصلي كمرجع -->
+                                {%- set cost_price = mapping.price if mapping and mapping.price is not none and mapping.price > 0 else (product.pricing.originalPrice if product and product.pricing and product.pricing.originalPrice is not none else 0) -%}
                                 {{ format_price(cost_price) if format_price is defined else cost_price }}
                             </span>
                         </div>
