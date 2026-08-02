@@ -214,6 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const variantsContainer = document.getElementById('variantsTableContainer');
 
     // تحميل الخيارات الموجودة من product.options
+    // نستخدم opt['values'] و val.label لتجنب أخطاء Jinja2
     {% if product.options and product.options|length > 0 %}
         {% for opt in product.options %}
             (function() {
@@ -226,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <label class="form-label text-muted" style="font-size: 0.85rem; margin-bottom: 6px;">القيم المتعددة:</label>
                     <div class="values-container d-flex flex-wrap gap-2 mb-2">
-                        {% for val in opt.values %}
+                        {% for val in opt['values'] %}
                             <div class="value-tag">
                                 {{ val.label if val.label is defined else val }} 
                                 <span onclick="this.closest('.value-tag').remove(); updateVariantsTable();">&times;</span>
@@ -243,14 +244,14 @@ document.addEventListener('DOMContentLoaded', function() {
         {% endfor %}
     {% endif %}
 
-    // تحميل المتغيرات الموجودة من product.variants
+    // تحميل المتغيرات الموجودة من product.variants (إذا وجدت)
     {% if product.variants and product.variants|length > 0 %}
         let html = `<div class="table-responsive"><table class="table table-bordered align-middle"><thead class="bg-light"><tr><th>#</th><th>الصورة</th><th>الخيارات</th><th>السعر الحالي (ر.س)</th><th>الكمية الحالية</th><th>سعر التكلفة (للمورد)</th><th>الكمية (للمورد)</th></tr></thead><tbody>`;
         {% for variant in product.variants %}
             let optsHtml = '';
             {% if variant.options and variant.options|length > 0 %}
                 {% for opt in variant.options %}
-                    optsHtml += `<span class="badge bg-light text-dark border me-1">{{ opt.option if opt.option is defined else opt.name }}: {{ opt.label if opt.label is defined else opt.value }}</span>`;
+                    optsHtml += `<span class="badge bg-light text-dark border me-1">{{ opt.label if opt.label is defined else opt.option }}</span>`;
                 {% endfor %}
             {% else %}
                 optsHtml = '<span class="text-muted">—</span>';
