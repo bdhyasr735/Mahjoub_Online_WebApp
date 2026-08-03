@@ -12,6 +12,17 @@ from apps.services import services
 from apps.models.orders_db import Order
 from apps.extensions import db
 
+# 🏷️ خريطة المسميات العربية للحالات لتطابق السكيما ومظهر الواجهة
+STATUS_TITLES_MAP = {
+    'pending': 'قيد الانتظار',
+    'processing': 'قيد التجهيز',
+    'shipped': 'تم الشحن',
+    'delivered': 'تم التسليم',
+    'completed': 'مكتمل',
+    'cancelled': 'ملغي',
+    'refunded': 'مسترجع'
+}
+
 
 def _sync_orders_in_background(app, page=1, per_page=15):
     """دالة مساعدة لإجراء المزامنة في الخلفية دون تعطيل طلبات المتصفح."""
@@ -119,8 +130,13 @@ def sync_admin_orders():
 @login_required
 def update_order_status(order_id):
     try:
-        data = request.get_json() or {}
-        new_status = data.get('status')
+        # 📥 دعم قراءة البيانات سواء أُرسلت كـ JSON (AJAX) أو Form Data
+        if request.is_json:
+            data = request.get_json() or {}
+        else:
+            data = request.form
+
+        new_status = data.get('status') or data.get('status_code')
         if not new_status:
             return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
 
@@ -128,22 +144,42 @@ def update_order_status(order_id):
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
 
+        # 1️⃣ تحديث قاعدة البيانات المحلية
         order.status_code = new_status
+        if new_status in STATUS_TITLES_MAP:
+            order.status_title = STATUS_TITLES_MAP[new_status]
         order.updated_at = datetime.utcnow()
+        
         db.session.commit()
 
-        # تحديث الحالة في الخدمة الخارجية/المحلية إذا لزم الأمر
+        # 2️⃣ 🚀 إرسال تحديث الحالة إلى خدمة قمرة عبر طبقة الخدمات
         if hasattr(services.orders, 'update_order_status'):
             try:
                 services.orders.update_order_status(order_id, new_status)
             except Exception as service_e:
-                current_app.logger.warning(f"⚠️ فشل تحديث الخدمة الخارجية: {service_e}")
+                current_app.logger.warning(f"⚠️ فشل تحديث الخدمة الخارجية (قمرة): {service_e}")
 
-        return jsonify({'success': True, 'message': 'تم تحديث الحالة بنجاح'})
+        # 3️⃣ استجابة حسب نوع الطلب (AJAX أو Form Submit)
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True, 
+                'message': 'تم تحديث حالة الطلب بنجاح',
+                'status_code': order.status_code,
+                'status_title': order.status_title
+            })
+
+        flash('✅ تم تحديث حالة الطلب بنجاح', 'success')
+        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        current_app.logger.error(f"خطأ في تحديث حالة الطلب {order_id}: {traceback.format_exc()}")
+        
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': str(e)}), 500
+            
+        flash('❌ حدث خطأ أثناء تحديث الحالة', 'danger')
+        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
 
 
 @admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
