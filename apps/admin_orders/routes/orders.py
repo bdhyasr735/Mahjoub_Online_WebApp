@@ -27,20 +27,19 @@ def manage_admin_orders_view():
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
         status_filter = request.args.get('status', '').strip()
-        financial_status_filter = request.args.get('financial_status', '').strip()
-        fulfillment_status_filter = request.args.get('fulfillment_status', '').strip()
         search_term = request.args.get('search', '').strip().lower()
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
         supplier_filter = request.args.get('supplier_id', type=int)
 
+        # ✅ مزامنة تلقائية للصفحة الحالية عند كل زيارة (ديناميكي)
         if not is_ajax:
             try:
                 services.orders.get_all_orders(page=page, per_page=50)
             except Exception as sync_e:
-                print(f"⚠️ [Auto Sync Orders] {sync_e}")
+                print(f"⚠️ [Auto Sync Orders] حدث خطأ أثناء المزامنة التلقائية: {sync_e}")
 
-        # ✅ جلب الطلبات مع الفلاتر الجديدة
+        # ✅ جلب الطلبات من قاعدة البيانات المحلية
         result = services.orders.get_local_orders(
             page=page,
             per_page=per_page,
@@ -66,30 +65,10 @@ def manage_admin_orders_view():
             'total_items': pagination.get('totalItems', 0)
         }
 
-        # تحويل الحالة للعربية والترقيم اليدوي
-        for idx, order in enumerate(orders):
-            # تعيين الترقيم التسلسلي
-            order['row_num'] = idx + 1 + (page - 1) * per_page
-            # تعيين النصوص العربية للحالات
-            status_map = {
-                'pending': 'قيد الانتظار',
-                'confirmed': 'مؤكد',
-                'processing': 'قيد المعالجة',
-                'shipped': 'تم الشحن',
-                'delivered': 'تم التسليم',
-                'cancelled': 'ملغي',
-                'refunded': 'مسترد',
-                'returned': 'مرتجع'
-            }
-            order['status_label'] = status_map.get(order.get('status', ''), order.get('status', 'غير معروف'))
-
-            # تعيين الحالة المالية
-            financial_map = {'paid': 'مدفوع', 'unpaid': 'غير مدفوع', 'refunded': 'مسترد'}
-            order['financial_status_label'] = financial_map.get(order.get('financial_status', ''), 'غير معروف')
-
-            # تعيين حالة الشحن
-            fulfillment_map = {'fulfilled': 'مكتمل', 'unfulfilled': 'غير مكتمل', 'partial': 'جزئي'}
-            order['fulfillment_status_label'] = fulfillment_map.get(order.get('fulfillment_status', ''), 'غير معروف')
+        # ضمان وجود status_text
+        for order in orders:
+            if 'status_text' not in order:
+                order['status_text'] = order.get('status', 'غير معروف').title()
 
         if is_ajax:
             return jsonify({
@@ -107,7 +86,151 @@ def manage_admin_orders_view():
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         if is_ajax:
             return jsonify({'success': False, 'message': 'حدث خطأ أثناء تحميل الطلبات'}), 500
+
         return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1}, suppliers=[])
 
 
-# ... باقي المسارات (update_status, update_supplier, view, register) كما هي ...
+# ============================================================================================
+# ✅ تحديث حالة الطلب (الرئيسية)
+# ============================================================================================
+@admin_orders_bp.route('/orders/<string:order_id>/status', methods=['POST'])
+@login_required
+def update_order_status(order_id):
+    try:
+        data = request.get_json()
+        new_status = data.get('status')
+        if not new_status:
+            return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
+        
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+
+        order.status = new_status
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        services.orders.update_order_status(order_id, new_status)
+        return jsonify({'success': True, 'message': 'تم تحديث الحالة بنجاح'})
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ في تحديث الحالة: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================================================
+# ✅ تحديث الحالة المالية للطلب
+# ============================================================================================
+@admin_orders_bp.route('/orders/<string:order_id>/financial-status', methods=['POST'])
+@login_required
+def update_order_financial_status(order_id):
+    try:
+        data = request.get_json()
+        new_status = data.get('status')
+        if not new_status:
+            return jsonify({'success': False, 'message': 'الحالة المالية مطلوبة'}), 400
+        
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+
+        order.financial_status = new_status
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        services.orders.update_financial_status(order_id, new_status)
+        return jsonify({'success': True, 'message': 'تم تحديث الحالة المالية بنجاح'})
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ في تحديث الحالة المالية: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================================================
+# ✅ تحديث حالة الشحن للطلب
+# ============================================================================================
+@admin_orders_bp.route('/orders/<string:order_id>/fulfillment-status', methods=['POST'])
+@login_required
+def update_order_fulfillment_status(order_id):
+    try:
+        data = request.get_json()
+        new_status = data.get('status')
+        if not new_status:
+            return jsonify({'success': False, 'message': 'حالة الشحن مطلوبة'}), 400
+        
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+
+        order.fulfillment_status = new_status
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        services.orders.update_fulfillment_status(order_id, new_status)
+        return jsonify({'success': True, 'message': 'تم تحديث حالة الشحن بنجاح'})
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ في تحديث حالة الشحن: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================================================
+# ✅ تحديث المورد للطلب (تثبيت الجهة)
+# ============================================================================================
+@admin_orders_bp.route('/orders/<string:order_id>/supplier', methods=['POST'])
+@login_required
+def update_order_supplier(order_id):
+    try:
+        data = request.get_json()
+        supplier_id = data.get('supplier_id')
+        if supplier_id is None:
+            return jsonify({'success': False, 'message': 'المورد مطلوب'}), 400
+
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+
+        supplier = Supplier.query.get(supplier_id)
+        if supplier_id != 0 and not supplier:
+            return jsonify({'success': False, 'message': 'المورد غير موجود'}), 404
+
+        order.supplier_id = supplier_id if supplier_id != 0 else None
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'تم تحديث المورد بنجاح'})
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ في تحديث المورد: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================================================
+# ✅ مسار عرض تفاصيل الطلب
+# ============================================================================================
+@admin_orders_bp.route('/orders/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
+@login_required
+def view_admin_order(order_id):
+    try:
+        order = Order.query.get(order_id)
+        if not order:
+            flash('❌ لم يتم العثور على الطلب', 'danger')
+            return redirect(url_for('admin_orders_bp.list_admin_orders'))
+        return render_template('admin/admin_order_detail.html', order=order)
+    except Exception as e:
+        current_app.logger.error(f"خطأ في عرض تفاصيل الطلب: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع أثناء تحميل تفاصيل الطلب', 'danger')
+        return redirect(url_for('admin_orders_bp.list_admin_orders'))
+
+
+# ============================================================================================
+# ✅ دالة تسجيل المسارات (المفقودة)
+# ============================================================================================
+def register_admin_orders_route(bp):
+    bp.add_url_rule('/orders', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
+    bp.add_url_rule('/orders/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
+    bp.add_url_rule('/orders/<string:order_id>/status', view_func=update_order_status, methods=['POST'])
+    bp.add_url_rule('/orders/<string:order_id>/financial-status', view_func=update_order_financial_status, methods=['POST'])
+    bp.add_url_rule('/orders/<string:order_id>/fulfillment-status', view_func=update_order_fulfillment_status, methods=['POST'])
+    bp.add_url_rule('/orders/<string:order_id>/supplier', view_func=update_order_supplier, methods=['POST'])
+    return bp
