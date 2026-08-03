@@ -1,0 +1,80 @@
+"""
+خدمة الطلبات - Order Service Queries
+"""
+
+# ============================================================
+# ✅ استعلامات الطلبات
+# ============================================================
+
+query GetOrder($qid: ID!) {
+    order(qid: $qid) {
+        _id
+        code
+        totalPrice
+        status {
+            type
+            label
+        }
+        createdAt
+        items {
+            productQid
+            quantity
+            price
+        }
+    }
+}
+
+query FindAllOrders($input: FindAllOrdersInput) {
+    findAllOrders(input: $input) {
+        data {
+            _id
+            code
+            totalPrice
+            status {
+                type
+                label
+            }
+            createdAt
+            items {
+                productQid
+                quantity
+                price
+            }
+        }
+        pagination {
+            totalItems
+            totalPages
+            currentPage
+            limit
+            hasNextPage
+        }
+    }
+}
+
+# ============================================================
+# 🔄 التحويرات (Mutations) المدعومة للطلبات
+# ============================================================
+
+mutation CreateOrder($input: OrderInput!) {
+    createOrder(input: $input) {
+        _id
+        totalPrice
+        status {
+            type
+        }
+    }
+}
+
+mutation UpdateOrderStatus($qid: ID!, $status: String!) {
+    updateOrderStatus(qid: $qid, status: $status) {
+        _id
+        status {
+            type
+        }
+        updatedAt
+    }
+}
+
+mutation DeleteOrder($qid: ID!) {
+    deleteOrder(qid: $qid)
+}
