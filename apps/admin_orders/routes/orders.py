@@ -125,19 +125,28 @@ def update_order_status(order_id):
 def update_order_supplier(order_id):
     try:
         data = request.get_json()
-        supplier_id = data.get('supplier_id')
-        if supplier_id is None:
+        supplier_id_raw = data.get('supplier_id')
+        if supplier_id_raw is None:
             return jsonify({'success': False, 'message': 'المورد مطلوب'}), 400
+
+        # ✅ تحويل آمن لمعرّف المورد إلى رقم صحيح لتجنب أخطاء نوع البيانات
+        try:
+            supplier_id = int(supplier_id_raw)
+        except (TypeError, ValueError):
+            supplier_id = 0
 
         order = Order.query.get(order_id)
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
 
-        supplier = Supplier.query.get(supplier_id)
-        if supplier_id != 0 and not supplier:
-            return jsonify({'success': False, 'message': 'المورد غير موجود'}), 404
+        if supplier_id != 0:
+            supplier = Supplier.query.get(supplier_id)
+            if not supplier:
+                return jsonify({'success': False, 'message': 'المورد غير موجود'}), 404
+            order.supplier_id = supplier_id
+        else:
+            order.supplier_id = None
 
-        order.supplier_id = supplier_id if supplier_id != 0 else None
         order.updated_at = datetime.utcnow()
         db.session.commit()
         return jsonify({'success': True, 'message': 'تم تحديث المورد بنجاح'})
