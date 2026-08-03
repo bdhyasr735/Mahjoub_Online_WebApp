@@ -1,14 +1,12 @@
 # 📂 apps/services/orders_queries.graphql
 
 # ============================================================
-# ✅ استعلامات الطلبات (Orders Queries)
+# ✅ 1. استعلام جلب كافة الطلبات (FindAllOrders)
 # ============================================================
-
 query FindAllOrders($input: FindAllOrdersInput) {
     findAllOrders(input: $input) {
         data {
             _id
-            orderNumber
             type
             totalPrice
             isPaid
@@ -19,7 +17,6 @@ query FindAllOrders($input: FindAllOrdersInput) {
                 code
             }
             account {
-                type
                 account {
                     fullname
                 }
@@ -30,7 +27,7 @@ query FindAllOrders($input: FindAllOrdersInput) {
                 price
                 productData {
                     title
-                    sku
+                    slug
                 }
             }
         }
@@ -44,57 +41,101 @@ query FindAllOrders($input: FindAllOrdersInput) {
     }
 }
 
+# ============================================================
+# 🔍 2. استعلام تفاصيل طلب محدد لبطاقة العرض (FindOrderById)
+# ============================================================
 query FindOrderById($id: ID!) {
     findOrderById(id: $id) {
-        _id
-        orderNumber
-        type
-        totalPrice
-        isPaid
-        createdAt
-        status {
+        data {
             _id
-            title
-            code
-        }
-        account {
             type
-            account {
-                fullname
-            }
-        }
-        items {
-            productId
-            quantity
-            price
-            productData {
+            COD
+            isPaid
+            isFastOrder
+            createdAt
+            totalPrice
+            totalPriceWithTax
+            shippingPrice
+            taxAmount
+            status {
+                _id
                 title
-                sku
+                code
+            }
+            currency {
+                currencyCode
+                currencySymbol
+            }
+            shippingAddress {
+                street
+                neighborhood
+                description
+                city {
+                    name
+                }
+                country {
+                    name
+                }
+            }
+            salesLead {
+                firstName
+                lastName
+                phone1
+                phone2
+                email
+            }
+            account {
+                account {
+                    fullname
+                    phone
+                    avatarUrl
+                }
+            }
+            items {
+                _id
+                productId
+                quantity
+                price
+                totalPrice
+                productData {
+                    title
+                    slug
+                    image {
+                        fileUrl
+                    }
+                }
             }
         }
+        success
+        message
     }
 }
 
 # ============================================================
-# 🔄 التحويرات (Mutations) المدعومة للطلبات
+# 🔄 3. التحويرات (Mutations) المدعومة للطلبات
 # ============================================================
 
+# تغيير حالة الطلب
+mutation ChangeOrderStatus($id: ID!, $status: String!) {
+    changeOrderStatus(id: $id, status: $status) {
+        _id
+        status {
+            _id
+            code
+            title
+        }
+    }
+}
+
+# إنشاء طلب جديد
 mutation CreateOrder($input: OrderInput!) {
     createOrder(input: $input) {
         _id
         totalPrice
-        status
     }
 }
 
-mutation UpdateOrderStatus($id: ID!, $status: String!) {
-    updateOrderStatus(id: $id, status: $status) {
-        _id
-        status
-        updatedAt
-    }
-}
-
+# حذف طلب
 mutation DeleteOrder($id: ID!) {
     deleteOrder(id: $id)
 }
