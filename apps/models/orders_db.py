@@ -129,8 +129,13 @@ class Order(db.Model):
 
     # =========================================================
     # 🚀 خواص التوافقية المعالجة للأخطاء (GraphQL & Jinja2 Bridges)
-    # تمنع حدوث UndefinedError في القوالب نهائياً
+    # 🔗 تم إضافة _id وواجهات الصور الحية (تستدعي ولا تخزن)
     # =========================================================
+
+    @property
+    def _id(self):
+        """خاصية توافقية لدعم القوالب التي تستخدم order._id بدلًا من order.id."""
+        return self.id
 
     @property
     def status(self):
@@ -151,12 +156,20 @@ class Order(db.Model):
 
     @property
     def account(self):
-        """تخلق هيكل account.account.fullname لتوافق القوالب التي تقرأ بيانات العميل كـ GraphQL."""
+        """تخلق هيكل account.account.fullname (مع دعم avatarUrl للاستدعاء الحي دون حفظ الصورة محلياً)."""
         fullname_val = self.customer_name or 'عميل'
 
         class AccountInner:
             def __init__(self, fullname):
                 self.fullname = fullname
+                self.phone = self._get_phone()
+                self.avatarUrl = None  # استدعاء حي عند الطلب إن وجد
+
+            def _get_phone(self):
+                try:
+                    return Order.query.filter_by(id=self.id).first().customer_phone
+                except Exception:
+                    return None
 
         class AccountOuter:
             def __init__(self, fullname):
@@ -187,6 +200,7 @@ class Order(db.Model):
         """تحويل الطلب إلى قاموس للاستخدام في الواجهة"""
         return {
             'id': self.id,
+            '_id': self.id,
             'qid': self.id,
             'order_reference': self.order_reference,
             'order_number': self.order_number,
@@ -202,8 +216,111 @@ class Order(db.Model):
             'items_count': self.items_count or (len(self.items) if self.items else 0),
             'created_at': self.created_at,
             'updated_at': self.updated_at,
-            'supplier_name': self.supplier.trade_name if self.supplier else 'غير مرتبط'
+            'supplier_name': self.supplier.trade_name if self.supplier else 'غير مرتبط',
+            'items': [item.to_dict() for item in self.items] if self.items else []
         }
 
     def __repr__(self):
         return f'<Order {self.order_id_display or self.id} | Status: {self.status_title} | Amount: {self.amount} SAR>'
+
+
+class OrderItem(db.Model):
+    """عناصر الطلب المرتبطة بجدول Order (تدعم استدعاء روابط الصور الحية دون تخزينها محلياً)."""
+    __tablename__ = 'order_items'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order_id = db.Column(db.String(100), db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+    
+    productId = db.Column(db.String(100), nullable=True)
+    title = db.Column(db.String(255), nullable=True)
+    qty = db.Column(db.Integer, default=1)
+    price_per_unit = db.Column(db.Numeric(18, 2), default=0.00)
+    subtotal = db.Column(db.Numeric(18, 2), default=0.00)
+    sku = db.Column(db.String(100), nullable=True)
+    
+    # حقل لتخزين مسار الصورة إن وجد، أو استدعاؤها حياً
+    _image_url = db.Column(db.Text, nullable=True)
+
+    order = db.relationship('Order', back_populates='items')
+
+    @property
+    def _id(self):
+        """توافقية المعرف النصي أو الرقمي للعنصر"""
+        return str(self.id)
+
+    @property
+    def price(self):
+        """توافقية السعر الفردي"""
+        return float(self.price_per_unit or 0.0)
+
+    @property
+    def quantity(self):
+        """توافقية الكمية"""
+        return self.qty
+
+    @property
+    def totalPrice(self):
+        """توافقية إجمالي عنصر الطلب"""
+        return float(self.subtotal or (float(self.price_per_unit or 0.0) * self.qty))
+
+    @property
+    def productData(self):
+        """بنية محاكاة لتوافق قوالب العرض (مثل productData.title و productData.image.fileUrl للاستدعاء الحي)."""
+        item_title = self.title or 'منتج'
+        img_url = self._image_url
+
+        class ImageWrapper:
+            def __init__(self, url):
+                self.fileUrl = url
+
+        class ProductDataInner:
+            def __init__(self, title, image_url):
+                self.title = title
+                self.slug = title
+                self.image = ImageWrapper(image_url) if image_url else None
+
+        return ProductDataInner(item_title, img_url)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            '_id': str(self.id),
+            'order_id': self.order_id,
+            'productId': self.productId,
+            'title': self.title,
+            'qty': self.qty,
+            'quantity': self.qty,
+            'price': float(self.price_per_unit or 0.0),
+            'price_per_unit': float(self.price_per_unit or 0.0),
+            'subtotal': float(self.subtotal or 0.0),
+            'totalPrice': float(self.subtotal or 0.0),
+            'sku': self.sku,
+            'productData': {
+                'title': self.title,
+                'slug': self.title,
+                'image': {'fileUrl': self._image_url} if self._image_url else None
+            }
+        }
+
+
+class OrderFinancial(db.Model):
+    """الحسابات المالية المرتبطة بالطلب."""
+    __tablename__ = 'order_financials'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order_id = db.Column(db.String(100), db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+    
+    total_paid = db.Column(db.Numeric(18, 2), default=0.00)
+    shipping_price = db.Column(db.Numeric(18, 2), default=0.00)
+    tax_amount = db.Column(db.Numeric(18, 2), default=0.00)
+    
+    order = db.relationship('Order', back_populates='financials')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'total_paid': float(self.total_paid or 0.0),
+            'shipping_price': float(self.shipping_price or 0.0),
+            'tax_amount': float(self.tax_amount or 0.0)
+        }
