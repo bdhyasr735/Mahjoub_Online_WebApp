@@ -33,11 +33,15 @@ class Order(db.Model):
     marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
     
     tracking_tag = db.Column(db.String(100), nullable=True)
-    order_reference = db.Column(db.String(100), unique=True, nullable=True)
+    order_reference = db.Column(db.String(100), unique=True, nullable=True)  # يمكن استخدامه كـ "رقم الطلب"
     
     total_price = db.Column(db.Numeric(18, 2), default=0.00)
     items_count = db.Column(db.Integer, default=0)
     status = db.Column(db.String(30), default='pending')
+    
+    # ✅ الحقول الجديدة للحالة المالية وحالة الشحن
+    financial_status = db.Column(db.String(30), default='unpaid')
+    fulfillment_status = db.Column(db.String(30), default='unfulfilled')
     
     _customer_name = db.Column(db.Text)
     _customer_phone = db.Column(db.Text)
@@ -98,15 +102,17 @@ class Order(db.Model):
     def customer_address(self, value):
         if value: self._customer_address = cipher.encrypt(str(value).encode()).decode()
 
-    # ✅ الدالة المفقودة التي تسبب الخطأ
     def to_dict(self):
         """تحويل الطلب إلى قاموس للاستخدام في الواجهة"""
         return {
             'id': self.id,
             'qid': self.id,
+            'order_reference': self.order_reference,  # رقم الطلب الحقيقي
             'supplier_id': self.supplier_id,
             'status_code': self.status,
             'status_title': self.status.title() if self.status else 'غير معروف',
+            'financial_status': self.financial_status,
+            'fulfillment_status': self.fulfillment_status,
             'total_price': float(self.total_price) if self.total_price else 0.0,
             'created_at': self.created_at,
             'updated_at': self.updated_at,
