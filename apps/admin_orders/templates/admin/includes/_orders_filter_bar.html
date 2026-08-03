@@ -11,7 +11,7 @@
             </div>
         </div>
 
-        <!-- 2. فلتر الحالة -->
+        <!-- 2. فلتر الحالة الرئيسية -->
         <div class="col-md-2">
             <label class="form-label fw-bold small text-uppercase text-muted">
                 <i class="fas fa-circle me-1" style="color: #D4AF37;"></i> الحالة
@@ -29,7 +29,33 @@
             </select>
         </div>
 
-        <!-- 3. فلتر المورد (جديد) -->
+        <!-- 3. فلتر الحالة المالية -->
+        <div class="col-md-2">
+            <label class="form-label fw-bold small text-uppercase text-muted">
+                <i class="fas fa-coins me-1" style="color: #D4AF37;"></i> الحالة المالية
+            </label>
+            <select id="financialStatusFilter" class="form-select">
+                <option value="">الكل</option>
+                <option value="paid">مدفوع</option>
+                <option value="unpaid">غير مدفوع</option>
+                <option value="refunded">مسترد</option>
+            </select>
+        </div>
+
+        <!-- 4. فلتر حالة الشحن -->
+        <div class="col-md-2">
+            <label class="form-label fw-bold small text-uppercase text-muted">
+                <i class="fas fa-truck me-1" style="color: #D4AF37;"></i> حالة الشحن
+            </label>
+            <select id="fulfillmentStatusFilter" class="form-select">
+                <option value="">الكل</option>
+                <option value="fulfilled">مكتمل</option>
+                <option value="unfulfilled">غير مكتمل</option>
+                <option value="partial">جزئي</option>
+            </select>
+        </div>
+
+        <!-- 5. فلتر المورد -->
         <div class="col-md-2">
             <label class="form-label fw-bold small text-uppercase text-muted">
                 <i class="fas fa-store me-1"></i> المورد
@@ -42,7 +68,7 @@
             </select>
         </div>
 
-        <!-- 4. نطاق التاريخ -->
+        <!-- 6. نطاق التاريخ -->
         <div class="col-md-3">
             <label class="form-label fw-bold small text-uppercase text-muted">
                 <i class="fas fa-calendar-alt me-1"></i> الفترة الزمنية
@@ -59,7 +85,7 @@
             </div>
         </div>
 
-        <!-- 5. عدد العناصر وأزرار التحكم -->
+        <!-- 7. عدد العناصر وأزرار التحكم -->
         <div class="col-md-2 d-flex gap-2 align-items-end">
             <div class="w-50">
                 <label class="form-label fw-bold small text-uppercase text-muted">عدد</label>
@@ -81,6 +107,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.clearAllFilters = function() {
         document.getElementById('searchInput').value = '';
         document.getElementById('statusFilter').value = '';
+        document.getElementById('financialStatusFilter').value = '';
+        document.getElementById('fulfillmentStatusFilter').value = '';
         document.getElementById('supplierFilter').value = '';
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
