@@ -1,1 +1,79 @@
+{% extends "admin/admin_base.html" %}
 
+{% block title %}إدارة الطلبات | محجوب{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1" style="color: #2d0b36;">📦 إدارة الطلبات</h2>
+            <p class="text-muted text-sm mb-0">عرض وإدارة جميع طلبات الزبائن في المنصة.</p>
+        </div>
+    </div>
+
+    <!-- ✅ شريط الفلاتر -->
+    {% include "admin/includes/_orders_filter_bar.html" ignore missing %}
+
+    <!-- ✅ حاوية الطلبات والترقيم -->
+    <div id="ordersContainer">
+        {% include "admin/partials/_orders_table.html" ignore missing %}
+        {% include "admin/partials/_pagination.html" ignore missing %}
+    </div>
+</div>
+
+<!-- حقل CSRF Token -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+
+<script>
+// دالة منع التكرار
+let debounceTimer;
+function debounceFetchAdminOrders() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        fetchAdminOrders(1);
+    }, 500);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                fetchAdminOrders(1);
+            }
+        });
+    }
+});
+
+function fetchAdminOrders(page = 1) {
+    const container = document.getElementById('ordersContainer');
+    container.innerHTML = `<div class="text-center py-5"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2 text-muted">⏳ جاري تحميل الطلبات...</p></div>`;
+
+    const params = new URLSearchParams({
+        page: page,
+        search: document.getElementById('searchInput').value.trim() || '',
+        status: document.getElementById('statusFilter').value || '',
+        date_from: document.getElementById('dateFrom').value || '',
+        date_to: document.getElementById('dateTo').value || '',
+        limit: document.getElementById('limitSelect').value || '10',
+        ajax: '1'
+    });
+
+    fetch("{{ url_for('admin_orders_bp.list_admin_orders') }}?" + params.toString(), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.html) {
+            container.innerHTML = data.html + data.pagination_html;
+        } else {
+            container.innerHTML = `<div class="alert alert-warning text-center py-4 rounded-4"><i class="fas fa-search fa-2x d-block mb-3 opacity-50"></i> لا توجد طلبات مطابقة للبحث.</div>`;
+        }
+    })
+    .catch(error => {
+        container.innerHTML = `<div class="alert alert-danger text-center py-4 rounded-4"><i class="fas fa-exclamation-triangle fa-2x d-block mb-3"></i> حدث خطأ أثناء جلب الطلبات.</div>`;
+    });
+}
+</script>
+{% endblock %}
