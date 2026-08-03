@@ -102,10 +102,19 @@ class OrderService:
                                 if mapping:
                                     supplier_id_found = mapping.supplier_id
 
-                        # حالة الطلب (نستخدم `status` مباشرة لأن الموديل يتوقع نصاً)
+                        # حالة الطلب الأساسية
                         status_str = order.get('status', 'pending')
                         if isinstance(status_str, dict):
                             status_str = status_str.get('code', 'pending')
+
+                        # الحالة المالية وحالة الشحن (قد تأتي من قمرة)
+                        financial_status = order.get('financialStatus', 'unpaid')
+                        fulfillment_status = order.get('fulfillmentStatus', 'unfulfilled')
+                        # إذا كانت قادمة ككائن، نستخرج القيمة
+                        if isinstance(financial_status, dict):
+                            financial_status = financial_status.get('code', 'unpaid')
+                        if isinstance(fulfillment_status, dict):
+                            fulfillment_status = fulfillment_status.get('code', 'unfulfilled')
 
                         # البحث عن الطلب في قاعدة البيانات
                         existing_order = Order.query.filter_by(id=qid).first()
@@ -114,6 +123,8 @@ class OrderService:
                             # تحديث البيانات
                             existing_order.supplier_id = supplier_id_found
                             existing_order.status = status_str
+                            existing_order.financial_status = financial_status
+                            existing_order.fulfillment_status = fulfillment_status
                             existing_order.total_price = order.get('totalPrice', 0.0)
                             
                             # حذف العناصر القديمة وإعادة إضافتها
@@ -124,6 +135,8 @@ class OrderService:
                                 id=qid,
                                 supplier_id=supplier_id_found,
                                 status=status_str,
+                                financial_status=financial_status,
+                                fulfillment_status=fulfillment_status,
                                 total_price=order.get('totalPrice', 0.0)
                             )
                             db.session.add(existing_order)
@@ -236,6 +249,26 @@ class OrderService:
             return result.get('updateOrderStatus') if result else None
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في تحديث حالة الطلب {qid}: {e}")
+            return None
+
+    def update_financial_status(self, qid: str, financial_status: str) -> Optional[Dict[str, Any]]:
+        """تحديث الحالة المالية للطلب"""
+        mutation = self._extract_query("UpdateOrderFinancialStatus")
+        try:
+            result = self.client.execute(mutation, {"id": qid, "financialStatus": financial_status}, operation_name="UpdateOrderFinancialStatus")
+            return result.get('updateOrderFinancialStatus') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في تحديث الحالة المالية {qid}: {e}")
+            return None
+
+    def update_fulfillment_status(self, qid: str, fulfillment_status: str) -> Optional[Dict[str, Any]]:
+        """تحديث حالة الشحن للطلب"""
+        mutation = self._extract_query("UpdateOrderFulfillmentStatus")
+        try:
+            result = self.client.execute(mutation, {"id": qid, "fulfillmentStatus": fulfillment_status}, operation_name="UpdateOrderFulfillmentStatus")
+            return result.get('updateOrderFulfillmentStatus') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في تحديث حالة الشحن {qid}: {e}")
             return None
 
     def delete_order(self, qid: str) -> bool:
