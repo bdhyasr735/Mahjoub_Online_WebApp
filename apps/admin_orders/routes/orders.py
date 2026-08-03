@@ -2,14 +2,15 @@
 # 📂 apps/admin_orders/routes/orders.py
 
 import traceback
+from datetime import datetime
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from flask_login import login_required
+
 from apps.admin_orders.routes import admin_orders_bp
 from apps.services import services
 from apps.models.supplier_db import Supplier
 from apps.models.orders_db import Order
 from apps.extensions import db
-from datetime import datetime
 
 
 @admin_orders_bp.route('', methods=['GET'], endpoint='list_admin_orders')
@@ -114,7 +115,7 @@ def update_order_status(order_id):
         order.updated_at = datetime.utcnow()
         db.session.commit()
 
-        # تحديث الحالة في الخدمة المحلیة إذا لزم الأمر
+        # تحديث الحالة في الخدمة الخارجية/المحلية إذا لزم الأمر
         if hasattr(services.orders, 'update_order_status'):
             try:
                 services.orders.update_order_status(order_id, new_status)
