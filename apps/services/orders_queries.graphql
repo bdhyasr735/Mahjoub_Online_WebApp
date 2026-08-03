@@ -1,5 +1,5 @@
 """
-خدمة الطلبات - Order Service Queries (نسخة متطابقة 100% مع السكيما)
+خدمة الطلبات - Order Service Queries (النسخة النهائية)
 """
 
 # ============================================================
@@ -18,7 +18,9 @@ query FindAllOrders($input: FindAllOrdersInput) {
             }
             isPaid
             account {
-                displayName
+                account {
+                    fullname
+                }
             }
             createdAt
             items {
@@ -48,7 +50,9 @@ query FindOrderById($id: ID!) {
         }
         isPaid
         account {
-            displayName
+            account {
+                fullname
+            }
         }
         createdAt
         items {
