@@ -9,7 +9,6 @@ from flask_login import login_required
 
 from apps.admin_orders.routes import admin_orders_bp
 from apps.services import services
-from apps.models.supplier_db import Supplier
 from apps.models.orders_db import Order
 from apps.extensions import db
 
@@ -42,10 +41,9 @@ def manage_admin_orders_view():
         search_term = request.args.get('search', '').strip().lower()
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
-        supplier_filter = request.args.get('supplier_id', type=int)
 
         # 🚀 [تحسين السرعة الفائقة]: تشغيل المزامنة في الخلفية فقط عند فتح الصفحة الأولى وبدون تصفية
-        if not is_ajax and page == 1 and not (search_term or status_filter or date_from or date_to or supplier_filter):
+        if not is_ajax and page == 1 and not (search_term or status_filter or date_from or date_to):
             app = current_app._get_current_object()
             threading.Thread(
                 target=_sync_orders_in_background,
@@ -57,7 +55,6 @@ def manage_admin_orders_view():
         result = services.orders.get_local_orders(
             page=page,
             per_page=per_page,
-            supplier_id=supplier_filter,
             status=status_filter if status_filter else None,
             search=search_term if search_term else None,
             date_from=date_from if date_from else None,
@@ -66,7 +63,6 @@ def manage_admin_orders_view():
 
         orders = result.get('data', [])
         pagination = result.get('pagination', {})
-        suppliers = Supplier.query.filter_by(status='active').all()
 
         pagination_info = {
             'current_page': page,
@@ -86,12 +82,12 @@ def manage_admin_orders_view():
         if is_ajax:
             return jsonify({
                 'success': True,
-                'html': render_template('admin/partials/_orders_table.html', orders=orders, pagination=pagination_info, suppliers=suppliers),
+                'html': render_template('admin/partials/_orders_table.html', orders=orders, pagination=pagination_info),
                 'pagination_html': render_template('admin/partials/_pagination.html', pagination=pagination_info),
                 'total_items': pagination_info['total_items']
             })
 
-        return render_template('admin/admin_orders.html', orders=orders, pagination=pagination_info, suppliers=suppliers)
+        return render_template('admin/admin_orders.html', orders=orders, pagination=pagination_info)
 
     except Exception as e:
         current_app.logger.error(f"خطأ في جلب الطلبات للأدمن: {traceback.format_exc()}")
@@ -99,7 +95,7 @@ def manage_admin_orders_view():
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         if is_ajax:
             return jsonify({'success': False, 'message': 'حدث خطأ أثناء تحميل الطلبات'}), 500
-        return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1}, suppliers=[])
+        return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1})
 
 
 @admin_orders_bp.route('/sync', methods=['POST'])
@@ -150,41 +146,6 @@ def update_order_status(order_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@admin_orders_bp.route('/<string:order_id>/supplier', methods=['POST'])
-@login_required
-def update_order_supplier(order_id):
-    try:
-        data = request.get_json() or {}
-        supplier_id_raw = data.get('supplier_id')
-        if supplier_id_raw is None:
-            return jsonify({'success': False, 'message': 'المورد مطلوب'}), 400
-
-        try:
-            supplier_id = int(supplier_id_raw)
-        except (TypeError, ValueError):
-            supplier_id = 0
-
-        order = Order.query.get(order_id)
-        if not order:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-
-        if supplier_id != 0:
-            supplier = Supplier.query.get(supplier_id)
-            if not supplier:
-                return jsonify({'success': False, 'message': 'المورد غير موجود'}), 404
-            order.supplier_id = supplier_id
-        else:
-            order.supplier_id = None
-
-        order.updated_at = datetime.utcnow()
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'تم تحديث المورد بنجاح'})
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
 @admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
 @login_required
 def view_admin_order(order_id):
@@ -223,6 +184,5 @@ def register_admin_orders_route(bp):
     bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
     bp.add_url_rule('/sync', view_func=sync_admin_orders, methods=['POST'])
     bp.add_url_rule('/<string:order_id>/status', view_func=update_order_status, methods=['POST'])
-    bp.add_url_rule('/<string:order_id>/supplier', view_func=update_order_supplier, methods=['POST'])
     bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
     return bp
