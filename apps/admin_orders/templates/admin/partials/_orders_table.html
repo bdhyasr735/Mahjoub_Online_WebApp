@@ -1,7 +1,7 @@
 <!-- 📂 apps/templates/admin/partials/_orders_table.html -->
 <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-3">
     <div class="card-body p-0">
-        <div class="table-responsive w-full" style="overflow-x: hidden !important;">
+        <div class="table-responsive w-full" style="overflow-x: auto !important;">
             <table class="table align-middle text-center w-full mb-0" style="font-size: 0.85rem;">
                 <thead class="table-dark" style="background-color: #2d0b36; color: #fff;">
                     <tr>
@@ -17,26 +17,77 @@
                 </thead>
                 <tbody>
                     {% if orders %}
-                        {% for order in orders %}
+                        {%- for order in orders -%}
                         <tr>
                             <!-- رقم الطلب -->
                             <td class="fw-bold py-2">#{{ order.order_number or order.id[:8] }}</td>
                             
-                            <!-- اسم العميل (مع خاصية القص والنص التوضيحي) -->
+                            <!-- اسم العميل -->
                             <td class="py-2 text-truncate" style="max-width: 120px;" title="{{ order.customer_name }}">
                                 {{ order.customer_name or 'عميل زائر' }}
                             </td>
 
-                            <!-- قائمة المورد المنسدلة التفاعلية -->
+                            <!-- قائمة المورد مع بحث متطور -->
                             <td class="py-2">
-                                <select class="form-select form-select-sm border bg-light text-dark fw-semibold mx-auto" style="font-size: 0.8rem; max-width: 140px;" onchange="updateOrderSupplierInline('{{ order.id }}', this.value)">
-                                    <option value="0" {% if not order.supplier_id %}selected{% endif %}>-- غير مرتبط --</option>
-                                    {% if suppliers %}
-                                        {% for sup in suppliers %}
-                                            <option value="{{ sup.id }}" {% if order.supplier_id == sup.id %}selected{% endif %}>{{ sup.trade_name }}</option>
-                                        {% endfor %}
-                                    {% endif %}
-                                </select>
+                                <div class="dropdown text-center" style="position: relative;">
+                                    {%- set current_supplier_name = '-- غير مرتبط --' -%}
+                                    {%- if order.supplier_id and suppliers -%}
+                                        {%- for sup in suppliers -%}
+                                            {%- if order.supplier_id == sup.id -%}
+                                                {%- set _ = current_supplier_name.update(sup.trade_name) if false else None -%}
+                                            {%- endif -%}
+                                        {%- endfor -%}
+                                    {%- endif -%}
+
+                                    {%- set selected_name = namespace(val='-- غير مرتبط --') -%}
+                                    {%- if suppliers -%}
+                                        {%- for sup in suppliers -%}
+                                            {%- if order.supplier_id == sup.id -%}
+                                                {%- set selected_name.val = sup.trade_name -%}
+                                            {%- endif -%}
+                                        {%- endfor -%}
+                                    {%- endif -%}
+
+                                    <button class="btn btn-sm btn-light border text-dark fw-semibold dropdown-toggle text-truncate" 
+                                            type="button" 
+                                            data-bs-toggle="dropdown" 
+                                            data-bs-boundary="viewport"
+                                            aria-expanded="false" 
+                                            style="font-size: 0.8rem; max-width: 145px; width: 145px;"
+                                            title="{{ selected_name.val }}">
+                                        {{ selected_name.val }}
+                                    </button>
+
+                                    <div class="dropdown-menu p-2 shadow border-0 rounded-3 text-end" style="min-width: 200px; max-height: 280px; overflow-y: auto;">
+                                        <!-- خانة البحث المتطور داخل القائمة -->
+                                        <div class="mb-2 px-1">
+                                            <input type="text" 
+                                                   class="form-control form-control-sm supplier-search-input" 
+                                                   placeholder="🔍 ابحث عن مورد..." 
+                                                   autocomplete="off"
+                                                   oninput="filterSuppliers(this)">
+                                        </div>
+                                        
+                                        <div class="supplier-items-container">
+                                            <a class="dropdown-item py-1.5 px-2 rounded small supplier-option {% if not order.supplier_id %}active fw-bold bg-primary text-white{% endif %}" 
+                                               href="#" 
+                                               data-id="0" 
+                                               onclick="selectSupplier(event, '{{ order.id }}', '0', '-- غير مرتبط --', this)">
+                                                -- غير مرتبط --
+                                            </a>
+                                            {% if suppliers %}
+                                                {% for sup in suppliers %}
+                                                    <a class="dropdown-item py-1.5 px-2 rounded small supplier-option {% if order.supplier_id == sup.id %}active fw-bold bg-primary text-white{% endif %}" 
+                                                       href="#" 
+                                                       data-id="{{ sup.id }}" 
+                                                       onclick="selectSupplier(event, '{{ order.id }}', '{{ sup.id }}', '{{ sup.trade_name }}', this)">
+                                                        {{ sup.trade_name }}
+                                                    </a>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
 
                             <!-- التاريخ -->
@@ -81,7 +132,7 @@
                                 </a>
                             </td>
                         </tr>
-                        {% endfor %}
+                        {%- endfor -%}
                     {% else %}
                         <tr>
                             <td colspan="8" class="text-center py-4 text-muted">
@@ -97,6 +148,50 @@
 </div>
 
 <script>
+// دالة البحث المتطور داخل قائمة الموردين لكل صف على حدة
+function filterSuppliers(inputElement) {
+    const query = inputElement.value.toLowerCase().trim();
+    const container = inputElement.closest('.dropdown-menu');
+    const options = container.querySelectorAll('.supplier-option');
+
+    options.forEach(option => {
+        const text = option.textContent.toLowerCase();
+        if (text.includes(query)) {
+            option.style.display = '';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+}
+
+// دالة اختيار المورد وتحديثه عبر AJAX
+function selectSupplier(event, orderId, supplierId, supplierName, element) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const dropdownContainer = element.closest('.dropdown');
+    const btn = dropdownContainer.querySelector('.dropdown-toggle');
+    
+    // تحديث نص الزر والعنوان
+    btn.textContent = supplierName;
+    btn.title = supplierName;
+
+    // تحديث حالة التحديد (Active class) في القائمة
+    dropdownContainer.querySelectorAll('.supplier-option').forEach(opt => {
+        opt.classList.remove('active', 'fw-bold', 'bg-primary', 'text-white');
+    });
+    element.classList.add('active', 'fw-bold', 'bg-primary', 'text-white');
+
+    // إغلاق القائمة المنسدلة
+    const bsDropdown = bootstrap.Dropdown.getInstance(btn);
+    if (bsDropdown) {
+        bsDropdown.hide();
+    }
+
+    // إرسال التحديث للسيرفر
+    updateOrderSupplierInline(orderId, supplierId);
+}
+
 // دوال التحديث الفوري عبر AJAX
 function updateOrderStatusInline(orderId, newStatus) {
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
