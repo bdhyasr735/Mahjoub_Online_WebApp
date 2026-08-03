@@ -8,9 +8,9 @@
                 <th style="min-width: 180px;">المورد</th>
                 <th>التاريخ</th>
                 <th>الإجمالي (ر.س)</th>
-                <th style="min-width: 200px;">الحالة</th>
-                <th style="min-width: 160px;">الحالة المالية</th>
-                <th style="min-width: 160px;">حالة الشحن</th>
+                <th style="min-width: 160px;">حالة الطلب</th>
+                <th style="min-width: 140px;">الحالة المالية</th>
+                <th style="min-width: 140px;">حالة الشحن</th>
                 <th>الإجراءات</th>
             </tr>
         </thead>
@@ -77,7 +77,7 @@
 </div>
 
 <script>
-// ✅ تحديث الحالة الرئيسية للطلب
+// ✅ تحديث حالة الطلب
 function updateOrderStatus(orderId, status) {
     fetch(`/admin/orders/orders/${orderId}/status`, {
         method: 'POST',
