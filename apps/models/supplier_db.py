@@ -47,7 +47,10 @@ class Supplier(db.Model, UserMixin):
     # العلاقات: باستخدام التحميل الكسول (lazy='select')
     supplier_profile = db.relationship('SupplierProfile', back_populates='supplier', uselist=False, lazy='select', cascade="all, delete-orphan")
     wallet = db.relationship('SupplierWallet', back_populates='supplier', uselist=False, lazy='select', cascade="all, delete-orphan")
+    
+    # ✅ العلاقة المطلوبة مع الطلبات (Orders)
     orders = db.relationship('Order', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
+    
     financials = db.relationship('OrderFinancial', back_populates='supplier', lazy='select', cascade="all, delete-orphan")
     
     # الربط مع الموظفين
