@@ -32,17 +32,16 @@ def manage_supplier_orders_view():
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
 
-        # جلب الطلبات من الخدمة مع الفلاتر
         result = services.orders.get_all_orders(
-            page=page, 
-            per_page=per_page, 
+            page=page,
+            per_page=per_page,
             supplier_id=supplier_id,
             status=status_filter if status_filter else None,
             search=search_term if search_term else None,
             date_from=date_from if date_from else None,
             date_to=date_to if date_to else None
         )
-        
+
         orders = result.get('data', [])
         pagination = result.get('pagination', {})
 
@@ -58,7 +57,10 @@ def manage_supplier_orders_view():
         }
 
         for order in orders:
-            order['status_text'] = order.get('status', '').upper()
+            if order.get('status') and isinstance(order['status'], dict):
+                order['status_text'] = order['status'].get('label', order['status'].get('type', 'غير معروف'))
+            else:
+                order['status_text'] = str(order.get('status', '')).upper()
 
         if is_ajax:
             return jsonify({
@@ -76,14 +78,13 @@ def manage_supplier_orders_view():
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         if is_ajax:
             return jsonify({'success': False, 'message': 'حدث خطأ أثناء تحميل الطلبات'}), 500
-        
+
         return render_template('suppliers/orders_dashboard.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1})
 
 
 # ============================================================================================
-# ✅ الحل الجذري: إضافة دالة تسجيل المسارات لتتوافق مع __init__.py
+# ✅ دالة تسجيل المسارات (مطابقة لهيكل suppliers_product)
 # ============================================================================================
 def register_orders_route(bp):
-    # إضافة مسار عرض الطلبات (قائمة المورد) باستخدام add_url_rule
     bp.add_url_rule('/orders', view_func=manage_supplier_orders_view, methods=['GET'], endpoint='list_supplier_orders')
     return bp
