@@ -18,9 +18,8 @@ from .supplier_profile_db import SupplierProfile
 from .supplier_staff_db import SupplierStaff
 from .wallet_db import SupplierWallet, WalletTransaction
 from .financials_db import OrderFinancial
-from .orders_db import Order
-from .order_items_db import OrderItem
-from .product_db import Product 
+from .orders_db import Order, OrderItem
+from .product_db import Product
 from .product_supplier_map import ProductSupplierMapping
 from .sync_log import SyncLog
 
