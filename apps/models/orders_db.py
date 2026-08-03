@@ -5,7 +5,6 @@ import os
 from datetime import datetime
 from cryptography.fernet import Fernet
 from apps.extensions import db
-# ❌ تم إزالة: from apps.models.exchange_db import ExchangeRate
 
 def get_cipher():
     key = os.getenv('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
@@ -17,7 +16,6 @@ class Order(db.Model):
     """موديل الطلبات: المحرك التشغيلي الذي يربط العميل بالمورد والمسوق."""
     __tablename__ = 'orders'
 
-    # [فهرسة متقدمة]: للبحث السريع (Indices)
     __table_args__ = (
         db.Index('idx_ord_supplier_id', 'supplier_id'),
         db.Index('idx_ord_marketer_id', 'marketer_id'),
@@ -28,23 +26,19 @@ class Order(db.Model):
         {'extend_existing': True}
     )
 
-    # المعرفات الأساسية
     id = db.Column(db.String(100), primary_key=True)
     order_id_display = db.Column(db.String(50), nullable=True)
     
-    # الربط السيادي (Foreign Keys)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
     
     tracking_tag = db.Column(db.String(100), nullable=True)
     order_reference = db.Column(db.String(100), unique=True, nullable=True)
     
-    # بيانات ظاهرة للاستعلامات السريعة
     total_price = db.Column(db.Numeric(18, 2), default=0.00)
     items_count = db.Column(db.Integer, default=0)
     status = db.Column(db.String(30), default='pending')
     
-    # [تشفير حساس] - بيانات العميل محمية
     _customer_name = db.Column(db.Text)
     _customer_phone = db.Column(db.Text)
     _customer_address = db.Column(db.Text)
@@ -52,7 +46,6 @@ class Order(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # العلاقات (Relationships)
     supplier = db.relationship('Supplier', back_populates='orders', lazy='joined')
     marketer = db.relationship('Marketer', back_populates='orders', lazy='joined')
     
@@ -71,16 +64,10 @@ class Order(db.Model):
         lazy='joined'
     )
 
-    # --- جسر البيانات المالية ---
     @property
     def amount(self):
-        """إجمالي المبلغ المدفوع (بالريال السعودي SAR)."""
         return self.financials.total_paid if self.financials else 0.0
 
-    # ✅ تم إزالة دالة تحويل العملات لأن العملة ثابتة SAR
-    # ❌ تم حذف: def get_amount_in_currency(self, currency_code):
-
-    # --- منطق التشفير الاحترافي ---
     @property
     def customer_name(self):
         try:
@@ -110,6 +97,21 @@ class Order(db.Model):
     @customer_address.setter
     def customer_address(self, value):
         if value: self._customer_address = cipher.encrypt(str(value).encode()).decode()
+
+    # ✅ الدالة المفقودة التي تسبب الخطأ
+    def to_dict(self):
+        """تحويل الطلب إلى قاموس للاستخدام في الواجهة"""
+        return {
+            'id': self.id,
+            'qid': self.id,
+            'supplier_id': self.supplier_id,
+            'status_code': self.status,
+            'status_title': self.status.title() if self.status else 'غير معروف',
+            'total_price': float(self.total_price) if self.total_price else 0.0,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+            'supplier_name': self.supplier.trade_name if self.supplier else 'غير مرتبط'
+        }
 
     def __repr__(self):
         return f'<Order {self.order_id_display or self.id} | Status: {self.status} | Amount: {self.amount} SAR>'
