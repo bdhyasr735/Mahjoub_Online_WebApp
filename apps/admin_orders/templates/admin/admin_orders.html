@@ -9,6 +9,11 @@
             <h2 class="fw-bold mb-1" style="color: #2d0b36;">📦 إدارة الطلبات</h2>
             <p class="text-muted text-sm mb-0">عرض وإدارة جميع طلبات الزبائن في المنصة.</p>
         </div>
+        
+        <!-- ✅ زر المزامنة الجديد -->
+        <button class="btn btn-warning d-flex align-items-center gap-2" onclick="syncAdminOrders()">
+            <i class="fas fa-sync-alt"></i> مزامنة الطلبات
+        </button>
     </div>
 
     <!-- ✅ شريط الفلاتر -->
@@ -73,6 +78,42 @@ function fetchAdminOrders(page = 1) {
     })
     .catch(error => {
         container.innerHTML = `<div class="alert alert-danger text-center py-4 rounded-4"><i class="fas fa-exclamation-triangle fa-2x d-block mb-3"></i> حدث خطأ أثناء جلب الطلبات.</div>`;
+    });
+}
+
+// ✅ دالة مزامنة الطلبات
+function syncAdminOrders() {
+    if (!confirm('هل تريد مزامنة الطلبات من قمرة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
+    
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
+    btn.disabled = true;
+
+    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+
+    fetch('/admin/orders/orders/sync', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken 
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload(); // تحديث الصفحة لإظهار الطلبات
+        } else {
+            alert('❌ ' + data.message);
+        }
+    })
+    .catch(err => {
+        alert('❌ حدث خطأ في الاتصال: ' + err.message);
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     });
 }
 </script>
