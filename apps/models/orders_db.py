@@ -160,11 +160,16 @@ class Order(db.Model):
 
     @property
     def total_amount(self):
-        return self.total_price
+        return float(self.total_price or 0.0)
 
     @property
     def totalPrice(self):
-        return self.total_price
+        return float(self.total_price or 0.0)
+
+    @property
+    def shippingPrice(self):
+        """خاصية توافقية لـ سعر الشحن تُرجع float لمنع خطأ الجمع مع Decimal."""
+        return 0.0
 
     @property
     def shipping_address(self):
