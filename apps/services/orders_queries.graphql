@@ -1,27 +1,13 @@
 """
-خدمة الطلبات - Order Service Queries (نسخة مصححة)
+خدمة الطلبات - Order Service Queries (نسخة متطابقة مع Sandbox)
 """
 
 # ============================================================
 # ✅ استعلامات الطلبات
 # ============================================================
 
-query GetOrder($qid: ID!) {
-    order(qid: $qid) {
-        _id
-        totalPrice
-        status
-        createdAt
-        items {
-            productQid
-            quantity
-            price
-        }
-    }
-}
-
-query FindAllOrders($input: FindAllOrdersInput) {
-    findAllOrders(input: $input) {
+query GetOrdersByIds($ids: [ID!], $input: FindAllOrdersInput) {
+    getOrdersByIds(ids: $ids, input: $input) {
         data {
             _id
             totalPrice
@@ -43,6 +29,22 @@ query FindAllOrders($input: FindAllOrdersInput) {
     }
 }
 
+query GetOrder($id: ID!) {
+    getOrdersByIds(ids: [$id]) {
+        data {
+            _id
+            totalPrice
+            status
+            createdAt
+            items {
+                productQid
+                quantity
+                price
+            }
+        }
+    }
+}
+
 # ============================================================
 # 🔄 التحويرات (Mutations) المدعومة للطلبات
 # ============================================================
@@ -55,14 +57,14 @@ mutation CreateOrder($input: OrderInput!) {
     }
 }
 
-mutation UpdateOrderStatus($qid: ID!, $status: String!) {
-    updateOrderStatus(qid: $qid, status: $status) {
+mutation UpdateOrderStatus($id: ID!, $status: String!) {
+    updateOrderStatus(id: $id, status: $status) {
         _id
         status
         updatedAt
     }
 }
 
-mutation DeleteOrder($qid: ID!) {
-    deleteOrder(qid: $qid)
+mutation DeleteOrder($id: ID!) {
+    deleteOrder(id: $id)
 }
