@@ -35,30 +35,67 @@ class OrderService:
             print(f"❌ [OrderService]: خطأ في جلب الطلب {qid}: {e}")
             return None
 
-    def get_orders(self, input_data: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        """جلب قائمة الطلبات مع إمكانية التصفية"""
+    # ✅ الدالة الجديدة التي تجلب الطلبات مع الترقيم والفلترة
+    def get_all_orders(self, page: int = 1, per_page: int = 10, supplier_id: str = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
+        """
+        جلب قائمة الطلبات مع دعم الترقيم وتصفية المورد والحالة.
+        """
+        input_data = {
+            "page": page,
+            "limit": per_page
+        }
+        if supplier_id:
+            input_data["supplierId"] = supplier_id
+        if status:
+            input_data["status"] = status
+        if search:
+            input_data["search"] = search
+        if date_from:
+            input_data["dateFrom"] = date_from
+        if date_to:
+            input_data["dateTo"] = date_to
+
         query = """
-        query GetOrders($input: FindAllOrdersInput) {
-            orders(input: $input) {
-                qid
-                total
-                status
-                createdAt
-                items {
-                    productQid
-                    quantity
-                    price
+        query FindAllOrders($input: FindAllOrdersInput) {
+            findAllOrders(input: $input) {
+                data {
+                    qid
+                    total
+                    status
+                    createdAt
+                    items {
+                        productQid
+                        quantity
+                        price
+                    }
+                }
+                pagination {
+                    totalItems
+                    totalPages
+                    currentPage
+                    limit
+                    hasNextPage
                 }
             }
         }
         """
-        variables = {"input": input_data} if input_data else {}
         try:
-            result = self.client.execute(query, variables, operation_name="GetOrders")
-            return result.get('orders', []) if result else []
+            result = self.client.execute(query, {"input": input_data}, operation_name="FindAllOrders")
+            if result:
+                return {
+                    "data": result.get('findAllOrders', {}).get('data', []),
+                    "pagination": result.get('findAllOrders', {}).get('pagination', {
+                        "totalItems": 0,
+                        "totalPages": 1,
+                        "currentPage": 1,
+                        "limit": per_page,
+                        "hasNextPage": False
+                    })
+                }
+            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1, "limit": per_page, "hasNextPage": False}}
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلبات: {e}")
-            return []
+            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1, "limit": per_page, "hasNextPage": False}}
 
     def create_order(self, input_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """إنشاء طلب جديد"""
