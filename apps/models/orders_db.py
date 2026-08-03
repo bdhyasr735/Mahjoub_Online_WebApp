@@ -54,16 +54,16 @@ class Order(db.Model):
     supplier = db.relationship('Supplier', back_populates='orders', lazy='joined')
     marketer = db.relationship('Marketer', back_populates='orders', lazy='joined')
     
+    # استخدام المسار الكامل لمنع تضارب السجلات
     items = db.relationship(
-        'OrderItem', 
+        'apps.models.orders_db.OrderItem', 
         back_populates='order', 
         cascade="all, delete-orphan", 
         lazy='joined'
     )
     
-    # 🔗 ربط مخصص بالمسار الكامل لتفادي أي تضارب بالأسماء
     financials = db.relationship(
-        'OrderFinancial', 
+        'apps.models.financials_db.OrderFinancial', 
         back_populates='order', 
         uselist=False, 
         cascade="all, delete-orphan", 
@@ -216,7 +216,8 @@ class OrderItem(db.Model):
     sku = db.Column(db.String(100), nullable=True)
     _image_url = db.Column(db.Text, nullable=True)
 
-    order = db.relationship('Order', back_populates='items')
+    # استخدام المسار الكامل لعلاقة العودة
+    order = db.relationship('apps.models.orders_db.Order', back_populates='items')
 
     @property
     def _id(self):
