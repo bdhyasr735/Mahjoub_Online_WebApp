@@ -9,8 +9,7 @@
                 <th>التاريخ</th>
                 <th>الإجمالي (ر.س)</th>
                 <th style="min-width: 160px;">حالة الطلب</th>
-                <th style="min-width: 140px;">الحالة المالية</th>
-                <th style="min-width: 140px;">حالة الشحن</th>
+                <th style="min-width: 100px;">الحالة المالية</th>
                 <th>الإجراءات</th>
             </tr>
         </thead>
@@ -18,7 +17,7 @@
             {% for order in orders %}
             <tr>
                 <td>{{ loop.index + (pagination.current_page - 1) * pagination.per_page }}</td>
-                <td><strong>#{{ order.code or order.id|truncate(8) }}</strong></td>
+                <td><strong>#{{ order.order_reference or order.id|truncate(8) }}</strong></td>
                 <td>{{ order.customer_name or 'غير معروف' }}</td>
                 <td>
                     <select class="form-select form-select-sm supplier-select" onchange="updateOrderSupplier('{{ order.id }}', this.value)">
@@ -34,29 +33,20 @@
                 <td class="fw-bold text-dark-purple">{{ order.total_price or 0 }}</td>
                 <td>
                     <select class="form-select form-select-sm status-select" onchange="updateOrderStatus('{{ order.id }}', this.value)">
-                        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-                        <option value="confirmed" {% if order.status == 'confirmed' %}selected{% endif %}>مؤكد</option>
-                        <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>قيد المعالجة</option>
-                        <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>تم الشحن</option>
-                        <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>تم التسليم</option>
-                        <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>ملغي</option>
-                        <option value="refunded" {% if order.status == 'refunded' %}selected{% endif %}>مسترد</option>
-                        <option value="returned" {% if order.status == 'returned' %}selected{% endif %}>مرتجع</option>
+                        <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
+                        <option value="confirmed" {% if order.status_code == 'confirmed' %}selected{% endif %}>مؤكد</option>
+                        <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>قيد المعالجة</option>
+                        <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
+                        <option value="delivered" {% if order.status_code == 'delivered' %}selected{% endif %}>تم التسليم</option>
+                        <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
+                        <option value="refunded" {% if order.status_code == 'refunded' %}selected{% endif %}>مسترد</option>
+                        <option value="returned" {% if order.status_code == 'returned' %}selected{% endif %}>مرتجع</option>
                     </select>
                 </td>
                 <td>
-                    <select class="form-select form-select-sm financial-status-select" onchange="updateOrderFinancialStatus('{{ order.id }}', this.value)">
-                        <option value="paid" {% if order.financial_status == 'paid' %}selected{% endif %}>مدفوع</option>
-                        <option value="unpaid" {% if order.financial_status == 'unpaid' %}selected{% endif %}>غير مدفوع</option>
-                        <option value="refunded" {% if order.financial_status == 'refunded' %}selected{% endif %}>مسترد</option>
-                    </select>
-                </td>
-                <td>
-                    <select class="form-select form-select-sm fulfillment-status-select" onchange="updateOrderFulfillmentStatus('{{ order.id }}', this.value)">
-                        <option value="fulfilled" {% if order.fulfillment_status == 'fulfilled' %}selected{% endif %}>مكتمل</option>
-                        <option value="unfulfilled" {% if order.fulfillment_status == 'unfulfilled' %}selected{% endif %}>غير مكتمل</option>
-                        <option value="partial" {% if order.fulfillment_status == 'partial' %}selected{% endif %}>جزئي</option>
-                    </select>
+                    <span class="badge bg-{{ 'success' if order.is_paid else 'danger' }}">
+                        {{ 'مدفوع' if order.is_paid else 'غير مدفوع' }}
+                    </span>
                 </td>
                 <td>
                     <a href="{{ url_for('admin_orders_bp.view_admin_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
@@ -66,7 +56,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="10" class="text-center py-4 text-muted">
+                <td colspan="9" class="text-center py-4 text-muted">
                     <i class="fas fa-shopping-bag fa-2x mb-2 opacity-25 d-block"></i>
                     لا توجد طلبات في النظام حتى الآن.
                 </td>
@@ -90,40 +80,7 @@ function updateOrderStatus(orderId, status) {
     .then(r => r.json())
     .then(data => {
         if (!data.success) alert('❌ ' + data.message);
-    })
-    .catch(() => alert('❌ حدث خطأ في الاتصال'));
-}
-
-// ✅ تحديث الحالة المالية للطلب
-function updateOrderFinancialStatus(orderId, status) {
-    fetch(`/admin/orders/orders/${orderId}/financial-status`, {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else '' }}'
-        },
-        body: JSON.stringify({ status: status })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.success) alert('❌ ' + data.message);
-    })
-    .catch(() => alert('❌ حدث خطأ في الاتصال'));
-}
-
-// ✅ تحديث حالة الشحن للطلب
-function updateOrderFulfillmentStatus(orderId, status) {
-    fetch(`/admin/orders/orders/${orderId}/fulfillment-status`, {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else '' }}'
-        },
-        body: JSON.stringify({ status: status })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.success) alert('❌ ' + data.message);
+        else location.reload(); // تحديث الصفحة لإظهار الحالة الجديدة
     })
     .catch(() => alert('❌ حدث خطأ في الاتصال'));
 }
