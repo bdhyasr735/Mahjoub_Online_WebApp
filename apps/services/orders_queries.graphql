@@ -1,5 +1,5 @@
 """
-خدمة الطلبات - Order Service Queries
+خدمة الطلبات - Order Service Queries (نسخة مصححة)
 """
 
 # ============================================================
@@ -9,12 +9,8 @@
 query GetOrder($qid: ID!) {
     order(qid: $qid) {
         _id
-        code
         totalPrice
-        status {
-            type
-            label
-        }
+        status
         createdAt
         items {
             productQid
@@ -28,12 +24,8 @@ query FindAllOrders($input: FindAllOrdersInput) {
     findAllOrders(input: $input) {
         data {
             _id
-            code
             totalPrice
-            status {
-                type
-                label
-            }
+            status
             createdAt
             items {
                 productQid
@@ -59,18 +51,14 @@ mutation CreateOrder($input: OrderInput!) {
     createOrder(input: $input) {
         _id
         totalPrice
-        status {
-            type
-        }
+        status
     }
 }
 
 mutation UpdateOrderStatus($qid: ID!, $status: String!) {
     updateOrderStatus(qid: $qid, status: $status) {
         _id
-        status {
-            type
-        }
+        status
         updatedAt
     }
 }
