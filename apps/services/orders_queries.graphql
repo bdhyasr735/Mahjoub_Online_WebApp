@@ -115,9 +115,29 @@ query FindOrderById($id: ID!) {
 # 🔄 3. التحويرات (Mutations) المدعومة للطلبات
 # ============================================================
 
-# تغيير حالة الطلب
+# تغيير حالة الطلب العامة
 mutation ChangeOrderStatus($input: ChangeOrderStatusInput!) {
     changeOrderStatus(input: $input) {
+        _id
+        status {
+            _id
+            code
+            title
+        }
+    }
+}
+
+# تغيير الحالة المالية للطلب (مدفوع / غير مدفوع / مسترجع)
+mutation ChangeFinancialStatus($input: ChangeFinancialStatusInput!) {
+    changeFinancialStatus(input: $input) {
+        _id
+        isPaid
+    }
+}
+
+# تغيير حالة الشحن والتسليم للطلب
+mutation ChangeFulfillmentStatus($input: ChangeFulfillmentStatusInput!) {
+    changeFulfillmentStatus(input: $input) {
         _id
         status {
             _id
