@@ -6,7 +6,6 @@
                     <tr>
                         <th class="py-3">رقم الطلب</th>
                         <th class="py-3">اسم العميل</th>
-                        <th class="py-3">المورد</th>
                         <th class="py-3">التاريخ</th>
                         <th class="py-3">الإجمالي</th>
                         <th class="py-3">حالة الطلب</th>
@@ -22,62 +21,8 @@
                             <td class="fw-bold py-2">#{{ order.order_number or order.id[:8] }}</td>
                             
                             <!-- اسم العميل -->
-                            <td class="py-2 text-truncate" style="max-width: 120px;" title="{{ order.customer_name }}">
+                            <td class="py-2 text-truncate" style="max-width: 140px;" title="{{ order.customer_name }}">
                                 {{ order.customer_name or 'عميل زائر' }}
-                            </td>
-
-                            <!-- قائمة المورد مع بحث متطور -->
-                            <td class="py-2">
-                                <div class="dropdown text-center" style="position: relative;">
-                                    {%- set selected_name = namespace(val='-- غير مرتبط --') -%}
-                                    {%- if suppliers -%}
-                                        {%- for sup in suppliers -%}
-                                            {%- if order.supplier_id|string == sup.id|string -%}
-                                                {%- set selected_name.val = sup.trade_name -%}
-                                            {%- endif -%}
-                                        {%- endfor -%}
-                                    {%- endif -%}
-
-                                    <button class="btn btn-sm btn-light border text-dark fw-semibold dropdown-toggle text-truncate" 
-                                            type="button" 
-                                            data-bs-toggle="dropdown" 
-                                            data-bs-boundary="viewport"
-                                            aria-expanded="false" 
-                                            style="font-size: 0.8rem; max-width: 145px; width: 145px;"
-                                            title="{{ selected_name.val }}">
-                                        {{ selected_name.val }}
-                                    </button>
-
-                                    <div class="dropdown-menu p-2 shadow border-0 rounded-3 text-end" style="min-width: 200px; max-height: 280px; overflow-y: auto;">
-                                        <!-- خانة البحث المتطور داخل القائمة -->
-                                        <div class="mb-2 px-1">
-                                            <input type="text" 
-                                                   class="form-control form-control-sm supplier-search-input" 
-                                                   placeholder="🔍 ابحث عن مورد..." 
-                                                   autocomplete="off"
-                                                   oninput="filterSuppliers(this)">
-                                        </div>
-                                        
-                                        <div class="supplier-items-container">
-                                            <a class="dropdown-item py-1.5 px-2 rounded small supplier-option {% if not order.supplier_id %}active fw-bold bg-primary text-white{% endif %}" 
-                                               href="#" 
-                                               data-id="0" 
-                                               onclick="selectSupplier(event, '{{ order.id }}', '0', '-- غير مرتبط --', this)">
-                                                -- غير مرتبط --
-                                            </a>
-                                            {% if suppliers %}
-                                                {% for sup in suppliers %}
-                                                    <a class="dropdown-item py-1.5 px-2 rounded small supplier-option {% if order.supplier_id|string == sup.id|string %}active fw-bold bg-primary text-white{% endif %}" 
-                                                       href="#" 
-                                                       data-id="{{ sup.id }}" 
-                                                       onclick="selectSupplier(event, '{{ order.id }}', '{{ sup.id }}', '{{ sup.trade_name }}', this)">
-                                                        {{ sup.trade_name }}
-                                                    </a>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
                             </td>
 
                             <!-- التاريخ -->
@@ -87,7 +32,7 @@
 
                             <!-- الإجمالي -->
                             <td class="py-2 fw-bold text-success">
-                                {{ order.total_price }} ر.ي
+                                {{ order.total_price }} ر.س
                             </td>
 
                             <!-- قائمة حالة الطلب المنسدلة التفاعلية -->
@@ -125,7 +70,7 @@
                         {%- endfor -%}
                     {% else %}
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">
+                            <td colspan="7" class="text-center py-4 text-muted">
                                 <i class="fas fa-box-open fa-2x mb-2 text-secondary opacity-50"></i>
                                 <p class="mb-0">لا توجد طلبات مطابقة للبحث أو مسجلة حالياً.</p>
                             </td>
@@ -138,40 +83,6 @@
 </div>
 
 <script>
-function filterSuppliers(inputElement) {
-    const query = inputElement.value.toLowerCase().trim();
-    const container = inputElement.closest('.dropdown-menu');
-    const options = container.querySelectorAll('.supplier-option');
-
-    options.forEach(option => {
-        const text = option.textContent.toLowerCase();
-        option.style.display = text.includes(query) ? '' : 'none';
-    });
-}
-
-function selectSupplier(event, orderId, supplierId, supplierName, element) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const dropdownContainer = element.closest('.dropdown');
-    const btn = dropdownContainer.querySelector('.dropdown-toggle');
-    
-    btn.textContent = supplierName;
-    btn.title = supplierName;
-
-    dropdownContainer.querySelectorAll('.supplier-option').forEach(opt => {
-        opt.classList.remove('active', 'fw-bold', 'bg-primary', 'text-white');
-    });
-    element.classList.add('active', 'fw-bold', 'bg-primary', 'text-white');
-
-    const bsDropdown = bootstrap.Dropdown.getInstance(btn);
-    if (bsDropdown) {
-        bsDropdown.hide();
-    }
-
-    updateOrderSupplierInline(orderId, supplierId);
-}
-
 function updateOrderStatusInline(orderId, newStatus) {
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
     fetch(`/admin/orders/${orderId}/status`, {
@@ -187,26 +98,6 @@ function updateOrderStatusInline(orderId, newStatus) {
     .then(data => {
         if (!data.success) {
             alert('❌ فشل تحديث الحالة: ' + (data.message || 'خطأ غير معروف'));
-        }
-    })
-    .catch(err => alert('❌ حدث خطأ في الاتصال بالسيرفر'));
-}
-
-function updateOrderSupplierInline(orderId, supplierId) {
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-    fetch(`/admin/orders/${orderId}/supplier`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ supplier_id: supplierId === '0' ? 0 : parseInt(supplierId) })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (!data.success) {
-            alert('❌ فشل تحديث المورد: ' + (data.message || 'خطأ غير معروف'));
         }
     })
     .catch(err => alert('❌ حدث خطأ في الاتصال بالسيرفر'));
