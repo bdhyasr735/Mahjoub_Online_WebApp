@@ -22,7 +22,6 @@ def manage_supplier_orders_view():
             flash('❌ غير مصرح لك بالدخول', 'danger')
             return redirect(url_for('suppliers_dashboard_bp.dashboard'))
 
-        # جلب معاملات الصفحة والفلترة
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('limit', 10, type=int)
         per_page = max(1, min(per_page, 50))
@@ -33,8 +32,7 @@ def manage_supplier_orders_view():
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
 
-        # جلب الطلبات الخاصة بهذا المورد فقط (مفترض أن الخدمة تدعم فلترة supplier_id)
-        # ملاحظة: هذا يعتمد على دالة get_all_orders في service
+        # جلب الطلبات من الخدمة مع الفلاتر
         result = services.orders.get_all_orders(
             page=page, 
             per_page=per_page, 
@@ -48,7 +46,6 @@ def manage_supplier_orders_view():
         orders = result.get('data', [])
         pagination = result.get('pagination', {})
 
-        # تجهيز الترقيم للـ Template
         pagination_info = {
             'current_page': page,
             'total_pages': pagination.get('totalPages', 1),
@@ -60,7 +57,6 @@ def manage_supplier_orders_view():
             'total_items': pagination.get('totalItems', 0)
         }
 
-        # تحويل حالة الطلب لتكون مقروءة
         for order in orders:
             order['status_text'] = order.get('status', '').upper()
 
@@ -82,3 +78,12 @@ def manage_supplier_orders_view():
             return jsonify({'success': False, 'message': 'حدث خطأ أثناء تحميل الطلبات'}), 500
         
         return render_template('suppliers/orders_dashboard.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1})
+
+
+# ============================================================================================
+# ✅ الحل الجذري: إضافة دالة تسجيل المسارات لتتوافق مع __init__.py
+# ============================================================================================
+def register_orders_route(bp):
+    # إضافة مسار عرض الطلبات (قائمة المورد) باستخدام add_url_rule
+    bp.add_url_rule('/orders', view_func=manage_supplier_orders_view, methods=['GET'], endpoint='list_supplier_orders')
+    return bp
