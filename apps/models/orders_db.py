@@ -61,6 +61,7 @@ class Order(db.Model):
         lazy='joined'
     )
     
+    # 🔗 ربط مخصص بالمسار الكامل لتفادي أي تضارب بالأسماء
     financials = db.relationship(
         'OrderFinancial', 
         back_populates='order', 
@@ -269,31 +270,4 @@ class OrderItem(db.Model):
                 'slug': self.title,
                 'image': {'fileUrl': self._image_url} if self._image_url else None
             }
-        }
-
-
-class OrderFinancial(db.Model):
-    """الحسابات المالية المرتبطة بالطلب."""
-    __tablename__ = 'order_financials'
-
-    __table_args__ = (
-        {'extend_existing': True},
-    )
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    order_id = db.Column(db.String(100), db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
-    
-    total_paid = db.Column(db.Numeric(18, 2), default=0.00)
-    shipping_price = db.Column(db.Numeric(18, 2), default=0.00)
-    tax_amount = db.Column(db.Numeric(18, 2), default=0.00)
-    
-    order = db.relationship('Order', back_populates='financials')
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'order_id': self.order_id,
-            'total_paid': float(self.total_paid or 0.0),
-            'shipping_price': float(self.shipping_price or 0.0),
-            'tax_amount': float(self.tax_amount or 0.0)
         }
