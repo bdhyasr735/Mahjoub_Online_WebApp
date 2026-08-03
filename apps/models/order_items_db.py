@@ -23,11 +23,11 @@ class OrderItem(db.Model):
     qty = db.Column(db.Integer, default=1)
     subtotal = db.Column(db.Numeric(18, 2), default=0.00)
     
-    # إضافات اختيارية لتطوير النظام مستقبلاً
-    sku = db.Column(db.String(100), nullable=True) # رمز المنتج
+    # [تعديل نوع الحقل]: تم استبدال String(100) بـ db.Text لاستيعاب الـ Slugs والنصوص الطويلة دون truncation error
+    sku = db.Column(db.Text, nullable=True) 
     price_per_unit = db.Column(db.Numeric(18, 2), default=0.00) # سعر القطعة الواحدة
     
-    # [تعديل جذري]: استبدال backref بـ back_populates لمنع تضارب الـ Mapper
+    # ربط العلاقة مع جدول الطلبات
     order = db.relationship(
         'Order', 
         back_populates='items'
