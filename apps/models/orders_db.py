@@ -71,6 +71,10 @@ class Order(db.Model):
         lazy='joined'
     )
 
+    # =========================================================
+    # 🔐 خواص تشفير بيانات العميل (Getters & Setters)
+    # =========================================================
+
     @property
     def amount(self):
         return float(self.financials.total_paid) if self.financials and self.financials.total_paid else float(self.total_price or 0.0)
@@ -82,13 +86,14 @@ class Order(db.Model):
         try:
             return cipher.decrypt(self._customer_name.encode()).decode()
         except Exception:
-            # في حال كانت البيانات غير مشفرة نصياً في قواعد البيانات القديمة
             return str(self._customer_name)
 
     @customer_name.setter
     def customer_name(self, value):
         if value:
             self._customer_name = cipher.encrypt(str(value).encode()).decode()
+        else:
+            self._customer_name = None
 
     @property
     def customer_phone(self):
@@ -103,6 +108,8 @@ class Order(db.Model):
     def customer_phone(self, value):
         if value:
             self._customer_phone = cipher.encrypt(str(value).encode()).decode()
+        else:
+            self._customer_phone = None
 
     @property
     def customer_address(self):
@@ -117,6 +124,64 @@ class Order(db.Model):
     def customer_address(self, value):
         if value:
             self._customer_address = cipher.encrypt(str(value).encode()).decode()
+        else:
+            self._customer_address = None
+
+    # =========================================================
+    # 🚀 خواص التوافقية المعالجة للأخطاء (GraphQL & Jinja2 Bridges)
+    # تمنع حدوث UndefinedError في القوالب نهائياً
+    # =========================================================
+
+    @property
+    def status(self):
+        """تخلق كائن status محاكي يحتوي على code و title لتوافق قراءات Jinja2 مثل order.status.code."""
+        code_val = self.status_code or 'pending'
+        title_val = self.status_title or 'قيد الانتظار'
+
+        class StatusWrapper:
+            def __init__(self, code, title):
+                self.code = code
+                self.title = title
+            def __getitem__(self, item):
+                return getattr(self, item, '')
+            def __str__(self):
+                return str(self.code)
+
+        return StatusWrapper(code_val, title_val)
+
+    @property
+    def account(self):
+        """تخلق هيكل account.account.fullname لتوافق القوالب التي تقرأ بيانات العميل كـ GraphQL."""
+        fullname_val = self.customer_name or 'عميل'
+
+        class AccountInner:
+            def __init__(self, fullname):
+                self.fullname = fullname
+
+        class AccountOuter:
+            def __init__(self, fullname):
+                self.account = AccountInner(fullname)
+
+        return AccountOuter(fullname_val)
+
+    @property
+    def total_amount(self):
+        """مرادف لتوافق الاستدعاء كـ order.total_amount."""
+        return self.total_price
+
+    @property
+    def totalPrice(self):
+        """مرادف لتوافق الاستدعاء كـ order.totalPrice."""
+        return self.total_price
+
+    @property
+    def shipping_address(self):
+        """مرادف لتوافق الاستدعاء كـ order.shipping_address."""
+        return self.customer_address
+
+    # =========================================================
+    # 📊 التصدير للـ Dict والحالات التشغيلية
+    # =========================================================
 
     def to_dict(self):
         """تحويل الطلب إلى قاموس للاستخدام في الواجهة"""
