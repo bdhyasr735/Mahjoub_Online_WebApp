@@ -27,16 +27,14 @@ def manage_admin_orders_view():
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
 
-        # ✅ الحل الجذري: مزامنة تلقائية للصفحة الحالية عند كل زيارة (ديناميكي)
-        # لا يتم التزامن في طلبات AJAX للحفاظ على سرعة الترقيم
+        # ✅ مزامنة تلقائية للصفحة الحالية عند كل زيارة
         if not is_ajax:
             try:
-                # سحب الصفحة الحالية من قمرة وحفظها في قاعدة البيانات المحلية تلقائياً
                 services.orders.get_all_orders(page=page, per_page=50)
             except Exception as sync_e:
                 print(f"⚠️ [Auto Sync Orders] حدث خطأ أثناء المزامنة التلقائية: {sync_e}")
 
-        # ✅ جلب الطلبات من قاعدة البيانات المحلية (الأدمن يرى الكل)
+        # ✅ جلب الطلبات من قاعدة البيانات المحلية
         result = services.orders.get_local_orders(
             page=page,
             per_page=per_page,
@@ -61,7 +59,6 @@ def manage_admin_orders_view():
             'total_items': pagination.get('totalItems', 0)
         }
 
-        # ضمان وجود status_text
         for order in orders:
             if 'status_text' not in order:
                 order['status_text'] = order.get('status', 'غير معروف').title()
@@ -87,8 +84,38 @@ def manage_admin_orders_view():
 
 
 # ============================================================================================
+# ✅ مسار عرض تفاصيل الطلب (لحل مشكلة BuildError)
+# ============================================================================================
+@admin_orders_bp.route('/orders/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
+@login_required
+def view_admin_order(order_id):
+    try:
+        user_type = session.get('user_type')
+        if user_type != 'admin':
+            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
+            return redirect(url_for('admin_dashboard_bp.dashboard'))
+
+        # هنا يمكنك جلب الطلب من قاعدة البيانات المحلية أو عبر الخدمة
+        # مثال مؤقت:
+        from apps.models.orders_db import Order
+        order = Order.query.get(order_id)
+        
+        if not order:
+            flash('❌ لم يتم العثور على الطلب', 'danger')
+            return redirect(url_for('admin_orders_bp.list_admin_orders'))
+
+        return render_template('admin/admin_order_detail.html', order=order)
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ في عرض تفاصيل الطلب: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع أثناء تحميل تفاصيل الطلب', 'danger')
+        return redirect(url_for('admin_orders_bp.list_admin_orders'))
+
+
+# ============================================================================================
 # ✅ دالة تسجيل المسارات
 # ============================================================================================
 def register_admin_orders_route(bp):
     bp.add_url_rule('/orders', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
+    bp.add_url_rule('/orders/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
     return bp
