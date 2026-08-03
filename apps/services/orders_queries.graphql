@@ -1,20 +1,24 @@
 """
-خدمة الطلبات - Order Service Queries (نسخة متطابقة مع Sandbox)
+خدمة الطلبات - Order Service Queries (نسخة متطابقة 100% مع السكيما)
 """
 
 # ============================================================
 # ✅ استعلامات الطلبات
 # ============================================================
 
-query GetOrdersByIds($ids: [ID!], $input: FindAllOrdersInput) {
-    getOrdersByIds(ids: $ids, input: $input) {
+query FindAllOrders($input: FindAllOrdersInput) {
+    findAllOrders(input: $input) {
         data {
             _id
             totalPrice
-            status
+            status {
+                _id
+                title
+                code
+            }
             createdAt
             items {
-                productQid
+                productId
                 quantity
                 price
             }
@@ -29,18 +33,20 @@ query GetOrdersByIds($ids: [ID!], $input: FindAllOrdersInput) {
     }
 }
 
-query GetOrder($id: ID!) {
-    getOrdersByIds(ids: [$id]) {
-        data {
+query FindOrderById($id: ID!) {
+    findOrderById(id: $id) {
+        _id
+        totalPrice
+        status {
             _id
-            totalPrice
-            status
-            createdAt
-            items {
-                productQid
-                quantity
-                price
-            }
+            title
+            code
+        }
+        createdAt
+        items {
+            productId
+            quantity
+            price
         }
     }
 }
