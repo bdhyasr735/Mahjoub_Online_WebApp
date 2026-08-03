@@ -105,7 +105,7 @@ function fetchAdminOrders(page = 1) {
     });
 }
 
-// ✅ دالة مزامنة الطلبات
+// ✅ دالة مزامنة الطلبات (تم تصحيح المسار ليكون متوافقاً مع الـ Blueprint)
 function syncAdminOrders() {
     if (!confirm('هل تريد مزامنة الطلبات من قمرة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
     
@@ -116,7 +116,7 @@ function syncAdminOrders() {
 
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
 
-    fetch('/admin/orders/orders/sync', {
+    fetch("{{ url_for('admin_orders_bp.sync_admin_orders') }}", {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
