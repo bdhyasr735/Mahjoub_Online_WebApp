@@ -114,14 +114,24 @@ class OrderService:
                             status_code = 'pending'
                             status_title = 'قيد الانتظار'
 
-                        # ✅ استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType
+                        # استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType
                         account_outer = order.get('account') or {}
                         account_inner = account_outer.get('account') or {}
                         customer_name = account_inner.get('fullname') or 'عميل زائر'
 
-                        # استخراج الحالة المالية
+                        # استخراج الحالة المالية والإجمالي
                         is_paid = order.get('isPaid', False)
                         total_price = order.get('totalPrice', 0.0) or 0.0
+
+                        # استخراج وتنسيق تاريخ الإنشاء بشكل صحيح من الـ API
+                        created_at_str = order.get('createdAt')
+                        created_at = datetime.utcnow()
+                        if created_at_str:
+                            try:
+                                clean_date_str = created_at_str.replace('Z', '').split('+')[0]
+                                created_at = datetime.fromisoformat(clean_date_str)
+                            except Exception:
+                                pass
 
                         # البحث عن الطلب في قاعدة البيانات المحلية
                         existing_order = Order.query.filter_by(id=qid).first()
@@ -138,11 +148,12 @@ class OrderService:
                             existing_order.customer_name = customer_name
                             existing_order.is_paid = is_paid
                             existing_order.total_price = total_price
+                            existing_order.created_at = created_at
                             
                             # حذف العناصر القديمة وإعادة إضافتها
                             OrderItem.query.filter_by(order_id=existing_order.id).delete()
                         else:
-                            # ✅ إنشاء طلب جديد مع الرقم التسلسلي
+                            # إنشاء طلب جديد مع الرقم التسلسلي والتاريخ
                             existing_order = Order(
                                 id=qid,
                                 supplier_id=supplier_id_found,
@@ -151,7 +162,8 @@ class OrderService:
                                 customer_name=customer_name,
                                 is_paid=is_paid,
                                 total_price=total_price,
-                                order_number=next_number
+                                order_number=next_number,
+                                created_at=created_at
                             )
                             db.session.add(existing_order)
                             db.session.flush()
@@ -163,13 +175,17 @@ class OrderService:
                             prod_data = item.get('productData') or {}
                             qty = item.get('quantity', 1) or 1
                             price = item.get('price', 0.0) or 0.0
+                            prod_id = item.get('productId', '')
                             
+                            title = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
+                            sku = prod_data.get('sku') or prod_id
+
                             new_item = OrderItem(
                                 order_id=existing_order.id,
-                                title=prod_data.get('title', 'منتج غير معروف'),
+                                title=title,
                                 qty=qty,
                                 subtotal=price * qty,
-                                sku=prod_data.get('sku', ''),
+                                sku=sku,
                                 price_per_unit=price
                             )
                             db.session.add(new_item)
@@ -177,7 +193,7 @@ class OrderService:
                         db.session.commit()
                         
                 except Exception as db_err:
-                    print(f"⚠️ [OrderService] خطأ أثناء حفظ الطلبات محلياً: {db_err}")
+                    print(f"⚠️ [OrderService] خطأ تفصيلي أثناء حفظ الطلبات محلياً: {db_err}")
                     db.session.rollback()
 
             return {
