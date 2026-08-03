@@ -46,13 +46,11 @@ class OrderService:
 
     def get_order(self, qid: str) -> Optional[Dict[str, Any]]:
         """جلب تفاصيل الطلب باستخدام المعرف qid"""
-        query = self._extract_query("GetOrder")
+        query = self._extract_query("FindOrderById")
         try:
-            result = self.client.execute(query, {"id": qid}, operation_name="GetOrder")
-            # نتعامل مع الرد القادم من getOrdersByIds
-            if result and 'getOrdersByIds' in result:
-                data_list = result['getOrdersByIds'].get('data', [])
-                return data_list[0] if data_list else None
+            result = self.client.execute(query, {"id": qid}, operation_name="FindOrderById")
+            if result and 'findOrderById' in result:
+                return result['findOrderById']
             return None
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلب {qid}: {e}")
@@ -60,13 +58,12 @@ class OrderService:
 
     def get_all_orders(self, page: int = 1, per_page: int = 10, supplier_id: str = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
         """
-        جلب قائمة الطلبات مع دعم الترقيم باستخدام الاستعلام الحقيقي getOrdersByIds.
+        جلب قائمة الطلبات مع دعم الترقيم وتصفية المورد والحالة.
         """
         input_data = {
             "page": page,
             "limit": per_page
         }
-        # ملاحظة: بعض السكيما قد لا تدعم status, date في input، هذا آمن لأنه سيتجاهلها إذا لم تكن موجودة
         if supplier_id:
             input_data["supplierId"] = supplier_id
         if status:
@@ -78,14 +75,13 @@ class OrderService:
         if date_to:
             input_data["dateTo"] = date_to
 
-        query = self._extract_query("GetOrdersByIds")
+        query = self._extract_query("FindAllOrders")
         try:
-            # نمرر input و ids = None لجلب الكل
-            result = self.client.execute(query, {"ids": None, "input": input_data}, operation_name="GetOrdersByIds")
-            if result and 'getOrdersByIds' in result:
+            result = self.client.execute(query, {"input": input_data}, operation_name="FindAllOrders")
+            if result and 'findAllOrders' in result:
                 return {
-                    "data": result['getOrdersByIds'].get('data', []),
-                    "pagination": result['getOrdersByIds'].get('pagination', {
+                    "data": result['findAllOrders'].get('data', []),
+                    "pagination": result['findAllOrders'].get('pagination', {
                         "totalItems": 0,
                         "totalPages": 1,
                         "currentPage": page,
