@@ -53,7 +53,7 @@ def manage_admin_orders_view():
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
 
-        # 🚀 [تحسين السرعة الفائقة]: تشغيل المزامنة في الخلفية فقط عند فتح الصفحة الأولى وبدون تصفية
+        # 🚀 تشغيل المزامنة في الخلفية عند فتح الصفحة الأولى وبدون تصفية
         if not is_ajax and page == 1 and not (search_term or status_filter or date_from or date_to):
             app = current_app._get_current_object()
             threading.Thread(
@@ -62,7 +62,7 @@ def manage_admin_orders_view():
                 daemon=True
             ).start()
 
-        # ⚡ جلب فوري ومباشر للطلبات من قاعدة البيانات المحلية دون انتظار API الخارجية
+        # ⚡ جلب فوري ومباشر للطلبات من قاعدة البيانات المحلية
         result = services.orders.get_local_orders(
             page=page,
             per_page=per_page,
@@ -113,7 +113,6 @@ def manage_admin_orders_view():
 @login_required
 def sync_admin_orders():
     try:
-        # 🚀 المزامنة اليدوية تعمل أيضاً في الخلفية لتجنب تجميد الواجهة
         app = current_app._get_current_object()
         threading.Thread(
             target=_sync_orders_in_background,
@@ -130,7 +129,6 @@ def sync_admin_orders():
 @login_required
 def update_order_status(order_id):
     try:
-        # 📥 دعم قراءة البيانات سواء أُرسلت كـ JSON (AJAX) أو Form Data
         if request.is_json:
             data = request.get_json() or {}
         else:
@@ -152,14 +150,13 @@ def update_order_status(order_id):
         
         db.session.commit()
 
-        # 2️⃣ 🚀 إرسال تحديث الحالة إلى خدمة قمرة عبر طبقة الخدمات
+        # 2️⃣ إرسال تحديث الحالة إلى خدمة قمرة عبر طبقة الخدمات
         if hasattr(services.orders, 'update_order_status'):
             try:
                 services.orders.update_order_status(order_id, new_status)
             except Exception as service_e:
                 current_app.logger.warning(f"⚠️ فشل تحديث الخدمة الخارجية (قمرة): {service_e}")
 
-        # 3️⃣ استجابة حسب نوع الطلب (AJAX أو Form Submit)
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
                 'success': True, 
@@ -182,6 +179,94 @@ def update_order_status(order_id):
         return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
 
 
+@admin_orders_bp.route('/<string:order_id>/financial-status', methods=['POST'])
+@login_required
+def update_financial_status(order_id):
+    """تحديث الحالة المالية للطلب (مدفوع / غير مدفوع / مسترجع)."""
+    try:
+        data = request.get_json() if request.is_json else request.form
+        new_status = data.get('financial_status') or data.get('status')
+        if not new_status:
+            return jsonify({'success': False, 'message': 'الحالة المالية مطلوبة'}), 400
+
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+
+        order.financial_status = new_status
+        if hasattr(order, 'is_paid'):
+            order.is_paid = (new_status in ['paid', 'completed'])
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        if hasattr(services.orders, 'update_financial_status'):
+            try:
+                services.orders.update_financial_status(order_id, new_status)
+            except Exception as service_e:
+                current_app.logger.warning(f"⚠️ فشل تحديث الحالة المالية في قمرة: {service_e}")
+
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True, 
+                'message': 'تم تحديث حالة الدفع بنجاح',
+                'financial_status': order.financial_status
+            })
+
+        flash('✅ تم تحديث حالة الدفع بنجاح', 'success')
+        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"خطأ في تحديث الحالة المالية للطلب {order_id}: {traceback.format_exc()}")
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': str(e)}), 500
+        flash('❌ حدث خطأ أثناء تحديث حالة الدفع', 'danger')
+        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
+
+
+@admin_orders_bp.route('/<string:order_id>/fulfillment-status', methods=['POST'])
+@login_required
+def update_fulfillment_status(order_id):
+    """تحديث حالة الشحن والتسليم (لم يتم الشحن / قيد التجهيز / مشحون / تم التسليم)."""
+    try:
+        data = request.get_json() if request.is_json else request.form
+        new_status = data.get('fulfillment_status') or data.get('status')
+        if not new_status:
+            return jsonify({'success': False, 'message': 'حالة الشحن مطلوبة'}), 400
+
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+
+        order.fulfillment_status = new_status
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        if hasattr(services.orders, 'update_fulfillment_status'):
+            try:
+                services.orders.update_fulfillment_status(order_id, new_status)
+            except Exception as service_e:
+                current_app.logger.warning(f"⚠️ فشل تحديث حالة الشحن في قمرة: {service_e}")
+
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True, 
+                'message': 'تم تحديث حالة الشحن بنجاح',
+                'fulfillment_status': order.fulfillment_status
+            })
+
+        flash('✅ تم تحديث حالة الشحن بنجاح', 'success')
+        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"خطأ في تحديث حالة الشحن للطلب {order_id}: {traceback.format_exc()}")
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': str(e)}), 500
+        flash('❌ حدث خطأ أثناء تحديث حالة الشحن', 'danger')
+        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
+
+
 @admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
 @login_required
 def view_admin_order(order_id):
@@ -189,7 +274,7 @@ def view_admin_order(order_id):
         # 1. البحث في قاعدة البيانات المحلية أولاً
         order = Order.query.get(order_id)
         
-        # 2. ⚡ إذا لم يكن موجوداً محلياً، جلب الطلب فوراً من API الخارجية وتخزينه
+        # 2. إذا لم يكن موجوداً محلياً، جلب الطلب فوراً من API الخارجية وتخزينه
         if not order:
             try:
                 if hasattr(services.orders, 'get_order_by_id'):
@@ -220,5 +305,7 @@ def register_admin_orders_route(bp):
     bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
     bp.add_url_rule('/sync', view_func=sync_admin_orders, methods=['POST'])
     bp.add_url_rule('/<string:order_id>/status', view_func=update_order_status, methods=['POST'])
+    bp.add_url_rule('/<string:order_id>/financial-status', view_func=update_financial_status, methods=['POST'])
+    bp.add_url_rule('/<string:order_id>/fulfillment-status', view_func=update_fulfillment_status, methods=['POST'])
     bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
     return bp
