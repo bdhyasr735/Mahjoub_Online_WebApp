@@ -111,9 +111,9 @@ class OrderService:
                             status_code = 'pending'
                             status_title = 'قيد الانتظار'
 
-                        # اسم العميل (من account)
+                        # ✅ اسم العميل: نستخدم displayName كما ورد في السكيما
                         account = order.get('account', {})
-                        customer_name = account.get('name', 'غير معروف')
+                        customer_name = account.get('displayName', 'غير معروف')
 
                         # الحالة المالية (isPaid)
                         is_paid = order.get('isPaid', False)
