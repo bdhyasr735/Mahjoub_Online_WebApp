@@ -114,7 +114,7 @@ class OrderService:
                             status_code = 'pending'
                             status_title = 'قيد الانتظار'
 
-                        # استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType
+                        # ✅ استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType
                         account_outer = order.get('account') or {}
                         account_inner = account_outer.get('account') or {}
                         customer_name = account_inner.get('fullname') or 'عميل زائر'
@@ -153,7 +153,7 @@ class OrderService:
                             # حذف العناصر القديمة وإعادة إضافتها
                             OrderItem.query.filter_by(order_id=existing_order.id).delete()
                         else:
-                            # إنشاء طلب جديد مع الرقم التسلسلي والتاريخ
+                            # ✅ إنشاء طلب جديد مع الرقم التسلسلي والتاريخ
                             existing_order = Order(
                                 id=qid,
                                 supplier_id=supplier_id_found,
