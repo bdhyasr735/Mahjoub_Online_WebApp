@@ -33,15 +33,13 @@ class Order(db.Model):
     marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
     
     tracking_tag = db.Column(db.String(100), nullable=True)
-    order_reference = db.Column(db.String(100), unique=True, nullable=True)  # يستخدم كرقم الطلب للعرض
+    order_reference = db.Column(db.String(100), unique=True, nullable=True)
     
     total_price = db.Column(db.Numeric(18, 2), default=0.00)
     items_count = db.Column(db.Integer, default=0)
     
-    # ✅ حقل الترقيم التسلسلي للطلب
     order_number = db.Column(db.Integer, nullable=True)
     
-    # ✅ حقول الحالة بناءً على السكيما
     status_code = db.Column(db.String(30), default='pending')
     status_title = db.Column(db.String(50), default='قيد الانتظار')
     is_paid = db.Column(db.Boolean, default=False)
@@ -70,10 +68,6 @@ class Order(db.Model):
         cascade="all, delete-orphan", 
         lazy='joined'
     )
-
-    # =========================================================
-    # 🔐 خواص تشفير بيانات العميل (Getters & Setters)
-    # =========================================================
 
     @property
     def amount(self):
@@ -127,19 +121,12 @@ class Order(db.Model):
         else:
             self._customer_address = None
 
-    # =========================================================
-    # 🚀 خواص التوافقية المعالجة للأخطاء (GraphQL & Jinja2 Bridges)
-    # 🔗 تم إضافة _id وواجهات الصور الحية (تستدعي ولا تخزن)
-    # =========================================================
-
     @property
     def _id(self):
-        """خاصية توافقية لدعم القوالب التي تستخدم order._id بدلًا من order.id."""
         return self.id
 
     @property
     def status(self):
-        """تخلق كائن status محاكي يحتوي على code و title لتوافق قراءات Jinja2 مثل order.status.code."""
         code_val = self.status_code or 'pending'
         title_val = self.status_title or 'قيد الانتظار'
 
@@ -156,20 +143,13 @@ class Order(db.Model):
 
     @property
     def account(self):
-        """تخلق هيكل account.account.fullname (مع دعم avatarUrl للاستدعاء الحي دون حفظ الصورة محلياً)."""
         fullname_val = self.customer_name or 'عميل'
 
         class AccountInner:
             def __init__(self, fullname):
                 self.fullname = fullname
-                self.phone = self._get_phone()
-                self.avatarUrl = None  # استدعاء حي عند الطلب إن وجد
-
-            def _get_phone(self):
-                try:
-                    return Order.query.filter_by(id=self.id).first().customer_phone
-                except Exception:
-                    return None
+                self.phone = None
+                self.avatarUrl = None
 
         class AccountOuter:
             def __init__(self, fullname):
@@ -179,25 +159,17 @@ class Order(db.Model):
 
     @property
     def total_amount(self):
-        """مرادف لتوافق الاستدعاء كـ order.total_amount."""
         return self.total_price
 
     @property
     def totalPrice(self):
-        """مرادف لتوافق الاستدعاء كـ order.totalPrice."""
         return self.total_price
 
     @property
     def shipping_address(self):
-        """مرادف لتوافق الاستدعاء كـ order.shipping_address."""
         return self.customer_address
 
-    # =========================================================
-    # 📊 التصدير للـ Dict والحالات التشغيلية
-    # =========================================================
-
     def to_dict(self):
-        """تحويل الطلب إلى قاموس للاستخدام في الواجهة"""
         return {
             'id': self.id,
             '_id': self.id,
@@ -225,8 +197,12 @@ class Order(db.Model):
 
 
 class OrderItem(db.Model):
-    """عناصر الطلب المرتبطة بجدول Order (تدعم استدعاء روابط الصور الحية دون تخزينها محلياً)."""
+    """عناصر الطلب المرتبطة بجدول Order."""
     __tablename__ = 'order_items'
+
+    __table_args__ = (
+        {'extend_existing': True},
+    )
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
@@ -237,35 +213,28 @@ class OrderItem(db.Model):
     price_per_unit = db.Column(db.Numeric(18, 2), default=0.00)
     subtotal = db.Column(db.Numeric(18, 2), default=0.00)
     sku = db.Column(db.String(100), nullable=True)
-    
-    # حقل لتخزين مسار الصورة إن وجد، أو استدعاؤها حياً
     _image_url = db.Column(db.Text, nullable=True)
 
     order = db.relationship('Order', back_populates='items')
 
     @property
     def _id(self):
-        """توافقية المعرف النصي أو الرقمي للعنصر"""
         return str(self.id)
 
     @property
     def price(self):
-        """توافقية السعر الفردي"""
         return float(self.price_per_unit or 0.0)
 
     @property
     def quantity(self):
-        """توافقية الكمية"""
         return self.qty
 
     @property
     def totalPrice(self):
-        """توافقية إجمالي عنصر الطلب"""
         return float(self.subtotal or (float(self.price_per_unit or 0.0) * self.qty))
 
     @property
     def productData(self):
-        """بنية محاكاة لتوافق قوالب العرض (مثل productData.title و productData.image.fileUrl للاستدعاء الحي)."""
         item_title = self.title or 'منتج'
         img_url = self._image_url
 
@@ -306,6 +275,10 @@ class OrderItem(db.Model):
 class OrderFinancial(db.Model):
     """الحسابات المالية المرتبطة بالطلب."""
     __tablename__ = 'order_financials'
+
+    __table_args__ = (
+        {'extend_existing': True},
+    )
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
