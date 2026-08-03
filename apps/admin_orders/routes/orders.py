@@ -150,12 +150,12 @@ def update_order_status(order_id):
         
         db.session.commit()
 
-        # 2️⃣ إرسال تحديث الحالة إلى خدمة قمرة عبر طبقة الخدمات
+        # 2️⃣ إرسال تحديث الحالة إلى الخدمة الخارجية
         if hasattr(services.orders, 'update_order_status'):
             try:
                 services.orders.update_order_status(order_id, new_status)
             except Exception as service_e:
-                current_app.logger.warning(f"⚠️ فشل تحديث الخدمة الخارجية (قمرة): {service_e}")
+                current_app.logger.warning(f"⚠️ فشل تحديث الخدمة الخارجية: {service_e}")
 
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
@@ -203,7 +203,7 @@ def update_financial_status(order_id):
             try:
                 services.orders.update_financial_status(order_id, new_status)
             except Exception as service_e:
-                current_app.logger.warning(f"⚠️ فشل تحديث الحالة المالية في قمرة: {service_e}")
+                current_app.logger.warning(f"⚠️ فشل تحديث الحالة المالية في الخدمة الخارجية: {service_e}")
 
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
@@ -227,7 +227,7 @@ def update_financial_status(order_id):
 @admin_orders_bp.route('/<string:order_id>/fulfillment-status', methods=['POST'])
 @login_required
 def update_fulfillment_status(order_id):
-    """تحديث حالة الشحن والتسليم (لم يتم الشحن / قيد التجهيز / مشحون / تم التسليم)."""
+    """تحديث حالة الشحن والتسليم."""
     try:
         data = request.get_json() if request.is_json else request.form
         new_status = data.get('fulfillment_status') or data.get('status')
@@ -246,7 +246,7 @@ def update_fulfillment_status(order_id):
             try:
                 services.orders.update_fulfillment_status(order_id, new_status)
             except Exception as service_e:
-                current_app.logger.warning(f"⚠️ فشل تحديث حالة الشحن في قمرة: {service_e}")
+                current_app.logger.warning(f"⚠️ فشل تحديث حالة الشحن الخارجية: {service_e}")
 
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
@@ -293,7 +293,15 @@ def view_admin_order(order_id):
             flash('❌ لم يتم العثور على الطلب في النظام', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
-        return render_template('admin/admin_order_detail.html', order=order)
+        # 5. جلب قائمة الموردين لتعبئة القائمة المنسدلة في صفحة تفاصيل الطلب
+        suppliers = []
+        try:
+            if hasattr(services, 'suppliers') and hasattr(services.suppliers, 'get_all_suppliers'):
+                suppliers = services.suppliers.get_all_suppliers()
+        except Exception:
+            pass
+
+        return render_template('admin/admin_order_detail.html', order=order, suppliers=suppliers)
 
     except Exception as e:
         current_app.logger.error(f"خطأ في عرض تفاصيل الطلب {order_id}: {traceback.format_exc()}")
