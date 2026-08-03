@@ -1,32 +1,37 @@
-"""
-خدمة الطلبات - Order Service Queries (النسخة النهائية)
-"""
+# 📂 apps/services/orders_queries.graphql
 
 # ============================================================
-# ✅ استعلامات الطلبات
+# ✅ استعلامات الطلبات (Orders Queries)
 # ============================================================
 
 query FindAllOrders($input: FindAllOrdersInput) {
     findAllOrders(input: $input) {
         data {
             _id
+            orderNumber
+            type
             totalPrice
+            isPaid
+            createdAt
             status {
                 _id
                 title
                 code
             }
-            isPaid
             account {
+                type
                 account {
                     fullname
                 }
             }
-            createdAt
             items {
                 productId
                 quantity
                 price
+                productData {
+                    title
+                    sku
+                }
             }
         }
         pagination {
@@ -42,23 +47,30 @@ query FindAllOrders($input: FindAllOrdersInput) {
 query FindOrderById($id: ID!) {
     findOrderById(id: $id) {
         _id
+        orderNumber
+        type
         totalPrice
+        isPaid
+        createdAt
         status {
             _id
             title
             code
         }
-        isPaid
         account {
+            type
             account {
                 fullname
             }
         }
-        createdAt
         items {
             productId
             quantity
             price
+            productData {
+                title
+                sku
+            }
         }
     }
 }
