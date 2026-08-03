@@ -102,7 +102,7 @@ class OrderService:
                                 if mapping:
                                     supplier_id_found = mapping.supplier_id
 
-                        # حالة الطلب (كائن orderStatus)
+                        # استخراج حالة الطلب
                         status_obj = order.get('status', {})
                         if isinstance(status_obj, dict):
                             status_code = status_obj.get('code', 'pending')
@@ -111,16 +111,21 @@ class OrderService:
                             status_code = 'pending'
                             status_title = 'قيد الانتظار'
 
-                        # ✅ اسم العميل: نستخدم displayName كما ورد في السكيما
-                        account = order.get('account', {})
-                        customer_name = account.get('displayName', 'غير معروف')
+                        # ✅ استخراج اسم العميل من البنية الصحيحة account { account { fullname } }
+                        account_outer = order.get('account', {})
+                        account_inner = account_outer.get('account', {})
+                        customer_name = account_inner.get('fullname', 'غير معروف')
 
-                        # الحالة المالية (isPaid)
+                        # استخراج الحالة المالية
                         is_paid = order.get('isPaid', False)
 
                         # البحث عن الطلب في قاعدة البيانات
                         existing_order = Order.query.filter_by(id=qid).first()
                         
+                        # توليد الرقم التسلسلي للطلب الجديد
+                        last_order = db.session.query(Order).order_by(Order.order_number.desc()).first()
+                        next_number = (last_order.order_number + 1) if last_order and last_order.order_number else 1000000235
+
                         if existing_order:
                             # تحديث البيانات
                             existing_order.supplier_id = supplier_id_found
@@ -133,7 +138,7 @@ class OrderService:
                             # حذف العناصر القديمة وإعادة إضافتها
                             OrderItem.query.filter_by(order_id=existing_order.id).delete()
                         else:
-                            # إنشاء طلب جديد
+                            # ✅ إنشاء طلب جديد مع الرقم التسلسلي
                             existing_order = Order(
                                 id=qid,
                                 supplier_id=supplier_id_found,
@@ -141,7 +146,8 @@ class OrderService:
                                 status_title=status_title,
                                 customer_name=customer_name,
                                 is_paid=is_paid,
-                                total_price=order.get('totalPrice', 0.0)
+                                total_price=order.get('totalPrice', 0.0),
+                                order_number=next_number
                             )
                             db.session.add(existing_order)
                             db.session.flush()
@@ -172,50 +178,36 @@ class OrderService:
             print(f"❌ [OrderService]: خطأ في جلب الطلبات: {e}")
             return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}}
 
-    # ✅ دالة جديدة لجلب الطلبات من قاعدة البيانات المحلية (لتستخدم في العرض)
     def get_local_orders(self, page: int = 1, per_page: int = 10, supplier_id: int = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
-        """
-        جلب الطلبات من قاعدة البيانات المحلية مع دعم الترقيم والفلترة.
-        """
+        """جلب الطلبات من قاعدة البيانات المحلية مع دعم الترقيم والفلترة."""
         from apps.models.orders_db import Order
         from apps.models.supplier_db import Supplier
         from apps.extensions import db
 
         query = db.session.query(Order)
 
-        # 1. فلترة المورد (إذا كان معرفاً)
         if supplier_id is not None:
             query = query.filter(Order.supplier_id == supplier_id)
-
-        # 2. فلترة الحالة (نستخدم status_code للفلترة)
         if status:
             query = query.filter(Order.status_code == status)
-
-        # 3. فلترة التاريخ
         if date_from:
             query = query.filter(Order.created_at >= datetime.strptime(date_from, '%Y-%m-%d'))
         if date_to:
             query = query.filter(Order.created_at <= datetime.strptime(date_to, '%Y-%m-%d'))
-
-        # 4. البحث (في رقم الطلب أو معرف العرض)
         if search:
             query = query.filter(or_(
                 Order.id.ilike(f'%{search}%'),
                 Order.order_reference.ilike(f'%{search}%')
             ))
 
-        # حساب العدد الكلي
         total_items = query.count()
         total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
-        # تطبيق الترقيم
         orders = query.order_by(Order.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
 
-        # تحويل النتائج إلى قاموس مع إضافة اسم المورد
         orders_data = []
         for order in orders:
             order_dict = order.to_dict()
-            # إضافة اسم المورد إذا وجد
             if order.supplier:
                 order_dict['supplier_name'] = order.supplier.trade_name
             else:
@@ -234,7 +226,6 @@ class OrderService:
         }
 
     def create_order(self, input_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """إنشاء طلب جديد"""
         mutation = self._extract_query("CreateOrder")
         try:
             result = self.client.execute(mutation, {"input": input_data}, operation_name="CreateOrder")
@@ -244,7 +235,6 @@ class OrderService:
             return None
 
     def update_order_status(self, qid: str, status: str) -> Optional[Dict[str, Any]]:
-        """تحديث حالة الطلب"""
         mutation = self._extract_query("UpdateOrderStatus")
         try:
             result = self.client.execute(mutation, {"id": qid, "status": status}, operation_name="UpdateOrderStatus")
@@ -254,7 +244,6 @@ class OrderService:
             return None
 
     def delete_order(self, qid: str) -> bool:
-        """حذف طلب"""
         mutation = self._extract_query("DeleteOrder")
         try:
             result = self.client.execute(mutation, {"id": qid}, operation_name="DeleteOrder")
