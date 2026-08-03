@@ -4,7 +4,7 @@
 import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from sqlalchemy import or_, cast, Integer
+from sqlalchemy import or_, cast, Integer, String
 from .graphql_client import GraphQLClient
 
 
@@ -107,7 +107,13 @@ class OrderService:
 
                 # توليد الرقم التسلسلي للطلب الجديد
                 last_order = db.session.query(Order).order_by(cast(Order.order_number, Integer).desc()).first()
-                next_number = (last_order.order_number + 1) if last_order and last_order.order_number else 1000000235
+                if last_order and last_order.order_number:
+                    try:
+                        next_number = int(last_order.order_number) + 1
+                    except (ValueError, TypeError):
+                        next_number = 1000000235
+                else:
+                    next_number = 1000000235
 
                 if existing_order:
                     # تحديث البيانات الحالية
@@ -274,7 +280,7 @@ class OrderService:
         if search:
             query = query.filter(or_(
                 Order.id.ilike(f'%{search}%'),
-                Order.order_reference.ilike(f'%{search}%'),
+                cast(Order.order_number, String).ilike(f'%{search}%'),
                 Order.customer_name.ilike(f'%{search}%')
             ))
 
@@ -286,7 +292,7 @@ class OrderService:
         orders_data = []
         for order in orders:
             order_dict = order.to_dict()
-            if order.supplier:
+            if hasattr(order, 'supplier') and order.supplier:
                 order_dict['supplier_name'] = order.supplier.trade_name
             else:
                 order_dict['supplier_name'] = 'غير مرتبط'
@@ -316,7 +322,13 @@ class OrderService:
         """تحديث حالة الطلب عبر GraphQL"""
         mutation = self._extract_query("ChangeOrderStatus")
         try:
-            result = self.client.execute(mutation, {"id": qid, "status": status}, operation_name="ChangeOrderStatus")
+            variables = {
+                "input": {
+                    "orderId": str(qid),
+                    "status": str(status)
+                }
+            }
+            result = self.client.execute(mutation, variables, operation_name="ChangeOrderStatus")
             return result.get('changeOrderStatus') if result else None
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في تحديث حالة الطلب {qid}: {e}")
