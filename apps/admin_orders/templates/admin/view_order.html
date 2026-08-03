@@ -1,6 +1,6 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}تفاصيل الطلب #{{ order.order_number or order.id[:8] }} | محجوب{% endblock %}
+{% block title %}تفاصيل الطلب #{{ order.order_number or (order.id|string)[:8] }} | محجوب{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -13,7 +13,7 @@
             </a>
             <div>
                 <h2 class="fw-bold mb-1" style="color: #2d0b36;">
-                    📦 طلب رقم #{{ order.order_number or order.id[:8] }}
+                    📦 طلب رقم #{{ order.order_number or (order.id|string)[:8] }}
                 </h2>
                 <p class="text-muted text-sm mb-0">
                     تاريخ الطلب: {{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else 'غير محدد' }}
@@ -46,7 +46,7 @@
                         <thead class="bg-light">
                             <tr>
                                 <th class="py-3 ps-4">المنتج / البيان</th>
-                                <th class="py-3">الرمز (SKU/Slug)</th>
+                                <th class="py-3">الرمز (SKU)</th>
                                 <th class="py-3 text-center">الكمية</th>
                                 <th class="py-3 text-end">سعر الوحدة</th>
                                 <th class="py-3 pe-4 text-end">الإجمالي</th>
@@ -57,7 +57,7 @@
                                 {% for item in order.items %}
                                 <tr>
                                     <td class="ps-4">
-                                        <div class="fw-bold text-dark">{{ item.title or 'منتج غير محدد' }}</div>
+                                        <div class="fw-bold text-dark">{{ item.title or item.name or 'منتج غير محدد' }}</div>
                                     </td>
                                     <td>
                                         <span class="badge bg-light text-muted border font-monospace">
@@ -66,8 +66,8 @@
                                     </td>
                                     <td class="text-center fw-bold">{{ item.qty or item.quantity or 1 }}</td>
                                     <td class="text-end">{{ "{:,.2f}".format(item.price_per_unit or item.price or 0.0) }} ر.ي</td>
-                                    <td class="pe-4 text-end fw-bold style-total" style="color: #2d0b36;">
-                                        {{ "{:,.2f}".format(item.subtotal or ((item.qty or 1) * (item.price_per_unit or 0.0))) }} ر.ي
+                                    <td class="pe-4 text-end fw-bold" style="color: #2d0b36;">
+                                        {{ "{:,.2f}".format(item.subtotal or ((item.qty or item.quantity or 1) * (item.price_per_unit or item.price or 0.0))) }} ر.ي
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -169,7 +169,10 @@
                         </div>
                         <div>
                             <div class="fw-bold text-dark">{{ order.customer_name or 'عميل زائر' }}</div>
-                            <small class="text-muted">معرف الطلب: {{ order.id }}</small>
+                            <small class="text-muted d-block">معرف الطلب: {{ order.id }}</small>
+                            {% if order.customer_phone %}
+                                <small class="text-muted d-block"><i class="fas fa-phone me-1"></i> {{ order.customer_phone }}</small>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -182,7 +185,6 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
 
 <script>
-// تحديث حالة الطلب
 function updateOrderStatus(orderId) {
     const statusSelect = document.getElementById('orderStatusSelect');
     const alertDiv = document.getElementById('statusAlert');
@@ -222,7 +224,6 @@ function updateOrderStatus(orderId) {
     });
 }
 
-// تحديث المورد المرتبط
 function updateOrderSupplier(orderId) {
     const supplierSelect = document.getElementById('supplierSelect');
     const alertDiv = document.getElementById('supplierAlert');
