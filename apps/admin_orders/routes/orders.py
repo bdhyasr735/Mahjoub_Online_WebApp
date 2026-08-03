@@ -1,121 +1,112 @@
-# coding: utf-8
-# 📂 apps/admin_orders/routes/orders.py
+<div class="table-responsive bg-white shadow-sm rounded-4 p-3">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="bg-light rounded-3">
+            <tr>
+                <th style="width: 50px;">#</th>
+                <th>رقم الطلب</th>
+                <th>العميل</th>
+                <th style="min-width: 180px;">المورد</th>
+                <th>التاريخ</th>
+                <th>الإجمالي (ر.س)</th>
+                <th style="min-width: 160px;">الحالة</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ loop.index + (pagination.current_page - 1) * pagination.per_page }}</td>
+                <td><strong>{{ order.code or '#' ~ order.id|truncate(8) }}</strong></td>
+                <td>{{ order.customer_name or 'غير معروف' }}</td>
+                <td>
+                    <!-- ✅ قائمة الموردين مع بحث Tom Select -->
+                    <select class="form-select form-select-sm supplier-select" onchange="updateOrderSupplier('{{ order.id }}', this.value)">
+                        <option value="0">-- غير مرتبط --</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if order.supplier_id == supplier.id %}selected{% endif %}>
+                            {{ supplier.trade_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>{{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '—' }}</td>
+                <td class="fw-bold text-dark-purple">{{ order.total_price or 0 }}</td>
+                <td>
+                    <!-- ✅ قائمة حالات الطلب (قابلة للتعديل) -->
+                    <select class="form-select form-select-sm status-select" onchange="updateOrderStatus('{{ order.id }}', this.value)">
+                        {% set statuses = ['pending', 'confirmed', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'returned'] %}
+                        {% for s in statuses %}
+                        <option value="{{ s }}" {% if order.status_code == s %}selected{% endif %}>
+                            {{ s|title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <a href="{{ url_for('admin_orders_bp.view_admin_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center py-4 text-muted">
+                    <i class="fas fa-shopping-bag fa-2x mb-2 opacity-25 d-block"></i>
+                    لا توجد طلبات في النظام حتى الآن.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
-import traceback
-from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
-from flask_login import login_required
-from apps.admin_orders.routes import admin_orders_bp
-from apps.services import services
+<script>
+// ✅ تحديث حالة الطلب
+function updateOrderStatus(orderId, status) {
+    fetch(`/admin/orders/orders/${orderId}/status`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else '' }}'
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) alert('❌ ' + data.message);
+    })
+    .catch(() => alert('❌ حدث خطأ في الاتصال'));
+}
 
+// ✅ تحديث المورد للطلب
+function updateOrderSupplier(orderId, supplierId) {
+    fetch(`/admin/orders/orders/${orderId}/supplier`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else '' }}'
+        },
+        body: JSON.stringify({ supplier_id: supplierId === "0" ? 0 : parseInt(supplierId) })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) alert('❌ ' + data.message);
+        else location.reload(); // تحديث الصفحة لإظهار اسم المورد الجديد
+    })
+    .catch(() => alert('❌ حدث خطأ في الاتصال'));
+}
 
-@admin_orders_bp.route('/orders', methods=['GET'], endpoint='list_admin_orders')
-@login_required
-def manage_admin_orders_view():
-    try:
-        user_type = session.get('user_type')
-        if user_type != 'admin':
-            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
-            return redirect(url_for('admin_dashboard_bp.dashboard'))
-
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('limit', 10, type=int)
-        per_page = max(1, min(per_page, 50))
-        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-
-        status_filter = request.args.get('status', '').strip()
-        search_term = request.args.get('search', '').strip().lower()
-        date_from = request.args.get('date_from', '')
-        date_to = request.args.get('date_to', '')
-
-        # ✅ مزامنة تلقائية للصفحة الحالية عند كل زيارة
-        if not is_ajax:
-            try:
-                services.orders.get_all_orders(page=page, per_page=50)
-            except Exception as sync_e:
-                print(f"⚠️ [Auto Sync Orders] حدث خطأ أثناء المزامنة التلقائية: {sync_e}")
-
-        # ✅ جلب الطلبات من قاعدة البيانات المحلية
-        result = services.orders.get_local_orders(
-            page=page,
-            per_page=per_page,
-            supplier_id=None,  # الأدمن يرى جميع الطلبات
-            status=status_filter if status_filter else None,
-            search=search_term if search_term else None,
-            date_from=date_from if date_from else None,
-            date_to=date_to if date_to else None
-        )
-
-        orders = result.get('data', [])
-        pagination = result.get('pagination', {})
-
-        pagination_info = {
-            'current_page': page,
-            'total_pages': pagination.get('totalPages', 1),
-            'has_prev': page > 1,
-            'has_next': page < pagination.get('totalPages', 1),
-            'prev_num': page - 1 if page > 1 else None,
-            'next_num': page + 1 if page < pagination.get('totalPages', 1) else None,
-            'per_page': per_page,
-            'total_items': pagination.get('totalItems', 0)
-        }
-
-        for order in orders:
-            if 'status_text' not in order:
-                order['status_text'] = order.get('status', 'غير معروف').title()
-
-        if is_ajax:
-            return jsonify({
-                'success': True,
-                'html': render_template('admin/partials/_orders_table.html', orders=orders, pagination=pagination_info),
-                'pagination_html': render_template('admin/partials/_pagination.html', pagination=pagination_info),
-                'total_items': pagination_info['total_items']
-            })
-
-        return render_template('admin/admin_orders.html', orders=orders, pagination=pagination_info)
-
-    except Exception as e:
-        current_app.logger.error(f"خطأ في جلب الطلبات للأدمن: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء تحميل الطلبات', 'danger')
-        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        if is_ajax:
-            return jsonify({'success': False, 'message': 'حدث خطأ أثناء تحميل الطلبات'}), 500
-
-        return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1})
-
-
-# ============================================================================================
-# ✅ مسار عرض تفاصيل الطلب (لحل مشكلة BuildError)
-# ============================================================================================
-@admin_orders_bp.route('/orders/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
-@login_required
-def view_admin_order(order_id):
-    try:
-        user_type = session.get('user_type')
-        if user_type != 'admin':
-            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
-            return redirect(url_for('admin_dashboard_bp.dashboard'))
-
-        # هنا يمكنك جلب الطلب من قاعدة البيانات المحلية أو عبر الخدمة
-        # مثال مؤقت:
-        from apps.models.orders_db import Order
-        order = Order.query.get(order_id)
-        
-        if not order:
-            flash('❌ لم يتم العثور على الطلب', 'danger')
-            return redirect(url_for('admin_orders_bp.list_admin_orders'))
-
-        return render_template('admin/admin_order_detail.html', order=order)
-
-    except Exception as e:
-        current_app.logger.error(f"خطأ في عرض تفاصيل الطلب: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء تحميل تفاصيل الطلب', 'danger')
-        return redirect(url_for('admin_orders_bp.list_admin_orders'))
-
-
-# ============================================================================================
-# ✅ دالة تسجيل المسارات
-# ============================================================================================
-def register_admin_orders_route(bp):
-    bp.add_url_rule('/orders', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
-    bp.add_url_rule('/orders/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
-    return bp
+// ✅ تفعيل مكتبة Tom Select للموردين
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof TomSelect !== 'undefined') {
+        document.querySelectorAll('.supplier-select').forEach(el => {
+            if (!el.tomselect) new TomSelect(el, {
+                plugins: ['remove_button'],
+                placeholder: 'ابحث عن المورد...',
+                searchField: ['text'],
+                maxOptions: 10
+            });
+        });
+    }
+});
+</script>
