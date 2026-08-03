@@ -48,20 +48,25 @@ class OrderService:
         """جلب تفاصيل الطلب باستخدام المعرف qid"""
         query = self._extract_query("GetOrder")
         try:
-            result = self.client.execute(query, {"qid": qid}, operation_name="GetOrder")
-            return result.get('order') if result else None
+            result = self.client.execute(query, {"id": qid}, operation_name="GetOrder")
+            # نتعامل مع الرد القادم من getOrdersByIds
+            if result and 'getOrdersByIds' in result:
+                data_list = result['getOrdersByIds'].get('data', [])
+                return data_list[0] if data_list else None
+            return None
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلب {qid}: {e}")
             return None
 
     def get_all_orders(self, page: int = 1, per_page: int = 10, supplier_id: str = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
         """
-        جلب قائمة الطلبات مع دعم الترقيم وتصفية المورد والحالة.
+        جلب قائمة الطلبات مع دعم الترقيم باستخدام الاستعلام الحقيقي getOrdersByIds.
         """
         input_data = {
             "page": page,
             "limit": per_page
         }
+        # ملاحظة: بعض السكيما قد لا تدعم status, date في input، هذا آمن لأنه سيتجاهلها إذا لم تكن موجودة
         if supplier_id:
             input_data["supplierId"] = supplier_id
         if status:
@@ -73,24 +78,25 @@ class OrderService:
         if date_to:
             input_data["dateTo"] = date_to
 
-        query = self._extract_query("FindAllOrders")
+        query = self._extract_query("GetOrdersByIds")
         try:
-            result = self.client.execute(query, {"input": input_data}, operation_name="FindAllOrders")
-            if result:
+            # نمرر input و ids = None لجلب الكل
+            result = self.client.execute(query, {"ids": None, "input": input_data}, operation_name="GetOrdersByIds")
+            if result and 'getOrdersByIds' in result:
                 return {
-                    "data": result.get('findAllOrders', {}).get('data', []),
-                    "pagination": result.get('findAllOrders', {}).get('pagination', {
+                    "data": result['getOrdersByIds'].get('data', []),
+                    "pagination": result['getOrdersByIds'].get('pagination', {
                         "totalItems": 0,
                         "totalPages": 1,
-                        "currentPage": 1,
+                        "currentPage": page,
                         "limit": per_page,
                         "hasNextPage": False
                     })
                 }
-            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1, "limit": per_page, "hasNextPage": False}}
+            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}}
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلبات: {e}")
-            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1, "limit": per_page, "hasNextPage": False}}
+            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}}
 
     def create_order(self, input_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """إنشاء طلب جديد"""
@@ -106,7 +112,7 @@ class OrderService:
         """تحديث حالة الطلب"""
         mutation = self._extract_query("UpdateOrderStatus")
         try:
-            result = self.client.execute(mutation, {"qid": qid, "status": status}, operation_name="UpdateOrderStatus")
+            result = self.client.execute(mutation, {"id": qid, "status": status}, operation_name="UpdateOrderStatus")
             return result.get('updateOrderStatus') if result else None
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في تحديث حالة الطلب {qid}: {e}")
@@ -116,7 +122,7 @@ class OrderService:
         """حذف طلب"""
         mutation = self._extract_query("DeleteOrder")
         try:
-            result = self.client.execute(mutation, {"qid": qid}, operation_name="DeleteOrder")
+            result = self.client.execute(mutation, {"id": qid}, operation_name="DeleteOrder")
             return result.get('deleteOrder', False) if result else False
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في حذف الطلب {qid}: {e}")
