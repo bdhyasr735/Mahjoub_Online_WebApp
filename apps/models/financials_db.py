@@ -17,7 +17,6 @@ class OrderFinancial(db.Model):
         db.Index('idx_fin_settlement', 'settlement_status'),
         db.Index('idx_fin_created', 'created_at'),
         db.Index('idx_fin_transaction', 'transaction_id'),
-        # ✅ تم إزالة idx_fin_currency
         {'extend_existing': True}
     )
 
@@ -27,9 +26,7 @@ class OrderFinancial(db.Model):
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     transaction_id = db.Column(db.Integer, db.ForeignKey('wallet_transactions.id'), nullable=True)
     
-    # ✅ تم إزالة حقل currency نهائياً - العملة ثابتة SAR
-    
-    # 3. المبالغ المالية (تشفير محكم + قيمة خام للعمليات الحسابية السريعة)
+    # 2. المبالغ المالية (تشفير محكم + قيمة خام للعمليات الحسابية السريعة)
     _supplier_cost_enc = db.Column(db.String(255), nullable=False)
     supplier_cost_raw = db.Column(db.Numeric(18, 2), default=0.00)
     
@@ -41,7 +38,7 @@ class OrderFinancial(db.Model):
     
     shipping_fees = db.Column(db.Numeric(18, 2), default=0.00)
     
-    # 4. حالة التسوية
+    # 3. حالة التسوية
     settlement_status = db.Column(db.String(20), default='pending') 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     settled_at = db.Column(db.DateTime, nullable=True)
@@ -51,6 +48,29 @@ class OrderFinancial(db.Model):
     supplier = db.relationship('Supplier', back_populates='financials', lazy='joined')
     transaction = db.relationship('WalletTransaction', backref='order_financials', lazy='joined')
 
+    def __init__(self, **kwargs):
+        """مُنشئ الكائن مع التشفير التلقائي للمبالغ عند الإنشاء."""
+        supplier_cost_val = kwargs.pop('supplier_cost', None)
+        commission_val = kwargs.pop('mahjoub_commission', None)
+        total_paid_val = kwargs.pop('total_paid', None)
+
+        super().__init__(**kwargs)
+
+        if supplier_cost_val is not None:
+            self.supplier_cost = supplier_cost_val
+        elif not self._supplier_cost_enc:
+            self._supplier_cost_enc = self._encrypt(self.supplier_cost_raw or 0.0)
+
+        if commission_val is not None:
+            self.mahjoub_commission = commission_val
+        elif not self._mahjoub_commission_enc:
+            self._mahjoub_commission_enc = self._encrypt(self.mahjoub_commission_raw or 0.0)
+
+        if total_paid_val is not None:
+            self.total_paid = total_paid_val
+        elif not self._total_paid_enc:
+            self._total_paid_enc = self._encrypt(self.total_paid_raw or 0.0)
+
     # --- منطق التشفير السيادي ---
     @staticmethod
     def _get_key():
@@ -58,43 +78,82 @@ class OrderFinancial(db.Model):
         return key.encode() if key else b'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq='
 
     def _encrypt(self, value):
+        if value is None:
+            value = 0.0
         f = Fernet(self._get_key())
         return f.encrypt(str(value).encode()).decode()
 
     def _decrypt(self, value):
-        if not value: return 0.0
+        if not value:
+            return 0.0
         try:
             f = Fernet(self._get_key())
             return float(f.decrypt(value.encode()).decode())
-        except Exception: return 0.0
+        except Exception:
+            return 0.0
 
     # --- Properties الذكية للتعامل مع البيانات ---
     @property
-    def supplier_cost(self): return self._decrypt(self._supplier_cost_enc)
+    def supplier_cost(self):
+        val = self._decrypt(self._supplier_cost_enc)
+        return val if val != 0.0 else float(self.supplier_cost_raw or 0.0)
+
     @supplier_cost.setter
-    def supplier_cost(self, value): 
-        self._supplier_cost_enc = self._encrypt(value)
-        self.supplier_cost_raw = float(value)
+    def supplier_cost(self, value):
+        val_float = float(value or 0.0)
+        self._supplier_cost_enc = self._encrypt(val_float)
+        self.supplier_cost_raw = val_float
 
     @property
-    def mahjoub_commission(self): return self._decrypt(self._mahjoub_commission_enc)
+    def mahjoub_commission(self):
+        val = self._decrypt(self._mahjoub_commission_enc)
+        return val if val != 0.0 else float(self.mahjoub_commission_raw or 0.0)
+
     @mahjoub_commission.setter
-    def mahjoub_commission(self, value): 
-        self._mahjoub_commission_enc = self._encrypt(value)
-        self.mahjoub_commission_raw = float(value)
+    def mahjoub_commission(self, value):
+        val_float = float(value or 0.0)
+        self._mahjoub_commission_enc = self._encrypt(val_float)
+        self.mahjoub_commission_raw = val_float
 
     @property
-    def total_paid(self): return self._decrypt(self._total_paid_enc)
-    @total_paid.setter
-    def total_paid(self, value): 
-        self._total_paid_enc = self._encrypt(value)
-        self.total_paid_raw = float(value)
+    def total_paid(self):
+        val = self._decrypt(self._total_paid_enc)
+        return val if val != 0.0 else float(self.total_paid_raw or 0.0)
 
-    # ✅ دالة مساعدة لإرجاع العملة (ثابتة)
+    @total_paid.setter
+    def total_paid(self, value):
+        val_float = float(value or 0.0)
+        self._total_paid_enc = self._encrypt(val_float)
+        self.total_paid_raw = val_float
+
+    # =========================================================
+    # 📌 قواعد "المورد له سعر التكلفة فقط" والخصائص التوافقية
+    # =========================================================
+
+    @property
+    def supplier_payout(self):
+        """مستحقات المورد الخالصة = سعر التكلفة فقط."""
+        return self.supplier_cost
+
+    @property
+    def supplier_share(self):
+        """حصة المورد المحاسبية = سعر التكلفة فقط."""
+        return self.supplier_cost
+
+    @property
+    def supplier_amount(self):
+        """مرادف لحصة المورد للتوافق مع التمبلت."""
+        return self.supplier_cost
+
+    @property
+    def platform_profit(self):
+        """صافي ربح المنصة = إجمالي المدفوع - تكلفة المورد - رسوم الشحن."""
+        return float(self.total_paid or 0.0) - float(self.supplier_cost or 0.0) - float(self.shipping_fees or 0.0)
+
     @property
     def currency(self):
         """العملة ثابتة: ريال سعودي (SAR)"""
         return "SAR"
 
     def __repr__(self):
-        return f'<OrderFinancial OrderID: {self.order_id} | Status: {self.settlement_status} | Currency: SAR>'
+        return f'<OrderFinancial OrderID: {self.order_id} | SupplierCost: {self.supplier_cost} SAR | Status: {self.settlement_status}>'
