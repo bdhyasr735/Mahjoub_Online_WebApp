@@ -1,266 +1,228 @@
-{% extends "admin/admin_base.html" %}
+# coding: utf-8
+# 📂 apps/admin_orders/routes/orders.py
 
-{% block title %}تفاصيل الطلب #{{ order.order_number or (order.id|string)[:8] }} | محجوب{% endblock %}
+import traceback
+import threading
+from datetime import datetime
+from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
+from flask_login import login_required
 
-{% block content %}
-<div class="container-fluid py-4">
+from apps.admin_orders.routes import admin_orders_bp
+from apps.services import services
+from apps.models.supplier_db import Supplier
+from apps.models.orders_db import Order
+from apps.extensions import db
 
-    <!-- ✅ شريط العنوان وأزرار الإجراءات السريعة -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <a href="{{ url_for('admin_orders_bp.list_admin_orders') }}" class="btn btn-outline-secondary rounded-circle p-2" title="عودة لجميع الطلبات">
-                <i class="fas fa-arrow-right"></i>
-            </a>
-            <div>
-                <h2 class="fw-bold mb-1" style="color: #2d0b36;">
-                    📦 طلب رقم #{{ order.order_number or (order.id|string)[:8] }}
-                </h2>
-                <p class="text-muted text-sm mb-0">
-                    تاريخ الطلب: {{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else 'غير محدد' }}
-                </p>
-            </div>
-        </div>
 
-        <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-dark d-flex align-items-center gap-2" onclick="window.print()">
-                <i class="fas fa-print"></i> طباعة الطلب
-            </button>
-        </div>
-    </div>
+def _sync_orders_in_background(app, page=1, per_page=15):
+    """دالة مساعدة لإجراء المزامنة في الخلفية دون تعطيل طلبات المتصفح."""
+    with app.app_context():
+        try:
+            services.orders.get_all_orders(page=page, per_page=per_page)
+        except Exception as sync_e:
+            app.logger.warning(f"⚠️ [Auto Sync Orders Background] {sync_e}")
 
-    <div class="row g-4">
-        <!-- 👈 العمود الأيمن: تفاصيل المنتجات والموجز -->
-        <div class="col-lg-8">
-            <!-- جدول عناصر الطلب -->
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header bg-white py-3 border-0 d-flex align-items-center justify-content-between">
-                    <h5 class="fw-bold mb-0" style="color: #2d0b36;">
-                        <i class="fas fa-box-open text-warning me-2"></i> عناصر الطلب
-                    </h5>
-                    <span class="badge bg-light text-dark border rounded-pill px-3 py-2">
-                        إجمالي العناصر: {{ order.items|length if order.items else 0 }}
-                    </span>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="py-3 ps-4">المنتج / البيان</th>
-                                <th class="py-3">الرمز (SKU)</th>
-                                <th class="py-3 text-center">الكمية</th>
-                                <th class="py-3 text-end">سعر الوحدة</th>
-                                <th class="py-3 pe-4 text-end">الإجمالي</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if order.items %}
-                                {% for item in order.items %}
-                                <tr>
-                                    <td class="ps-4">
-                                        <div class="fw-bold text-dark">{{ item.title or item.name or 'منتج غير محدد' }}</div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-light text-muted border font-monospace">
-                                            {{ item.sku or 'N/A' }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center fw-bold">{{ item.qty or item.quantity or 1 }}</td>
-                                    <td class="text-end">{{ "{:,.2f}".format(item.price_per_unit or item.price or 0.0) }} ر.ي</td>
-                                    <td class="pe-4 text-end fw-bold" style="color: #2d0b36;">
-                                        {{ "{:,.2f}".format(item.subtotal or ((item.qty or item.quantity or 1) * (item.price_per_unit or item.price or 0.0))) }} ر.ي
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td colspan="5" class="text-center py-4 text-muted">
-                                        لا توجد تفاصيل عناصر مسجلة لهذا الطلب.
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
-            <!-- الملخص المالي للطلب -->
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3" style="color: #2d0b36;">💰 الملخص المالي</h5>
-                    <div class="d-flex justify-content-between py-2 border-bottom text-muted">
-                        <span>إجمالي المنتجات:</span>
-                        <span class="fw-semibold text-dark">{{ "{:,.2f}".format(order.total_price or 0.0) }} ر.ي</span>
-                    </div>
-                    <div class="d-flex justify-content-between py-2 border-bottom text-muted">
-                        <span>حالة الدفع:</span>
-                        {% if order.is_paid %}
-                            <span class="badge bg-success-subtle text-success border border-success px-3 py-1">مدفوع بالكامل</span>
-                        {% else %}
-                            <span class="badge bg-warning-subtle text-dark border border-warning px-3 py-1">غير مدفوع / عند الاستلام</span>
-                        {% endif %}
-                    </div>
-                    <div class="d-flex justify-content-between pt-3 fs-5 fw-bold" style="color: #2d0b36;">
-                        <span>المبلغ الإجمالي النهائي:</span>
-                        <span style="color: #D4AF37;">{{ "{:,.2f}".format(order.total_price or 0.0) }} ر.ي</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+@admin_orders_bp.route('', methods=['GET'], endpoint='list_admin_orders')
+@admin_orders_bp.route('/', methods=['GET'])
+@login_required
+def manage_admin_orders_view():
+    try:
+        user_type = session.get('user_type')
+        if user_type != 'admin':
+            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
+            return redirect(url_for('admin_dashboard_bp.dashboard'))
 
-        <!-- 👈 العمود الأيسر: التحكم والعميل والمورد -->
-        <div class="col-lg-4">
-            <!-- التحكم بحالة الطلب -->
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3" style="color: #2d0b36;">
-                        <i class="fas fa-tasks text-primary me-2"></i> حالة الطلب
-                    </h5>
-                    
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-semibold">تغيير حالة الطلب:</label>
-                        <select class="form-select rounded-3 py-2" id="orderStatusSelect" onchange="updateOrderStatus('{{ order.id }}')">
-                            <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>⏳ قيد الانتظار (Pending)</option>
-                            <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>⚙️ قيد التجهيز (Processing)</option>
-                            <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>🚚 تم الشحن (Shipped)</option>
-                            <option value="delivered" {% if order.status_code == 'delivered' %}selected{% endif %}>✅ تم التسليم (Delivered)</option>
-                            <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>❌ ملغي (Cancelled)</option>
-                        </select>
-                    </div>
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('limit', 10, type=int)
+        per_page = max(1, min(per_page, 50))
+        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
-                    <div id="statusAlert" class="mt-2" style="display: none;"></div>
-                </div>
-            </div>
+        status_filter = request.args.get('status', '').strip()
+        search_term = request.args.get('search', '').strip().lower()
+        date_from = request.args.get('date_from', '')
+        date_to = request.args.get('date_to', '')
+        supplier_filter = request.args.get('supplier_id', type=int)
 
-            <!-- إسناد المورد -->
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3" style="color: #2d0b36;">
-                        <i class="fas fa-truck-loading text-warning me-2"></i> المورد المرتبط
-                    </h5>
-                    
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-semibold">ربط بالمورد:</label>
-                        <select class="form-select rounded-3 py-2" id="supplierSelect" onchange="updateOrderSupplier('{{ order.id }}')">
-                            <option value="0">-- غير مرتبط بمورد --</option>
-                            {% if suppliers %}
-                                {% for supplier in suppliers %}
-                                    <option value="{{ supplier.id }}" {% if order.supplier_id == supplier.id %}selected{% endif %}>
-                                        {{ supplier.trade_name or supplier.name }}
-                                    </option>
-                                {% endfor %}
-                            {% endif %}
-                        </select>
-                    </div>
+        # 🚀 [تحسين السرعة الفائقة]: تشغيل المزامنة في الخلفية فقط عند فتح الصفحة الأولى وبدون تصفية
+        if not is_ajax and page == 1 and not (search_term or status_filter or date_from or date_to or supplier_filter):
+            app = current_app._get_current_object()
+            threading.Thread(
+                target=_sync_orders_in_background,
+                args=(app, 1, 15),
+                daemon=True
+            ).start()
 
-                    <div id="supplierAlert" class="mt-2" style="display: none;"></div>
-                </div>
-            </div>
+        # ⚡ جلب فوري ومباشر للطلبات من قاعدة البيانات المحلية دون انتظار API الخارجية
+        result = services.orders.get_local_orders(
+            page=page,
+            per_page=per_page,
+            supplier_id=supplier_filter,
+            status=status_filter if status_filter else None,
+            search=search_term if search_term else None,
+            date_from=date_from if date_from else None,
+            date_to=date_to if date_to else None
+        )
 
-            <!-- معلومات العميل -->
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3" style="color: #2d0b36;">
-                        <i class="fas fa-user-circle text-info me-2"></i> بيانات العميل
-                    </h5>
-                    
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="bg-light rounded-circle p-3 text-secondary">
-                            <i class="fas fa-user fa-lg"></i>
-                        </div>
-                        <div>
-                            <div class="fw-bold text-dark">{{ order.customer_name or 'عميل زائر' }}</div>
-                            <small class="text-muted d-block">معرف الطلب: {{ order.id }}</small>
-                            {% if order.customer_phone %}
-                                <small class="text-muted d-block"><i class="fas fa-phone me-1"></i> {{ order.customer_phone }}</small>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+        orders = result.get('data', [])
+        pagination = result.get('pagination', {})
+        suppliers = Supplier.query.filter_by(status='active').all()
 
-<!-- حقل CSRF Token -->
-<input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
-
-<script>
-function updateOrderStatus(orderId) {
-    const statusSelect = document.getElementById('orderStatusSelect');
-    const alertDiv = document.getElementById('statusAlert');
-    const newStatus = statusSelect.value;
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-
-    statusSelect.disabled = true;
-
-    fetch(`/admin/orders/${orderId}/status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ status: newStatus })
-    })
-    .then(res => res.json())
-    .then(data => {
-        alertDiv.style.display = 'block';
-        if (data.success) {
-            alertDiv.className = 'alert alert-success py-2 px-3 small rounded-3';
-            alertDiv.innerText = '✅ ' + (data.message || 'تم تحديث الحالة بنجاح');
-        } else {
-            alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3';
-            alertDiv.innerText = '❌ ' + (data.message || 'حدث خطأ أثناء التحديث');
+        pagination_info = {
+            'current_page': page,
+            'total_pages': pagination.get('totalPages', 1),
+            'has_prev': page > 1,
+            'has_next': page < pagination.get('totalPages', 1),
+            'prev_num': page - 1 if page > 1 else None,
+            'next_num': page + 1 if page < pagination.get('totalPages', 1) else None,
+            'per_page': per_page,
+            'total_items': pagination.get('totalItems', 0)
         }
-    })
-    .catch(err => {
-        alertDiv.style.display = 'block';
-        alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3';
-        alertDiv.innerText = '❌ خطأ في الاتصال: ' + err.message;
-    })
-    .finally(() => {
-        statusSelect.disabled = false;
-        setTimeout(() => { alertDiv.style.display = 'none'; }, 4000);
-    });
-}
 
-function updateOrderSupplier(orderId) {
-    const supplierSelect = document.getElementById('supplierSelect');
-    const alertDiv = document.getElementById('supplierAlert');
-    const supplierId = supplierSelect.value;
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+        for order in orders:
+            if 'status_text' not in order:
+                order['status_text'] = order.get('status_title', 'غير معروف')
 
-    supplierSelect.disabled = true;
+        if is_ajax:
+            return jsonify({
+                'success': True,
+                'html': render_template('admin/partials/_orders_table.html', orders=orders, pagination=pagination_info, suppliers=suppliers),
+                'pagination_html': render_template('admin/partials/_pagination.html', pagination=pagination_info),
+                'total_items': pagination_info['total_items']
+            })
 
-    fetch(`/admin/orders/${orderId}/supplier`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ supplier_id: supplierId })
-    })
-    .then(res => res.json())
-    .then(data => {
-        alertDiv.style.display = 'block';
-        if (data.success) {
-            alertDiv.className = 'alert alert-success py-2 px-3 small rounded-3';
-            alertDiv.innerText = '✅ ' + (data.message || 'تم تحديث المورد بنجاح');
-        } else {
-            alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3';
-            alertDiv.innerText = '❌ ' + (data.message || 'حدث خطأ أثناء التحديث');
-        }
-    })
-    .catch(err => {
-        alertDiv.style.display = 'block';
-        alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3';
-        alertDiv.innerText = '❌ خطأ في الاتصال: ' + err.message;
-    })
-    .finally(() => {
-        supplierSelect.disabled = false;
-        setTimeout(() => { alertDiv.style.display = 'none'; }, 4000);
-    });
-}
-</script>
-{% endblock %}
+        return render_template('admin/admin_orders.html', orders=orders, pagination=pagination_info, suppliers=suppliers)
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ في جلب الطلبات للأدمن: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع أثناء تحميل الطلبات', 'danger')
+        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        if is_ajax:
+            return jsonify({'success': False, 'message': 'حدث خطأ أثناء تحميل الطلبات'}), 500
+        return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1}, suppliers=[])
+
+
+@admin_orders_bp.route('/sync', methods=['POST'])
+@login_required
+def sync_admin_orders():
+    try:
+        # 🚀 المزامنة اليدوية تعمل أيضاً في الخلفية لتجنب تجميد الواجهة
+        app = current_app._get_current_object()
+        threading.Thread(
+            target=_sync_orders_in_background,
+            args=(app, 1, 50),
+            daemon=True
+        ).start()
+
+        return jsonify({'success': True, 'message': '⚡ بدأت عملية المزامنة في الخلفية بنجاح'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_orders_bp.route('/<string:order_id>/status', methods=['POST'])
+@login_required
+def update_order_status(order_id):
+    try:
+        data = request.get_json() or {}
+        new_status = data.get('status')
+        if not new_status:
+            return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
+
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+
+        order.status_code = new_status
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        # تحديث الحالة في الخدمة الخارجية/المحلية إذا لزم الأمر
+        if hasattr(services.orders, 'update_order_status'):
+            try:
+                services.orders.update_order_status(order_id, new_status)
+            except Exception as service_e:
+                current_app.logger.warning(f"⚠️ فشل تحديث الخدمة الخارجية: {service_e}")
+
+        return jsonify({'success': True, 'message': 'تم تحديث الحالة بنجاح'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_orders_bp.route('/<string:order_id>/supplier', methods=['POST'])
+@login_required
+def update_order_supplier(order_id):
+    try:
+        data = request.get_json() or {}
+        supplier_id_raw = data.get('supplier_id')
+        if supplier_id_raw is None:
+            return jsonify({'success': False, 'message': 'المورد مطلوب'}), 400
+
+        try:
+            supplier_id = int(supplier_id_raw)
+        except (TypeError, ValueError):
+            supplier_id = 0
+
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+
+        if supplier_id != 0:
+            supplier = Supplier.query.get(supplier_id)
+            if not supplier:
+                return jsonify({'success': False, 'message': 'المورد غير موجود'}), 404
+            order.supplier_id = supplier_id
+        else:
+            order.supplier_id = None
+
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'تم تحديث المورد بنجاح'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
+@login_required
+def view_admin_order(order_id):
+    try:
+        # 1. البحث في قاعدة البيانات المحلية أولاً
+        order = Order.query.get(order_id)
+        
+        # 2. ⚡ إذا لم يكن موجوداً محلياً، جلب الطلب فوراً من API الخارجية وتخزينه
+        if not order:
+            try:
+                if hasattr(services.orders, 'get_order_by_id'):
+                    order = services.orders.get_order_by_id(order_id)
+                elif hasattr(services.orders, 'sync_single_order'):
+                    order = services.orders.sync_single_order(order_id)
+            except Exception as sync_single_e:
+                current_app.logger.warning(f"⚠️ تعذر جلب الطلب {order_id} من الخدمة الخارجية: {sync_single_e}")
+
+        # 3. التأكد من إعادة المحاولة محلياً بعد الجلب
+        if not order:
+            order = Order.query.get(order_id)
+
+        # 4. إذا ظل غير موجود، يتم التوجيه مع التنبيه
+        if not order:
+            flash('❌ لم يتم العثور على الطلب في النظام', 'danger')
+            return redirect(url_for('admin_orders_bp.list_admin_orders'))
+
+        return render_template('admin/admin_order_detail.html', order=order)
+
+    except Exception as e:
+        current_app.logger.error(f"خطأ في عرض تفاصيل الطلب {order_id}: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع أثناء تحميل تفاصيل الطلب', 'danger')
+        return redirect(url_for('admin_orders_bp.list_admin_orders'))
+
+
+def register_admin_orders_route(bp):
+    bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
+    bp.add_url_rule('/sync', view_func=sync_admin_orders, methods=['POST'])
+    bp.add_url_rule('/<string:order_id>/status', view_func=update_order_status, methods=['POST'])
+    bp.add_url_rule('/<string:order_id>/supplier', view_func=update_order_supplier, methods=['POST'])
+    bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
+    return bp
