@@ -10,8 +10,8 @@
             <p class="text-muted text-sm mb-0">عرض وإدارة جميع طلبات الزبائن في المنصة.</p>
         </div>
         <div>
-            <!-- ✅ زر مزامنة الطلبات -->
-            <button class="btn btn-warning d-flex align-items-center gap-2" onclick="syncAdminOrders()">
+            <!-- ✅ زر مزامنة الطلبات مع تمرير الحدث بشكل آمن -->
+            <button class="btn btn-warning d-flex align-items-center gap-2" onclick="syncAdminOrders(event)">
                 <i class="fas fa-sync-alt"></i> مزامنة الطلبات
             </button>
         </div>
@@ -31,6 +31,12 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
 
 <script>
+// دالة مساعدة آمنة لقراءة القيم من العناصر لضمان عدم حدوث أخطاء إذا كان العنصر غير موجود
+function getVal(id) {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+}
+
 // دالة منع التكرار
 let debounceTimer;
 function debounceFetchAdminOrders() {
@@ -49,11 +55,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetchAdminOrders(1);
             }
         });
-        // البحث أثناء الكتابة بـ Debounce
         searchInput.addEventListener('input', debounceFetchAdminOrders);
     }
 
-    // ربط الفلاتر تلقائياً بأحداث التغيير لتحديث الجدول فوراً
+    // ربط الفلاتر تلقائياً بأحداث التغيير لتحديث الجدول فوراً (بشكل آمن)
     const filterElements = [
         'statusFilter', 
         'financialStatusFilter', 
@@ -74,18 +79,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function fetchAdminOrders(page = 1) {
     const container = document.getElementById('ordersContainer');
+    if (!container) return;
+    
     container.innerHTML = `<div class="text-center py-5"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2 text-muted">⏳ جاري تحميل الطلبات...</p></div>`;
 
     const params = new URLSearchParams({
         page: page,
-        search: document.getElementById('searchInput').value.trim() || '',
-        status: document.getElementById('statusFilter').value || '',
-        financial_status: document.getElementById('financialStatusFilter').value || '',
-        fulfillment_status: document.getElementById('fulfillmentStatusFilter').value || '',
-        supplier_id: document.getElementById('supplierFilter').value || '',
-        date_from: document.getElementById('dateFrom').value || '',
-        date_to: document.getElementById('dateTo').value || '',
-        limit: document.getElementById('limitSelect').value || '10',
+        search: getVal('searchInput'),
+        status: getVal('statusFilter'),
+        financial_status: getVal('financialStatusFilter'),
+        fulfillment_status: getVal('fulfillmentStatusFilter'),
+        supplier_id: getVal('supplierFilter'),
+        date_from: getVal('dateFrom'),
+        date_to: getVal('dateTo'),
+        limit: getVal('limitSelect') || '10',
         ajax: '1'
     });
 
@@ -95,24 +102,28 @@ function fetchAdminOrders(page = 1) {
     .then(response => response.json())
     .then(data => {
         if (data.success && data.html) {
-            container.innerHTML = data.html + data.pagination_html;
+            container.innerHTML = data.html + (data.pagination_html || '');
         } else {
             container.innerHTML = `<div class="alert alert-warning text-center py-4 rounded-4"><i class="fas fa-search fa-2x d-block mb-3 opacity-50"></i> لا توجد طلبات مطابقة للبحث.</div>`;
         }
     })
     .catch(error => {
+        console.error('Fetch Error:', error);
         container.innerHTML = `<div class="alert alert-danger text-center py-4 rounded-4"><i class="fas fa-exclamation-triangle fa-2x d-block mb-3"></i> حدث خطأ أثناء جلب الطلبات.</div>`;
     });
 }
 
-// ✅ دالة مزامنة الطلبات (تم تصحيح المسار ليكون متوافقاً مع الـ Blueprint)
-function syncAdminOrders() {
-    if (!confirm('هل تريد مزامنة الطلبات من قمرة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
+// ✅ دالة مزامنة الطلبات الآمنة
+function syncAdminOrders(event) {
+    if (!confirm('هل تريد مزامنة الطلبات من المنصة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
     
-    const btn = event.target.closest('button');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
-    btn.disabled = true;
+    const btn = event ? event.target.closest('button') : document.querySelector('button[onclick*="syncAdminOrders"]');
+    const originalText = btn ? btn.innerHTML : '';
+    
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
+        btn.disabled = true;
+    }
 
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
 
@@ -127,18 +138,20 @@ function syncAdminOrders() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            alert('✅ ' + data.message);
-            location.reload(); // تحديث الصفحة لإظهار الطلبات الجديدة
+            alert('✅ ' + (data.message || 'تمت المزامنة بنجاح'));
+            location.reload(); // تحديث الصفحة بالكامل لجلب الطلبات المزمنة حديثاً
         } else {
-            alert('❌ ' + data.message);
+            alert('❌ ' + (data.message || 'فشلت المزامنة'));
         }
     })
     .catch(err => {
         alert('❌ حدث خطأ في الاتصال: ' + err.message);
     })
     .finally(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+        if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     });
 }
 </script>
