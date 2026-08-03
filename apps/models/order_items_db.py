@@ -18,14 +18,13 @@ class OrderItem(db.Model):
     # الربط بالطلب الأساسي
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False)
     
-    # تفاصيل المنتج القادمة من المنصة
+    productId = db.Column(db.String(100), nullable=True)
     title = db.Column(db.String(255), nullable=False)
     qty = db.Column(db.Integer, default=1)
     subtotal = db.Column(db.Numeric(18, 2), default=0.00)
-    
-    # [تعديل نوع الحقل]: تم استبدال String(100) بـ db.Text لاستيعاب الـ Slugs والنصوص الطويلة دون truncation error
     sku = db.Column(db.Text, nullable=True) 
     price_per_unit = db.Column(db.Numeric(18, 2), default=0.00) # سعر القطعة الواحدة
+    _image_url = db.Column(db.Text, nullable=True)
     
     # ربط العلاقة مع جدول الطلبات
     order = db.relationship(
@@ -44,7 +43,7 @@ class OrderItem(db.Model):
         return {
             'title': self.title or '',
             'slug': self.sku or '',
-            'image': getattr(self, 'image_url', None) or ''
+            'image': {'fileUrl': self._image_url} if self._image_url else None
         }
 
     @property
@@ -55,12 +54,38 @@ class OrderItem(db.Model):
     @property
     def price(self):
         """خاصية للتوافق مع تسمية price."""
-        return self.price_per_unit
+        return float(self.price_per_unit or 0.0)
+
+    @property
+    def totalPrice(self):
+        return float(self.subtotal or (float(self.price_per_unit or 0.0) * self.qty))
 
     @property
     def image(self):
         """خاصية للتوافق مع استدعاء item.image مباشرة."""
-        return getattr(self, 'image_url', '') or ''
+        return self._image_url or ''
+
+    def to_dict(self):
+        """دالة تحويل عنصر الطلب إلى قاموس متوافق مع واجهات النظام."""
+        return {
+            'id': self.id,
+            '_id': str(self.id),
+            'order_id': self.order_id,
+            'productId': self.productId,
+            'title': self.title,
+            'qty': self.qty,
+            'quantity': self.qty,
+            'price': float(self.price_per_unit or 0.0),
+            'price_per_unit': float(self.price_per_unit or 0.0),
+            'subtotal': float(self.subtotal or 0.0),
+            'totalPrice': float(self.subtotal or 0.0),
+            'sku': self.sku,
+            'productData': {
+                'title': self.title,
+                'slug': self.sku,
+                'image': {'fileUrl': self._image_url} if self._image_url else None
+            }
+        }
 
     def __repr__(self):
         return f'<OrderItem {self.title} | Qty: {self.qty}>'
