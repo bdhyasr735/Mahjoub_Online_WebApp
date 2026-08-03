@@ -5,7 +5,7 @@ import os
 from typing import Dict, Any, Optional, List
 from .graphql_client import GraphQLClient
 from datetime import datetime
-from sqlalchemy import or_
+from sqlalchemy import or_, cast, Integer
 
 
 class OrderService:
@@ -137,7 +137,7 @@ class OrderService:
                         existing_order = Order.query.filter_by(id=qid).first()
                         
                         # توليد الرقم التسلسلي للطلب الجديد
-                        last_order = db.session.query(Order).order_by(Order.order_number.desc()).first()
+                        last_order = db.session.query(Order).order_by(cast(Order.order_number, Integer).desc()).first()
                         next_number = (last_order.order_number + 1) if last_order and last_order.order_number else 1000000235
 
                         if existing_order:
@@ -230,7 +230,8 @@ class OrderService:
         total_items = query.count()
         total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
-        orders = query.order_by(Order.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+        # ✅ الترتيب تنازلياً بناءً على رقم الطلب لضمان ظهور الطلبات الأحدث والأكبر أولاً في الصفحة الأولى
+        orders = query.order_by(cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
 
         orders_data = []
         for order in orders:
