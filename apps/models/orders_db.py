@@ -54,9 +54,9 @@ class Order(db.Model):
     supplier = db.relationship('Supplier', back_populates='orders', lazy='joined')
     marketer = db.relationship('Marketer', back_populates='orders', lazy='joined')
     
-    # بما أن OrderItem في نفس الملف، يمكن الإشارة إليه باسمه مباشرة
+    # الربط مع موديل عناصر الطلب المستقل عبر المسار الكامل
     items = db.relationship(
-        'OrderItem', 
+        'apps.models.order_items_db.OrderItem', 
         back_populates='order', 
         cascade="all, delete-orphan", 
         lazy='joined'
@@ -195,80 +195,3 @@ class Order(db.Model):
 
     def __repr__(self):
         return f'<Order {self.order_id_display or self.id} | Status: {self.status_title} | Amount: {self.amount} SAR>'
-
-
-class OrderItem(db.Model):
-    """عناصر الطلب المرتبطة بجدول Order."""
-    __tablename__ = 'order_items'
-
-    __table_args__ = (
-        {'extend_existing': True},
-    )
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    order_id = db.Column(db.String(100), db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
-    
-    productId = db.Column(db.String(100), nullable=True)
-    title = db.Column(db.String(255), nullable=True)
-    qty = db.Column(db.Integer, default=1)
-    price_per_unit = db.Column(db.Numeric(18, 2), default=0.00)
-    subtotal = db.Column(db.Numeric(18, 2), default=0.00)
-    sku = db.Column(db.String(100), nullable=True)
-    _image_url = db.Column(db.Text, nullable=True)
-
-    # بما أن Order مُعرفة في الأعلى في نفس الملف، نمرر الصنف مباشرة لتفادي أي التباس
-    order = db.relationship(Order, back_populates='items')
-
-    @property
-    def _id(self):
-        return str(self.id)
-
-    @property
-    def price(self):
-        return float(self.price_per_unit or 0.0)
-
-    @property
-    def quantity(self):
-        return self.qty
-
-    @property
-    def totalPrice(self):
-        return float(self.subtotal or (float(self.price_per_unit or 0.0) * self.qty))
-
-    @property
-    def productData(self):
-        item_title = self.title or 'منتج'
-        img_url = self._image_url
-
-        class ImageWrapper:
-            def __init__(self, url):
-                self.fileUrl = url
-
-        class ProductDataInner:
-            def __init__(self, title, image_url):
-                self.title = title
-                self.slug = title
-                self.image = ImageWrapper(image_url) if image_url else None
-
-        return ProductDataInner(item_title, img_url)
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            '_id': str(self.id),
-            'order_id': self.order_id,
-            'productId': self.productId,
-            'title': self.title,
-            'qty': self.qty,
-            'quantity': self.qty,
-            'price': float(self.price_per_unit or 0.0),
-            'price_per_unit': float(self.price_per_unit or 0.0),
-            'subtotal': float(self.subtotal or 0.0),
-            'totalPrice': float(self.subtotal or 0.0),
-            'sku': self.sku,
-            'productData': {
-                'title': self.title,
-                'slug': self.title,
-                'image': {'fileUrl': self._image_url} if self._image_url else None
-            }
-        }
