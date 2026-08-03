@@ -9,7 +9,7 @@ from .graphql_client import GraphQLClient
 
 
 class OrderService:
-    """خدمة إدارة الطلبات والمزامنة"""
+    """خدمة إدارة الطلبات والمزامنة مع واجهة GraphQL وقاعدة البيانات المحلية"""
 
     def __init__(self, client: GraphQLClient):
         self.client = client
@@ -46,14 +46,131 @@ class OrderService:
 
         return '\n'.join(result)
 
+    def _save_orders_to_db(self, orders_data: List[Dict[str, Any]]):
+        """دالة مساعدة مجمعة لحفظ وتحديث الطلبات في قاعدة البيانات المحلية"""
+        try:
+            from apps.models.orders_db import Order
+            from apps.models.order_items_db import OrderItem
+            from apps.models.product_supplier_map import ProductSupplierMapping
+            from apps.extensions import db
+
+            for order in orders_data:
+                if not order or not isinstance(order, dict):
+                    continue
+                qid = order.get('_id') or order.get('id')
+                if not qid:
+                    continue
+
+                # تحديد المورد من أول منتج في الطلب
+                supplier_id_found = None
+                items_list = order.get('items') or []
+                if items_list:
+                    first_item = items_list[0] or {}
+                    prod_qid = first_item.get('productId')
+                    if prod_qid:
+                        mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_qid).first()
+                        if mapping:
+                            supplier_id_found = mapping.supplier_id
+
+                # استخراج حالة الطلب بشكل آمن
+                status_obj = order.get('status') or {}
+                if isinstance(status_obj, dict):
+                    status_code = status_obj.get('code') or 'pending'
+                    status_title = status_obj.get('title') or 'قيد الانتظار'
+                else:
+                    status_code = str(status_obj) if status_obj else 'pending'
+                    status_title = 'قيد الانتظار'
+
+                # استخراج اسم العميل بشكل آمن
+                account_outer = order.get('account') or {}
+                account_inner = account_outer.get('account') or {}
+                customer_name = account_inner.get('fullname') or (
+                    'عميل زائر' if order.get('type') == 'guest' else 'عميل غير معروف'
+                )
+
+                # استخراج الحالة المالية والإجمالي
+                is_paid = order.get('isPaid', False)
+                total_price = order.get('totalPrice', 0.0) or 0.0
+
+                # استخراج وتنسيق تاريخ الإنشاء
+                created_at_str = order.get('createdAt')
+                created_at = datetime.utcnow()
+                if created_at_str:
+                    try:
+                        clean_date_str = created_at_str.replace('Z', '').split('+')[0]
+                        created_at = datetime.fromisoformat(clean_date_str)
+                    except Exception:
+                        pass
+
+                # البحث عن الطلب محلياً
+                existing_order = Order.query.filter_by(id=qid).first()
+
+                # توليد الرقم التسلسلي للطلب الجديد
+                last_order = db.session.query(Order).order_by(cast(Order.order_number, Integer).desc()).first()
+                next_number = (last_order.order_number + 1) if last_order and last_order.order_number else 1000000235
+
+                if existing_order:
+                    # تحديث البيانات الحالية
+                    existing_order.supplier_id = supplier_id_found
+                    existing_order.status_code = status_code
+                    existing_order.status_title = status_title
+                    existing_order.customer_name = customer_name
+                    existing_order.is_paid = is_paid
+                    existing_order.total_price = total_price
+                    existing_order.created_at = created_at
+
+                    # حذف العناصر القديمة لإعادة إدراجها
+                    OrderItem.query.filter_by(order_id=existing_order.id).delete()
+                else:
+                    # إنشاء سجل جديد
+                    existing_order = Order(
+                        id=qid,
+                        supplier_id=supplier_id_found,
+                        status_code=status_code,
+                        status_title=status_title,
+                        customer_name=customer_name,
+                        is_paid=is_paid,
+                        total_price=total_price,
+                        order_number=next_number,
+                        created_at=created_at
+                    )
+                    db.session.add(existing_order)
+                    db.session.flush()
+
+                # إضافة عناصر الطلب
+                for item in items_list:
+                    if not item:
+                        continue
+                    prod_data = item.get('productData') or {}
+                    qty = item.get('quantity', 1) or 1
+                    price = item.get('price', 0.0) or 0.0
+                    prod_id = item.get('productId', '')
+
+                    title = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
+                    sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
+
+                    new_item = OrderItem(
+                        order_id=existing_order.id,
+                        title=title,
+                        qty=qty,
+                        subtotal=price * qty,
+                        sku=sku,
+                        price_per_unit=price
+                    )
+                    db.session.add(new_item)
+
+                db.session.commit()
+        except Exception as db_err:
+            print(f"⚠️ [OrderService] خطأ تفصيلي أثناء حفظ الطلبات محلياً: {db_err}")
+            db.session.rollback()
+
     def get_order(self, qid: str) -> Optional[Dict[str, Any]]:
-        """جلب تفاصيل الطلب باستخدام المعرف qid متوافقاً مع استجابة GraphQL الجديدة"""
+        """جلب تفاصيل الطلب من API باستخدام المعرف qid"""
         query = self._extract_query("FindOrderById")
         try:
             result = self.client.execute(query, {"id": qid}, operation_name="FindOrderById")
             if result and 'findOrderById' in result:
                 res_data = result['findOrderById']
-                # استخراج كائن data الداخلي في حال توفره حسب الـ Schema الجديدة
                 if isinstance(res_data, dict) and 'data' in res_data and res_data['data']:
                     return res_data['data']
                 return res_data
@@ -61,6 +178,19 @@ class OrderService:
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلب {qid}: {e}")
             return None
+
+    def sync_single_order(self, qid: str):
+        """⚡ جلب طلب مفرد من GraphQL وتخزينه محلياً فوراً ثم إرجاع الكائن"""
+        order_data = self.get_order(qid)
+        if order_data:
+            self._save_orders_to_db([order_data])
+
+        from apps.models.orders_db import Order
+        return Order.query.get(qid)
+
+    def get_order_by_id(self, qid: str):
+        """اسم مستعار (Alias) لـ sync_single_order لضمان عمل كافة الاستدعاءات"""
+        return self.sync_single_order(qid)
 
     def get_all_orders(
         self,
@@ -72,9 +202,7 @@ class OrderService:
         date_from: str = None,
         date_to: str = None
     ) -> Dict[str, Any]:
-        """
-        جلب قائمة الطلبات ودمجها في قاعدة البيانات المحلية وربطها بالموردين.
-        """
+        """جلب قائمة الطلبات ودمجها وتخزينها في قاعدة البيانات المحلية"""
         input_data = {"page": page, "limit": per_page}
         if supplier_id: input_data["supplierId"] = supplier_id
         if status: input_data["status"] = status
@@ -99,124 +227,8 @@ class OrderService:
                 orders_data = result['findAllOrders'].get('data', []) or []
                 pagination_data = result['findAllOrders'].get('pagination', {}) or {}
 
-                # حفظ الطلبات في قاعدة البيانات المحلية
-                try:
-                    from apps.models.orders_db import Order
-                    from apps.models.order_items_db import OrderItem
-                    from apps.models.product_supplier_map import ProductSupplierMapping
-                    from apps.extensions import db
-
-                    for order in orders_data:
-                        if not order:
-                            continue
-                        qid = order.get('_id')
-                        if not qid:
-                            continue
-
-                        # تحديد المورد من أول منتج في الطلب
-                        supplier_id_found = None
-                        items_list = order.get('items') or []
-                        if items_list:
-                            first_item = items_list[0] or {}
-                            prod_qid = first_item.get('productId')
-                            if prod_qid:
-                                mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_qid).first()
-                                if mapping:
-                                    supplier_id_found = mapping.supplier_id
-
-                        # استخراج حالة الطلب بشكل آمن
-                        status_obj = order.get('status') or {}
-                        if isinstance(status_obj, dict):
-                            status_code = status_obj.get('code') or 'pending'
-                            status_title = status_obj.get('title') or 'قيد الانتظار'
-                        else:
-                            status_code = 'pending'
-                            status_title = 'قيد الانتظار'
-
-                        # استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType وتوافقاً مع هيكل الحسابات
-                        account_outer = order.get('account') or {}
-                        account_inner = account_outer.get('account') or {}
-                        customer_name = account_inner.get('fullname') or (
-                            'عميل زائر' if order.get('type') == 'guest' else 'عميل غير معروف'
-                        )
-
-                        # استخراج الحالة المالية والإجمالي
-                        is_paid = order.get('isPaid', False)
-                        total_price = order.get('totalPrice', 0.0) or 0.0
-
-                        # استخراج وتنسيق تاريخ الإنشاء بشكل صحيح من الـ API
-                        created_at_str = order.get('createdAt')
-                        created_at = datetime.utcnow()
-                        if created_at_str:
-                            try:
-                                clean_date_str = created_at_str.replace('Z', '').split('+')[0]
-                                created_at = datetime.fromisoformat(clean_date_str)
-                            except Exception:
-                                pass
-
-                        # البحث عن الطلب في قاعدة البيانات المحلية
-                        existing_order = Order.query.filter_by(id=qid).first()
-
-                        # توليد الرقم التسلسلي للطلب الجديد
-                        last_order = db.session.query(Order).order_by(cast(Order.order_number, Integer).desc()).first()
-                        next_number = (last_order.order_number + 1) if last_order and last_order.order_number else 1000000235
-
-                        if existing_order:
-                            # تحديث البيانات
-                            existing_order.supplier_id = supplier_id_found
-                            existing_order.status_code = status_code
-                            existing_order.status_title = status_title
-                            existing_order.customer_name = customer_name
-                            existing_order.is_paid = is_paid
-                            existing_order.total_price = total_price
-                            existing_order.created_at = created_at
-
-                            # حذف العناصر القديمة وإعادة إضافتها
-                            OrderItem.query.filter_by(order_id=existing_order.id).delete()
-                        else:
-                            # إنشاء طلب جديد مع الرقم التسلسلي والتاريخ
-                            existing_order = Order(
-                                id=qid,
-                                supplier_id=supplier_id_found,
-                                status_code=status_code,
-                                status_title=status_title,
-                                customer_name=customer_name,
-                                is_paid=is_paid,
-                                total_price=total_price,
-                                order_number=next_number,
-                                created_at=created_at
-                            )
-                            db.session.add(existing_order)
-                            db.session.flush()
-
-                        # إضافة العناصر الجديدة بشكل آمن
-                        for item in items_list:
-                            if not item:
-                                continue
-                            prod_data = item.get('productData') or {}
-                            qty = item.get('quantity', 1) or 1
-                            price = item.get('price', 0.0) or 0.0
-                            prod_id = item.get('productId', '')
-
-                            title = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
-                            # استخراج slug بدلاً من sku المتسبب في خطأ Schema
-                            sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
-
-                            new_item = OrderItem(
-                                order_id=existing_order.id,
-                                title=title,
-                                qty=qty,
-                                subtotal=price * qty,
-                                sku=sku,
-                                price_per_unit=price
-                            )
-                            db.session.add(new_item)
-
-                        db.session.commit()
-
-                except Exception as db_err:
-                    print(f"⚠️ [OrderService] خطأ تفصيلي أثناء حفظ الطلبات محلياً: {db_err}")
-                    db.session.rollback()
+                # حفظ دفعة الطلبات محلياً
+                self._save_orders_to_db(orders_data)
 
             return {
                 "data": orders_data,
@@ -245,7 +257,7 @@ class OrderService:
         date_from: str = None,
         date_to: str = None
     ) -> Dict[str, Any]:
-        """جلب الطلبات من قاعدة البيانات المحلية مع دعم الترقيم والفلترة."""
+        """جلب الطلبات من قاعدة البيانات المحلية مع الترقيم والفلترة"""
         from apps.models.orders_db import Order
         from apps.extensions import db
 
@@ -269,7 +281,6 @@ class OrderService:
         total_items = query.count()
         total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
-        # الترتيب تنازلياً بناءً على رقم الطلب لضمان ظهور الطلبات الأحدث أولاً
         orders = query.order_by(cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
 
         orders_data = []
