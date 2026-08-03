@@ -66,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'statusFilter', 
         'financialStatusFilter', 
         'fulfillmentStatusFilter', 
-        'supplierFilter', 
         'limitSelect', 
         'dateFrom', 
         'dateTo'
@@ -97,7 +96,6 @@ function fetchAdminOrders(page = 1) {
         status: getVal('statusFilter'),
         financial_status: getVal('financialStatusFilter'),
         fulfillment_status: getVal('fulfillmentStatusFilter'),
-        supplier_id: getVal('supplierFilter'),
         date_from: getVal('dateFrom'),
         date_to: getVal('dateTo'),
         limit: getVal('limitSelect') || '10',
