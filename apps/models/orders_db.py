@@ -21,7 +21,7 @@ class Order(db.Model):
         db.Index('idx_ord_marketer_id', 'marketer_id'),
         db.Index('idx_ord_tracking_tag', 'tracking_tag'),
         db.Index('idx_ord_ref', 'order_reference'),
-        db.Index('idx_ord_status', 'status'),
+        db.Index('idx_ord_status', 'status_code'),
         db.Index('idx_ord_created', 'created_at'),
         {'extend_existing': True}
     )
@@ -33,15 +33,15 @@ class Order(db.Model):
     marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
     
     tracking_tag = db.Column(db.String(100), nullable=True)
-    order_reference = db.Column(db.String(100), unique=True, nullable=True)  # يمكن استخدامه كـ "رقم الطلب"
+    order_reference = db.Column(db.String(100), unique=True, nullable=True)  # يستخدم كرقم الطلب للعرض
     
     total_price = db.Column(db.Numeric(18, 2), default=0.00)
     items_count = db.Column(db.Integer, default=0)
-    status = db.Column(db.String(30), default='pending')
     
-    # ✅ الحقول الجديدة للحالة المالية وحالة الشحن
-    financial_status = db.Column(db.String(30), default='unpaid')
-    fulfillment_status = db.Column(db.String(30), default='unfulfilled')
+    # ✅ حقول الحالة الجديدة بناءً على السكيما
+    status_code = db.Column(db.String(30), default='pending')
+    status_title = db.Column(db.String(50), default='قيد الانتظار')
+    is_paid = db.Column(db.Boolean, default=False)
     
     _customer_name = db.Column(db.Text)
     _customer_phone = db.Column(db.Text)
@@ -107,12 +107,11 @@ class Order(db.Model):
         return {
             'id': self.id,
             'qid': self.id,
-            'order_reference': self.order_reference,  # رقم الطلب الحقيقي
+            'order_reference': self.order_reference,  # رقم الطلب للعرض
             'supplier_id': self.supplier_id,
-            'status_code': self.status,
-            'status_title': self.status.title() if self.status else 'غير معروف',
-            'financial_status': self.financial_status,
-            'fulfillment_status': self.fulfillment_status,
+            'status_code': self.status_code,
+            'status_title': self.status_title,
+            'is_paid': self.is_paid,
             'total_price': float(self.total_price) if self.total_price else 0.0,
             'created_at': self.created_at,
             'updated_at': self.updated_at,
@@ -120,4 +119,4 @@ class Order(db.Model):
         }
 
     def __repr__(self):
-        return f'<Order {self.order_id_display or self.id} | Status: {self.status} | Amount: {self.amount} SAR>'
+        return f'<Order {self.order_id_display or self.id} | Status: {self.status_title} | Amount: {self.amount} SAR>'
