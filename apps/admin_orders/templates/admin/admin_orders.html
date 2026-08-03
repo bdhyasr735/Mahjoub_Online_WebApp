@@ -49,7 +49,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetchAdminOrders(1);
             }
         });
+        // البحث أثناء الكتابة بـ Debounce
+        searchInput.addEventListener('input', debounceFetchAdminOrders);
     }
+
+    // ربط الفلاتر تلقائياً بأحداث التغيير لتحديث الجدول فوراً
+    const filterElements = [
+        'statusFilter', 
+        'financialStatusFilter', 
+        'fulfillmentStatusFilter', 
+        'supplierFilter', 
+        'limitSelect', 
+        'dateFrom', 
+        'dateTo'
+    ];
+    
+    filterElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', () => fetchAdminOrders(1));
+        }
+    });
 });
 
 function fetchAdminOrders(page = 1) {
@@ -60,6 +80,9 @@ function fetchAdminOrders(page = 1) {
         page: page,
         search: document.getElementById('searchInput').value.trim() || '',
         status: document.getElementById('statusFilter').value || '',
+        financial_status: document.getElementById('financialStatusFilter').value || '',
+        fulfillment_status: document.getElementById('fulfillmentStatusFilter').value || '',
+        supplier_id: document.getElementById('supplierFilter').value || '',
         date_from: document.getElementById('dateFrom').value || '',
         date_to: document.getElementById('dateTo').value || '',
         limit: document.getElementById('limitSelect').value || '10',
@@ -82,7 +105,7 @@ function fetchAdminOrders(page = 1) {
     });
 }
 
-// ✅ دالة مزامنة الطلبات (تظهر فقط عند الحاجة)
+// ✅ دالة مزامنة الطلبات
 function syncAdminOrders() {
     if (!confirm('هل تريد مزامنة الطلبات من قمرة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
     
@@ -105,7 +128,7 @@ function syncAdminOrders() {
     .then(data => {
         if (data.success) {
             alert('✅ ' + data.message);
-            location.reload(); // تحديث الصفحة لإظهار الطلبات
+            location.reload(); // تحديث الصفحة لإظهار الطلبات الجديدة
         } else {
             alert('❌ ' + data.message);
         }
