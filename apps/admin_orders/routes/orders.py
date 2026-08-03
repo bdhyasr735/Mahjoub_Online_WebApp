@@ -2,6 +2,7 @@
 # 📂 apps/admin_orders/routes/orders.py
 
 import traceback
+import threading
 from datetime import datetime
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from flask_login import login_required
@@ -11,6 +12,15 @@ from apps.services import services
 from apps.models.supplier_db import Supplier
 from apps.models.orders_db import Order
 from apps.extensions import db
+
+
+def _sync_orders_in_background(app, page=1, per_page=15):
+    """دالة مساعدة لإجراء المزامنة في الخلفية دون تعطيل طلبات المتصفح."""
+    with app.app_context():
+        try:
+            services.orders.get_all_orders(page=page, per_page=per_page)
+        except Exception as sync_e:
+            app.logger.warning(f"⚠️ [Auto Sync Orders Background] {sync_e}")
 
 
 @admin_orders_bp.route('', methods=['GET'], endpoint='list_admin_orders')
@@ -34,12 +44,16 @@ def manage_admin_orders_view():
         date_to = request.args.get('date_to', '')
         supplier_filter = request.args.get('supplier_id', type=int)
 
-        if not is_ajax:
-            try:
-                services.orders.get_all_orders(page=page, per_page=50)
-            except Exception as sync_e:
-                print(f"⚠️ [Auto Sync Orders] {sync_e}")
+        # 🚀 [تحسين السرعة الفائقة]: تشغيل المزامنة في الخلفية فقط عند فتح الصفحة الأولى وبدون تصفية
+        if not is_ajax and page == 1 and not (search_term or status_filter or date_from or date_to or supplier_filter):
+            app = current_app._get_current_object()
+            threading.Thread(
+                target=_sync_orders_in_background,
+                args=(app, 1, 15),
+                daemon=True
+            ).start()
 
+        # ⚡ جلب فوري ومباشر للطلبات من قاعدة البيانات المحلية دون انتظار API الخارجية
         result = services.orders.get_local_orders(
             page=page,
             per_page=per_page,
@@ -92,8 +106,15 @@ def manage_admin_orders_view():
 @login_required
 def sync_admin_orders():
     try:
-        services.orders.get_all_orders(page=1, per_page=50)
-        return jsonify({'success': True, 'message': '✅ تمت مزامنة الطلبات بنجاح'})
+        # 🚀 المزامنة اليدوية تعمل أيضاً في الخلفية لتجنب تجميد الواجهة
+        app = current_app._get_current_object()
+        threading.Thread(
+            target=_sync_orders_in_background,
+            args=(app, 1, 50),
+            daemon=True
+        ).start()
+
+        return jsonify({'success': True, 'message': '⚡ بدأت عملية المزامنة في الخلفية بنجاح'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
