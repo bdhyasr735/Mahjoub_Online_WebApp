@@ -4,6 +4,8 @@
 import os
 from typing import Dict, Any, Optional, List
 from .graphql_client import GraphQLClient
+from datetime import datetime
+from sqlalchemy import or_
 
 
 class OrderService:
@@ -152,6 +154,69 @@ class OrderService:
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلبات: {e}")
             return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}}
+
+    # ✅ دالة جديدة لجلب الطلبات من قاعدة البيانات المحلية (لتستخدم في العرض)
+    def get_local_orders(self, page: int = 1, per_page: int = 10, supplier_id: int = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
+        """
+        جلب الطلبات من قاعدة البيانات المحلية مع دعم الترقيم والفلترة.
+        """
+        from apps.models.orders_db import Order
+        from apps.models.supplier_db import Supplier
+        from apps.extensions import db
+
+        query = db.session.query(Order)
+
+        # 1. فلترة المورد (إذا كان معرفاً)
+        if supplier_id is not None:
+            query = query.filter(Order.supplier_id == supplier_id)
+
+        # 2. فلترة الحالة
+        if status:
+            query = query.filter(Order.status == status)
+
+        # 3. فلترة التاريخ
+        if date_from:
+            query = query.filter(Order.created_at >= datetime.strptime(date_from, '%Y-%m-%d'))
+        if date_to:
+            query = query.filter(Order.created_at <= datetime.strptime(date_to, '%Y-%m-%d'))
+
+        # 4. البحث (في رقم الطلب أو معرف العرض)
+        if search:
+            query = query.filter(or_(
+                Order.id.ilike(f'%{search}%'),
+                Order.order_id_display.ilike(f'%{search}%')
+            ))
+
+        # حساب العدد الكلي
+        total_items = query.count()
+        total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+
+        # تطبيق الترقيم
+        orders = query.order_by(Order.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+
+        # تحويل النتائج إلى قاموس مع إضافة اسم المورد
+        orders_data = []
+        for order in orders:
+            order_dict = order.to_dict()
+            # إضافة اسم المورد إذا وجد
+            if order.supplier:
+                order_dict['supplier_name'] = order.supplier.trade_name
+            else:
+                order_dict['supplier_name'] = 'غير مرتبط'
+            # معالجة الحالة
+            order_dict['status_text'] = order.status.title() if order.status else 'غير معروف'
+            orders_data.append(order_dict)
+
+        return {
+            'data': orders_data,
+            'pagination': {
+                'totalItems': total_items,
+                'totalPages': total_pages,
+                'currentPage': page,
+                'limit': per_page,
+                'hasNextPage': page < total_pages
+            }
+        }
 
     def create_order(self, input_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """إنشاء طلب جديد"""
