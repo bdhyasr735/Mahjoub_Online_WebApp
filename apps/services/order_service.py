@@ -77,8 +77,8 @@ class OrderService:
             pagination_data = {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}
             
             if result and 'findAllOrders' in result:
-                orders_data = result['findAllOrders'].get('data', [])
-                pagination_data = result['findAllOrders'].get('pagination', {})
+                orders_data = result['findAllOrders'].get('data', []) or []
+                pagination_data = result['findAllOrders'].get('pagination', {}) or {}
                 
                 # حفظ الطلبات في قاعدة البيانات المحلية
                 try:
@@ -88,38 +88,42 @@ class OrderService:
                     from apps.extensions import db
                     
                     for order in orders_data:
+                        if not order:
+                            continue
                         qid = order.get('_id')
                         if not qid:
                             continue
 
                         # تحديد المورد من أول منتج في الطلب
                         supplier_id_found = None
-                        if order.get('items'):
-                            first_item = order['items'][0]
+                        items_list = order.get('items') or []
+                        if items_list:
+                            first_item = items_list[0] or {}
                             prod_qid = first_item.get('productId')
                             if prod_qid:
                                 mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_qid).first()
                                 if mapping:
                                     supplier_id_found = mapping.supplier_id
 
-                        # استخراج حالة الطلب
-                        status_obj = order.get('status', {})
+                        # استخراج حالة الطلب بشكل آمن
+                        status_obj = order.get('status') or {}
                         if isinstance(status_obj, dict):
-                            status_code = status_obj.get('code', 'pending')
-                            status_title = status_obj.get('title', 'قيد الانتظار')
+                            status_code = status_obj.get('code') or 'pending'
+                            status_title = status_obj.get('title') or 'قيد الانتظار'
                         else:
                             status_code = 'pending'
                             status_title = 'قيد الانتظار'
 
-                        # ✅ استخراج اسم العميل من البنية الصحيحة account { account { fullname } }
-                        account_outer = order.get('account', {})
-                        account_inner = account_outer.get('account', {})
-                        customer_name = account_inner.get('fullname', 'غير معروف')
+                        # ✅ استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType
+                        account_outer = order.get('account') or {}
+                        account_inner = account_outer.get('account') or {}
+                        customer_name = account_inner.get('fullname') or 'عميل زائر'
 
                         # استخراج الحالة المالية
                         is_paid = order.get('isPaid', False)
+                        total_price = order.get('totalPrice', 0.0) or 0.0
 
-                        # البحث عن الطلب في قاعدة البيانات
+                        # البحث عن الطلب في قاعدة البيانات المحلية
                         existing_order = Order.query.filter_by(id=qid).first()
                         
                         # توليد الرقم التسلسلي للطلب الجديد
@@ -133,7 +137,7 @@ class OrderService:
                             existing_order.status_title = status_title
                             existing_order.customer_name = customer_name
                             existing_order.is_paid = is_paid
-                            existing_order.total_price = order.get('totalPrice', 0.0)
+                            existing_order.total_price = total_price
                             
                             # حذف العناصر القديمة وإعادة إضافتها
                             OrderItem.query.filter_by(order_id=existing_order.id).delete()
@@ -146,21 +150,27 @@ class OrderService:
                                 status_title=status_title,
                                 customer_name=customer_name,
                                 is_paid=is_paid,
-                                total_price=order.get('totalPrice', 0.0),
+                                total_price=total_price,
                                 order_number=next_number
                             )
                             db.session.add(existing_order)
                             db.session.flush()
 
-                        # إضافة العناصر الجديدة
-                        for item in order.get('items', []):
+                        # إضافة العناصر الجديدة بشكل آمن
+                        for item in items_list:
+                            if not item:
+                                continue
+                            prod_data = item.get('productData') or {}
+                            qty = item.get('quantity', 1) or 1
+                            price = item.get('price', 0.0) or 0.0
+                            
                             new_item = OrderItem(
                                 order_id=existing_order.id,
-                                title=item.get('productData', {}).get('title', 'منتج غير معروف'),
-                                qty=item.get('quantity', 1),
-                                subtotal=item.get('price', 0.0) * item.get('quantity', 1),
-                                sku=item.get('productData', {}).get('sku', ''),
-                                price_per_unit=item.get('price', 0.0)
+                                title=prod_data.get('title', 'منتج غير معروف'),
+                                qty=qty,
+                                subtotal=price * qty,
+                                sku=prod_data.get('sku', ''),
+                                price_per_unit=price
                             )
                             db.session.add(new_item)
                         
@@ -197,7 +207,8 @@ class OrderService:
         if search:
             query = query.filter(or_(
                 Order.id.ilike(f'%{search}%'),
-                Order.order_reference.ilike(f'%{search}%')
+                Order.order_reference.ilike(f'%{search}%'),
+                Order.customer_name.ilike(f'%{search}%')
             ))
 
         total_items = query.count()
@@ -250,4 +261,4 @@ class OrderService:
             return result.get('deleteOrder', False) if result else False
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في حذف الطلب {qid}: {e}")
-            return None
+            return False
