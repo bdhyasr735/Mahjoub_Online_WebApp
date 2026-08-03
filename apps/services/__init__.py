@@ -24,7 +24,6 @@ class Services:
         if self._products is None:
             try:
                 from apps.services.product_service import ProductService
-                # تعديل: إرسال العميل كـ parameter
                 self._products = ProductService(client=self.client)
             except ImportError as e:
                 logger.warning(f"⚠️ ProductService غير متوفرة: {e}")
