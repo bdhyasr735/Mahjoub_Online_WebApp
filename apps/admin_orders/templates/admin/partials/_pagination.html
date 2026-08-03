@@ -1,1 +1,25 @@
-
+{% if pagination and pagination.total_pages > 1 %}
+<nav aria-label="Page navigation" id="paginationNav" class="mt-4 d-flex justify-content-center">
+    <ul class="pagination shadow-sm rounded-pill overflow-hidden border-0" style="background: #fff; padding: 5px;">
+        <li class="page-item {{ 'disabled' if not pagination.has_prev else '' }}">
+            <a class="page-link border-0 text-dark rounded-pill px-3 py-2" href="javascript:void(0);" onclick="fetchAdminOrders({{ pagination.prev_num }})">
+                <i class="fas fa-chevron-right small"></i> السابق
+            </a>
+        </li>
+        {% for p in range(1, pagination.total_pages + 1) %}
+            {% if p >= pagination.current_page - 2 and p <= pagination.current_page + 2 %}
+            <li class="page-item {{ 'active' if p == pagination.current_page else '' }}">
+                <a class="page-link border-0 rounded-circle mx-1" style="width: 35px; height: 35px; {{ 'background: #2d0b36; color: #D4AF37;' if p == pagination.current_page else 'color: #333;' }}" href="javascript:void(0);" onclick="fetchAdminOrders({{ p }})">
+                    {{ p }}
+                </a>
+            </li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not pagination.has_next else '' }}">
+            <a class="page-link border-0 text-dark rounded-pill px-3 py-2" href="javascript:void(0);" onclick="fetchAdminOrders({{ pagination.next_num }})">
+                التالي <i class="fas fa-chevron-left small"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
