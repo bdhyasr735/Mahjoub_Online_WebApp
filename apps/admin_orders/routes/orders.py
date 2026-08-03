@@ -27,11 +27,11 @@ def manage_admin_orders_view():
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
 
-        # الأدمن يجلب جميع الطلبات (بدون تحديد supplier_id)
-        result = services.orders.get_all_orders(
+        # ✅ جلب الطلبات من قاعدة البيانات المحلية (الأدمن يرى الكل)
+        result = services.orders.get_local_orders(
             page=page,
             per_page=per_page,
-            supplier_id=None,  # الأدمن يرى الكل
+            supplier_id=None,  # الأدمن يرى جميع الطلبات
             status=status_filter if status_filter else None,
             search=search_term if search_term else None,
             date_from=date_from if date_from else None,
@@ -52,11 +52,11 @@ def manage_admin_orders_view():
             'total_items': pagination.get('totalItems', 0)
         }
 
+        # ✅ لم نعد بحاجة لمعالجة الحالة يدوياً لأن get_local_orders تضع status_text بالفعل
+        # لكننا نضمن وجود الحقل لتجنب الأخطاء
         for order in orders:
-            if order.get('status') and isinstance(order['status'], dict):
-                order['status_text'] = order['status'].get('label', order['status'].get('type', 'غير معروف'))
-            else:
-                order['status_text'] = str(order.get('status', '')).upper()
+            if 'status_text' not in order:
+                order['status_text'] = order.get('status', 'غير معروف').title()
 
         if is_ajax:
             return jsonify({
