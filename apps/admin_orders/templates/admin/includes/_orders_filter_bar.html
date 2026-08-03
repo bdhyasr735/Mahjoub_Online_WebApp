@@ -18,15 +18,32 @@
             </label>
             <select id="statusFilter" class="form-select">
                 <option value="">الكل</option>
-                <option value="PENDING">⏳ قيد الانتظار</option>
-                <option value="PROCESSING">🔄 قيد المعالجة</option>
-                <option value="COMPLETED">✅ مكتمل</option>
-                <option value="CANCELLED">❌ ملغي</option>
+                <option value="pending">⏳ قيد الانتظار</option>
+                <option value="confirmed">✅ مؤكد</option>
+                <option value="processing">🔄 قيد المعالجة</option>
+                <option value="shipped">📦 تم الشحن</option>
+                <option value="delivered">✅ تم التسليم</option>
+                <option value="cancelled">❌ ملغي</option>
+                <option value="refunded">💸 مسترد</option>
+                <option value="returned">↩️ مرتجع</option>
             </select>
         </div>
 
-        <!-- 3. نطاق التاريخ -->
-        <div class="col-md-4">
+        <!-- 3. فلتر المورد (جديد) -->
+        <div class="col-md-2">
+            <label class="form-label fw-bold small text-uppercase text-muted">
+                <i class="fas fa-store me-1"></i> المورد
+            </label>
+            <select id="supplierFilter" class="form-select" onchange="fetchAdminOrders(1)">
+                <option value="">الكل</option>
+                {% for supplier in suppliers %}
+                <option value="{{ supplier.id }}">{{ supplier.trade_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 4. نطاق التاريخ -->
+        <div class="col-md-3">
             <label class="form-label fw-bold small text-uppercase text-muted">
                 <i class="fas fa-calendar-alt me-1"></i> الفترة الزمنية
             </label>
@@ -42,25 +59,18 @@
             </div>
         </div>
 
-        <!-- 4. عدد العناصر في الصفحة -->
-        <div class="col-md-2">
-            <label class="form-label fw-bold small text-uppercase text-muted">
-                <i class="fas fa-list-ol me-1"></i> عدد
-            </label>
-            <select id="limitSelect" class="form-select">
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-            </select>
-        </div>
-
-        <!-- 5. أزرار التحكم -->
-        <div class="col-md-1 d-flex gap-2">
-            <button class="btn btn-primary w-100" style="background: #2d0b36; border: none;" onclick="fetchAdminOrders(1)">
+        <!-- 5. عدد العناصر وأزرار التحكم -->
+        <div class="col-md-2 d-flex gap-2 align-items-end">
+            <div class="w-50">
+                <label class="form-label fw-bold small text-uppercase text-muted">عدد</label>
+                <select id="limitSelect" class="form-select">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+            <button class="btn btn-primary w-50" style="background: #2d0b36; border: none;" onclick="fetchAdminOrders(1)">
                 <i class="fas fa-sync-alt"></i>
-            </button>
-            <button class="btn btn-outline-danger w-100" onclick="clearAllFilters()">
-                <i class="fas fa-undo-alt"></i>
             </button>
         </div>
     </div>
@@ -71,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.clearAllFilters = function() {
         document.getElementById('searchInput').value = '';
         document.getElementById('statusFilter').value = '';
+        document.getElementById('supplierFilter').value = '';
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
         document.getElementById('limitSelect').value = '10';
