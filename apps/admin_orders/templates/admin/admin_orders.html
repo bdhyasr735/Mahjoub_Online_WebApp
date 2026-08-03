@@ -23,7 +23,9 @@
     <!-- ✅ حاوية الطلبات والترقيم -->
     <div id="ordersContainer">
         {% include "admin/partials/_orders_table.html" ignore missing %}
-        {% include "admin/partials/_pagination.html" ignore missing %}
+        <div id="paginationContainer">
+            {% include "admin/partials/_pagination.html" ignore missing %}
+        </div>
     </div>
 </div>
 
@@ -102,7 +104,8 @@ function fetchAdminOrders(page = 1) {
     .then(response => response.json())
     .then(data => {
         if (data.success && data.html) {
-            container.innerHTML = data.html + (data.pagination_html || '');
+            // تحديث الجدول وقسم الترقيم بشكل منفصل وسليم لضمان تطابق البيانات
+            container.innerHTML = data.html + `<div id="paginationContainer">${data.pagination_html || ''}</div>`;
         } else {
             container.innerHTML = `<div class="alert alert-warning text-center py-4 rounded-4"><i class="fas fa-search fa-2x d-block mb-3 opacity-50"></i> لا توجد طلبات مطابقة للبحث.</div>`;
         }
