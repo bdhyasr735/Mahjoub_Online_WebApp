@@ -1,0 +1,82 @@
+<div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
+    <div class="row g-3 align-items-end">
+        <!-- 1. البحث -->
+        <div class="col-md-3">
+            <label class="form-label fw-bold small text-uppercase text-muted">
+                <i class="fas fa-search me-1"></i> بحث
+            </label>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="searchInput" class="form-control border-start-0" placeholder="رقم الطلب أو اسم العميل...">
+            </div>
+        </div>
+
+        <!-- 2. فلتر الحالة -->
+        <div class="col-md-2">
+            <label class="form-label fw-bold small text-uppercase text-muted">
+                <i class="fas fa-circle me-1" style="color: #D4AF37;"></i> الحالة
+            </label>
+            <select id="statusFilter" class="form-select">
+                <option value="">الكل</option>
+                <option value="PENDING">⏳ قيد الانتظار</option>
+                <option value="PROCESSING">🔄 قيد المعالجة</option>
+                <option value="COMPLETED">✅ مكتمل</option>
+                <option value="CANCELLED">❌ ملغي</option>
+            </select>
+        </div>
+
+        <!-- 3. نطاق التاريخ -->
+        <div class="col-md-4">
+            <label class="form-label fw-bold small text-uppercase text-muted">
+                <i class="fas fa-calendar-alt me-1"></i> الفترة الزمنية
+            </label>
+            <div class="d-flex gap-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">من</span>
+                    <input type="date" id="dateFrom" class="form-control border-start-0">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">إلى</span>
+                    <input type="date" id="dateTo" class="form-control border-start-0">
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. عدد العناصر في الصفحة -->
+        <div class="col-md-2">
+            <label class="form-label fw-bold small text-uppercase text-muted">
+                <i class="fas fa-list-ol me-1"></i> عدد
+            </label>
+            <select id="limitSelect" class="form-select">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+
+        <!-- 5. أزرار التحكم -->
+        <div class="col-md-1 d-flex gap-2">
+            <button class="btn btn-primary w-100" style="background: #2d0b36; border: none;" onclick="fetchOrders(1)">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="btn btn-outline-danger w-100" onclick="clearAllFilters()">
+                <i class="fas fa-undo-alt"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ كود JavaScript الخاص بإعادة تعيين الفلاتر -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تعريف دالة إعادة التعيين على النطاق العام لتكون متاحة للزر
+    window.clearAllFilters = function() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        document.getElementById('limitSelect').value = '10';
+        fetchOrders(1);  // استدعاء الدالة لجلب الطلبات من البداية
+    };
+});
+</script>
