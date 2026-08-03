@@ -9,6 +9,7 @@
                 <th>التاريخ</th>
                 <th>الإجمالي (ر.س)</th>
                 <th style="min-width: 160px;">حالة الطلب</th>
+                <th style="min-width: 130px;">حالة الشحن</th>
                 <th style="min-width: 100px;">الحالة المالية</th>
                 <th>الإجراءات</th>
             </tr>
@@ -44,6 +45,12 @@
                     </select>
                 </td>
                 <td>
+                    {% set f_status = order.fulfillment_status or 'unfulfilled' %}
+                    <span class="badge bg-{{ 'success' if f_status == 'fulfilled' else ('warning' if f_status == 'partial' else 'secondary') }}">
+                        {{ 'تم الشحن' if f_status == 'fulfilled' else ('شحن جزئي' if f_status == 'partial' else 'غير مشحون') }}
+                    </span>
+                </td>
+                <td>
                     <span class="badge bg-{{ 'success' if order.is_paid else 'danger' }}">
                         {{ 'مدفوع' if order.is_paid else 'غير مدفوع' }}
                     </span>
@@ -56,7 +63,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="8" class="text-center py-4 text-muted">
+                <td colspan="10" class="text-center py-4 text-muted">
                     <i class="fas fa-shopping-bag fa-2x mb-2 opacity-25 d-block"></i>
                     لا توجد طلبات في النظام حتى الآن.
                 </td>
