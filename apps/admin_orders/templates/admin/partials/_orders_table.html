@@ -16,7 +16,6 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- ✅ تم تصحيح data إلى orders لتطابق البيانات المرسلة من الـ Route -->
                     {% if orders %}
                         {% for order in orders %}
                         <tr>
@@ -28,9 +27,16 @@
                                 {{ order.customer_name or 'عميل زائر' }}
                             </td>
 
-                            <!-- المورد -->
+                            <!-- قائمة المورد المنسدلة التفاعلية -->
                             <td class="py-2">
-                                <span class="badge bg-light text-dark border px-2 py-1">{{ order.supplier_name or 'غير مرتبط' }}</span>
+                                <select class="form-select form-select-sm border bg-light text-dark fw-semibold mx-auto" style="font-size: 0.8rem; max-width: 140px;" onchange="updateOrderSupplierInline('{{ order.id }}', this.value)">
+                                    <option value="0" {% if not order.supplier_id %}selected{% endif %}>-- غير مرتبط --</option>
+                                    {% if suppliers %}
+                                        {% for sup in suppliers %}
+                                            <option value="{{ sup.id }}" {% if order.supplier_id == sup.id %}selected{% endif %}>{{ sup.trade_name }}</option>
+                                        {% endfor %}
+                                    {% endif %}
+                                </select>
                             </td>
 
                             <!-- التاريخ -->
@@ -43,9 +49,22 @@
                                 {{ order.total_price }} ر.ي
                             </td>
 
-                            <!-- حالة الطلب -->
+                            <!-- قائمة حالة الطلب المنسدلة التفاعلية -->
                             <td class="py-2">
-                                <span class="badge bg-secondary px-2 py-1">{{ order.status_title or 'قيد الانتظار' }}</span>
+                                <select class="form-select form-select-sm border text-center fw-semibold mx-auto 
+                                    {% if order.status_code == 'pending' %}bg-warning-subtle text-warning-emphasis
+                                    {% elif order.status_code == 'processing' %}bg-info-subtle text-info-emphasis
+                                    {% elif order.status_code == 'shipped' %}bg-primary-subtle text-primary-emphasis
+                                    {% elif order.status_code == 'completed' %}bg-success-subtle text-success-emphasis
+                                    {% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}" 
+                                    style="font-size: 0.8rem; max-width: 130px;" 
+                                    onchange="updateOrderStatusInline('{{ order.id }}', this.value)">
+                                    <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
+                                    <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>جاري التجهيز</option>
+                                    <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
+                                    <option value="completed" {% if order.status_code == 'completed' %}selected{% endif %}>مكتمل</option>
+                                    <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
+                                </select>
                             </td>
 
                             <!-- الدفع -->
@@ -76,3 +95,46 @@
         </div>
     </div>
 </div>
+
+<script>
+// دوال التحديث الفوري عبر AJAX
+function updateOrderStatusInline(orderId, newStatus) {
+    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+    fetch(`/admin/orders/${orderId}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            alert('❌ فشل تحديث الحالة: ' + (data.message || 'خطأ غير معروف'));
+        }
+    })
+    .catch(err => alert('❌ حدث خطأ في الاتصال بالسيرفر'));
+}
+
+function updateOrderSupplierInline(orderId, supplierId) {
+    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+    fetch(`/admin/orders/${orderId}/supplier`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ supplier_id: supplierId === '0' ? 0 : parseInt(supplierId) })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            alert('❌ فشل تحديث المورد: ' + (data.message || 'خطأ غير معروف'));
+        }
+    })
+    .catch(err => alert('❌ حدث خطأ في الاتصال بالسيرفر'));
+}
+</script>
