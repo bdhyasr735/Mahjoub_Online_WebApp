@@ -60,7 +60,7 @@ class OrderService:
 
     def get_all_orders(self, page: int = 1, per_page: int = 10, supplier_id: str = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
         """
-        جلب قائمة الطلبات من قمرة ودمجها في قاعدة البيانات المحلية وربطها بالموردين.
+        جلب قائمة الطلبات ودمجها في قاعدة البيانات المحلية وربطها بالموردين.
         """
         input_data = {"page": page, "limit": per_page}
         if supplier_id: input_data["supplierId"] = supplier_id
@@ -114,10 +114,10 @@ class OrderService:
                             status_code = 'pending'
                             status_title = 'قيد الانتظار'
 
-                        # ✅ استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType
+                        # ✅ استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType وتوافقاً مع هيكل الحسابات
                         account_outer = order.get('account') or {}
                         account_inner = account_outer.get('account') or {}
-                        customer_name = account_inner.get('fullname') or 'عميل زائر'
+                        customer_name = account_inner.get('fullname') or ('عميل زائر' if order.get('type') == 'guest' else 'عميل غير معروف')
 
                         # استخراج الحالة المالية والإجمالي
                         is_paid = order.get('isPaid', False)
