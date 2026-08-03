@@ -102,19 +102,21 @@ class OrderService:
                                 if mapping:
                                     supplier_id_found = mapping.supplier_id
 
-                        # حالة الطلب الأساسية
-                        status_str = order.get('status', 'pending')
-                        if isinstance(status_str, dict):
-                            status_str = status_str.get('code', 'pending')
+                        # حالة الطلب (كائن orderStatus)
+                        status_obj = order.get('status', {})
+                        if isinstance(status_obj, dict):
+                            status_code = status_obj.get('code', 'pending')
+                            status_title = status_obj.get('title', 'قيد الانتظار')
+                        else:
+                            status_code = 'pending'
+                            status_title = 'قيد الانتظار'
 
-                        # الحالة المالية وحالة الشحن (قد تأتي من قمرة)
-                        financial_status = order.get('financialStatus', 'unpaid')
-                        fulfillment_status = order.get('fulfillmentStatus', 'unfulfilled')
-                        # إذا كانت قادمة ككائن، نستخرج القيمة
-                        if isinstance(financial_status, dict):
-                            financial_status = financial_status.get('code', 'unpaid')
-                        if isinstance(fulfillment_status, dict):
-                            fulfillment_status = fulfillment_status.get('code', 'unfulfilled')
+                        # اسم العميل (من account)
+                        account = order.get('account', {})
+                        customer_name = account.get('name', 'غير معروف')
+
+                        # الحالة المالية (isPaid)
+                        is_paid = order.get('isPaid', False)
 
                         # البحث عن الطلب في قاعدة البيانات
                         existing_order = Order.query.filter_by(id=qid).first()
@@ -122,9 +124,10 @@ class OrderService:
                         if existing_order:
                             # تحديث البيانات
                             existing_order.supplier_id = supplier_id_found
-                            existing_order.status = status_str
-                            existing_order.financial_status = financial_status
-                            existing_order.fulfillment_status = fulfillment_status
+                            existing_order.status_code = status_code
+                            existing_order.status_title = status_title
+                            existing_order.customer_name = customer_name
+                            existing_order.is_paid = is_paid
                             existing_order.total_price = order.get('totalPrice', 0.0)
                             
                             # حذف العناصر القديمة وإعادة إضافتها
@@ -134,9 +137,10 @@ class OrderService:
                             existing_order = Order(
                                 id=qid,
                                 supplier_id=supplier_id_found,
-                                status=status_str,
-                                financial_status=financial_status,
-                                fulfillment_status=fulfillment_status,
+                                status_code=status_code,
+                                status_title=status_title,
+                                customer_name=customer_name,
+                                is_paid=is_paid,
                                 total_price=order.get('totalPrice', 0.0)
                             )
                             db.session.add(existing_order)
@@ -183,9 +187,9 @@ class OrderService:
         if supplier_id is not None:
             query = query.filter(Order.supplier_id == supplier_id)
 
-        # 2. فلترة الحالة
+        # 2. فلترة الحالة (نستخدم status_code للفلترة)
         if status:
-            query = query.filter(Order.status == status)
+            query = query.filter(Order.status_code == status)
 
         # 3. فلترة التاريخ
         if date_from:
@@ -197,7 +201,7 @@ class OrderService:
         if search:
             query = query.filter(or_(
                 Order.id.ilike(f'%{search}%'),
-                Order.order_id_display.ilike(f'%{search}%')
+                Order.order_reference.ilike(f'%{search}%')
             ))
 
         # حساب العدد الكلي
@@ -216,8 +220,6 @@ class OrderService:
                 order_dict['supplier_name'] = order.supplier.trade_name
             else:
                 order_dict['supplier_name'] = 'غير مرتبط'
-            # معالجة الحالة
-            order_dict['status_text'] = order.status.title() if order.status else 'غير معروف'
             orders_data.append(order_dict)
 
         return {
@@ -249,26 +251,6 @@ class OrderService:
             return result.get('updateOrderStatus') if result else None
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في تحديث حالة الطلب {qid}: {e}")
-            return None
-
-    def update_financial_status(self, qid: str, financial_status: str) -> Optional[Dict[str, Any]]:
-        """تحديث الحالة المالية للطلب"""
-        mutation = self._extract_query("UpdateOrderFinancialStatus")
-        try:
-            result = self.client.execute(mutation, {"id": qid, "financialStatus": financial_status}, operation_name="UpdateOrderFinancialStatus")
-            return result.get('updateOrderFinancialStatus') if result else None
-        except Exception as e:
-            print(f"❌ [OrderService]: خطأ في تحديث الحالة المالية {qid}: {e}")
-            return None
-
-    def update_fulfillment_status(self, qid: str, fulfillment_status: str) -> Optional[Dict[str, Any]]:
-        """تحديث حالة الشحن للطلب"""
-        mutation = self._extract_query("UpdateOrderFulfillmentStatus")
-        try:
-            result = self.client.execute(mutation, {"id": qid, "fulfillmentStatus": fulfillment_status}, operation_name="UpdateOrderFulfillmentStatus")
-            return result.get('updateOrderFulfillmentStatus') if result else None
-        except Exception as e:
-            print(f"❌ [OrderService]: خطأ في تحديث حالة الشحن {qid}: {e}")
             return None
 
     def delete_order(self, qid: str) -> bool:
