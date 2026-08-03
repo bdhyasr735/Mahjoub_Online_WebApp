@@ -38,6 +38,9 @@ class Order(db.Model):
     total_price = db.Column(db.Numeric(18, 2), default=0.00)
     items_count = db.Column(db.Integer, default=0)
     
+    # ✅ حقل الترقيم التسلسلي للطلب
+    order_number = db.Column(db.Integer, nullable=True)
+    
     # ✅ حقول الحالة الجديدة بناءً على السكيما
     status_code = db.Column(db.String(30), default='pending')
     status_title = db.Column(db.String(50), default='قيد الانتظار')
@@ -108,6 +111,7 @@ class Order(db.Model):
             'id': self.id,
             'qid': self.id,
             'order_reference': self.order_reference,  # رقم الطلب للعرض
+            'order_number': self.order_number,  # ✅ إضافة الرقم التسلسلي
             'supplier_id': self.supplier_id,
             'status_code': self.status_code,
             'status_title': self.status_title,
