@@ -10,17 +10,17 @@
             <p class="text-muted text-sm mb-0">عرض وإدارة جميع طلبات الزبائن في المنصة.</p>
         </div>
         <div>
-            <!-- ✅ زر مزامنة الطلبات مع تمرير الحدث بشكل آمن -->
+            <!-- زر مزامنة الطلبات -->
             <button class="btn btn-warning d-flex align-items-center gap-2" onclick="syncAdminOrders(event)">
                 <i class="fas fa-sync-alt"></i> مزامنة الطلبات
             </button>
         </div>
     </div>
 
-    <!-- ✅ شريط الفلاتر -->
+    <!-- شريط الفلاتر -->
     {% include "admin/includes/_orders_filter_bar.html" ignore missing %}
 
-    <!-- ✅ حاوية الطلبات والترقيم -->
+    <!-- حاوية الطلبات والترقيم -->
     <div id="ordersContainer">
         {% include "admin/partials/_orders_table.html" ignore missing %}
         <div id="paginationContainer">
@@ -39,7 +39,7 @@ function getVal(id) {
     return el ? el.value.trim() : '';
 }
 
-// دالة منع التكرار
+// دالة منع التكرار عند البحث
 let debounceTimer;
 function debounceFetchAdminOrders() {
     clearTimeout(debounceTimer);
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
         searchInput.addEventListener('input', debounceFetchAdminOrders);
     }
 
-    // ربط الفلاتر تلقائياً بأحداث التغيير لتحديث الجدول فوراً (بشكل آمن)
+    // ربط الفلاتر تلقائياً بأحداث التغيير لتحديث الجدول فوراً
     const filterElements = [
         'statusFilter', 
         'financialStatusFilter', 
@@ -83,7 +83,11 @@ function fetchAdminOrders(page = 1) {
     const container = document.getElementById('ordersContainer');
     if (!container) return;
     
-    container.innerHTML = `<div class="text-center py-5"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2 text-muted">⏳ جاري تحميل الطلبات...</p></div>`;
+    container.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border" style="color: #D4AF37;" role="status"></div>
+            <p class="mt-2 text-muted">⏳ جاري تحميل الطلبات...</p>
+        </div>`;
 
     const params = new URLSearchParams({
         page: page,
@@ -104,19 +108,27 @@ function fetchAdminOrders(page = 1) {
     .then(response => response.json())
     .then(data => {
         if (data.success && data.html) {
-            // تحديث الجدول وقسم الترقيم بشكل منفصل وسليم لضمان تطابق البيانات
+            // تحديث الجدول وقسم الترقيم بشكل منفصل وسليم
             container.innerHTML = data.html + `<div id="paginationContainer">${data.pagination_html || ''}</div>`;
         } else {
-            container.innerHTML = `<div class="alert alert-warning text-center py-4 rounded-4"><i class="fas fa-search fa-2x d-block mb-3 opacity-50"></i> لا توجد طلبات مطابقة للبحث.</div>`;
+            container.innerHTML = `
+                <div class="alert alert-warning text-center py-4 rounded-4">
+                    <i class="fas fa-search fa-2x d-block mb-3 opacity-50"></i>
+                    لا توجد طلبات مطابقة للبحث.
+                </div>`;
         }
     })
     .catch(error => {
         console.error('Fetch Error:', error);
-        container.innerHTML = `<div class="alert alert-danger text-center py-4 rounded-4"><i class="fas fa-exclamation-triangle fa-2x d-block mb-3"></i> حدث خطأ أثناء جلب الطلبات.</div>`;
+        container.innerHTML = `
+            <div class="alert alert-danger text-center py-4 rounded-4">
+                <i class="fas fa-exclamation-triangle fa-2x d-block mb-3"></i>
+                حدث خطأ أثناء جلب الطلبات.
+            </div>`;
     });
 }
 
-// ✅ دالة مزامنة الطلبات الآمنة
+// دالة مزامنة الطلبات
 function syncAdminOrders(event) {
     if (!confirm('هل تريد مزامنة الطلبات من المنصة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
     
@@ -124,7 +136,7 @@ function syncAdminOrders(event) {
     const originalText = btn ? btn.innerHTML : '';
     
     if (btn) {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المزامنة...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري المزامنة...';
         btn.disabled = true;
     }
 
@@ -142,7 +154,7 @@ function syncAdminOrders(event) {
     .then(data => {
         if (data.success) {
             alert('✅ ' + (data.message || 'تمت المزامنة بنجاح'));
-            location.reload(); // تحديث الصفحة بالكامل لجلب الطلبات المزمنة حديثاً
+            location.reload();
         } else {
             alert('❌ ' + (data.message || 'فشلت المزامنة'));
         }
