@@ -7,7 +7,7 @@
 
 from apps.extensions import db
 
-# استخدام الاستيراد المطلق (Absolute Imports) حصرياً لمنع ازدواجية تسجيل الموديلات
+# استخدام الاستيراد المطلق (Absolute Imports) حصرياً لمنع ازدواجية تسجيل الموديلات في ذاكرة SQLAlchemy
 from apps.models.supplier_db import Supplier
 from apps.models.admin_db import AdminUser
 from apps.models.marketer_db import Marketer
