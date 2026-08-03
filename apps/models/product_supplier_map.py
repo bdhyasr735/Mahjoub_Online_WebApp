@@ -9,31 +9,33 @@ from apps.extensions import db
 
 class ProductSupplierMapping(db.Model):
     """
-    جدول الربط السيادي: يربط فقط بين منتج قمرة (qid) والمورد (supplier_id).
-    المصدر الأساسي لكل التفاصيل (الاسم، السعر، المخزون) يظل "قمرة".
+    جدول الربط السيادي: يربط بين منتج قمرة (qid) والمورد (supplier_id).
+    يدعم تعديل وتحويل مسار المنتجات بسلاسة ودقة عالية.
     """
     __tablename__ = 'product_supplier_mapping'
 
-    # [فهرسة]: للبحث فائق السرعة
+    # [فهرسة]: للبحث فائق السرعة وإدارة المسارات
     __table_args__ = (
         db.Index('idx_map_qid', 'product_qid'),
         db.Index('idx_map_supplier', 'supplier_id'),
+        # قيد مركب يمنع تكرار نفس المورد لنفس المنتج، مع السماح بتحويل المسار وتغيير الموردين بحرية
+        db.UniqueConstraint('product_qid', 'supplier_id', name='uq_product_supplier_map'),
         {'extend_existing': True}
     )
 
     id = db.Column(db.Integer, primary_key=True)
     
-    # المعرف الفريد لمنتج قمرة (لا غنى عنه)
-    product_qid = db.Column(db.String(255), nullable=False, unique=True)
+    # المعرف الفريد لمنتج قمرة (بدون unique منفرد لتمكين تحويل المسار وتحديث المورد بسهولة)
+    product_qid = db.Column(db.String(255), nullable=False)
     
     # المعرف الخاص بالمورد في نظامنا (الرابط)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
     
-    # ⚡️ الحقول الجديدة لتخزين سعر وكمية المورد (يمكن تحديثها يدوياً)
-    price = db.Column(db.Float, nullable=True)
+    # ⚡️ استخدام Numeric(18, 2) لضمان دقة الحسابات المالية وتفادي مشاكل الأرقام العشرية (Float)
+    price = db.Column(db.Numeric(18, 2), nullable=True)
     quantity = db.Column(db.Integer, nullable=True)
     
-    # حالة الربط (لإدارة المنتجات المعلقة أو النشطة)
+    # حالة الربط (نشط، معلق، محول، إلخ)
     status = db.Column(db.String(20), default='active', nullable=False)
     
     # [تشفير سيادي]: ملاحظات إدارية خاصة بك فقط حول هذا الربط
@@ -42,7 +44,7 @@ class ProductSupplierMapping(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # ✅ العلاقة مع المورد (باستخدام back_populates بدلاً من backref)
+    # ✅ العلاقة مع المورد
     supplier = db.relationship('Supplier', back_populates='product_mappings', lazy='joined')
 
     # --- نظام التشفير ---
@@ -68,12 +70,12 @@ class ProductSupplierMapping(db.Model):
             self._internal_notes_enc = None
 
     def to_dict(self):
-        """تحويل الربط إلى قاموس"""
+        """تحويل الربط إلى قاموس مع معالجة آمنة للقيم المالية والتاريخية"""
         return {
             'id': self.id,
             'product_qid': self.product_qid,
             'supplier_id': self.supplier_id,
-            'price': self.price,
+            'price': float(self.price) if self.price is not None else 0.0,
             'quantity': self.quantity,
             'status': self.status,
             'internal_notes': self.internal_notes,
