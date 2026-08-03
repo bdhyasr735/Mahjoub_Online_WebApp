@@ -12,7 +12,8 @@ from apps.extensions import db
 from datetime import datetime
 
 
-@admin_orders_bp.route('/orders', methods=['GET'], endpoint='list_admin_orders')
+@admin_orders_bp.route('', methods=['GET'], endpoint='list_admin_orders')
+@admin_orders_bp.route('/', methods=['GET'])
 @login_required
 def manage_admin_orders_view():
     try:
@@ -86,7 +87,7 @@ def manage_admin_orders_view():
         return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1}, suppliers=[])
 
 
-@admin_orders_bp.route('/orders/sync', methods=['POST'])
+@admin_orders_bp.route('/sync', methods=['POST'])
 @login_required
 def sync_admin_orders():
     try:
@@ -96,11 +97,11 @@ def sync_admin_orders():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@admin_orders_bp.route('/orders/<string:order_id>/status', methods=['POST'])
+@admin_orders_bp.route('/<string:order_id>/status', methods=['POST'])
 @login_required
 def update_order_status(order_id):
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         new_status = data.get('status')
         if not new_status:
             return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
@@ -113,23 +114,29 @@ def update_order_status(order_id):
         order.updated_at = datetime.utcnow()
         db.session.commit()
 
-        services.orders.update_order_status(order_id, new_status)
+        # تحديث الحالة في الخدمة المحلیة إذا لزم الأمر
+        if hasattr(services.orders, 'update_order_status'):
+            try:
+                services.orders.update_order_status(order_id, new_status)
+            except Exception as service_e:
+                current_app.logger.warning(f"⚠️ فشل تحديث الخدمة الخارجية: {service_e}")
+
         return jsonify({'success': True, 'message': 'تم تحديث الحالة بنجاح'})
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@admin_orders_bp.route('/orders/<string:order_id>/supplier', methods=['POST'])
+@admin_orders_bp.route('/<string:order_id>/supplier', methods=['POST'])
 @login_required
 def update_order_supplier(order_id):
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         supplier_id_raw = data.get('supplier_id')
         if supplier_id_raw is None:
             return jsonify({'success': False, 'message': 'المورد مطلوب'}), 400
 
-        # ✅ تحويل آمن لمعرّف المورد إلى رقم صحيح لتجنب أخطاء نوع البيانات
         try:
             supplier_id = int(supplier_id_raw)
         except (TypeError, ValueError):
@@ -152,10 +159,11 @@ def update_order_supplier(order_id):
         return jsonify({'success': True, 'message': 'تم تحديث المورد بنجاح'})
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@admin_orders_bp.route('/orders/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
+@admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
 @login_required
 def view_admin_order(order_id):
     try:
@@ -169,9 +177,9 @@ def view_admin_order(order_id):
 
 
 def register_admin_orders_route(bp):
-    bp.add_url_rule('/orders', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
-    bp.add_url_rule('/orders/sync', view_func=sync_admin_orders, methods=['POST'])
-    bp.add_url_rule('/orders/<string:order_id>/status', view_func=update_order_status, methods=['POST'])
-    bp.add_url_rule('/orders/<string:order_id>/supplier', view_func=update_order_supplier, methods=['POST'])
-    bp.add_url_rule('/orders/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
+    bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
+    bp.add_url_rule('/sync', view_func=sync_admin_orders, methods=['POST'])
+    bp.add_url_rule('/<string:order_id>/status', view_func=update_order_status, methods=['POST'])
+    bp.add_url_rule('/<string:order_id>/supplier', view_func=update_order_supplier, methods=['POST'])
+    bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
     return bp
