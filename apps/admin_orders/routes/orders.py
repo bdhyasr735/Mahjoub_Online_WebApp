@@ -27,6 +27,15 @@ def manage_admin_orders_view():
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
 
+        # ✅ الحل الجذري: مزامنة تلقائية للصفحة الحالية عند كل زيارة (ديناميكي)
+        # لا يتم التزامن في طلبات AJAX للحفاظ على سرعة الترقيم
+        if not is_ajax:
+            try:
+                # سحب الصفحة الحالية من قمرة وحفظها في قاعدة البيانات المحلية تلقائياً
+                services.orders.get_all_orders(page=page, per_page=50)
+            except Exception as sync_e:
+                print(f"⚠️ [Auto Sync Orders] حدث خطأ أثناء المزامنة التلقائية: {sync_e}")
+
         # ✅ جلب الطلبات من قاعدة البيانات المحلية (الأدمن يرى الكل)
         result = services.orders.get_local_orders(
             page=page,
@@ -52,8 +61,7 @@ def manage_admin_orders_view():
             'total_items': pagination.get('totalItems', 0)
         }
 
-        # ✅ لم نعد بحاجة لمعالجة الحالة يدوياً لأن get_local_orders تضع status_text بالفعل
-        # لكننا نضمن وجود الحقل لتجنب الأخطاء
+        # ضمان وجود status_text
         for order in orders:
             if 'status_text' not in order:
                 order['status_text'] = order.get('status', 'غير معروف').title()
@@ -79,35 +87,8 @@ def manage_admin_orders_view():
 
 
 # ============================================================================================
-# ✅ مسار جديد لمزامنة الطلبات من قمرة إلى قاعدة البيانات المحلية
-# ============================================================================================
-@admin_orders_bp.route('/orders/sync', methods=['POST'], endpoint='sync_admin_orders')
-@login_required
-def sync_admin_orders():
-    try:
-        user_type = session.get('user_type')
-        if user_type != 'admin':
-            return jsonify({'success': False, 'message': 'غير مصرح لك'}), 403
-
-        # جلب 5 صفحات من قمرة لتخزينها محلياً
-        total_synced = 0
-        for page in range(1, 6):
-            result = services.orders.get_all_orders(page=page, per_page=50)
-            total_synced += len(result.get('data', []))
-
-        return jsonify({
-            'success': True,
-            'message': f'✅ تمت مزامنة {total_synced} طلب بنجاح.'
-        })
-    except Exception as e:
-        current_app.logger.error(f"خطأ في مزامنة الطلبات: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': f'❌ حدث خطأ: {str(e)}'}), 500
-
-
-# ============================================================================================
 # ✅ دالة تسجيل المسارات
 # ============================================================================================
 def register_admin_orders_route(bp):
     bp.add_url_rule('/orders', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
-    bp.add_url_rule('/orders/sync', view_func=sync_admin_orders, methods=['POST'], endpoint='sync_admin_orders')
     return bp
