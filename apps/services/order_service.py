@@ -1,6 +1,7 @@
 # coding: utf-8
 # 📂 apps/services/order_service.py
 
+import os
 from typing import Dict, Any, Optional, List
 from .graphql_client import GraphQLClient
 
@@ -10,24 +11,42 @@ class OrderService:
     
     def __init__(self, client: GraphQLClient):
         self.client = client
+        
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.query_file_path = os.path.join(current_dir, 'orders_queries.graphql')
+        
+        try:
+            with open(self.query_file_path, 'r', encoding='utf-8') as f:
+                self.queries_content = f.read()
+        except FileNotFoundError:
+            print(f"⚠️ [OrderService]: لم يتم العثور على ملف الاستعلامات")
+            self.queries_content = ""
+
+    def _extract_query(self, query_name: str) -> str:
+        """استخراج استعلام معين من ملف الاستعلامات"""
+        if not self.queries_content:
+            return ""
+        
+        lines = self.queries_content.split('\n')
+        result = []
+        found = False
+        brace_count = 0
+        
+        for line in lines:
+            if f"query {query_name}" in line or f"mutation {query_name}" in line:
+                found = True
+            
+            if found:
+                result.append(line)
+                brace_count += line.count('{') - line.count('}')
+                if brace_count == 0 and len(result) > 1:
+                    break
+        
+        return '\n'.join(result)
 
     def get_order(self, qid: str) -> Optional[Dict[str, Any]]:
         """جلب تفاصيل الطلب باستخدام المعرف qid"""
-        query = """
-        query GetOrder($qid: ID!) {
-            order(qid: $qid) {
-                qid
-                total
-                status
-                createdAt
-                items {
-                    productQid
-                    quantity
-                    price
-                }
-            }
-        }
-        """
+        query = self._extract_query("GetOrder")
         try:
             result = self.client.execute(query, {"qid": qid}, operation_name="GetOrder")
             return result.get('order') if result else None
@@ -35,7 +54,6 @@ class OrderService:
             print(f"❌ [OrderService]: خطأ في جلب الطلب {qid}: {e}")
             return None
 
-    # ✅ الدالة الجديدة التي تجلب الطلبات مع الترقيم والفلترة
     def get_all_orders(self, page: int = 1, per_page: int = 10, supplier_id: str = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
         """
         جلب قائمة الطلبات مع دعم الترقيم وتصفية المورد والحالة.
@@ -55,30 +73,7 @@ class OrderService:
         if date_to:
             input_data["dateTo"] = date_to
 
-        query = """
-        query FindAllOrders($input: FindAllOrdersInput) {
-            findAllOrders(input: $input) {
-                data {
-                    qid
-                    total
-                    status
-                    createdAt
-                    items {
-                        productQid
-                        quantity
-                        price
-                    }
-                }
-                pagination {
-                    totalItems
-                    totalPages
-                    currentPage
-                    limit
-                    hasNextPage
-                }
-            }
-        }
-        """
+        query = self._extract_query("FindAllOrders")
         try:
             result = self.client.execute(query, {"input": input_data}, operation_name="FindAllOrders")
             if result:
@@ -99,15 +94,7 @@ class OrderService:
 
     def create_order(self, input_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """إنشاء طلب جديد"""
-        mutation = """
-        mutation CreateOrder($input: OrderInput!) {
-            createOrder(input: $input) {
-                qid
-                total
-                status
-            }
-        }
-        """
+        mutation = self._extract_query("CreateOrder")
         try:
             result = self.client.execute(mutation, {"input": input_data}, operation_name="CreateOrder")
             return result.get('createOrder') if result else None
@@ -117,15 +104,7 @@ class OrderService:
 
     def update_order_status(self, qid: str, status: str) -> Optional[Dict[str, Any]]:
         """تحديث حالة الطلب"""
-        mutation = """
-        mutation UpdateOrderStatus($qid: ID!, $status: String!) {
-            updateOrderStatus(qid: $qid, status: $status) {
-                qid
-                status
-                updatedAt
-            }
-        }
-        """
+        mutation = self._extract_query("UpdateOrderStatus")
         try:
             result = self.client.execute(mutation, {"qid": qid, "status": status}, operation_name="UpdateOrderStatus")
             return result.get('updateOrderStatus') if result else None
@@ -135,11 +114,7 @@ class OrderService:
 
     def delete_order(self, qid: str) -> bool:
         """حذف طلب"""
-        mutation = """
-        mutation DeleteOrder($qid: ID!) {
-            deleteOrder(qid: $qid)
-        }
-        """
+        mutation = self._extract_query("DeleteOrder")
         try:
             result = self.client.execute(mutation, {"qid": qid}, operation_name="DeleteOrder")
             return result.get('deleteOrder', False) if result else False
