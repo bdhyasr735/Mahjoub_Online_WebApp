@@ -84,6 +84,7 @@ class Supplier(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    # ✅ دالة to_dict الموجودة بالفعل
     def to_dict(self):
         """تحويل المورد إلى قاموس"""
         return {
