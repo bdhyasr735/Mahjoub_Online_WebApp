@@ -334,6 +334,42 @@ class OrderService:
             print(f"❌ [OrderService]: خطأ في تحديث حالة الطلب {qid}: {e}")
             return None
 
+    def update_financial_status(self, qid: str, financial_status: str) -> Optional[Dict[str, Any]]:
+        """تحديث الحالة المالية للطلب عبر GraphQL (إن وجد استعلام مخصص أو مرن)"""
+        mutation = self._extract_query("ChangeFinancialStatus")
+        if not mutation:
+            return None
+        try:
+            variables = {
+                "input": {
+                    "orderId": str(qid),
+                    "financialStatus": str(financial_status)
+                }
+            }
+            result = self.client.execute(mutation, variables, operation_name="ChangeFinancialStatus")
+            return result.get('changeFinancialStatus') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في تحديث الحالة المالية للطلب {qid}: {e}")
+            return None
+
+    def update_fulfillment_status(self, qid: str, fulfillment_status: str) -> Optional[Dict[str, Any]]:
+        """تحديث حالة الشحن والتسليم للطلب عبر GraphQL (إن وجد استعلام مخصص أو مرن)"""
+        mutation = self._extract_query("ChangeFulfillmentStatus")
+        if not mutation:
+            return None
+        try:
+            variables = {
+                "input": {
+                    "orderId": str(qid),
+                    "fulfillmentStatus": str(fulfillment_status)
+                }
+            }
+            result = self.client.execute(mutation, variables, operation_name="ChangeFulfillmentStatus")
+            return result.get('changeFulfillmentStatus') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في تحديث حالة الشحن للطلب {qid}: {e}")
+            return None
+
     def delete_order(self, qid: str) -> bool:
         mutation = self._extract_query("DeleteOrder")
         try:
