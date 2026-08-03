@@ -189,12 +189,33 @@ def update_order_supplier(order_id):
 @login_required
 def view_admin_order(order_id):
     try:
+        # 1. البحث في قاعدة البيانات المحلية أولاً
         order = Order.query.get(order_id)
+        
+        # 2. ⚡ إذا لم يكن موجوداً محلياً، جلب الطلب فوراً من API الخارجية وتخزينه
         if not order:
-            flash('❌ لم يتم العثور على الطلب', 'danger')
+            try:
+                if hasattr(services.orders, 'get_order_by_id'):
+                    order = services.orders.get_order_by_id(order_id)
+                elif hasattr(services.orders, 'sync_single_order'):
+                    order = services.orders.sync_single_order(order_id)
+            except Exception as sync_single_e:
+                current_app.logger.warning(f"⚠️ تعذر جلب الطلب {order_id} من الخدمة الخارجية: {sync_single_e}")
+
+        # 3. التأكد من إعادة المحاولة محلياً بعد الجلب
+        if not order:
+            order = Order.query.get(order_id)
+
+        # 4. إذا ظل غير موجود، يتم التوجيه مع التنبيه
+        if not order:
+            flash('❌ لم يتم العثور على الطلب في النظام', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
+
         return render_template('admin/admin_order_detail.html', order=order)
+
     except Exception as e:
+        current_app.logger.error(f"خطأ في عرض تفاصيل الطلب {order_id}: {traceback.format_exc()}")
+        flash('❌ حدث خطأ غير متوقع أثناء تحميل تفاصيل الطلب', 'danger')
         return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
 
