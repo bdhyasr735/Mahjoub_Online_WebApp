@@ -1,63 +1,77 @@
-<div class="table-responsive w-full overflow-x-hidden">
-    <table class="table align-middle text-center w-full mb-0" style="font-size: 0.85rem;">
-        <thead class="table-dark">
-            <tr>
-                <th class="py-2">رقم الطلب</th>
-                <th class="py-2">اسم العميل</th>
-                <th class="py-2">المورد</th>
-                <th class="py-2">التاريخ</th>
-                <th class="py-2">الإجمالي</th>
-                <th class="py-2">حالة الطلب</th>
-                <th class="py-2">الدفع / الشحن</th>
-                <th class="py-2">الإجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order in data %}
-            <tr>
-                <!-- رقم الطلب -->
-                <td class="fw-bold py-2">#{{ order.order_number }}</td>
-                
-                <!-- اسم العميل (تم إبرازه وضبطه ليظهر تماماً) -->
-                <td class="py-2 text-truncate" style="max-width: 130px;" title="{{ order.customer_name }}">
-                    {{ order.customer_name or 'عميل زائر' }}
-                </td>
+<!-- 📂 apps/templates/admin/partials/_orders_table.html -->
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-3">
+    <div class="card-body p-0">
+        <div class="table-responsive w-full" style="overflow-x: hidden !important;">
+            <table class="table align-middle text-center w-full mb-0" style="font-size: 0.85rem;">
+                <thead class="table-dark" style="background-color: #2d0b36; color: #fff;">
+                    <tr>
+                        <th class="py-3">رقم الطلب</th>
+                        <th class="py-3">اسم العميل</th>
+                        <th class="py-3">المورد</th>
+                        <th class="py-3">التاريخ</th>
+                        <th class="py-3">الإجمالي</th>
+                        <th class="py-3">حالة الطلب</th>
+                        <th class="py-3">الدفع</th>
+                        <th class="py-3">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if data %}
+                        {% for order in data %}
+                        <tr>
+                            <!-- رقم الطلب -->
+                            <td class="fw-bold py-2">#{{ order.order_number or order.id[:8] }}</td>
+                            
+                            <!-- اسم العميل (مع خاصية القص والنص التوضيحي) -->
+                            <td class="py-2 text-truncate" style="max-width: 120px;" title="{{ order.customer_name }}">
+                                {{ order.customer_name or 'عميل زائر' }}
+                            </td>
 
-                <!-- المورد -->
-                <td class="py-2">
-                    <span class="badge bg-light text-dark border">{{ order.supplier_name }}</span>
-                </td>
+                            <!-- المورد -->
+                            <td class="py-2">
+                                <span class="badge bg-light text-dark border px-2 py-1">{{ order.supplier_name or 'غير مرتبط' }}</span>
+                            </td>
 
-                <!-- التاريخ -->
-                <td class="py-2 text-muted" style="font-size: 0.78rem;">
-                    {{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '-' }}
-                </td>
+                            <!-- التاريخ -->
+                            <td class="py-2 text-muted" style="font-size: 0.78rem;">
+                                {{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '-' }}
+                            </td>
 
-                <!-- الإجمالي -->
-                <td class="py-2 fw-bold text-success">
-                    {{ order.total_price }}
-                </td>
+                            <!-- الإجمالي -->
+                            <td class="py-2 fw-bold text-success">
+                                {{ order.total_price }} ر.ي
+                            </td>
 
-                <!-- حالة الطلب -->
-                <td class="py-2">
-                    <span class="badge bg-secondary">{{ order.status_title }}</span>
-                </td>
+                            <!-- حالة الطلب -->
+                            <td class="py-2">
+                                <span class="badge bg-secondary px-2 py-1">{{ order.status_title or 'قيد الانتظار' }}</span>
+                            </td>
 
-                <!-- حالة الدفع والشحن -->
-                <td class="py-2">
-                    <span class="badge {{ 'bg-success' if order.is_paid else 'bg-danger' }} mb-1">
-                        {{ 'مدفوع' if order.is_paid else 'غير مدفوع' }}
-                    </span>
-                </td>
+                            <!-- الدفع -->
+                            <td class="py-2">
+                                <span class="badge {{ 'bg-success' if order.is_paid else 'bg-danger' }} px-2 py-1">
+                                    {{ 'مدفوع' if order.is_paid else 'غير مدفوع' }}
+                                </span>
+                            </td>
 
-                <!-- الإجراءات -->
-                <td class="py-2">
-                    <a href="{{ url_for('admin.order_details', qid=order.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2">
-                        <i class="fas fa-eye"></i>
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                            <!-- الإجراءات -->
+                            <td class="py-2">
+                                <a href="{{ url_for('admin_orders_bp.order_details', qid=order.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2" title="عرض التفاصيل">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                <i class="fas fa-box-open fa-2x mb-2 text-secondary opacity-50"></i>
+                                <p class="mb-0">لا توجد طلبات مطابقة للبحث أو مسجلة حالياً.</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
