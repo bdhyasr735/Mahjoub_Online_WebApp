@@ -30,19 +30,10 @@
                             <!-- قائمة المورد مع بحث متطور -->
                             <td class="py-2">
                                 <div class="dropdown text-center" style="position: relative;">
-                                    {%- set current_supplier_name = '-- غير مرتبط --' -%}
-                                    {%- if order.supplier_id and suppliers -%}
-                                        {%- for sup in suppliers -%}
-                                            {%- if order.supplier_id == sup.id -%}
-                                                {%- set _ = current_supplier_name.update(sup.trade_name) if false else None -%}
-                                            {%- endif -%}
-                                        {%- endfor -%}
-                                    {%- endif -%}
-
                                     {%- set selected_name = namespace(val='-- غير مرتبط --') -%}
                                     {%- if suppliers -%}
                                         {%- for sup in suppliers -%}
-                                            {%- if order.supplier_id == sup.id -%}
+                                            {%- if order.supplier_id|string == sup.id|string -%}
                                                 {%- set selected_name.val = sup.trade_name -%}
                                             {%- endif -%}
                                         {%- endfor -%}
@@ -77,7 +68,7 @@
                                             </a>
                                             {% if suppliers %}
                                                 {% for sup in suppliers %}
-                                                    <a class="dropdown-item py-1.5 px-2 rounded small supplier-option {% if order.supplier_id == sup.id %}active fw-bold bg-primary text-white{% endif %}" 
+                                                    <a class="dropdown-item py-1.5 px-2 rounded small supplier-option {% if order.supplier_id|string == sup.id|string %}active fw-bold bg-primary text-white{% endif %}" 
                                                        href="#" 
                                                        data-id="{{ sup.id }}" 
                                                        onclick="selectSupplier(event, '{{ order.id }}', '{{ sup.id }}', '{{ sup.trade_name }}', this)">
@@ -148,7 +139,6 @@
 </div>
 
 <script>
-// دالة البحث المتطور داخل قائمة الموردين لكل صف على حدة
 function filterSuppliers(inputElement) {
     const query = inputElement.value.toLowerCase().trim();
     const container = inputElement.closest('.dropdown-menu');
@@ -156,15 +146,10 @@ function filterSuppliers(inputElement) {
 
     options.forEach(option => {
         const text = option.textContent.toLowerCase();
-        if (text.includes(query)) {
-            option.style.display = '';
-        } else {
-            option.style.display = 'none';
-        }
+        option.style.display = text.includes(query) ? '' : 'none';
     });
 }
 
-// دالة اختيار المورد وتحديثه عبر AJAX
 function selectSupplier(event, orderId, supplierId, supplierName, element) {
     event.preventDefault();
     event.stopPropagation();
@@ -172,27 +157,22 @@ function selectSupplier(event, orderId, supplierId, supplierName, element) {
     const dropdownContainer = element.closest('.dropdown');
     const btn = dropdownContainer.querySelector('.dropdown-toggle');
     
-    // تحديث نص الزر والعنوان
     btn.textContent = supplierName;
     btn.title = supplierName;
 
-    // تحديث حالة التحديد (Active class) في القائمة
     dropdownContainer.querySelectorAll('.supplier-option').forEach(opt => {
         opt.classList.remove('active', 'fw-bold', 'bg-primary', 'text-white');
     });
     element.classList.add('active', 'fw-bold', 'bg-primary', 'text-white');
 
-    // إغلاق القائمة المنسدلة
     const bsDropdown = bootstrap.Dropdown.getInstance(btn);
     if (bsDropdown) {
         bsDropdown.hide();
     }
 
-    // إرسال التحديث للسيرفر
     updateOrderSupplierInline(orderId, supplierId);
 }
 
-// دوال التحديث الفوري عبر AJAX
 function updateOrderStatusInline(orderId, newStatus) {
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
     fetch(`/admin/orders/${orderId}/status`, {
