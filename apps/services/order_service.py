@@ -3,62 +3,75 @@
 
 import os
 from typing import Dict, Any, Optional, List
-from .graphql_client import GraphQLClient
 from datetime import datetime
 from sqlalchemy import or_, cast, Integer
+from .graphql_client import GraphQLClient
 
 
 class OrderService:
     """خدمة إدارة الطلبات والمزامنة"""
-    
+
     def __init__(self, client: GraphQLClient):
         self.client = client
-        
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.query_file_path = os.path.join(current_dir, 'orders_queries.graphql')
-        
+
         try:
             with open(self.query_file_path, 'r', encoding='utf-8') as f:
                 self.queries_content = f.read()
         except FileNotFoundError:
-            print(f"⚠️ [OrderService]: لم يتم العثور على ملف الاستعلامات")
+            print("⚠️ [OrderService]: لم يتم العثور على ملف الاستعلامات")
             self.queries_content = ""
 
     def _extract_query(self, query_name: str) -> str:
         """استخراج استعلام معين من ملف الاستعلامات"""
         if not self.queries_content:
             return ""
-        
+
         lines = self.queries_content.split('\n')
         result = []
         found = False
         brace_count = 0
-        
+
         for line in lines:
             if f"query {query_name}" in line or f"mutation {query_name}" in line:
                 found = True
-            
+
             if found:
                 result.append(line)
                 brace_count += line.count('{') - line.count('}')
                 if brace_count == 0 and len(result) > 1:
                     break
-        
+
         return '\n'.join(result)
 
     def get_order(self, qid: str) -> Optional[Dict[str, Any]]:
-        """جلب تفاصيل الطلب باستخدام المعرف qid"""
+        """جلب تفاصيل الطلب باستخدام المعرف qid متوافقاً مع استجابة GraphQL الجديدة"""
         query = self._extract_query("FindOrderById")
         try:
             result = self.client.execute(query, {"id": qid}, operation_name="FindOrderById")
             if result and 'findOrderById' in result:
-                return result['findOrderById']
+                res_data = result['findOrderById']
+                # استخراج كائن data الداخلي في حال توفره حسب الـ Schema الجديدة
+                if isinstance(res_data, dict) and 'data' in res_data and res_data['data']:
+                    return res_data['data']
+                return res_data
             return None
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلب {qid}: {e}")
             return None
 
-    def get_all_orders(self, page: int = 1, per_page: int = 10, supplier_id: str = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
+    def get_all_orders(
+        self,
+        page: int = 1,
+        per_page: int = 10,
+        supplier_id: str = None,
+        status: str = None,
+        search: str = None,
+        date_from: str = None,
+        date_to: str = None
+    ) -> Dict[str, Any]:
         """
         جلب قائمة الطلبات ودمجها في قاعدة البيانات المحلية وربطها بالموردين.
         """
@@ -72,21 +85,27 @@ class OrderService:
         query = self._extract_query("FindAllOrders")
         try:
             result = self.client.execute(query, {"input": input_data}, operation_name="FindAllOrders")
-            
+
             orders_data = []
-            pagination_data = {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}
-            
+            pagination_data = {
+                "totalItems": 0,
+                "totalPages": 1,
+                "currentPage": page,
+                "limit": per_page,
+                "hasNextPage": False
+            }
+
             if result and 'findAllOrders' in result:
                 orders_data = result['findAllOrders'].get('data', []) or []
                 pagination_data = result['findAllOrders'].get('pagination', {}) or {}
-                
+
                 # حفظ الطلبات في قاعدة البيانات المحلية
                 try:
                     from apps.models.orders_db import Order
                     from apps.models.order_items_db import OrderItem
                     from apps.models.product_supplier_map import ProductSupplierMapping
                     from apps.extensions import db
-                    
+
                     for order in orders_data:
                         if not order:
                             continue
@@ -114,10 +133,12 @@ class OrderService:
                             status_code = 'pending'
                             status_title = 'قيد الانتظار'
 
-                        # ✅ استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType وتوافقاً مع هيكل الحسابات
+                        # استخراج اسم العميل بشكل آمن منعاً لخطأ NoneType وتوافقاً مع هيكل الحسابات
                         account_outer = order.get('account') or {}
                         account_inner = account_outer.get('account') or {}
-                        customer_name = account_inner.get('fullname') or ('عميل زائر' if order.get('type') == 'guest' else 'عميل غير معروف')
+                        customer_name = account_inner.get('fullname') or (
+                            'عميل زائر' if order.get('type') == 'guest' else 'عميل غير معروف'
+                        )
 
                         # استخراج الحالة المالية والإجمالي
                         is_paid = order.get('isPaid', False)
@@ -135,7 +156,7 @@ class OrderService:
 
                         # البحث عن الطلب في قاعدة البيانات المحلية
                         existing_order = Order.query.filter_by(id=qid).first()
-                        
+
                         # توليد الرقم التسلسلي للطلب الجديد
                         last_order = db.session.query(Order).order_by(cast(Order.order_number, Integer).desc()).first()
                         next_number = (last_order.order_number + 1) if last_order and last_order.order_number else 1000000235
@@ -149,11 +170,11 @@ class OrderService:
                             existing_order.is_paid = is_paid
                             existing_order.total_price = total_price
                             existing_order.created_at = created_at
-                            
+
                             # حذف العناصر القديمة وإعادة إضافتها
                             OrderItem.query.filter_by(order_id=existing_order.id).delete()
                         else:
-                            # ✅ إنشاء طلب جديد مع الرقم التسلسلي والتاريخ
+                            # إنشاء طلب جديد مع الرقم التسلسلي والتاريخ
                             existing_order = Order(
                                 id=qid,
                                 supplier_id=supplier_id_found,
@@ -176,7 +197,7 @@ class OrderService:
                             qty = item.get('quantity', 1) or 1
                             price = item.get('price', 0.0) or 0.0
                             prod_id = item.get('productId', '')
-                            
+
                             title = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
                             # استخراج slug بدلاً من sku المتسبب في خطأ Schema
                             sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
@@ -190,9 +211,9 @@ class OrderService:
                                 price_per_unit=price
                             )
                             db.session.add(new_item)
-                        
+
                         db.session.commit()
-                        
+
                 except Exception as db_err:
                     print(f"⚠️ [OrderService] خطأ تفصيلي أثناء حفظ الطلبات محلياً: {db_err}")
                     db.session.rollback()
@@ -203,12 +224,29 @@ class OrderService:
             }
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلبات: {e}")
-            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}}
+            return {
+                "data": [],
+                "pagination": {
+                    "totalItems": 0,
+                    "totalPages": 1,
+                    "currentPage": page,
+                    "limit": per_page,
+                    "hasNextPage": False
+                }
+            }
 
-    def get_local_orders(self, page: int = 1, per_page: int = 10, supplier_id: int = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
+    def get_local_orders(
+        self,
+        page: int = 1,
+        per_page: int = 10,
+        supplier_id: int = None,
+        status: str = None,
+        search: str = None,
+        date_from: str = None,
+        date_to: str = None
+    ) -> Dict[str, Any]:
         """جلب الطلبات من قاعدة البيانات المحلية مع دعم الترقيم والفلترة."""
         from apps.models.orders_db import Order
-        from apps.models.supplier_db import Supplier
         from apps.extensions import db
 
         query = db.session.query(Order)
@@ -231,7 +269,7 @@ class OrderService:
         total_items = query.count()
         total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
-        # ✅ الترتيب تنازلياً بناءً على رقم الطلب لضمان ظهور الطلبات الأحدث والأكبر أولاً في الصفحة الأولى
+        # الترتيب تنازلياً بناءً على رقم الطلب لضمان ظهور الطلبات الأحدث أولاً
         orders = query.order_by(cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
 
         orders_data = []
@@ -264,7 +302,7 @@ class OrderService:
             return None
 
     def update_order_status(self, qid: str, status: str) -> Optional[Dict[str, Any]]:
-        # تم تعديل اسم العملية إلى ChangeOrderStatus لتطابق الـ Schema
+        """تحديث حالة الطلب عبر GraphQL"""
         mutation = self._extract_query("ChangeOrderStatus")
         try:
             result = self.client.execute(mutation, {"id": qid, "status": status}, operation_name="ChangeOrderStatus")
