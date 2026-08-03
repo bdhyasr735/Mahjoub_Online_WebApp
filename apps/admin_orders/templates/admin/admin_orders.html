@@ -9,11 +9,12 @@
             <h2 class="fw-bold mb-1" style="color: #2d0b36;">📦 إدارة الطلبات</h2>
             <p class="text-muted text-sm mb-0">عرض وإدارة جميع طلبات الزبائن في المنصة.</p>
         </div>
-        
-        <!-- ✅ زر المزامنة الجديد -->
-        <button class="btn btn-warning d-flex align-items-center gap-2" onclick="syncAdminOrders()">
-            <i class="fas fa-sync-alt"></i> مزامنة الطلبات
-        </button>
+        <div>
+            <!-- ✅ زر مزامنة الطلبات -->
+            <button class="btn btn-warning d-flex align-items-center gap-2" onclick="syncAdminOrders()">
+                <i class="fas fa-sync-alt"></i> مزامنة الطلبات
+            </button>
+        </div>
     </div>
 
     <!-- ✅ شريط الفلاتر -->
@@ -81,7 +82,7 @@ function fetchAdminOrders(page = 1) {
     });
 }
 
-// ✅ دالة مزامنة الطلبات
+// ✅ دالة مزامنة الطلبات (تظهر فقط عند الحاجة)
 function syncAdminOrders() {
     if (!confirm('هل تريد مزامنة الطلبات من قمرة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
     
@@ -96,7 +97,8 @@ function syncAdminOrders() {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken 
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(res => res.json())
