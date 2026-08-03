@@ -116,8 +116,8 @@ query FindOrderById($id: ID!) {
 # ============================================================
 
 # تغيير حالة الطلب
-mutation ChangeOrderStatus($id: ID!, $status: String!) {
-    changeOrderStatus(id: $id, status: $status) {
+mutation ChangeOrderStatus($input: ChangeOrderStatusInput!) {
+    changeOrderStatus(input: $input) {
         _id
         status {
             _id
