@@ -178,7 +178,8 @@ class OrderService:
                             prod_id = item.get('productId', '')
                             
                             title = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
-                            sku = prod_data.get('sku') or prod_id
+                            # استخراج slug بدلاً من sku المتسبب في خطأ Schema
+                            sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
 
                             new_item = OrderItem(
                                 order_id=existing_order.id,
@@ -263,10 +264,11 @@ class OrderService:
             return None
 
     def update_order_status(self, qid: str, status: str) -> Optional[Dict[str, Any]]:
-        mutation = self._extract_query("UpdateOrderStatus")
+        # تم تعديل اسم العملية إلى ChangeOrderStatus لتطابق الـ Schema
+        mutation = self._extract_query("ChangeOrderStatus")
         try:
-            result = self.client.execute(mutation, {"id": qid, "status": status}, operation_name="UpdateOrderStatus")
-            return result.get('updateOrderStatus') if result else None
+            result = self.client.execute(mutation, {"id": qid, "status": status}, operation_name="ChangeOrderStatus")
+            return result.get('changeOrderStatus') if result else None
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في تحديث حالة الطلب {qid}: {e}")
             return None
