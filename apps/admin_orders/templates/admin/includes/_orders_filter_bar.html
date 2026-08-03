@@ -62,9 +62,11 @@
             </label>
             <select id="supplierFilter" class="form-select" onchange="fetchAdminOrders(1)">
                 <option value="">الكل</option>
-                {% for supplier in suppliers %}
-                <option value="{{ supplier.id }}">{{ supplier.trade_name }}</option>
-                {% endfor %}
+                {% if suppliers %}
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}">{{ supplier.trade_name or supplier.name }}</option>
+                    {% endfor %}
+                {% endif %}
             </select>
         </div>
 
@@ -95,7 +97,7 @@
                     <option value="50">50</option>
                 </select>
             </div>
-            <button class="btn btn-primary w-50" style="background: #2d0b36; border: none;" onclick="fetchAdminOrders(1)">
+            <button class="btn btn-primary w-50" style="background: #2d0b36; border: none;" onclick="fetchAdminOrders(1)" title="تحديث النتائج">
                 <i class="fas fa-sync-alt"></i>
             </button>
         </div>
