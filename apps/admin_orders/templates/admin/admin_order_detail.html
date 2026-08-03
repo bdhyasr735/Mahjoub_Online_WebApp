@@ -3,50 +3,57 @@
 {% block title %}تفاصيل الطلب #{{ order.order_number or (order.id|string)[:8] }} | محجوب{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-4" style="background-color: #f8f9fa;">
 
-    <!-- ✅ شريط العنوان وأزرار الإجراءات السريعة -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <!-- 📌 شريط العنوان والإجراءات علوياً -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 bg-white p-3 rounded-4 shadow-sm border">
         <div class="d-flex align-items-center gap-3">
-            <a href="{{ url_for('admin_orders_bp.list_admin_orders') }}" class="btn btn-outline-secondary rounded-circle p-2" title="عودة لجميع الطلبات">
+            <a href="{{ url_for('admin_orders_bp.list_admin_orders') }}" class="btn btn-light rounded-circle p-2 border" title="عودة لجميع الطلبات">
                 <i class="fas fa-arrow-right"></i>
             </a>
             <div>
-                <h2 class="fw-bold mb-1" style="color: #2d0b36;">
-                    📦 طلب رقم #{{ order.order_number or (order.id|string)[:8] }}
-                </h2>
-                <p class="text-muted text-sm mb-0">
-                    تاريخ الطلب: {{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else 'غير محدد' }}
-                </p>
+                <div class="d-flex align-items-center gap-2">
+                    <h3 class="fw-bold mb-0" style="color: #2d0b36;">
+                        📦 طلب رقم #{{ order.order_number or (order.id|string)[:8] }}
+                    </h3>
+                    <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-1 rounded-pill">
+                        {{ order.type or 'طلب زبون' }}
+                    </span>
+                </div>
+                <small class="text-muted">
+                    <i class="far fa-calendar-alt me-1"></i> تاريخ الطلب: {{ order.created_at or 'غير محدد' }}
+                </small>
             </div>
         </div>
 
         <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-dark d-flex align-items-center gap-2" onclick="window.print()">
-                <i class="fas fa-print"></i> طباعة الطلب
+            <button class="btn btn-outline-secondary rounded-3 d-flex align-items-center gap-2" onclick="window.print()">
+                <i class="fas fa-print"></i> طباعة الفاتورة
             </button>
         </div>
     </div>
 
     <div class="row g-4">
-        <!-- 👈 العمود الأيمن: تفاصيل المنتجات والموجز -->
+        <!-- 👈 العمود الأيمن (الرئيسي): المنتجات والملخص المالي والجدول الزمني -->
         <div class="col-lg-8">
-            <!-- جدول عناصر الطلب -->
+
+            <!-- 📦 1. بطاقة المنتجات المطلوبة (مع دعم تقسيم الموردين) -->
             <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header bg-white py-3 border-0 d-flex align-items-center justify-content-between">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
                     <h5 class="fw-bold mb-0" style="color: #2d0b36;">
-                        <i class="fas fa-box-open text-warning me-2"></i> عناصر الطلب
+                        <i class="fas fa-boxes text-warning me-2"></i> المنتجات المطلوبة
                     </h5>
                     <span class="badge bg-light text-dark border rounded-pill px-3 py-2">
-                        إجمالي العناصر: {{ order.items|length if order.items else 0 }}
+                        إجمالي المواد: {{ order.items|length if order.items else 0 }}
                     </span>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
+                        <thead class="bg-light text-muted small">
                             <tr>
                                 <th class="py-3 ps-4">المنتج / البيان</th>
                                 <th class="py-3">الرمز (SKU)</th>
+                                <th class="py-3">المورد المسؤول</th>
                                 <th class="py-3 text-center">الكمية</th>
                                 <th class="py-3 text-end">سعر الوحدة</th>
                                 <th class="py-3 pe-4 text-end">الإجمالي</th>
@@ -57,25 +64,50 @@
                                 {% for item in order.items %}
                                 <tr>
                                     <td class="ps-4">
-                                        <div class="fw-bold text-dark">{{ item.title or item.name or 'منتج غير محدد' }}</div>
+                                        <div class="d-flex align-items-center gap-3">
+                                            {% if item.image or item.productData.image %}
+                                                <img src="{{ item.image or item.productData.image }}" class="rounded-3 border" width="48" height="48" style="object-fit: cover;">
+                                            {% else %}
+                                                <div class="bg-light rounded-3 d-flex align-items-center justify-content-center border" style="width: 48px; height: 48px;">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold text-dark">{{ item.title or item.productData.title or 'منتج غير محدد' }}</div>
+                                                {% if item.variant_name %}
+                                                    <small class="text-muted">الخيار: {{ item.variant_name }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge bg-light text-muted border font-monospace">
                                             {{ item.sku or 'N/A' }}
                                         </span>
                                     </td>
-                                    <td class="text-center fw-bold">{{ item.qty or item.quantity or 1 }}</td>
-                                    <td class="text-end">{{ "{:,.2f}".format(item.price_per_unit or item.price or 0.0) }} ر.ي</td>
+                                    <!-- 📌 اسناد المورد لكل منتج على حدة -->
+                                    <td>
+                                        <select class="form-select form-select-sm rounded-3 border-secondary-subtle" onchange="updateItemSupplier('{{ order.id }}', '{{ item.productId or item.id }}', this.value)">
+                                            <option value="0">-- بدون مورد --</option>
+                                            {% if suppliers %}
+                                                {% for supplier in suppliers %}
+                                                    <option value="{{ supplier.id }}" {% if item.supplier_id == supplier.id %}selected{% endif %}>
+                                                        {{ supplier.trade_name or supplier.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </td>
+                                    <td class="text-center fw-bold">{{ item.quantity or item.qty or 1 }}</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(item.price or item.price_per_unit or 0.0) }} ر.ي</td>
                                     <td class="pe-4 text-end fw-bold" style="color: #2d0b36;">
-                                        {{ "{:,.2f}".format(item.subtotal or ((item.qty or item.quantity or 1) * (item.price_per_unit or item.price or 0.0))) }} ر.ي
+                                        {{ "{:,.2f}".format((item.quantity or item.qty or 1) * (item.price or item.price_per_unit or 0.0)) }} ر.ي
                                     </td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="5" class="text-center py-4 text-muted">
-                                        لا توجد تفاصيل عناصر مسجلة لهذا الطلب.
-                                    </td>
+                                    <td colspan="6" class="text-center py-4 text-muted">لا توجد منتجات مسجلة لهذا الطلب.</td>
                                 </tr>
                             {% endif %}
                         </tbody>
@@ -83,33 +115,63 @@
                 </div>
             </div>
 
-            <!-- الملخص المالي للطلب -->
-            <div class="card border-0 shadow-sm rounded-4">
+            <!-- 💰 2. الملخص المالي والشحن -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3" style="color: #2d0b36;">💰 الملخص المالي</h5>
+                    
                     <div class="d-flex justify-content-between py-2 border-bottom text-muted">
-                        <span>إجمالي المنتجات:</span>
-                        <span class="fw-semibold text-dark">{{ "{:,.2f}".format(order.total_price or 0.0) }} ر.ي</span>
+                        <span>مجموع المنتجات:</span>
+                        <span class="fw-semibold text-dark">{{ "{:,.2f}".format(order.subtotal or order.totalPrice or 0.0) }} ر.ي</span>
                     </div>
                     <div class="d-flex justify-content-between py-2 border-bottom text-muted">
-                        <span>حالة الدفع:</span>
-                        {% if order.is_paid %}
-                            <span class="badge bg-success-subtle text-success border border-success px-3 py-1">مدفوع بالكامل</span>
-                        {% else %}
-                            <span class="badge bg-warning-subtle text-dark border border-warning px-3 py-1">غير مدفوع / عند الاستلام</span>
-                        {% endif %}
+                        <span>تكلفة الشحن والتوصيل:</span>
+                        <span class="fw-semibold text-dark">{{ "{:,.2f}".format(order.shipping_cost or 0.0) }} ر.ي</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom text-muted">
+                        <span>الخصم الإجمالي:</span>
+                        <span class="fw-semibold text-danger">- {{ "{:,.2f}".format(order.discount_amount or 0.0) }} ر.ي</span>
                     </div>
                     <div class="d-flex justify-content-between pt-3 fs-5 fw-bold" style="color: #2d0b36;">
-                        <span>المبلغ الإجمالي النهائي:</span>
-                        <span style="color: #D4AF37;">{{ "{:,.2f}".format(order.total_price or 0.0) }} ر.ي</span>
+                        <span>إجمالي الطلب النهائي:</span>
+                        <span style="color: #D4AF37;">{{ "{:,.2f}".format(order.totalPrice or order.total_price or 0.0) }} ر.ي</span>
                     </div>
                 </div>
             </div>
+
+            <!-- 🕒 3. السجل والجدول الزمني للطلب (Timeline) -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4" style="color: #2d0b36;">
+                        <i class="fas fa-history me-2 text-primary"></i> الجدول الزمني للطلب
+                    </h5>
+                    <ul class="list-unstyled position-relative ps-3 border-start ms-2">
+                        <li class="mb-4 position-relative">
+                            <span class="position-absolute top-0 start-0 translate-middle p-2 bg-success border border-light rounded-circle" style="left: -17px !important;"></span>
+                            <div class="ps-3">
+                                <strong class="d-block text-dark">تم إنشاء الطلب بنجاح</strong>
+                                <small class="text-muted">{{ order.created_at or 'غير محدد' }}</small>
+                            </div>
+                        </li>
+                        {% if order.isPaid %}
+                        <li class="mb-4 position-relative">
+                            <span class="position-absolute top-0 start-0 translate-middle p-2 bg-primary border border-light rounded-circle" style="left: -17px !important;"></span>
+                            <div class="ps-3">
+                                <strong class="d-block text-dark">تم استلام المبلغ (مدفوع)</strong>
+                                <small class="text-muted">عبر الدفع الإلكتروني</small>
+                            </div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
         </div>
 
-        <!-- 👈 العمود الأيسر: التحكم والعميل والمورد -->
+        <!-- 👈 العمود الأيسر (الجانبي): العميل، حالة الطلب، والدفع والتوصيل -->
         <div class="col-lg-4">
-            <!-- التحكم بحالة الطلب -->
+            
+            <!-- 📋 1. التحكم بحالة الطلب -->
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3" style="color: #2d0b36;">
@@ -117,74 +179,90 @@
                     </h5>
                     
                     <div class="mb-3">
-                        <label class="form-label text-muted small fw-semibold">تغيير حالة الطلب:</label>
-                        <select class="form-select rounded-3 py-2" id="orderStatusSelect" onchange="updateOrderStatus('{{ order.id }}')">
-                            <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>⏳ قيد الانتظار (Pending)</option>
-                            <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>⚙️ قيد التجهيز (Processing)</option>
-                            <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>🚚 تم الشحن (Shipped)</option>
-                            <option value="delivered" {% if order.status_code == 'delivered' %}selected{% endif %}>✅ تم التسليم (Delivered)</option>
-                            <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>❌ ملغي (Cancelled)</option>
+                        <label class="form-label text-muted small fw-semibold">تحديث حالة الطلب:</label>
+                        <select class="form-select rounded-3 py-2 fw-semibold" id="orderStatusSelect" onchange="updateOrderStatus('{{ order.id }}')">
+                            <option value="pending" {% if order.status.code == 'pending' or order.status_code == 'pending' %}selected{% endif %}>⏳ قيد الانتظار (Pending)</option>
+                            <option value="processing" {% if order.status.code == 'processing' or order.status_code == 'processing' %}selected{% endif %}>⚙️ قيد التجهيز (Processing)</option>
+                            <option value="shipped" {% if order.status.code == 'shipped' or order.status_code == 'shipped' %}selected{% endif %}>🚚 تم الشحن (Shipped)</option>
+                            <option value="delivered" {% if order.status.code == 'delivered' or order.status_code == 'delivered' %}selected{% endif %}>✅ تم التسليم (Delivered)</option>
+                            <option value="cancelled" {% if order.status.code == 'cancelled' or order.status_code == 'cancelled' %}selected{% endif %}>❌ ملغي (Cancelled)</option>
                         </select>
                     </div>
-
-                    <div id="statusAlert" class="mt-2" style="display: none;"></div>
+                    <div id="statusAlert" style="display: none;"></div>
                 </div>
             </div>
 
-            <!-- إسناد المورد -->
+            <!-- 🧾 2. معلومات العميل -->
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-3" style="color: #2d0b36;">
-                        <i class="fas fa-truck-loading text-warning me-2"></i> المورد المرتبط
-                    </h5>
-                    
-                    <div class="mb-3">
-                        <label class="form-label text-muted small fw-semibold">ربط بالمورد:</label>
-                        <select class="form-select rounded-3 py-2" id="supplierSelect" onchange="updateOrderSupplier('{{ order.id }}')">
-                            <option value="0">-- غير مرتبط بمورد --</option>
-                            {% if suppliers %}
-                                {% for supplier in suppliers %}
-                                    <option value="{{ supplier.id }}" {% if order.supplier_id == supplier.id %}selected{% endif %}>
-                                        {{ supplier.trade_name or supplier.name }}
-                                    </option>
-                                {% endfor %}
-                            {% endif %}
-                        </select>
-                    </div>
-
-                    <div id="supplierAlert" class="mt-2" style="display: none;"></div>
-                </div>
-            </div>
-
-            <!-- معلومات العميل -->
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3" style="color: #2d0b36;">
-                        <i class="fas fa-user-circle text-info me-2"></i> بيانات العميل
+                        <i class="fas fa-user-circle text-info me-2"></i> معلومات العميل
                     </h5>
                     
                     <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="bg-light rounded-circle p-3 text-secondary">
+                        <div class="bg-primary-subtle rounded-circle p-3 text-primary">
                             <i class="fas fa-user fa-lg"></i>
                         </div>
                         <div>
-                            <div class="fw-bold text-dark">{{ order.customer_name or 'عميل زائر' }}</div>
-                            <small class="text-muted d-block">معرف الطلب: {{ order.id }}</small>
-                            {% if order.customer_phone %}
-                                <small class="text-muted d-block"><i class="fas fa-phone me-1"></i> {{ order.customer_phone }}</small>
-                            {% endif %}
+                            <div class="fw-bold text-dark fs-6">{{ order.account.account.fullname or order.customer_name or 'عميل زائر' }}</div>
+                            <small class="text-muted d-block"><i class="fas fa-envelope me-1"></i> {{ order.customer_email or 'لا يوجد بريد' }}</small>
+                            <small class="text-muted d-block"><i class="fas fa-phone me-1"></i> {{ order.customer_phone or 'لا يوجد رقم هاتف' }}</small>
                         </div>
                     </div>
+
+                    <hr class="text-muted opacity-25">
+
+                    <h6 class="fw-bold text-dark small mb-2"><i class="fas fa-map-marker-alt text-danger me-1"></i> عنوان الشحن:</h6>
+                    <p class="text-muted small mb-0">
+                        {{ order.shipping_address or 'العنوان غير محدد بالتفصيل' }}
+                    </p>
                 </div>
             </div>
+
+            <!-- 💳 3. تفاصيل الدفع والشحن -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3" style="color: #2d0b36;">
+                        <i class="fas fa-credit-card text-success me-2"></i> الدفع والشحن
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">حالة الدفع:</small>
+                        {% if order.isPaid or order.is_paid %}
+                            <span class="badge bg-success-subtle text-success border border-success px-3 py-2 w-100 rounded-3">
+                                <i class="fas fa-check-circle me-1"></i> مدفوع بالكامل
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning-subtle text-dark border border-warning px-3 py-2 w-100 rounded-3">
+                                <i class="fas fa-clock me-1"></i> غير مدفوع / الدفع عند الاستلام
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">شركة الشحن وطريقة التوصيل:</small>
+                        <div class="fw-semibold text-dark small">{{ order.shipping_company or 'التوصيل القياسي للمنصة' }}</div>
+                    </div>
+
+                    {% if order.tracking_number %}
+                    <div>
+                        <small class="text-muted d-block mb-1">رقم التتبع (Tracking):</small>
+                        <span class="badge bg-light text-dark border font-monospace py-2 px-3 w-100 text-start">
+                            <i class="fas fa-barcode me-1"></i> {{ order.tracking_number }}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
 
-<!-- حقل CSRF Token -->
 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
 
 <script>
+// دالة تحديث حالة الطلب
 function updateOrderStatus(orderId) {
     const statusSelect = document.getElementById('orderStatusSelect');
     const alertDiv = document.getElementById('statusAlert');
@@ -206,16 +284,16 @@ function updateOrderStatus(orderId) {
     .then(data => {
         alertDiv.style.display = 'block';
         if (data.success) {
-            alertDiv.className = 'alert alert-success py-2 px-3 small rounded-3';
-            alertDiv.innerText = '✅ ' + (data.message || 'تم تحديث الحالة بنجاح');
+            alertDiv.className = 'alert alert-success py-2 px-3 small rounded-3 mt-2';
+            alertDiv.innerText = '✅ ' + (data.message || 'تم تحديث حالة الطلب بنجاح');
         } else {
-            alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3';
-            alertDiv.innerText = '❌ ' + (data.message || 'حدث خطأ أثناء التحديث');
+            alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3 mt-2';
+            alertDiv.innerText = '❌ ' + (data.message || 'فشل التحديث');
         }
     })
     .catch(err => {
         alertDiv.style.display = 'block';
-        alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3';
+        alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3 mt-2';
         alertDiv.innerText = '❌ خطأ في الاتصال: ' + err.message;
     })
     .finally(() => {
@@ -224,43 +302,28 @@ function updateOrderStatus(orderId) {
     });
 }
 
-function updateOrderSupplier(orderId) {
-    const supplierSelect = document.getElementById('supplierSelect');
-    const alertDiv = document.getElementById('supplierAlert');
-    const supplierId = supplierSelect.value;
+// دالة تحديث المورد الخاص بكل منتج في الطلب (تعدد الموردين)
+function updateItemSupplier(orderId, productId, supplierId) {
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
 
-    supplierSelect.disabled = true;
-
-    fetch(`/admin/orders/${orderId}/supplier`, {
+    fetch(`/admin/orders/${orderId}/items/supplier`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken,
             'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify({ supplier_id: supplierId })
+        body: JSON.stringify({ product_id: productId, supplier_id: supplierId })
     })
     .then(res => res.json())
     .then(data => {
-        alertDiv.style.display = 'block';
         if (data.success) {
-            alertDiv.className = 'alert alert-success py-2 px-3 small rounded-3';
-            alertDiv.innerText = '✅ ' + (data.message || 'تم تحديث المورد بنجاح');
+            alert('✅ تم اسناد المنتج للمورد بنجاح');
         } else {
-            alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3';
-            alertDiv.innerText = '❌ ' + (data.message || 'حدث خطأ أثناء التحديث');
+            alert('❌ ' + (data.message || 'فشل إسناد المورد'));
         }
     })
-    .catch(err => {
-        alertDiv.style.display = 'block';
-        alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3';
-        alertDiv.innerText = '❌ خطأ في الاتصال: ' + err.message;
-    })
-    .finally(() => {
-        supplierSelect.disabled = false;
-        setTimeout(() => { alertDiv.style.display = 'none'; }, 4000);
-    });
+    .catch(err => alert('❌ خطأ في الاتصال: ' + err.message));
 }
 </script>
 {% endblock %}
