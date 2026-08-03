@@ -54,9 +54,9 @@ class Order(db.Model):
     supplier = db.relationship('Supplier', back_populates='orders', lazy='joined')
     marketer = db.relationship('Marketer', back_populates='orders', lazy='joined')
     
-    # استخدام المسار الكامل للموديل لتجنب تضارب السجلات تماماً
+    # بما أن OrderItem في نفس الملف، يمكن الإشارة إليه باسمه مباشرة
     items = db.relationship(
-        'apps.models.orders_db.OrderItem', 
+        'OrderItem', 
         back_populates='order', 
         cascade="all, delete-orphan", 
         lazy='joined'
@@ -216,8 +216,8 @@ class OrderItem(db.Model):
     sku = db.Column(db.String(100), nullable=True)
     _image_url = db.Column(db.Text, nullable=True)
 
-    # استخدام المسار الكامل للموديل المعاكس
-    order = db.relationship('apps.models.orders_db.Order', back_populates='items')
+    # بما أن Order مُعرفة في الأعلى في نفس الملف، نمرر الصنف مباشرة لتفادي أي التباس
+    order = db.relationship(Order, back_populates='items')
 
     @property
     def _id(self):
