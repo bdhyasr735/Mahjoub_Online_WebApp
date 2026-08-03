@@ -85,7 +85,7 @@
                                             {{ item.sku or 'N/A' }}
                                         </span>
                                     </td>
-                                    <!-- 📌 اسناد المورد لكل منتج على حدة -->
+                                    <!-- 📌 إسناد المورد لكل منتج على حدة -->
                                     <td>
                                         <select class="form-select form-select-sm rounded-3 border-secondary-subtle" onchange="updateItemSupplier('{{ order.id }}', '{{ item.productId or item.id }}', this.value)">
                                             <option value="0">-- بدون مورد --</option>
@@ -99,9 +99,9 @@
                                         </select>
                                     </td>
                                     <td class="text-center fw-bold">{{ item.quantity or item.qty or 1 }}</td>
-                                    <td class="text-end">{{ "{:,.2f}".format(item.price or item.price_per_unit or 0.0) }} ر.ي</td>
+                                    <td class="text-end">{{ "{:,.2f}".format(item.price or item.price_per_unit or 0.0) }} ر.س</td>
                                     <td class="pe-4 text-end fw-bold" style="color: #2d0b36;">
-                                        {{ "{:,.2f}".format((item.quantity or item.qty or 1) * (item.price or item.price_per_unit or 0.0)) }} ر.ي
+                                        {{ "{:,.2f}".format((item.quantity or item.qty or 1) * (item.price or item.price_per_unit or 0.0)) }} ر.س
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -122,19 +122,19 @@
                     
                     <div class="d-flex justify-content-between py-2 border-bottom text-muted">
                         <span>مجموع المنتجات:</span>
-                        <span class="fw-semibold text-dark">{{ "{:,.2f}".format(order.subtotal or order.totalPrice or 0.0) }} ر.ي</span>
+                        <span class="fw-semibold text-dark">{{ "{:,.2f}".format(order.subtotal or order.totalPrice or 0.0) }} ر.س</span>
                     </div>
                     <div class="d-flex justify-content-between py-2 border-bottom text-muted">
                         <span>تكلفة الشحن والتوصيل:</span>
-                        <span class="fw-semibold text-dark">{{ "{:,.2f}".format(order.shipping_cost or 0.0) }} ر.ي</span>
+                        <span class="fw-semibold text-dark">{{ "{:,.2f}".format(order.shipping_cost or 0.0) }} ر.س</span>
                     </div>
                     <div class="d-flex justify-content-between py-2 border-bottom text-muted">
                         <span>الخصم الإجمالي:</span>
-                        <span class="fw-semibold text-danger">- {{ "{:,.2f}".format(order.discount_amount or 0.0) }} ر.ي</span>
+                        <span class="fw-semibold text-danger">- {{ "{:,.2f}".format(order.discount_amount or 0.0) }} ر.س</span>
                     </div>
                     <div class="d-flex justify-content-between pt-3 fs-5 fw-bold" style="color: #2d0b36;">
                         <span>إجمالي الطلب النهائي:</span>
-                        <span style="color: #D4AF37;">{{ "{:,.2f}".format(order.totalPrice or order.total_price or 0.0) }} ر.ي</span>
+                        <span style="color: #D4AF37;">{{ "{:,.2f}".format(order.totalPrice or order.total_price or 0.0) }} ر.س</span>
                     </div>
                 </div>
             </div>
