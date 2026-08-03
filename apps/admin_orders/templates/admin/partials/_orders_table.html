@@ -10,7 +10,6 @@
                 <th>الإجمالي (ر.س)</th>
                 <th style="min-width: 160px;">حالة الطلب</th>
                 <th style="min-width: 100px;">الحالة المالية</th>
-                <th style="min-width: 140px;">حالة الشحن</th>
                 <th>الإجراءات</th>
             </tr>
         </thead>
@@ -18,7 +17,7 @@
             {% for order in orders %}
             <tr>
                 <td>{{ (pagination.current_page - 1) * pagination.per_page + loop.index }}</td>
-                <td><strong>#{{ order.order_reference if order.order_reference else 'ORD-' ~ order.id|truncate(6, end='') }}</strong></td>
+                <td><strong>{{ order.order_number if order.order_number else order.id|truncate(6, end='') }}</strong></td>
                 <td>{{ order.customer_name if order.customer_name != 'غير معروف' else 'زائر' }}</td>
                 <td>
                     <select class="form-select form-select-sm supplier-select" onchange="updateOrderSupplier('{{ order.id }}', this.value)">
@@ -50,14 +49,6 @@
                     </span>
                 </td>
                 <td>
-                    <!-- ✅ حالة الشحن (قابلة للتعديل يدوياً بواسطة الأدمن) -->
-                    <select class="form-select form-select-sm fulfillment-status-select" onchange="updateOrderFulfillmentStatus('{{ order.id }}', this.value)">
-                        <option value="unfulfilled" {% if order.fulfillment_status == 'unfulfilled' %}selected{% endif %}>غير مكتمل</option>
-                        <option value="fulfilled" {% if order.fulfillment_status == 'fulfilled' %}selected{% endif %}>مكتمل</option>
-                        <option value="partial" {% if order.fulfillment_status == 'partial' %}selected{% endif %}>جزئي</option>
-                    </select>
-                </td>
-                <td>
                     <a href="{{ url_for('admin_orders_bp.view_admin_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-eye"></i>
                     </a>
@@ -65,7 +56,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="10" class="text-center py-4 text-muted">
+                <td colspan="8" class="text-center py-4 text-muted">
                     <i class="fas fa-shopping-bag fa-2x mb-2 opacity-25 d-block"></i>
                     لا توجد طلبات في النظام حتى الآن.
                 </td>
@@ -76,7 +67,7 @@
 </div>
 
 <script>
-// ✅ تحديث حالة الطلب
+// تحديث حالة الطلب
 function updateOrderStatus(orderId, status) {
     fetch(`/admin/orders/orders/${orderId}/status`, {
         method: 'POST',
@@ -94,25 +85,7 @@ function updateOrderStatus(orderId, status) {
     .catch(() => alert('❌ حدث خطأ في الاتصال'));
 }
 
-// ✅ تحديث حالة الشحن
-function updateOrderFulfillmentStatus(orderId, status) {
-    fetch(`/admin/orders/orders/${orderId}/fulfillment-status`, {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else '' }}'
-        },
-        body: JSON.stringify({ status: status })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.success) alert('❌ ' + data.message);
-        else location.reload();
-    })
-    .catch(() => alert('❌ حدث خطأ في الاتصال'));
-}
-
-// ✅ تحديث المورد
+// تحديث المورد للطلب
 function updateOrderSupplier(orderId, supplierId) {
     fetch(`/admin/orders/orders/${orderId}/supplier`, {
         method: 'POST',
@@ -130,7 +103,7 @@ function updateOrderSupplier(orderId, supplierId) {
     .catch(() => alert('❌ حدث خطأ في الاتصال'));
 }
 
-// ✅ تفعيل Tom Select للموردين
+// تفعيل مكتبة Tom Select للموردين
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof TomSelect !== 'undefined') {
         document.querySelectorAll('.supplier-select').forEach(el => {
