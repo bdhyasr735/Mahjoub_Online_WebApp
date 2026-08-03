@@ -58,38 +58,97 @@ class OrderService:
 
     def get_all_orders(self, page: int = 1, per_page: int = 10, supplier_id: str = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
         """
-        جلب قائمة الطلبات مع دعم الترقيم وتصفية المورد والحالة.
+        جلب قائمة الطلبات من قمرة ودمجها في قاعدة البيانات المحلية وربطها بالموردين.
         """
-        input_data = {
-            "page": page,
-            "limit": per_page
-        }
-        if supplier_id:
-            input_data["supplierId"] = supplier_id
-        if status:
-            input_data["status"] = status
-        if search:
-            input_data["search"] = search
-        if date_from:
-            input_data["dateFrom"] = date_from
-        if date_to:
-            input_data["dateTo"] = date_to
+        input_data = {"page": page, "limit": per_page}
+        if supplier_id: input_data["supplierId"] = supplier_id
+        if status: input_data["status"] = status
+        if search: input_data["search"] = search
+        if date_from: input_data["dateFrom"] = date_from
+        if date_to: input_data["dateTo"] = date_to
 
         query = self._extract_query("FindAllOrders")
         try:
             result = self.client.execute(query, {"input": input_data}, operation_name="FindAllOrders")
+            
+            orders_data = []
+            pagination_data = {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}
+            
             if result and 'findAllOrders' in result:
-                return {
-                    "data": result['findAllOrders'].get('data', []),
-                    "pagination": result['findAllOrders'].get('pagination', {
-                        "totalItems": 0,
-                        "totalPages": 1,
-                        "currentPage": page,
-                        "limit": per_page,
-                        "hasNextPage": False
-                    })
-                }
-            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}}
+                orders_data = result['findAllOrders'].get('data', [])
+                pagination_data = result['findAllOrders'].get('pagination', {})
+                
+                # حفظ الطلبات في قاعدة البيانات المحلية
+                try:
+                    from apps.models.orders_db import Order
+                    from apps.models.order_items_db import OrderItem
+                    from apps.models.product_supplier_map import ProductSupplierMapping
+                    from apps.extensions import db
+                    
+                    for order in orders_data:
+                        qid = order.get('_id')
+                        if not qid:
+                            continue
+
+                        # تحديد المورد من أول منتج في الطلب
+                        supplier_id_found = None
+                        if order.get('items'):
+                            first_item = order['items'][0]
+                            prod_qid = first_item.get('productId')
+                            if prod_qid:
+                                mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_qid).first()
+                                if mapping:
+                                    supplier_id_found = mapping.supplier_id
+
+                        # حالة الطلب (نستخدم `status` مباشرة لأن الموديل يتوقع نصاً)
+                        status_str = order.get('status', 'pending')
+                        if isinstance(status_str, dict):
+                            status_str = status_str.get('code', 'pending')
+
+                        # البحث عن الطلب في قاعدة البيانات
+                        existing_order = Order.query.filter_by(id=qid).first()
+                        
+                        if existing_order:
+                            # تحديث البيانات
+                            existing_order.supplier_id = supplier_id_found
+                            existing_order.status = status_str
+                            existing_order.total_price = order.get('totalPrice', 0.0)
+                            
+                            # حذف العناصر القديمة وإعادة إضافتها
+                            OrderItem.query.filter_by(order_id=existing_order.id).delete()
+                        else:
+                            # إنشاء طلب جديد
+                            existing_order = Order(
+                                id=qid,
+                                supplier_id=supplier_id_found,
+                                status=status_str,
+                                total_price=order.get('totalPrice', 0.0)
+                            )
+                            db.session.add(existing_order)
+                            db.session.flush()
+
+                        # إضافة العناصر الجديدة
+                        for item in order.get('items', []):
+                            new_item = OrderItem(
+                                order_id=existing_order.id,
+                                title=item.get('productData', {}).get('title', 'منتج غير معروف'),
+                                qty=item.get('quantity', 1),
+                                subtotal=item.get('price', 0.0) * item.get('quantity', 1),
+                                sku=item.get('productData', {}).get('sku', ''),
+                                price_per_unit=item.get('price', 0.0)
+                            )
+                            db.session.add(new_item)
+                        
+                        db.session.commit()
+                        
+                except Exception as db_err:
+                    print(f"⚠️ [OrderService] خطأ أثناء حفظ الطلبات محلياً: {db_err}")
+                    db.session.rollback()
+
+            return {
+                "data": orders_data,
+                "pagination": pagination_data
+            }
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلبات: {e}")
             return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}}
@@ -122,4 +181,4 @@ class OrderService:
             return result.get('deleteOrder', False) if result else False
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في حذف الطلب {qid}: {e}")
-            return False
+            return None
