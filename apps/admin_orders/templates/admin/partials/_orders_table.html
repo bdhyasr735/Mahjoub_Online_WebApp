@@ -1,126 +1,63 @@
-<div class="table-responsive bg-white shadow-sm rounded-4 p-3">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="bg-light rounded-3">
+<div class="table-responsive w-full overflow-x-hidden">
+    <table class="table align-middle text-center w-full mb-0" style="font-size: 0.85rem;">
+        <thead class="table-dark">
             <tr>
-                <th style="width: 50px;">#</th>
-                <th>رقم الطلب</th>
-                <th>العميل</th>
-                <th style="min-width: 180px;">المورد</th>
-                <th>التاريخ</th>
-                <th>الإجمالي (ر.س)</th>
-                <th style="min-width: 160px;">حالة الطلب</th>
-                <th style="min-width: 130px;">حالة الشحن</th>
-                <th style="min-width: 100px;">الحالة المالية</th>
-                <th>الإجراءات</th>
+                <th class="py-2">رقم الطلب</th>
+                <th class="py-2">اسم العميل</th>
+                <th class="py-2">المورد</th>
+                <th class="py-2">التاريخ</th>
+                <th class="py-2">الإجمالي</th>
+                <th class="py-2">حالة الطلب</th>
+                <th class="py-2">الدفع / الشحن</th>
+                <th class="py-2">الإجراءات</th>
             </tr>
         </thead>
         <tbody>
-            {% for order in orders %}
+            {% for order in data %}
             <tr>
-                <td>{{ (pagination.current_page - 1) * pagination.per_page + loop.index }}</td>
-                <td><strong>{{ order.order_number if order.order_number else order.id|truncate(6, end='') }}</strong></td>
-                <td>{{ order.customer_name if order.customer_name != 'غير معروف' else 'زائر' }}</td>
-                <td>
-                    <select class="form-select form-select-sm supplier-select" onchange="updateOrderSupplier('{{ order.id }}', this.value)">
-                        <option value="0">-- غير مرتبط --</option>
-                        {% for supplier in suppliers %}
-                        <option value="{{ supplier.id }}" {% if order.supplier_id == supplier.id %}selected{% endif %}>
-                            {{ supplier.trade_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                <!-- رقم الطلب -->
+                <td class="fw-bold py-2">#{{ order.order_number }}</td>
+                
+                <!-- اسم العميل (تم إبرازه وضبطه ليظهر تماماً) -->
+                <td class="py-2 text-truncate" style="max-width: 130px;" title="{{ order.customer_name }}">
+                    {{ order.customer_name or 'عميل زائر' }}
                 </td>
-                <td>{{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '—' }}</td>
-                <td class="fw-bold text-dark-purple">{{ order.total_price or 0 }}</td>
-                <td>
-                    <select class="form-select form-select-sm status-select" onchange="updateOrderStatus('{{ order.id }}', this.value)">
-                        <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-                        <option value="confirmed" {% if order.status_code == 'confirmed' %}selected{% endif %}>مؤكد</option>
-                        <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>قيد المعالجة</option>
-                        <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
-                        <option value="delivered" {% if order.status_code == 'delivered' %}selected{% endif %}>تم التسليم</option>
-                        <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
-                        <option value="refunded" {% if order.status_code == 'refunded' %}selected{% endif %}>مسترد</option>
-                        <option value="returned" {% if order.status_code == 'returned' %}selected{% endif %}>مرتجع</option>
-                    </select>
+
+                <!-- المورد -->
+                <td class="py-2">
+                    <span class="badge bg-light text-dark border">{{ order.supplier_name }}</span>
                 </td>
-                <td>
-                    {% set f_status = order.fulfillment_status or 'unfulfilled' %}
-                    <span class="badge bg-{{ 'success' if f_status == 'fulfilled' else ('warning' if f_status == 'partial' else 'secondary') }}">
-                        {{ 'تم الشحن' if f_status == 'fulfilled' else ('شحن جزئي' if f_status == 'partial' else 'غير مشحون') }}
-                    </span>
+
+                <!-- التاريخ -->
+                <td class="py-2 text-muted" style="font-size: 0.78rem;">
+                    {{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '-' }}
                 </td>
-                <td>
-                    <span class="badge bg-{{ 'success' if order.is_paid else 'danger' }}">
+
+                <!-- الإجمالي -->
+                <td class="py-2 fw-bold text-success">
+                    {{ order.total_price }}
+                </td>
+
+                <!-- حالة الطلب -->
+                <td class="py-2">
+                    <span class="badge bg-secondary">{{ order.status_title }}</span>
+                </td>
+
+                <!-- حالة الدفع والشحن -->
+                <td class="py-2">
+                    <span class="badge {{ 'bg-success' if order.is_paid else 'bg-danger' }} mb-1">
                         {{ 'مدفوع' if order.is_paid else 'غير مدفوع' }}
                     </span>
                 </td>
-                <td>
-                    <a href="{{ url_for('admin_orders_bp.view_admin_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
+
+                <!-- الإجراءات -->
+                <td class="py-2">
+                    <a href="{{ url_for('admin.order_details', qid=order.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2">
                         <i class="fas fa-eye"></i>
                     </a>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="10" class="text-center py-4 text-muted">
-                    <i class="fas fa-shopping-bag fa-2x mb-2 opacity-25 d-block"></i>
-                    لا توجد طلبات في النظام حتى الآن.
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
-
-<script>
-// تحديث حالة الطلب
-function updateOrderStatus(orderId, status) {
-    fetch(`/admin/orders/orders/${orderId}/status`, {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else '' }}'
-        },
-        body: JSON.stringify({ status: status })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.success) alert('❌ ' + data.message);
-        else location.reload();
-    })
-    .catch(() => alert('❌ حدث خطأ في الاتصال'));
-}
-
-// تحديث المورد للطلب
-function updateOrderSupplier(orderId, supplierId) {
-    fetch(`/admin/orders/orders/${orderId}/supplier`, {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() if csrf_token is defined else '' }}'
-        },
-        body: JSON.stringify({ supplier_id: supplierId === "0" ? 0 : parseInt(supplierId) })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.success) alert('❌ ' + data.message);
-        else location.reload();
-    })
-    .catch(() => alert('❌ حدث خطأ في الاتصال'));
-}
-
-// تفعيل مكتبة Tom Select للموردين
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof TomSelect !== 'undefined') {
-        document.querySelectorAll('.supplier-select').forEach(el => {
-            if (!el.tomselect) new TomSelect(el, {
-                plugins: ['remove_button'],
-                placeholder: 'ابحث عن المورد...',
-                searchField: ['text'],
-                maxOptions: 10
-            });
-        });
-    }
-});
-</script>
