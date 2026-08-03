@@ -16,6 +16,10 @@ query FindAllOrders($input: FindAllOrdersInput) {
                 title
                 code
             }
+            isPaid
+            account {
+                name
+            }
             createdAt
             items {
                 productId
@@ -41,6 +45,10 @@ query FindOrderById($id: ID!) {
             _id
             title
             code
+        }
+        isPaid
+        account {
+            name
         }
         createdAt
         items {
