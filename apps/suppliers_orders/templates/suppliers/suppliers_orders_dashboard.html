@@ -1,77 +1,160 @@
-{% extends "suppliers/base.html" %}
+# coding: utf-8
+# 📂 apps/services/order_service.py
 
-{% block title %}الطلبات | محجوب{% endblock %}
+from typing import Dict, Any, Optional, List
+from .graphql_client import GraphQLClient
 
-{% block content %}
-<div class="container-fluid py-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold mb-1" style="color: #2d0b36;">📦 إدارة الطلبات</h2>
-            <p class="text-muted text-sm mb-0">متابعة وتحديث حالة طلبات الزبائن الخاصة بك.</p>
-        </div>
-    </div>
 
-    {% include "suppliers/includes/_orders_filter_bar.html" ignore missing %}
+class OrderService:
+    """خدمة إدارة الطلبات والمزامنة"""
+    
+    def __init__(self, client: GraphQLClient):
+        self.client = client
 
-    <div id="ordersContainer">
-        {% include "suppliers/partials/_orders_table.html" %}
-        {% include "suppliers/partials/_pagination.html" %}
-    </div>
-</div>
-
-<!-- حقل CSRF Token -->
-<input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
-
-<script>
-// دالة منع التكرار
-let debounceTimer;
-function debounceFetchOrders() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        fetchOrders(1);
-    }, 500);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                fetchOrders(1);
+    def get_order(self, qid: str) -> Optional[Dict[str, Any]]:
+        """جلب تفاصيل الطلب باستخدام المعرف qid"""
+        query = """
+        query GetOrder($qid: ID!) {
+            order(qid: $qid) {
+                _id
+                code
+                totalPrice
+                status {
+                    type
+                    label
+                }
+                createdAt
+                items {
+                    productQid
+                    quantity
+                    price
+                }
             }
-        });
-    }
-});
-
-function fetchOrders(page = 1) {
-    const container = document.getElementById('ordersContainer');
-    container.innerHTML = `<div class="text-center py-5"><div class="spinner-border" style="color: #D4AF37;" role="status"></div><p class="mt-2 text-muted">⏳ جاري تحميل الطلبات...</p></div>`;
-
-    const params = new URLSearchParams({
-        page: page,
-        search: document.getElementById('searchInput').value.trim() || '',
-        status: document.getElementById('statusFilter').value || '',
-        date_from: document.getElementById('dateFrom').value || '',
-        date_to: document.getElementById('dateTo').value || '',
-        limit: document.getElementById('limitSelect').value || '10',
-        ajax: '1'
-    });
-
-    fetch("{{ url_for('suppliers_orders_bp.list_supplier_orders') }}?" + params.toString(), {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.html) {
-            container.innerHTML = data.html + data.pagination_html;
-        } else {
-            container.innerHTML = `<div class="alert alert-warning text-center py-4 rounded-4"><i class="fas fa-search fa-2x d-block mb-3 opacity-50"></i> لا توجد طلبات مطابقة للبحث.</div>`;
         }
-    })
-    .catch(error => {
-        container.innerHTML = `<div class="alert alert-danger text-center py-4 rounded-4"><i class="fas fa-exclamation-triangle fa-2x d-block mb-3"></i> حدث خطأ أثناء جلب الطلبات.</div>`;
-    });
-}
-</script>
-{% endblock %}
+        """
+        try:
+            result = self.client.execute(query, {"qid": qid}, operation_name="GetOrder")
+            return result.get('order') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في جلب الطلب {qid}: {e}")
+            return None
+
+    def get_all_orders(self, page: int = 1, per_page: int = 10, supplier_id: str = None, status: str = None, search: str = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
+        """
+        جلب قائمة الطلبات مع دعم الترقيم وتصفية المورد والحالة.
+        """
+        input_data = {
+            "page": page,
+            "limit": per_page
+        }
+        if supplier_id:
+            input_data["supplierId"] = supplier_id
+        if status:
+            input_data["status"] = status
+        if search:
+            input_data["search"] = search
+        if date_from:
+            input_data["dateFrom"] = date_from
+        if date_to:
+            input_data["dateTo"] = date_to
+
+        # ✅ تم تصحيح الاستعلام ليتطابق مع رسالة الخطأ (إزالة qid, total, وإصلاح status)
+        query = """
+        query FindAllOrders($input: FindAllOrdersInput) {
+            findAllOrders(input: $input) {
+                data {
+                    _id
+                    code
+                    totalPrice
+                    status {
+                        type
+                        label
+                    }
+                    createdAt
+                    items {
+                        productQid
+                        quantity
+                        price
+                    }
+                }
+                pagination {
+                    totalItems
+                    totalPages
+                    currentPage
+                    limit
+                    hasNextPage
+                }
+            }
+        }
+        """
+        try:
+            result = self.client.execute(query, {"input": input_data}, operation_name="FindAllOrders")
+            if result:
+                return {
+                    "data": result.get('findAllOrders', {}).get('data', []),
+                    "pagination": result.get('findAllOrders', {}).get('pagination', {
+                        "totalItems": 0,
+                        "totalPages": 1,
+                        "currentPage": 1,
+                        "limit": per_page,
+                        "hasNextPage": False
+                    })
+                }
+            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1, "limit": per_page, "hasNextPage": False}}
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في جلب الطلبات: {e}")
+            return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1, "limit": per_page, "hasNextPage": False}}
+
+    def create_order(self, input_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """إنشاء طلب جديد"""
+        mutation = """
+        mutation CreateOrder($input: OrderInput!) {
+            createOrder(input: $input) {
+                _id
+                totalPrice
+                status {
+                    type
+                }
+            }
+        }
+        """
+        try:
+            result = self.client.execute(mutation, {"input": input_data}, operation_name="CreateOrder")
+            return result.get('createOrder') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في إنشاء الطلب: {e}")
+            return None
+
+    def update_order_status(self, qid: str, status: str) -> Optional[Dict[str, Any]]:
+        """تحديث حالة الطلب"""
+        mutation = """
+        mutation UpdateOrderStatus($qid: ID!, $status: String!) {
+            updateOrderStatus(qid: $qid, status: $status) {
+                _id
+                status {
+                    type
+                }
+                updatedAt
+            }
+        }
+        """
+        try:
+            result = self.client.execute(mutation, {"qid": qid, "status": status}, operation_name="UpdateOrderStatus")
+            return result.get('updateOrderStatus') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في تحديث حالة الطلب {qid}: {e}")
+            return None
+
+    def delete_order(self, qid: str) -> bool:
+        """حذف طلب"""
+        mutation = """
+        mutation DeleteOrder($qid: ID!) {
+            deleteOrder(qid: $qid)
+        }
+        """
+        try:
+            result = self.client.execute(mutation, {"qid": qid}, operation_name="DeleteOrder")
+            return result.get('deleteOrder', False) if result else False
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في حذف الطلب {qid}: {e}")
+            return False
