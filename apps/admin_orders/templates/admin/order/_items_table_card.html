@@ -1,0 +1,56 @@
+<!-- 📂 apps/admin_orders/templates/admin/order/_items_table_card.html -->
+<div class="order-card p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0" style="color: #2d0b36;"><i class="fas fa-boxes text-warning me-2"></i> المنتجات المطلوبة</h5>
+        <span class="badge bg-light text-dark border rounded-pill px-3 py-2">عدد المواد: {{ order.items|length if order.items else 0 }}</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table align-middle table-order mb-0">
+            <thead class="bg-light text-muted small">
+                <tr>
+                    <th>المنتج</th>
+                    <th>الرمز (SKU)</th>
+                    <th>المورد</th>
+                    <th class="text-center">الكمية</th>
+                    <th class="text-end">السعر</th>
+                    <th class="text-end">الإجمالي</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if order.items %}
+                    {% for item in order.items %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="{{ item.image or '/static/images/placeholder.png' }}" onerror="this.src='https://via.placeholder.com/50'" class="border">
+                                <div style="max-width: 240px;">
+                                    <div class="fw-bold text-dark text-truncate" title="{{ item.title or item.name }}">
+                                        {{ item.title or item.name or 'منتج بدون اسم' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-light text-muted border font-monospace">{{ item.sku or 'N/A' }}</span></td>
+                        <td>
+                            <select class="form-select form-select-sm border-secondary-subtle" onchange="updateItemSupplier('{{ order._id }}', '{{ item._id or item.id }}', this.value)">
+                                <option value="">-- اختاري مورد --</option>
+                                {% for supplier in suppliers %}
+                                    <option value="{{ supplier.id }}" {% if item.supplierId == supplier.id %}selected{% endif %}>{{ supplier.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td class="text-center fw-bold">{{ item.quantity or 1 }}</td>
+                        <td class="text-end">{{ "{:,.2f}".format(item.price or 0.0) }} ر.س</td>
+                        <td class="text-end fw-bold text-dark">{{ "{:,.2f}".format((item.quantity or 1) * (item.price or 0.0)) }} ر.س</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">لا توجد منتجات داخل هذا الطلب.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
