@@ -13,5 +13,8 @@ class OrderItem(db.Model):
     quantity = db.Column(db.Integer, default=1)
     price = db.Column(db.Float, default=0.0)
 
+    # العلاقة العكسية مع جدول الطلبات لحل خطأ الربط بشكل جذري
+    order = db.relationship('Order', back_populates='items')
+
     def __repr__(self):
         return f'<OrderItem {self.id} for Order {self.order_id}>'
