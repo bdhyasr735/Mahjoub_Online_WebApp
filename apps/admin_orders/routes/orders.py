@@ -10,8 +10,13 @@ from apps.extensions import db
 from apps.services import services
 from apps.models.orders_db import Order
 
-# تعريف الـ Blueprint الرئيسي
-admin_orders_bp = Blueprint('admin_orders_bp', __name__, url_prefix='/admin/orders')
+# ✅ تعريف الـ Blueprint الرئيسي مع تحديد مجلد القوالب
+admin_orders_bp = Blueprint(
+    'admin_orders_bp',
+    __name__,
+    template_folder='../templates',  # ✅ أضف هذا السطر
+    url_prefix='/admin/orders'
+)
 
 # 🏷️ خريطة المسميات العربية للحالات
 STATUS_TITLES_MAP = {
