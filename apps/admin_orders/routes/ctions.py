@@ -2,7 +2,7 @@
 # 📂 apps/admin_orders/routes/actions.py
 
 from flask import request, jsonify
-from apps.admin_orders.routes import admin_orders_bp
+from apps.admin_orders import admin_orders_bp
 from apps.extensions import db
 from apps.models.orders_db import Order
 from apps.models.order_items_db import OrderItem
