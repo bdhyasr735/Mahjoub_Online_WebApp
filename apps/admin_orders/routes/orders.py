@@ -9,6 +9,7 @@ from flask_login import login_required
 from apps.extensions import db
 from apps.services import services
 from apps.models.orders_db import Order
+from apps.models.supplier_db import Supplier  # ✅ تم إضافة الاستيراد المحلي
 
 # ✅ تعريف الـ Blueprint الرئيسي مع تحديد مجلد القوالب
 admin_orders_bp = Blueprint(
@@ -130,15 +131,13 @@ def view_admin_order(order_id):
             try:
                 current_app.logger.info(f"🔄 محاولة مزامنة الطلب {order_id} عند فتح التفاصيل...")
                 if hasattr(services.orders, 'sync_single_order'):
-                    # sync_single_order تقوم بجلب وحفظ الطلب، ثم إرجاع كائن الـ Order
                     order = services.orders.sync_single_order(order_id)
                 elif hasattr(services.orders, 'get_order_by_id'):
                     services.orders.get_order_by_id(order_id)
-                    # بعد استدعاء الجلب، نحاول قراءتها من الداتابيس مرة أخرى
                     order = db.session.get(Order, order_id)
             except Exception as sync_e:
                 current_app.logger.error(f"⚠️ خطأ أثناء مزامنة الطلب {order_id}: {sync_e}")
-                db.session.rollback() # تصفير أي معاملة عالقة
+                db.session.rollback()
 
         # 4. التأكد من عدم وجود معاملة عالقة قبل الجلب النهائي
         db.session.rollback()
@@ -149,13 +148,8 @@ def view_admin_order(order_id):
             flash('❌ لم يتم العثور على الطلب في النظام، أو فشل حفظه محلياً. تأكد من صحة بيانات المزامنة.', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
-        # 6. جلب قائمة الموردين لتعبئة القائمة المنسدلة
-        suppliers = []
-        try:
-            if hasattr(services, 'suppliers') and hasattr(services.suppliers, 'get_all_suppliers'):
-                suppliers = services.suppliers.get_all_suppliers()
-        except Exception:
-            pass
+        # ✅ 6. جلب قائمة الموردين من قاعدة البيانات المحلية مباشرة (الحل الجذري)
+        suppliers = Supplier.query.all()  # جميع الموردين المحليين
 
         return render_template('admin/admin_order_detail.html', order=order, suppliers=suppliers)
 
