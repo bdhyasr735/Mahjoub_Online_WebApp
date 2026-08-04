@@ -1,0 +1,47 @@
+<!-- 📂 apps/admin_orders/templates/admin/order/_order_scripts.html -->
+<script>
+function sendAjaxUpdate(url, bodyData) {
+    const alertDiv = document.getElementById('statusAlert');
+    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(bodyData)
+    })
+    .then(res => res.json())
+    .then(data => {
+        alertDiv.style.display = 'block';
+        if(data.success) {
+            alertDiv.className = 'alert alert-success py-2 px-3 small rounded-3 mt-2';
+            alertDiv.innerText = '✅ ' + (data.message || 'تم التحديث بنجاح');
+        } else {
+            alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3 mt-2';
+            alertDiv.innerText = '❌ ' + (data.message || 'حدث خطأ أثناء التحديث');
+        }
+    })
+    .catch(err => {
+        alertDiv.style.display = 'block';
+        alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3 mt-2';
+        alertDiv.innerText = '❌ خطأ في الاتصال بالسيرفر';
+    })
+    .finally(() => {
+        setTimeout(() => { alertDiv.style.display = 'none'; }, 3500);
+    });
+}
+
+function updateOrderStatus(orderId) {
+    sendAjaxUpdate(`/admin/orders/${orderId}/status`, { status: document.getElementById('orderStatusSelect').value });
+}
+
+function updatePaymentStatus(orderId) {
+    sendAjaxUpdate(`/admin/orders/${orderId}/payment-status`, { isPaid: document.getElementById('paymentStatusSelect').value === 'true' });
+}
+
+function updateItemSupplier(orderId, itemId, supplierId) {
+    sendAjaxUpdate(`/admin/orders/${orderId}/items/supplier`, { item_id: itemId, supplier_id: supplierId });
+}
+</script>
