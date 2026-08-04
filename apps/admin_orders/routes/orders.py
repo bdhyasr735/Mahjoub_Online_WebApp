@@ -6,7 +6,8 @@ import threading
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from flask_login import login_required
 
-from apps.admin_orders.routes import admin_orders_bp
+from apps.admin_orders import admin_orders_bp
+from apps.extensions import db
 from apps.services import services
 from apps.models.orders_db import Order
 
@@ -111,8 +112,8 @@ def manage_admin_orders_view():
 @login_required
 def view_admin_order(order_id):
     try:
-        # 1. البحث في قاعدة البيانات المحلية أولاً
-        order = Order.query.get(order_id)
+        # 1. البحث في قاعدة البيانات المحلية أولاً باستخدام db.session.get
+        order = db.session.get(Order, order_id)
         
         # 2. إذا لم يكن موجوداً محلياً، جلب الطلب فوراً من API الخارجية وتخزينه
         if not order:
@@ -126,7 +127,7 @@ def view_admin_order(order_id):
 
         # 3. التأكد من إعادة المحاولة محلياً بعد الجلب
         if not order:
-            order = Order.query.get(order_id)
+            order = db.session.get(Order, order_id)
 
         # 4. إذا ظل غير موجود، يتم التوجيه مع التنبيه
         if not order:
