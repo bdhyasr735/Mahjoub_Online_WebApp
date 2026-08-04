@@ -154,19 +154,17 @@ class OrderService:
                     if primary_supplier_id is None and item_supplier_id is not None:
                         primary_supplier_id = item_supplier_id
 
-                    # ============== تم التعديل هنا ==============
-                    # تم تغيير (title=product_name) إلى (product_name=product_name)
-                    # لأن الموديل لا يحتوي على عمود اسمه 'title' ويجب أن يطابق اسم العمود في قاعدة البيانات
+                    # ============== التعديل النهائي هنا ==============
+                    # تم إزالة qty و subtotal و sku و price_per_unit
+                    # واستبدالها بـ quantity و price لتطابق موديل OrderItem
                     new_item = OrderItem(
                         order_id=existing_order.id,
                         supplier_id=item_supplier_id,
-                        product_name=product_name,   # <--- تم التصحيح
-                        qty=qty,
-                        subtotal=price * qty,
-                        sku=sku,
-                        price_per_unit=price
+                        product_name=product_name,
+                        quantity=qty,
+                        price=price
                     )
-                    # ============================================
+                    # ================================================
                     db.session.add(new_item)
 
                 # تحديث المورد الرئيسي للطلب
