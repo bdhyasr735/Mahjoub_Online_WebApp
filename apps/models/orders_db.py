@@ -5,7 +5,6 @@ import os
 from datetime import datetime
 from cryptography.fernet import Fernet
 from apps.extensions import db
-# ✅ تم تصحيح مسار الاستيراد من هنا:
 from apps.services.graphql_client import GraphQLClient
 
 def get_cipher():
@@ -15,7 +14,6 @@ def get_cipher():
 cipher = get_cipher()
 
 class Order(db.Model):
-    """موديل الطلبات: المحرك التشغيلي الذي يربط العميل بالمورد والمسوق."""
     __tablename__ = 'orders'
 
     __table_args__ = (
@@ -31,7 +29,6 @@ class Order(db.Model):
     id = db.Column(db.String(100), primary_key=True)
     order_id_display = db.Column(db.String(50), nullable=True)
     
-    # المورد الرئيسي للطلب (إن وجد) أو المورد العام
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
     
@@ -57,21 +54,9 @@ class Order(db.Model):
     supplier = db.relationship('Supplier', back_populates='orders', lazy='joined')
     marketer = db.relationship('Marketer', back_populates='orders', lazy='joined')
     
-    # الربط مع موديل عناصر الطلب المستقل عبر المسار الكامل
-    items = db.relationship(
-        'apps.models.order_items_db.OrderItem', 
-        back_populates='order', 
-        cascade="all, delete-orphan", 
-        lazy='joined'
-    )
+    items = db.relationship('apps.models.order_items_db.OrderItem', back_populates='order', cascade="all, delete-orphan", lazy='joined')
     
-    financials = db.relationship(
-        'OrderFinancial', 
-        back_populates='order', 
-        uselist=False, 
-        cascade="all, delete-orphan", 
-        lazy='joined'
-    )
+    financials = db.relationship('OrderFinancial', back_populates='order', uselist=False, cascade="all, delete-orphan", lazy='joined')
 
     @property
     def amount(self):
@@ -79,135 +64,95 @@ class Order(db.Model):
 
     @property
     def customer_name(self):
-        if not self._customer_name:
-            return "غير معروف"
-        try:
-            return cipher.decrypt(self._customer_name.encode()).decode()
-        except Exception:
-            return str(self._customer_name)
+        if not self._customer_name: return "غير معروف"
+        try: return cipher.decrypt(self._customer_name.encode()).decode()
+        except Exception: return str(self._customer_name)
 
     @customer_name.setter
     def customer_name(self, value):
-        if value:
-            self._customer_name = cipher.encrypt(str(value).encode()).decode()
-        else:
-            self._customer_name = None
+        if value: self._customer_name = cipher.encrypt(str(value).encode()).decode()
+        else: self._customer_name = None
 
     @property
     def customer_phone(self):
-        if not self._customer_phone:
-            return None
-        try:
-            return cipher.decrypt(self._customer_phone.encode()).decode()
-        except Exception:
-            return str(self._customer_phone)
+        if not self._customer_phone: return None
+        try: return cipher.decrypt(self._customer_phone.encode()).decode()
+        except Exception: return str(self._customer_phone)
 
     @customer_phone.setter
     def customer_phone(self, value):
-        if value:
-            self._customer_phone = cipher.encrypt(str(value).encode()).decode()
-        else:
-            self._customer_phone = None
+        if value: self._customer_phone = cipher.encrypt(str(value).encode()).decode()
+        else: self._customer_phone = None
 
     @property
     def customer_address(self):
-        if not self._customer_address:
-            return None
-        try:
-            return cipher.decrypt(self._customer_address.encode()).decode()
-        except Exception:
-            return str(self._customer_address)
+        if not self._customer_address: return None
+        try: return cipher.decrypt(self._customer_address.encode()).decode()
+        except Exception: return str(self._customer_address)
 
     @customer_address.setter
     def customer_address(self, value):
-        if value:
-            self._customer_address = cipher.encrypt(str(value).encode()).decode()
-        else:
-            self._customer_address = None
+        if value: self._customer_address = cipher.encrypt(str(value).encode()).decode()
+        else: self._customer_address = None
 
     @property
-    def _id(self):
-        return self.id
+    def _id(self): return self.id
 
     @property
     def status(self):
         code_val = self.status_code or 'pending'
         title_val = self.status_title or 'قيد الانتظار'
-
         class StatusWrapper:
             def __init__(self, code, title):
-                self.code = code
-                self.title = title
-            def __getitem__(self, item):
-                return getattr(self, item, '')
-            def __str__(self):
-                return str(self.code)
-
+                self.code = code; self.title = title
+            def __getitem__(self, item): return getattr(self, item, '')
+            def __str__(self): return str(self.code)
         return StatusWrapper(code_val, title_val)
 
     @property
     def account(self):
         fullname_val = self.customer_name or 'عميل'
-
         class AccountInner:
             def __init__(self, fullname):
-                self.fullname = fullname
-                self.phone = None
-                self.avatarUrl = None
-
+                self.fullname = fullname; self.phone = None; self.avatarUrl = None
         class AccountOuter:
             def __init__(self, fullname):
                 self.account = AccountInner(fullname)
-
         return AccountOuter(fullname_val)
 
     @property
-    def total_amount(self):
-        return float(self.total_price or 0.0)
-
+    def total_amount(self): return float(self.total_price or 0.0)
     @property
-    def totalPrice(self):
-        return float(self.total_price or 0.0)
-
+    def totalPrice(self): return float(self.total_price or 0.0)
     @property
-    def shippingPrice(self):
-        """خاصية توافقية لـ سعر الشحن تُرجع float لمنع خطأ الجمع مع Decimal."""
-        return 0.0
-
+    def shippingPrice(self): return 0.0
     @property
-    def shipping_address(self):
-        return self.customer_address
+    def shipping_address(self): return self.customer_address
 
     @property
     def suppliers_list(self):
-        """خاصية لاستخراج جميع الموردين المحليين المختلفين المرتبطين بعناصر هذا الطلب."""
+        from apps.models.supplier_db import Supplier
         suppliers_dict = {}
-        if self.supplier:
-            suppliers_dict[self.supplier.id] = self.supplier
+        if self.supplier_id:
+            supplier = db.session.get(Supplier, self.supplier_id)
+            if supplier: suppliers_dict[supplier.id] = supplier
         for item in self.items:
-            if item.supplier:
-                suppliers_dict[item.supplier.id] = item.supplier
+            if item.supplier_id and item.supplier_id not in suppliers_dict:
+                supplier = db.session.get(Supplier, item.supplier_id)
+                if supplier: suppliers_dict[supplier.id] = supplier
         return list(suppliers_dict.values())
 
     def to_dict(self):
         return {
-            'id': self.id,
-            '_id': self.id,
-            'qid': self.id,
-            'order_reference': self.order_reference,
-            'order_number': self.order_number,
-            'supplier_id': self.supplier_id,
-            'status_code': self.status_code,
-            'status_title': self.status_title,
-            'status_text': self.status_title or 'غير معروف',
-            'customer_name': self.customer_name,
-            'customer_phone': self.customer_phone,
-            'customer_address': self.customer_address,
-            'is_paid': self.is_paid,
+            'id': self.id, '_id': self.id, 'qid': self.id,
+            'order_reference': self.order_reference, 'order_number': self.order_number,
+            'supplier_id': self.supplier_id, 'status_code': self.status_code,
+            'status_title': self.status_title, 'status_text': self.status_title or 'غير معروف',
+            'customer_name': self.customer_name, 'customer_phone': self.customer_phone,
+            'customer_address': self.customer_address, 'is_paid': self.is_paid,
             'total_price': float(self.total_price) if self.total_price else 0.0,
             'items_count': self.items_count or (len(self.items) if self.items else 0),
-            'created_at': self.created_at,
-            'updated_at': self.updated_at,
+            'created_at': self.created_at, 'updated_at': self.updated_at,
             'supplier_name': self.supplier.trade_name if self.supplier else 'غير مرتبط',
             'suppliers': [{'id': s.id, 'trade_name': getattr(s, 'trade_name', 'مورد محلي')} for s in self.suppliers_list],
             'items': [item.to_dict() for item in self.items] if self.items else []
