@@ -4,12 +4,13 @@
 from apps.extensions import db
 
 class OrderItem(db.Model):
-    """تفاصيل المنتجات داخل الطلب الواحد."""
+    """تفاصيل المنتجات داخل الطلب الواحد مع دعم تعدد الموردين المحليين."""
     __tablename__ = 'order_items'
 
-    # [فهرسة الأداء]: للربط السريع مع الطلبات
+    # [فهرسة الأداء]: للربط السريع مع الطلبات والموردين المحليين
     __table_args__ = (
         db.Index('idx_item_order_id', 'order_id'),
+        db.Index('idx_item_supplier_id', 'supplier_id'),
         db.Index('idx_item_title', 'title'),
         {'extend_existing': True}
     )
@@ -17,6 +18,9 @@ class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     # الربط بالطلب الأساسي
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False)
+    
+    # ربط كل عنصر داخل الطلب بمورده المحلي المسؤول عنه
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     
     productId = db.Column(db.String(100), nullable=True)
     title = db.Column(db.String(255), nullable=False)
@@ -30,6 +34,12 @@ class OrderItem(db.Model):
     order = db.relationship(
         'Order', 
         back_populates='items'
+    )
+
+    # ربط العلاقة مع جدول الموردين المحليين
+    supplier = db.relationship(
+        'Supplier',
+        lazy='joined'
     )
 
     # ==========================================
@@ -66,11 +76,13 @@ class OrderItem(db.Model):
         return self._image_url or ''
 
     def to_dict(self):
-        """دالة تحويل عنصر الطلب إلى قاموس متوافق مع واجهات النظام."""
+        """دالة تحويل عنصر الطلب إلى قاموس متوافق مع واجهات النظام ومعلومات المورد المحلي."""
         return {
             'id': self.id,
             '_id': str(self.id),
             'order_id': self.order_id,
+            'supplier_id': self.supplier_id,
+            'supplier_name': self.supplier.trade_name if self.supplier else 'غير محدد',
             'productId': self.productId,
             'title': self.title,
             'qty': self.qty,
@@ -88,4 +100,4 @@ class OrderItem(db.Model):
         }
 
     def __repr__(self):
-        return f'<OrderItem {self.title} | Qty: {self.qty}>'
+        return f'<OrderItem {self.title} | Qty: {self.qty} | Supplier ID: {self.supplier_id}>'
