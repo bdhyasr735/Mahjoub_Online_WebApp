@@ -1,24 +1,19 @@
 # coding: utf-8
-# 📂 المسار المقترح لتحديث لوحة تحكم المورد (أو جزء مسارات الطلبات فيها)
+# 📂 apps/supplier_orders/routes.py
 
 from flask import Blueprint, render_template, request, jsonify, session, abort
-from apps.services.order_service import OrderService
-from apps.services.graphql_client import GraphQLClient
+from apps.services import services
 from apps.models.orders_db import Order
 from apps.extensions import db
 
 supplier_orders_bp = Blueprint('supplier_orders', __name__, url_prefix='/supplier/orders')
-
-# تهيئة الخدمات
-graphql_client = GraphQLClient() # تأكد من تمرير الإعدادات المناسبة هنا حسب مشروعك
-order_service = OrderService(graphql_client)
 
 @supplier_orders_bp.route('/', methods=['GET'])
 def list_supplier_orders():
     """عرض قائمة الطلبات الخاصة بالمورد المحلي الحالي"""
     supplier_id = session.get('supplier_id')
     if not supplier_id:
-        abort(403) # أو إعادة التوجيه لصفحة تسجيل الدخول
+        abort(403)
 
     page = request.args.get('page', 1, type=int)
     per_page = 15
@@ -27,8 +22,8 @@ def list_supplier_orders():
     date_from = request.args.get('date_from', type=str)
     date_to = request.args.get('date_to', type=str)
 
-    # جلب الطلبات عبر خدمة الطلبات مع فلترة المورد المحلي تلقائياً
-    result = order_service.get_local_orders(
+    # جلب الطلبات عبر خدمة الطلبات المركزية مع فلترة المورد المحلي تلقائياً
+    result = services.orders.get_local_orders(
         page=page,
         per_page=per_page,
         supplier_id=supplier_id,
@@ -40,8 +35,8 @@ def list_supplier_orders():
 
     return render_template(
         'supplier/orders_dashboard.html',
-        orders=result['data'],
-        pagination=result['pagination'],
+        orders=result.get('data', []),
+        pagination=result.get('pagination', {}),
         current_status=status,
         search_query=search
     )
@@ -54,16 +49,26 @@ def view_supplier_order_detail(order_id):
     if not supplier_id:
         abort(403)
 
-    # جلب الطلب محلياً أو مزامنته فوراً
-    order = order_service.get_order_by_id(order_id)
+    # جلب الطلب محلياً أو مزامنته فوراً عبر الخدمة المركزية
+    order = Order.query.get(order_id)
+    if not order:
+        try:
+            if hasattr(services.orders, 'get_order_by_id'):
+                order = services.orders.get_order_by_id(order_id)
+        except Exception:
+            pass
+
     if not order:
         abort(404)
 
-    # تصفية بنود الطلب لتظهر للمورد العناصر التي تخصه فقط (إن طُلب ذلك في العرض)
-    # أو تمرير الطلب كاملاً مع تمييز عناصره
-    order_dict = order.to_dict()
+    # تحويل البيانات إلى قاموس بأمان
+    order_dict = order.to_dict() if hasattr(order, 'to_dict') else {
+        'id': getattr(order, 'id', order_id),
+        'status': getattr(order, 'status', ''),
+        'items': getattr(order, 'items', [])
+    }
     
-    # تصفية العناصر الخاصة بهذا المورد إذا أراد المورد رؤية بنوده فقط
+    # تصفية عناصر الطلب لتقتصر حصراً على البنود التي تخص المورد الحالي
     filtered_items = [
         item for item in order_dict.get('items', []) 
         if item.get('supplier_id') == supplier_id
