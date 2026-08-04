@@ -3,7 +3,7 @@
 
 from flask import Blueprint
 
-# تعريف الـ Blueprint الخاص بإدارة الطلبات
+# تعريف الـ Blueprint الخاص بإدارة الطلبات مع تحديد مسارات القوالب والمجلدات الثابتة
 admin_orders_bp = Blueprint(
     'admin_orders_bp',
     __name__,
@@ -11,5 +11,6 @@ admin_orders_bp = Blueprint(
     static_folder='../static'
 )
 
-# استيراد ملفات المسارات لتسجيل الروابط والـ decorators تلقائياً
+# استيراد ملفات المسارات الفرعية (مثل العرض والإجراءات والتحكم) 
+# لضمان تسجيل كافة الروابط والـ decorators تلقائياً ضمن الـ Blueprint
 from apps.admin_orders.routes import orders, actions
