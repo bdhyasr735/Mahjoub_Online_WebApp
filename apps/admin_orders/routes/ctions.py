@@ -9,7 +9,7 @@ from apps.models.orders_db import Order
 # تعريف الـ Blueprint الخاص بالإجراءات أو العمليات على الطلبات
 actions_bp = Blueprint('admin_order_actions', __name__, url_prefix='/admin/orders/actions')
 
-@actions_bp.route('/update-status/<int:order_id>', methods=['POST'])
+@actions_bp.route('/update-status/<string:order_id>', methods=['POST'])  # ✅ غير int إلى string لأن order_id نصي
 @login_required
 def update_status(order_id):
     """تحديث حالة الطلب (قيد المعالجة، تم الشحن، ملغي، إلخ)"""
@@ -26,10 +26,11 @@ def update_status(order_id):
             flash(f'حدث خطأ أثناء التحديث: {str(e)}', 'danger')
     else:
         flash('لم يتم تحديد حالة صحيحة.', 'warning')
-        
-    return redirect(url_for('admin_orders.order_detail', order_id=order.id))
+    
+    # ✅ استخدم admin_orders_bp.view_admin_order
+    return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order.id))
 
-@actions_bp.route('/delete/<int:order_id>', methods=['POST'])
+@actions_bp.route('/delete/<string:order_id>', methods=['POST'])  # ✅ غير int إلى string
 @login_required
 def delete_order(order_id):
     """حذف طلب من لوحة الإدارة"""
@@ -41,5 +42,6 @@ def delete_order(order_id):
     except Exception as e:
         db.session.rollback()
         flash(f'فشل حذف الطلب: {str(e)}', 'danger')
-        
-    return redirect(url_for('admin_orders.list_orders'))
+    
+    # ✅ استخدم admin_orders_bp.list_admin_orders
+    return redirect(url_for('admin_orders_bp.list_admin_orders'))
