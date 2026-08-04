@@ -4,11 +4,10 @@
 import os
 from flask import Blueprint
 
-# تحديد المسارات المطلقة للقوالب والمجلدات الثابتة
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 
-# تعريف الـ Blueprint الرئيسي للموديول
+# تعريف الـ Blueprint هنا
 admin_orders_bp = Blueprint(
     'admin_orders_bp',
     __name__,
@@ -16,5 +15,5 @@ admin_orders_bp = Blueprint(
     static_folder=static_dir
 )
 
-# استيراد المسارات لتسجيل الروابط
+# استيراد الملفات الفرعية في النهاية
 from apps.admin_orders.routes import orders, actions
