@@ -1,11 +1,24 @@
 # coding: utf-8
 # 📂 apps/admin_orders/routes/actions.py
 
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 from apps.admin_orders import admin_orders_bp
 from apps.extensions import db
+from apps.services import services
 from apps.models.orders_db import Order
 from apps.models.order_items_db import OrderItem
+
+@admin_orders_bp.route('/sync', methods=['POST'])
+def sync_admin_orders():
+    """مزامنة الطلبات يدوياً عبر زر المزامنة في لوحة التحكم"""
+    try:
+        # استدعاء خدمة جلب ومزامنة الطلبات من المصدر الخارجي
+        services.orders.get_all_orders(page=1, per_page=50)
+        return jsonify({'success': True, 'message': 'تمت مزامنة الطلبات بنجاح'})
+    except Exception as e:
+        current_app.logger.error(f"خطأ في مزامنة الطلبات: {str(e)}")
+        return jsonify({'success': False, 'message': f'حدث خطأ أثناء المزامنة: {str(e)}'}), 500
+
 
 @admin_orders_bp.route('/<string:order_id>/status', methods=['POST'])
 def update_order_status(order_id):
