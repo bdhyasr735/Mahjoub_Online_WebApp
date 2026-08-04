@@ -10,7 +10,7 @@ LINKS = {
 }
 
 def register_module(app):
-    from apps.admin_orders.routes import admin_orders_bp
+    from apps.admin_orders import admin_orders_bp
     if 'admin_orders_bp' not in app.blueprints:
         app.register_blueprint(admin_orders_bp, url_prefix='/admin/orders')
         print("✅ [Registry]: تم تسجيل موديول 'admin_orders' بنجاح.")
