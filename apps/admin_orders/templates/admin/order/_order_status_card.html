@@ -6,19 +6,21 @@
     <div class="mb-3">
         <label class="form-label small fw-bold text-muted">حالة الطلب:</label>
         <select class="form-select rounded-3 py-2 fw-bold" id="orderStatusSelect" onchange="updateOrderStatus('{{ order._id }}')">
-            <option value="pending" {% if order.status and order.status.name == 'pending' %}selected{% endif %}>⏳ قيد الانتظار (Pending)</option>
-            <option value="processing" {% if order.status and order.status.name == 'processing' %}selected{% endif %}>⚙️ قيد التجهيز (Processing)</option>
-            <option value="completed" {% if order.status and order.status.name == 'completed' %}selected{% endif %}>✅ مكتمل (Completed)</option>
-            <option value="cancelled" {% if order.status and order.status.name == 'cancelled' %}selected{% endif %}>❌ ملغي (Cancelled)</option>
+            <!-- ✅ تصحيح: استبدال status.name بـ status.code -->
+            <option value="pending" {% if order.status and order.status.code == 'pending' %}selected{% endif %}>⏳ قيد الانتظار (Pending)</option>
+            <option value="processing" {% if order.status and order.status.code == 'processing' %}selected{% endif %}>⚙️ قيد التجهيز (Processing)</option>
+            <option value="completed" {% if order.status and order.status.code == 'completed' %}selected{% endif %}>✅ مكتمل (Completed)</option>
+            <option value="cancelled" {% if order.status and order.status.code == 'cancelled' %}selected{% endif %}>❌ ملغي (Cancelled)</option>
         </select>
     </div>
 
-    <!-- ب) الحالة المالية (isPaid) -->
+    <!-- ب) الحالة المالية (الدفع) -->
     <div class="mb-3">
         <label class="form-label small fw-bold text-muted">الحالة المالية (الدفع):</label>
         <select class="form-select rounded-3 py-2 fw-bold" id="paymentStatusSelect" onchange="updatePaymentStatus('{{ order._id }}')">
-            <option value="false" {% if not order.isPaid %}selected{% endif %}>❌ غير مدفوع / عند الاستلام (COD: {{ 'نعم' if order.COD else 'لا' }})</option>
-            <option value="true" {% if order.isPaid %}selected{% endif %}>💳 تم الدفع (Paid)</option>
+            <!-- ✅ تصحيح: استبدال order.isPaid بـ order.is_paid، وإصلاح شرط COD -->
+            <option value="false" {% if not order.is_paid %}selected{% endif %}>❌ غير مدفوع / عند الاستلام (COD: {{ 'نعم' if not order.is_paid else 'لا' }})</option>
+            <option value="true" {% if order.is_paid %}selected{% endif %}>💳 تم الدفع (Paid)</option>
         </select>
     </div>
 
