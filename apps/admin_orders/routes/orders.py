@@ -3,14 +3,12 @@
 
 import traceback
 import threading
-from datetime import datetime
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from flask_login import login_required
 
 from apps.admin_orders.routes import admin_orders_bp
 from apps.services import services
 from apps.models.orders_db import Order
-from apps.extensions import db
 
 # 🏷️ خريطة المسميات العربية للحالات لتطابق السكيما ومظهر الواجهة
 STATUS_TITLES_MAP = {
@@ -109,164 +107,6 @@ def manage_admin_orders_view():
         return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1})
 
 
-@admin_orders_bp.route('/sync', methods=['POST'])
-@login_required
-def sync_admin_orders():
-    try:
-        app = current_app._get_current_object()
-        threading.Thread(
-            target=_sync_orders_in_background,
-            args=(app, 1, 50),
-            daemon=True
-        ).start()
-
-        return jsonify({'success': True, 'message': '⚡ بدأت عملية المزامنة في الخلفية بنجاح'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@admin_orders_bp.route('/<string:order_id>/status', methods=['POST'])
-@login_required
-def update_order_status(order_id):
-    try:
-        if request.is_json:
-            data = request.get_json() or {}
-        else:
-            data = request.form
-
-        new_status = data.get('status') or data.get('status_code')
-        if not new_status:
-            return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
-
-        order = Order.query.get(order_id)
-        if not order:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-
-        # 1️⃣ تحديث قاعدة البيانات المحلية
-        order.status_code = new_status
-        if new_status in STATUS_TITLES_MAP:
-            order.status_title = STATUS_TITLES_MAP[new_status]
-        order.updated_at = datetime.utcnow()
-        
-        db.session.commit()
-
-        # 2️⃣ إرسال تحديث الحالة إلى الخدمة الخارجية
-        if hasattr(services.orders, 'update_order_status'):
-            try:
-                services.orders.update_order_status(order_id, new_status)
-            except Exception as service_e:
-                current_app.logger.warning(f"⚠️ فشل تحديث الخدمة الخارجية: {service_e}")
-
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': True, 
-                'message': 'تم تحديث حالة الطلب بنجاح',
-                'status_code': order.status_code,
-                'status_title': order.status_title
-            })
-
-        flash('✅ تم تحديث حالة الطلب بنجاح', 'success')
-        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
-
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"خطأ في تحديث حالة الطلب {order_id}: {traceback.format_exc()}")
-        
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': str(e)}), 500
-            
-        flash('❌ حدث خطأ أثناء تحديث الحالة', 'danger')
-        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
-
-
-@admin_orders_bp.route('/<string:order_id>/financial-status', methods=['POST'])
-@login_required
-def update_financial_status(order_id):
-    """تحديث الحالة المالية للطلب (مدفوع / غير مدفوع / مسترجع)."""
-    try:
-        data = request.get_json() if request.is_json else request.form
-        new_status = data.get('financial_status') or data.get('status')
-        if not new_status:
-            return jsonify({'success': False, 'message': 'الحالة المالية مطلوبة'}), 400
-
-        order = Order.query.get(order_id)
-        if not order:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-
-        order.financial_status = new_status
-        if hasattr(order, 'is_paid'):
-            order.is_paid = (new_status in ['paid', 'completed'])
-        order.updated_at = datetime.utcnow()
-        db.session.commit()
-
-        if hasattr(services.orders, 'update_financial_status'):
-            try:
-                services.orders.update_financial_status(order_id, new_status)
-            except Exception as service_e:
-                current_app.logger.warning(f"⚠️ فشل تحديث الحالة المالية في الخدمة الخارجية: {service_e}")
-
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': True, 
-                'message': 'تم تحديث حالة الدفع بنجاح',
-                'financial_status': order.financial_status
-            })
-
-        flash('✅ تم تحديث حالة الدفع بنجاح', 'success')
-        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
-
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"خطأ في تحديث الحالة المالية للطلب {order_id}: {traceback.format_exc()}")
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': str(e)}), 500
-        flash('❌ حدث خطأ أثناء تحديث حالة الدفع', 'danger')
-        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
-
-
-@admin_orders_bp.route('/<string:order_id>/fulfillment-status', methods=['POST'])
-@login_required
-def update_fulfillment_status(order_id):
-    """تحديث حالة الشحن والتسليم."""
-    try:
-        data = request.get_json() if request.is_json else request.form
-        new_status = data.get('fulfillment_status') or data.get('status')
-        if not new_status:
-            return jsonify({'success': False, 'message': 'حالة الشحن مطلوبة'}), 400
-
-        order = Order.query.get(order_id)
-        if not order:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-
-        order.fulfillment_status = new_status
-        order.updated_at = datetime.utcnow()
-        db.session.commit()
-
-        if hasattr(services.orders, 'update_fulfillment_status'):
-            try:
-                services.orders.update_fulfillment_status(order_id, new_status)
-            except Exception as service_e:
-                current_app.logger.warning(f"⚠️ فشل تحديث حالة الشحن الخارجية: {service_e}")
-
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': True, 
-                'message': 'تم تحديث حالة الشحن بنجاح',
-                'fulfillment_status': order.fulfillment_status
-            })
-
-        flash('✅ تم تحديث حالة الشحن بنجاح', 'success')
-        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
-
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"خطأ في تحديث حالة الشحن للطلب {order_id}: {traceback.format_exc()}")
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': str(e)}), 500
-        flash('❌ حدث خطأ أثناء تحديث حالة الشحن', 'danger')
-        return redirect(url_for('admin_orders_bp.view_admin_order', order_id=order_id))
-
-
 @admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
 @login_required
 def view_admin_order(order_id):
@@ -311,9 +151,9 @@ def view_admin_order(order_id):
 
 def register_admin_orders_route(bp):
     bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
-    bp.add_url_rule('/sync', view_func=sync_admin_orders, methods=['POST'])
-    bp.add_url_rule('/<string:order_id>/status', view_func=update_order_status, methods=['POST'])
-    bp.add_url_rule('/<string:order_id>/financial-status', view_func=update_financial_status, methods=['POST'])
-    bp.add_url_rule('/<string:order_id>/fulfillment-status', view_func=update_fulfillment_status, methods=['POST'])
     bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
     return bp
+
+
+# 🔗 استيراد ملف العمليات والأفعال الخلفية لضمان تسجيل مساراتها مع الـ Blueprint
+from apps.admin_orders.routes import actions
