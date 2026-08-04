@@ -1,8 +1,17 @@
-# قديم (احذفه)
-from apps.admin_orders import admin_orders_bp
+# coding: utf-8
+# 📂 apps/admin_orders/registry.py
 
-# جديد (استبدله بهذا)
-from flask import Blueprint  # أضف Blueprint إلى استيراد flask
+# ❌ حذف السطر: from apps.admin_orders.routes import admin_orders_bp
 
-# ثم عرّف الـ Blueprint هنا:
-admin_orders_bp = Blueprint('admin_orders_bp', __name__, url_prefix='/admin/orders')
+MODULE_NAME = 'إدارة الطلبات'
+MODULE_ICON = 'fas fa-boxes'
+SHOW_IN_SUPPLIER = False
+
+LINKS = {
+    'admin_orders.list_admin_orders': 'عرض الطلبات',
+}
+
+def register_module(app):
+    from apps.admin_orders.routes import admin_orders_bp  # ✅ الاستيراد هنا فقط
+    app.register_blueprint(admin_orders_bp)
+    print("✅ [Module]: تم تفعيل موديول إدارة الطلبات بنجاح.")
