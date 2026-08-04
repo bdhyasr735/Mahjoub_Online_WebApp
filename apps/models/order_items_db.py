@@ -1,103 +1,77 @@
 # coding: utf-8
-# 📂 apps/models/order_items_db.py
+# 📂 المسار المقترح لتحديث لوحة تحكم المورد (أو جزء مسارات الطلبات فيها)
 
+from flask import Blueprint, render_template, request, jsonify, session, abort
+from apps.services.order_service import OrderService
+from apps.services.graphql_client import GraphQLClient
+from apps.models.orders_db import Order
 from apps.extensions import db
 
-class OrderItem(db.Model):
-    """تفاصيل المنتجات داخل الطلب الواحد مع دعم تعدد الموردين المحليين."""
-    __tablename__ = 'order_items'
+supplier_orders_bp = Blueprint('supplier_orders', __name__, url_prefix='/supplier/orders')
 
-    # [فهرسة الأداء]: للربط السريع مع الطلبات والموردين المحليين
-    __table_args__ = (
-        db.Index('idx_item_order_id', 'order_id'),
-        db.Index('idx_item_supplier_id', 'supplier_id'),
-        db.Index('idx_item_title', 'title'),
-        {'extend_existing': True}
+# تهيئة الخدمات
+graphql_client = GraphQLClient() # تأكد من تمرير الإعدادات المناسبة هنا حسب مشروعك
+order_service = OrderService(graphql_client)
+
+@supplier_orders_bp.route('/', methods=['GET'])
+def list_supplier_orders():
+    """عرض قائمة الطلبات الخاصة بالمورد المحلي الحالي"""
+    supplier_id = session.get('supplier_id')
+    if not supplier_id:
+        abort(403) # أو إعادة التوجيه لصفحة تسجيل الدخول
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+    status = request.args.get('status', type=str)
+    search = request.args.get('search', type=str)
+    date_from = request.args.get('date_from', type=str)
+    date_to = request.args.get('date_to', type=str)
+
+    # جلب الطلبات عبر خدمة الطلبات مع فلترة المورد المحلي تلقائياً
+    result = order_service.get_local_orders(
+        page=page,
+        per_page=per_page,
+        supplier_id=supplier_id,
+        status=status,
+        search=search,
+        date_from=date_from,
+        date_to=date_to
     )
 
-    id = db.Column(db.Integer, primary_key=True)
-    # الربط بالطلب الأساسي
-    order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False)
-    
-    # ربط كل عنصر داخل الطلب بمورده المحلي المسؤول عنه
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
-    
-    productId = db.Column(db.String(100), nullable=True)
-    title = db.Column(db.String(255), nullable=False)
-    qty = db.Column(db.Integer, default=1)
-    subtotal = db.Column(db.Numeric(18, 2), default=0.00)
-    sku = db.Column(db.Text, nullable=True) 
-    price_per_unit = db.Column(db.Numeric(18, 2), default=0.00) # سعر القطعة الواحدة
-    _image_url = db.Column(db.Text, nullable=True)
-    
-    # ربط العلاقة مع جدول الطلبات
-    order = db.relationship(
-        'Order', 
-        back_populates='items'
+    return render_template(
+        'supplier/orders_dashboard.html',
+        orders=result['data'],
+        pagination=result['pagination'],
+        current_status=status,
+        search_query=search
     )
 
-    # ربط العلاقة مع جدول الموردين المحليين
-    supplier = db.relationship(
-        'Supplier',
-        lazy='joined'
+
+@supplier_orders_bp.route('/<string:order_id>', methods=['GET'])
+def view_supplier_order_detail(order_id):
+    """عرض تفاصيل طلب معين مع التركيز على بنود وعناصر المورد الحالي"""
+    supplier_id = session.get('supplier_id')
+    if not supplier_id:
+        abort(403)
+
+    # جلب الطلب محلياً أو مزامنته فوراً
+    order = order_service.get_order_by_id(order_id)
+    if not order:
+        abort(404)
+
+    # تصفية بنود الطلب لتظهر للمورد العناصر التي تخصه فقط (إن طُلب ذلك في العرض)
+    # أو تمرير الطلب كاملاً مع تمييز عناصره
+    order_dict = order.to_dict()
+    
+    # تصفية العناصر الخاصة بهذا المورد إذا أراد المورد رؤية بنوده فقط
+    filtered_items = [
+        item for item in order_dict.get('items', []) 
+        if item.get('supplier_id') == supplier_id
+    ]
+
+    return render_template(
+        'supplier/order_detail.html',
+        order=order_dict,
+        supplier_items=filtered_items,
+        current_supplier_id=supplier_id
     )
-
-    # ==========================================
-    # 🚀 خصائص التوافقية (Compatibility Properties)
-    # لحل مشكلة UndefinedError في قوالب Jinja2
-    # ==========================================
-
-    @property
-    def productData(self):
-        """خاصية توافقية ترجع كائن مفردات يلائم استدلال `item.productData` في القالب."""
-        return {
-            'title': self.title or '',
-            'slug': self.sku or '',
-            'image': {'fileUrl': self._image_url} if self._image_url else None
-        }
-
-    @property
-    def quantity(self):
-        """خاصية للتوافق مع تسمية quantity."""
-        return self.qty
-
-    @property
-    def price(self):
-        """خاصية للتوافق مع تسمية price."""
-        return float(self.price_per_unit or 0.0)
-
-    @property
-    def totalPrice(self):
-        return float(self.subtotal or (float(self.price_per_unit or 0.0) * self.qty))
-
-    @property
-    def image(self):
-        """خاصية للتوافق مع استدعاء item.image مباشرة."""
-        return self._image_url or ''
-
-    def to_dict(self):
-        """دالة تحويل عنصر الطلب إلى قاموس متوافق مع واجهات النظام ومعلومات المورد المحلي."""
-        return {
-            'id': self.id,
-            '_id': str(self.id),
-            'order_id': self.order_id,
-            'supplier_id': self.supplier_id,
-            'supplier_name': self.supplier.trade_name if self.supplier else 'غير محدد',
-            'productId': self.productId,
-            'title': self.title,
-            'qty': self.qty,
-            'quantity': self.qty,
-            'price': float(self.price_per_unit or 0.0),
-            'price_per_unit': float(self.price_per_unit or 0.0),
-            'subtotal': float(self.subtotal or 0.0),
-            'totalPrice': float(self.subtotal or 0.0),
-            'sku': self.sku,
-            'productData': {
-                'title': self.title,
-                'slug': self.sku,
-                'image': {'fileUrl': self._image_url} if self._image_url else None
-            }
-        }
-
-    def __repr__(self):
-        return f'<OrderItem {self.title} | Qty: {self.qty} | Supplier ID: {self.supplier_id}>'
