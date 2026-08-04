@@ -14,7 +14,7 @@ def update_order_status(order_id):
     new_status = data.get('status')
     
     try:
-        order = Order.query.get(order_id)
+        order = db.session.get(Order, order_id)
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
             
@@ -33,7 +33,7 @@ def update_payment_status(order_id):
     is_paid = data.get('isPaid')
     
     try:
-        order = Order.query.get(order_id)
+        order = db.session.get(Order, order_id)
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
             
