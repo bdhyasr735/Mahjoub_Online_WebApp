@@ -16,5 +16,16 @@ class OrderItem(db.Model):
     # العلاقة العكسية مع جدول الطلبات لحل خطأ الربط بشكل جذري
     order = db.relationship('Order', back_populates='items')
 
+    def to_dict(self):
+        """دالة ضرورية جداً لتحويل العنصر إلى JSON عند عرض الطلبات"""
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'supplier_id': self.supplier_id,
+            'product_name': self.product_name,
+            'quantity': self.quantity,
+            'price': self.price
+        }
+
     def __repr__(self):
         return f'<OrderItem {self.id} for Order {self.order_id}>'
