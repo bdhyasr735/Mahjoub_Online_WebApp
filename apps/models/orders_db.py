@@ -29,6 +29,7 @@ class Order(db.Model):
     id = db.Column(db.String(100), primary_key=True)
     order_id_display = db.Column(db.String(50), nullable=True)
     
+    # المورد الرئيسي للطلب (إن وجد) أو المورد العام
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
     
@@ -175,6 +176,17 @@ class Order(db.Model):
     def shipping_address(self):
         return self.customer_address
 
+    @property
+    def suppliers_list(self):
+        """خاصية لاستخراج جميع الموردين المحليين المختلفين المرتبطين بعناصر هذا الطلب."""
+        suppliers_dict = {}
+        if self.supplier:
+            suppliers_dict[self.supplier.id] = self.supplier
+        for item in self.items:
+            if item.supplier:
+                suppliers_dict[item.supplier.id] = item.supplier
+        return list(suppliers_dict.values())
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -195,6 +207,7 @@ class Order(db.Model):
             'created_at': self.created_at,
             'updated_at': self.updated_at,
             'supplier_name': self.supplier.trade_name if self.supplier else 'غير مرتبط',
+            'suppliers': [{'id': s.id, 'trade_name': getattr(s, 'trade_name', 'مورد محلي')} for s in self.suppliers_list],
             'items': [item.to_dict() for item in self.items] if self.items else []
         }
 
