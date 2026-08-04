@@ -140,7 +140,7 @@ class OrderService:
                     price = item.get('price', 0.0) or 0.0
                     prod_id = item.get('productId', '')
 
-                    title = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
+                    product_name = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
                     sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
 
                     # البحث عن المورد المحلي الخاص بهذا المنتج عبر جدول الربط
@@ -154,15 +154,19 @@ class OrderService:
                     if primary_supplier_id is None and item_supplier_id is not None:
                         primary_supplier_id = item_supplier_id
 
+                    # ============== تم التعديل هنا ==============
+                    # تم تغيير (title=product_name) إلى (product_name=product_name)
+                    # لأن الموديل لا يحتوي على عمود اسمه 'title' ويجب أن يطابق اسم العمود في قاعدة البيانات
                     new_item = OrderItem(
                         order_id=existing_order.id,
                         supplier_id=item_supplier_id,
-                        title=title,
+                        product_name=product_name,   # <--- تم التصحيح
                         qty=qty,
                         subtotal=price * qty,
                         sku=sku,
                         price_per_unit=price
                     )
+                    # ============================================
                     db.session.add(new_item)
 
                 # تحديث المورد الرئيسي للطلب
