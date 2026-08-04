@@ -319,33 +319,13 @@ def create_app():
     # ============================================================
     @app.context_processor
     def inject_vars():
+        # ✅ دالة safe_url_for مبسطة وآمنة
         def safe_url_for(endpoint, **values):
-            try: 
+            try:
                 return url_for(endpoint, **values)
-            except BuildError:
-                pass
-            
-            alt_endpoint = f"{endpoint}_bp" if not endpoint.endswith('_bp') else endpoint.replace('_bp', '')
-            try: 
-                return url_for(alt_endpoint, **values)
-            except BuildError:
-                pass
-                
-            for bp_name in app.blueprints:
-                try:
-                    if '.' not in endpoint:
-                        test_endpoint = f"{bp_name}.{endpoint}"
-                    else:
-                        base_action = endpoint.split('.')[-1]
-                        test_endpoint = f"{bp_name}.{base_action}"
-                    
-                    return url_for(test_endpoint, **values)
-                except BuildError:
-                    continue
-                except Exception:
-                    continue
-                
-            return '#'
+            except Exception:
+                # في حال فشل توليد الرابط، نعيد # (آمن ولا يسبب أخطاء)
+                return '#'
         
         return dict(
             csrf_token=generate_csrf,
