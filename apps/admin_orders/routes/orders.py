@@ -153,7 +153,3 @@ def register_admin_orders_route(bp):
     bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
     bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
     return bp
-
-
-# 🔗 استيراد ملف العمليات والأفعال الخلفية لضمان تسجيل مساراتها مع الـ Blueprint
-from apps.admin_orders.routes import actions
