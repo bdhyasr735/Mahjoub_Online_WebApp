@@ -14,11 +14,14 @@ admin_orders_bp = Blueprint(
     template_folder=template_dir
 )
 
-# استيراد الـ Routes
+# 1. استيراد ملف العروض والصفحات الأساسية
 from . import orders
 
-# استيراد دالة التسجيل واستدعائها
-from .orders import register_admin_orders_route
-register_admin_orders_route(admin_orders_bp)
+# 2. استيراد ملف العمليات والـ AJAX الخلفية (لكي يتم تسجيل مسارات الـ decorators تلقائياً)
+from . import actions
+
+# 3. استيراد دالة التسجيل واستدعائها إن وجدت في orders.py
+if hasattr(orders, 'register_admin_orders_route'):
+    orders.register_admin_orders_route(admin_orders_bp)
 
 __all__ = ['admin_orders_bp']
