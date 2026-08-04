@@ -40,7 +40,7 @@ def create_app():
     db.init_app(app)
     
     # ============================================================
-    # ✅ إنشاء الجداول وزراعة البيانات الأولية
+    # ✅ إنشاء الجداول وزراعة البيانات الأولية (عند حذف الجداول يبنيها من جديد)
     # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
@@ -57,19 +57,26 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
-        print("🔄 [DB]: جاري إنشاء الجداول...")
+        print("🔄 [DB]: جاري إنشاء الجداول (بما فيها الموديلات الجديدة)...")
+        # يضمن إنشاء جميع الجداول بناءً على الموديلات الحالية
         db.create_all()
         print("✅ [DB]: تم إنشاء جميع الجداول بنجاح.")
 
-        # ✅ زراعة المالك "علي محجوب"
-        if not AdminUser.query.filter_by(username='ali_mahjoub').first():
-            new_admin = AdminUser(username='ali_mahjoub', role='Owner')
-            new_admin.set_password('123')
-            db.session.add(new_admin)
-            db.session.commit()
-            print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
+        # ✅ زراعة المالك "علي محجوب" (بيانات حساسة)
+        try:
+            if not AdminUser.query.filter_by(username='ali_mahjoub').first():
+                new_admin = AdminUser(username='ali_mahjoub', role='Owner')
+                new_admin.set_password('123')
+                db.session.add(new_admin)
+                db.session.commit()
+                print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
+            else:
+                print("ℹ️ [Seed]: المالك علي محجوب موجود بالفعل.")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [Seed]: خطأ في زراعة المالك: {e}")
         
-        # ✅ زراعة مورد تجريبي
+        # ✅ زراعة مورد تجريبي (للتجربة الأولية للنظام)
         try:
             existing_supplier = Supplier.query.filter_by(username='test_supplier').first()
             if not existing_supplier:
@@ -93,14 +100,36 @@ def create_app():
                     )
                     db.session.add(wallet)
                     db.session.commit()
-                    print("✅ [Seed]: تم زرع مورد تجريبي test_supplier / 123")
+                    print("✅ [Seed]: تم زرع مورد تجريبي test_supplier / 123 مع محفظة.")
                 else:
                     print("ℹ️ [Seed]: المحفظة موجودة بالفعل للمورد التجريبي")
             else:
                 print("ℹ️ [Seed]: المورد التجريبي موجود بالفعل")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ [Seed]: خطأ في زراعة البيانات التجريبية: {e}")
+            print(f"⚠️ [Seed]: خطأ في زراعة المورد التجريبي: {e}")
+
+        # ✅ زراعة منتج تجريبي وربطه بالمورد في جدول ProductSupplierMapping (ضروري لظهور الطلبات)
+        try:
+            supplier = Supplier.query.filter_by(username='test_supplier').first()
+            if supplier and not ProductSupplierMapping.query.filter_by(product_qid='TEST_PROD_001').first():
+                # إنشاء منتج تجريبي وهمي في جدول المنتجات (إذا كان النظام يتطلب ذلك)
+                # لكن بما أن منتجاتكم خارجية (قمرة)، نكتفي بجدول الربط
+                mapping = ProductSupplierMapping(
+                    product_qid='TEST_PROD_001',  # معرف وهمي للمنتج من قمرة
+                    supplier_id=supplier.id,
+                    price=100.00,
+                    quantity=10,
+                    status='active'
+                )
+                db.session.add(mapping)
+                db.session.commit()
+                print(f"✅ [Seed]: تم ربط منتج تجريبي (TEST_PROD_001) بالمورد {supplier.trade_name}.")
+            else:
+                print("ℹ️ [Seed]: المنتج التجريبي موجود مسبقاً أو المورد غير موجود.")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [Seed]: خطأ في زراعة المنتج التجريبي: {e}")
 
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -192,7 +221,6 @@ def create_app():
             'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
             'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://code.jquery.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://ckeditor.com"],
             'img-src': ["'self'", "data:", "https://*"],
-            # ✅ تم إضافة النطاقات التي يمنعها السيرفر حالياً
             'connect-src': [
                 "'self'", 
                 "https://ckeditor.com", 
