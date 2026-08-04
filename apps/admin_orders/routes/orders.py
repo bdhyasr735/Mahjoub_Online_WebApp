@@ -14,7 +14,7 @@ from apps.models.orders_db import Order
 admin_orders_bp = Blueprint(
     'admin_orders_bp',
     __name__,
-    template_folder='../templates',  # ✅ أضف هذا السطر
+    template_folder='../templates',
     url_prefix='/admin/orders'
 )
 
@@ -119,29 +119,37 @@ def manage_admin_orders_view():
 @login_required
 def view_admin_order(order_id):
     try:
-        # 1. البحث في قاعدة البيانات المحلية أولاً
+        # 1. مسح أي معاملة قاعدة بيانات معلقة (ضمان نقاء الجلسة)
+        db.session.rollback()
+        
+        # 2. البحث في قاعدة البيانات المحلية أولاً
         order = db.session.get(Order, order_id)
         
-        # 2. إذا لم يكن موجوداً محلياً، جلب الطلب من API الخارجية
+        # 3. إذا لم يكن موجوداً، قم بمزامنته فوراً ثم حاول جلبه مرة أخرى
         if not order:
             try:
-                if hasattr(services.orders, 'get_order_by_id'):
-                    order = services.orders.get_order_by_id(order_id)
-                elif hasattr(services.orders, 'sync_single_order'):
+                current_app.logger.info(f"🔄 محاولة مزامنة الطلب {order_id} عند فتح التفاصيل...")
+                if hasattr(services.orders, 'sync_single_order'):
+                    # sync_single_order تقوم بجلب وحفظ الطلب، ثم إرجاع كائن الـ Order
                     order = services.orders.sync_single_order(order_id)
-            except Exception as sync_single_e:
-                current_app.logger.warning(f"⚠️ تعذر جلب الطلب {order_id} من الخدمة الخارجية: {sync_single_e}")
+                elif hasattr(services.orders, 'get_order_by_id'):
+                    services.orders.get_order_by_id(order_id)
+                    # بعد استدعاء الجلب، نحاول قراءتها من الداتابيس مرة أخرى
+                    order = db.session.get(Order, order_id)
+            except Exception as sync_e:
+                current_app.logger.error(f"⚠️ خطأ أثناء مزامنة الطلب {order_id}: {sync_e}")
+                db.session.rollback() # تصفير أي معاملة عالقة
 
-        # 3. التأكد من إعادة المحاولة محلياً بعد الجلب
-        if not order:
-            order = db.session.get(Order, order_id)
+        # 4. التأكد من عدم وجود معاملة عالقة قبل الجلب النهائي
+        db.session.rollback()
+        order = db.session.get(Order, order_id)
 
-        # 4. إذا ظل غير موجود، التوجيه مع التنبيه
+        # 5. إذا ظل غير موجود، التوجيه مع التنبيه
         if not order:
-            flash('❌ لم يتم العثور على الطلب في النظام', 'danger')
+            flash('❌ لم يتم العثور على الطلب في النظام، أو فشل حفظه محلياً. تأكد من صحة بيانات المزامنة.', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
-        # 5. جلب قائمة الموردين لتعبئة القائمة المنسدلة
+        # 6. جلب قائمة الموردين لتعبئة القائمة المنسدلة
         suppliers = []
         try:
             if hasattr(services, 'suppliers') and hasattr(services.suppliers, 'get_all_suppliers'):
@@ -177,8 +185,7 @@ def sync_admin_orders():
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح لك بهذه العملية'}), 403
 
-        # تنفيذ المزامنة (استدعاء الخدمة المناسبة)
-        # يمكنك تخصيص هذه الدالة حسب احتياجاتك
+        # تنفيذ المزامنة
         result = services.orders.get_all_orders(page=1, per_page=100)
         
         return jsonify({
