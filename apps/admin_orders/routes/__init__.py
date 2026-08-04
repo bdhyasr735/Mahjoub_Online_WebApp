@@ -3,7 +3,7 @@
 
 from flask import Blueprint
 
-# تعريف الـ Blueprint الرئيسي لإدارة الطلبات
+# 1. تعريف الـ Blueprint أولاً وقبل كل شيء
 admin_orders_bp = Blueprint(
     'admin_orders', 
     __name__, 
@@ -11,5 +11,5 @@ admin_orders_bp = Blueprint(
     url_prefix='/admin/orders'
 )
 
-# استيراد ملفات المسارات الفرعية لتسجيلها وتفعيلها تلقائياً
+# 2. ثم استيراد ملفات المسارات لكي تسجل نفسها على هذا الـ Blueprint بأمان
 from apps.admin_orders.routes import orders, actions
