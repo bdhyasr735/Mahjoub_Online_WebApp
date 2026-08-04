@@ -47,7 +47,7 @@ class OrderService:
         return '\n'.join(result)
 
     def _save_orders_to_db(self, orders_data: List[Dict[str, Any]]):
-        """دالة مساعدة مجمعة لحفظ وتحديث الطلبات في قاعدة البيانات المحلية"""
+        """دالة مساعدة مجمعة لحفظ وتحديث الطلبات وعناصرها مع دعم تعدد الموردين المحليين"""
         try:
             from apps.models.orders_db import Order
             from apps.models.order_items_db import OrderItem
@@ -61,17 +61,8 @@ class OrderService:
                 if not qid:
                     continue
 
-                # تحديد المورد من أول منتج في الطلب
-                supplier_id_found = None
                 items_list = order.get('items') or []
-                if items_list:
-                    first_item = items_list[0] or {}
-                    prod_qid = first_item.get('productId')
-                    if prod_qid:
-                        mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_qid).first()
-                        if mapping:
-                            supplier_id_found = mapping.supplier_id
-
+                
                 # استخراج حالة الطلب بشكل آمن
                 status_obj = order.get('status') or {}
                 if isinstance(status_obj, dict):
@@ -116,8 +107,6 @@ class OrderService:
                     next_number = 1000000235
 
                 if existing_order:
-                    # تحديث البيانات الحالية
-                    existing_order.supplier_id = supplier_id_found
                     existing_order.status_code = status_code
                     existing_order.status_title = status_title
                     existing_order.customer_name = customer_name
@@ -125,13 +114,11 @@ class OrderService:
                     existing_order.total_price = total_price
                     existing_order.created_at = created_at
 
-                    # حذف العناصر القديمة لإعادة إدراجها
+                    # حذف العناصر القديمة لإعادة إدراجها بالتحديثات الجديدة
                     OrderItem.query.filter_by(order_id=existing_order.id).delete()
                 else:
-                    # إنشاء سجل جديد
                     existing_order = Order(
                         id=qid,
-                        supplier_id=supplier_id_found,
                         status_code=status_code,
                         status_title=status_title,
                         customer_name=customer_name,
@@ -143,7 +130,8 @@ class OrderService:
                     db.session.add(existing_order)
                     db.session.flush()
 
-                # إضافة عناصر الطلب
+                # معالجة عناصر الطلب وتوزيع الموردين المحليين بدقة على مستوى كل عنصر
+                primary_supplier_id = None
                 for item in items_list:
                     if not item:
                         continue
@@ -155,8 +143,20 @@ class OrderService:
                     title = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
                     sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
 
+                    # البحث عن المورد المحلي الخاص بهذا المنتج عبر جدول الربط
+                    item_supplier_id = None
+                    if prod_id:
+                        mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_id).first()
+                        if mapping:
+                            item_supplier_id = mapping.supplier_id
+
+                    # تعيين أول مورد رئيسي للطلب كمرجع أساسي إن لم يُحدد مسبقاً
+                    if primary_supplier_id is None and item_supplier_id is not None:
+                        primary_supplier_id = item_supplier_id
+
                     new_item = OrderItem(
                         order_id=existing_order.id,
+                        supplier_id=item_supplier_id,
                         title=title,
                         qty=qty,
                         subtotal=price * qty,
@@ -164,6 +164,9 @@ class OrderService:
                         price_per_unit=price
                     )
                     db.session.add(new_item)
+
+                # تحديث المورد الرئيسي للطلب
+                existing_order.supplier_id = primary_supplier_id
 
                 db.session.commit()
         except Exception as db_err:
@@ -263,14 +266,21 @@ class OrderService:
         date_from: str = None,
         date_to: str = None
     ) -> Dict[str, Any]:
-        """جلب الطلبات من قاعدة البيانات المحلية مع الترقيم والفلترة"""
+        """جلب الطلبات من قاعدة البيانات المحلية مع الترقيم والفلترة مع دعم عرض الطلبات للمورد بناءً على عناصره"""
         from apps.models.orders_db import Order
+        from apps.models.order_items_db import OrderItem
         from apps.extensions import db
 
         query = db.session.query(Order)
 
         if supplier_id is not None:
-            query = query.filter(Order.supplier_id == supplier_id)
+            # التحقق مما إذا كان المورد مرتبطاً بالطلب رئيسياً أو بأي عنصر داخل الطلب
+            query = query.filter(
+                or_(
+                    Order.supplier_id == supplier_id,
+                    Order.items.any(OrderItem.supplier_id == supplier_id)
+                )
+            )
         if status:
             query = query.filter(Order.status_code == status)
         if date_from:
@@ -335,7 +345,7 @@ class OrderService:
             return None
 
     def update_financial_status(self, qid: str, financial_status: str) -> Optional[Dict[str, Any]]:
-        """تحديث الحالة المالية للطلب عبر GraphQL (إن وجد استعلام مخصص أو مرن)"""
+        """تحديث الحالة المالية للطلب عبر GraphQL"""
         mutation = self._extract_query("ChangeFinancialStatus")
         if not mutation:
             return None
@@ -353,7 +363,7 @@ class OrderService:
             return None
 
     def update_fulfillment_status(self, qid: str, fulfillment_status: str) -> Optional[Dict[str, Any]]:
-        """تحديث حالة الشحن والتسليم للطلب عبر GraphQL (إن وجد استعلام مخصص أو مرن)"""
+        """تحديث حالة الشحن والتسليم للطلب عبر GraphQL"""
         mutation = self._extract_query("ChangeFulfillmentStatus")
         if not mutation:
             return None
