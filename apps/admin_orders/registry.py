@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/admin_orders/registry.py
 
-from apps.admin_orders.routes import admin_orders_bp
+# ❌ حذف السطر: from apps.admin_orders.routes import admin_orders_bp
 
 MODULE_NAME = 'إدارة الطلبات'
 MODULE_ICON = 'fas fa-boxes'
@@ -12,5 +12,6 @@ LINKS = {
 }
 
 def register_module(app):
+    from apps.admin_orders.routes import admin_orders_bp  # ✅ الاستيراد هنا فقط
     app.register_blueprint(admin_orders_bp)
     print("✅ [Module]: تم تفعيل موديول إدارة الطلبات بنجاح.")
