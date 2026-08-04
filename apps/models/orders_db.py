@@ -1,215 +1,407 @@
 # coding: utf-8
-# 📂 apps/models/orders_db.py
+# 📂 apps/services/order_service.py
 
 import os
+from typing import Dict, Any, Optional, List
 from datetime import datetime
-from cryptography.fernet import Fernet
-from apps.extensions import db
+from sqlalchemy import or_, cast, Integer, String
+from .graphql_client import GraphQLClient
 
-def get_cipher():
-    key = os.getenv('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
-    return Fernet(key.encode())
 
-cipher = get_cipher()
+class OrderService:
+    """خدمة إدارة الطلبات والمزامنة مع واجهة GraphQL وقاعدة البيانات المحلية"""
 
-class Order(db.Model):
-    """موديل الطلبات: المحرك التشغيلي الذي يربط العميل بالمورد والمسوق."""
-    __tablename__ = 'orders'
+    def __init__(self, client: GraphQLClient):
+        self.client = client
 
-    __table_args__ = (
-        db.Index('idx_ord_supplier_id', 'supplier_id'),
-        db.Index('idx_ord_marketer_id', 'marketer_id'),
-        db.Index('idx_ord_tracking_tag', 'tracking_tag'),
-        db.Index('idx_ord_ref', 'order_reference'),
-        db.Index('idx_ord_status', 'status_code'),
-        db.Index('idx_ord_created', 'created_at'),
-        {'extend_existing': True}
-    )
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.query_file_path = os.path.join(current_dir, 'orders_queries.graphql')
 
-    id = db.Column(db.String(100), primary_key=True)
-    order_id_display = db.Column(db.String(50), nullable=True)
-    
-    # المورد الرئيسي للطلب (إن وجد) أو المورد العام
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
-    marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
-    
-    tracking_tag = db.Column(db.String(100), nullable=True)
-    order_reference = db.Column(db.String(100), unique=True, nullable=True)
-    
-    total_price = db.Column(db.Numeric(18, 2), default=0.00)
-    items_count = db.Column(db.Integer, default=0)
-    
-    order_number = db.Column(db.Integer, nullable=True)
-    
-    status_code = db.Column(db.String(30), default='pending')
-    status_title = db.Column(db.String(50), default='قيد الانتظار')
-    is_paid = db.Column(db.Boolean, default=False)
-    
-    _customer_name = db.Column(db.Text)
-    _customer_phone = db.Column(db.Text)
-    _customer_address = db.Column(db.Text)
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    supplier = db.relationship('Supplier', back_populates='orders', lazy='joined')
-    marketer = db.relationship('Marketer', back_populates='orders', lazy='joined')
-    
-    # الربط مع موديل عناصر الطلب المستقل عبر المسار الكامل
-    items = db.relationship(
-        'apps.models.order_items_db.OrderItem', 
-        back_populates='order', 
-        cascade="all, delete-orphan", 
-        lazy='joined'
-    )
-    
-    financials = db.relationship(
-        'OrderFinancial', 
-        back_populates='order', 
-        uselist=False, 
-        cascade="all, delete-orphan", 
-        lazy='joined'
-    )
-
-    @property
-    def amount(self):
-        return float(self.financials.total_paid) if self.financials and self.financials.total_paid else float(self.total_price or 0.0)
-
-    @property
-    def customer_name(self):
-        if not self._customer_name:
-            return "غير معروف"
         try:
-            return cipher.decrypt(self._customer_name.encode()).decode()
-        except Exception:
-            return str(self._customer_name)
+            with open(self.query_file_path, 'r', encoding='utf-8') as f:
+                self.queries_content = f.read()
+        except FileNotFoundError:
+            print("⚠️ [OrderService]: لم يتم العثور على ملف الاستعلامات")
+            self.queries_content = ""
 
-    @customer_name.setter
-    def customer_name(self, value):
-        if value:
-            self._customer_name = cipher.encrypt(str(value).encode()).decode()
-        else:
-            self._customer_name = None
+    def _extract_query(self, query_name: str) -> str:
+        """استخراج استعلام معين من ملف الاستعلامات"""
+        if not self.queries_content:
+            return ""
 
-    @property
-    def customer_phone(self):
-        if not self._customer_phone:
+        lines = self.queries_content.split('\n')
+        result = []
+        found = False
+        brace_count = 0
+
+        for line in lines:
+            if f"query {query_name}" in line or f"mutation {query_name}" in line:
+                found = True
+
+            if found:
+                result.append(line)
+                brace_count += line.count('{') - line.count('}')
+                if brace_count == 0 and len(result) > 1:
+                    break
+
+        return '\n'.join(result)
+
+    def _save_orders_to_db(self, orders_data: List[Dict[str, Any]]):
+        """دالة مساعدة مجمعة لحفظ وتحديث الطلبات وعناصرها مع دعم تعدد الموردين المحليين"""
+        try:
+            from apps.models.orders_db import Order
+            from apps.models.order_items_db import OrderItem
+            from apps.models.product_supplier_map import ProductSupplierMapping
+            from apps.extensions import db
+
+            for order in orders_data:
+                if not order or not isinstance(order, dict):
+                    continue
+                qid = order.get('_id') or order.get('id')
+                if not qid:
+                    continue
+
+                items_list = order.get('items') or []
+                
+                # استخراج حالة الطلب بشكل آمن
+                status_obj = order.get('status') or {}
+                if isinstance(status_obj, dict):
+                    status_code = status_obj.get('code') or 'pending'
+                    status_title = status_obj.get('title') or 'قيد الانتظار'
+                else:
+                    status_code = str(status_obj) if status_obj else 'pending'
+                    status_title = 'قيد الانتظار'
+
+                # استخراج اسم العميل بشكل آمن
+                account_outer = order.get('account') or {}
+                account_inner = account_outer.get('account') or {}
+                customer_name = account_inner.get('fullname') or (
+                    'عميل زائر' if order.get('type') == 'guest' else 'عميل غير معروف'
+                )
+
+                # استخراج الحالة المالية والإجمالي
+                is_paid = order.get('isPaid', False)
+                total_price = order.get('totalPrice', 0.0) or 0.0
+
+                # استخراج وتنسيق تاريخ الإنشاء
+                created_at_str = order.get('createdAt')
+                created_at = datetime.utcnow()
+                if created_at_str:
+                    try:
+                        clean_date_str = created_at_str.replace('Z', '').split('+')[0]
+                        created_at = datetime.fromisoformat(clean_date_str)
+                    except Exception:
+                        pass
+
+                # البحث عن الطلب محلياً
+                existing_order = Order.query.filter_by(id=qid).first()
+
+                # توليد الرقم التسلسلي للطلب الجديد
+                last_order = db.session.query(Order).order_by(cast(Order.order_number, Integer).desc()).first()
+                if last_order and last_order.order_number:
+                    try:
+                        next_number = int(last_order.order_number) + 1
+                    except (ValueError, TypeError):
+                        next_number = 1000000235
+                else:
+                    next_number = 1000000235
+
+                if existing_order:
+                    existing_order.status_code = status_code
+                    existing_order.status_title = status_title
+                    existing_order.customer_name = customer_name
+                    existing_order.is_paid = is_paid
+                    existing_order.total_price = total_price
+                    existing_order.created_at = created_at
+
+                    # حذف العناصر القديمة لإعادة إدراجها بالتحديثات الجديدة
+                    OrderItem.query.filter_by(order_id=existing_order.id).delete()
+                else:
+                    existing_order = Order(
+                        id=qid,
+                        status_code=status_code,
+                        status_title=status_title,
+                        customer_name=customer_name,
+                        is_paid=is_paid,
+                        total_price=total_price,
+                        order_number=next_number,
+                        created_at=created_at
+                    )
+                    db.session.add(existing_order)
+                    db.session.flush()
+
+                # معالجة عناصر الطلب وتوزيع الموردين المحليين بدقة على مستوى كل عنصر
+                primary_supplier_id = None
+                for item in items_list:
+                    if not item:
+                        continue
+                    prod_data = item.get('productData') or {}
+                    qty = item.get('quantity', 1) or 1
+                    price = item.get('price', 0.0) or 0.0
+                    prod_id = item.get('productId', '')
+
+                    product_name = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
+                    sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
+
+                    # البحث عن المورد المحلي الخاص بهذا المنتج عبر جدول الربط
+                    item_supplier_id = None
+                    if prod_id:
+                        mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_id).first()
+                        if mapping:
+                            item_supplier_id = mapping.supplier_id
+
+                    # تعيين أول مورد رئيسي للطلب كمرجع أساسي إن لم يُحدد مسبقاً
+                    if primary_supplier_id is None and item_supplier_id is not None:
+                        primary_supplier_id = item_supplier_id
+
+                    new_item = OrderItem(
+                        order_id=existing_order.id,
+                        supplier_id=item_supplier_id,
+                        product_name=product_name,
+                        quantity=qty,
+                        price=price
+                    )
+                    db.session.add(new_item)
+
+                # تحديث المورد الرئيسي للطلب
+                existing_order.supplier_id = primary_supplier_id
+
+                db.session.commit()
+        except Exception as db_err:
+            print(f"⚠️ [OrderService] خطأ تفصيلي أثناء حفظ الطلبات محلياً: {db_err}")
+            db.session.rollback()
+
+    def get_order(self, qid: str) -> Optional[Dict[str, Any]]:
+        """جلب تفاصيل الطلب من API باستخدام المعرف qid"""
+        query = self._extract_query("FindOrderById")
+        try:
+            result = self.client.execute(query, {"id": qid}, operation_name="FindOrderById")
+            if result and 'findOrderById' in result:
+                res_data = result['findOrderById']
+                if isinstance(res_data, dict) and 'data' in res_data and res_data['data']:
+                    return res_data['data']
+                return res_data
+            return None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في جلب الطلب {qid}: {e}")
+            return None
+
+    def sync_single_order(self, qid: str):
+        """⚡ جلب طلب مفرد من GraphQL وتخزينه محلياً فوراً ثم إرجاع الكائن"""
+        order_data = self.get_order(qid)
+        if order_data:
+            self._save_orders_to_db([order_data])
+
+        from apps.models.orders_db import Order
+        return Order.query.get(qid)
+
+    def get_order_by_id(self, qid: str):
+        """اسم مستعار (Alias) لـ sync_single_order لضمان عمل كافة الاستدعاءات"""
+        return self.sync_single_order(qid)
+
+    def get_all_orders(
+        self,
+        page: int = 1,
+        per_page: int = 10,
+        supplier_id: str = None,
+        status: str = None,
+        search: str = None,
+        date_from: str = None,
+        date_to: str = None
+    ) -> Dict[str, Any]:
+        """جلب قائمة الطلبات ودمجها وتخزينها في قاعدة البيانات المحلية"""
+        input_data = {"page": page, "limit": per_page}
+        if supplier_id: input_data["supplierId"] = supplier_id
+        if status: input_data["status"] = status
+        if search: input_data["search"] = search
+        if date_from: input_data["dateFrom"] = date_from
+        if date_to: input_data["dateTo"] = date_to
+
+        query = self._extract_query("FindAllOrders")
+        try:
+            result = self.client.execute(query, {"input": input_data}, operation_name="FindAllOrders")
+
+            orders_data = []
+            pagination_data = {
+                "totalItems": 0,
+                "totalPages": 1,
+                "currentPage": page,
+                "limit": per_page,
+                "hasNextPage": False
+            }
+
+            if result and 'findAllOrders' in result:
+                orders_data = result['findAllOrders'].get('data', []) or []
+                pagination_data = result['findAllOrders'].get('pagination', {}) or {}
+
+                # حفظ دفعة الطلبات محلياً
+                self._save_orders_to_db(orders_data)
+
+            return {
+                "data": orders_data,
+                "pagination": pagination_data
+            }
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في جلب الطلبات: {e}")
+            return {
+                "data": [],
+                "pagination": {
+                    "totalItems": 0,
+                    "totalPages": 1,
+                    "currentPage": page,
+                    "limit": per_page,
+                    "hasNextPage": False
+                }
+            }
+
+    def get_local_orders(
+        self,
+        page: int = 1,
+        per_page: int = 10,
+        supplier_id: int = None,
+        status: str = None,
+        search: str = None,
+        date_from: str = None,
+        date_to: str = None
+    ) -> Dict[str, Any]:
+        """جلب الطلبات من قاعدة البيانات المحلية مع الترقيم والفلترة مع دعم عرض الطلبات للمورد بناءً على عناصره"""
+        from apps.models.orders_db import Order
+        from apps.models.order_items_db import OrderItem
+        from apps.extensions import db
+
+        try:
+            query = db.session.query(Order)
+
+            if supplier_id is not None:
+                # التحقق مما إذا كان المورد مرتبطاً بالطلب رئيسياً أو بأي عنصر داخل الطلب
+                query = query.filter(
+                    or_(
+                        Order.supplier_id == supplier_id,
+                        Order.items.any(OrderItem.supplier_id == supplier_id)
+                    )
+                )
+            if status:
+                query = query.filter(Order.status_code == status)
+            if date_from:
+                query = query.filter(Order.created_at >= datetime.strptime(date_from, '%Y-%m-%d'))
+            if date_to:
+                query = query.filter(Order.created_at <= datetime.strptime(date_to, '%Y-%m-%d'))
+            if search:
+                query = query.filter(or_(
+                    Order.id.ilike(f'%{search}%'),
+                    cast(Order.order_number, String).ilike(f'%{search}%'),
+                    Order.customer_name.ilike(f'%{search}%')
+                ))
+
+            total_items = query.count()
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+
+            orders = query.order_by(cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
+
+            orders_data = []
+            for order in orders:
+                try:
+                    order_dict = order.to_dict()
+                    if hasattr(order, 'supplier') and order.supplier:
+                        order_dict['supplier_name'] = order.supplier.trade_name
+                    else:
+                        order_dict['supplier_name'] = 'غير مرتبط'
+                    orders_data.append(order_dict)
+                except Exception as ser_err:
+                    # إذا فشل تحويل طلب معين، نتخطاه فقط ولا ننهار الخادم
+                    print(f"⚠️ [OrderService] فشل تحويل الطلب {order.id} إلى JSON: {ser_err}")
+                    continue
+
+            return {
+                'data': orders_data,
+                'pagination': {
+                    'totalItems': total_items,
+                    'totalPages': total_pages,
+                    'currentPage': page,
+                    'limit': per_page,
+                    'hasNextPage': page < total_pages
+                }
+            }
+        except Exception as e:
+            # حماية شاملة للخادم من الانهيار (خطأ 500)
+            print(f"❌ [OrderService] خطأ حرج أثناء جلب الطلبات المحلية: {e}")
+            return {
+                'data': [],
+                'pagination': {
+                    'totalItems': 0,
+                    'totalPages': 1,
+                    'currentPage': page,
+                    'limit': per_page,
+                    'hasNextPage': False
+                }
+            }
+
+    def create_order(self, input_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        mutation = self._extract_query("CreateOrder")
+        try:
+            result = self.client.execute(mutation, {"input": input_data}, operation_name="CreateOrder")
+            return result.get('createOrder') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في إنشاء الطلب: {e}")
+            return None
+
+    def update_order_status(self, qid: str, status: str) -> Optional[Dict[str, Any]]:
+        """تحديث حالة الطلب عبر GraphQL"""
+        mutation = self._extract_query("ChangeOrderStatus")
+        try:
+            variables = {
+                "input": {
+                    "orderId": str(qid),
+                    "status": str(status)
+                }
+            }
+            result = self.client.execute(mutation, variables, operation_name="ChangeOrderStatus")
+            return result.get('changeOrderStatus') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في تحديث حالة الطلب {qid}: {e}")
+            return None
+
+    def update_financial_status(self, qid: str, financial_status: str) -> Optional[Dict[str, Any]]:
+        """تحديث الحالة المالية للطلب عبر GraphQL"""
+        mutation = self._extract_query("ChangeFinancialStatus")
+        if not mutation:
             return None
         try:
-            return cipher.decrypt(self._customer_phone.encode()).decode()
-        except Exception:
-            return str(self._customer_phone)
+            variables = {
+                "input": {
+                    "orderId": str(qid),
+                    "financialStatus": str(financial_status)
+                }
+            }
+            result = self.client.execute(mutation, variables, operation_name="ChangeFinancialStatus")
+            return result.get('changeFinancialStatus') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في تحديث الحالة المالية للطلب {qid}: {e}")
+            return None
 
-    @customer_phone.setter
-    def customer_phone(self, value):
-        if value:
-            self._customer_phone = cipher.encrypt(str(value).encode()).decode()
-        else:
-            self._customer_phone = None
-
-    @property
-    def customer_address(self):
-        if not self._customer_address:
+    def update_fulfillment_status(self, qid: str, fulfillment_status: str) -> Optional[Dict[str, Any]]:
+        """تحديث حالة الشحن والتسليم للطلب عبر GraphQL"""
+        mutation = self._extract_query("ChangeFulfillmentStatus")
+        if not mutation:
             return None
         try:
-            return cipher.decrypt(self._customer_address.encode()).decode()
-        except Exception:
-            return str(self._customer_address)
+            variables = {
+                "input": {
+                    "orderId": str(qid),
+                    "fulfillmentStatus": str(fulfillment_status)
+                }
+            }
+            result = self.client.execute(mutation, variables, operation_name="ChangeFulfillmentStatus")
+            return result.get('changeFulfillmentStatus') if result else None
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في تحديث حالة الشحن للطلب {qid}: {e}")
+            return None
 
-    @customer_address.setter
-    def customer_address(self, value):
-        if value:
-            self._customer_address = cipher.encrypt(str(value).encode()).decode()
-        else:
-            self._customer_address = None
-
-    @property
-    def _id(self):
-        return self.id
-
-    @property
-    def status(self):
-        code_val = self.status_code or 'pending'
-        title_val = self.status_title or 'قيد الانتظار'
-
-        class StatusWrapper:
-            def __init__(self, code, title):
-                self.code = code
-                self.title = title
-            def __getitem__(self, item):
-                return getattr(self, item, '')
-            def __str__(self):
-                return str(self.code)
-
-        return StatusWrapper(code_val, title_val)
-
-    @property
-    def account(self):
-        fullname_val = self.customer_name or 'عميل'
-
-        class AccountInner:
-            def __init__(self, fullname):
-                self.fullname = fullname
-                self.phone = None
-                self.avatarUrl = None
-
-        class AccountOuter:
-            def __init__(self, fullname):
-                self.account = AccountInner(fullname)
-
-        return AccountOuter(fullname_val)
-
-    @property
-    def total_amount(self):
-        return float(self.total_price or 0.0)
-
-    @property
-    def totalPrice(self):
-        return float(self.total_price or 0.0)
-
-    @property
-    def shippingPrice(self):
-        """خاصية توافقية لـ سعر الشحن تُرجع float لمنع خطأ الجمع مع Decimal."""
-        return 0.0
-
-    @property
-    def shipping_address(self):
-        return self.customer_address
-
-    @property
-    def suppliers_list(self):
-        """خاصية لاستخراج جميع الموردين المحليين المختلفين المرتبطين بعناصر هذا الطلب."""
-        suppliers_dict = {}
-        if self.supplier:
-            suppliers_dict[self.supplier.id] = self.supplier
-        for item in self.items:
-            if item.supplier:
-                suppliers_dict[item.supplier.id] = item.supplier
-        return list(suppliers_dict.values())
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            '_id': self.id,
-            'qid': self.id,
-            'order_reference': self.order_reference,
-            'order_number': self.order_number,
-            'supplier_id': self.supplier_id,
-            'status_code': self.status_code,
-            'status_title': self.status_title,
-            'status_text': self.status_title or 'غير معروف',
-            'customer_name': self.customer_name,
-            'customer_phone': self.customer_phone,
-            'customer_address': self.customer_address,
-            'is_paid': self.is_paid,
-            'total_price': float(self.total_price) if self.total_price else 0.0,
-            'items_count': self.items_count or (len(self.items) if self.items else 0),
-            'created_at': self.created_at,
-            'updated_at': self.updated_at,
-            'supplier_name': self.supplier.trade_name if self.supplier else 'غير مرتبط',
-            'suppliers': [{'id': s.id, 'trade_name': getattr(s, 'trade_name', 'مورد محلي')} for s in self.suppliers_list],
-            'items': [item.to_dict() for item in self.items] if self.items else []
-        }
-
-    def __repr__(self):
-        return f'<Order {self.order_id_display or self.id} | Status: {self.status_title} | Amount: {self.amount} SAR>'
+    def delete_order(self, qid: str) -> bool:
+        mutation = self._extract_query("DeleteOrder")
+        try:
+            result = self.client.execute(mutation, {"id": qid}, operation_name="DeleteOrder")
+            return result.get('deleteOrder', False) if result else False
+        except Exception as e:
+            print(f"❌ [OrderService]: خطأ في حذف الطلب {qid}: {e}")
+            return False
