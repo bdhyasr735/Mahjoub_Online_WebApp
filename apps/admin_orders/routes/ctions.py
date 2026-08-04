@@ -1,78 +1,45 @@
 # coding: utf-8
 # 📂 apps/admin_orders/routes/actions.py
 
-from flask import request, jsonify, current_app
-from apps.admin_orders import admin_orders_bp
+from flask import Blueprint, request, redirect, url_for, flash
+from flask_login import login_required
 from apps.extensions import db
-from apps.services import services
 from apps.models.orders_db import Order
-from apps.models.order_items_db import OrderItem
 
-@admin_orders_bp.route('/sync', methods=['POST'])
-def sync_admin_orders():
-    """مزامنة الطلبات يدوياً عبر زر المزامنة في لوحة التحكم"""
-    try:
-        # استدعاء خدمة جلب ومزامنة الطلبات من المصدر الخارجي
-        services.orders.get_all_orders(page=1, per_page=50)
-        return jsonify({'success': True, 'message': 'تمت مزامنة الطلبات بنجاح'})
-    except Exception as e:
-        current_app.logger.error(f"خطأ في مزامنة الطلبات: {str(e)}")
-        return jsonify({'success': False, 'message': f'حدث خطأ أثناء المزامنة: {str(e)}'}), 500
+# تعريف الـ Blueprint الخاص بالإجراءات أو العمليات على الطلبات
+actions_bp = Blueprint('admin_order_actions', __name__, url_prefix='/admin/orders/actions')
 
-
-@admin_orders_bp.route('/<string:order_id>/status', methods=['POST'])
-def update_order_status(order_id):
-    """تحديث حالة الطلب العامة عبر AJAX"""
-    data = request.get_json() or {}
-    new_status = data.get('status')
+@actions_bp.route('/update-status/<int:order_id>', methods=['POST'])
+@login_required
+def update_status(order_id):
+    """تحديث حالة الطلب (قيد المعالجة، تم الشحن، ملغي، إلخ)"""
+    order = Order.query.get_or_404(order_id)
+    new_status = request.form.get('status')
     
+    if new_status:
+        try:
+            order.status = new_status
+            db.session.commit()
+            flash('تم تحديث حالة الطلب بنجاح.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ أثناء التحديث: {str(e)}', 'danger')
+    else:
+        flash('لم يتم تحديد حالة صحيحة.', 'warning')
+        
+    return redirect(url_for('admin_orders.order_detail', order_id=order.id))
+
+@actions_bp.route('/delete/<int:order_id>', methods=['POST'])
+@login_required
+def delete_order(order_id):
+    """حذف طلب من لوحة الإدارة"""
+    order = Order.query.get_or_404(order_id)
     try:
-        order = db.session.get(Order, order_id)
-        if not order:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-            
-        order.status = new_status
+        db.session.delete(order)
         db.session.commit()
-        return jsonify({'success': True, 'message': 'تم تحديث حالة الطلب بنجاح'})
+        flash('تم حذف الطلب بنجاح.', 'success')
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@admin_orders_bp.route('/<string:order_id>/payment-status', methods=['POST'])
-def update_payment_status(order_id):
-    """تحديث الحالة المالية (الدفع) عبر AJAX"""
-    data = request.get_json() or {}
-    is_paid = data.get('isPaid')
-    
-    try:
-        order = db.session.get(Order, order_id)
-        if not order:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-            
-        order.is_paid = is_paid
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'تم تحديث الحالة المالية بنجاح'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@admin_orders_bp.route('/<string:order_id>/items/supplier', methods=['POST'])
-def update_item_supplier(order_id):
-    """ربط بند معين داخل الطلب بمورد محلي عبر AJAX"""
-    data = request.get_json() or {}
-    item_id = data.get('item_id')
-    supplier_id = data.get('supplier_id')
-    
-    try:
-        item = OrderItem.query.filter_by(id=item_id, order_id=order_id).first()
-        if not item:
-            return jsonify({'success': False, 'message': 'عنصر الطلب غير موجود'}), 404
-            
-        item.supplier_id = int(supplier_id) if supplier_id else None
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'تم تعيين المورد المحلي للبند بنجاح'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        flash(f'فشل حذف الطلب: {str(e)}', 'danger')
+        
+    return redirect(url_for('admin_orders.list_orders'))
