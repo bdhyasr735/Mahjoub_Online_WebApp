@@ -8,7 +8,7 @@ MODULE_ICON = "fa-tachometer-alt"
 SHOW_IN_SUPPLIER = False
 
 LINKS = {
-    "📊 الرئيسية": "admin_dashboard_bp.dashboard"
+    "admin_dashboard_bp.dashboard": "📊 الرئيسية"   # ✅ المفتاح = endpoint، القيمة = النص
 }
 
 def register_module(app):
