@@ -12,7 +12,8 @@
 <div class="container-fluid py-4" style="background-color: #f4f6f9;">
 
     <!-- 📌 هيدر الصفحة والإجراءات -->
-    {% include 'admin/order/_order_header.html' %}
+    <!-- ✅ تم إضافة ignore missing لحل مشكلة الانهيار حالياً -->
+    {% include 'admin/order/_order_header.html' ignore missing %}
 
     <div class="row g-4">
         <!-- 👈 العمود الأيمن: حالات الطلب ومعلومات العميل وعنوان الشحن -->
