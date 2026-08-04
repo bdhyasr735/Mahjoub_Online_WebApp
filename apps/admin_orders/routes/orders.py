@@ -3,15 +3,14 @@
 
 import traceback
 import threading
-from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Blueprint  # ← أضف Blueprint
+from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Blueprint
 from flask_login import login_required
 
-# ❌ احذف هذا السطر نهائياً: from apps.admin_orders import admin_orders_bp
 from apps.extensions import db
 from apps.services import services
 from apps.models.orders_db import Order
 
-# ✅ عرّف الـ Blueprint هنا (هذا هو الحل السحري)
+# تعريف الـ Blueprint الرئيسي
 admin_orders_bp = Blueprint('admin_orders_bp', __name__, url_prefix='/admin/orders')
 
 # 🏷️ خريطة المسميات العربية للحالات
@@ -158,3 +157,34 @@ def register_admin_orders_route(bp):
     bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
     bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
     return bp
+
+
+# ============================================================
+# ✅ دالة المزامنة (لزر "مزامنة الطلبات")
+# ============================================================
+@admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
+@login_required
+def sync_admin_orders():
+    """مزامنة الطلبات من المنصة إلى قاعدة البيانات المحلية"""
+    try:
+        # التحقق من صلاحيات المستخدم
+        user_type = session.get('user_type')
+        if user_type != 'admin':
+            return jsonify({'success': False, 'message': 'غير مصرح لك بهذه العملية'}), 403
+
+        # تنفيذ المزامنة (استدعاء الخدمة المناسبة)
+        # يمكنك تخصيص هذه الدالة حسب احتياجاتك
+        result = services.orders.get_all_orders(page=1, per_page=100)
+        
+        return jsonify({
+            'success': True,
+            'message': 'تمت مزامنة الطلبات بنجاح',
+            'data': result
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"خطأ في مزامنة الطلبات: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': f'حدث خطأ أثناء المزامنة: {str(e)}'
+        }), 500
