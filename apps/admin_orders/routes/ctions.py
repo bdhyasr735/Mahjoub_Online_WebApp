@@ -2,7 +2,7 @@
 # 📂 apps/admin_orders/routes/actions.py
 
 from flask import request, jsonify
-from .orders import admin_orders_bp  # استيراد الـ Blueprint من الملف المجاور
+from apps.admin_orders.routes import admin_orders_bp
 from apps.extensions import db
 from apps.models.orders_db import Order
 from apps.models.order_items_db import OrderItem
@@ -10,7 +10,7 @@ from apps.models.order_items_db import OrderItem
 @admin_orders_bp.route('/<string:order_id>/status', methods=['POST'])
 def update_order_status(order_id):
     """تحديث حالة الطلب العامة عبر AJAX"""
-    data = request.get_json()
+    data = request.get_json() or {}
     new_status = data.get('status')
     
     try:
@@ -29,7 +29,7 @@ def update_order_status(order_id):
 @admin_orders_bp.route('/<string:order_id>/payment-status', methods=['POST'])
 def update_payment_status(order_id):
     """تحديث الحالة المالية (الدفع) عبر AJAX"""
-    data = request.get_json()
+    data = request.get_json() or {}
     is_paid = data.get('isPaid')
     
     try:
@@ -48,7 +48,7 @@ def update_payment_status(order_id):
 @admin_orders_bp.route('/<string:order_id>/items/supplier', methods=['POST'])
 def update_item_supplier(order_id):
     """ربط بند معين داخل الطلب بمورد محلي عبر AJAX"""
-    data = request.get_json()
+    data = request.get_json() or {}
     item_id = data.get('item_id')
     supplier_id = data.get('supplier_id')
     
