@@ -1,18 +1,28 @@
 # coding: utf-8
-# 📂 apps/admin_orders/registry.py
+# 📂 apps/orders/registry.py
 
-MODULE_NAME = "إدارة الطلبات"
-MODULE_ICON = "fas fa-shopping-cart"
-SHOW_IN_SUPPLIER = False  # هذه الوحدة للأدمن فقط
+from flask import Blueprint, render_template
 
+# 1. إنشاء الـ Blueprint الخاص بالطلبات
+orders_bp = Blueprint('orders_bp', __name__, template_folder='templates', url_prefix='/admin/orders')
+
+# 2. إعدادات القائمة الجانبية (تظهر تلقائياً في الإدارة)
+MODULE_NAME = 'إدارة الطلبات'
+MODULE_ICON = 'fas fa-boxes'
+SHOW_IN_SUPPLIER = False  # يظهر للإدارة فقط
+
+# الروابط التي ستظهر في الشريط الجانبي تحت هذا القسم
 LINKS = {
-    'admin_orders_bp.list_admin_orders': '📋 قائمة الطلبات'
+    'orders_bp.list_orders': 'عرض الطلبات',
 }
 
+# 3. مسارات الموديول (يمكنك وضعها هنا أو استيرادها من ملف routes.py منفصل)
+@orders_bp.route('/')
+def list_orders():
+    # منطق عرض الطلبات هنا
+    return render_template('admin/orders/list.html')
+
+# 4. الدالة التي يتم استدعاؤها تلقائياً بواسطة apps/__init__.py
 def register_module(app):
-    from apps.admin_orders import admin_orders_bp
-    if 'admin_orders_bp' not in app.blueprints:
-        app.register_blueprint(admin_orders_bp, url_prefix='/admin/orders')
-        print("✅ [Registry]: تم تسجيل موديول 'admin_orders' بنجاح.")
-    else:
-        print("ℹ️ [Registry]: موديول 'admin_orders' مسجل مسبقاً.")
+    app.register_blueprint(orders_bp)
+    print("✅ [Module]: تم تفعيل موديول إدارة الطلبات بنجاح.")
