@@ -35,7 +35,6 @@ def _sync_orders_in_background(app):
     """دالة مساعدة لإجراء المزامنة التلقائية للصفحة الأولى فقط في الخلفية."""
     with app.app_context():
         try:
-            # ✅ نقوم فقط بمزامنة الصفحة الأولى بـ 50 طلب (لضمان جلب الطلبات الجديدة فوراً)
             services.orders.get_all_orders(page=1, per_page=50)
         except Exception as sync_e:
             app.logger.warning(f"⚠️ [Auto Sync Orders Background] {sync_e}")
@@ -52,7 +51,6 @@ def manage_admin_orders_view():
             return redirect(url_for('admin_dashboard_bp.dashboard'))
 
         page = request.args.get('page', 1, type=int)
-        # ✅ تم تثبيت عدد الطلبات في الصفحة على 10
         per_page = 10
 
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -62,7 +60,6 @@ def manage_admin_orders_view():
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
 
-        # ✅ المزامنة التلقائية للصفحة الأولى عند فتح أي صفحة (لجلب الطلبات الجديدة)
         if not is_ajax:
             app = current_app._get_current_object()
             threading.Thread(
@@ -71,7 +68,6 @@ def manage_admin_orders_view():
                 daemon=True
             ).start()
 
-        # ⚡ جلب فوري ومباشر للطلبات من قاعدة البيانات المحلية
         result = services.orders.get_local_orders(
             page=page,
             per_page=per_page,
@@ -99,7 +95,6 @@ def manage_admin_orders_view():
             if 'status_text' not in order:
                 order['status_text'] = order.get('status_title', 'غير معروف')
 
-        # ✅ جلب قائمة الموردين لتعبئة فلتر المورد
         suppliers_list = Supplier.query.all()
 
         if is_ajax:
@@ -125,13 +120,9 @@ def manage_admin_orders_view():
 @login_required
 def view_admin_order(order_id):
     try:
-        # 1. مسح أي معاملة قاعدة بيانات معلقة (ضمان نقاء الجلسة)
         db.session.rollback()
-        
-        # 2. البحث في قاعدة البيانات المحلية أولاً
         order = db.session.get(Order, order_id)
         
-        # 3. إذا لم يكن موجوداً، قم بمزامنته فوراً ثم حاول جلبه مرة أخرى
         if not order:
             try:
                 current_app.logger.info(f"🔄 محاولة مزامنة الطلب {order_id} عند فتح التفاصيل...")
@@ -144,17 +135,22 @@ def view_admin_order(order_id):
                 current_app.logger.error(f"⚠️ خطأ أثناء مزامنة الطلب {order_id}: {sync_e}")
                 db.session.rollback()
 
-        # 4. التأكد من عدم وجود معاملة عالقة قبل الجلب النهائي
         db.session.rollback()
         order = db.session.get(Order, order_id)
 
-        # 5. إذا ظل غير موجود، التوجيه مع التنبيه
         if not order:
             flash('❌ لم يتم العثور على الطلب في النظام، أو فشل حفظه محلياً. تأكد من صحة بيانات المزامنة.', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
-        # ✅ 6. جلب قائمة الموردين من قاعدة البيانات المحلية مباشرة
-        suppliers = Supplier.query.all()  # جميع الموردين المحليين
+        # 🔍 توثيق عملية استعراض تفاصيل طلب حساس عبر AuditLogger
+        services.audit.log(
+            action="VIEW_ORDER_DETAILS",
+            target_type="Order",
+            target_id=order_id,
+            details="تم استعراض تفاصيل الطلب من قبل المشرف"
+        )
+
+        suppliers = Supplier.query.all()
 
         return render_template('admin/admin_order_detail.html', order=order, suppliers=suppliers)
 
@@ -164,45 +160,37 @@ def view_admin_order(order_id):
         return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
 
-# (اختياري) يمكنك حذف هذه الدالة لأن الـ Decorators تغني عنها
 def register_admin_orders_route(bp):
     bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
     bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
     return bp
 
 
-# ============================================================
-# ✅ دالة المزامنة الشاملة للزر (نسخة صلبة وغير قابلة للكسر)
-# ============================================================
 @admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
 @login_required
 def sync_admin_orders():
     """مزامنة جميع الطلبات من المنصة (جميع الصفحات) إلى قاعدة البيانات المحلية"""
     try:
-        # التحقق من صلاحيات المستخدم
         user_type = session.get('user_type')
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح لك بهذه العملية'}), 403
 
         total_synced = 0
         current_page = 1
-        per_page = 10  # ✅ تم تخفيض الحجم إلى 10 لتخفيف الحمل على الذاكرة بشكل كبير
+        per_page = 10
 
         current_app.logger.info(f"🚀 [Sync] بدء المزامنة الكاملة...")
 
-        # ✅ حلقة تكرار مفتوحة: تستمر حتى تجلب كل شيء
         while True:
             try:
                 current_app.logger.info(f"🔁 [Sync] جاري جلب الصفحة {current_page}...")
                 
-                # جلب دفعة من الطلبات
                 result = services.orders.get_all_orders(page=current_page, per_page=per_page)
                 
                 orders_data = result.get('data', [])
                 pagination = result.get('pagination', {})
                 total_pages = pagination.get('totalPages', 0)
 
-                # إذا لم يعد هناك بيانات، نكسر الحلقة
                 if not orders_data:
                     current_app.logger.info(f"⏹️ [Sync] لا توجد بيانات في الصفحة {current_page}. إنهاء المزامنة.")
                     break
@@ -210,7 +198,6 @@ def sync_admin_orders():
                 total_synced += len(orders_data)
                 current_app.logger.info(f"✅ [Sync] الصفحة {current_page}: تم حفظ {len(orders_data)} طلب. الإجمالي: {total_synced}")
 
-                # 🛡️ حماية مزدوجة للخروج من الحلقة
                 if current_page >= total_pages:
                     current_app.logger.info(f"🏁 [Sync] وصلنا للصفحة الأخيرة. إنهاء المزامنة.")
                     break
@@ -224,11 +211,19 @@ def sync_admin_orders():
                 time.sleep(0.5)
 
             except Exception as inner_e:
-                # ✅ الحل الحاسم: إذا فشلت صفحة معينة، لا نكسر الحلقة. نخطو للصفحة التالية!
                 current_app.logger.error(f"❌ [Sync] فشلت الصفحة {current_page}، سنتخطاها ونكمل للصفحة التالية: {inner_e}")
                 current_page += 1
+                import time
                 time.sleep(0.5)
-                continue  # نعود لبداية الحلقة دون كسرها
+                continue
+
+        # 🔍 توثيق عملية المزامنة الشاملة الناجحة في سجل التدقيق الأمني
+        services.audit.log(
+            action="SYNC_ALL_ORDERS",
+            target_type="System",
+            target_id=None,
+            details=f"تمت مزامنة {total_synced} طلب بنجاح من Qumra API إلى قاعدة البيانات المحلية."
+        )
 
         return jsonify({
             'success': True,
