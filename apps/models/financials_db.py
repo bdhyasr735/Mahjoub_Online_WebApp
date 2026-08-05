@@ -155,5 +155,23 @@ class OrderFinancial(db.Model):
         """العملة ثابتة: ريال سعودي (SAR)"""
         return "SAR"
 
+    def to_dict(self):
+        """تحويل السجل المالي إلى قاموس آمن للاستخدام في APIs"""
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'supplier_id': self.supplier_id,
+            'transaction_id': self.transaction_id,
+            'supplier_cost': self.supplier_cost,
+            'mahjoub_commission': self.mahjoub_commission,
+            'total_paid': self.total_paid,
+            'shipping_fees': float(self.shipping_fees) if self.shipping_fees else 0.0,
+            'platform_profit': self.platform_profit,
+            'settlement_status': self.settlement_status,
+            'currency': self.currency,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'settled_at': self.settled_at.isoformat() if self.settled_at else None
+        }
+
     def __repr__(self):
         return f'<OrderFinancial OrderID: {self.order_id} | SupplierCost: {self.supplier_cost} SAR | Status: {self.settlement_status}>'
