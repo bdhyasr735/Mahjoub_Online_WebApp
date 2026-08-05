@@ -2,7 +2,6 @@
 # 📂 apps/services/order_service.py
 
 import os
-import gc  # ✅ تمت إضافة مكتبة جامع القمامة
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from sqlalchemy import or_, cast, Integer, String
@@ -165,9 +164,8 @@ class OrderService:
 
                     db.session.commit()
                     
-                    # ✅ إفراغ الجلسة وجمع القمامة لتخفيف الذاكرة بعد كل طلب
+                    # ✅ إفراغ الجلسة لتخفيف الذاكرة (بدون gc.collect() اليدوي)
                     db.session.expunge_all()
-                    gc.collect()
                 
                 except Exception as order_err:
                     # إذا فشل هذا الطلب، نتراجع ونتجاوز
