@@ -20,9 +20,13 @@
                             <!-- رقم الطلب -->
                             <td class="fw-bold py-2">#{{ order.order_number or order.id[:8] }}</td>
                             
-                            <!-- اسم العميل -->
+                            <!-- اسم العميل (تم التعديل هنا) -->
                             <td class="py-2 text-truncate" style="max-width: 140px;" title="{{ order.customer_name }}">
-                                {{ order.customer_name or 'عميل زائر' }}
+                                {% if order.customer_name and order.customer_name != 'زائر' and order.customer_name != 'عميل غير معروف' %}
+                                    {{ order.customer_name }}
+                                {% else %}
+                                    <span class="text-muted fst-italic">ضيف</span>
+                                {% endif %}
                             </td>
 
                             <!-- التاريخ -->
