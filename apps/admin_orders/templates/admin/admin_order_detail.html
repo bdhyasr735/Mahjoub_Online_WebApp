@@ -5,209 +5,25 @@
 
 {% block content %}
 <div class="container-fluid py-4" dir="rtl">
-    <!-- رأس الصفحة وأزرار التحكم -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="h3 mb-0 text-gray-800">تفاصيل الطلب <span class="text-primary">#{{ order.id }}</span></h2>
-            <p class="text-muted text-sm mt-1">تاريخ الإنشاء: {{ order.created_at or 'غير متوفر' }}</p>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('admin_orders_bp.list_admin_orders') }}" class="btn btn-secondary btn-sm">
-                <i class="fas fa-arrow-right ml-1"></i> العودة للقائمة
-            </a>
-            <a href="{{ url_for('admin_order_actions.print_order_invoice', order_id=order.id) }}" target="_blank" class="btn btn-info btn-sm">
-                <i class="fas fa-print ml-1"></i> طباعة الفاتورة
-            </a>
-        </div>
-    </div>
+    <!-- 1. رأس الصفحة وأزرار التحكم العلوية -->
+    {% include "admin/partials/_order_header.html" %}
 
     <div class="row">
-        <!-- معلومات الطلب والعميل -->
+        <!-- العمود الجانبي: معلومات العميل، الحالة، والملخص المالي -->
         <div class="col-xl-4 col-lg-5 mb-4">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 bg-primary text-white">
-                    <h6 class="m-0 font-weight-bold">معلومات العميل والطلب</h6>
-                </div>
-                <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>اسم العميل:</span>
-                            <strong>{{ order.customer_name or order.user_name or 'عميل متجر' }}</strong>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>رقم الهاتف:</span>
-                            <span dir="ltr">{{ order.phone or order.customer_phone or 'غير متوفر' }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>عنوان الشحن:</span>
-                            <span class="text-truncate" style="max-width: 200px;" title="{{ order.address }}">
-                                {{ order.address or 'غير متوفر' }}
-                            </span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>الإجمالي الكلي:</span>
-                            <strong class="text-success">{{ order.total_amount or order.total or 0 }} ريال</strong>
-                        </li>
-                    </ul>
-
-                    <!-- تحديث الحالة والدفع -->
-                    <div class="mt-4">
-                        <label class="form-label font-weight-bold">حالة الطلب:</label>
-                        <select id="orderStatusSelect" class="form-control mb-3" data-order-id="{{ order.id }}">
-                            <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-                            <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>قيد التجهيز</option>
-                            <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
-                            <option value="delivered" {% if order.status_code == 'delivered' %}selected{% endif %}>تم التسليم</option>
-                            <option value="completed" {% if order.status_code == 'completed' %}selected{% endif %}>مكتمل</option>
-                            <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
-                            <option value="refunded" {% if order.status_code == 'refunded' %}selected{% endif %}>مسترجع</option>
-                        </select>
-
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="isPaidSwitch" {% if order.is_paid %}checked{% endif %} data-order-id="{{ order.id }}">
-                            <label class="form-check-label font-weight-bold mr-2" for="isPaidSwitch">الطلب مدفوع</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {% include "admin/partials/_customer_info_card.html" %}
+            {% include "admin/partials/_order_status_card.html" %}
+            {% include "admin/partials/_financial_summary_card.html" %}
+            {% include "admin/partials/_supplier_stats_card.html" %}
         </div>
 
-        <!-- جدول منتجات وعناصر الطلب -->
+        <!-- العمود الرئيسي: جدول عناصر ومنتجات الطلب -->
         <div class="col-xl-8 col-lg-7">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 bg-secondary text-white">
-                    <h6 class="m-0 font-weight-bold">عناصر الطلب والمنتجات</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered text-center" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>المنتج</th>
-                                    <th>الكمية</th>
-                                    <th>السعر</th>
-                                    <th>المورد المسؤول</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if order.items %}
-                                    {% for item in order.items %}
-                                    <tr>
-                                        <td class="text-right">
-                                            <strong>{{ item.product_name or item.name or 'منتج' }}</strong>
-                                            {% if item.variant %}
-                                                <br><small class="text-muted">{{ item.variant }}</small>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ item.quantity }}</td>
-                                        <td>{{ item.price }} ريال</td>
-                                        <td>
-                                            <select class="form-control form-control-sm item-supplier-select" 
-                                                    data-order-id="{{ order.id }}" 
-                                                    data-item-id="{{ item.id }}">
-                                                <option value="">-- بدون مورد --</option>
-                                                {% for sup in suppliers %}
-                                                    <option value="{{ sup.id }}" {% if item.supplier_id == sup.id %}selected{% endif %}>
-                                                        {{ sup.name }}
-                                                    </option>
-                                                {% endfor %}
-                                            </select>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="4" class="text-muted py-4">لا توجد عناصر مسجلة لهذا الطلب</td>
-                                    </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+            {% include "admin/partials/_items_table_card.html" %}
         </div>
     </div>
 </div>
 
-<!-- JavaScript لتفعيل التحديثات الفورية (AJAX) -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // تحديث حالة الطلب
-    const statusSelect = document.getElementById('orderStatusSelect');
-    if (statusSelect) {
-        statusSelect.addEventListener('change', function() {
-            const orderId = this.dataset.orderId;
-            const newStatus = this.value;
-
-            fetch(`/admin/orders/${orderId}/status`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('success', data.message);
-                } else {
-                    alert('خطأ: ' + data.message);
-                }
-            })
-            .catch(err => console.error('Error:', err));
-        });
-    }
-
-    // تحديث حالة الدفع
-    const isPaidSwitch = document.getElementById('isPaidSwitch');
-    if (isPaidSwitch) {
-        isPaidSwitch.addEventListener('change', function() {
-            const orderId = this.dataset.orderId;
-            const isPaid = this.checked;
-
-            fetch(`/admin/orders/${orderId}/payment-status`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isPaid: isPaid })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('success', data.message);
-                } else {
-                    alert('خطأ: ' + data.message);
-                }
-            })
-            .catch(err => console.error('Error:', err));
-        });
-    }
-
-    // تحديث مورد العنصر
-    document.querySelectorAll('.item-supplier-select').forEach(select => {
-        select.addEventListener('change', function() {
-            const orderId = this.dataset.orderId;
-            const itemId = this.dataset.itemId;
-            const supplierId = this.value;
-
-            fetch(`/admin/orders/${orderId}/items/supplier`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ item_id: itemId, supplier_id: supplierId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('success', data.message);
-                } else {
-                    alert('خطأ: ' + data.message);
-                }
-            })
-            .catch(err => console.error('Error:', err));
-        });
-    });
-
-    function showNotification(type, message) {
-        // دالة إشعار بسيطة أو يمكنك ربطها بمكتبة التنبيهات لديك
-        console.log(`[${type}] ${message}`);
-    }
-});
-</script>
+<!-- 2. السكريبتات وتفاعلات الـ AJAX -->
+{% include "admin/partials/_order_scripts.html" %}
 {% endblock %}
