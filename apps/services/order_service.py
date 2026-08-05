@@ -305,8 +305,8 @@ class OrderService:
             total_items = query.count()
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
-            # الترتيب حسب تاريخ الإنشاء (الأحدث أولاً)
-            orders = query.order_by(Order.created_at.desc(), cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
+            # ✅ التعديل هنا: الترتيب حسب رقم الطلب تنازلياً فقط (الأكبر أولاً، الأصغر في الصفحة الأخيرة)
+            orders = query.order_by(cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
 
             orders_data = []
             for order in orders:
