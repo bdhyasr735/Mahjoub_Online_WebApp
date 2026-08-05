@@ -1,12 +1,14 @@
 # coding: utf-8
 # 📂 apps/admin_orders/routes/actions.py
 
-from flask import Blueprint, request, jsonify
-from flask_login import login_required
+import traceback
+from flask import Blueprint, request, jsonify, render_template, abort, flash, redirect, url_for
+from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.services import services
 from apps.models.orders_db import Order
 from apps.models.order_items_db import OrderItem
+from apps.models.supplier_db import Supplier
 
 # تعريف الـ Blueprint الخاص بالإجراءات بنفس التسمية
 actions_bp = Blueprint('admin_order_actions', __name__, url_prefix='/admin/orders')
@@ -27,6 +29,71 @@ def _parse_id(val):
     if val is not None and str(val).isdigit():
         return int(val)
     return val
+
+
+@actions_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_order_details')
+@login_required
+def view_order_details(order_id):
+    """عرض تفاصيل الطلب الكاملة مع المنتجات والفاتورة"""
+    try:
+        if session.get('user_type') != 'admin':
+            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
+            return redirect(url_for('admin_dashboard_bp.dashboard'))
+
+        parsed_order_id = _parse_id(order_id)
+        order = db.session.get(Order, parsed_order_id)
+        
+        if not order:
+            flash('❌ الطلب غير موجود في قاعدة البيانات المحلية', 'danger')
+            return redirect(url_for('admin_orders_bp.list_admin_orders'))
+
+        # جلب قائمة الموردين لإمكانية ربطهم بالعناصر
+        suppliers = Supplier.query.all()
+
+        # 🔍 توثيق عملية الاستعراض
+        try:
+            services.audit.log(
+                action="VIEW_ORDER_DETAILS",
+                target_type="Order",
+                target_id=str(order_id),
+                details=f"تم استعراض تفاصيل الطلب رقم {order_id}"
+            )
+        except Exception:
+            pass
+
+        return render_template('admin/admin_order_detail.html', order=order, suppliers=suppliers)
+
+    except Exception as e:
+        current_app_logger_err = traceback.format_exc()
+        return f"حدث خطأ أثناء عرض تفاصيل الطلب: {str(e)}", 500
+
+
+@actions_bp.route('/<string:order_id>/invoice', methods=['GET'], endpoint='print_order_invoice')
+@login_required
+def print_order_invoice(order_id):
+    """عرض صفحة الفاتورة الخاصة بالطلب مهيئة للطباعة المباشرة"""
+    try:
+        parsed_order_id = _parse_id(order_id)
+        order = db.session.get(Order, parsed_order_id)
+        
+        if not order:
+            abort(404, description="الطلب غير موجود لطباعة الفاتورة")
+
+        try:
+            services.audit.log(
+                action="PRINT_INVOICE",
+                target_type="Order",
+                target_id=str(order_id),
+                details=f"تم طباعة/عرض فاتورة الطلب رقم {order_id}"
+            )
+        except Exception:
+            pass
+
+        return render_template('admin/admin_order_invoice.html', order=order)
+
+    except Exception as e:
+        return f"حدث خطأ أثناء إنشاء الفاتورة: {str(e)}", 500
+
 
 @actions_bp.route('/<string:order_id>/status', methods=['POST'])
 @login_required
@@ -52,7 +119,6 @@ def update_status(order_id):
         
         db.session.commit()
 
-        # 🔍 توثيق التغيير في سجل التدقيق المركزي (مع عزل الأخطاء)
         try:
             services.audit.log(
                 action="UPDATE_ORDER_STATUS",
@@ -63,7 +129,6 @@ def update_status(order_id):
         except Exception:
             pass
 
-        # إرجاع البيانات الحقيقية والمحدثة لتحديث واجهة المستخدم مباشرة
         return jsonify({
             'success': True, 
             'message': 'تم تحديث حالة الطلب بنجاح',
@@ -180,7 +245,6 @@ def delete_order(order_id):
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
             
-        # محاولة الحذف عبر خدمة GraphQL الموحدة إن توفرت، مع الحذف المحلي
         try:
             if hasattr(services, 'orders') and services.orders:
                 services.orders.delete_order(str(order_id))
