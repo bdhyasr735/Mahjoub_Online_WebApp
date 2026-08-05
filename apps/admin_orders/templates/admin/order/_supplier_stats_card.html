@@ -1,32 +1,172 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_supplier_stats_card.html -->
-<div class="card shadow-sm mb-4 border-0 rounded-3">
-    <div class="card-header bg-white py-3 border-bottom">
-        <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-warehouse text-primary ms-2"></i> إحصائيات وتوزيع الموردين</h5>
-    </div>
-    <div class="card-body">
-        <p class="text-muted small mb-3">توزيع عناصر هذا الطلب على الموردين المحليين لتسهيل عملية التوريد والتجهيز.</p>
-        
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="text-dark fw-bold">إجمالي العناصر:</span>
-            <span class="badge bg-secondary">
-                {{ order.items|length if order.items is iterable else 0 }} عنصر
-            </span>
-        </div>
+<!-- 📂 apps/admin_orders/templates/admin/order/_order_scripts.html -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // استخراج توكن الحماية CSRF إن وجد
+    const getCsrfToken = () => {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    };
 
-        <div class="d-flex justify-content-between align-items-center">
-            <span class="text-dark fw-bold">الموردون المرتبطون:</span>
-            <span class="badge bg-info text-dark px-3 py-1">
-                {% set ns = namespace(count=0) %}
-                {% if order.items is iterable %}
-                    {% for item in order.items %}
-                        {% set s_id = item.supplier_id or item.supplier or item.vendor_id %}
-                        {% if s_id %}
-                            {% set ns.count = ns.count + 1 %}
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
-                {{ ns.count }} مورد
-            </span>
-        </div>
-    </div>
-</div>
+    const csrfToken = getCsrfToken();
+    const requestHeaders = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+    if (csrfToken) {
+        requestHeaders['X-CSRFToken'] = csrfToken;
+    }
+
+    // 1. تحديث حالة الطلب
+    const updateStatusBtn = document.getElementById('updateStatusBtn');
+    if (updateStatusBtn) {
+        updateStatusBtn.addEventListener('click', function() {
+            const select = document.getElementById('orderStatusSelect');
+            if (!select) {
+                alert('خطأ: عنصر اختيار الحالة غير موجود في الصفحة');
+                return;
+            }
+
+            const orderId = select.getAttribute('data-order-id') || select.dataset.orderId;
+            const newStatus = select.value;
+
+            if (!orderId) {
+                alert('خطأ: معرف الطلب غير متاح');
+                return;
+            }
+
+            updateStatusBtn.disabled = true;
+            const originalText = updateStatusBtn.innerHTML;
+            updateStatusBtn.innerHTML = '<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span> جاري التحديث...';
+
+            fetch(`/admin/orders/${orderId}/status`, {
+                method: 'POST',
+                headers: requestHeaders,
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || 'تم تحديث الحالة بنجاح');
+                    location.reload();
+                } else {
+                    alert('خطأ: ' + (data.message || 'فشل تحديث الحالة'));
+                    updateStatusBtn.disabled = false;
+                    updateStatusBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء الاتصال بالخادم');
+                updateStatusBtn.disabled = false;
+                updateStatusBtn.innerHTML = originalText;
+            });
+        });
+    }
+
+    // 2. تحديث حالة الدفع (isPaid)
+    const isPaidSwitch = document.getElementById('isPaidSwitch');
+    if (isPaidSwitch) {
+        isPaidSwitch.addEventListener('change', function() {
+            const orderId = this.getAttribute('data-order-id') || this.dataset.orderId;
+            const isPaid = this.checked;
+
+            if (!orderId) {
+                alert('خطأ: معرف الطلب غير متاح');
+                isPaidSwitch.checked = !isPaid;
+                return;
+            }
+
+            fetch(`/admin/orders/${orderId}/payment-status`, {
+                method: 'POST',
+                headers: requestHeaders,
+                body: JSON.stringify({ isPaid: isPaid })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log(data.message);
+                } else {
+                    alert('خطأ: ' + (data.message || 'فشل تحديث حالة الدفع'));
+                    isPaidSwitch.checked = !isPaid;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء الاتصال بالخادم');
+                isPaidSwitch.checked = !isPaid;
+            });
+        });
+    }
+
+    // 3. تحديث مورد عنصر الطلب (تلقائي عند التغيير)
+    document.querySelectorAll('.supplier-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const orderId = this.getAttribute('data-order-id') || this.dataset.orderId;
+            const itemId = this.getAttribute('data-item-id') || this.dataset.itemId;
+            const supplierId = this.value;
+
+            if (!orderId || !itemId) {
+                alert('خطأ: بيانات الطلب أو العنصر غير مكتملة');
+                return;
+            }
+
+            this.disabled = true;
+
+            fetch(`/admin/orders/${orderId}/items/supplier`, {
+                method: 'POST',
+                headers: requestHeaders,
+                body: JSON.stringify({ item_id: itemId, supplier_id: supplierId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                this.disabled = false;
+                if (data.success) {
+                    this.classList.add('is-valid');
+                    setTimeout(() => this.classList.remove('is-valid'), 2000);
+                } else {
+                    alert('خطأ: ' + (data.message || 'فشل تحديث المورد'));
+                }
+            })
+            .catch(error => {
+                this.disabled = false;
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء الاتصال بالخادم');
+            });
+        });
+    });
+
+    // 4. حذف الطلب نهائياً
+    const deleteOrderBtn = document.getElementById('deleteOrderBtn');
+    if (deleteOrderBtn) {
+        deleteOrderBtn.addEventListener('click', function() {
+            if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الطلب نهائياً؟ لا يمكن التراجع عن هذا الإجراء.')) {
+                return;
+            }
+
+            const orderId = this.getAttribute('data-order-id');
+            if (!orderId) {
+                alert('خطأ: معرف الطلب غير متاح');
+                return;
+            }
+
+            fetch(`/admin/orders/delete/${orderId}`, {
+                method: 'POST',
+                headers: requestHeaders
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || 'تم حذف الطلب بنجاح');
+                    window.location.href = '/admin/orders';
+                } else {
+                    alert('خطأ: ' + (data.message || 'فشل حذف الطلب'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء الاتصال بالخادم');
+            });
+        });
+    }
+});
+</script>
