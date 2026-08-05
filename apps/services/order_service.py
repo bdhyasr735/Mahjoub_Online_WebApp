@@ -55,127 +55,135 @@ class OrderService:
             from apps.extensions import db
 
             for order in orders_data:
-                if not order or not isinstance(order, dict):
-                    continue
-                qid = order.get('_id') or order.get('id')
-                if not qid:
-                    continue
-
-                items_list = order.get('items') or []
-                
-                # استخراج حالة الطلب بشكل آمن
-                status_obj = order.get('status') or {}
-                if isinstance(status_obj, dict):
-                    status_code = status_obj.get('code') or 'pending'
-                    status_title = status_obj.get('title') or 'قيد الانتظار'
-                else:
-                    status_code = str(status_obj) if status_obj else 'pending'
-                    status_title = 'قيد الانتظار'
-
-                # استخراج اسم العميل بشكل آمن (تم التعديل هنا)
-                account_outer = order.get('account') or {}
-                account_inner = account_outer.get('account') or {}
-                raw_fullname = account_inner.get('fullname')
-
-                if raw_fullname and raw_fullname.strip():
-                    customer_name = raw_fullname
-                else:
-                    # إذا لم يوجد اسم، نحدد النوع
-                    if order.get('type') == 'guest':
-                        customer_name = 'زائر'
-                    else:
-                        customer_name = 'عميل غير معروف'
-
-                # استخراج الحالة المالية والإجمالي
-                is_paid = order.get('isPaid', False)
-                total_price = order.get('totalPrice', 0.0) or 0.0
-
-                # استخراج وتنسيق تاريخ الإنشاء
-                created_at_str = order.get('createdAt')
-                created_at = datetime.utcnow()
-                if created_at_str:
-                    try:
-                        clean_date_str = created_at_str.replace('Z', '').split('+')[0]
-                        created_at = datetime.fromisoformat(clean_date_str)
-                    except Exception:
-                        pass
-
-                # البحث عن الطلب محلياً
-                existing_order = Order.query.filter_by(id=qid).first()
-
-                # ====== التعديل الجديد هنا ======
-                # توليد الرقم التسلسلي للطلب الجديد بناءً على أحدث طلب (حسب التاريخ)
-                latest_order = db.session.query(Order).order_by(Order.created_at.desc()).first()
-                if latest_order and latest_order.order_number:
-                    try:
-                        next_number = int(latest_order.order_number) + 1
-                    except (ValueError, TypeError):
-                        next_number = 1000000235
-                else:
-                    next_number = 1000000235
-                # ================================
-
-                if existing_order:
-                    existing_order.status_code = status_code
-                    existing_order.status_title = status_title
-                    existing_order.customer_name = customer_name
-                    existing_order.is_paid = is_paid
-                    existing_order.total_price = total_price
-                    existing_order.created_at = created_at
-
-                    # حذف العناصر القديمة لإعادة إدراجها بالتحديثات الجديدة
-                    OrderItem.query.filter_by(order_id=existing_order.id).delete()
-                else:
-                    existing_order = Order(
-                        id=qid,
-                        status_code=status_code,
-                        status_title=status_title,
-                        customer_name=customer_name,
-                        is_paid=is_paid,
-                        total_price=total_price,
-                        order_number=next_number,
-                        created_at=created_at
-                    )
-                    db.session.add(existing_order)
-                    db.session.flush()
-
-                # معالجة عناصر الطلب وتوزيع الموردين المحليين بدقة على مستوى كل عنصر
-                primary_supplier_id = None
-                for item in items_list:
-                    if not item:
+                # ✅ وضع كل طلب في try-except منفصل، حتى لا يفشل الطلب بأكمله إذا أخطأ طلب واحد
+                try:
+                    if not order or not isinstance(order, dict):
                         continue
-                    prod_data = item.get('productData') or {}
-                    qty = item.get('quantity', 1) or 1
-                    price = item.get('price', 0.0) or 0.0
-                    prod_id = item.get('productId', '')
+                    qid = order.get('_id') or order.get('id')
+                    if not qid:
+                        continue
 
-                    product_name = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
-                    sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
+                    items_list = order.get('items') or []
+                    
+                    # استخراج حالة الطلب بشكل آمن
+                    status_obj = order.get('status') or {}
+                    if isinstance(status_obj, dict):
+                        status_code = status_obj.get('code') or 'pending'
+                        status_title = status_obj.get('title') or 'قيد الانتظار'
+                    else:
+                        status_code = str(status_obj) if status_obj else 'pending'
+                        status_title = 'قيد الانتظار'
 
-                    # البحث عن المورد المحلي الخاص بهذا المنتج عبر جدول الربط
-                    item_supplier_id = None
-                    if prod_id:
-                        mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_id).first()
-                        if mapping:
-                            item_supplier_id = mapping.supplier_id
+                    # استخراج اسم العميل بشكل آمن (تم التعديل هنا)
+                    account_outer = order.get('account') or {}
+                    account_inner = account_outer.get('account') or {}
+                    raw_fullname = account_inner.get('fullname')
 
-                    # تعيين أول مورد رئيسي للطلب كمرجع أساسي إن لم يُحدد مسبقاً
-                    if primary_supplier_id is None and item_supplier_id is not None:
-                        primary_supplier_id = item_supplier_id
+                    if raw_fullname and raw_fullname.strip():
+                        customer_name = raw_fullname
+                    else:
+                        # إذا لم يوجد اسم، نحدد النوع
+                        if order.get('type') == 'guest':
+                            customer_name = 'زائر'
+                        else:
+                            customer_name = 'عميل غير معروف'
 
-                    new_item = OrderItem(
-                        order_id=existing_order.id,
-                        supplier_id=item_supplier_id,
-                        product_name=product_name,
-                        quantity=qty,
-                        price=price
-                    )
-                    db.session.add(new_item)
+                    # استخراج الحالة المالية والإجمالي
+                    is_paid = order.get('isPaid', False)
+                    total_price = order.get('totalPrice', 0.0) or 0.0
 
-                # تحديث المورد الرئيسي للطلب
-                existing_order.supplier_id = primary_supplier_id
+                    # استخراج وتنسيق تاريخ الإنشاء
+                    created_at_str = order.get('createdAt')
+                    created_at = datetime.utcnow()
+                    if created_at_str:
+                        try:
+                            clean_date_str = created_at_str.replace('Z', '').split('+')[0]
+                            created_at = datetime.fromisoformat(clean_date_str)
+                        except Exception:
+                            pass
 
-                db.session.commit()
+                    # البحث عن الطلب محلياً
+                    existing_order = Order.query.filter_by(id=qid).first()
+
+                    # ====== التعديل الجديد هنا ======
+                    # توليد الرقم التسلسلي للطلب الجديد بناءً على أحدث طلب (حسب التاريخ)
+                    latest_order = db.session.query(Order).order_by(Order.created_at.desc()).first()
+                    if latest_order and latest_order.order_number:
+                        try:
+                            next_number = int(latest_order.order_number) + 1
+                        except (ValueError, TypeError):
+                            next_number = 1000000235
+                    else:
+                        next_number = 1000000235
+                    # ================================
+
+                    if existing_order:
+                        existing_order.status_code = status_code
+                        existing_order.status_title = status_title
+                        existing_order.customer_name = customer_name
+                        existing_order.is_paid = is_paid
+                        existing_order.total_price = total_price
+                        existing_order.created_at = created_at
+
+                        # حذف العناصر القديمة لإعادة إدراجها بالتحديثات الجديدة
+                        OrderItem.query.filter_by(order_id=existing_order.id).delete()
+                    else:
+                        existing_order = Order(
+                            id=qid,
+                            status_code=status_code,
+                            status_title=status_title,
+                            customer_name=customer_name,
+                            is_paid=is_paid,
+                            total_price=total_price,
+                            order_number=next_number,
+                            created_at=created_at
+                        )
+                        db.session.add(existing_order)
+                        db.session.flush()
+
+                    # معالجة عناصر الطلب وتوزيع الموردين المحليين بدقة على مستوى كل عنصر
+                    primary_supplier_id = None
+                    for item in items_list:
+                        if not item:
+                            continue
+                        prod_data = item.get('productData') or {}
+                        qty = item.get('quantity', 1) or 1
+                        price = item.get('price', 0.0) or 0.0
+                        prod_id = item.get('productId', '')
+
+                        product_name = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
+                        sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
+
+                        # البحث عن المورد المحلي الخاص بهذا المنتج عبر جدول الربط
+                        item_supplier_id = None
+                        if prod_id:
+                            mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_id).first()
+                            if mapping:
+                                item_supplier_id = mapping.supplier_id
+
+                        # تعيين أول مورد رئيسي للطلب كمرجع أساسي إن لم يُحدد مسبقاً
+                        if primary_supplier_id is None and item_supplier_id is not None:
+                            primary_supplier_id = item_supplier_id
+
+                        new_item = OrderItem(
+                            order_id=existing_order.id,
+                            supplier_id=item_supplier_id,
+                            product_name=product_name,
+                            quantity=qty,
+                            price=price
+                        )
+                        db.session.add(new_item)
+
+                    # تحديث المورد الرئيسي للطلب
+                    existing_order.supplier_id = primary_supplier_id
+
+                    db.session.commit()
+                
+                except Exception as order_err:
+                    # ✅ إذا فشل هذا الطلب، نقوم بـ rollback ونتجاوز إلى الطلب التالي
+                    db.session.rollback()
+                    print(f"⚠️ [OrderService] فشل حفظ الطلب {qid} وتم تخطيه: {order_err}")
+
         except Exception as db_err:
             print(f"⚠️ [OrderService] خطأ تفصيلي أثناء حفظ الطلبات محلياً: {db_err}")
             db.session.rollback()
@@ -305,7 +313,7 @@ class OrderService:
             total_items = query.count()
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
-            # ✅ التعديل هنا: الترتيب حسب رقم الطلب تنازلياً فقط (الأكبر أولاً، الأصغر في الصفحة الأخيرة)
+            # ✅ الترتيب حسب رقم الطلب تنازلياً فقط (الأكبر أولاً، الأصغر في الصفحة الأخيرة)
             orders = query.order_by(cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
 
             orders_data = []
