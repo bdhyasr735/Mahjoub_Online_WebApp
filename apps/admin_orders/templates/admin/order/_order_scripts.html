@@ -1,20 +1,47 @@
 <!-- 📂 apps/admin_orders/templates/admin/partials/_order_scripts.html -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // دعم استخراج توكن الحماية CSRF إن وجد في الصفحة لضمان نجاح طلبات POST
+    const getCsrfToken = () => {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    };
+
+    const csrfToken = getCsrfToken();
+    const requestHeaders = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+    if (csrfToken) {
+        requestHeaders['X-CSRFToken'] = csrfToken;
+    }
+
     // 1. تحديث حالة الطلب
     const updateStatusBtn = document.getElementById('updateStatusBtn');
     if (updateStatusBtn) {
         updateStatusBtn.addEventListener('click', function() {
             const select = document.getElementById('orderStatusSelect');
-            const orderId = select.getAttribute('data-order-id');
+            if (!select) {
+                alert('خطأ: عنصر اختيار الحالة غير موجود في الصفحة');
+                return;
+            }
+
+            const orderId = select.getAttribute('data-order-id') || select.dataset.orderId;
             const newStatus = select.value;
+
+            if (!orderId) {
+                alert('خطأ: معرف الطلب غير متاح');
+                return;
+            }
+
+            // تعطيل الزر وإظهار مؤشر التحميل أثناء المعالجة
+            updateStatusBtn.disabled = true;
+            const originalText = updateStatusBtn.innerHTML;
+            updateStatusBtn.innerHTML = '<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span> جاري التحديث...';
 
             fetch(`/admin/orders/${orderId}/status`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
+                headers: requestHeaders,
                 body: JSON.stringify({ status: newStatus })
             })
             .then(response => response.json())
@@ -24,11 +51,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     location.reload();
                 } else {
                     alert('خطأ: ' + (data.message || 'فشل تحديث الحالة'));
+                    updateStatusBtn.disabled = false;
+                    updateStatusBtn.innerHTML = originalText;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 alert('حدث خطأ أثناء الاتصال بالخادم');
+                updateStatusBtn.disabled = false;
+                updateStatusBtn.innerHTML = originalText;
             });
         });
     }
@@ -37,15 +68,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const isPaidSwitch = document.getElementById('isPaidSwitch');
     if (isPaidSwitch) {
         isPaidSwitch.addEventListener('change', function() {
-            const orderId = this.getAttribute('data-order-id');
+            const orderId = this.getAttribute('data-order-id') || this.dataset.orderId;
             const isPaid = this.checked;
+
+            if (!orderId) {
+                alert('خطأ: معرف الطلب غير متاح');
+                isPaidSwitch.checked = !isPaid;
+                return;
+            }
 
             fetch(`/admin/orders/${orderId}/payment-status`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
+                headers: requestHeaders,
                 body: JSON.stringify({ isPaid: isPaid })
             })
             .then(response => response.json())
@@ -68,20 +102,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // 3. تحديث مورد عنصر الطلب
     document.querySelectorAll('.supplier-select').forEach(select => {
         select.addEventListener('change', function() {
-            const orderId = this.getAttribute('data-order-id');
-            const itemId = this.getAttribute('data-item-id');
+            const orderId = this.getAttribute('data-order-id') || this.dataset.orderId;
+            const itemId = this.getAttribute('data-item-id') || this.dataset.itemId;
             const supplierId = this.value;
+
+            if (!orderId || !itemId) {
+                alert('خطأ: بيانات الطلب أو العنصر غير مكتملة');
+                return;
+            }
+
+            // تعطيل القائمة المنسدلة مؤقتاً أثناء الحفظ
+            this.disabled = true;
 
             fetch(`/admin/orders/${orderId}/items/supplier`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
+                headers: requestHeaders,
                 body: JSON.stringify({ item_id: itemId, supplier_id: supplierId })
             })
             .then(response => response.json())
             .then(data => {
+                this.disabled = false;
                 if (data.success) {
                     this.classList.add('is-valid');
                     setTimeout(() => this.classList.remove('is-valid'), 2000);
@@ -90,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
+                this.disabled = false;
                 console.error('Error:', error);
                 alert('حدث خطأ أثناء الاتصال بالخادم');
             });
