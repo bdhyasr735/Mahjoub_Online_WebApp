@@ -31,11 +31,12 @@ STATUS_TITLES_MAP = {
 }
 
 
-def _sync_orders_in_background(app, page=1, per_page=15):
-    """دالة مساعدة لإجراء المزامنة في الخلفية دون تعطيل طلبات المتصفح."""
+def _sync_orders_in_background(app):
+    """دالة مساعدة لإجراء المزامنة التلقائية للصفحة الأولى فقط في الخلفية."""
     with app.app_context():
         try:
-            services.orders.get_all_orders(page=page, per_page=per_page)
+            # ✅ نقوم فقط بمزامنة الصفحة الأولى بـ 50 طلب (لضمان جلب الطلبات الجديدة فوراً)
+            services.orders.get_all_orders(page=1, per_page=50)
         except Exception as sync_e:
             app.logger.warning(f"⚠️ [Auto Sync Orders Background] {sync_e}")
 
@@ -60,12 +61,12 @@ def manage_admin_orders_view():
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
 
-        # ✅ المزامنة التلقائية في الخلفية عند فتح أي صفحة (وليس فقط الأولى)
+        # ✅ المزامنة التلقائية للصفحة الأولى عند فتح أي صفحة (لجلب الطلبات الجديدة)
         if not is_ajax:
             app = current_app._get_current_object()
             threading.Thread(
                 target=_sync_orders_in_background,
-                args=(app, page, per_page),
+                args=(app,),
                 daemon=True
             ).start()
 
@@ -170,7 +171,7 @@ def register_admin_orders_route(bp):
 
 
 # ============================================================
-# ✅ دالة المزامنة الشاملة (لزر "مزامنة الطلبات")
+# ✅ دالة المزامنة الشاملة للزر (لزر "مزامنة الطلبات")
 # ============================================================
 @admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
 @login_required
