@@ -7,7 +7,6 @@ query FindAllOrders($input: FindAllOrdersInput) {
     findAllOrders(input: $input) {
         data {
             _id
-            # تم حذف السطر orderNumber لأنه غير موجود في استجابة قمرة
             type
             totalPrice
             isPaid
@@ -20,6 +19,7 @@ query FindAllOrders($input: FindAllOrdersInput) {
             account {
                 account {
                     fullname
+                    phone
                 }
             }
             items {
@@ -43,72 +43,226 @@ query FindAllOrders($input: FindAllOrdersInput) {
 }
 
 # ============================================================
-# 🔍 2. استعلام تفاصيل طلب محدد لبطاقة العرض (FindOrderById)
+# 🔍 2. استعلام تفاصيل طلب محدد شامل لكافة الحقول (FindOrderById)
 # ============================================================
 query FindOrderById($id: ID!) {
     findOrderById(id: $id) {
+        success
+        message
         data {
             _id
+            app
             type
             COD
+            freeze
             isPaid
             isFastOrder
             createdAt
+            handel
             totalPrice
             totalPriceWithTax
+            priceWithShipping
             shippingPrice
             taxAmount
+            taxType
+            taxValue
             status {
                 _id
                 title
                 code
             }
             currency {
+                _id
+                title
                 currencyCode
                 currencySymbol
             }
+            taxLines {
+                title
+                amountType
+                value
+                amount
+                base
+            }
             shippingAddress {
+                _id
                 street
                 neighborhood
+                zipCode
                 description
+                device
+                deleted
+                createdAt
+                updatedAt
                 city {
+                    _id
                     name
+                    description
+                    active
+                    deleted
+                    isSelected
+                    createdAt
                 }
                 country {
+                    _id
                     name
+                    code
+                    continent
+                    capital
+                    active
+                    deleted
+                    phonekey
                 }
             }
             salesLead {
+                _id
                 firstName
                 lastName
+                district
+                street
                 phone1
                 phone2
                 email
             }
             account {
+                _id
+                app
+                verified
+                blocked
+                orderCount
+                lastSeen
+                createdAt
+                updatedAt
                 account {
+                    _id
                     fullname
                     phone
+                    type
+                    verified
+                    blocked
+                    blockedReason
+                    status
                     avatarUrl
+                    createdAt
+                    updatedAt
                 }
             }
+            paymentMethod {
+                _id
+                enable
+                unable
+                action
+                install
+                deleted
+                complete
+                createdAt
+                updatedAt
+                data
+                payment {
+                    _id
+                    key
+                    descreption
+                    installed
+                    enable
+                    deleted
+                    schema
+                    createdAt
+                    updatedAt
+                    icon
+                    iconUrl
+                    needConfig
+                    methods
+                    name
+                    instructions
+                    id
+                }
+            }
+            market {
+                _id
+                app
+                title
+                status
+                countryCodes
+                enableRounding
+                localCurrencies
+                fxMode
+                exchangeRate
+                providerName
+                lastUpdated
+                createdAt
+                updatedAt
+                targetCurrencyCode
+                targetCurrency {
+                    _id
+                    title
+                    currencyCode
+                    currencySymbol
+                }
+                targetCurrencyId {
+                    _id
+                    title
+                    currencyCode
+                    currencySymbol
+                }
+                countryIds {
+                    _id
+                    name
+                    code
+                    continent
+                    capital
+                    active
+                    deleted
+                    phonekey
+                    image {
+                        image
+                        imageUrl
+                    }
+                }
+                history {
+                    rate
+                    updatedAt
+                }
+            }
+            marketSnapshot
             items {
                 _id
+                orderId
                 productId
+                variantId
                 quantity
+                weight
                 price
+                compareAtPrice
                 totalPrice
+                totalCompareAtPrice
+                totalSavings
                 productData {
                     title
                     slug
+                    app
+                    price
                     image {
+                        _id
                         fileUrl
+                    }
+                }
+                variantData {
+                    price
+                    compareAtPrice
+                    options {
+                        label
+                        sortOrder
+                        _id
+                        option {
+                            _id
+                            name
+                            type
+                            product
+                        }
                     }
                 }
             }
         }
-        success
-        message
     }
 }
 
