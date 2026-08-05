@@ -5,7 +5,6 @@ import os
 from datetime import datetime
 from cryptography.fernet import Fernet
 from apps.extensions import db
-from apps.services.graphql_client import GraphQLClient
 
 def get_cipher():
     key = os.getenv('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
@@ -152,7 +151,8 @@ class Order(db.Model):
             'customer_address': self.customer_address, 'is_paid': self.is_paid,
             'total_price': float(self.total_price) if self.total_price else 0.0,
             'items_count': self.items_count or (len(self.items) if self.items else 0),
-            'created_at': self.created_at, 'updated_at': self.updated_at,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'supplier_name': self.supplier.trade_name if self.supplier else 'غير مرتبط',
             'suppliers': [{'id': s.id, 'trade_name': getattr(s, 'trade_name', 'مورد محلي')} for s in self.suppliers_list],
             'items': [item.to_dict() for item in self.items] if self.items else []
