@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify, current_app, session
 from flask_login import login_required
 from apps.extensions import db
 
-# ✅ تعريف actions_bp ليتوافق مع نظام التسجيل ولا يحدث خطأ استيراد
+# ✅ تعريف actions_bp بالاسم المطابق تماماً لعملية الاستيراد في النظام
 actions_bp = Blueprint(
     'admin_order_actions', 
     __name__,
@@ -105,7 +105,7 @@ def assign_item_supplier(order_id, item_id):
             {'supplier_id': supplier_id, 'item_id': item_id, 'order_id': order_id}
         )
 
-        # 2. جلب product_qid لهذا العنصر لحديث خريطة الربط السيادية إن وجد
+        # 2. جلب product_qid لهذا العنصر لتحديث خريطة الربط السيادية إن وجد
         item_res = db.session.execute(
             db.text("SELECT product_qid FROM order_items WHERE id = :item_id"),
             {'item_id': item_id}
