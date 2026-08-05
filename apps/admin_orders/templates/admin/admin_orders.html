@@ -158,7 +158,7 @@ function fetchAdminOrders(page = 1, prefetch = false) {
     });
 }
 
-// دالة مزامنة الطلبات (مُعدلة للعمل مع الخلفية)
+// دالة مزامنة الطلبات (مع إضافة حماية المهلة)
 function syncAdminOrders(event) {
     if (event) event.preventDefault();
     if (!confirm('هل تريد مزامنة الطلبات من المنصة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
@@ -173,31 +173,33 @@ function syncAdminOrders(event) {
 
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
 
+    // ✅ إضافة AbortController لمنع ظهور صفحة HTML الخطأ عند انتهاء المهلة
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+        controller.abort(); // إلغاء الطلب إذا استغرق الخادم أكثر من 12 ثانية
+    }, 12000);
+
     fetch("{{ url_for('admin_orders_bp.sync_admin_orders') }}", {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken,
             'X-Requested-With': 'XMLHttpRequest'
-        }
+        },
+        signal: controller.signal // تمرير إشارة الإلغاء
     })
     .then(res => res.json())
     .then(data => {
+        // إلغاء المؤقت لأن الطلب نجح
+        clearTimeout(timeoutId);
+        
         if (data.success) {
-            // ✅ تم التعديل هنا: إظهار رسالة بأن العملية تعمل في الخلفية
             alert('✅ ' + (data.message || 'جاري مزامنة الطلبات في الخلفية، سيتم تحديث القائمة قريباً.'));
-            
-            // ✅ التأكد من تحرير الزر وعودة حالته
             if (btn) {
                 btn.innerHTML = originalContent;
                 btn.disabled = false;
             }
-
-            // ✅ تحديث القائمة تلقائياً بعد 3 ثوانٍ (لإعطاء الخلفية وقتاً كافياً للحفظ)
-            setTimeout(() => {
-                fetchAdminOrders(1);
-            }, 3000);
-
+            setTimeout(() => { fetchAdminOrders(1); }, 3000);
         } else {
             alert('❌ ' + (data.message || 'فشلت عملية المزامنة'));
             if (btn) {
@@ -207,7 +209,16 @@ function syncAdminOrders(event) {
         }
     })
     .catch(err => {
-        alert('❌ حدث خطأ أثناء الاتصال بالخادم: ' + err.message);
+        // إلغاء المؤقت في حال حدوث خطأ
+        clearTimeout(timeoutId);
+        
+        // ✅ إذا تم إلغاء الطلب بسبب المهلة، نعطي رسالة واضحة دون انهيار المتصفح
+        if (err.name === 'AbortError') {
+            alert('⚠️ استغرق السيرفر وقتاً طويلاً في الاستجابة. تم إلغاء الطلب، لكن المزامنة قد تستمر في الخلفية.\nجرب تحديث الصفحة لاحقاً.');
+        } else {
+            alert('❌ حدث خطأ أثناء الاتصال بالخادم: ' + err.message);
+        }
+        
         if (btn) {
             btn.innerHTML = originalContent;
             btn.disabled = false;
