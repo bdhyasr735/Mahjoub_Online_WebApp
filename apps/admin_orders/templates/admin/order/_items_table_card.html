@@ -1,3 +1,4 @@
+<!-- 📂 apps/admin_orders/templates/admin/order/_items_table_card.html -->
 <div class="card shadow mb-4">
     <div class="card-header py-3 bg-secondary text-white d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold">عناصر الطلب والمنتجات</h6>
@@ -22,16 +23,14 @@
                             {% set qty = (item.quantity | int(1)) if item.quantity is defined else 1 %}
                             {% set price = (item.price | float(0)) if item.price is defined else 0 %}
                             {% set total = qty * price %}
-                            {% set item_id = item.id or item._id or item.productId or loop.index %}
-                            {% set prod_title = item.productData.title if (item.productData is defined and item.productData and item.productData.title) 
-                                           else (item.product_data.title if (item.product_data is defined and item.product_data and item.product_data.title)
-                                           else (item.product_name or item.name or 'منتج بدون عنوان')) %}
+                            {% set item_id = item.id %}
+                            {% set prod_title = item.product_name or 'منتج بدون عنوان' %}
 
                             <tr>
                                 <td class="text-start">
                                     <strong>{{ prod_title }}</strong>
-                                    {% if item.variant or item.variant_title %}
-                                        <br><small class="text-muted">{{ item.variant or item.variant_title }}</small>
+                                    {% if item.product_qid %}
+                                        <br><small class="text-muted">معرف قمرة: {{ item.product_qid }}</small>
                                     {% endif %}
                                 </td>
                                 <td>{{ qty }}</td>
@@ -39,13 +38,13 @@
                                 <td class="fw-bold text-success">{{ "{:,.2f}".format(total) }} ريال</td>
                                 <td>
                                     <select class="form-select form-select-sm item-supplier-select" 
-                                            data-order-id="{{ order.id or order._id }}" 
+                                            data-order-id="{{ order.id }}" 
                                             data-item-id="{{ item_id }}">
                                         <option value="">-- بدون مورد --</option>
                                         {% if suppliers %}
                                             {% for sup in suppliers %}
-                                                {% set sup_id = sup.id or sup._id %}
-                                                {% set sup_name = sup.name or sup.supplier_name or 'مورد' %}
+                                                {% set sup_id = sup.id %}
+                                                {% set sup_name = sup.trade_name or sup.name or 'مورد محلي' %}
                                                 <option value="{{ sup_id }}" {% if item.supplier_id == sup_id %}selected{% endif %}>
                                                     {{ sup_name }}
                                                 </option>
