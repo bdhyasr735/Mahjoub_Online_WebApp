@@ -24,9 +24,9 @@
     <!-- حاوية الطلبات والترقيم -->
     <div id="ordersContainer" class="mt-4">
         {% include "admin/partials/_orders_table.html" ignore missing %}
-        <div id="paginationContainer">
-            {% include "admin/partials/_pagination.html" ignore missing %}
-        </div>
+    </div>
+    <div id="paginationContainer">
+        {% include "admin/partials/_pagination.html" ignore missing %}
     </div>
 </div>
 
@@ -81,18 +81,19 @@ document.addEventListener('DOMContentLoaded', function() {
 // متغير لتخزين مؤقت التحميل المسبق
 let prefetchTimeout;
 
-// دالة جلب الطلبات عبر AJAX (مع التحميل المسبق للصفحة التالية)
+// دالة جلب الطلبات عبر AJAX (مع فصل وعزل حاوية الجدول عن حاوية الترقيم لمنع التعليق)
 function fetchAdminOrders(page = 1, prefetch = false) {
     const container = document.getElementById('ordersContainer');
+    const paginationContainer = document.getElementById('paginationContainer');
     if (!container) return;
 
-    // إذا لم يكن تحميل مسبق، نعرض مؤشر التحميل
     if (!prefetch) {
         container.innerHTML = `
             <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
                 <div class="spinner-border mx-auto mb-3" style="color: #D4AF37; width: 3rem; height: 3rem;" role="status"></div>
                 <p class="text-muted fw-semibold mb-0">⏳ جاري تحميل الطلبات...</p>
             </div>`;
+        if (paginationContainer) paginationContainer.innerHTML = '';
     }
 
     const params = new URLSearchParams({
@@ -120,18 +121,9 @@ function fetchAdminOrders(page = 1, prefetch = false) {
                 return;
             }
 
-            container.innerHTML = data.html + `<div id="paginationContainer">${data.pagination_html || ''}</div>`;
-
-            const nextLink = document.querySelector('.page-item:not(.disabled) .page-link[onclick*="fetchAdminOrders"]');
-            if (nextLink) {
-                const match = nextLink.getAttribute('onclick').match(/fetchAdminOrders\((\d+)\)/);
-                if (match) {
-                    const nextPage = parseInt(match[1]);
-                    clearTimeout(prefetchTimeout);
-                    prefetchTimeout = setTimeout(() => {
-                        fetchAdminOrders(nextPage, true);
-                    }, 300);
-                }
+            container.innerHTML = data.html;
+            if (paginationContainer) {
+                paginationContainer.innerHTML = data.pagination_html || '';
             }
         } else {
             container.innerHTML = `
@@ -139,6 +131,7 @@ function fetchAdminOrders(page = 1, prefetch = false) {
                     <i class="fas fa-search fa-2x d-block mb-2 opacity-50"></i>
                     لا توجد طلبات مطابقة لمعايير البحث الحالية.
                 </div>`;
+            if (paginationContainer) paginationContainer.innerHTML = '';
         }
     })
     .catch(error => {
@@ -153,7 +146,7 @@ function fetchAdminOrders(page = 1, prefetch = false) {
     });
 }
 
-// دالة مزامنة الطلبات (مُعدلة لتكون منطقية واحترافية)
+// دالة مزامنة الطلبات
 function syncAdminOrders(event) {
     if (event) event.preventDefault();
     if (!confirm('هل تريد مزامنة الطلبات من المنصة الآن؟ قد يستغرق ذلك بضع ثوانٍ في الخلفية.')) return;
@@ -193,13 +186,11 @@ function syncAdminOrders(event) {
             btn.innerHTML = originalContent;
             btn.disabled = false;
         }
-        // تحديث القائمة بعد 5 ثوانٍ للتأكد من انتهاء الخلفية
         setTimeout(() => { fetchAdminOrders(1); }, 5000);
     })
     .catch(err => {
         clearTimeout(timeoutId);
         
-        // ✅ التعديل المنطقي: بدلاً من رسالة تحذير، نعرض رسالة نجاح للمستخدم
         if (err.name === 'AbortError') {
             alert('✅ تم استلام طلب المزامنة وتشغيلها في الخلفية. سيتم تحديث قائمة الطلبات تلقائياً بعد انتهاء العملية.');
         } else {
@@ -210,7 +201,6 @@ function syncAdminOrders(event) {
             btn.innerHTML = originalContent;
             btn.disabled = false;
         }
-        // نقوم بتحديث القائمة بعد 5 ثوانٍ لأنه في حالة AbortError، الخلفية تعمل بالفعل
         setTimeout(() => { fetchAdminOrders(1); }, 5000);
     });
 }
