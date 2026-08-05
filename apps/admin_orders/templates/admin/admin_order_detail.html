@@ -1,38 +1,42 @@
 <!-- 📂 apps/admin_orders/templates/admin/admin_order_detail.html -->
 {% extends "admin/admin_base.html" %}
 
-{% block title %}تفاصيل الطلب #{{ order._id }} | لوحة التحكم{% endblock %}
+{% block title %}تفاصيل الطلب #{{ order.id or order.order_id or order._id or '----' }} | لوحة التحكم{% endblock %}
 
-{% block content %}
+{% block extra_head %}
+<!-- توكن الحماية لضمان نجاح طلبات Fetch في ملف السكريبتات -->
+<meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
 <style>
     .order-card { background: #fff; border-radius: 16px; border: 1px solid #eef2f7; box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 1.5rem; }
     .table-order img { width: 54px; height: 54px; object-fit: cover; border-radius: 10px; }
 </style>
+{% endblock %}
 
+{% block content %}
 <div class="container-fluid py-4" style="background-color: #f4f6f9;">
 
     <!-- 📌 هيدر الصفحة والإجراءات -->
-    <!-- ✅ تم إضافة ignore missing لحل مشكلة الانهيار حالياً -->
     {% include 'admin/order/_order_header.html' ignore missing %}
 
     <div class="row g-4">
-        <!-- 👈 العمود الأيمن: حالات الطلب ومعلومات العميل وعنوان الشحن -->
+        <!-- 👈 العمود الأيمن: حالات الطلب ومعلومات العميل -->
         <div class="col-lg-4">
-            {% include 'admin/order/_order_status_card.html' %}
-            {% include 'admin/order/_customer_info_card.html' %}
+            {% include 'admin/order/_order_status_card.html' ignore missing %}
+            {% include 'admin/order/_customer_info_card.html' ignore missing %}
         </div>
 
         <!-- 👈 العمود الأيسر: جدول المنتجات والملخص المالي -->
         <div class="col-lg-8">
-            {% include 'admin/order/_items_table_card.html' %}
-            {% include 'admin/order/_financial_summary_card.html' %}
+            {% include 'admin/order/_items_table_card.html' ignore missing %}
+            {% include 'admin/order/_financial_summary_card.html' ignore missing %}
         </div>
     </div>
 </div>
 
+<!-- حقل مخفي احتياطي للنماذج التقليدية -->
 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
 
 <!-- 📜 ملف الجافاسكريبت المنفصل -->
-{% include 'admin/order/_order_scripts.html' %}
+{% include 'admin/order/_order_scripts.html' ignore missing %}
 
 {% endblock %}
