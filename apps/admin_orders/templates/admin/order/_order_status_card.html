@@ -1,45 +1,41 @@
 <!-- 📂 apps/admin_orders/templates/admin/order/_order_status_card.html -->
-<div class="card shadow-sm mb-4 border-0 rounded-3">
-    <div class="card-header bg-white py-3 border-bottom">
-        <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-tasks text-primary ms-2"></i> حالة الطلب والتحكم</h5>
+<div class="card order-card">
+    <div class="card-header bg-white py-3 border-0">
+        <h5 class="card-title mb-0 fw-bold text-primary">
+            <i class="fas fa-info-circle me-2"></i> حالة الطلب والدفع
+        </h5>
     </div>
-    <div class="card-body">
-        <div class="mb-3">
-            <label class="form-label text-muted small fw-bold">الحالة الحالية:</label>
-            <div>
-                {% set current_status = order.status_code or order.status or order.order_status or 'pending' %}
-                {% set status_colors = {'pending': 'warning', 'processing': 'info', 'shipped': 'primary', 'delivered': 'success', 'completed': 'success', 'cancelled': 'danger', 'refunded': 'secondary'} %}
-                <span class="badge bg-{{ status_colors.get(current_status, 'secondary') }} fs-6 px-3 py-2">
-                    {{ order.status_title or current_status }}
+    <div class="card-body pt-0">
+        <ul class="list-group list-group-flush">
+            <!-- حالة الطلب العامة -->
+            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                <span class="text-muted">حالة الطلب:</span>
+                <span class="badge bg-{{ 'success' if order.status_code in ['completed', 'delivered'] else 'warning' }} px-3 py-2 fs-6">
+                    {{ order.status_title or order.status_code or 'قيد الانتظار' }}
                 </span>
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <label for="orderStatusSelect" class="form-label text-muted small fw-bold">تحديث الحالة:</label>
-            <div class="input-group">
-                {% set current_order_id = order.id or order.order_id or order._id %}
-                <select id="orderStatusSelect" class="form-select form-select-sm" data-order-id="{{ current_order_id }}">
-                    <option value="pending" {% if current_status == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-                    <option value="processing" {% if current_status == 'processing' %}selected{% endif %}>قيد التجهيز</option>
-                    <option value="shipped" {% if current_status == 'shipped' %}selected{% endif %}>تم الشحن</option>
-                    <option value="delivered" {% if current_status == 'delivered' %}selected{% endif %}>تم التسليم</option>
-                    <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>مكتمل</option>
-                    <option value="cancelled" {% if current_status == 'cancelled' %}selected{% endif %}>ملغي</option>
-                    <option value="refunded" {% if current_status == 'refunded' %}selected{% endif %}>مسترجع</option>
-                </select>
-                <button class="btn btn-outline-primary btn-sm" type="button" id="updateStatusBtn">حفظ</button>
-            </div>
-        </div>
-
-        <hr>
-
-        <div class="mb-2">
-            <div class="form-check form-switch">
-                {% set is_order_paid = order.is_paid or order.paid or order.payment_status == 'paid' %}
-                <input class="form-check-input" type="checkbox" id="isPaidSwitch" {% if is_order_paid %}checked{% endif %} data-order-id="{{ current_order_id }}">
-                <label class="form-check-label fw-bold text-dark" for="isPaidSwitch">الطلب مدفوع (Payment Status)</label>
-            </div>
-        </div>
+            </li>
+            
+            <!-- الحالة المالية (مدفوع / غير مدفوع) -->
+            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                <span class="text-muted">الحالة المالية:</span>
+                {% if order.is_paid %}
+                    <span class="badge bg-success px-3 py-2">
+                        <i class="fas fa-check-circle me-1"></i> مدفوع
+                    </span>
+                {% else %}
+                    <span class="badge bg-danger px-3 py-2">
+                        <i class="fas fa-clock me-1"></i> غير مدفوع / عند الاستلام
+                    </span>
+                {% endif %}
+            </li>
+            
+            <!-- المبلغ الإجمالي -->
+            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                <span class="text-muted">إجمالي المبلغ:</span>
+                <span class="fw-bold text-success fs-5">
+                    {{ "%.2f"|format(order.total_amount or order.totalPrice or 0.0) }} ر.س
+                </span>
+            </li>
+        </ul>
     </div>
 </div>
