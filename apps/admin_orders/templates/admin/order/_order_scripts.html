@@ -1,34 +1,76 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_order_scripts.html -->
+{# 📂 apps/admin_orders/templates/admin/order/_order_scripts.html #}
 <script>
-    // دالة تحديث مورد المنتج ضمن الطلب
-    function updateItemSupplier(orderId, itemId, supplierId) {
-        if (!supplierId) return;
-        
-        fetch(`/admin/orders/${orderId}/items/${itemId}/supplier`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({ supplier_id: supplierId })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // إشعار نجاح خفيف أو تحديث بصري
-                console.log("تم تحديث المورد بنجاح");
-            } else {
-                alert(data.message || 'حدث خطأ أثناء تحديث المورد.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('حدث خطأ في الاتصال بالخادم.');
+document.addEventListener('DOMContentLoaded', function() {
+    // تحديث حالة الطلب
+    const statusSelect = document.getElementById('orderStatusSelect');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function() {
+            const orderId = this.dataset.orderId;
+            const newStatus = this.value;
+
+            fetch(`/admin/orders/${orderId}/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Success:', data.message);
+                } else {
+                    alert('خطأ: ' + data.message);
+                }
+            })
+            .catch(err => console.error('Error:', err));
         });
     }
 
-    // زر العودة أو التوجيه بعد العمليات
-    document.addEventListener("DOMContentLoaded", function() {
-        // أي سكربتات إضافية لإدارة تفاصيل الطلب تضاف هنا
+    // تحديث حالة الدفع
+    const isPaidSwitch = document.getElementById('isPaidSwitch');
+    if (isPaidSwitch) {
+        isPaidSwitch.addEventListener('change', function() {
+            const orderId = this.dataset.orderId;
+            const isPaid = this.checked;
+
+            fetch(`/admin/orders/${orderId}/payment-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isPaid: isPaid })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Success:', data.message);
+                } else {
+                    alert('خطأ: ' + data.message);
+                }
+            })
+            .catch(err => console.error('Error:', err));
+        });
+    }
+
+    // تحديث مورد العنصر
+    document.querySelectorAll('.item-supplier-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const orderId = this.dataset.orderId;
+            const itemId = this.dataset.itemId;
+            const supplierId = this.value;
+
+            fetch(`/admin/orders/${orderId}/items/supplier`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_id: itemId, supplier_id: supplierId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Success:', data.message);
+                } else {
+                    alert('خطأ: ' + data.message);
+                }
+            })
+            .catch(err => console.error('Error:', err));
+        });
     });
+});
 </script>
