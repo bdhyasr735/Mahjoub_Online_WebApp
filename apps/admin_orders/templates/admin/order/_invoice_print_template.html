@@ -1,4 +1,4 @@
-{# 📂 apps/admin_orders/templates/admin/admin_order_invoice.html #}
+{# 📂 apps/admin_orders/templates/admin/order/_invoice_print_template.html #}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -19,7 +19,6 @@
 </head>
 <body onload="window.print()">
     <div class="invoice-box my-4">
-        <!-- رأس الفاتورة -->
         <div class="invoice-header d-flex justify-content-between align-items-center">
             <div>
                 <h2 class="text-primary fw-bold mb-1">محجوب أونلاين</h2>
@@ -32,7 +31,6 @@
             </div>
         </div>
 
-        <!-- معلومات العميل والحالة -->
         <div class="row mb-4">
             <div class="col-sm-6">
                 <h5 class="text-secondary fw-bold">معلومات العميل:</h5>
@@ -47,7 +45,6 @@
             </div>
         </div>
 
-        <!-- جدول المنتجات وعناصر الطلب -->
         <table class="table table-bordered text-center align-middle mb-4">
             <thead class="table-dark">
                 <tr>
@@ -82,7 +79,6 @@
             </tbody>
         </table>
 
-        <!-- إجمالي الحساب -->
         <div class="d-flex justify-content-end mb-4">
             <div class="w-50">
                 <table class="table table-sm">
@@ -94,7 +90,6 @@
             </div>
         </div>
 
-        <!-- أزرار التحكم -->
         <div class="text-center no-print mt-4">
             <button onclick="window.print()" class="btn btn-primary px-4 py-2 me-2">
                 <i class="fas fa-print me-1"></i> طباعة الفاتورة الآن
