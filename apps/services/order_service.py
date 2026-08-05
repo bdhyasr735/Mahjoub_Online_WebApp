@@ -103,15 +103,17 @@ class OrderService:
                 # البحث عن الطلب محلياً
                 existing_order = Order.query.filter_by(id=qid).first()
 
-                # توليد الرقم التسلسلي للطلب الجديد
-                last_order = db.session.query(Order).order_by(cast(Order.order_number, Integer).desc()).first()
-                if last_order and last_order.order_number:
+                # ====== التعديل الجديد هنا ======
+                # توليد الرقم التسلسلي للطلب الجديد بناءً على أحدث طلب (حسب التاريخ)
+                latest_order = db.session.query(Order).order_by(Order.created_at.desc()).first()
+                if latest_order and latest_order.order_number:
                     try:
-                        next_number = int(last_order.order_number) + 1
+                        next_number = int(latest_order.order_number) + 1
                     except (ValueError, TypeError):
                         next_number = 1000000235
                 else:
                     next_number = 1000000235
+                # ================================
 
                 if existing_order:
                     existing_order.status_code = status_code
