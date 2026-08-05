@@ -1,19 +1,54 @@
 <!-- 📂 apps/admin_orders/templates/admin/order/_order_header.html -->
-<div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
-    <div class="d-flex align-items-center gap-3">
-        <a href="{{ url_for('admin_orders_bp.list_admin_orders') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-            <i class="fas fa-arrow-right me-1"></i> العودة للقائمة
-        </a>
-        <h4 class="fw-bold mb-0" style="color: #2d0b36;">
-            <i class="fas fa-receipt me-2 text-primary"></i> طلب #{{ order._id }}
-        </h4>
-        <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
-            رقم الطلب: {{ order.order_number }}
-        </span>
-    </div>
-    <div class="d-flex gap-2 mt-2 mt-md-0">
-        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="window.print()">
-            <i class="fas fa-print me-1"></i> طباعة
-        </button>
+<div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        
+        <!-- الجهة اليمنى: زر الرجوع، العنوان، والرقم المرجعي -->
+        <div class="d-flex align-items-center flex-wrap gap-3">
+            <a href="{{ url_for('admin_orders_bp.list_admin_orders') }}" class="btn btn-light border btn-sm rounded-pill px-3 py-2 text-muted shadow-sm transition-all">
+                <i class="fas fa-arrow-right me-2 text-primary"></i> العودة للقائمة
+            </a>
+            
+            <div class="vr opacity-25 d-none d-sm-block" style="height: 30px;"></div>
+            
+            <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h4 class="fw-bold mb-0 text-dark" style="letter-spacing: -0.5px;">
+                        <i class="fas fa-receipt text-primary me-2"></i> طلب #{{ order._id }}
+                    </h4>
+                    {% if order.order_number %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 px-3 py-2 rounded-pill fw-semibold">
+                        رقم مرجعي: {{ order.order_number }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% if order.created_at %}
+                <div class="text-muted small mt-1">
+                    <i class="far fa-clock me-1"></i> تاريخ الطلب: {{ order.created_at.strftime('%Y-%m-%d %I:%M %p') if order.created_at.__class__.__name__ == 'datetime' else order.created_at }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- الجهة اليسرى: أزرار الإجراءات السريعة (طباعة وإضافات) -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-2 shadow-sm d-flex align-items-center gap-2" onclick="window.print()">
+                <i class="fas fa-print"></i>
+                <span>طباعة الطلب</span>
+            </button>
+            
+            <div class="dropdown">
+                <button type="button" class="btn btn-light border btn-sm rounded-pill px-3 py-2 text-secondary shadow-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu shadow border-0 rounded-3 py-2">
+                    <li>
+                        <a class="dropdown-item py-2 small d-flex align-items-center gap-2" href="#" onclick="location.reload();">
+                            <i class="fas fa-sync-alt text-muted"></i> تحديث الصفحة
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
     </div>
 </div>
