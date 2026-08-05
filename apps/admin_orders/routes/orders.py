@@ -123,32 +123,29 @@ def view_admin_order(order_id):
         db.session.rollback()
         order = db.session.get(Order, order_id)
         
-        if not order:
+        if not order and hasattr(services.orders, 'get_order_by_id'):
             try:
-                current_app.logger.info(f"🔄 محاولة مزامنة الطلب {order_id} عند فتح التفاصيل...")
-                if hasattr(services.orders, 'sync_single_order'):
-                    order = services.orders.sync_single_order(order_id)
-                elif hasattr(services.orders, 'get_order_by_id'):
-                    services.orders.get_order_by_id(order_id)
-                    order = db.session.get(Order, order_id)
+                current_app.logger.info(f"🔄 جاري جلب تفاصيل الطلب {order_id} عبر الخدمات الخارجية...")
+                services.orders.get_order_by_id(order_id)
+                order = db.session.get(Order, order_id)
             except Exception as sync_e:
-                current_app.logger.error(f"⚠️ خطأ أثناء مزامنة الطلب {order_id}: {sync_e}")
+                current_app.logger.error(f"⚠️ خطأ أثناء جلب الطلب {order_id}: {sync_e}")
                 db.session.rollback()
-
-        db.session.rollback()
-        order = db.session.get(Order, order_id)
 
         if not order:
             flash('❌ لم يتم العثور على الطلب في النظام، أو فشل حفظه محلياً. تأكد من صحة بيانات المزامنة.', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
         # 🔍 توثيق عملية استعراض تفاصيل طلب حساس عبر AuditLogger
-        services.audit.log(
-            action="VIEW_ORDER_DETAILS",
-            target_type="Order",
-            target_id=order_id,
-            details="تم استعراض تفاصيل الطلب من قبل المشرف"
-        )
+        try:
+            services.audit.log(
+                action="VIEW_ORDER_DETAILS",
+                target_type="Order",
+                target_id=str(order_id),
+                details="تم استعراض تفاصيل الطلب من قبل المشرف"
+            )
+        except Exception:
+            pass
 
         suppliers = Supplier.query.all()
 
@@ -218,12 +215,15 @@ def sync_admin_orders():
                 continue
 
         # 🔍 توثيق عملية المزامنة الشاملة الناجحة في سجل التدقيق الأمني
-        services.audit.log(
-            action="SYNC_ALL_ORDERS",
-            target_type="System",
-            target_id=None,
-            details=f"تمت مزامنة {total_synced} طلب بنجاح من Qumra API إلى قاعدة البيانات المحلية."
-        )
+        try:
+            services.audit.log(
+                action="SYNC_ALL_ORDERS",
+                target_type="System",
+                target_id=None,
+                details=f"تمت مزامنة {total_synced} طلب بنجاح من Qumra API إلى قاعدة البيانات المحلية."
+            )
+        except Exception:
+            pass
 
         return jsonify({
             'success': True,
