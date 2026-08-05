@@ -60,12 +60,12 @@ def manage_admin_orders_view():
         date_from = request.args.get('date_from', '')
         date_to = request.args.get('date_to', '')
 
-        # 🚀 تشغيل المزامنة في الخلفية عند فتح الصفحة الأولى وبدون تصفية
-        if not is_ajax and page == 1 and not (search_term or status_filter or date_from or date_to):
+        # ✅ المزامنة التلقائية في الخلفية عند فتح أي صفحة (وليس فقط الأولى)
+        if not is_ajax:
             app = current_app._get_current_object()
             threading.Thread(
                 target=_sync_orders_in_background,
-                args=(app, 1, 15),
+                args=(app, page, per_page),
                 daemon=True
             ).start()
 
@@ -170,7 +170,7 @@ def register_admin_orders_route(bp):
 
 
 # ============================================================
-# ✅ دالة المزامنة (لزر "مزامنة الطلبات") - تم تعديلها لتكون آمنة
+# ✅ دالة المزامنة (لزر "مزامنة الطلبات")
 # ============================================================
 @admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
 @login_required
@@ -182,18 +182,16 @@ def sync_admin_orders():
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح لك بهذه العملية'}), 403
 
-        # ✅ تخفيف الحمل: جلب 50 طلب فقط بدلاً من 100 لتجنب انهيار السيرفر
+        # تنفيذ المزامنة
         result = services.orders.get_all_orders(page=1, per_page=50)
         
-        # ✅ إرجاع رسالة نجاح فقط (لا نعيد البيانات الضخمة لتجنب خطأ JSON)
         return jsonify({
             'success': True,
-            'message': 'تمت مزامنة الطلبات بنجاح! تم تحديث قاعدة البيانات المحلية.'
+            'message': 'تمت مزامنة الطلبات بنجاح'
         })
         
     except Exception as e:
         current_app.logger.error(f"خطأ في مزامنة الطلبات: {traceback.format_exc()}")
-        # ✅ إرجاع JSON دائماً حتى في حالة الخطأ (لن يظهر خطأ Unexpected token)
         return jsonify({
             'success': False,
             'message': f'حدث خطأ أثناء المزامنة: {str(e)}'
