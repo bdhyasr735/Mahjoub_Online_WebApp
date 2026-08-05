@@ -9,7 +9,7 @@ from flask_login import login_required
 from apps.extensions import db
 from apps.services import services
 from apps.models.orders_db import Order
-from apps.models.supplier_db import Supplier  # ✅ تم إضافة الاستيراد المحلي
+from apps.models.supplier_db import Supplier
 
 # ✅ تعريف الـ Blueprint الرئيسي مع تحديد مجلد القوالب
 admin_orders_bp = Blueprint(
@@ -97,6 +97,9 @@ def manage_admin_orders_view():
             if 'status_text' not in order:
                 order['status_text'] = order.get('status_title', 'غير معروف')
 
+        # ✅ جلب قائمة الموردين لتعبئة فلتر المورد
+        suppliers_list = Supplier.query.all()
+
         if is_ajax:
             return jsonify({
                 'success': True,
@@ -105,7 +108,7 @@ def manage_admin_orders_view():
                 'total_items': pagination_info['total_items']
             })
 
-        return render_template('admin/admin_orders.html', orders=orders, pagination=pagination_info)
+        return render_template('admin/admin_orders.html', orders=orders, pagination=pagination_info, suppliers=suppliers_list)
 
     except Exception as e:
         current_app.logger.error(f"خطأ في جلب الطلبات للأدمن: {traceback.format_exc()}")
@@ -113,7 +116,7 @@ def manage_admin_orders_view():
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         if is_ajax:
             return jsonify({'success': False, 'message': 'حدث خطأ أثناء تحميل الطلبات'}), 500
-        return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1})
+        return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1}, suppliers=[])
 
 
 @admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
@@ -148,7 +151,7 @@ def view_admin_order(order_id):
             flash('❌ لم يتم العثور على الطلب في النظام، أو فشل حفظه محلياً. تأكد من صحة بيانات المزامنة.', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
-        # ✅ 6. جلب قائمة الموردين من قاعدة البيانات المحلية مباشرة (الحل الجذري)
+        # ✅ 6. جلب قائمة الموردين من قاعدة البيانات المحلية مباشرة
         suppliers = Supplier.query.all()  # جميع الموردين المحليين
 
         return render_template('admin/admin_order_detail.html', order=order, suppliers=suppliers)
