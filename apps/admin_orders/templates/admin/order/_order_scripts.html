@@ -1,88 +1,34 @@
 <!-- 📂 apps/admin_orders/templates/admin/order/_order_scripts.html -->
 <script>
-    // استخراج توكن الحماية من الصفحة
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-    // دالة تحديث حالة الطلب
-    function updateOrderStatus(orderId, newStatus) {
-        fetch(`/admin/orders/${orderId}/status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({ status: newStatus })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('خطأ: ' + data.message);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    // دالة تحديث الحالة المالية (مدفوع / غير مدفوع)
-    function updatePaymentStatus(orderId, isPaid) {
-        fetch(`/admin/orders/${orderId}/payment-status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({ isPaid: isPaid })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('خطأ: ' + data.message);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    // دالة تحديث مورد العنصر
+    // دالة تحديث مورد المنتج ضمن الطلب
     function updateItemSupplier(orderId, itemId, supplierId) {
-        fetch(`/admin/orders/${orderId}/items/supplier`, {
+        if (!supplierId) return;
+        
+        fetch(`/admin/orders/${orderId}/items/${itemId}/supplier`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ item_id: itemId, supplier_id: supplierId })
+            body: JSON.stringify({ supplier_id: supplierId })
         })
         .then(response => response.json())
         .then(data => {
-            if (!data.success) {
-                alert('خطأ في تحديث المورد: ' + data.message);
+            if (data.success) {
+                // إشعار نجاح خفيف أو تحديث بصري
+                console.log("تم تحديث المورد بنجاح");
+            } else {
+                alert(data.message || 'حدث خطأ أثناء تحديث المورد.');
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في الاتصال بالخادم.');
+        });
     }
 
-    // دالة حذف الطلب
-    function deleteOrder(orderId) {
-        if (confirm('هل أنت متأكد من رغبتك في حذف هذا الطلب نهائياً؟')) {
-            fetch(`/admin/orders/delete/${orderId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = "{{ url_for('admin_orders.list_orders' if 'admin_orders' in request.endpoint else 'admin.orders') }}";
-                } else {
-                    alert('خطأ: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-    }
+    // زر العودة أو التوجيه بعد العمليات
+    document.addEventListener("DOMContentLoaded", function() {
+        // أي سكربتات إضافية لإدارة تفاصيل الطلب تضاف هنا
+    });
 </script>
