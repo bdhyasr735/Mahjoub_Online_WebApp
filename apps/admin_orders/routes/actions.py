@@ -4,6 +4,7 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required
 from apps.extensions import db
+from apps.services import services
 from apps.models.orders_db import Order
 from apps.models.order_items_db import OrderItem
 
@@ -36,11 +37,21 @@ def update_status(order_id):
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
 
+        old_status = order.status_code
         order.status_code = new_status_code
         # تحديث العنوان بناءً على الخريطة أو القيمة الافتراضية
         order.status_title = STATUS_TITLES_MAP.get(new_status_code, 'حالة غير معروفة')
         
         db.session.commit()
+
+        # 🔍 توثيق التغيير في سجل التدقيق المركزي
+        services.audit.log(
+            action="UPDATE_ORDER_STATUS",
+            target_type="Order",
+            target_id=order_id,
+            details=f"تم تغيير حالة الطلب من ({old_status}) إلى ({new_status_code})"
+        )
+
         return jsonify({'success': True, 'message': 'تم تحديث حالة الطلب بنجاح'})
         
     except Exception as e:
@@ -66,6 +77,15 @@ def update_payment_status(order_id):
         order.is_paid = bool(is_paid)
         
         db.session.commit()
+
+        # 🔍 توثيق تغيير حالة الدفع في سجل التدقيق
+        services.audit.log(
+            action="UPDATE_PAYMENT_STATUS",
+            target_type="Order",
+            target_id=order_id,
+            details=f"تم تحديث حالة الدفع للطلب لتصبح: {'مدفوع' if is_paid else 'غير مدفوع'}"
+        )
+
         return jsonify({'success': True, 'message': 'تم تحديث حالة الدفع بنجاح'})
         
     except Exception as e:
@@ -97,6 +117,15 @@ def update_item_supplier(order_id):
         item.supplier_id = supplier_id if supplier_id else None
         
         db.session.commit()
+
+        # 🔍 توثيق تحديث مورد العنصر داخل سجل التدقيق
+        services.audit.log(
+            action="UPDATE_ITEM_SUPPLIER",
+            target_type="Order",
+            target_id=order_id,
+            details=f"تم تحديث مورد العنصر (ID: {item_id}) إلى المورد المحلي (ID: {supplier_id})"
+        )
+
         return jsonify({'success': True, 'message': 'تم تحديث مورد العنصر بنجاح'})
         
     except Exception as e:
@@ -115,6 +144,15 @@ def delete_order(order_id):
             
         db.session.delete(order)
         db.session.commit()
+
+        # 🔍 توثيق حذف الطلب في سجل التدقيق الأمني
+        services.audit.log(
+            action="DELETE_ORDER",
+            target_type="Order",
+            target_id=order_id,
+            details="تم حذف الطلب نهائياً من لوحة الإدارة"
+        )
+
         return jsonify({'success': True, 'message': 'تم حذف الطلب بنجاح'})
         
     except Exception as e:
