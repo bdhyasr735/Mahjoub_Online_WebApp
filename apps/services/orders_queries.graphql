@@ -7,7 +7,7 @@ query FindAllOrders($input: FindAllOrdersInput) {
     findAllOrders(input: $input) {
         data {
             _id
-            orderNumber        # ✅ تم إضافة هذا السطر لجلب الرقم التسلسلي القصير من قمرة
+            # تم حذف السطر orderNumber لأنه غير موجود في استجابة قمرة
             type
             totalPrice
             isPaid
