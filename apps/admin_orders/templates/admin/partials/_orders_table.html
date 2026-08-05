@@ -16,10 +16,11 @@
                 <tbody>
                     {% if orders %}
                         {%- for order in orders -%}
+                        {% set current_order_id = order.id or order._id %}
                         <tr>
                             <!-- معرف الطلب (عرض مختصر للمعرف + حماية احتياطية) -->
-                            <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="{{ order.id }}">
-                                #{{ order.orderNumber if order.orderNumber else order.id[:8] }}...
+                            <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="{{ current_order_id }}">
+                                #{{ order.orderNumber if order.orderNumber else (current_order_id[:8] if current_order_id else 'N/A') }}...
                             </td>
                             
                             <!-- اسم العميل -->
@@ -58,7 +59,7 @@
                                     {% elif order.status_code == 'completed' %}bg-success-subtle text-success-emphasis
                                     {% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}" 
                                     style="font-size: 0.8rem; max-width: 130px;" 
-                                    onchange="updateOrderStatusInline('{{ order.id }}', this.value)">
+                                    onchange="updateOrderStatusInline('{{ current_order_id }}', this.value)">
                                     <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
                                     <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>جاري التجهيز</option>
                                     <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
@@ -74,9 +75,12 @@
                                 </span>
                             </td>
 
-                            <!-- الإجراءات -->
+                            <!-- الإجراءات (معدل ليفتح مباشرة بـ window.location ويتخطى أي تعليق) -->
                             <td class="py-2">
-                                <a href="{{ url_for('admin_orders_bp.view_admin_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2" title="عرض التفاصيل">
+                                <a href="{{ url_for('admin_orders_bp.view_admin_order', order_id=current_order_id) }}" 
+                                   class="btn btn-sm btn-outline-primary py-0 px-2" 
+                                   title="عرض التفاصيل"
+                                   onclick="event.stopPropagation(); window.location.href=this.href; return false;">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </td>
@@ -99,7 +103,7 @@
 <script>
 function updateOrderStatusInline(orderId, newStatus) {
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-    fetch(`/admin/orders/${orderId}/status`, {
+    fetch(`/admin/orders/${orderId}/update-status`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
