@@ -1,29 +1,41 @@
 {# 📂 apps/admin_orders/templates/admin/admin_order_detail.html #}
 {% extends "admin/admin_base.html" %}
 
-{% block title %}تفاصيل الطلب #{{ order.id }}{% endblock %}
+{% block title %}تفاصيل الطلب | محجوب أونلاين{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4" dir="rtl">
-    <!-- 1. رأس الصفحة وأزرار التحكم العلوية -->
-    {% include "admin/partials/_order_header.html" %}
+<div class="container-fluid mb-5">
+    
+    <!-- 1. رأس صفحة الطلب (أزرار الطباعة والرجوع) -->
+    {% include "admin/order/_order_header.html" %}
 
     <div class="row">
-        <!-- العمود الجانبي: معلومات العميل، الحالة، والملخص المالي -->
-        <div class="col-xl-4 col-lg-5 mb-4">
-            {% include "admin/partials/_customer_info_card.html" %}
-            {% include "admin/partials/_order_status_card.html" %}
-            {% include "admin/partials/_financial_summary_card.html" %}
-            {% include "admin/partials/_supplier_stats_card.html" %}
+        <!-- العمود الأيمن: المنتجات (يأخذ مساحة أكبر) -->
+        <div class="col-xl-8 col-lg-7 mb-4">
+            {% include "admin/order/_items_table_card.html" %}
         </div>
 
-        <!-- العمود الرئيسي: جدول عناصر ومنتجات الطلب -->
-        <div class="col-xl-8 col-lg-7">
-            {% include "admin/partials/_items_table_card.html" %}
+        <!-- العمود الأيسر: بطاقات المعلومات الجانبية -->
+        <div class="col-xl-4 col-lg-5">
+            <!-- حالة الطلب وتحديثها -->
+            {% include "admin/order/_order_status_card.html" %}
+            
+            <!-- معلومات العميل -->
+            {% include "admin/order/_customer_info_card.html" %}
+            
+            <!-- الملخص المالي -->
+            {% include "admin/order/_financial_summary_card.html" %}
+            
+            <!-- إحصائيات الموردين -->
+            {% include "admin/order/_supplier_stats_card.html" %}
         </div>
     </div>
-</div>
 
-<!-- 2. السكريبتات وتفاعلات الـ AJAX -->
-{% include "admin/partials/_order_scripts.html" %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <!-- سكربتات التفاعل مع الطلب (تحديث الحالة، الموردين، إلخ) -->
+    {% include "admin/order/_order_scripts.html" %}
 {% endblock %}
