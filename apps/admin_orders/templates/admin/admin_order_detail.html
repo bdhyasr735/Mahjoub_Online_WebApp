@@ -19,9 +19,10 @@
     {% include 'admin/order/_order_header.html' ignore missing %}
 
     <div class="row g-4">
-        <!-- 👈 العمود الأيمن: حالات الطلب ومعلومات العميل -->
+        <!-- 👈 العمود الأيمن: حالات الطلب، إحصائيات الموردين، ومعلومات العميل -->
         <div class="col-lg-4">
             {% include 'admin/order/_order_status_card.html' ignore missing %}
+            {% include 'admin/order/_supplier_stats_card.html' ignore missing %}
             {% include 'admin/order/_customer_info_card.html' ignore missing %}
         </div>
 
@@ -33,7 +34,7 @@
     </div>
 </div>
 
-<!-- حقل مخفي احتياطي للنماذج التقليدية -->
+<!-- حقل مخفي احتياطي -->
 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
 
 <!-- 📜 ملف الجافاسكريبت المنفصل -->
