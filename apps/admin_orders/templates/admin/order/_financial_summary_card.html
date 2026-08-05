@@ -1,27 +1,12 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_financial_summary_card.html -->
-<div class="card order-card">
-    <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title mb-0 fw-bold text-primary">
-            <i class="fas fa-file-invoice-dollar me-2"></i> الملخص المالي
-        </h5>
+{# 📂 apps/admin_orders/templates/admin/order/_financial_summary_card.html #}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 bg-success text-white">
+        <h6 class="m-0 font-weight-bold">الملخص المالي</h6>
     </div>
-    <div class="card-body pt-0">
-        <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">مجموع المنتجات:</span>
-            <span class="fw-bold">{{ "%.2f"|format(order.totalPrice or order.total_amount or 0.0) }} ر.س</span>
-        </div>
-        <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">رسوم الشحن:</span>
-            <span class="fw-bold">{{ "%.2f"|format(order.shippingPrice or 0.0) }} ر.س</span>
-        </div>
-        <div class="d-flex justify-content-between mb-3">
-            <span class="text-muted">الضريبة:</span>
-            <span class="fw-bold">{{ "%.2f"|format(order.taxAmount or 0.0) }} ر.س</span>
-        </div>
-        <hr>
+    <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
-            <span class="fw-bold text-dark fs-5">المبلغ الإجمالي النهائي:</span>
-            <span class="fw-bold text-success fs-4">{{ "%.2f"|format(order.totalPriceWithTax or order.total_amount or 0.0) }} ر.س</span>
+            <span class="font-weight-bold text-gray-700">الإجمالي الكلي:</span>
+            <strong class="text-success fs-5">{{ order.total_amount or order.total or 0 }} ريال</strong>
         </div>
     </div>
 </div>
