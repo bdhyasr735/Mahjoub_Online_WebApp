@@ -66,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'statusFilter', 
         'financialStatusFilter', 
         'fulfillmentStatusFilter', 
-        'limitSelect', 
         'dateFrom', 
         'dateTo'
     ];
@@ -79,17 +78,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// دالة جلب الطلبات عبر AJAX
-function fetchAdminOrders(page = 1) {
+// متغير لتخزين مؤقت التحميل المسبق
+let prefetchTimeout;
+
+// دالة جلب الطلبات عبر AJAX (مع التحميل المسبق للصفحة التالية)
+function fetchAdminOrders(page = 1, prefetch = false) {
     const container = document.getElementById('ordersContainer');
     if (!container) return;
-    
-    container.innerHTML = `
-        <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
-            <div class="spinner-border mx-auto mb-3" style="color: #D4AF37; width: 3rem; height: 3rem;" role="status"></div>
-            <p class="text-muted fw-semibold mb-0">⏳ جاري تحميل الطلبات...</p>
-        </div>`;
 
+    // إذا لم يكن تحميل مسبق، نعرض مؤشر التحميل
+    if (!prefetch) {
+        container.innerHTML = `
+            <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
+                <div class="spinner-border mx-auto mb-3" style="color: #D4AF37; width: 3rem; height: 3rem;" role="status"></div>
+                <p class="text-muted fw-semibold mb-0">⏳ جاري تحميل الطلبات...</p>
+            </div>`;
+    }
+
+    // ✅ تم حذف limit من الباراميترز لأننا سنثبته على 10 في الخادم
     const params = new URLSearchParams({
         page: page,
         search: getVal('searchInput'),
@@ -98,7 +104,6 @@ function fetchAdminOrders(page = 1) {
         fulfillment_status: getVal('fulfillmentStatusFilter'),
         date_from: getVal('dateFrom'),
         date_to: getVal('dateTo'),
-        limit: getVal('limitSelect') || '10',
         ajax: '1'
     });
 
@@ -111,7 +116,28 @@ function fetchAdminOrders(page = 1) {
     })
     .then(data => {
         if (data.success && data.html) {
+            if (prefetch) {
+                // ✅ إذا كان تحميل مسبق (في الخلفية)، نخزن البيانات دون تغيير الصفحة
+                window._prefetchedPageData = data;
+                return;
+            }
+
+            // عرض البيانات في الصفحة الحالية
             container.innerHTML = data.html + `<div id="paginationContainer">${data.pagination_html || ''}</div>`;
+
+            // ✅ تحميل الصفحة التالية مسبقاً في الخلفية (Prefetch)
+            const nextLink = document.querySelector('.page-item:not(.disabled) .page-link[onclick*="fetchAdminOrders"]');
+            if (nextLink) {
+                const match = nextLink.getAttribute('onclick').match(/fetchAdminOrders\((\d+)\)/);
+                if (match) {
+                    const nextPage = parseInt(match[1]);
+                    clearTimeout(prefetchTimeout);
+                    prefetchTimeout = setTimeout(() => {
+                        // جلب الصفحة التالية في الخلفية (دون تغيير الواجهة)
+                        fetchAdminOrders(nextPage, true);
+                    }, 300);
+                }
+            }
         } else {
             container.innerHTML = `
                 <div class="alert alert-warning text-center py-4 rounded-4 shadow-sm">
@@ -121,12 +147,14 @@ function fetchAdminOrders(page = 1) {
         }
     })
     .catch(error => {
-        console.error('Fetch Orders Error:', error);
-        container.innerHTML = `
-            <div class="alert alert-danger text-center py-4 rounded-4 shadow-sm">
-                <i class="fas fa-exclamation-triangle fa-2x d-block mb-2"></i>
-                حدث خطأ أثناء جلب الطلبات. يرجى إعادة المحاولة.
-            </div>`;
+        if (!prefetch) { // لا تظهر الخطأ إذا كان تحميل مسبقاً
+            console.error('Fetch Orders Error:', error);
+            container.innerHTML = `
+                <div class="alert alert-danger text-center py-4 rounded-4 shadow-sm">
+                    <i class="fas fa-exclamation-triangle fa-2x d-block mb-2"></i>
+                    حدث خطأ أثناء جلب الطلبات. يرجى إعادة المحاولة.
+                </div>`;
+        }
     });
 }
 
