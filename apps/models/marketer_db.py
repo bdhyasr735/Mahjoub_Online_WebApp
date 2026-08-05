@@ -59,6 +59,8 @@ class Marketer(db.Model, UserMixin):
         """تشفير رقم الهاتف قبل التخزين"""
         if value:
             self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
+        else:
+            self._phone_enc = None
 
     # --- نظام أمن كلمات المرور ---
     def set_password(self, password):
@@ -71,6 +73,18 @@ class Marketer(db.Model, UserMixin):
     def get_total_commissions(self):
         # هذه الدالة مهيأة للربط المباشر مع سجلات المحفظة (WalletTransaction) لاحقاً
         return 0.0
+
+    def to_dict(self):
+        """تحويل بيانات المسوق إلى قاموس آمن للاستخدام في APIs"""
+        return {
+            'id': self.id,
+            'full_name': self.full_name,
+            'marketing_code': self.marketing_code,
+            'phone': self.phone,
+            'is_active': self.is_active,
+            'total_referrals': self.total_referrals,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
 
     def __repr__(self):
         return f'<Marketer {self.full_name} | Code: {self.marketing_code}>'
