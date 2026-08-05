@@ -4,20 +4,32 @@
         <h2 class="fw-bold mb-1">Mahjoub Online</h2>
         <p class="text-muted mb-0">فاتورة طلب مبيعات رسمية</p>
     </div>
+    
     <div class="row mb-4">
         <div class="col-6">
-            <p class="mb-1"><strong>رقم الطلب:</strong> #{{ order.id }}</p>
-            <p class="mb-1"><strong>تاريخ الطلب:</strong> {{ order.created_at or 'غير متوفر' }}</p>
+            <p class="mb-1"><strong>رقم الطلب:</strong> #{{ order.id or order.order_id or order._id or '----' }}</p>
+            <p class="mb-1"><strong>تاريخ الطلب:</strong> 
+                {% if order.created_at %}
+                    {% if order.created_at is string %}
+                        {{ order.created_at[:16] }}
+                    {% else %}
+                        {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% endif %}
+                {% else %}
+                    غير متوفر
+                {% endif %}
+            </p>
         </div>
         <div class="col-6 text-start">
-            <p class="mb-1"><strong>العميل:</strong> {{ order.customer_name or 'غير متوفر' }}</p>
-            <p class="mb-1"><strong>الهاتف:</strong> {{ order.customer_phone or 'غير متوفر' }}</p>
+            <p class="mb-1"><strong>العميل:</strong> {{ order.customer_name or order.name or (order.shipping_address.name if order.shipping_address is mapping else none) or 'غير متوفر' }}</p>
+            <p class="mb-1"><strong>الهاتف:</strong> <span dir="ltr">{{ order.customer_phone or order.phone or order.phone_number or (order.shipping_address.phone if order.shipping_address is mapping else none) or 'غير متوفر' }}</span></p>
         </div>
     </div>
-    <table class="table table-bordered mb-4">
+
+    <table class="table table-bordered mb-4 align-middle text-center">
         <thead class="table-light">
             <tr>
-                <th>المنتج</th>
+                <th class="text-end">المنتج</th>
                 <th>السعر</th>
                 <th>الكمية</th>
                 <th>الإجمالي</th>
@@ -27,28 +39,34 @@
             {% if order.items %}
                 {% for item in order.items %}
                 <tr>
-                    <td>{{ item.product_name or item.name }}</td>
-                    <td>{{ "%.2f"|format(item.price or 0) }} ر.ي</td>
-                    <td>{{ item.quantity or 1 }}</td>
-                    <td>{{ "%.2f"|format((item.price or 0) * (item.quantity or 1)) }} ر.ي</td>
+                    <td class="text-end">{{ item.product_name or item.name or item.title or 'منتج' }}</td>
+                    <td>{{ "%.2f"|format(item.price or item.unit_price or 0) }} ر.س</td>
+                    <td>{{ item.quantity or item.qty or 1 }}</td>
+                    <td>{{ "%.2f"|format((item.price or item.unit_price or 0) * (item.quantity or item.qty or 1)) }} ر.س</td>
                 </tr>
                 {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="4" class="text-muted py-3">لا توجد منتجات مسجلة في هذا الطلب</td>
+                </tr>
             {% endif %}
         </tbody>
     </table>
+
     <div class="row">
         <div class="col-6 offset-6">
             <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
                 <span>الإجمالي الفرعي:</span>
-                <span>{{ "%.2f"|format(order.total_amount or 0) }} ر.ي</span>
+                <span>{{ "%.2f"|format(order.total_amount or order.subtotal or order.total_price or 0) }} ر.س</span>
             </div>
-            <div class="d-flex justify-content-between fw-bold fs-5">
+            <div class="d-flex justify-content-between fw-bold fs-5 text-success">
                 <span>الإجمالي الكلي:</span>
-                <span>{{ "%.2f"|format(order.total_amount or 0) }} ر.ي</span>
+                <span>{{ "%.2f"|format(order.total_amount or order.final_price or order.total_price or 0) }} ر.س</span>
             </div>
         </div>
     </div>
+
     <div class="text-center mt-5 pt-3 border-top text-muted small">
-        <p>شكراً لتسوقكم معنا في Mahjoub Online!</p>
+        <p class="mb-0">شكراً لتسوقكم معنا في Mahjoub Online - تسوقك الذكي</p>
     </div>
 </div>
