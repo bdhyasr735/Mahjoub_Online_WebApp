@@ -17,12 +17,12 @@
                     {% if orders %}
                         {%- for order in orders -%}
                         <tr>
-                            <!-- رقم الطلب (استخدام order.orderNumber بدلاً من order.id) -->
-                            <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="{{ order.orderNumber }}">
-                                #{{ order.orderNumber }}
+                            <!-- رقم الطلب (مع حماية احتياطية: إذا لم يوجد orderNumber، يظهر order.id) -->
+                            <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="{{ order.orderNumber or order.id }}">
+                                #{{ order.orderNumber if order.orderNumber else order.id }}
                             </td>
                             
-                            <!-- اسم العميل (زيادة العرض لمنع الاقتطاع) -->
+                            <!-- اسم العميل -->
                             <td class="py-2 text-truncate" style="max-width: 200px;" title="{{ order.customer_name }}">
                                 {% if order.customer_name and order.customer_name != 'زائر' and order.customer_name != 'عميل غير معروف' %}
                                     {{ order.customer_name }}
