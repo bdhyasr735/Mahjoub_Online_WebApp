@@ -124,13 +124,20 @@ class OrderService:
                     for item in items_list:
                         if not item:
                             continue
+                        
+                        # استخراج بيانات المنتج من productData بدقة
                         prod_data = item.get('productData') or {}
                         qty = int(item.get('quantity', 1) or 1)
-                        price = float(item.get('price', 0.0) or 0.0)
+                        price = float(item.get('price', 0.0) or (prod_data.get('price') or 0.0))
                         prod_id = item.get('productId', '')
-
                         safe_prod_id = str(prod_id) if prod_id is not None else ""
-                        product_name = prod_data.get('title') or (f"منتج ({safe_prod_id[:8]})" if safe_prod_id else "منتج غير معروف")
+
+                        # ⚡️ سحب الاسم الحقيقي من الـ productData بجميع الاحتمالات الممكنة
+                        product_name = (
+                            prod_data.get('title') or 
+                            prod_data.get('name') or 
+                            (f"منتج ({safe_prod_id[:8]})" if safe_prod_id else "منتج بدون اسم")
+                        )
 
                         # البحث عن المورد المحلي
                         item_supplier_id = None
@@ -148,7 +155,7 @@ class OrderService:
                         new_item = OrderItem(
                             order_id=existing_order.id,
                             supplier_id=item_supplier_id,
-                            product_name=product_name,
+                            product_name=product_name,  # حفظ اسم المنتج الحقيقي
                             quantity=qty,
                             price=price
                         )
