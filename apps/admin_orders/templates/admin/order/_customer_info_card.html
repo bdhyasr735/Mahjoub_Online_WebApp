@@ -1,23 +1,24 @@
-{# 📂 apps/admin_orders/templates/admin/order/_customer_info_card.html #}
+{% set account_info = order.account.account if (order and order.account and order.account.account) else {} %}
+{% set customer_name = account_info.fullname or order.customer_name or order.fullname or 'زائر / بدون اسم' %}
+{% set customer_phone = account_info.phone or order.customer_phone or order.phone or 'غير متوفر' %}
+
 <div class="card shadow mb-4">
-    <div class="card-header py-3 bg-primary text-white">
-        <h6 class="m-0 font-weight-bold">معلومات العميل</h6>
+    <div class="card-header py-3 bg-light">
+        <h6 class="m-0 font-weight-bold text-info"><i class="fas fa-user me-1"></i> معلومات العميل</h6>
     </div>
     <div class="card-body">
         <ul class="list-group list-group-flush">
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>اسم العميل:</span>
-                <strong>{{ order.customer_name or order.user_name or 'عميل متجر' }}</strong>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span class="text-muted"><i class="fas fa-user-circle me-1"></i> الاسم:</span>
+                <span class="fw-bold">{{ customer_name }}</span>
             </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>رقم الهاتف:</span>
-                <span dir="ltr">{{ order.phone or order.customer_phone or 'غير متوفر' }}</span>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span class="text-muted"><i class="fas fa-phone me-1"></i> الهاتف:</span>
+                <span class="fw-bold dir-ltr">{{ customer_phone }}</span>
             </li>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>عنوان الشحن:</span>
-                <span class="text-truncate" style="max-width: 200px;" title="{{ order.address }}">
-                    {{ order.address or 'غير متوفر' }}
-                </span>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span class="text-muted"><i class="fas fa-tag me-1"></i> نوع الحساب:</span>
+                <span class="badge bg-secondary">{{ order.type or 'guest' }}</span>
             </li>
         </ul>
     </div>
