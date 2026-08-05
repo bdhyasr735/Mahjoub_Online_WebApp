@@ -55,7 +55,7 @@ class OrderService:
             from apps.extensions import db
 
             for order in orders_data:
-                # ✅ وضع كل طلب في try-except منفصل، حتى لا يفشل الطلب بأكمله إذا أخطأ طلب واحد
+                # ✅ معالجة كل طلب بشكل مستقل، حتى لا يسقط الجميع إذا فشل أحدها
                 try:
                     if not order or not isinstance(order, dict):
                         continue
@@ -74,7 +74,7 @@ class OrderService:
                         status_code = str(status_obj) if status_obj else 'pending'
                         status_title = 'قيد الانتظار'
 
-                    # استخراج اسم العميل بشكل آمن (تم التعديل هنا)
+                    # استخراج اسم العميل بشكل آمن
                     account_outer = order.get('account') or {}
                     account_inner = account_outer.get('account') or {}
                     raw_fullname = account_inner.get('fullname')
@@ -82,17 +82,14 @@ class OrderService:
                     if raw_fullname and raw_fullname.strip():
                         customer_name = raw_fullname
                     else:
-                        # إذا لم يوجد اسم، نحدد النوع
                         if order.get('type') == 'guest':
                             customer_name = 'زائر'
                         else:
                             customer_name = 'عميل غير معروف'
 
-                    # استخراج الحالة المالية والإجمالي
                     is_paid = order.get('isPaid', False)
                     total_price = order.get('totalPrice', 0.0) or 0.0
 
-                    # استخراج وتنسيق تاريخ الإنشاء
                     created_at_str = order.get('createdAt')
                     created_at = datetime.utcnow()
                     if created_at_str:
@@ -102,10 +99,8 @@ class OrderService:
                         except Exception:
                             pass
 
-                    # البحث عن الطلب محلياً
                     existing_order = Order.query.filter_by(id=qid).first()
 
-                    # ====== التعديل الجديد هنا ======
                     # توليد الرقم التسلسلي للطلب الجديد بناءً على أحدث طلب (حسب التاريخ)
                     latest_order = db.session.query(Order).order_by(Order.created_at.desc()).first()
                     if latest_order and latest_order.order_number:
@@ -115,7 +110,6 @@ class OrderService:
                             next_number = 1000000235
                     else:
                         next_number = 1000000235
-                    # ================================
 
                     if existing_order:
                         existing_order.status_code = status_code
@@ -124,7 +118,6 @@ class OrderService:
                         existing_order.is_paid = is_paid
                         existing_order.total_price = total_price
                         existing_order.created_at = created_at
-
                         # حذف العناصر القديمة لإعادة إدراجها بالتحديثات الجديدة
                         OrderItem.query.filter_by(order_id=existing_order.id).delete()
                     else:
@@ -141,7 +134,6 @@ class OrderService:
                         db.session.add(existing_order)
                         db.session.flush()
 
-                    # معالجة عناصر الطلب وتوزيع الموردين المحليين بدقة على مستوى كل عنصر
                     primary_supplier_id = None
                     for item in items_list:
                         if not item:
@@ -154,14 +146,16 @@ class OrderService:
                         product_name = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
                         sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
 
-                        # البحث عن المورد المحلي الخاص بهذا المنتج عبر جدول الربط
+                        # ✅ البحث عن المورد المحلي، إذا لم يوجد نضع None ولا نسقط الطلب
                         item_supplier_id = None
                         if prod_id:
-                            mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_id).first()
-                            if mapping:
-                                item_supplier_id = mapping.supplier_id
+                            try:
+                                mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_id).first()
+                                if mapping:
+                                    item_supplier_id = mapping.supplier_id
+                            except Exception:
+                                pass
 
-                        # تعيين أول مورد رئيسي للطلب كمرجع أساسي إن لم يُحدد مسبقاً
                         if primary_supplier_id is None and item_supplier_id is not None:
                             primary_supplier_id = item_supplier_id
 
@@ -180,7 +174,7 @@ class OrderService:
                     db.session.commit()
                 
                 except Exception as order_err:
-                    # ✅ إذا فشل هذا الطلب، نقوم بـ rollback ونتجاوز إلى الطلب التالي
+                    # إذا فشل هذا الطلب، نتراجع ونتجاوز إلى الطلب التالي
                     db.session.rollback()
                     print(f"⚠️ [OrderService] فشل حفظ الطلب {qid} وتم تخطيه: {order_err}")
 
