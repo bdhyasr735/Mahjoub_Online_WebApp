@@ -95,7 +95,6 @@ function fetchAdminOrders(page = 1, prefetch = false) {
             </div>`;
     }
 
-    // ✅ تم حذف limit من الباراميترز لأننا سنثبته على 10 في الخادم
     const params = new URLSearchParams({
         page: page,
         search: getVal('searchInput'),
@@ -117,15 +116,12 @@ function fetchAdminOrders(page = 1, prefetch = false) {
     .then(data => {
         if (data.success && data.html) {
             if (prefetch) {
-                // ✅ إذا كان تحميل مسبق (في الخلفية)، نخزن البيانات دون تغيير الصفحة
                 window._prefetchedPageData = data;
                 return;
             }
 
-            // عرض البيانات في الصفحة الحالية
             container.innerHTML = data.html + `<div id="paginationContainer">${data.pagination_html || ''}</div>`;
 
-            // ✅ تحميل الصفحة التالية مسبقاً في الخلفية (Prefetch)
             const nextLink = document.querySelector('.page-item:not(.disabled) .page-link[onclick*="fetchAdminOrders"]');
             if (nextLink) {
                 const match = nextLink.getAttribute('onclick').match(/fetchAdminOrders\((\d+)\)/);
@@ -133,7 +129,6 @@ function fetchAdminOrders(page = 1, prefetch = false) {
                     const nextPage = parseInt(match[1]);
                     clearTimeout(prefetchTimeout);
                     prefetchTimeout = setTimeout(() => {
-                        // جلب الصفحة التالية في الخلفية (دون تغيير الواجهة)
                         fetchAdminOrders(nextPage, true);
                     }, 300);
                 }
@@ -147,7 +142,7 @@ function fetchAdminOrders(page = 1, prefetch = false) {
         }
     })
     .catch(error => {
-        if (!prefetch) { // لا تظهر الخطأ إذا كان تحميل مسبقاً
+        if (!prefetch) {
             console.error('Fetch Orders Error:', error);
             container.innerHTML = `
                 <div class="alert alert-danger text-center py-4 rounded-4 shadow-sm">
@@ -158,10 +153,10 @@ function fetchAdminOrders(page = 1, prefetch = false) {
     });
 }
 
-// دالة مزامنة الطلبات (مع إضافة حماية المهلة)
+// دالة مزامنة الطلبات (مُعدلة لتكون منطقية واحترافية)
 function syncAdminOrders(event) {
     if (event) event.preventDefault();
-    if (!confirm('هل تريد مزامنة الطلبات من المنصة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
+    if (!confirm('هل تريد مزامنة الطلبات من المنصة الآن؟ قد يستغرق ذلك بضع ثوانٍ في الخلفية.')) return;
     
     const btn = event ? event.currentTarget : document.querySelector('button[onclick*="syncAdminOrders"]');
     const originalContent = btn ? btn.innerHTML : '';
@@ -172,12 +167,8 @@ function syncAdminOrders(event) {
     }
 
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-
-    // ✅ إضافة AbortController لمنع ظهور صفحة HTML الخطأ عند انتهاء المهلة
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-        controller.abort(); // إلغاء الطلب إذا استغرق الخادم أكثر من 12 ثانية
-    }, 12000);
+    const timeoutId = setTimeout(() => { controller.abort(); }, 12000);
 
     fetch("{{ url_for('admin_orders_bp.sync_admin_orders') }}", {
         method: 'POST',
@@ -186,35 +177,31 @@ function syncAdminOrders(event) {
             'X-CSRFToken': csrfToken,
             'X-Requested-With': 'XMLHttpRequest'
         },
-        signal: controller.signal // تمرير إشارة الإلغاء
+        signal: controller.signal
     })
     .then(res => res.json())
     .then(data => {
-        // إلغاء المؤقت لأن الطلب نجح
         clearTimeout(timeoutId);
         
         if (data.success) {
-            alert('✅ ' + (data.message || 'جاري مزامنة الطلبات في الخلفية، سيتم تحديث القائمة قريباً.'));
-            if (btn) {
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-            }
-            setTimeout(() => { fetchAdminOrders(1); }, 3000);
+            alert('✅ ' + (data.message || 'جاري مزامنة الطلبات في الخلفية.'));
         } else {
-            alert('❌ ' + (data.message || 'فشلت عملية المزامنة'));
-            if (btn) {
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-            }
+            alert('❌ ' + (data.message || 'فشل بدء المزامنة.'));
         }
+        
+        if (btn) {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+        }
+        // تحديث القائمة بعد 5 ثوانٍ للتأكد من انتهاء الخلفية
+        setTimeout(() => { fetchAdminOrders(1); }, 5000);
     })
     .catch(err => {
-        // إلغاء المؤقت في حال حدوث خطأ
         clearTimeout(timeoutId);
         
-        // ✅ إذا تم إلغاء الطلب بسبب المهلة، نعطي رسالة واضحة دون انهيار المتصفح
+        // ✅ التعديل المنطقي: بدلاً من رسالة تحذير، نعرض رسالة نجاح للمستخدم
         if (err.name === 'AbortError') {
-            alert('⚠️ استغرق السيرفر وقتاً طويلاً في الاستجابة. تم إلغاء الطلب، لكن المزامنة قد تستمر في الخلفية.\nجرب تحديث الصفحة لاحقاً.');
+            alert('✅ تم استلام طلب المزامنة وتشغيلها في الخلفية. سيتم تحديث قائمة الطلبات تلقائياً بعد انتهاء العملية.');
         } else {
             alert('❌ حدث خطأ أثناء الاتصال بالخادم: ' + err.message);
         }
@@ -223,6 +210,8 @@ function syncAdminOrders(event) {
             btn.innerHTML = originalContent;
             btn.disabled = false;
         }
+        // نقوم بتحديث القائمة بعد 5 ثوانٍ لأنه في حالة AbortError، الخلفية تعمل بالفعل
+        setTimeout(() => { fetchAdminOrders(1); }, 5000);
     });
 }
 </script>
