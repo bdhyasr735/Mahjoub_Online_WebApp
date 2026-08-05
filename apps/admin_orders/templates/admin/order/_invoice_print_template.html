@@ -1,1 +1,54 @@
-
+<!-- 📂 apps/admin_orders/templates/admin/partials/_invoice_print_template.html -->
+<div class="invoice-print-container d-none d-print-block p-4 bg-white text-dark" dir="rtl">
+    <div class="text-center mb-4 pb-3 border-bottom">
+        <h2 class="fw-bold mb-1">Mahjoub Online</h2>
+        <p class="text-muted mb-0">فاتورة طلب مبيعات رسمية</p>
+    </div>
+    <div class="row mb-4">
+        <div class="col-6">
+            <p class="mb-1"><strong>رقم الطلب:</strong> #{{ order.id }}</p>
+            <p class="mb-1"><strong>تاريخ الطلب:</strong> {{ order.created_at or 'غير متوفر' }}</p>
+        </div>
+        <div class="col-6 text-start">
+            <p class="mb-1"><strong>العميل:</strong> {{ order.customer_name or 'غير متوفر' }}</p>
+            <p class="mb-1"><strong>الهاتف:</strong> {{ order.customer_phone or 'غير متوفر' }}</p>
+        </div>
+    </div>
+    <table class="table table-bordered mb-4">
+        <thead class="table-light">
+            <tr>
+                <th>المنتج</th>
+                <th>السعر</th>
+                <th>الكمية</th>
+                <th>الإجمالي</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if order.items %}
+                {% for item in order.items %}
+                <tr>
+                    <td>{{ item.product_name or item.name }}</td>
+                    <td>{{ "%.2f"|format(item.price or 0) }} ر.ي</td>
+                    <td>{{ item.quantity or 1 }}</td>
+                    <td>{{ "%.2f"|format((item.price or 0) * (item.quantity or 1)) }} ر.ي</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+    <div class="row">
+        <div class="col-6 offset-6">
+            <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                <span>الإجمالي الفرعي:</span>
+                <span>{{ "%.2f"|format(order.total_amount or 0) }} ر.ي</span>
+            </div>
+            <div class="d-flex justify-content-between fw-bold fs-5">
+                <span>الإجمالي الكلي:</span>
+                <span>{{ "%.2f"|format(order.total_amount or 0) }} ر.ي</span>
+            </div>
+        </div>
+    </div>
+    <div class="text-center mt-5 pt-3 border-top text-muted small">
+        <p>شكراً لتسوقكم معنا في Mahjoub Online!</p>
+    </div>
+</div>
