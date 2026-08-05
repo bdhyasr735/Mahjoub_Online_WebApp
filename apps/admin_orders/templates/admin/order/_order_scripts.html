@@ -1,43 +1,50 @@
-<script>
 document.addEventListener('DOMContentLoaded', function () {
     
-    // 1. تحديث مورد عنصر محدد
+    // 1. تحديث مورد عنصر محدد (مع التأكد من وجود العناصر لتجنب توقف السكربت)
     const supplierSelects = document.querySelectorAll('.item-supplier-select');
-    supplierSelects.forEach(select => {
-        select.addEventListener('change', function () {
-            const orderId = this.dataset.orderId;
-            const itemId = this.dataset.itemId;
-            const supplierId = this.value;
+    if (supplierSelects.length > 0) {
+        supplierSelects.forEach(select => {
+            select.addEventListener('change', function () {
+                const orderId = this.dataset.orderId;
+                const itemId = this.dataset.itemId;
+                const supplierId = this.value;
 
-            fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ supplier_id: supplierId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert('تم تعيين المورد بنجاح');
-                } else {
-                    alert('خطأ: ' + (data.message || 'فشل التعيين'));
-                }
-            })
-            .catch(err => {
-                console.error('Error assigning supplier:', err);
+                if (!orderId || !itemId) return;
+
+                fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ supplier_id: supplierId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('تم تعيين المورد بنجاح');
+                    } else {
+                        alert('خطأ: ' + (data.message || 'فشل التعيين'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error assigning supplier:', err);
+                });
             });
         });
-    });
+    }
 
     // 2. تحديث حالة الطلب العام
     const btnUpdateStatus = document.getElementById('btn-update-status');
     if (btnUpdateStatus) {
         btnUpdateStatus.addEventListener('click', function () {
             const statusSelect = document.getElementById('order_status');
-            const orderId = document.querySelector('input[name="order_id"]')?.value;
+            const orderIdInput = document.querySelector('input[name="order_id"]');
+            const orderId = orderIdInput ? orderIdInput.value : null;
 
-            if (!statusSelect || !orderId) return;
+            if (!statusSelect || !orderId) {
+                console.warn('Order ID or Status element missing.');
+                return;
+            }
 
             fetch(`/admin/orders/${orderId}/update-status`, {
                 method: 'POST',
@@ -62,4 +69,3 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
-</script>
