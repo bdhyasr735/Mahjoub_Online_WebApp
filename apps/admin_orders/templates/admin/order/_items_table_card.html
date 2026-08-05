@@ -11,7 +11,7 @@
             <table class="table table-hover align-middle table-order mb-0">
                 <thead class="table-light text-muted small">
                     <tr>
-                        <th class="ps-3">المنتج</th>
+                        <th class="ps-3">المنتج والتنويعات</th>
                         <th>السعر</th>
                         <th>الكمية</th>
                         <th>الإجمالي</th>
@@ -24,11 +24,26 @@
                         <tr>
                             <td class="ps-3">
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else 'https://via.placeholder.com/54' }}" 
-                                         alt="Product" class="rounded border" style="width: 45px; height: 45px; object-fit: cover;">
+                                    <!-- صورة المنتج مع احتياطي ذكي -->
+                                    <img src="{{ item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else (item.image or 'https://via.placeholder.com/54') }}" 
+                                         alt="Product" class="rounded border" style="width: 48px; height: 48px; object-fit: cover;">
+                                    
                                     <div class="ms-3">
-                                        <h6 class="mb-0 fw-bold text-dark fs-6">{{ item.productData.title if item.productData else 'منتج غير معروف' }}</h6>
-                                        <small class="text-muted">SKU: {{ item.productId or '----' }}</small>
+                                        <!-- اسم المنتج (يبحث في عدة مسارات لضمان عدم ظهور "منتج غير معروف") -->
+                                        <h6 class="mb-0 fw-bold text-dark fs-6">
+                                            {{ item.productData.title or item.title or item.name or 'منتج بدون اسم' }}
+                                        </h6>
+                                        
+                                        <!-- عرض الألوان، المقاسات، أو التنويعات (Variants) إن وجدت -->
+                                        {% if item.variantTitle or item.variant or item.attributes %}
+                                            <div class="text-muted small mt-1">
+                                                <span class="badge bg-light text-primary border">
+                                                    <i class="fas fa-tag me-1"></i> {{ item.variantTitle or item.variant or item.attributes }}
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <small class="text-muted d-block mt-1">SKU: {{ item.productId or item.sku or '----' }}</small>
                                     </div>
                                 </div>
                             </td>
@@ -36,7 +51,7 @@
                             <td><span class="badge bg-light text-dark px-2 py-1">{{ item.quantity or 1 }}</span></td>
                             <td class="fw-bold text-primary">{{ "%.2f"|format((item.price or 0.0) * (item.quantity or 1)) }} ر.س</td>
                             <td class="pe-3 text-end">
-                                <select class="form-select form-select-sm d-inline-block w-auto" onchange="updateItemSupplier('{{ order.id or order._id }}', '{{ item.productId }}', this.value)">
+                                <select class="form-select form-select-sm d-inline-block w-auto" onchange="updateItemSupplier('{{ order.id or order._id }}', '{{ item.productId or item.id }}', this.value)">
                                     <option value="">اختر المورد...</option>
                                     {% if suppliers %}
                                         {% for supplier in suppliers %}
