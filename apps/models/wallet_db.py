@@ -65,6 +65,22 @@ class SupplierWallet(db.Model):
     def default_currency(self):
         return "SAR"
 
+    def to_dict(self):
+        """تحويل بيانات المحفظة إلى قاموس آمن للاستخدام في APIs"""
+        return {
+            'id': self.id,
+            'wallet_code': self.wallet_code,
+            'supplier_id': self.supplier_id,
+            'balance_yer': float(self.balance_yer) if self.balance_yer else 0.0,
+            'balance_usd': float(self.balance_usd) if self.balance_usd else 0.0,
+            'balance_sar': float(self.balance_sar) if self.balance_sar else 0.0,
+            'balance_pending': float(self.balance_pending) if self.balance_pending else 0.0,
+            'total_withdrawn': float(self.total_withdrawn) if self.total_withdrawn else 0.0,
+            'bank_details': self.bank_details,
+            'default_currency': self.default_currency,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
     def __repr__(self):
         return f'<SupplierWallet {self.wallet_code} | SAR: {self.balance_sar} | Pending: {self.balance_pending}>'
 
@@ -90,7 +106,7 @@ class WalletTransaction(db.Model):
     trans_type = db.Column(db.String(20), nullable=False) 
     source_type = db.Column(db.String(20), default='manual')
     amount = db.Column(db.Numeric(18, 2), nullable=False)
-    currency = db.Column(db.String(5), nullable=False, default='SAR')  # ✅ default SAR
+    currency = db.Column(db.String(5), nullable=False, default='SAR') # ✅ default SAR
     balance_before = db.Column(db.Numeric(18, 2), nullable=False)
     balance_after = db.Column(db.Numeric(18, 2), nullable=False)
     description = db.Column(db.String(255))
@@ -107,6 +123,27 @@ class WalletTransaction(db.Model):
     @property
     def default_currency(self):
         return "SAR"
+
+    def to_dict(self):
+        """تحويل تفاصيل المعاملة المالية إلى قاموس آمن للاستخدام في APIs"""
+        return {
+            'id': self.id,
+            'wallet_id': self.wallet_id,
+            'owner_type': self.owner_type,
+            'owner_id': self.owner_id,
+            'trans_type': self.trans_type,
+            'source_type': self.source_type,
+            'amount': float(self.amount) if self.amount else 0.0,
+            'currency': self.currency,
+            'balance_before': float(self.balance_before) if self.balance_before else 0.0,
+            'balance_after': float(self.balance_after) if self.balance_after else 0.0,
+            'description': self.description,
+            'reference_number': self.reference_number,
+            'related_order_id': self.related_order_id,
+            'voucher_number': self.voucher_number,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
 
     def __repr__(self):
         return f'<WalletTransaction {self.voucher_number} | {self.trans_type} | {self.currency} {self.amount} | Balance: {self.balance_after}>'
