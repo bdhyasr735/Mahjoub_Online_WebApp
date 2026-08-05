@@ -6,15 +6,28 @@ from apps.extensions import db
 class OrderItem(db.Model):
     __tablename__ = 'order_items'
 
+    __table_args__ = (
+        db.Index('idx_item_order_id', 'order_id'),
+        db.Index('idx_item_supplier_id', 'supplier_id'),
+        {'extend_existing': True}
+    )
+
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.String(50), db.ForeignKey('orders.id'), nullable=False)
-    supplier_id = db.Column(db.Integer, nullable=True)
+    order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
+    
+    product_qid = db.Column(db.String(255), nullable=True)
     product_name = db.Column(db.String(255), nullable=True)
     quantity = db.Column(db.Integer, default=1)
-    price = db.Column(db.Float, default=0.0)
+    
+    # ⚡️ استخدام Numeric(18, 2) لدقة الحسابات وتجنب مشاكل الأرقام العشرية
+    price = db.Column(db.Numeric(18, 2), default=0.00)
 
     # العلاقة العكسية مع جدول الطلبات لحل خطأ الربط بشكل جذري
     order = db.relationship('Order', back_populates='items')
+    
+    # علاقة مباشرة مع المورد لتسهيل الاستعلامات
+    supplier = db.relationship('Supplier', lazy='joined')
 
     def to_dict(self):
         """دالة ضرورية جداً لتحويل العنصر إلى JSON عند عرض الطلبات"""
@@ -22,9 +35,10 @@ class OrderItem(db.Model):
             'id': self.id,
             'order_id': self.order_id,
             'supplier_id': self.supplier_id,
+            'product_qid': self.product_qid,
             'product_name': self.product_name,
             'quantity': self.quantity,
-            'price': self.price
+            'price': float(self.price) if self.price is not None else 0.0
         }
 
     def __repr__(self):
