@@ -1,47 +1,27 @@
 <!-- 📂 apps/admin_orders/templates/admin/order/_financial_summary_card.html -->
 <div class="card shadow-sm mb-4 border-0 rounded-3">
     <div class="card-header bg-white py-3 border-bottom">
-        <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-file-invoice-dollar text-success ms-2"></i> الملخص المالي</h5>
+        <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-file-invoice-dollar text-primary ms-2"></i> الملخص المالي</h5>
     </div>
     <div class="card-body">
-        <!-- إجمالي الطلب -->
-        <div class="d-flex justify-content-between py-2 border-bottom">
-            <span class="text-muted small">إجمالي الطلب:</span>
-            <span class="fw-bold text-dark">
-                {{ "%.2f"|format(order.total_price or order.subtotal or order.amount or 0) }} ر.س
-            </span>
+        <div class="d-flex justify-content-between mb-2 text-muted small">
+            <span>مجموع المنتجات:</span>
+            <span>{{ "%.2f"|format(order.subtotal or order.items_total or 0) }} ر.س</span>
         </div>
-
-        <!-- رسوم الشحن (مع دعم الحقول الديناميكية بدلاً من القيمة الثابتة) -->
-        <div class="d-flex justify-content-between py-2 border-bottom">
-            <span class="text-muted small">رسوم الشحن:</span>
-            <span class="fw-bold text-dark">
-                {{ "%.2f"|format(order.shipping_cost or order.shipping_fee or order.shipping_price or 0) }} ر.س
-            </span>
+        <div class="d-flex justify-content-between mb-2 text-muted small">
+            <span>تكلفة الشحن:</span>
+            <span>{{ "%.2f"|format(order.shipping_fee or order.shipping_cost or 0) }} ر.س</span>
         </div>
-
-        <!-- الخصم (مع دعم الحقول الديناميكية) -->
-        <div class="d-flex justify-content-between py-2 border-bottom">
-            <span class="text-muted small">الخصم:</span>
-            <span class="fw-bold text-danger">
-                -{{ "%.2f"|format(order.discount or order.discount_amount or order.coupon_discount or 0) }} ر.س
-            </span>
+        {% if order.discount or order.discount_amount %}
+        <div class="d-flex justify-content-between mb-2 text-success small">
+            <span>الخصم:</span>
+            <span>-{{ "%.2f"|format(order.discount or order.discount_amount or 0) }} ر.س</span>
         </div>
-
-        <!-- المبلغ المستحق -->
-        <div class="d-flex justify-content-between py-3">
-            <span class="fw-bold text-dark">المبلغ المستحق:</span>
-            <span class="fw-bold text-success fs-5">
-                {{ "%.2f"|format(order.final_price or order.due_amount or order.total_price or 0) }} ر.س
-            </span>
-        </div>
-
-        <!-- حالة الدفع المتكاملة -->
-        <div class="mt-2 p-2.5 rounded-3 bg-light d-flex justify-content-between align-items-center">
-            <span class="small text-muted fw-semibold">حالة الدفع:</span>
-            <span class="badge {{ 'bg-success' if order.is_paid or order.payment_status == 'paid' else 'bg-warning text-dark' }} px-3 py-1.5">
-                {{ 'مدفوع' if order.is_paid or order.payment_status == 'paid' else 'غير مدفوع' }}
-            </span>
+        {% endif %}
+        <hr>
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark">الإجمالي النهائي:</span>
+            <span class="fw-bold text-primary fs-5">{{ "%.2f"|format(order.total or order.total_amount or order.grand_total or 0) }} ر.س</span>
         </div>
     </div>
 </div>
