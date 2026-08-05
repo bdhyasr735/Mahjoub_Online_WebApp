@@ -120,11 +120,24 @@ class Order(db.Model):
         return AccountOuter(fullname_val)
 
     @property
-    def total_amount(self): return float(self.total_price or 0.0)
+    def total_amount(self): 
+        return float(self.total_price or 0.0)
+
+    @total_amount.setter
+    def total_amount(self, value):
+        self.total_price = float(value or 0.0)
+
     @property
-    def totalPrice(self): return float(self.total_price or 0.0)
+    def totalPrice(self): 
+        return float(self.total_price or 0.0)
+
+    @totalPrice.setter
+    def totalPrice(self, value):
+        self.total_price = float(value or 0.0)
+
     @property
     def shippingPrice(self): return 0.0
+
     @property
     def shipping_address(self): return self.customer_address
 
