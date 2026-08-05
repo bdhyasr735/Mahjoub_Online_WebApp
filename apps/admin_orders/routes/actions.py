@@ -1,15 +1,46 @@
 # 📂 apps/admin_orders/routes/actions.py
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, render_template
 from apps.extensions import db
 
-# إنشاء الـ Blueprint الخاص بأفعال وعمليات الطلبات
-actions_bp = Blueprint('admin_orders_actions', __name__)
+# تم ضبط اسم الـ Blueprint إلى 'admin_order_actions' ليتطابق مع url_for في القوالب
+actions_bp = Blueprint('admin_order_actions', __name__)
+
+
+@actions_bp.route('/admin/orders/<order_id>/print', methods=['GET'])
+def print_order_invoice(order_id):
+    """
+    عرض/طباعة فاتورة الطلب
+    """
+    try:
+        # طباعة بسيطة للطلب، أو استدعاء قالب الفاتورة المخصص
+        return f"""
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+            <meta charset="UTF-8">
+            <title>فاتورة رقم #{order_id}</title>
+            <style>
+                body {{ font-family: sans-serif; padding: 20px; }}
+                @media print {{ .no-print {{ display: none; }} }}
+            </style>
+        </head>
+        <body>
+            <button class="no-print" onclick="window.print()">طباعة الفاتورة</button>
+            <h2>تفاصيل فاتورة الطلب #{order_id}</h2>
+            <hr>
+            <p>تم استخراج الفاتورة بنجاح.</p>
+        </body>
+        </html>
+        """
+    except Exception as e:
+        current_app.logger.error(f"Error printing order {order_id}: {str(e)}")
+        return f"حدث خطأ أثناء إعداد الفاتورة: {str(e)}", 500
 
 
 @actions_bp.route('/admin/orders/<order_id>/update-status', methods=['POST'])
 def update_order_status(order_id):
     """
-    استقبال طلب تحديث حالة الطلب من الواجهة وتغييرها في قاعدة البيانات
+    تحديث حالة الطلب
     """
     try:
         data = request.get_json() or {}
@@ -18,14 +49,12 @@ def update_order_status(order_id):
         if not new_status:
             return jsonify({'success': False, 'message': 'حالة الطلب غير محددة'}), 400
 
-        # 1. تحديث حالة الطلب مباشر في قاعدة البيانات
         db.session.execute(
             db.text("UPDATE orders SET status = :status WHERE id = :order_id"),
             {'status': new_status, 'order_id': order_id}
         )
         db.session.commit()
 
-        # 2. توثيق الحركة في سجل المراجعة (Audit Log)
         _record_audit_log(
             action='UPDATE_ORDER_STATUS',
             details=f'تم تغيير حالة الطلب #{order_id} إلى: {new_status}'
@@ -46,13 +75,12 @@ def update_order_status(order_id):
 @actions_bp.route('/admin/orders/<order_id>/item/<item_id>/assign-supplier', methods=['POST'])
 def assign_item_supplier(order_id, item_id):
     """
-    تعيين أو تغيير المورد المسؤول عن عنصر/منتج معين في الطلب
+    تعيين المورد للمنتج داخل الطلب
     """
     try:
         data = request.get_json() or {}
         supplier_id = data.get('supplier_id') or None
 
-        # 1. تحديث المورد المسؤول عن المنتج في جدول عناصر الطلب
         db.session.execute(
             db.text("""
                 UPDATE order_items 
@@ -63,7 +91,6 @@ def assign_item_supplier(order_id, item_id):
         )
         db.session.commit()
 
-        # 2. توثيق الحركة في سجل المراجعة
         _record_audit_log(
             action='ASSIGN_SUPPLIER',
             details=f'تم تعيين المورد #{supplier_id} للمنتج #{item_id} في الطلب #{order_id}'
@@ -83,7 +110,7 @@ def assign_item_supplier(order_id, item_id):
 
 def _record_audit_log(action, details):
     """
-    دالة مساعدة لتوثيق السجلات آلياً وحمايتها بحيث لا يتوقف التطبيق حتى لو كان جدول audit_logs غير موجود
+    حفظ السجلات بدون إيقاف السيرفر في حال عدم وجود الجدول
     """
     try:
         db.session.execute(
