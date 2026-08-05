@@ -1,4 +1,4 @@
-<!-- 📂 apps/admin_orders/templates/admin/partials/_order_status_card.html -->
+<!-- 📂 apps/admin_orders/templates/admin/order/_order_status_card.html -->
 <div class="card shadow-sm mb-4 border-0 rounded-3">
     <div class="card-header bg-white py-3 border-bottom">
         <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-tasks text-primary ms-2"></i> حالة الطلب والتحكم</h5>
@@ -7,9 +7,10 @@
         <div class="mb-3">
             <label class="form-label text-muted small fw-bold">الحالة الحالية:</label>
             <div>
+                {% set current_status = order.status_code or order.status or order.order_status or 'pending' %}
                 {% set status_colors = {'pending': 'warning', 'processing': 'info', 'shipped': 'primary', 'delivered': 'success', 'completed': 'success', 'cancelled': 'danger', 'refunded': 'secondary'} %}
-                <span class="badge bg-{{ status_colors.get(order.status_code, 'secondary') }} fs-6 px-3 py-2">
-                    {{ order.status_title or order.status_code }}
+                <span class="badge bg-{{ status_colors.get(current_status, 'secondary') }} fs-6 px-3 py-2">
+                    {{ order.status_title or current_status }}
                 </span>
             </div>
         </div>
@@ -17,14 +18,15 @@
         <div class="mb-3">
             <label for="orderStatusSelect" class="form-label text-muted small fw-bold">تحديث الحالة:</label>
             <div class="input-group">
-                <select id="orderStatusSelect" class="form-select form-select-sm" data-order-id="{{ order.id }}">
-                    <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-                    <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>قيد التجهيز</option>
-                    <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
-                    <option value="delivered" {% if order.status_code == 'delivered' %}selected{% endif %}>تم التسليم</option>
-                    <option value="completed" {% if order.status_code == 'completed' %}selected{% endif %}>مكتمل</option>
-                    <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
-                    <option value="refunded" {% if order.status_code == 'refunded' %}selected{% endif %}>مسترجع</option>
+                {% set current_order_id = order.id or order.order_id or order._id %}
+                <select id="orderStatusSelect" class="form-select form-select-sm" data-order-id="{{ current_order_id }}">
+                    <option value="pending" {% if current_status == 'pending' %}selected{% endif %}>قيد الانتظار</option>
+                    <option value="processing" {% if current_status == 'processing' %}selected{% endif %}>قيد التجهيز</option>
+                    <option value="shipped" {% if current_status == 'shipped' %}selected{% endif %}>تم الشحن</option>
+                    <option value="delivered" {% if current_status == 'delivered' %}selected{% endif %}>تم التسليم</option>
+                    <option value="completed" {% if current_status == 'completed' %}selected{% endif %}>مكتمل</option>
+                    <option value="cancelled" {% if current_status == 'cancelled' %}selected{% endif %}>ملغي</option>
+                    <option value="refunded" {% if current_status == 'refunded' %}selected{% endif %}>مسترجع</option>
                 </select>
                 <button class="btn btn-outline-primary btn-sm" type="button" id="updateStatusBtn">حفظ</button>
             </div>
@@ -34,7 +36,8 @@
 
         <div class="mb-2">
             <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="isPaidSwitch" {% if order.is_paid %}checked{% endif %} data-order-id="{{ order.id }}">
+                {% set is_order_paid = order.is_paid or order.paid or order.payment_status == 'paid' %}
+                <input class="form-check-input" type="checkbox" id="isPaidSwitch" {% if is_order_paid %}checked{% endif %} data-order-id="{{ current_order_id }}">
                 <label class="form-check-label fw-bold text-dark" for="isPaidSwitch">الطلب مدفوع (Payment Status)</label>
             </div>
         </div>
