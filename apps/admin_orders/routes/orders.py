@@ -186,7 +186,7 @@ def sync_admin_orders():
 
         total_synced = 0
         current_page = 1
-        per_page = 30  # ✅ تم تخفيض الحجم إلى 30 لتخفيف الحمل على الذاكرة
+        per_page = 10  # ✅ تم تخفيض الحجم إلى 10 لتخفيف الحمل على الذاكرة بشكل كبير
 
         current_app.logger.info(f"🚀 [Sync] بدء المزامنة الكاملة...")
 
