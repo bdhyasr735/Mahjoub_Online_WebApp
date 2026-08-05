@@ -6,20 +6,20 @@
 <div class="container-fluid mb-5">
     
     <!-- رأس الصفحة (العنوان والأزرار) -->
-    {% include "admin/order/_order_header.html" %}
+    {% include "admin/order/_order_header.html" ignore missing %}
 
     <div class="row">
         <!-- العمود الأيمن: قائمة المنتجات -->
         <div class="col-xl-8 col-lg-7 mb-4">
-            {% include "admin/order/_items_table_card.html" %}
+            {% include "admin/order/_items_table_card.html" ignore missing %}
         </div>
 
         <!-- العمود الأيسر: بطاقات المعلومات الجانبية -->
         <div class="col-xl-4 col-lg-5">
-            {% include "admin/order/_order_status_card.html" %}
-            {% include "admin/order/_customer_info_card.html" %}
-            {% include "admin/order/_financial_summary_card.html" %}
-            {% include "admin/order/_supplier_stats_card.html" %}
+            {% include "admin/order/_order_status_card.html" ignore missing %}
+            {% include "admin/order/_customer_info_card.html" ignore missing %}
+            {% include "admin/order/_financial_summary_card.html" ignore missing %}
+            {% include "admin/order/_supplier_stats_card.html" ignore missing %}
         </div>
     </div>
 
@@ -28,5 +28,5 @@
 
 {% block scripts %}
     {{ super() }}
-    {% include "admin/order/_order_scripts.html" %}
+    {% include "admin/order/_order_scripts.html" ignore missing %}
 {% endblock %}
