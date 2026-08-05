@@ -2,7 +2,7 @@
 # 📂 apps/admin_orders/routes/actions.py
 
 import traceback
-from flask import Blueprint, request, jsonify, render_template, abort, flash, redirect, url_for
+from flask import Blueprint, request, jsonify, render_template, abort, flash, redirect, url_for, session
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.services import services
@@ -61,7 +61,7 @@ def view_order_details(order_id):
         except Exception:
             pass
 
-        return render_template('admin/admin_order_detail.html', order=order, suppliers=suppliers)
+        return render_template('admin/order/admin_order_detail.html', order=order, suppliers=suppliers)
 
     except Exception as e:
         current_app_logger_err = traceback.format_exc()
@@ -89,7 +89,7 @@ def print_order_invoice(order_id):
         except Exception:
             pass
 
-        return render_template('admin/admin_order_invoice.html', order=order)
+        return render_template('admin/order/_invoice_print_template.html', order=order)
 
     except Exception as e:
         return f"حدث خطأ أثناء إنشاء الفاتورة: {str(e)}", 500
