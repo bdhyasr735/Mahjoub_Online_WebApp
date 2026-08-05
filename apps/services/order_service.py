@@ -78,19 +78,19 @@ class OrderService:
                     account_inner = account_outer.get('account') or {}
                     raw_fullname = account_inner.get('fullname')
 
-                    if raw_fullname and raw_fullname.strip():
-                        customer_name = raw_fullname
+                    if raw_fullname and str(raw_fullname).strip():
+                        customer_name = str(raw_fullname)
                     else:
                         customer_name = 'زائر' if order.get('type') == 'guest' else 'عميل غير معروف'
 
-                    is_paid = order.get('isPaid', False)
-                    total_amount = order.get('totalPrice', 0.0) or 0.0
+                    is_paid = bool(order.get('isPaid', False))
+                    total_amount = float(order.get('totalPrice', 0.0) or 0.0)
 
                     created_at_str = order.get('createdAt')
                     created_at = datetime.utcnow()
                     if created_at_str:
                         try:
-                            clean_date_str = created_at_str.replace('Z', '').split('+')[0]
+                            clean_date_str = str(created_at_str).replace('Z', '').split('+')[0]
                             created_at = datetime.fromisoformat(clean_date_str)
                         except Exception:
                             pass
@@ -125,18 +125,18 @@ class OrderService:
                         if not item:
                             continue
                         prod_data = item.get('productData') or {}
-                        qty = item.get('quantity', 1) or 1
-                        price = item.get('price', 0.0) or 0.0
+                        qty = int(item.get('quantity', 1) or 1)
+                        price = float(item.get('price', 0.0) or 0.0)
                         prod_id = item.get('productId', '')
 
-                        product_name = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
-                        sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
+                        safe_prod_id = str(prod_id) if prod_id is not None else ""
+                        product_name = prod_data.get('title') or (f"منتج ({safe_prod_id[:8]})" if safe_prod_id else "منتج غير معروف")
 
                         # البحث عن المورد المحلي
                         item_supplier_id = None
-                        if prod_id:
+                        if safe_prod_id:
                             try:
-                                mapping = ProductSupplierMapping.query.filter_by(product_qid=prod_id).first()
+                                mapping = ProductSupplierMapping.query.filter_by(product_qid=safe_prod_id).first()
                                 if mapping:
                                     item_supplier_id = mapping.supplier_id
                             except Exception:
@@ -159,11 +159,10 @@ class OrderService:
                         existing_order.supplier_id = primary_supplier_id
 
                     db.session.commit()
-                    db.session.expunge_all()
                 
                 except Exception as order_err:
                     db.session.rollback()
-                    print(f"⚠️ [OrderService] فشل حفظ الطلب {qid} وتم تخطيه: {order_err}")
+                    print(f"⚠️ [OrderService] فشل حفظ الطلب وتم تخطيه: {order_err}")
 
         except Exception as db_err:
             print(f"⚠️ [OrderService] خطأ تفصيلي أثناء حفظ الطلبات محلياً: {db_err}")
@@ -220,7 +219,7 @@ class OrderService:
                 "totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False
             }
 
-            if result and 'findAllOrders' in result:
+            if result and isinstance(result, dict) and 'findAllOrders' in result and result['findAllOrders']:
                 orders_data = result['findAllOrders'].get('data', []) or []
                 pagination_data = result['findAllOrders'].get('pagination', {}) or {}
                 self._save_orders_to_db(orders_data)
@@ -228,6 +227,8 @@ class OrderService:
             return {"data": orders_data, "pagination": pagination_data}
         except Exception as e:
             print(f"❌ [OrderService]: خطأ في جلب الطلبات: {e}")
+            import traceback
+            traceback.print_exc()
             return {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": page, "limit": per_page, "hasNextPage": False}}
 
     def get_local_orders(
@@ -294,7 +295,7 @@ class OrderService:
                         
                     orders_data.append(order_dict)
                 except Exception as ser_err:
-                    print(f"⚠️ [OrderService] فشل تحويل الطلب {order.id} إلى JSON: {ser_err}")
+                    print(f"⚠️ [OrderService] فشل تحويل الطلب إلى JSON: {ser_err}")
                     continue
 
             return {
