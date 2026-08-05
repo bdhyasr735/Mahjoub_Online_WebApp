@@ -1,47 +1,99 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_order_scripts.html -->
+<!-- 📂 apps/admin_orders/templates/admin/partials/_order_scripts.html -->
 <script>
-function sendAjaxUpdate(url, bodyData) {
-    const alertDiv = document.getElementById('statusAlert');
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. تحديث حالة الطلب
+    const updateStatusBtn = document.getElementById('updateStatusBtn');
+    if (updateStatusBtn) {
+        updateStatusBtn.addEventListener('click', function() {
+            const select = document.getElementById('orderStatusSelect');
+            const orderId = select.getAttribute('data-order-id');
+            const newStatus = select.value;
 
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify(bodyData)
-    })
-    .then(res => res.json())
-    .then(data => {
-        alertDiv.style.display = 'block';
-        if(data.success) {
-            alertDiv.className = 'alert alert-success py-2 px-3 small rounded-3 mt-2';
-            alertDiv.innerText = '✅ ' + (data.message || 'تم التحديث بنجاح');
-        } else {
-            alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3 mt-2';
-            alertDiv.innerText = '❌ ' + (data.message || 'حدث خطأ أثناء التحديث');
-        }
-    })
-    .catch(err => {
-        alertDiv.style.display = 'block';
-        alertDiv.className = 'alert alert-danger py-2 px-3 small rounded-3 mt-2';
-        alertDiv.innerText = '❌ خطأ في الاتصال بالسيرفر';
-    })
-    .finally(() => {
-        setTimeout(() => { alertDiv.style.display = 'none'; }, 3500);
+            fetch(`/admin/orders/${orderId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || 'تم تحديث الحالة بنجاح');
+                    location.reload();
+                } else {
+                    alert('خطأ: ' + (data.message || 'فشل تحديث الحالة'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء الاتصال بالخادم');
+            });
+        });
+    }
+
+    // 2. تحديث حالة الدفع (isPaid)
+    const isPaidSwitch = document.getElementById('isPaidSwitch');
+    if (isPaidSwitch) {
+        isPaidSwitch.addEventListener('change', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const isPaid = this.checked;
+
+            fetch(`/admin/orders/${orderId}/payment-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ isPaid: isPaid })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log(data.message);
+                } else {
+                    alert('خطأ: ' + (data.message || 'فشل تحديث حالة الدفع'));
+                    isPaidSwitch.checked = !isPaid;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء الاتصال بالخادم');
+                isPaidSwitch.checked = !isPaid;
+            });
+        });
+    }
+
+    // 3. تحديث مورد عنصر الطلب
+    document.querySelectorAll('.supplier-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const itemId = this.getAttribute('data-item-id');
+            const supplierId = this.value;
+
+            fetch(`/admin/orders/${orderId}/items/supplier`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ item_id: itemId, supplier_id: supplierId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.classList.add('is-valid');
+                    setTimeout(() => this.classList.remove('is-valid'), 2000);
+                } else {
+                    alert('خطأ: ' + (data.message || 'فشل تحديث المورد'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء الاتصال بالخادم');
+            });
+        });
     });
-}
-
-function updateOrderStatus(orderId) {
-    sendAjaxUpdate(`/admin/orders/${orderId}/status`, { status: document.getElementById('orderStatusSelect').value });
-}
-
-function updatePaymentStatus(orderId) {
-    sendAjaxUpdate(`/admin/orders/${orderId}/payment-status`, { isPaid: document.getElementById('paymentStatusSelect').value === 'true' });
-}
-
-function updateItemSupplier(orderId, itemId, supplierId) {
-    sendAjaxUpdate(`/admin/orders/${orderId}/items/supplier`, { item_id: itemId, supplier_id: supplierId });
-}
+});
 </script>
