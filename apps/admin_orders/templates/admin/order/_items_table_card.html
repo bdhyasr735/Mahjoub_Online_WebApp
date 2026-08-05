@@ -1,72 +1,50 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_items_table_card.html -->
-<div class="card order-card shadow-sm mb-4">
-    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0 fw-bold text-primary">
-            <i class="fas fa-box-open me-2"></i> منتجات الطلب
-        </h5>
-        <span class="badge bg-secondary">{{ order.items | length if order.items else 0 }} منتج</span>
+{# 📂 apps/admin_orders/templates/admin/order/_items_table_card.html #}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 bg-secondary text-white">
+        <h6 class="m-0 font-weight-bold">عناصر الطلب والمنتجات</h6>
     </div>
-    <div class="card-body px-0 pt-0">
+    <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-hover align-middle table-order mb-0">
-                <thead class="table-light text-muted small">
+            <table class="table table-bordered text-center align-middle" width="100%" cellspacing="0">
+                <thead class="table-light">
                     <tr>
-                        <th class="ps-3">المنتج والتنويعات</th>
-                        <th>السعر</th>
+                        <th>المنتج</th>
                         <th>الكمية</th>
+                        <th>السعر</th>
                         <th>الإجمالي</th>
-                        <th class="pe-3 text-end">المورد</th>
+                        <th>المورد المسؤول</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% if order.items %}
                         {% for item in order.items %}
                         <tr>
-                            <td class="ps-3">
-                                <div class="d-flex align-items-center">
-                                    <!-- صورة المنتج مع احتياطي ذكي -->
-                                    <img src="{{ item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else (item.image or 'https://via.placeholder.com/54') }}" 
-                                         alt="Product" class="rounded border" style="width: 48px; height: 48px; object-fit: cover;">
-                                    
-                                    <div class="ms-3">
-                                        <!-- اسم المنتج (يبحث في عدة مسارات لضمان عدم ظهور "منتج غير معروف") -->
-                                        <h6 class="mb-0 fw-bold text-dark fs-6">
-                                            {{ item.productData.title or item.title or item.name or 'منتج بدون اسم' }}
-                                        </h6>
-                                        
-                                        <!-- عرض الألوان، المقاسات، أو التنويعات (Variants) إن وجدت -->
-                                        {% if item.variantTitle or item.variant or item.attributes %}
-                                            <div class="text-muted small mt-1">
-                                                <span class="badge bg-light text-primary border">
-                                                    <i class="fas fa-tag me-1"></i> {{ item.variantTitle or item.variant or item.attributes }}
-                                                </span>
-                                            </div>
-                                        {% endif %}
-                                        
-                                        <small class="text-muted d-block mt-1">SKU: {{ item.productId or item.sku or '----' }}</small>
-                                    </div>
-                                </div>
+                            <td class="text-right">
+                                <strong>{{ item.product_name or item.name or 'منتج' }}</strong>
+                                {% if item.variant %}
+                                    <br><small class="text-muted">{{ item.variant }}</small>
+                                {% endif %}
                             </td>
-                            <td>{{ "%.2f"|format(item.price or 0.0) }} ر.س</td>
-                            <td><span class="badge bg-light text-dark px-2 py-1">{{ item.quantity or 1 }}</span></td>
-                            <td class="fw-bold text-primary">{{ "%.2f"|format((item.price or 0.0) * (item.quantity or 1)) }} ر.س</td>
-                            <td class="pe-3 text-end">
-                                <select class="form-select form-select-sm d-inline-block w-auto" onchange="updateItemSupplier('{{ order.id or order._id }}', '{{ item.productId or item.id }}', this.value)">
-                                    <option value="">اختر المورد...</option>
-                                    {% if suppliers %}
-                                        {% for supplier in suppliers %}
-                                            <option value="{{ supplier.id }}" {% if item.supplier_id == supplier.id %}selected{% endif %}>
-                                                {{ supplier.name }}
-                                            </option>
-                                        {% endfor %}
-                                    {% endif %}
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.price }} ريال</td>
+                            <td class="fw-bold">{{ (item.quantity * item.price) if item.quantity and item.price else 0 }} ريال</td>
+                            <td>
+                                <select class="form-control form-control-sm item-supplier-select" 
+                                        data-order-id="{{ order.id }}" 
+                                        data-item-id="{{ item.id }}">
+                                    <option value="">-- بدون مورد --</option>
+                                    {% for sup in suppliers %}
+                                        <option value="{{ sup.id }}" {% if item.supplier_id == sup.id %}selected{% endif %}>
+                                            {{ sup.name }}
+                                        </option>
+                                    {% endfor %}
                                 </select>
                             </td>
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">لا توجد منتجات مسجلة في هذا الطلب.</td>
+                            <td colspan="5" class="text-muted py-4">لا توجد عناصر مسجلة لهذا الطلب</td>
                         </tr>
                     {% endif %}
                 </tbody>
