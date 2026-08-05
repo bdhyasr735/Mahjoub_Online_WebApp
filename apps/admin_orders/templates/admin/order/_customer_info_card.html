@@ -1,53 +1,30 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_customer_info_card.html -->
-<div class="order-card p-4">
-    <h5 class="fw-bold mb-3" style="color: #2d0b36;"><i class="fas fa-user-shield me-2 text-primary"></i> بيانات العميل والشحن</h5>
-    
-    <!-- اسم العميل -->
-    <div class="mb-3 pb-3 border-bottom">
-        <div class="small text-muted mb-1">اسم العميل:</div>
-        <div class="fw-bold text-dark">
-            <i class="fas fa-user me-1 text-secondary"></i> 
-            {{ order.salesLead.firstName ~ ' ' ~ order.salesLead.lastName if order.salesLead and (order.salesLead.firstName or order.salesLead.lastName) else (order.account.account.fullname if order.account and order.account.account and order.account.account.fullname else 'عميل زائر') }}
-        </div>
+<!-- 📂 apps/admin_orders/templates/admin/partials/_customer_info_card.html -->
+<div class="card shadow-sm mb-4 border-0 rounded-3">
+    <div class="card-header bg-white py-3 border-bottom">
+        <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-user-circle text-primary ms-2"></i> بيانات العميل والشحن</h5>
     </div>
-
-    <!-- رقم الهاتف -->
-    <div class="mb-3 pb-3 border-bottom">
-        <div class="small text-muted mb-1">رقم الهاتف:</div>
-        <div class="fw-bold text-dark">
-            <i class="fas fa-phone-alt me-1 text-secondary"></i> 
-            {% set phone_val = order.salesLead.phone1 or order.salesLead.phone2 if order.salesLead else (order.account.account.phone if order.account and order.account.account else '') %}
-            <a href="tel:{{ phone_val }}" class="text-decoration-none text-dark">
-                {{ phone_val or 'غير متوفر' }}
-            </a>
-        </div>
-    </div>
-
-    <!-- البريد الإلكتروني (إن وجد من salesLead) -->
-    {% if order.salesLead and order.salesLead.email %}
-    <div class="mb-3 pb-3 border-bottom">
-        <div class="small text-muted mb-1">البريد الإلكتروني:</div>
-        <div class="text-dark small">
-            <i class="fas fa-envelope me-1 text-secondary"></i> {{ order.salesLead.email }}
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- عنوان الشحن المفصل بناءً على استعلام Qumra -->
-    <div>
-        <div class="small text-muted mb-1">عنوان الشحن:</div>
-        <div class="text-dark small lh-base">
-            <i class="fas fa-map-marker-alt me-1 text-danger"></i> 
-            {% if order.shippingAddress %}
-                {% set addr = order.shippingAddress %}
-                {{ addr.country.name if addr.country and addr.country.name else '' }}
-                {{ (' - ' + addr.city.name) if addr.city and addr.city.name else '' }}
-                {{ (' - ' + addr.neighborhood) if addr.neighborhood else '' }}
-                {{ (' - ' + addr.street) if addr.street else '' }}
-                {{ (' (' + addr.description + ')') if addr.description else '' }}
-            {% else %}
-                لم يتم تحديد عنوان الشحن
-            {% endif %}
-        </div>
+    <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2.5">
+                <span class="text-muted"><i class="fas fa-user ms-1"></i> اسم العميل:</span>
+                <span class="fw-bold text-dark">{{ order.customer_name or order.shipping_address.name or 'غير متوفر' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2.5">
+                <span class="text-muted"><i class="fas fa-phone ms-1"></i> رقم الهاتف:</span>
+                <span dir="ltr" class="fw-bold text-dark">{{ order.customer_phone or order.shipping_address.phone or 'غير متوفر' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2.5">
+                <span class="text-muted"><i class="fas fa-envelope ms-1"></i> البريد الإلكتروني:</span>
+                <span class="text-dark">{{ order.customer_email or 'غير متوفر' }}</span>
+            </li>
+            <li class="list-group-item px-0 py-2.5">
+                <span class="text-muted d-block mb-1"><i class="fas fa-map-marker-alt ms-1"></i> عنوان الشحن:</span>
+                <p class="mb-0 text-dark bg-light p-2 rounded small">
+                    {{ order.shipping_address.address or order.shipping_address or 'لم يتم تحديد العنوان بدقة' }}
+                    {% if order.shipping_address.city %}<br>المدينة: {{ order.shipping_address.city }}{% endif %}
+                    {% if order.shipping_address.country %}, {{ order.shipping_address.country }}{% endif %}
+                </p>
+            </li>
+        </ul>
     </div>
 </div>
