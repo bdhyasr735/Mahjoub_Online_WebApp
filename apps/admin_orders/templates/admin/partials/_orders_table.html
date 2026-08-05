@@ -4,7 +4,7 @@
             <table class="table align-middle text-center w-full mb-0" style="font-size: 0.85rem;">
                 <thead class="table-dark" style="background-color: #2d0b36; color: #fff;">
                     <tr>
-                        <th class="py-3">رقم الطلب</th>
+                        <th class="py-3">معرف الطلب</th>
                         <th class="py-3">اسم العميل</th>
                         <th class="py-3">التاريخ</th>
                         <th class="py-3">الإجمالي</th>
@@ -17,10 +17,12 @@
                     {% if orders %}
                         {%- for order in orders -%}
                         <tr>
-                            <!-- رقم الطلب -->
-                            <td class="fw-bold py-2">#{{ order.order_number or order.id[:8] }}</td>
+                            <!-- رقم الطلب (استبدال order_number بـ order._id) -->
+                            <td class="fw-bold py-2 text-truncate" style="max-width: 130px;" title="{{ order._id }}">
+                                {{ order._id }}
+                            </td>
                             
-                            <!-- اسم العميل (تم التعديل هنا) -->
+                            <!-- اسم العميل -->
                             <td class="py-2 text-truncate" style="max-width: 140px;" title="{{ order.customer_name }}">
                                 {% if order.customer_name and order.customer_name != 'زائر' and order.customer_name != 'عميل غير معروف' %}
                                     {{ order.customer_name }}
