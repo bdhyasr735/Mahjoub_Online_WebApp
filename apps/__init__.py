@@ -362,4 +362,14 @@ def create_app():
             safe_url_for=safe_url_for
         )
 
+    # ============================================================
+    # ✅ معالج الأخطاء العام (يعيد JSON بدلاً من HTML للطلبات AJAX)
+    # ============================================================
+    @app.errorhandler(500)
+    def handle_500_error(e):
+        # إذا كان الطلب من لوحة الطلبات ويرسل AJAX → نعيد JSON
+        if request.path.startswith('/admin/orders') and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'حدث خطأ داخلي في الخادم أثناء معالجة الطلب.'}), 500
+        return render_template('errors/500.html'), 500
+
     return app
