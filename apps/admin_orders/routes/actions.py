@@ -5,14 +5,10 @@ from flask import Blueprint, request, jsonify, current_app, session
 from flask_login import login_required
 from apps.extensions import db
 
-# ✅ إضافة url_prefix لتتطابق المسارات تلقائياً مع البنية العامة
-actions_bp = Blueprint(
-    'admin_order_actions', 
-    __name__,
-    url_prefix='/admin/orders'
-)
+# ✅ استخدام نفس الـ Blueprint الرئيسي أو توحيد الـ Endpoints لتتوافق مع url_for
+from apps.admin_orders.routes.orders import admin_orders_bp
 
-@actions_bp.route('/<order_id>/print', methods=['GET'])
+@admin_orders_bp.route('/<order_id>/print', methods=['GET'], endpoint='print_order_invoice')
 @login_required
 def print_order_invoice(order_id):
     """
@@ -46,7 +42,7 @@ def print_order_invoice(order_id):
         return f"حدث خطأ أثناء إعداد الفاتورة: {str(e)}", 500
 
 
-@actions_bp.route('/<order_id>/update-status', methods=['POST'])
+@admin_orders_bp.route('/<order_id>/update-status', methods=['POST'], endpoint='update_order_status')
 @login_required
 def update_order_status(order_id):
     """
@@ -68,11 +64,6 @@ def update_order_status(order_id):
         )
         db.session.commit()
 
-        _record_audit_log(
-            action='UPDATE_ORDER_STATUS',
-            details=f'تم تغيير حالة الطلب #{order_id} إلى: {new_status}'
-        )
-
         return jsonify({
             'success': True,
             'message': 'تم تحديث حالة الطلب بنجاح',
@@ -85,7 +76,7 @@ def update_order_status(order_id):
         return jsonify({'success': False, 'message': f'حدث خطأ أثناء التحديث: {str(e)}'}), 500
 
 
-@actions_bp.route('/<order_id>/item/<item_id>/assign-supplier', methods=['POST'])
+@admin_orders_bp.route('/<order_id>/item/<item_id>/assign-supplier', methods=['POST'], endpoint='assign_item_supplier')
 @login_required
 def assign_item_supplier(order_id, item_id):
     """
@@ -108,11 +99,6 @@ def assign_item_supplier(order_id, item_id):
         )
         db.session.commit()
 
-        _record_audit_log(
-            action='ASSIGN_SUPPLIER',
-            details=f'تم تعيين المورد #{supplier_id} للمنتج #{item_id} في الطلب #{order_id}'
-        )
-
         return jsonify({
             'success': True,
             'message': 'تم تعيين المورد بنجاح',
@@ -123,21 +109,3 @@ def assign_item_supplier(order_id, item_id):
         db.session.rollback()
         current_app.logger.error(f"Error assigning supplier for item {item_id}: {str(e)}")
         return jsonify({'success': False, 'message': f'حدث خطأ أثناء تعيين المورد: {str(e)}'}), 500
-
-
-def _record_audit_log(action, details):
-    """
-    حفظ السجلات بدون إيقاف السيرفر في حال عدم وجود الجدول
-    """
-    try:
-        db.session.execute(
-            db.text("""
-                INSERT INTO audit_logs (action, details, created_at) 
-                VALUES (:action, :details, NOW())
-            """),
-            {'action': action, 'details': details}
-        )
-        db.session.commit()
-    except Exception as audit_err:
-        db.session.rollback()
-        current_app.logger.warning(f"Failed to record audit log [{action}]: {str(audit_err)}")
