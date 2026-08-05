@@ -1,140 +1,88 @@
-<!-- 📂 apps/admin_orders/templates/admin/partials/_order_scripts.html -->
+<!-- 📂 apps/admin_orders/templates/admin/order/_order_scripts.html -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // دعم استخراج توكن الحماية CSRF إن وجد في الصفحة لضمان نجاح طلبات POST
-    const getCsrfToken = () => {
-        const meta = document.querySelector('meta[name="csrf-token"]');
-        return meta ? meta.getAttribute('content') : '';
-    };
+    // استخراج توكن الحماية من الصفحة
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    const csrfToken = getCsrfToken();
-    const requestHeaders = {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-    };
-    if (csrfToken) {
-        requestHeaders['X-CSRFToken'] = csrfToken;
+    // دالة تحديث حالة الطلب
+    function updateOrderStatus(orderId, newStatus) {
+        fetch(`/admin/orders/${orderId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ status: newStatus })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('خطأ: ' + data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
     }
 
-    // 1. تحديث حالة الطلب
-    const updateStatusBtn = document.getElementById('updateStatusBtn');
-    if (updateStatusBtn) {
-        updateStatusBtn.addEventListener('click', function() {
-            const select = document.getElementById('orderStatusSelect');
-            if (!select) {
-                alert('خطأ: عنصر اختيار الحالة غير موجود في الصفحة');
-                return;
+    // دالة تحديث الحالة المالية (مدفوع / غير مدفوع)
+    function updatePaymentStatus(orderId, isPaid) {
+        fetch(`/admin/orders/${orderId}/payment-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ isPaid: isPaid })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('خطأ: ' + data.message);
             }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 
-            const orderId = select.getAttribute('data-order-id') || select.dataset.orderId;
-            const newStatus = select.value;
-
-            if (!orderId) {
-                alert('خطأ: معرف الطلب غير متاح');
-                return;
+    // دالة تحديث مورد العنصر
+    function updateItemSupplier(orderId, itemId, supplierId) {
+        fetch(`/admin/orders/${orderId}/items/supplier`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ item_id: itemId, supplier_id: supplierId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('خطأ في تحديث المورد: ' + data.message);
             }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 
-            // تعطيل الزر وإظهار مؤشر التحميل أثناء المعالجة
-            updateStatusBtn.disabled = true;
-            const originalText = updateStatusBtn.innerHTML;
-            updateStatusBtn.innerHTML = '<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span> جاري التحديث...';
-
-            fetch(`/admin/orders/${orderId}/status`, {
+    // دالة حذف الطلب
+    function deleteOrder(orderId) {
+        if (confirm('هل أنت متأكد من رغبتك في حذف هذا الطلب نهائياً؟')) {
+            fetch(`/admin/orders/delete/${orderId}`, {
                 method: 'POST',
-                headers: requestHeaders,
-                body: JSON.stringify({ status: newStatus })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message || 'تم تحديث الحالة بنجاح');
-                    location.reload();
+                    window.location.href = "{{ url_for('admin_orders.list_orders' if 'admin_orders' in request.endpoint else 'admin.orders') }}";
                 } else {
-                    alert('خطأ: ' + (data.message || 'فشل تحديث الحالة'));
-                    updateStatusBtn.disabled = false;
-                    updateStatusBtn.innerHTML = originalText;
+                    alert('خطأ: ' + data.message);
                 }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('حدث خطأ أثناء الاتصال بالخادم');
-                updateStatusBtn.disabled = false;
-                updateStatusBtn.innerHTML = originalText;
-            });
-        });
+            .catch(error => console.error('Error:', error));
+        }
     }
-
-    // 2. تحديث حالة الدفع (isPaid)
-    const isPaidSwitch = document.getElementById('isPaidSwitch');
-    if (isPaidSwitch) {
-        isPaidSwitch.addEventListener('change', function() {
-            const orderId = this.getAttribute('data-order-id') || this.dataset.orderId;
-            const isPaid = this.checked;
-
-            if (!orderId) {
-                alert('خطأ: معرف الطلب غير متاح');
-                isPaidSwitch.checked = !isPaid;
-                return;
-            }
-
-            fetch(`/admin/orders/${orderId}/payment-status`, {
-                method: 'POST',
-                headers: requestHeaders,
-                body: JSON.stringify({ isPaid: isPaid })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log(data.message);
-                } else {
-                    alert('خطأ: ' + (data.message || 'فشل تحديث حالة الدفع'));
-                    isPaidSwitch.checked = !isPaid;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('حدث خطأ أثناء الاتصال بالخادم');
-                isPaidSwitch.checked = !isPaid;
-            });
-        });
-    }
-
-    // 3. تحديث مورد عنصر الطلب
-    document.querySelectorAll('.supplier-select').forEach(select => {
-        select.addEventListener('change', function() {
-            const orderId = this.getAttribute('data-order-id') || this.dataset.orderId;
-            const itemId = this.getAttribute('data-item-id') || this.dataset.itemId;
-            const supplierId = this.value;
-
-            if (!orderId || !itemId) {
-                alert('خطأ: بيانات الطلب أو العنصر غير مكتملة');
-                return;
-            }
-
-            // تعطيل القائمة المنسدلة مؤقتاً أثناء الحفظ
-            this.disabled = true;
-
-            fetch(`/admin/orders/${orderId}/items/supplier`, {
-                method: 'POST',
-                headers: requestHeaders,
-                body: JSON.stringify({ item_id: itemId, supplier_id: supplierId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                this.disabled = false;
-                if (data.success) {
-                    this.classList.add('is-valid');
-                    setTimeout(() => this.classList.remove('is-valid'), 2000);
-                } else {
-                    alert('خطأ: ' + (data.message || 'فشل تحديث المورد'));
-                }
-            })
-            .catch(error => {
-                this.disabled = false;
-                console.error('Error:', error);
-                alert('حدث خطأ أثناء الاتصال بالخادم');
-            });
-        });
-    });
-});
 </script>
