@@ -136,16 +136,17 @@ def view_admin_order(order_id):
             flash('❌ لم يتم العثور على الطلب في النظام، أو فشل حفظه محلياً. تأكد من صحة بيانات المزامنة.', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
-        # 🔍 توثيق عملية استعراض تفاصيل طلب حساس عبر AuditLogger
+        # 🔍 توثيق عملية استعراض تفاصيل طلب حساس عبر AuditLogger (محمي ضد عدم وجود الجدول لتفادي التعليق)
         try:
-            services.audit.log(
-                action="VIEW_ORDER_DETAILS",
-                target_type="Order",
-                target_id=str(order_id),
-                details="تم استعراض تفاصيل الطلب من قبل المشرف"
-            )
+            if hasattr(services, 'audit') and hasattr(services.audit, 'log'):
+                services.audit.log(
+                    action="VIEW_ORDER_DETAILS",
+                    target_type="Order",
+                    target_id=str(order_id),
+                    details="تم استعراض تفاصيل الطلب من قبل المشرف"
+                )
         except Exception:
-            pass
+            db.session.rollback()
 
         suppliers = Supplier.query.all()
 
@@ -155,6 +156,20 @@ def view_admin_order(order_id):
         current_app.logger.error(f"خطأ في عرض تفاصيل الطلب {order_id}: {traceback.format_exc()}")
         flash('❌ حدث خطأ غير متوقع أثناء تحميل تفاصيل الطلب', 'danger')
         return redirect(url_for('admin_orders_bp.list_admin_orders'))
+
+
+# 🖨️ إضافة مسار طباعة الفاتورة هنا لمنع خطأ الـ BuildError نهائياً
+@admin_orders_bp.route('/<string:order_id>/print', methods=['GET'], endpoint='print_order_invoice')
+@login_required
+def print_order_invoice(order_id):
+    try:
+        order = db.session.get(Order, order_id)
+        if not order:
+            return "الطلب غير موجود", 404
+        return render_template('admin/order/invoice_print.html', order=order)
+    except Exception as e:
+        current_app.logger.error(f"خطأ في طباعة الفاتورة {order_id}: {traceback.format_exc()}")
+        return f"حدث خطأ أثناء إعداد الفاتورة: {str(e)}", 500
 
 
 def register_admin_orders_route(bp):
@@ -214,16 +229,17 @@ def sync_admin_orders():
                 time.sleep(0.5)
                 continue
 
-        # 🔍 توثيق عملية المزامنة الشاملة الناجحة في سجل التدقيق الأمني
+        # 🔍 توثيق عملية المزامنة الشاملة (محمي)
         try:
-            services.audit.log(
-                action="SYNC_ALL_ORDERS",
-                target_type="System",
-                target_id=None,
-                details=f"تمت مزامنة {total_synced} طلب بنجاح من Qumra API إلى قاعدة البيانات المحلية."
-            )
+            if hasattr(services, 'audit') and hasattr(services.audit, 'log'):
+                services.audit.log(
+                    action="SYNC_ALL_ORDERS",
+                    target_type="System",
+                    target_id=None,
+                    details=f"تمت مزامنة {total_synced} طلب بنجاح من Qumra API إلى قاعدة البيانات المحلية."
+                )
         except Exception:
-            pass
+            db.session.rollback()
 
         return jsonify({
             'success': True,
