@@ -3,7 +3,7 @@
 
 import os
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import or_, cast, Integer, String
 from .graphql_client import GraphQLClient
 
@@ -87,7 +87,7 @@ class OrderService:
                     total_amount = float(order.get('totalPrice', 0.0) or 0.0)
 
                     created_at_str = order.get('createdAt')
-                    created_at = datetime.utcnow()
+                    created_at = datetime.now(timezone.utc).replace(tzinfo=None)
                     if created_at_str:
                         try:
                             clean_date_str = str(created_at_str).replace('Z', '').split('+')[0]
@@ -95,7 +95,7 @@ class OrderService:
                         except Exception:
                             pass
 
-                    existing_order = Order.query.filter_by(id=qid).first()
+                    existing_order = db.session.get(Order, qid)
 
                     if existing_order:
                         existing_order.status_code = status_code
@@ -183,12 +183,14 @@ class OrderService:
             return None
 
     def sync_single_order(self, qid: str):
+        from apps.models.orders_db import Order
+        from apps.extensions import db
+
         order_data = self.get_order(qid)
         if order_data:
             self._save_orders_to_db([order_data])
 
-        from apps.models.orders_db import Order
-        return Order.query.get(qid)
+        return db.session.get(Order, qid)
 
     def get_order_by_id(self, qid: str):
         return self.sync_single_order(qid)
