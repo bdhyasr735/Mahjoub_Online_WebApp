@@ -1,28 +1,52 @@
-<!-- 📂 apps/admin_orders/templates/admin/partials/_customer_info_card.html -->
+<!-- 📂 apps/admin_orders/templates/admin/order/_customer_info_card.html -->
 <div class="card shadow-sm mb-4 border-0 rounded-3">
     <div class="card-header bg-white py-3 border-bottom">
         <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-user-circle text-primary ms-2"></i> بيانات العميل والشحن</h5>
     </div>
     <div class="card-body">
         <ul class="list-group list-group-flush">
+            <!-- اسم العميل مع تغطية شاملة لكافة الاحتمالات -->
             <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2.5">
                 <span class="text-muted"><i class="fas fa-user ms-1"></i> اسم العميل:</span>
-                <span class="fw-bold text-dark">{{ order.customer_name or order.shipping_address.name or 'غير متوفر' }}</span>
+                <span class="fw-bold text-dark">
+                    {{ order.customer_name or order.name or (order.shipping_address.name if order.shipping_address is mapping else none) or (order.user.name if order.user else none) or 'غير متوفر' }}
+                </span>
             </li>
+
+            <!-- رقم الهاتف مع تغطية شاملة لكافة احتمالات الساندبوكس -->
             <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2.5">
                 <span class="text-muted"><i class="fas fa-phone ms-1"></i> رقم الهاتف:</span>
-                <span dir="ltr" class="fw-bold text-dark">{{ order.customer_phone or order.shipping_address.phone or 'غير متوفر' }}</span>
+                <span dir="ltr" class="fw-bold text-dark">
+                    {{ order.customer_phone or order.phone or order.phone_number or order.shipping_phone or (order.shipping_address.phone if order.shipping_address is mapping else none) or (order.user.phone if order.user else none) or 'غير متوفر' }}
+                </span>
             </li>
+
+            <!-- البريد الإلكتروني مع تغطية شاملة لكافة الاحتمالات -->
             <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2.5">
                 <span class="text-muted"><i class="fas fa-envelope ms-1"></i> البريد الإلكتروني:</span>
-                <span class="text-dark">{{ order.customer_email or 'غير متوفر' }}</span>
+                <span class="text-dark">
+                    {{ order.customer_email or order.email or order.shipping_email or (order.user.email if order.user else none) or 'غير متوفر' }}
+                </span>
             </li>
+
+            <!-- عنوان الشحن والتفاصيل المرتبطة به -->
             <li class="list-group-item px-0 py-2.5">
                 <span class="text-muted d-block mb-1"><i class="fas fa-map-marker-alt ms-1"></i> عنوان الشحن:</span>
                 <p class="mb-0 text-dark bg-light p-2 rounded small">
-                    {{ order.shipping_address.address or order.shipping_address or 'لم يتم تحديد العنوان بدقة' }}
-                    {% if order.shipping_address.city %}<br>المدينة: {{ order.shipping_address.city }}{% endif %}
-                    {% if order.shipping_address.country %}, {{ order.shipping_address.country }}{% endif %}
+                    {% if order.shipping_address %}
+                        {% if order.shipping_address is mapping %}
+                            {{ order.shipping_address.address or order.shipping_address.street or order.shipping_address.text or 'لم يتم تحديد العنوان بدقة' }}
+                            {% if order.shipping_address.city %}<br>المدينة: {{ order.shipping_address.city }}{% endif %}
+                            {% if order.shipping_address.state %}, {{ order.shipping_address.state }}{% endif %}
+                            {% if order.shipping_address.country %}, {{ order.shipping_address.country }}{% endif %}
+                        {% else %}
+                            {{ order.shipping_address }}
+                        {% endif %}
+                    {% elif order.address %}
+                        {{ order.address }}
+                    {% else %}
+                        لم يتم تحديد العنوان بدقة
+                    {% endif %}
                 </p>
             </li>
         </ul>
