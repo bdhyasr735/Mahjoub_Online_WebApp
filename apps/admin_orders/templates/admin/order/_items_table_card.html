@@ -37,7 +37,13 @@
                             <td class="pe-3 text-end">
                                 <select class="form-select form-select-sm d-inline-block w-auto" onchange="updateItemSupplier('{{ order.id or order._id }}', '{{ item.id or item._id }}', this.value)">
                                     <option value="">اختر المورد...</option>
-                                    <!-- يتم تعبئة الموردين ديناميكياً هنا -->
+                                    {% if suppliers %}
+                                        {% for supplier in suppliers %}
+                                            <option value="{{ supplier.id }}" {% if item.supplier_id == supplier.id %}selected{% endif %}>
+                                                {{ supplier.name }}
+                                            </option>
+                                        {% endfor %}
+                                    {% endif %}
                                 </select>
                             </td>
                         </tr>
