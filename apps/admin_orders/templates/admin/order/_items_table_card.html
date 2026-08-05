@@ -1,63 +1,43 @@
 <!-- 📂 apps/admin_orders/templates/admin/order/_items_table_card.html -->
-<div class="card shadow-sm mb-4 border-0 rounded-3">
-    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-boxes text-primary ms-2"></i> منتجات الطلب</h5>
-        <span class="badge bg-primary rounded-pill">{{ order.items|length if order.items is iterable else 0 }} منتجات</span>
+<div class="card order-card">
+    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0 fw-bold text-primary">
+            <i class="fas fa-box-open me-2"></i> منتجات الطلب
+        </h5>
+        <span class="badge bg-secondary">{{ order.items | length if order.items else 0 }} منتج</span>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body px-0 pt-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 text-center">
+            <table class="table table-hover align-middle table-order mb-0">
                 <thead class="table-light text-muted small">
                     <tr>
-                        <th class="text-end pe-3">المنتج</th>
+                        <th class="ps-3">المنتج</th>
                         <th>السعر</th>
                         <th>الكمية</th>
                         <th>الإجمالي</th>
-                        <th style="width: 250px;">المورد المسؤول</th>
+                        <th class="pe-3 text-end">المورد</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% if order.items %}
                         {% for item in order.items %}
                         <tr>
-                            <td class="text-end pe-3">
+                            <td class="ps-3">
                                 <div class="d-flex align-items-center">
-                                    <!-- 🖼️ المسار الدقيق لصورة المنتج من Schema قُمرة -->
-                                    {% set item_img = item.productData and item.productData.image and item.productData.image.fileUrl %}
-                                    {% if item_img %}
-                                        <img src="{{ item_img }}" alt="" class="rounded border ms-2" style="width: 45px; height: 45px; object-fit: cover;">
-                                    {% else %}
-                                        <div class="rounded border bg-light d-flex align-items-center justify-content-center ms-2 text-primary" style="width: 45px; height: 45px;">
-                                            <i class="fas fa-box"></i>
-                                        </div>
-                                    {% endif %}
-                                    <div>
-                                        <h6 class="mb-0 fw-bold text-dark small">
-                                            {{ (item.productData and item.productData.title) or item.name or 'منتج بدون اسم' }}
-                                        </h6>
-                                        {% if item.variantData %}
-                                            <small class="text-muted">متغير خاص متوفر</small>
-                                        {% endif %}
+                                    <img src="{{ item.productData.image.fileUrl if item.productData and item.productData.image else 'https://via.placeholder.com/54' }}" alt="Product">
+                                    <div class="ms-3">
+                                        <h6 class="mb-0 fw-bold text-dark fs-6">{{ item.productData.title if item.productData else 'منتج غير معروف' }}</h6>
+                                        <small class="text-muted">SKU: {{ item.productId or '----' }}</small>
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ "%.2f"|format(item.price or 0) }} ر.س</td>
-                            <td><span class="badge bg-light text-dark border px-2 py-1">{{ item.quantity or 1 }}</span></td>
-                            <td class="fw-bold text-primary">
-                                {{ "%.2f"|format(item.totalPrice or (item.price * item.quantity) or 0) }} ر.س
-                            </td>
-                            <td>
-                                {% set current_order_id = order._id or order.id %}
-                                {% set current_item_id = item._id or item.id or loop.index0 %}
-                                <select class="form-select form-select-sm supplier-select" data-order-id="{{ current_order_id }}" data-item-id="{{ current_item_id }}">
-                                    <option value="">-- اختر المورد المحلي --</option>
-                                    {% if suppliers %}
-                                        {% for supplier in suppliers %}
-                                            <option value="{{ supplier.id or supplier._id }}" {% if item.supplier_id == (supplier.id or supplier._id) %}selected{% endif %}>
-                                                {{ supplier.name or supplier.supplier_name }}
-                                            </option>
-                                        {% endfor %}
-                                    {% endif %}
+                            <td>{{ "%.2f"|format(item.price or 0.0) }} ر.س</td>
+                            <td><span class="badge bg-light text-dark px-2 py-1">{{ item.quantity or 1 }}</span></td>
+                            <td class="fw-bold text-primary">{{ "%.2f"|format((item.price or 0.0) * (item.quantity or 1)) }} ر.س</td>
+                            <td class="pe-3 text-end">
+                                <select class="form-select form-select-sm d-inline-block w-auto" onchange="updateItemSupplier('{{ order.id or order._id }}', '{{ item.id or item._id }}', this.value)">
+                                    <option value="">اختر المورد...</option>
+                                    <!-- يتم تعبئة الموردين ديناميكياً هنا -->
                                 </select>
                             </td>
                         </tr>
