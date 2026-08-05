@@ -1,27 +1,108 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_customer_info_card.html -->
-<div class="card shadow-sm mb-4 border-0 rounded-3">
-    <div class="card-header bg-white py-3 border-bottom">
-        <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-user text-primary ms-2"></i> معلومات العميل والشحن</h5>
+{# 📂 apps/admin_orders/templates/admin/admin_order_invoice.html #}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>فاتورة طلب #{{ order.id }} - محجوب أونلاين</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #fff; font-family: 'Cairo', Tahoma, sans-serif; color: #333; }
+        .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); font-size: 16px; line-height: 24px; }
+        .invoice-header { border-bottom: 2px solid #0d6efd; padding-bottom: 15px; margin-bottom: 20px; }
+        @media print {
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            .invoice-box { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+    <div class="invoice-box my-4">
+        <!-- رأس الفاتورة -->
+        <div class="invoice-header d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="text-primary fw-bold mb-1">محجوب أونلاين</h2>
+                <p class="text-muted mb-0">متجر التجزئة الإلكتروني</p>
+            </div>
+            <div class="text-start">
+                <h4 class="mb-1">فاتورة طلب</h4>
+                <p class="text-muted mb-0">رقم الطلب: #{{ order.id }}</p>
+                <p class="text-muted mb-0">التاريخ: {{ order.created_at or 'غير متوفر' }}</p>
+            </div>
+        </div>
+
+        <!-- معلومات العميل والحالة -->
+        <div class="row mb-4">
+            <div class="col-sm-6">
+                <h5 class="text-secondary fw-bold">معلومات العميل:</h5>
+                <p class="mb-1"><strong>الاسم:</strong> {{ order.customer_name or order.user_name or 'عميل متجر' }}</p>
+                <p class="mb-1"><strong>الهاتف:</strong> <span dir="ltr">{{ order.phone or order.customer_phone or 'غير متوفر' }}</span></p>
+                <p class="mb-0"><strong>العنوان:</strong> {{ order.address or 'غير متوفر' }}</p>
+            </div>
+            <div class="col-sm-6 text-start">
+                <h5 class="text-secondary fw-bold">حالة الطلب والدفع:</h5>
+                <p class="mb-1"><strong>الحالة:</strong> <span class="badge bg-info text-dark">{{ order.status_title or order.status_code or 'قيد الانتظار' }}</span></p>
+                <p class="mb-0"><strong>الدفع:</strong> <span class="badge {% if order.is_paid %}bg-success{% else %}bg-warning text-dark{% endif %}">{% if order.is_paid %}مدفوع{% else %}غير مدفوع{% endif %}</span></p>
+            </div>
+        </div>
+
+        <!-- جدول المنتجات وعناصر الطلب -->
+        <table class="table table-bordered text-center align-middle mb-4">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>المنتج</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الإجمالي</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if order.items %}
+                    {% for item in order.items %}
+                    <tr>
+                        <th scope="row">{{ loop.index }}</th>
+                        <td class="text-end">
+                            <strong>{{ item.product_name or item.name or 'منتج' }}</strong>
+                            {% if item.variant %}
+                                <br><small class="text-muted">{{ item.variant }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.price }} ريال</td>
+                        <td>{{ (item.quantity * item.price) if item.quantity and item.price else 0 }} ريال</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-muted py-3">لا توجد عناصر مسجلة لهذا الطلب</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <!-- إجمالي الحساب -->
+        <div class="d-flex justify-content-end mb-4">
+            <div class="w-50">
+                <table class="table table-sm">
+                    <tr>
+                        <td class="fw-bold">الإجمالي الكلي:</td>
+                        <td class="text-start fw-bold text-success fs-5">{{ order.total_amount or order.total or 0 }} ريال</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- أزرار التحكم -->
+        <div class="text-center no-print mt-4">
+            <button onclick="window.print()" class="btn btn-primary px-4 py-2 me-2">
+                <i class="fas fa-print me-1"></i> طباعة الفاتورة الآن
+            </button>
+            <button onclick="window.close()" class="btn btn-secondary px-4 py-2">
+                <i class="fas fa-times me-1"></i> إغلاق النافذة
+            </button>
+        </div>
     </div>
-    <div class="card-body">
-        <div class="mb-3">
-            <span class="text-muted small d-block">اسم العميل:</span>
-            <span class="fw-bold text-dark">{{ order.customer_name or order.name or order.user_name or 'عميل زائر' }}</span>
-        </div>
-        <div class="mb-3">
-            <span class="text-muted small d-block">رقم الهاتف:</span>
-            <span class="fw-bold text-dark" dir="ltr">{{ order.customer_phone or order.phone or order.mobile or 'غير متوفر' }}</span>
-        </div>
-        <div class="mb-3">
-            <span class="text-muted small d-block">البريد الإلكتروني:</span>
-            <span class="text-dark">{{ order.customer_email or order.email or 'غير متوفر' }}</span>
-        </div>
-        <hr>
-        <div class="mb-0">
-            <span class="text-muted small d-block mb-1">عنوان الشحن:</span>
-            <p class="text-dark mb-0 bg-light p-2 rounded small">
-                {{ order.shipping_address or order.address or order.city or 'لم يتم تحديد عنوان شحن مفصل' }}
-            </p>
-        </div>
-    </div>
-</div>
+</body>
+</html>
