@@ -1,18 +1,27 @@
+# coding: utf-8
 # 📂 apps/admin_orders/routes/actions.py
-from flask import Blueprint, request, jsonify, current_app, render_template
+
+from flask import Blueprint, request, jsonify, current_app, session
+from flask_login import login_required
 from apps.extensions import db
 
-# تم ضبط اسم الـ Blueprint إلى 'admin_order_actions' ليتطابق مع url_for في القوالب
-actions_bp = Blueprint('admin_order_actions', __name__)
+# ✅ إضافة url_prefix لتتطابق المسارات تلقائياً مع البنية العامة
+actions_bp = Blueprint(
+    'admin_order_actions', 
+    __name__,
+    url_prefix='/admin/orders'
+)
 
-
-@actions_bp.route('/admin/orders/<order_id>/print', methods=['GET'])
+@actions_bp.route('/<order_id>/print', methods=['GET'])
+@login_required
 def print_order_invoice(order_id):
     """
     عرض/طباعة فاتورة الطلب
     """
     try:
-        # طباعة بسيطة للطلب، أو استدعاء قالب الفاتورة المخصص
+        if session.get('user_type') != 'admin':
+            return "غير مصرح لك بالوصول", 403
+
         return f"""
         <!DOCTYPE html>
         <html dir="rtl" lang="ar">
@@ -37,12 +46,16 @@ def print_order_invoice(order_id):
         return f"حدث خطأ أثناء إعداد الفاتورة: {str(e)}", 500
 
 
-@actions_bp.route('/admin/orders/<order_id>/update-status', methods=['POST'])
+@actions_bp.route('/<order_id>/update-status', methods=['POST'])
+@login_required
 def update_order_status(order_id):
     """
     تحديث حالة الطلب
     """
     try:
+        if session.get('user_type') != 'admin':
+            return jsonify({'success': False, 'message': 'غير مصرح لك بذلك'}), 403
+
         data = request.get_json() or {}
         new_status = data.get('status')
 
@@ -72,12 +85,16 @@ def update_order_status(order_id):
         return jsonify({'success': False, 'message': f'حدث خطأ أثناء التحديث: {str(e)}'}), 500
 
 
-@actions_bp.route('/admin/orders/<order_id>/item/<item_id>/assign-supplier', methods=['POST'])
+@actions_bp.route('/<order_id>/item/<item_id>/assign-supplier', methods=['POST'])
+@login_required
 def assign_item_supplier(order_id, item_id):
     """
     تعيين المورد للمنتج داخل الطلب
     """
     try:
+        if session.get('user_type') != 'admin':
+            return jsonify({'success': False, 'message': 'غير مصرح لك بذلك'}), 403
+
         data = request.get_json() or {}
         supplier_id = data.get('supplier_id') or None
 
