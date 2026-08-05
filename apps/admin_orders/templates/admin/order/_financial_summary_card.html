@@ -6,22 +6,24 @@
     <div class="card-body">
         <div class="d-flex justify-content-between mb-2 text-muted small">
             <span>مجموع المنتجات:</span>
-            <span>{{ "%.2f"|format(order.subtotal or order.items_total or 0) }} ر.س</span>
+            <span>{{ "%.2f"|format(order.priceWithShipping or order.totalPrice or 0) }} ر.س</span>
         </div>
         <div class="d-flex justify-content-between mb-2 text-muted small">
             <span>تكلفة الشحن:</span>
-            <span>{{ "%.2f"|format(order.shipping_fee or order.shipping_cost or 0) }} ر.س</span>
+            <span>{{ "%.2f"|format(order.shippingPrice or 0) }} ر.س</span>
         </div>
-        {% if order.discount or order.discount_amount %}
-        <div class="d-flex justify-content-between mb-2 text-success small">
-            <span>الخصم:</span>
-            <span>-{{ "%.2f"|format(order.discount or order.discount_amount or 0) }} ر.س</span>
+        {% if order.taxAmount and order.taxAmount > 0 %}
+        <div class="d-flex justify-content-between mb-2 text-muted small">
+            <span>الضريبة:</span>
+            <span>{{ "%.2f"|format(order.taxAmount) }} ر.س</span>
         </div>
         {% endif %}
         <hr>
         <div class="d-flex justify-content-between align-items-center">
             <span class="fw-bold text-dark">الإجمالي النهائي:</span>
-            <span class="fw-bold text-primary fs-5">{{ "%.2f"|format(order.total or order.total_amount or order.grand_total or 0) }} ر.س</span>
+            <span class="fw-bold text-primary fs-5">
+                {{ "%.2f"|format(order.totalPrice or 0) }} ر.س
+            </span>
         </div>
     </div>
 </div>
