@@ -1,28 +1,42 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_order_status_card.html -->
-<div class="order-card p-4">
-    <h5 class="fw-bold mb-4" style="color: #2d0b36;"><i class="fas fa-sliders-h me-2 text-primary"></i> إدارة حالات الطلب</h5>
-    
-    <!-- أ) حالة الطلب -->
-    <div class="mb-3">
-        <label class="form-label small fw-bold text-muted">حالة الطلب:</label>
-        <select class="form-select rounded-3 py-2 fw-bold" id="orderStatusSelect" onchange="updateOrderStatus('{{ order._id }}')">
-            <!-- ✅ تصحيح: استبدال status.name بـ status.code -->
-            <option value="pending" {% if order.status and order.status.code == 'pending' %}selected{% endif %}>⏳ قيد الانتظار (Pending)</option>
-            <option value="processing" {% if order.status and order.status.code == 'processing' %}selected{% endif %}>⚙️ قيد التجهيز (Processing)</option>
-            <option value="completed" {% if order.status and order.status.code == 'completed' %}selected{% endif %}>✅ مكتمل (Completed)</option>
-            <option value="cancelled" {% if order.status and order.status.code == 'cancelled' %}selected{% endif %}>❌ ملغي (Cancelled)</option>
-        </select>
+<!-- 📂 apps/admin_orders/templates/admin/partials/_order_status_card.html -->
+<div class="card shadow-sm mb-4 border-0 rounded-3">
+    <div class="card-header bg-white py-3 border-bottom">
+        <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-tasks text-primary ms-2"></i> حالة الطلب والتحكم</h5>
     </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label text-muted small fw-bold">الحالة الحالية:</label>
+            <div>
+                {% set status_colors = {'pending': 'warning', 'processing': 'info', 'shipped': 'primary', 'delivered': 'success', 'completed': 'success', 'cancelled': 'danger', 'refunded': 'secondary'} %}
+                <span class="badge bg-{{ status_colors.get(order.status_code, 'secondary') }} fs-6 px-3 py-2">
+                    {{ order.status_title or order.status_code }}
+                </span>
+            </div>
+        </div>
 
-    <!-- ب) الحالة المالية (الدفع) -->
-    <div class="mb-3">
-        <label class="form-label small fw-bold text-muted">الحالة المالية (الدفع):</label>
-        <select class="form-select rounded-3 py-2 fw-bold" id="paymentStatusSelect" onchange="updatePaymentStatus('{{ order._id }}')">
-            <!-- ✅ تصحيح: استبدال order.isPaid بـ order.is_paid، وإصلاح شرط COD -->
-            <option value="false" {% if not order.is_paid %}selected{% endif %}>❌ غير مدفوع / عند الاستلام (COD: {{ 'نعم' if not order.is_paid else 'لا' }})</option>
-            <option value="true" {% if order.is_paid %}selected{% endif %}>💳 تم الدفع (Paid)</option>
-        </select>
+        <div class="mb-3">
+            <label for="orderStatusSelect" class="form-label text-muted small fw-bold">تحديث الحالة:</label>
+            <div class="input-group">
+                <select id="orderStatusSelect" class="form-select form-select-sm" data-order-id="{{ order.id }}">
+                    <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
+                    <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>قيد التجهيز</option>
+                    <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
+                    <option value="delivered" {% if order.status_code == 'delivered' %}selected{% endif %}>تم التسليم</option>
+                    <option value="completed" {% if order.status_code == 'completed' %}selected{% endif %}>مكتمل</option>
+                    <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
+                    <option value="refunded" {% if order.status_code == 'refunded' %}selected{% endif %}>مسترجع</option>
+                </select>
+                <button class="btn btn-outline-primary btn-sm" type="button" id="updateStatusBtn">حفظ</button>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="mb-2">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="isPaidSwitch" {% if order.is_paid %}checked{% endif %} data-order-id="{{ order.id }}">
+                <label class="form-check-label fw-bold text-dark" for="isPaidSwitch">الطلب مدفوع (Payment Status)</label>
+            </div>
+        </div>
     </div>
-
-    <div id="statusAlert" style="display: none;"></div>
 </div>
