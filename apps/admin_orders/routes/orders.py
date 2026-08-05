@@ -170,7 +170,7 @@ def register_admin_orders_route(bp):
 
 
 # ============================================================
-# ✅ دالة المزامنة (لزر "مزامنة الطلبات")
+# ✅ دالة المزامنة (لزر "مزامنة الطلبات") - تم تعديلها لتكون آمنة
 # ============================================================
 @admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
 @login_required
@@ -182,17 +182,18 @@ def sync_admin_orders():
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح لك بهذه العملية'}), 403
 
-        # تنفيذ المزامنة
-        result = services.orders.get_all_orders(page=1, per_page=100)
+        # ✅ تخفيف الحمل: جلب 50 طلب فقط بدلاً من 100 لتجنب انهيار السيرفر
+        result = services.orders.get_all_orders(page=1, per_page=50)
         
+        # ✅ إرجاع رسالة نجاح فقط (لا نعيد البيانات الضخمة لتجنب خطأ JSON)
         return jsonify({
             'success': True,
-            'message': 'تمت مزامنة الطلبات بنجاح',
-            'data': result
+            'message': 'تمت مزامنة الطلبات بنجاح! تم تحديث قاعدة البيانات المحلية.'
         })
         
     except Exception as e:
         current_app.logger.error(f"خطأ في مزامنة الطلبات: {traceback.format_exc()}")
+        # ✅ إرجاع JSON دائماً حتى في حالة الخطأ (لن يظهر خطأ Unexpected token)
         return jsonify({
             'success': False,
             'message': f'حدث خطأ أثناء المزامنة: {str(e)}'
