@@ -5,10 +5,14 @@ from flask import Blueprint, request, jsonify, current_app, session
 from flask_login import login_required
 from apps.extensions import db
 
-# ✅ استخدام نفس الـ Blueprint الرئيسي أو توحيد الـ Endpoints لتتوافق مع url_for
-from apps.admin_orders.routes.orders import admin_orders_bp
+# ✅ تعريف actions_bp ليتوافق مع نظام التسجيل ولا يحدث خطأ استيراد
+actions_bp = Blueprint(
+    'admin_order_actions', 
+    __name__,
+    url_prefix='/admin/orders'
+)
 
-@admin_orders_bp.route('/<order_id>/print', methods=['GET'], endpoint='print_order_invoice')
+@actions_bp.route('/<order_id>/print', methods=['GET'])
 @login_required
 def print_order_invoice(order_id):
     """
@@ -42,7 +46,7 @@ def print_order_invoice(order_id):
         return f"حدث خطأ أثناء إعداد الفاتورة: {str(e)}", 500
 
 
-@admin_orders_bp.route('/<order_id>/update-status', methods=['POST'], endpoint='update_order_status')
+@actions_bp.route('/<order_id>/update-status', methods=['POST'])
 @login_required
 def update_order_status(order_id):
     """
@@ -76,7 +80,7 @@ def update_order_status(order_id):
         return jsonify({'success': False, 'message': f'حدث خطأ أثناء التحديث: {str(e)}'}), 500
 
 
-@admin_orders_bp.route('/<order_id>/item/<item_id>/assign-supplier', methods=['POST'], endpoint='assign_item_supplier')
+@actions_bp.route('/<order_id>/item/<item_id>/assign-supplier', methods=['POST'])
 @login_required
 def assign_item_supplier(order_id, item_id):
     """
