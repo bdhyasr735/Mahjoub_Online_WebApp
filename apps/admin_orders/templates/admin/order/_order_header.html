@@ -8,7 +8,7 @@
         <a href="{{ url_for('admin_orders_bp.list_admin_orders') }}" class="btn btn-secondary btn-sm">
             <i class="fas fa-arrow-right ml-1"></i> العودة للقائمة
         </a>
-        <a href="{{ url_for('admin_order_actions.print_order_invoice', order_id=order.id) }}" target="_blank" class="btn btn-info btn-sm">
+        <a href="{{ url_for('admin_orders_bp.print_order_invoice', order_id=order.id) }}" target="_blank" class="btn btn-info btn-sm">
             <i class="fas fa-print ml-1"></i> طباعة الفاتورة
         </a>
     </div>
