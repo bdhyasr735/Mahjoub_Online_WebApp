@@ -1,45 +1,24 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_customer_info_card.html -->
-<div class="card shadow-sm mb-4 border-0 rounded-3">
-    <div class="card-header bg-white py-3 border-bottom">
-        <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-user text-primary ms-2"></i> معلومات العميل والشحن</h5>
+{# 📂 apps/admin_orders/templates/admin/order/_customer_info_card.html #}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 bg-primary text-white">
+        <h6 class="m-0 font-weight-bold">معلومات العميل</h6>
     </div>
     <div class="card-body">
-        <div class="mb-3">
-            <span class="text-muted small d-block">اسم العميل:</span>
-            <span class="fw-bold text-dark">
-                {% if order.account and order.account.account and order.account.account.fullname %}
-                    {{ order.account.account.fullname }}
-                {% elif order.salesLead %}
-                    {{ order.salesLead.firstName or '' }} {{ order.salesLead.lastName or '' }}
-                {% else %}
-                    عميل زائر (Guest)
-                {% endif %}
-            </span>
-        </div>
-        <div class="mb-3">
-            <span class="text-muted small d-block">رقم الهاتف:</span>
-            <span class="fw-bold text-dark" dir="ltr">
-                {{ (order.account and order.account.account and order.account.account.phone) or (order.salesLead and order.salesLead.phone1) or 'غير متوفر' }}
-            </span>
-        </div>
-        <div class="mb-3">
-            <span class="text-muted small d-block">البريد الإلكتروني:</span>
-            <span class="text-dark">
-                {{ (order.account and order.account.account and order.account.account.email) or (order.salesLead and order.salesLead.email) or 'غير متوفر' }}
-            </span>
-        </div>
-        <hr>
-        <div class="mb-0">
-            <span class="text-muted small d-block mb-1">عنوان الشحن:</span>
-            <p class="text-dark mb-0 bg-light p-2 rounded small">
-                {% if order.shippingAddress %}
-                    {{ order.shippingAddress.street or '' }} 
-                    {% if order.shippingAddress.neighborhood %}- {{ order.shippingAddress.neighborhood }}{% endif %}
-                    {% if order.shippingAddress.description %}<br><span class="text-muted">{{ order.shippingAddress.description }}</span>{% endif %}
-                {% else %}
-                    لم يتم تحديد عنوان شحن مفصل
-                {% endif %}
-            </p>
-        </div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>اسم العميل:</span>
+                <strong>{{ order.customer_name or order.user_name or 'عميل متجر' }}</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>رقم الهاتف:</span>
+                <span dir="ltr">{{ order.phone or order.customer_phone or 'غير متوفر' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>عنوان الشحن:</span>
+                <span class="text-truncate" style="max-width: 200px;" title="{{ order.address }}">
+                    {{ order.address or 'غير متوفر' }}
+                </span>
+            </li>
+        </ul>
     </div>
 </div>
