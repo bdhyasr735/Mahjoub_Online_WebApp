@@ -1,76 +1,65 @@
-{# 📂 apps/admin_orders/templates/admin/order/_order_scripts.html #}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // تحديث حالة الطلب
-    const statusSelect = document.getElementById('orderStatusSelect');
-    if (statusSelect) {
-        statusSelect.addEventListener('change', function() {
-            const orderId = this.dataset.orderId;
-            const newStatus = this.value;
-
-            fetch(`/admin/orders/${orderId}/status`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Success:', data.message);
-                } else {
-                    alert('خطأ: ' + data.message);
-                }
-            })
-            .catch(err => console.error('Error:', err));
-        });
-    }
-
-    // تحديث حالة الدفع
-    const isPaidSwitch = document.getElementById('isPaidSwitch');
-    if (isPaidSwitch) {
-        isPaidSwitch.addEventListener('change', function() {
-            const orderId = this.dataset.orderId;
-            const isPaid = this.checked;
-
-            fetch(`/admin/orders/${orderId}/payment-status`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isPaid: isPaid })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Success:', data.message);
-                } else {
-                    alert('خطأ: ' + data.message);
-                }
-            })
-            .catch(err => console.error('Error:', err));
-        });
-    }
-
-    // تحديث مورد العنصر
-    document.querySelectorAll('.item-supplier-select').forEach(select => {
-        select.addEventListener('change', function() {
+document.addEventListener('DOMContentLoaded', function () {
+    
+    // 1. تحديث مورد عنصر محدد
+    const supplierSelects = document.querySelectorAll('.item-supplier-select');
+    supplierSelects.forEach(select => {
+        select.addEventListener('change', function () {
             const orderId = this.dataset.orderId;
             const itemId = this.dataset.itemId;
             const supplierId = this.value;
 
-            fetch(`/admin/orders/${orderId}/items/supplier`, {
+            fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ item_id: itemId, supplier_id: supplierId })
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ supplier_id: supplierId })
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    console.log('Success:', data.message);
+                    alert('تم تعيين المورد بنجاح');
                 } else {
-                    alert('خطأ: ' + data.message);
+                    alert('خطأ: ' + (data.message || 'فشل التعيين'));
                 }
             })
-            .catch(err => console.error('Error:', err));
+            .catch(err => {
+                console.error('Error assigning supplier:', err);
+            });
         });
     });
+
+    // 2. تحديث حالة الطلب العام
+    const btnUpdateStatus = document.getElementById('btn-update-status');
+    if (btnUpdateStatus) {
+        btnUpdateStatus.addEventListener('click', function () {
+            const statusSelect = document.getElementById('order_status');
+            const orderId = document.querySelector('input[name="order_id"]')?.value;
+
+            if (!statusSelect || !orderId) return;
+
+            fetch(`/admin/orders/${orderId}/update-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: statusSelect.value })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('تم تحديث حالة الطلب بنجاح');
+                    window.location.reload();
+                } else {
+                    alert('حدث خطأ أثناء التحديث: ' + (data.message || 'فشل الأداء'));
+                }
+            })
+            .catch(err => {
+                console.error('Error updating status:', err);
+                alert('فشل الاتصال بالسيرفر');
+            });
+        });
+    }
 });
 </script>
