@@ -1,4 +1,8 @@
-{% set total_price = (order.totalPrice | float(0)) if (order and order.totalPrice is defined) else ((order.total_price | float(0)) if (order and order.total_price is defined) else 0) %}
+<!-- 📂 apps/admin_orders/templates/admin/order/_financial_summary_card.html -->
+{% set subtotal = (order.subtotal | float(0)) if (order and order.subtotal is defined) else 0 %}
+{% set shipping_cost = (order.shipping_cost | float(0)) if (order and order.shipping_cost is defined) else 0 %}
+{% set discount = (order.discount | float(0)) if (order and order.discount is defined) else 0 %}
+{% set total_price = (order.totalPrice | float(0)) if (order and order.totalPrice is defined) else ((order.total_price | float(0)) if (order and order.total_price is defined) else (subtotal + shipping_cost - discount)) %}
 {% set is_paid = order.isPaid if (order and order.isPaid is defined) else (order.is_paid if (order and order.is_paid is defined) else false) %}
 
 <div class="card shadow mb-4">
@@ -7,12 +11,33 @@
     </div>
     <div class="card-body">
         <ul class="list-group list-group-flush mb-3">
-            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                <span>إجمالي الطلب:</span>
-                <span class="fw-bold text-dark fs-5">{{ "{:,.2f}".format(total_price) }} ريال</span>
+            {% if subtotal > 0 %}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 text-muted small">
+                <span>مجموع المنتجات:</span>
+                <span>{{ "{:,.2f}".format(subtotal) }} ريال</span>
             </li>
+            {% endif %}
+            
+            {% if shipping_cost > 0 %}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 text-muted small">
+                <span>تكلفة الشحن:</span>
+                <span>{{ "{:,.2f}".format(shipping_cost) }} ريال</span>
+            </li>
+            {% endif %}
+
+            {% if discount > 0 %}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 text-danger small">
+                <span>الخصم:</span>
+                <span>-{{ "{:,.2f}".format(discount) }} ريال</span>
+            </li>
+            {% endif %}
+
             <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                <span>حالة الدفع:</span>
+                <span class="fw-bold">الإجمالي الكلي:</span>
+                <span class="fw-bold text-success fs-5">{{ "{:,.2f}".format(total_price) }} ريال</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 border-top mt-2 pt-2">
+                <span class="text-muted">حالة الدفع:</span>
                 {% if is_paid %}
                     <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> مدفوع</span>
                 {% else %}
