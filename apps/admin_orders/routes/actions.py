@@ -31,7 +31,7 @@ def _parse_id(val):
 @actions_bp.route('/<string:order_id>/status', methods=['POST'])
 @login_required
 def update_status(order_id):
-    """تحديث حالة الطلب (يستقبل JSON كما يرسله السكريبت)"""
+    """تحديث حالة الطلب وإرجاع الحقول الحقيقية المحدثة"""
     try:
         data = request.get_json(silent=True)
         if not data or 'status' not in data:
@@ -45,8 +45,10 @@ def update_status(order_id):
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
 
         old_status = getattr(order, 'status_code', 'unknown')
+        new_status_title = STATUS_TITLES_MAP.get(new_status_code, 'حالة غير معروفة')
+        
         order.status_code = new_status_code
-        order.status_title = STATUS_TITLES_MAP.get(new_status_code, 'حالة غير معروفة')
+        order.status_title = new_status_title
         
         db.session.commit()
 
@@ -61,7 +63,16 @@ def update_status(order_id):
         except Exception:
             pass
 
-        return jsonify({'success': True, 'message': 'تم تحديث حالة الطلب بنجاح'})
+        # إرجاع البيانات الحقيقية والمحدثة لتحديث واجهة المستخدم مباشرة
+        return jsonify({
+            'success': True, 
+            'message': 'تم تحديث حالة الطلب بنجاح',
+            'order': {
+                'id': order.id,
+                'status_code': order.status_code,
+                'status_title': order.status_title
+            }
+        })
         
     except Exception as e:
         db.session.rollback()
@@ -71,7 +82,7 @@ def update_status(order_id):
 @actions_bp.route('/<string:order_id>/payment-status', methods=['POST'])
 @login_required
 def update_payment_status(order_id):
-    """تحديث حالة الدفع (isPaid)"""
+    """تحديث حالة الدفع (isPaid) وإرجاع الحقول الحقيقية"""
     try:
         data = request.get_json(silent=True)
         if not data or 'isPaid' not in data:
@@ -97,7 +108,14 @@ def update_payment_status(order_id):
         except Exception:
             pass
 
-        return jsonify({'success': True, 'message': 'تم تحديث حالة الدفع بنجاح'})
+        return jsonify({
+            'success': True, 
+            'message': 'تم تحديث حالة الدفع بنجاح',
+            'order': {
+                'id': order.id,
+                'is_paid': order.is_paid
+            }
+        })
         
     except Exception as e:
         db.session.rollback()
@@ -121,7 +139,6 @@ def update_item_supplier(order_id):
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
 
-        # البحث عن العنصر داخل هذا الطلب فقط مع مراعاة اختلاف أنواع المعرفات
         item = OrderItem.query.filter_by(id=item_id, order_id=parsed_order_id).first()
         if not item:
             return jsonify({'success': False, 'message': 'العنصر غير موجود في هذا الطلب'}), 404
@@ -139,7 +156,14 @@ def update_item_supplier(order_id):
         except Exception:
             pass
 
-        return jsonify({'success': True, 'message': 'تم تحديث مورد العنصر بنجاح'})
+        return jsonify({
+            'success': True, 
+            'message': 'تم تحديث مورد العنصر بنجاح',
+            'item': {
+                'id': item.id,
+                'supplier_id': item.supplier_id
+            }
+        })
         
     except Exception as e:
         db.session.rollback()
@@ -149,13 +173,20 @@ def update_item_supplier(order_id):
 @actions_bp.route('/delete/<string:order_id>', methods=['POST'])
 @login_required
 def delete_order(order_id):
-    """حذف طلب من لوحة الإدارة"""
+    """حذف طلب من لوحة الإدارة محلياً وعبر خدمة GraphQL إذا لزم الأمر"""
     try:
         parsed_order_id = _parse_id(order_id)
         order = db.session.get(Order, parsed_order_id)
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
             
+        # محاولة الحذف عبر خدمة GraphQL الموحدة إن توفرت، مع الحذف المحلي
+        try:
+            if hasattr(services, 'orders') and services.orders:
+                services.orders.delete_order(str(order_id))
+        except Exception:
+            pass
+
         db.session.delete(order)
         db.session.commit()
 
