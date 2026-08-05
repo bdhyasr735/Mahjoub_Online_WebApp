@@ -2,6 +2,7 @@
 # 📂 apps/services/order_service.py
 
 import os
+import gc  # ✅ تمت إضافة مكتبة جامع القمامة
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from sqlalchemy import or_, cast, Integer, String
@@ -163,6 +164,10 @@ class OrderService:
                     existing_order.supplier_id = primary_supplier_id
 
                     db.session.commit()
+                    
+                    # ✅ إفراغ الجلسة وجمع القمامة لتخفيف الذاكرة بعد كل طلب
+                    db.session.expunge_all()
+                    gc.collect()
                 
                 except Exception as order_err:
                     # إذا فشل هذا الطلب، نتراجع ونتجاوز
