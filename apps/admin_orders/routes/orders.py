@@ -172,7 +172,7 @@ def register_admin_orders_route(bp):
 
 
 # ============================================================
-# ✅ دالة المزامنة الشاملة للزر (نسخة صلبة ومقاومة للكسر)
+# ✅ دالة المزامنة الشاملة للزر (نسخة صلبة وغير قابلة للكسر)
 # ============================================================
 @admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
 @login_required
@@ -186,11 +186,11 @@ def sync_admin_orders():
 
         total_synced = 0
         current_page = 1
-        per_page = 100  # جلب 100 طلب في كل مرة للمزامنة في الخلفية
+        per_page = 100  # جلب 100 طلب في كل دورة
 
         current_app.logger.info(f"🚀 [Sync] بدء المزامنة الكاملة...")
 
-        # ✅ حلقة تكرار لجلب جميع الطلبات من جميع الصفحات
+        # ✅ حلقة تكرار مفتوحة: تستمر حتى تجلب كل شيء
         while True:
             try:
                 current_app.logger.info(f"🔁 [Sync] جاري جلب الصفحة {current_page}...")
@@ -208,30 +208,27 @@ def sync_admin_orders():
                     break
 
                 total_synced += len(orders_data)
-                current_app.logger.info(f"✅ [Sync] الصفحة {current_page}: تم حفظ {len(orders_data)} طلب. الإجمالي حتى الآن: {total_synced}")
+                current_app.logger.info(f"✅ [Sync] الصفحة {current_page}: تم حفظ {len(orders_data)} طلب. الإجمالي: {total_synced}")
 
                 # 🛡️ حماية مزدوجة للخروج من الحلقة
-                # 1. إذا وصلنا إلى إجمالي الصفحات الموضح من الـ API
                 if current_page >= total_pages:
-                    current_app.logger.info(f"🏁 [Sync] وصلنا إلى الصفحة الأخيرة ({total_pages}). إنهاء المزامنة.")
+                    current_app.logger.info(f"🏁 [Sync] وصلنا للصفحة الأخيرة. إنهاء المزامنة.")
                     break
-
-                # 2. إذا لم توجد صفحة تالية
-                if not pagination.get('hasNextPage', False):
-                    current_app.logger.info(f"🚫 [Sync] لا توجد صفحة تالية (hasNextPage=False). إنهاء المزامنة.")
-                    break
-
-                # الانتقال للصفحة التالية
-                current_page += 1
                 
-                # تأخير 0.5 ثانية لتجنب إرباك خادم قمرة (Rate Limit)
+                if not pagination.get('hasNextPage', False):
+                    current_app.logger.info(f"🚫 [Sync] لا توجد صفحة تالية. إنهاء المزامنة.")
+                    break
+
+                current_page += 1
                 import time
                 time.sleep(0.5)
 
             except Exception as inner_e:
-                # إذا واجهنا خطأ في صفحة معينة، نسجل الخطأ ونكسر الحلقة للحفاظ على السيرفر
-                current_app.logger.error(f"❌ [Sync] خطأ أثناء مزامنة الصفحة {current_page}: {inner_e}")
-                break
+                # ✅ الحل الحاسم: إذا فشلت صفحة معينة، لا نكسر الحلقة. نخطو للصفحة التالية!
+                current_app.logger.error(f"❌ [Sync] فشلت الصفحة {current_page}، سنتخطاها ونكمل للصفحة التالية: {inner_e}")
+                current_page += 1
+                time.sleep(0.5)
+                continue  # نعود لبداية الحلقة دون كسرها
 
         return jsonify({
             'success': True,
@@ -240,7 +237,4 @@ def sync_admin_orders():
 
     except Exception as e:
         current_app.logger.error(f"❌ [Sync] خطأ حاسم في مزامنة الطلبات: {traceback.format_exc()}")
-        return jsonify({
-            'success': False,
-            'message': f'حدث خطأ حاسم أثناء المزامنة: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'message': f'حدث خطأ حاسم أثناء المزامنة: {str(e)}'}), 500
