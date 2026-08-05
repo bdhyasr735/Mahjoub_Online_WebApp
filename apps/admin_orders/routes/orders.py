@@ -170,26 +170,57 @@ def register_admin_orders_route(bp):
 
 
 # ============================================================
-# ✅ دالة المزامنة (لزر "مزامنة الطلبات")
+# ✅ دالة المزامنة الشاملة (لزر "مزامنة الطلبات")
 # ============================================================
 @admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
 @login_required
 def sync_admin_orders():
-    """مزامنة الطلبات من المنصة إلى قاعدة البيانات المحلية"""
+    """مزامنة جميع الطلبات من المنصة (جميع الصفحات) إلى قاعدة البيانات المحلية"""
     try:
         # التحقق من صلاحيات المستخدم
         user_type = session.get('user_type')
         if user_type != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح لك بهذه العملية'}), 403
 
-        # تنفيذ المزامنة
-        result = services.orders.get_all_orders(page=1, per_page=50)
-        
+        total_synced = 0
+        current_page = 1
+        per_page = 100  # جلب 100 طلب في كل مرة (لزيادة السرعة)
+
+        # ✅ حلقة تكرار لجلب جميع الطلبات من جميع الصفحات
+        while True:
+            try:
+                # جلب دفعة من الطلبات
+                result = services.orders.get_all_orders(page=current_page, per_page=per_page)
+                
+                orders_data = result.get('data', [])
+                pagination = result.get('pagination', {})
+
+                # إذا لم يعد هناك بيانات، نكسر الحلقة
+                if not orders_data:
+                    break
+
+                total_synced += len(orders_data)
+
+                # التحقق مما إذا كان هناك صفحة تالية
+                if not pagination.get('hasNextPage', False):
+                    break
+
+                # الانتقال للصفحة التالية
+                current_page += 1
+                
+                # تأخير 1 ثانية لتجنب إرباك الخادم (Rate Limit)
+                import time
+                time.sleep(1)
+
+            except Exception as inner_e:
+                current_app.logger.error(f"⚠️ خطأ أثناء مزامنة الصفحة {current_page}: {inner_e}")
+                break  # في حالة حدوث خطأ في صفحة، نوقف المحاولة
+
         return jsonify({
             'success': True,
-            'message': 'تمت مزامنة الطلبات بنجاح'
+            'message': f'✅ تمت المزامنة الكاملة! تم مزامنة {total_synced} طلب بنجاح.'
         })
-        
+
     except Exception as e:
         current_app.logger.error(f"خطأ في مزامنة الطلبات: {traceback.format_exc()}")
         return jsonify({
