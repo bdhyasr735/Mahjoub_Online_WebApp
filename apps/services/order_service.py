@@ -72,12 +72,19 @@ class OrderService:
                     status_code = str(status_obj) if status_obj else 'pending'
                     status_title = 'قيد الانتظار'
 
-                # استخراج اسم العميل بشكل آمن
+                # استخراج اسم العميل بشكل آمن (تم التعديل هنا)
                 account_outer = order.get('account') or {}
                 account_inner = account_outer.get('account') or {}
-                customer_name = account_inner.get('fullname') or (
-                    'عميل زائر' if order.get('type') == 'guest' else 'عميل غير معروف'
-                )
+                raw_fullname = account_inner.get('fullname')
+
+                if raw_fullname and raw_fullname.strip():
+                    customer_name = raw_fullname
+                else:
+                    # إذا لم يوجد اسم، نحدد النوع
+                    if order.get('type') == 'guest':
+                        customer_name = 'زائر'
+                    else:
+                        customer_name = 'عميل غير معروف'
 
                 # استخراج الحالة المالية والإجمالي
                 is_paid = order.get('isPaid', False)
@@ -296,7 +303,7 @@ class OrderService:
             total_items = query.count()
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
-            # ✅ التعديل هنا: تم تغيير الترتيب ليصبح حسب تاريخ الإنشاء (الأحدث أولاً)
+            # الترتيب حسب تاريخ الإنشاء (الأحدث أولاً)
             orders = query.order_by(Order.created_at.desc(), cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
 
             orders_data = []
