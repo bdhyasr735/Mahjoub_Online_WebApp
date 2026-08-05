@@ -186,7 +186,7 @@ def sync_admin_orders():
 
         total_synced = 0
         current_page = 1
-        per_page = 100  # جلب 100 طلب في كل دورة
+        per_page = 30  # ✅ تم تخفيض الحجم إلى 30 لتخفيف الحمل على الذاكرة
 
         current_app.logger.info(f"🚀 [Sync] بدء المزامنة الكاملة...")
 
@@ -237,4 +237,7 @@ def sync_admin_orders():
 
     except Exception as e:
         current_app.logger.error(f"❌ [Sync] خطأ حاسم في مزامنة الطلبات: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': f'حدث خطأ حاسم أثناء المزامنة: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'message': f'حدث خطأ حاسم أثناء المزامنة: {str(e)}'
+        }), 500
