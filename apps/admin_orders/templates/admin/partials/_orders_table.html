@@ -31,9 +31,17 @@
                                 {% endif %}
                             </td>
 
-                            <!-- التاريخ -->
+                            <!-- التاريخ (معالجة آمنة جذرياً لئلا يحدث تضارب بين النص والكائن) -->
                             <td class="py-2 text-muted" style="font-size: 0.78rem;">
-                                {{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '-' }}
+                                {% if order.created_at %}
+                                    {% if order.created_at is string %}
+                                        {{ order.created_at[:10] }}
+                                    {% else %}
+                                        {{ order.created_at.strftime('%Y-%m-%d') }}
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
                             </td>
 
                             <!-- الإجمالي -->
