@@ -63,6 +63,9 @@ class OrderService:
                     if not qid:
                         continue
 
+                    # ✅ جلب رقم قمرة القصير (أساسي لحل المشكلة)
+                    order_number = order.get('orderNumber')
+
                     items_list = order.get('items') or []
                     
                     # استخراج حالة الطلب بشكل آمن
@@ -101,7 +104,6 @@ class OrderService:
 
                     existing_order = Order.query.filter_by(id=qid).first()
 
-                    # ✅ لم نعد نولد رقم محلي (order_number) لأن المعرف هو qid
                     if existing_order:
                         existing_order.status_code = status_code
                         existing_order.status_title = status_title
@@ -109,19 +111,24 @@ class OrderService:
                         existing_order.is_paid = is_paid
                         existing_order.total_price = total_price
                         existing_order.created_at = created_at
+                        
+                        # ✅ تحديث رقم الطلب إذا تغير أو كان مفقوداً
+                        if order_number:
+                            existing_order.order_number = order_number
+
                         # حذف العناصر القديمة لإعادة إدراجها بالتحديثات الجديدة
                         OrderItem.query.filter_by(order_id=existing_order.id).delete()
                     else:
-                        # ✅ إنشاء طلب جديد بدون order_number
+                        # ✅ إنشاء طلب جديد مع حفظ رقم قمرة
                         existing_order = Order(
                             id=qid,
+                            order_number=order_number,  # ✅ السطر الأهم
                             status_code=status_code,
                             status_title=status_title,
                             customer_name=customer_name,
                             is_paid=is_paid,
                             total_price=total_price,
                             created_at=created_at
-                            # تم إزالة order_number
                         )
                         db.session.add(existing_order)
                         db.session.flush()
@@ -292,7 +299,6 @@ class OrderService:
             if search:
                 query = query.filter(or_(
                     Order.id.ilike(f'%{search}%'),
-                    # يمكنك لاحقاً حذف البحث في order_number لأنه لم يعد يستخدم
                     cast(Order.order_number, String).ilike(f'%{search}%'),
                     Order.customer_name.ilike(f'%{search}%')
                 ))
