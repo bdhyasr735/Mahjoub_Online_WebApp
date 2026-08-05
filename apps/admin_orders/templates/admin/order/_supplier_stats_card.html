@@ -1,16 +1,9 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_supplier_stats_card.html -->
-<div class="card order-card">
-    <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title mb-0 fw-bold text-primary">
-            <i class="fas fa-warehouse me-2"></i> إحصائيات وتوزيع الموردين
-        </h5>
+{# 📂 apps/admin_orders/templates/admin/order/_supplier_stats_card.html #}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 bg-info text-white">
+        <h6 class="m-0 font-weight-bold">معلومات الموردين المرتبطين</h6>
     </div>
-    <div class="card-body pt-0">
-        <p class="text-muted small">توزيع المنتجات والقطع ضمن هذا الطلب بناءً على الموردين:</p>
-        <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-light rounded">
-            <span><i class="fas fa-boxes text-secondary me-1"></i> إجمالي قطع الطلب:</span>
-            <span class="fw-bold text-dark">{{ order.items | map(attribute='quantity') | sum if order.items else 0 }}</span>
-        </div>
-        <!-- يمكنك عرض تفاصيل إضافية هنا حسب رغبتك -->
+    <div class="card-body">
+        <p class="text-muted small mb-0">يمكنك ربط كل منتج داخل الطلب بالمورد المسؤول عنه من جدول المنتجات المجاور لتسهيل عملية التوريد والتسليم.</p>
     </div>
 </div>
