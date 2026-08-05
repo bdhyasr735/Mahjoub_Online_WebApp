@@ -154,9 +154,6 @@ class OrderService:
                     if primary_supplier_id is None and item_supplier_id is not None:
                         primary_supplier_id = item_supplier_id
 
-                    # ============== التعديل النهائي هنا ==============
-                    # تم إزالة qty و subtotal و sku و price_per_unit
-                    # واستبدالها بـ quantity و price لتطابق موديل OrderItem
                     new_item = OrderItem(
                         order_id=existing_order.id,
                         supplier_id=item_supplier_id,
@@ -164,7 +161,6 @@ class OrderService:
                         quantity=qty,
                         price=price
                     )
-                    # ================================================
                     db.session.add(new_item)
 
                 # تحديث المورد الرئيسي للطلب
@@ -273,53 +269,71 @@ class OrderService:
         from apps.models.order_items_db import OrderItem
         from apps.extensions import db
 
-        query = db.session.query(Order)
+        try:
+            query = db.session.query(Order)
 
-        if supplier_id is not None:
-            # التحقق مما إذا كان المورد مرتبطاً بالطلب رئيسياً أو بأي عنصر داخل الطلب
-            query = query.filter(
-                or_(
-                    Order.supplier_id == supplier_id,
-                    Order.items.any(OrderItem.supplier_id == supplier_id)
+            if supplier_id is not None:
+                # التحقق مما إذا كان المورد مرتبطاً بالطلب رئيسياً أو بأي عنصر داخل الطلب
+                query = query.filter(
+                    or_(
+                        Order.supplier_id == supplier_id,
+                        Order.items.any(OrderItem.supplier_id == supplier_id)
+                    )
                 )
-            )
-        if status:
-            query = query.filter(Order.status_code == status)
-        if date_from:
-            query = query.filter(Order.created_at >= datetime.strptime(date_from, '%Y-%m-%d'))
-        if date_to:
-            query = query.filter(Order.created_at <= datetime.strptime(date_to, '%Y-%m-%d'))
-        if search:
-            query = query.filter(or_(
-                Order.id.ilike(f'%{search}%'),
-                cast(Order.order_number, String).ilike(f'%{search}%'),
-                Order.customer_name.ilike(f'%{search}%')
-            ))
+            if status:
+                query = query.filter(Order.status_code == status)
+            if date_from:
+                query = query.filter(Order.created_at >= datetime.strptime(date_from, '%Y-%m-%d'))
+            if date_to:
+                query = query.filter(Order.created_at <= datetime.strptime(date_to, '%Y-%m-%d'))
+            if search:
+                query = query.filter(or_(
+                    Order.id.ilike(f'%{search}%'),
+                    cast(Order.order_number, String).ilike(f'%{search}%'),
+                    Order.customer_name.ilike(f'%{search}%')
+                ))
 
-        total_items = query.count()
-        total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+            total_items = query.count()
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
-        orders = query.order_by(cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
+            # ✅ التعديل هنا: تم تغيير الترتيب ليصبح حسب تاريخ الإنشاء (الأحدث أولاً)
+            orders = query.order_by(Order.created_at.desc(), cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
 
-        orders_data = []
-        for order in orders:
-            order_dict = order.to_dict()
-            if hasattr(order, 'supplier') and order.supplier:
-                order_dict['supplier_name'] = order.supplier.trade_name
-            else:
-                order_dict['supplier_name'] = 'غير مرتبط'
-            orders_data.append(order_dict)
+            orders_data = []
+            for order in orders:
+                try:
+                    order_dict = order.to_dict()
+                    if hasattr(order, 'supplier') and order.supplier:
+                        order_dict['supplier_name'] = order.supplier.trade_name
+                    else:
+                        order_dict['supplier_name'] = 'غير مرتبط'
+                    orders_data.append(order_dict)
+                except Exception as ser_err:
+                    print(f"⚠️ [OrderService] فشل تحويل الطلب {order.id} إلى JSON: {ser_err}")
+                    continue
 
-        return {
-            'data': orders_data,
-            'pagination': {
-                'totalItems': total_items,
-                'totalPages': total_pages,
-                'currentPage': page,
-                'limit': per_page,
-                'hasNextPage': page < total_pages
+            return {
+                'data': orders_data,
+                'pagination': {
+                    'totalItems': total_items,
+                    'totalPages': total_pages,
+                    'currentPage': page,
+                    'limit': per_page,
+                    'hasNextPage': page < total_pages
+                }
             }
-        }
+        except Exception as e:
+            print(f"❌ [OrderService] خطأ حرج أثناء جلب الطلبات المحلية: {e}")
+            return {
+                'data': [],
+                'pagination': {
+                    'totalItems': 0,
+                    'totalPages': 1,
+                    'currentPage': page,
+                    'limit': per_page,
+                    'hasNextPage': False
+                }
+            }
 
     def create_order(self, input_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         mutation = self._extract_query("CreateOrder")
