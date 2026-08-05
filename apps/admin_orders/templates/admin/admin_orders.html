@@ -158,7 +158,7 @@ function fetchAdminOrders(page = 1, prefetch = false) {
     });
 }
 
-// دالة مزامنة الطلبات
+// دالة مزامنة الطلبات (مُعدلة للعمل مع الخلفية)
 function syncAdminOrders(event) {
     if (event) event.preventDefault();
     if (!confirm('هل تريد مزامنة الطلبات من المنصة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
@@ -184,16 +184,30 @@ function syncAdminOrders(event) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            alert('✅ ' + (data.message || 'بدأت عملية المزامنة بنجاح'));
-            fetchAdminOrders(1); // تحديث القائمة فوراً
+            // ✅ تم التعديل هنا: إظهار رسالة بأن العملية تعمل في الخلفية
+            alert('✅ ' + (data.message || 'جاري مزامنة الطلبات في الخلفية، سيتم تحديث القائمة قريباً.'));
+            
+            // ✅ التأكد من تحرير الزر وعودة حالته
+            if (btn) {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+
+            // ✅ تحديث القائمة تلقائياً بعد 3 ثوانٍ (لإعطاء الخلفية وقتاً كافياً للحفظ)
+            setTimeout(() => {
+                fetchAdminOrders(1);
+            }, 3000);
+
         } else {
             alert('❌ ' + (data.message || 'فشلت عملية المزامنة'));
+            if (btn) {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
         }
     })
     .catch(err => {
         alert('❌ حدث خطأ أثناء الاتصال بالخادم: ' + err.message);
-    })
-    .finally(() => {
         if (btn) {
             btn.innerHTML = originalContent;
             btn.disabled = false;
