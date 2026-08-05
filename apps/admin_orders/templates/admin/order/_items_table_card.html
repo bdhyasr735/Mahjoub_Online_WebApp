@@ -2,7 +2,7 @@
 <div class="card shadow-sm mb-4 border-0 rounded-3">
     <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="card-title m-0 fw-bold text-dark"><i class="fas fa-boxes text-primary ms-2"></i> منتجات الطلب</h5>
-        <span class="badge bg-primary rounded-pill">{{ order.items|length if order.items else 0 }} منتجات</span>
+        <span class="badge bg-primary rounded-pill">{{ order.items|length if order.items is iterable else 0 }} منتجات</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -22,31 +22,39 @@
                         <tr>
                             <td class="text-end pe-3">
                                 <div class="d-flex align-items-center">
-                                    {% if item.product_image or item.image %}
-                                        <img src="{{ item.product_image or item.image }}" alt="" class="rounded border ms-2" style="width: 45px; height: 45px; object-fit: cover;">
+                                    {% set item_img = item.product_image or item.image or item.img_url %}
+                                    {% if item_img %}
+                                        <img src="{{ item_img }}" alt="" class="rounded border ms-2" style="width: 45px; height: 45px; object-fit: cover;">
                                     {% else %}
                                         <div class="rounded border bg-light d-flex align-items-center justify-content-center ms-2" style="width: 45px; height: 45px;">
                                             <i class="fas fa-box text-muted"></i>
                                         </div>
                                     {% endif %}
                                     <div>
-                                        <h6 class="mb-0 fw-bold text-dark small">{{ item.product_name or item.name }}</h6>
-                                        {% if item.sku %}
-                                            <small class="text-muted font-monospace">SKU: {{ item.sku }}</small>
+                                        <h6 class="mb-0 fw-bold text-dark small">{{ item.product_name or item.name or item.title or 'منتج بدون اسم' }}</h6>
+                                        {% set item_sku = item.sku or item.product_sku or item.code %}
+                                        {% if item_sku %}
+                                            <small class="text-muted font-monospace">SKU: {{ item_sku }}</small>
                                         {% endif %}
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ "%.2f"|format(item.price or 0) }} ر.ي</td>
-                            <td><span class="badge bg-light text-dark border px-2 py-1">{{ item.quantity or 1 }}</span></td>
-                            <td class="fw-bold text-primary">{{ "%.2f"|format((item.price or 0) * (item.quantity or 1)) }} ر.ي</td>
+                            <td>{{ "%.2f"|format(item.price or item.unit_price or 0) }} ر.س</td>
+                            <td><span class="badge bg-light text-dark border px-2 py-1">{{ item.quantity or item.qty or 1 }}</span></td>
+                            <td class="fw-bold text-primary">
+                                {% set item_price = item.price or item.unit_price or 0 %}
+                                {% set item_qty = item.quantity or item.qty or 1 %}
+                                {{ "%.2f"|format(item.total_price or item.subtotal or (item_price * item_qty)) }} ر.س
+                            </td>
                             <td>
-                                <select class="form-select form-select-sm supplier-select" data-order-id="{{ order.id }}" data-item-id="{{ item.id }}">
+                                {% set current_order_id = order.id or order.order_id or order._id %}
+                                {% set current_item_id = item.id or item.item_id or loop.index0 %}
+                                <select class="form-select form-select-sm supplier-select" data-order-id="{{ current_order_id }}" data-item-id="{{ current_item_id }}">
                                     <option value="">-- اختر المورد المحلي --</option>
                                     {% if suppliers %}
                                         {% for supplier in suppliers %}
-                                            <option value="{{ supplier.id }}" {% if item.supplier_id == supplier.id %}selected{% endif %}>
-                                                {{ supplier.name }}
+                                            <option value="{{ supplier.id or supplier.supplier_id }}" {% if item.supplier_id == (supplier.id or supplier.supplier_id) %}selected{% endif %}>
+                                                {{ supplier.name or supplier.supplier_name }}
                                             </option>
                                         {% endfor %}
                                     {% endif %}
