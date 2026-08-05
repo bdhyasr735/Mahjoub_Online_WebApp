@@ -55,7 +55,7 @@ class OrderService:
             from apps.extensions import db
 
             for order in orders_data:
-                # ✅ معالجة كل طلب بشكل مستقل، حتى لا يسقط الجميع إذا فشل أحدها
+                # ✅ معالجة كل طلب بشكل مستقل
                 try:
                     if not order or not isinstance(order, dict):
                         continue
@@ -101,16 +101,7 @@ class OrderService:
 
                     existing_order = Order.query.filter_by(id=qid).first()
 
-                    # توليد الرقم التسلسلي للطلب الجديد بناءً على أحدث طلب (حسب التاريخ)
-                    latest_order = db.session.query(Order).order_by(Order.created_at.desc()).first()
-                    if latest_order and latest_order.order_number:
-                        try:
-                            next_number = int(latest_order.order_number) + 1
-                        except (ValueError, TypeError):
-                            next_number = 1000000235
-                    else:
-                        next_number = 1000000235
-
+                    # ✅ لم نعد نولد رقم محلي (order_number) لأن المعرف هو qid
                     if existing_order:
                         existing_order.status_code = status_code
                         existing_order.status_title = status_title
@@ -121,6 +112,7 @@ class OrderService:
                         # حذف العناصر القديمة لإعادة إدراجها بالتحديثات الجديدة
                         OrderItem.query.filter_by(order_id=existing_order.id).delete()
                     else:
+                        # ✅ إنشاء طلب جديد بدون order_number
                         existing_order = Order(
                             id=qid,
                             status_code=status_code,
@@ -128,8 +120,8 @@ class OrderService:
                             customer_name=customer_name,
                             is_paid=is_paid,
                             total_price=total_price,
-                            order_number=next_number,
                             created_at=created_at
+                            # تم إزالة order_number
                         )
                         db.session.add(existing_order)
                         db.session.flush()
@@ -146,7 +138,7 @@ class OrderService:
                         product_name = prod_data.get('title') or (f"منتج ({prod_id[:8]})" if prod_id else "منتج غير معروف")
                         sku = prod_data.get('slug') or prod_data.get('sku') or prod_id
 
-                        # ✅ البحث عن المورد المحلي، إذا لم يوجد نضع None ولا نسقط الطلب
+                        # ✅ البحث عن المورد المحلي
                         item_supplier_id = None
                         if prod_id:
                             try:
@@ -174,7 +166,7 @@ class OrderService:
                     db.session.commit()
                 
                 except Exception as order_err:
-                    # إذا فشل هذا الطلب، نتراجع ونتجاوز إلى الطلب التالي
+                    # إذا فشل هذا الطلب، نتراجع ونتجاوز
                     db.session.rollback()
                     print(f"⚠️ [OrderService] فشل حفظ الطلب {qid} وتم تخطيه: {order_err}")
 
@@ -300,6 +292,7 @@ class OrderService:
             if search:
                 query = query.filter(or_(
                     Order.id.ilike(f'%{search}%'),
+                    # يمكنك لاحقاً حذف البحث في order_number لأنه لم يعد يستخدم
                     cast(Order.order_number, String).ilike(f'%{search}%'),
                     Order.customer_name.ilike(f'%{search}%')
                 ))
@@ -307,8 +300,8 @@ class OrderService:
             total_items = query.count()
             total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
 
-            # ✅ الترتيب حسب رقم الطلب تنازلياً فقط (الأكبر أولاً، الأصغر في الصفحة الأخيرة)
-            orders = query.order_by(cast(Order.order_number, Integer).desc()).offset((page - 1) * per_page).limit(per_page).all()
+            # ✅ الترتيب حسب تاريخ الإنشاء (الأحدث أولاً) بدلاً من رقم الطلب المحلي
+            orders = query.order_by(Order.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
 
             orders_data = []
             for order in orders:
