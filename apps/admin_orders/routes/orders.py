@@ -52,8 +52,9 @@ def manage_admin_orders_view():
             return redirect(url_for('admin_dashboard_bp.dashboard'))
 
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('limit', 10, type=int)
-        per_page = max(1, min(per_page, 50))
+        # ✅ تم تثبيت عدد الطلبات في الصفحة على 10
+        per_page = 10
+
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
         status_filter = request.args.get('status', '').strip()
@@ -185,7 +186,7 @@ def sync_admin_orders():
 
         total_synced = 0
         current_page = 1
-        per_page = 100
+        per_page = 100  # جلب 100 طلب في كل مرة للمزامنة في الخلفية
 
         current_app.logger.info(f"🚀 [Sync] بدء المزامنة الكاملة...")
 
