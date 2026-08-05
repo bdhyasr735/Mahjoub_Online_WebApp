@@ -70,42 +70,31 @@
             </select>
         </div>
 
-        <!-- 6. نطاق التاريخ -->
+        <!-- 6. نطاق التاريخ + زر تحديث مدمجين -->
         <div class="col-md-3">
             <label class="form-label fw-bold small text-uppercase text-muted">
                 <i class="fas fa-calendar-alt me-1"></i> الفترة الزمنية
             </label>
             <div class="d-flex gap-2">
-                <div class="input-group">
+                <div class="input-group flex-grow-1">
                     <span class="input-group-text bg-light border-end-0">من</span>
                     <input type="date" id="dateFrom" class="form-control border-start-0">
                 </div>
-                <div class="input-group">
+                <div class="input-group flex-grow-1">
                     <span class="input-group-text bg-light border-end-0">إلى</span>
                     <input type="date" id="dateTo" class="form-control border-start-0">
                 </div>
+                <button class="btn btn-primary flex-shrink-0" style="background: #2d0b36; border: none; width: 40px; height: 40px; border-radius: 8px;" onclick="fetchAdminOrders(1)" title="تحديث النتائج">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
             </div>
-        </div>
-
-        <!-- 7. عدد العناصر وأزرار التحكم -->
-        <div class="col-md-2 d-flex gap-2 align-items-end">
-            <div class="w-50">
-                <label class="form-label fw-bold small text-uppercase text-muted">عدد</label>
-                <select id="limitSelect" class="form-select">
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                </select>
-            </div>
-            <button class="btn btn-primary w-50" style="background: #2d0b36; border: none;" onclick="fetchAdminOrders(1)" title="تحديث النتائج">
-                <i class="fas fa-sync-alt"></i>
-            </button>
         </div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // دالة مسح جميع الفلاتر وإعادة التحميل للصفحة الأولى
     window.clearAllFilters = function() {
         document.getElementById('searchInput').value = '';
         document.getElementById('statusFilter').value = '';
@@ -114,7 +103,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('supplierFilter').value = '';
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
-        document.getElementById('limitSelect').value = '10';
         fetchAdminOrders(1);
     };
 });
