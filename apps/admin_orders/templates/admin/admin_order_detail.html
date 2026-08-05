@@ -1,4 +1,3 @@
-{# 📂 apps/admin_orders/templates/admin/admin_order_detail.html #}
 {% extends "admin/admin_base.html" %}
 
 {% block title %}تفاصيل الطلب | محجوب أونلاين{% endblock %}
@@ -6,27 +5,20 @@
 {% block content %}
 <div class="container-fluid mb-5">
     
-    <!-- 1. رأس صفحة الطلب (أزرار الطباعة والرجوع) -->
+    <!-- رأس الصفحة (العنوان والأزرار) -->
     {% include "admin/order/_order_header.html" %}
 
     <div class="row">
-        <!-- العمود الأيمن: المنتجات (يأخذ مساحة أكبر) -->
+        <!-- العمود الأيمن: قائمة المنتجات -->
         <div class="col-xl-8 col-lg-7 mb-4">
             {% include "admin/order/_items_table_card.html" %}
         </div>
 
         <!-- العمود الأيسر: بطاقات المعلومات الجانبية -->
         <div class="col-xl-4 col-lg-5">
-            <!-- حالة الطلب وتحديثها -->
             {% include "admin/order/_order_status_card.html" %}
-            
-            <!-- معلومات العميل -->
             {% include "admin/order/_customer_info_card.html" %}
-            
-            <!-- الملخص المالي -->
             {% include "admin/order/_financial_summary_card.html" %}
-            
-            <!-- إحصائيات الموردين -->
             {% include "admin/order/_supplier_stats_card.html" %}
         </div>
     </div>
@@ -36,6 +28,5 @@
 
 {% block scripts %}
     {{ super() }}
-    <!-- سكربتات التفاعل مع الطلب (تحديث الحالة، الموردين، إلخ) -->
     {% include "admin/order/_order_scripts.html" %}
 {% endblock %}
