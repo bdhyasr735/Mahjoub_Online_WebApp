@@ -18,6 +18,7 @@ class Services:
         self._orders = None
         self._users = None
         self._variants = None
+        self._audit = None
     
     @property
     def products(self):
@@ -103,6 +104,20 @@ class Services:
                 self._variants = None
         return self._variants
 
+    @property
+    def audit(self):
+        if self._audit is None:
+            try:
+                from apps.services.audit_logger import AuditLogger
+                self._audit = AuditLogger
+            except ImportError as e:
+                logger.warning(f"⚠️ AuditLogger غير متوفرة: {e}")
+                self._audit = None
+            except Exception as e:
+                logger.error(f"❌ خطأ في تحميل AuditLogger: {e}")
+                self._audit = None
+        return self._audit
+
 services = Services()
 
 def get_products(): return services.products
@@ -111,6 +126,7 @@ def get_suppliers(): return services.suppliers
 def get_orders(): return services.orders
 def get_users(): return services.users
 def get_variants(): return services.variants
+def get_audit(): return services.audit
 
 __all__ = [
     'services',
@@ -119,5 +135,6 @@ __all__ = [
     'get_suppliers',
     'get_orders',
     'get_users',
-    'get_variants'
+    'get_variants',
+    'get_audit'
 ]
