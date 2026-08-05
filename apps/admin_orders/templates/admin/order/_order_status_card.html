@@ -1,23 +1,36 @@
-{# 📂 apps/admin_orders/templates/admin/order/_order_status_card.html #}
+{% set current_status_code = order.status.code if (order and order.status and order.status.code) else (order.status or 'pending') %}
+{% set current_status_title = order.status.title if (order and order.status and order.status.title) else current_status_code %}
+
 <div class="card shadow mb-4">
-    <div class="card-header py-3 bg-dark text-white">
-        <h6 class="m-0 font-weight-bold">حالة الطلب والدفع</h6>
+    <div class="card-header py-3 bg-light">
+        <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-tasks me-1"></i> حالة الطلب</h6>
     </div>
     <div class="card-body">
-        <label class="form-label font-weight-bold">حالة الطلب:</label>
-        <select id="orderStatusSelect" class="form-control mb-3" data-order-id="{{ order.id }}">
-            <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-            <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>قيد التجهيز</option>
-            <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
-            <option value="delivered" {% if order.status_code == 'delivered' %}selected{% endif %}>تم التسليم</option>
-            <option value="completed" {% if order.status_code == 'completed' %}selected{% endif %}>مكتمل</option>
-            <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
-            <option value="refunded" {% if order.status_code == 'refunded' %}selected{% endif %}>مسترجع</option>
-        </select>
-
-        <div class="form-check form-switch mb-2">
-            <input class="form-check-input" type="checkbox" id="isPaidSwitch" {% if order.is_paid %}checked{% endif %} data-order-id="{{ order.id }}">
-            <label class="form-check-label font-weight-bold mr-2" for="isPaidSwitch">الطلب مدفوع</label>
+        <div class="mb-3 text-center">
+            <span class="badge fs-6 px-3 py-2 
+                {% if current_status_code in ['completed', 'delivered'] %}bg-success
+                {% elif current_status_code in ['pending', 'processing'] %}bg-warning text-dark
+                {% elif current_status_code in ['cancelled', 'rejected'] %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                {{ current_status_title }}
+            </span>
         </div>
+
+        <form id="update-status-form" class="mt-3">
+            <input type="hidden" name="order_id" value="{{ order.id or order._id }}">
+            <div class="mb-3">
+                <label for="order_status" class="form-label small fw-bold">تغيير الحالة إلى:</label>
+                <select id="order_status" name="status" class="form-select form-select-sm">
+                    <option value="pending" {% if current_status_code == 'pending' %}selected{% endif %}>قيد الانتظار (Pending)</option>
+                    <option value="processing" {% if current_status_code == 'processing' %}selected{% endif %}>قيد التجهيز (Processing)</option>
+                    <option value="shipped" {% if current_status_code == 'shipped' %}selected{% endif %}>تم الشحن (Shipped)</option>
+                    <option value="delivered" {% if current_status_code == 'delivered' %}selected{% endif %}>تم التسليم (Delivered)</option>
+                    <option value="cancelled" {% if current_status_code == 'cancelled' %}selected{% endif %}>ملغي (Cancelled)</option>
+                </select>
+            </div>
+            <button type="button" id="btn-update-status" class="btn btn-primary btn-sm w-100">
+                <i class="fas fa-save me-1"></i> حفظ الحالة الجديدة
+            </button>
+        </form>
     </div>
 </div>
