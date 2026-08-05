@@ -1,9 +1,25 @@
 {# 📂 apps/admin_orders/templates/admin/order/_supplier_stats_card.html #}
 <div class="card shadow mb-4">
     <div class="card-header py-3 bg-info text-white">
-        <h6 class="m-0 font-weight-bold">معلومات الموردين المرتبطين</h6>
+        <h6 class="m-0 font-weight-bold">إحصائيات وموردي الطلب</h6>
     </div>
     <div class="card-body">
-        <p class="text-muted small mb-0">يمكنك ربط كل منتج داخل الطلب بالمورد المسؤول عنه من جدول المنتجات المجاور لتسهيل عملية التوريد والتسليم.</p>
+        {% if order.items %}
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>المنتجات المرتبطة بموردين:</span>
+                    <span class="badge bg-primary rounded-pill">
+                        {{ order.items | selectattr('supplier_id') | list | length }} من {{ order.items | length }}
+                    </span>
+                </li>
+                <li class="list-group-item bg-light">
+                    <small class="text-muted d-block">
+                        <i class="fas fa-info-circle ml-1"></i> يتم تتبع وتوزيع عناصر الطلب محلياً على الموردين المعتمدين لضمان كفاءة سلاسل التوريد.
+                    </small>
+                </li>
+            </ul>
+        {% else %}
+            <p class="text-muted small mb-0">لا توجد عناصر مسجلة لحساب إحصائيات الموردين.</p>
+        {% endif %}
     </div>
 </div>
