@@ -1,5 +1,6 @@
-{% set current_status_code = order.status.code if (order and order.status and order.status.code) else (order.status or 'pending') %}
-{% set current_status_title = order.status.title if (order and order.status and order.status.title) else current_status_code %}
+<!-- 📂 apps/admin_orders/templates/admin/order/_order_status_card.html -->
+{% set current_status_code = order.status.code if (order and order.status and order.status.code) else (order.status_code or order.status or 'pending') %}
+{% set current_status_title = order.status.title if (order and order.status and order.status.title) else (order.status_title or current_status_code) %}
 
 <div class="card shadow mb-4">
     <div class="card-header py-3 bg-light">
@@ -9,7 +10,7 @@
         <div class="mb-3 text-center">
             <span class="badge fs-6 px-3 py-2 
                 {% if current_status_code in ['completed', 'delivered'] %}bg-success
-                {% elif current_status_code in ['pending', 'processing'] %}bg-warning text-dark
+                {% elif current_status_code in ['pending', 'processing', 'shipped'] %}bg-warning text-dark
                 {% elif current_status_code in ['cancelled', 'rejected'] %}bg-danger
                 {% else %}bg-secondary{% endif %}">
                 {{ current_status_title }}
@@ -17,7 +18,7 @@
         </div>
 
         <form id="update-status-form" class="mt-3">
-            <input type="hidden" name="order_id" value="{{ order.id or order._id }}">
+            <input type="hidden" name="order_id" value="{{ order.id }}">
             <div class="mb-3">
                 <label for="order_status" class="form-label small fw-bold">تغيير الحالة إلى:</label>
                 <select id="order_status" name="status" class="form-select form-select-sm">
