@@ -27,11 +27,13 @@
                             
                             {% set prod_title = (item.productData.title if item.productData and item.productData.title else (item.product.title if item.product and item.product.title else item.product_name)) or 'منتج بدون عنوان' %}
                             
-                            {% set prod_img = item.product_image or 
-                                        (item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else 
-                                        (item.productData.image_url if item.productData and item.productData.image_url else 
-                                        (item.product.image.fileUrl if item.product and item.product.image and item.product.image.fileUrl else 
-                                        (item.product.image_url if item.product and item.product.image_url else '')))) %}
+                            <!-- التعديل الشامل لدعم جلب الصور المحلية والخارجية -->
+                            {% set prod_img = item.image or item.product_image or item.img or item.thumbnail or 
+                                (item.product.image if item.product and item.product.image else 
+                                (item.product.image_url if item.product and item.product.image_url else 
+                                (item.product.img if item.product and item.product.img else 
+                                (item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else 
+                                (item.productData.image_url if item.productData and item.productData.image_url else ''))))) %}
 
                             {% set current_supplier_name = '-- بدون مورد --' %}
                             {% if suppliers and item.supplier_id %}
