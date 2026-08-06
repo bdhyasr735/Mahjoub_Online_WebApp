@@ -116,9 +116,10 @@
     </div>
 </div>
 
-<!-- سكربت التفاعل وإرسال البيانات لحفظها في الخلفية -->
+<!-- السكربتات التفاعلية الخاصة بفتح وإغلاق قائمة الموردين والبحث المباشر ومعاينة الصور -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // فتح واجهة تعديل المورد عند الضغط على زر القلم
     document.querySelectorAll('.toggle-supplier-edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const td = this.closest('td');
@@ -133,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // إلغاء تعديل المورد والرجوع للعرض العادي
     document.querySelectorAll('.cancel-supplier-edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const td = this.closest('td');
@@ -141,6 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // فلترة البحث داخل قائمة الموردين المخصصة
     document.querySelectorAll('.supplier-search-filter').forEach(input => {
         input.addEventListener('input', function () {
             const query = this.value.toLowerCase().trim();
@@ -162,50 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // تنفيذ عملية الحفظ الفعلي عبر Fetch عند النقر على المورد
-    document.querySelectorAll('.supplier-option').forEach(option => {
-        option.addEventListener('click', function () {
-            const supplierId = this.getAttribute('data-supplier-id');
-            const orderId = this.getAttribute('data-order-id');
-            const itemId = this.getAttribute('data-item-id');
-            const supplierName = this.textContent.trim();
-            const td = this.closest('td');
-
-            if (!orderId || !itemId) return;
-
-            fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ supplier_id: supplierId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    const displaySpan = td.querySelector('.supplier-display-view span');
-                    displaySpan.textContent = supplierName;
-                    displaySpan.setAttribute('title', supplierName);
-
-                    td.querySelector('.supplier-edit-view').classList.add('d-none');
-                    td.querySelector('.supplier-display-view').classList.remove('d-none');
-
-                    td.querySelectorAll('.supplier-option').forEach(opt => opt.classList.remove('bg-light', 'fw-bold'));
-                    if (supplierId !== "") {
-                        this.classList.add('bg-light', 'fw-bold');
-                    }
-                } else {
-                    alert('خطأ: ' + (data.message || 'فشل حفظ المورد'));
-                }
-            })
-            .catch(err => {
-                console.error('Error assigning supplier:', err);
-                alert('فشل الاتصال بالسيرفر أثناء محاولة الحفظ');
-            });
-        });
-    });
-
+    // معاينة الصورة بحجم أكبر عند النقر عليها
     document.addEventListener('click', function (e) {
         if (e.target.classList.contains('preview-image-btn')) {
             const imgUrl = e.target.getAttribute('data-img-url');
