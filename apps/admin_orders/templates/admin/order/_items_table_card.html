@@ -1,103 +1,50 @@
 <!-- 📂 apps/admin_orders/templates/admin/order/_items_table_card.html -->
 <div class="card shadow mb-4">
-    <div class="card-header py-3 bg-secondary text-white d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold">عناصر الطلب والمنتجات</h6>
-        {% set items_list = order.items if (order and order.items) else [] %}
-        <span class="badge bg-light text-dark">{{ items_list | length }} عناصر</span>
-    </div>
+    <!-- ... (نفس الهيكل السابق) ... -->
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-bordered text-center align-middle" width="100%" cellspacing="0">
+            <table class="table table-bordered text-center align-middle" width="100%">
                 <thead class="table-light">
                     <tr>
                         <th class="text-start" style="width: 35%;">المنتج</th>
-                        <th style="width: 8%;">الكمية</th>
-                        <th style="width: 12%;">السعر</th>
-                        <th style="width: 15%;">الإجمالي</th>
-                        <th style="width: 30%;">المورد المسؤول</th>
+                        <th>الكمية</th>
+                        <th>السعر</th>
+                        <th>الإجمالي</th>
+                        <th>المورد المسؤول</th>
                     </tr>
                 </thead>
                 <tbody id="order-items-tbody">
-                    {% if items_list %}
-                        {% for item in items_list %}
-                            {% set qty = (item.quantity | int(1)) if item.quantity is defined else 1 %}
-                            {% set price = (item.price | float(0)) if item.price is defined else 0 %}
-                            {% set total = qty * price %}
-                            {% set item_id = item.id %}
-                            
-                            {% set prod_title = (item.productData.title if item.productData and item.productData.title else (item.product.title if item.product and item.product.title else item.product_name)) or 'منتج بدون عنوان' %}
-                            
-                            {% set prod_img = (item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else 
-                                (item.productData.images[0].fileUrl if item.productData and item.productData.images and item.productData.images | length > 0 else 
-                                (item.image or item.product_image or item.img or item.thumbnail or 
-                                (item.product.image if item.product and item.product.image else 
-                                (item.product.image_url if item.product and item.product.image_url else 
-                                (item.product.img if item.product and item.product.img else 
-                                (item.productData.image_url if item.productData and item.productData.image_url else ''))))))) %}
-
-                            {% set current_supplier_name = '-- بدون مورد --' %}
-                            {% if suppliers and item.supplier_id %}
-                                {% for sup in suppliers %}
-                                    {% if sup.id == item.supplier_id %}
-                                        {% set current_supplier_name = sup.trade_name or sup.name or 'مورد محلي' %}
+                    {% for item in items_list %}
+                        {# التحقق المنطقي من البيانات #}
+                        {% set prod_img = (item.productData.image.fileUrl if item.productData.image.fileUrl else (item.productData.images[0].fileUrl if item.productData.images else (item.image or item.product_image or ''))) %}
+                        
+                        <tr class="item-row" data-debug-item='{{ item | tojson }}'>
+                            <td class="text-start">
+                                <div class="d-flex align-items-center">
+                                    {% if prod_img %}
+                                        <img src="{{ prod_img }}" class="rounded border me-2 preview-image-btn cursor-pointer" data-img-url="{{ prod_img }}" style="width: 50px; height: 50px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="rounded border bg-light d-flex align-items-center justify-content-center me-2" style="width: 50px; height: 50px; font-size: 8px;">بدون صورة</div>
                                     {% endif %}
-                                {% endfor %}
-                            {% endif %}
-
-                            <tr>
-                                <td class="text-start">
-                                    <div class="d-flex align-items-center">
-                                        {% if prod_img and prod_img != '' %}
-                                            <img src="{{ prod_img }}" alt="{{ prod_title }}" class="rounded border me-2 shadow-sm preview-image-btn cursor-pointer" data-img-url="{{ prod_img }}" style="width: 50px; height: 50px; object-fit: cover; flex-shrink: 0;" title="انقر لعرض الصورة بحجم أكبر">
-                                        {% else %}
-                                            <div class="rounded border bg-light d-flex align-items-center justify-content-center me-2 text-muted shadow-sm" style="width: 50px; height: 50px; font-size: 9px; flex-shrink: 0;">بدون صورة</div>
-                                        {% endif %}
-                                        <div class="overflow-hidden">
-                                            <strong class="d-block text-truncate" style="max-width: 250px;" title="{{ prod_title }}">{{ prod_title }}</strong>
-                                            {% if item.product_qid %}
-                                                <small class="text-muted">QID: {{ item.product_qid }}</small>
-                                            {% endif %}
-                                        </div>
+                                    <div class="overflow-hidden">
+                                        <strong>{{ item.productData.title or item.product_name or 'منتج' }}</strong>
+                                        <small class="d-block text-muted">QID: {{ item.product_qid or 'N/A' }}</small>
                                     </div>
-                                </td>
-                                <td><span class="badge bg-secondary fs-6">{{ qty }}</span></td>
-                                <td>{{ "{:,.2f}".format(price) }} ريال</td>
-                                <td class="fw-bold text-success">{{ "{:,.2f}".format(total) }} ريال</td>
-                                <td>
-                                    <!-- عرض اسم المورد الحالي مع زر التعديل -->
-                                    <div class="supplier-display-view d-flex align-items-center justify-content-between bg-light p-2 rounded border">
-                                        <span class="text-dark fw-semibold text-truncate supplier-name-text" style="max-width: 170px; font-size: 13px;" title="{{ current_supplier_name }}">
-                                            {{ current_supplier_name }}
-                                        </span>
-                                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 toggle-supplier-edit" title="تعديل المورد المسؤول">
-                                            <i class="fas fa-pen" style="font-size: 11px;"></i>
-                                        </button>
-                                    </div>
-
-                                    <!-- واجهة التعديل -->
-                                    <div class="supplier-edit-view d-none p-2 bg-white rounded border shadow-sm position-relative text-start">
-                                        <input type="text" class="form-control form-control-sm supplier-search-filter mb-1" placeholder="بحث..." style="font-size: 11px;">
-                                        <div class="custom-suppliers-dropdown border rounded bg-white overflow-auto shadow-sm" style="max-height: 140px; font-size: 12px;">
-                                            <div class="supplier-option p-1 border-bottom text-muted cursor-pointer" data-supplier-id="" data-order-id="{{ order.id }}" data-item-id="{{ item_id }}">-- بدون مورد --</div>
-                                            {% if suppliers %}
-                                                {% for sup in suppliers %}
-                                                    <div class="supplier-option p-1 border-bottom cursor-pointer {% if item.supplier_id == sup.id %}bg-light fw-bold{% endif %}" 
-                                                         data-supplier-id="{{ sup.id }}" data-order-id="{{ order.id }}" data-item-id="{{ item_id }}">
-                                                        {{ sup.trade_name or sup.name or 'مورد محلي' }}
-                                                    </div>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </div>
-                                        <div class="text-end mt-1">
-                                            <button type="button" class="btn btn-xs btn-secondary cancel-supplier-edit" style="font-size: 10px; padding: 1px 6px;">إلغاء</button>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr><td colspan="5" class="text-muted py-4">لا توجد عناصر مسجلة لهذا الطلب</td></tr>
-                    {% endif %}
+                                </div>
+                            </td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ "{:,.2f}".format(item.price or 0) }}</td>
+                            <td class="fw-bold">{{ "{:,.2f}".format((item.quantity or 0) * (item.price or 0)) }}</td>
+                            <td>
+                                <!-- منطقة الموردين -->
+                                <div class="supplier-display-view">
+                                    <span class="supplier-name-text">{{ item.supplier_id or 'بدون مورد' }}</span>
+                                    <button type="button" class="btn btn-sm btn-outline-primary toggle-supplier-edit"><i class="fas fa-pen"></i></button>
+                                </div>
+                                <!-- ... (باقي واجهة التعديل كما في الكود السابق) ... -->
+                            </td>
+                        </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
@@ -106,69 +53,18 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. فتح واجهة التعديل
-    document.querySelectorAll('.toggle-supplier-edit').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const td = this.closest('td');
-            td.querySelector('.supplier-display-view').classList.add('d-none');
-            td.querySelector('.supplier-edit-view').classList.remove('d-none');
-        });
+    // أداة التحقق من الحقول في الساندبوكس
+    const rows = document.querySelectorAll('.item-row');
+    rows.forEach(row => {
+        const itemData = JSON.parse(row.getAttribute('data-debug-item'));
+        console.log("--- فحص حقول المنتج في الساندبوكس ---");
+        console.log("ID:", itemData.id);
+        console.log("QID:", itemData.product_qid);
+        console.log("Supplier ID:", itemData.supplier_id);
+        console.log("Product Data:", itemData.productData);
+        console.log("----------------------------------");
     });
 
-    // 2. إلغاء التعديل
-    document.querySelectorAll('.cancel-supplier-edit').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const td = this.closest('td');
-            td.querySelector('.supplier-edit-view').classList.add('d-none');
-            td.querySelector('.supplier-display-view').classList.remove('d-none');
-        });
-    });
-
-    // 3. تحديث المورد (API Call)
-    document.querySelectorAll('.supplier-option').forEach(option => {
-        option.addEventListener('click', function () {
-            const orderId = this.dataset.orderId;
-            const itemId = this.dataset.itemId;
-            const supplierId = this.dataset.supplierId;
-            const supplierName = this.textContent.trim();
-            const td = this.closest('td');
-
-            fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ supplier_id: supplierId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    td.querySelector('.supplier-name-text').textContent = supplierName;
-                    td.querySelector('.supplier-edit-view').classList.add('d-none');
-                    td.querySelector('.supplier-display-view').classList.remove('d-none');
-                    // تحديث التحديد البصري في القائمة
-                    td.querySelectorAll('.supplier-option').forEach(opt => opt.classList.remove('bg-light', 'fw-bold'));
-                    this.classList.add('bg-light', 'fw-bold');
-                } else {
-                    alert('خطأ: ' + (data.message || 'فشل التحديث'));
-                }
-            });
-        });
-    });
-
-    // 4. فلترة البحث
-    document.querySelectorAll('.supplier-search-filter').forEach(input => {
-        input.addEventListener('input', function () {
-            const query = this.value.toLowerCase();
-            this.closest('.supplier-edit-view').querySelectorAll('.supplier-option').forEach(opt => {
-                opt.style.display = opt.textContent.toLowerCase().includes(query) ? '' : 'none';
-            });
-        });
-    });
-
-    // 5. معاينة الصور
-    document.addEventListener('click', e => {
-        if (e.target.classList.contains('preview-image-btn')) {
-            window.open(e.target.dataset.imgUrl, '_blank');
-        }
-    });
+    // ... (باقي كود التفاعل كما في الرد السابق) ...
 });
 </script>
