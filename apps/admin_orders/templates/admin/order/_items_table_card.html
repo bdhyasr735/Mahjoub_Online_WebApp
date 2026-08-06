@@ -29,10 +29,10 @@
                             {% set prod_title = (item.productData.title if item.productData and item.productData.title else (item.product.title if item.product and item.product.title else item.product_name)) or 'منتج بدون عنوان' %}
                             
                             {% set prod_img = item.product_image or 
-                                            (item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else 
-                                            (item.productData.image_url if item.productData and item.productData.image_url else 
-                                            (item.product.image.fileUrl if item.product and item.product.image and item.product.image.fileUrl else 
-                                            (item.product.image_url if item.product and item.product.image_url else '')))) %}
+                                        (item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else 
+                                        (item.productData.image_url if item.productData and item.productData.image_url else 
+                                        (item.product.image.fileUrl if item.product and item.product.image and item.product.image.fileUrl else 
+                                        (item.product.image_url if item.product and item.product.image_url else '')))) %}
 
                             <!-- جلب اسم المورد الحالي ديناميكياً -->
                             {% set current_supplier_name = '-- بدون مورد --' %}
@@ -48,7 +48,7 @@
                                 <td class="text-start">
                                     <div class="d-flex align-items-center">
                                         {% if prod_img and prod_img != '' %}
-                                            <img src="{{ prod_img }}" alt="{{ prod_title }}" class="rounded border me-2 shadow-sm" style="width: 50px; height: 50px; object-fit: cover; flex-shrink: 0;">
+                                            <img src="{{ prod_img }}" alt="{{ prod_title }}" class="rounded border me-2 shadow-sm preview-image-btn cursor-pointer" data-img-url="{{ prod_img }}" style="width: 50px; height: 50px; object-fit: cover; flex-shrink: 0;" title="انقر لعرض الصورة بحجم أكبر">
                                         {% else %}
                                             <div class="rounded border bg-light d-flex align-items-center justify-content-center me-2 text-muted shadow-sm" style="width: 50px; height: 50px; font-size: 9px; flex-shrink: 0;">بدون صورة</div>
                                         {% endif %}
@@ -117,7 +117,7 @@
     </div>
 </div>
 
-<!-- سكربت إدارة التبديل، والبحث المباشر، واختيار المورد -->
+<!-- سكربت إدارة التبديل، والبحث المباشر، واختيار المورد ومعاينة الصور -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // فتح واجهة التعديل
@@ -131,7 +131,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 searchInput.value = '';
                 searchInput.focus();
             }
-            // إظهار جميع خيارات القائمة عند الفتح
             td.querySelectorAll('.supplier-option').forEach(opt => opt.style.display = '');
         });
     });
@@ -154,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             options.forEach(opt => {
                 if (opt.getAttribute('data-supplier-id') === "") {
-                    opt.style.display = ''; // إبقاء خيار بدون مورد دائماً
+                    opt.style.display = '';
                     return;
                 }
                 const text = opt.textContent.toLowerCase();
@@ -176,23 +175,29 @@ document.addEventListener('DOMContentLoaded', function () {
             const supplierName = this.textContent.trim();
             const td = this.closest('td');
 
-            // إرسال طلب التحديث للخادم (يمكنك ربطها بالدالة البرمجية الخاصة بك لتحديث المورد)
             console.log(`Updating Item ${itemId} in Order ${orderId} with Supplier ${supplierId}`);
             
-            // تحديث العرض المباشر بالاسم الجديد
             const displaySpan = td.querySelector('.supplier-display-view span');
             displaySpan.textContent = supplierName;
             displaySpan.setAttribute('title', supplierName);
 
-            // إغلاق قائمة التعديل وإظهار العرض الطبيعي
             td.querySelector('.supplier-edit-view').classList.add('d-none');
             td.querySelector('.supplier-display-view').classList.remove('d-none');
 
-            // إذا كان لديك دالة سابقة لتحديث البيانات في السيرفر عبر AJAX يمكنك استدعاؤها هنا
             if (typeof updateOrderItemSupplier === 'function') {
                 updateOrderItemSupplier(orderId, itemId, supplierId);
             }
         });
+    });
+
+    // معاينة الصورة عند النقر عليها
+    document.addEventListener('click', function (e) {
+        if (e.target.classList.contains('preview-image-btn')) {
+            const imgUrl = e.target.getAttribute('data-img-url');
+            if (imgUrl) {
+                window.open(imgUrl, '_blank');
+            }
+        }
     });
 });
 </script>
