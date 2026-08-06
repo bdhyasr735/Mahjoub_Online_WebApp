@@ -27,7 +27,6 @@
                             
                             {% set prod_title = (item.productData.title if item.productData and item.productData.title else (item.product.title if item.product and item.product.title else item.product_name)) or 'منتج بدون عنوان' %}
                             
-                            <!-- التعديل الشامل والمحدث لدعم هيكل GraphQL الجديد للصور (image.fileUrl أو images[0].fileUrl) مع الاحتفاظ بالبدائل -->
                             {% set prod_img = (item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else 
                                 (item.productData.images[0].fileUrl if item.productData and item.productData.images and item.productData.images | length > 0 else 
                                 (item.image or item.product_image or item.img or item.thumbnail or 
@@ -67,7 +66,7 @@
                                 <td>
                                     <!-- عرض اسم المورد الحالي مع زر التعديل -->
                                     <div class="supplier-display-view d-flex align-items-center justify-content-between bg-light p-2 rounded border">
-                                        <span class="text-dark fw-semibold text-truncate" style="max-width: 170px; font-size: 13px;" title="{{ current_supplier_name }}">
+                                        <span class="text-dark fw-semibold text-truncate supplier-name-text" style="max-width: 170px; font-size: 13px;" title="{{ current_supplier_name }}">
                                             {{ current_supplier_name }}
                                         </span>
                                         <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 toggle-supplier-edit" title="تعديل المورد المسؤول">
@@ -75,30 +74,20 @@
                                         </button>
                                     </div>
 
-                                    <!-- واجهة التعديل بقائمة بحث مخصصة -->
+                                    <!-- واجهة التعديل -->
                                     <div class="supplier-edit-view d-none p-2 bg-white rounded border shadow-sm position-relative text-start">
-                                        <div class="mb-1">
-                                            <input type="text" class="form-control form-control-sm supplier-search-filter mb-1" placeholder="اكتب للبحث عن المورد..." style="font-size: 11px;">
-                                        </div>
-                                        
+                                        <input type="text" class="form-control form-control-sm supplier-search-filter mb-1" placeholder="بحث..." style="font-size: 11px;">
                                         <div class="custom-suppliers-dropdown border rounded bg-white overflow-auto shadow-sm" style="max-height: 140px; font-size: 12px;">
-                                            <div class="supplier-option p-1 border-bottom text-muted cursor-pointer" data-supplier-id="" data-order-id="{{ order.id }}" data-item-id="{{ item_id }}">
-                                                -- بدون مورد --
-                                            </div>
+                                            <div class="supplier-option p-1 border-bottom text-muted cursor-pointer" data-supplier-id="" data-order-id="{{ order.id }}" data-item-id="{{ item_id }}">-- بدون مورد --</div>
                                             {% if suppliers %}
                                                 {% for sup in suppliers %}
-                                                    {% set sup_id = sup.id %}
-                                                    {% set sup_name = sup.trade_name or sup.name or 'مورد محلي' %}
-                                                    <div class="supplier-option p-1 border-bottom cursor-pointer {% if item.supplier_id == sup_id %}bg-light fw-bold{% endif %}" 
-                                                         data-supplier-id="{{ sup_id }}" 
-                                                         data-order-id="{{ order.id }}" 
-                                                         data-item-id="{{ item_id }}">
-                                                        {{ sup_name }}
+                                                    <div class="supplier-option p-1 border-bottom cursor-pointer {% if item.supplier_id == sup.id %}bg-light fw-bold{% endif %}" 
+                                                         data-supplier-id="{{ sup.id }}" data-order-id="{{ order.id }}" data-item-id="{{ item_id }}">
+                                                        {{ sup.trade_name or sup.name or 'مورد محلي' }}
                                                     </div>
                                                 {% endfor %}
                                             {% endif %}
                                         </div>
-
                                         <div class="text-end mt-1">
                                             <button type="button" class="btn btn-xs btn-secondary cancel-supplier-edit" style="font-size: 10px; padding: 1px 6px;">إلغاء</button>
                                         </div>
@@ -107,9 +96,7 @@
                             </tr>
                         {% endfor %}
                     {% else %}
-                        <tr>
-                            <td colspan="5" class="text-muted py-4">لا توجد عناصر مسجلة لهذا الطلب</td>
-                        </tr>
+                        <tr><td colspan="5" class="text-muted py-4">لا توجد عناصر مسجلة لهذا الطلب</td></tr>
                     {% endif %}
                 </tbody>
             </table>
@@ -117,25 +104,18 @@
     </div>
 </div>
 
-<!-- السكربتات التفاعلية الخاصة بفتح وإغلاق قائمة الموردين والبحث المباشر ومعاينة الصور -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // فتح واجهة تعديل المورد عند الضغط على زر القلم
+    // 1. فتح واجهة التعديل
     document.querySelectorAll('.toggle-supplier-edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const td = this.closest('td');
             td.querySelector('.supplier-display-view').classList.add('d-none');
             td.querySelector('.supplier-edit-view').classList.remove('d-none');
-            const searchInput = td.querySelector('.supplier-search-filter');
-            if (searchInput) {
-                searchInput.value = '';
-                searchInput.focus();
-            }
-            td.querySelectorAll('.supplier-option').forEach(opt => opt.style.display = '');
         });
     });
 
-    // إلغاء تعديل المورد والرجوع للعرض العادي
+    // 2. إلغاء التعديل
     document.querySelectorAll('.cancel-supplier-edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const td = this.closest('td');
@@ -144,45 +124,51 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // فلترة البحث داخل قائمة الموردين المخصصة
-    document.querySelectorAll('.supplier-search-filter').forEach(input => {
-        input.addEventListener('input', function () {
-            const query = this.value.toLowerCase().trim();
-            const dropdown = this.closest('.supplier-edit-view').querySelector('.custom-suppliers-dropdown');
-            const options = dropdown.querySelectorAll('.supplier-option');
+    // 3. تحديث المورد (API Call)
+    document.querySelectorAll('.supplier-option').forEach(option => {
+        option.addEventListener('click', function () {
+            const orderId = this.dataset.orderId;
+            const itemId = this.dataset.itemId;
+            const supplierId = this.dataset.supplierId;
+            const supplierName = this.textContent.trim();
+            const td = this.closest('td');
 
-            options.forEach(opt => {
-                if (opt.getAttribute('data-supplier-id') === "") {
-                    opt.style.display = '';
-                    return;
-                }
-                const text = opt.textContent.toLowerCase();
-                if (text.includes(query)) {
-                    opt.style.display = '';
+            fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ supplier_id: supplierId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    td.querySelector('.supplier-name-text').textContent = supplierName;
+                    td.querySelector('.supplier-edit-view').classList.add('d-none');
+                    td.querySelector('.supplier-display-view').classList.remove('d-none');
+                    // تحديث التحديد البصري في القائمة
+                    td.querySelectorAll('.supplier-option').forEach(opt => opt.classList.remove('bg-light', 'fw-bold'));
+                    this.classList.add('bg-light', 'fw-bold');
                 } else {
-                    opt.style.display = 'none';
+                    alert('خطأ: ' + (data.message || 'فشل التحديث'));
                 }
             });
         });
     });
 
-    // معاينة الصورة بحجم أكبر عند النقر عليها
-    document.addEventListener('click', function (e) {
+    // 4. فلترة البحث
+    document.querySelectorAll('.supplier-search-filter').forEach(input => {
+        input.addEventListener('input', function () {
+            const query = this.value.toLowerCase();
+            this.closest('.supplier-edit-view').querySelectorAll('.supplier-option').forEach(opt => {
+                opt.style.display = opt.textContent.toLowerCase().includes(query) ? '' : 'none';
+            });
+        });
+    });
+
+    // 5. معاينة الصور
+    document.addEventListener('click', e => {
         if (e.target.classList.contains('preview-image-btn')) {
-            const imgUrl = e.target.getAttribute('data-img-url');
-            if (imgUrl) {
-                window.open(imgUrl, '_blank');
-            }
+            window.open(e.target.dataset.imgUrl, '_blank');
         }
     });
 });
 </script>
-
-<style>
-.cursor-pointer {
-    cursor: pointer;
-}
-.supplier-option:hover {
-    background-color: #f8f9fa;
-}
-</style>
