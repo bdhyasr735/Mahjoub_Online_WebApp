@@ -7,7 +7,6 @@
 
 from apps.extensions import db
 
-# استخدام الاستيراد المطلق (Absolute Imports) مع فصل الموديلات المستقلة
 from apps.models.supplier_db import Supplier
 from apps.models.admin_db import AdminUser
 from apps.models.marketer_db import Marketer
@@ -22,7 +21,6 @@ from apps.models.product_db import Product
 from apps.models.product_supplier_map import ProductSupplierMapping
 from apps.models.sync_log import SyncLog
 
-# القائمة المصدرة (Export Registry مرتبة أبجدياً بدقة)
 __all__ = [
     'db',
     'AdminStaff',
