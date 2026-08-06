@@ -25,7 +25,7 @@
                             {% set total = qty * price %}
                             {% set item_id = item.id %}
                             
-                            <!-- مسارات مرنة وشاملة لجلب عنوان المنتج وصورته بدقة (محدثة لتعتمد على productData.image.fileUrl) -->
+                            <!-- مسارات مرنة وشاملة لجلب عنوان المنتج وصورته بدقة -->
                             {% set prod_title = (item.productData.title if item.productData and item.productData.title else (item.product.title if item.product and item.product.title else item.product_name)) or 'منتج بدون عنوان' %}
                             
                             {% set prod_img = item.product_image or 
@@ -64,7 +64,7 @@
                                 <td>{{ "{:,.2f}".format(price) }} ريال</td>
                                 <td class="fw-bold text-success">{{ "{:,.2f}".format(total) }} ريال</td>
                                 <td>
-                                    <!-- 1. عرض اسم المورد ديناميكياً مع زر التعديل -->
+                                    <!-- 1. عرض اسم المورد الحالي مع زر التعديل -->
                                     <div class="supplier-display-view d-flex align-items-center justify-content-between bg-light p-2 rounded border">
                                         <span class="text-dark fw-semibold text-truncate" style="max-width: 170px; font-size: 13px;" title="{{ current_supplier_name }}">
                                             {{ current_supplier_name }}
@@ -74,27 +74,32 @@
                                         </button>
                                     </div>
 
-                                    <!-- 2. واجهة التعديل: قائمة منسدلة مدمجة مع خاصية البحث الداخلي المباشر -->
-                                    <div class="supplier-edit-view d-none p-1 bg-white rounded border shadow-sm">
+                                    <!-- 2. واجهة التعديل بقائمة بحث مخصصة تضمن عمل الفلترة بطلاقة -->
+                                    <div class="supplier-edit-view d-none p-2 bg-white rounded border shadow-sm position-relative text-start">
                                         <div class="mb-1">
-                                            <input type="text" class="form-control form-control-sm supplier-search-filter mb-1" placeholder="اكتب للبحث داخل القائمة..." style="font-size: 11px;">
-                                            <select class="form-select form-select-sm item-supplier-select shadow-none" 
-                                                    data-order-id="{{ order.id }}" 
-                                                    data-item-id="{{ item_id }}"
-                                                    style="font-size: 12px; cursor: pointer;">
-                                                <option value="">-- بدون مورد --</option>
-                                                {% if suppliers %}
-                                                    {% for sup in suppliers %}
-                                                        {% set sup_id = sup.id %}
-                                                        {% set sup_name = sup.trade_name or sup.name or 'مورد محلي' %}
-                                                        <option value="{{ sup_id }}" {% if item.supplier_id == sup_id %}selected{% endif %}>
-                                                            {{ sup_name }}
-                                                        </option>
-                                                    {% endfor %}
-                                                {% endif %}
-                                            </select>
+                                            <input type="text" class="form-control form-control-sm supplier-search-filter mb-1" placeholder="اكتب للبحث عن المورد..." style="font-size: 11px;">
                                         </div>
-                                        <div class="text-end">
+                                        
+                                        <!-- حاوية قائمة الخيارات المخصصة -->
+                                        <div class="custom-suppliers-dropdown border rounded bg-white overflow-auto shadow-sm" style="max-height: 140px; font-size: 12px;">
+                                            <div class="supplier-option p-1 border-bottom text-muted cursor-pointer" data-supplier-id="" data-order-id="{{ order.id }}" data-item-id="{{ item_id }}">
+                                                -- بدون مورد --
+                                            </div>
+                                            {% if suppliers %}
+                                                {% for sup in suppliers %}
+                                                    {% set sup_id = sup.id %}
+                                                    {% set sup_name = sup.trade_name or sup.name or 'مورد محلي' %}
+                                                    <div class="supplier-option p-1 border-bottom cursor-pointer {% if item.supplier_id == sup_id %}bg-light fw-bold{% endif %}" 
+                                                         data-supplier-id="{{ sup_id }}" 
+                                                         data-order-id="{{ order.id }}" 
+                                                         data-item-id="{{ item_id }}">
+                                                        {{ sup_name }}
+                                                    </div>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="text-end mt-1">
                                             <button type="button" class="btn btn-xs btn-secondary cancel-supplier-edit" style="font-size: 10px; padding: 1px 6px;">إلغاء</button>
                                         </div>
                                     </div>
@@ -112,10 +117,10 @@
     </div>
 </div>
 
-<!-- سكربت إدارة التبديل والفلترة داخل القائمة المنسدلة -->
+<!-- سكربت إدارة التبديل، والبحث المباشر، واختيار المورد -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // فتح واجهة التعديل عند الضغط على زر القلم
+    // فتح واجهة التعديل
     document.querySelectorAll('.toggle-supplier-edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const td = this.closest('td');
@@ -126,15 +131,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 searchInput.value = '';
                 searchInput.focus();
             }
-            // إعادة إظهار كل خيارات القائمة عند الفتح
-            const select = td.querySelector('.item-supplier-select');
-            if (select) {
-                select.querySelectorAll('option').forEach(opt => opt.style.display = '');
-            }
+            // إظهار جميع خيارات القائمة عند الفتح
+            td.querySelectorAll('.supplier-option').forEach(opt => opt.style.display = '');
         });
     });
 
-    // إغلاق واجهة التعديل والعودة للعرض عند الضغط على إلغاء
+    // إغلاق واجهة التعديل
     document.querySelectorAll('.cancel-supplier-edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const td = this.closest('td');
@@ -143,17 +145,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // تصفية خيارات القائمة المنسدلة بناءً على الكتابة (بحث داخلي مباشر)
+    // فلترة الخيارات فوراً عند الكتابة في خانة البحث
     document.querySelectorAll('.supplier-search-filter').forEach(input => {
         input.addEventListener('input', function () {
             const query = this.value.toLowerCase().trim();
-            const select = this.closest('.supplier-edit-view').querySelector('.item-supplier-select');
-            if (!select) return;
+            const dropdown = this.closest('.supplier-edit-view').querySelector('.custom-suppliers-dropdown');
+            const options = dropdown.querySelectorAll('.supplier-option');
 
-            const options = select.querySelectorAll('option');
             options.forEach(opt => {
-                if (opt.value === "") {
-                    opt.style.display = ''; // إبقاء خيار "بدون مورد" ظاهراً دائماً
+                if (opt.getAttribute('data-supplier-id') === "") {
+                    opt.style.display = ''; // إبقاء خيار بدون مورد دائماً
                     return;
                 }
                 const text = opt.textContent.toLowerCase();
@@ -165,5 +166,42 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     });
+
+    // التعامل مع اختيار المورد وتحديثه
+    document.querySelectorAll('.supplier-option').forEach(option => {
+        option.addEventListener('click', function () {
+            const supplierId = this.getAttribute('data-supplier-id');
+            const orderId = this.getAttribute('data-order-id');
+            const itemId = this.getAttribute('data-item-id');
+            const supplierName = this.textContent.trim();
+            const td = this.closest('td');
+
+            // إرسال طلب التحديث للخادم (يمكنك ربطها بالدالة البرمجية الخاصة بك لتحديث المورد)
+            console.log(`Updating Item ${itemId} in Order ${orderId} with Supplier ${supplierId}`);
+            
+            // تحديث العرض المباشر بالاسم الجديد
+            const displaySpan = td.querySelector('.supplier-display-view span');
+            displaySpan.textContent = supplierName;
+            displaySpan.setAttribute('title', supplierName);
+
+            // إغلاق قائمة التعديل وإظهار العرض الطبيعي
+            td.querySelector('.supplier-edit-view').classList.add('d-none');
+            td.querySelector('.supplier-display-view').classList.remove('d-none');
+
+            // إذا كان لديك دالة سابقة لتحديث البيانات في السيرفر عبر AJAX يمكنك استدعاؤها هنا
+            if (typeof updateOrderItemSupplier === 'function') {
+                updateOrderItemSupplier(orderId, itemId, supplierId);
+            }
+        });
+    });
 });
 </script>
+
+<style>
+.cursor-pointer {
+    cursor: pointer;
+}
+.supplier-option:hover {
+    background-color: #f8f9fa;
+}
+</style>
