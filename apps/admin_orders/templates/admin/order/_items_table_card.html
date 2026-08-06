@@ -25,7 +25,7 @@
                             {% set total = qty * price %}
                             {% set item_id = item.id %}
                             
-                            <!-- مسارات مرنة وشاملة لجلب عنوان المنتج وصورته بدقة متناهية -->
+                            <!-- مسارات مرنة وشاملة لجلب عنوان المنتج وصورته بدقة (محدثة لتعتمد على productData.image.fileUrl) -->
                             {% set prod_title = (item.productData.title if item.productData and item.productData.title else (item.product.title if item.product and item.product.title else item.product_name)) or 'منتج بدون عنوان' %}
                             
                             {% set prod_img = item.product_image or 
@@ -64,7 +64,7 @@
                                 <td>{{ "{:,.2f}".format(price) }} ريال</td>
                                 <td class="fw-bold text-success">{{ "{:,.2f}".format(total) }} ريال</td>
                                 <td>
-                                    <!-- 1. عرض اسم المورد ديناميكياً مع زر القلم -->
+                                    <!-- 1. عرض اسم المورد ديناميكياً مع زر التعديل -->
                                     <div class="supplier-display-view d-flex align-items-center justify-content-between bg-light p-2 rounded border">
                                         <span class="text-dark fw-semibold text-truncate" style="max-width: 170px; font-size: 13px;" title="{{ current_supplier_name }}">
                                             {{ current_supplier_name }}
@@ -74,27 +74,26 @@
                                         </button>
                                     </div>
 
-                                    <!-- 2. واجهة التعديل (تكون مخفية افتراضياً وتظهر عند الضغط على زر القلم) -->
+                                    <!-- 2. واجهة التعديل: قائمة منسدلة مدمجة مع خاصية البحث الداخلي المباشر -->
                                     <div class="supplier-edit-view d-none p-1 bg-white rounded border shadow-sm">
-                                        <div class="input-group input-group-sm mb-1">
-                                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-search" style="font-size: 10px;"></i></span>
-                                            <input type="text" class="form-control form-control-sm border-start-0 supplier-search-input" placeholder="بحث عن مورد..." style="font-size: 11px;">
+                                        <div class="mb-1">
+                                            <input type="text" class="form-control form-control-sm supplier-search-filter mb-1" placeholder="اكتب للبحث داخل القائمة..." style="font-size: 11px;">
+                                            <select class="form-select form-select-sm item-supplier-select shadow-none" 
+                                                    data-order-id="{{ order.id }}" 
+                                                    data-item-id="{{ item_id }}"
+                                                    style="font-size: 12px; cursor: pointer;">
+                                                <option value="">-- بدون مورد --</option>
+                                                {% if suppliers %}
+                                                    {% for sup in suppliers %}
+                                                        {% set sup_id = sup.id %}
+                                                        {% set sup_name = sup.trade_name or sup.name or 'مورد محلي' %}
+                                                        <option value="{{ sup_id }}" {% if item.supplier_id == sup_id %}selected{% endif %}>
+                                                            {{ sup_name }}
+                                                        </option>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </select>
                                         </div>
-                                        <select class="form-select form-select-sm item-supplier-select shadow-none mb-1" 
-                                                data-order-id="{{ order.id }}" 
-                                                data-item-id="{{ item_id }}"
-                                                style="font-size: 12px; cursor: pointer;">
-                                            <option value="">-- بدون مورد --</option>
-                                            {% if suppliers %}
-                                                {% for sup in suppliers %}
-                                                    {% set sup_id = sup.id %}
-                                                    {% set sup_name = sup.trade_name or sup.name or 'مورد محلي' %}
-                                                    <option value="{{ sup_id }}" {% if item.supplier_id == sup_id %}selected{% endif %}>
-                                                        {{ sup_name }}
-                                                    </option>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </select>
                                         <div class="text-end">
                                             <button type="button" class="btn btn-xs btn-secondary cancel-supplier-edit" style="font-size: 10px; padding: 1px 6px;">إلغاء</button>
                                         </div>
@@ -113,7 +112,7 @@
     </div>
 </div>
 
-<!-- سكربت إدارة التبديل بين العرض وزر القلم وتفعيل البحث الفوري -->
+<!-- سكربت إدارة التبديل والفلترة داخل القائمة المنسدلة -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // فتح واجهة التعديل عند الضغط على زر القلم
@@ -122,8 +121,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const td = this.closest('td');
             td.querySelector('.supplier-display-view').classList.add('d-none');
             td.querySelector('.supplier-edit-view').classList.remove('d-none');
-            const searchInput = td.querySelector('.supplier-search-input');
-            if (searchInput) searchInput.focus();
+            const searchInput = td.querySelector('.supplier-search-filter');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            // إعادة إظهار كل خيارات القائمة عند الفتح
+            const select = td.querySelector('.item-supplier-select');
+            if (select) {
+                select.querySelectorAll('option').forEach(opt => opt.style.display = '');
+            }
         });
     });
 
@@ -136,9 +143,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // تفعيل البحث الفوري داخل القائمة المنسدلة لكل صف
-    document.querySelectorAll('.supplier-search-input').forEach(input => {
-        input.addEventListener('keyup', function () {
+    // تصفية خيارات القائمة المنسدلة بناءً على الكتابة (بحث داخلي مباشر)
+    document.querySelectorAll('.supplier-search-filter').forEach(input => {
+        input.addEventListener('input', function () {
             const query = this.value.toLowerCase().trim();
             const select = this.closest('.supplier-edit-view').querySelector('.item-supplier-select');
             if (!select) return;
@@ -146,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const options = select.querySelectorAll('option');
             options.forEach(opt => {
                 if (opt.value === "") {
-                    opt.style.display = '';
+                    opt.style.display = ''; // إبقاء خيار "بدون مورد" ظاهراً دائماً
                     return;
                 }
                 const text = opt.textContent.toLowerCase();
