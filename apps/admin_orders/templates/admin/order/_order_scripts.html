@@ -1,3 +1,5 @@
+<!-- 📂 apps/admin_orders/templates/admin/order/_order_scripts.html -->
+<script>
 document.addEventListener('DOMContentLoaded', function () {
     
     // 1. تحديث مورد عنصر محدد (مع التأكد من وجود العناصر لتجنب توقف السكربت)
@@ -11,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (!orderId || !itemId) return;
 
+                // إضافة مؤشر مرئي بسيط أو تعطيل مؤقت للقائمة أثناء الحفظ (اختياري لزيادة الاحترافية)
+                this.disabled = true;
+
                 fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
                     method: 'POST',
                     headers: {
@@ -20,14 +25,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(res => res.json())
                 .then(data => {
+                    this.disabled = false;
                     if (data.success) {
-                        alert('تم تعيين المورد بنجاح');
+                        // إشعار سريع أو تحديث خفيف إذا لزم الأمر
+                        console.log(data.message || 'تم تعيين المورد بنجاح');
                     } else {
                         alert('خطأ: ' + (data.message || 'فشل التعيين'));
                     }
                 })
                 .catch(err => {
+                    this.disabled = false;
                     console.error('Error assigning supplier:', err);
+                    alert('فشل الاتصال بالسيرفر أثناء تعيين المورد');
                 });
             });
         });
@@ -69,3 +78,4 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+</script>
