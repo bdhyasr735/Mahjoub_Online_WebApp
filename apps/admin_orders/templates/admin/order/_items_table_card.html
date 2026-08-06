@@ -25,18 +25,33 @@
                             {% set total = qty * price %}
                             {% set item_id = item.id %}
                             {% set prod_title = item.product_name or 'منتج بدون عنوان' %}
+                            
+                            <!-- استخراج رابط الصورة من كائن المنتج أو الـ productData -->
+                            {% set prod_img = item.product_image or (item.productData.image.fileUrl if item.productData and item.productData.image else '') %}
 
                             <tr>
                                 <td class="text-start">
-                                    <strong>{{ prod_title }}</strong>
-                                    {% if item.product_qid %}
-                                        <br><small class="text-muted">معرف قمرة: {{ item.product_qid }}</small>
-                                    {% endif %}
+                                    <div class="d-flex align-items-center">
+                                        {% if prod_img %}
+                                            <img src="{{ prod_img }}" alt="{{ prod_title }}" class="rounded border me-2" style="width: 45px; height: 45px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="rounded border bg-light d-flex align-items-center justify-content-center me-2 text-muted" style="width: 45px; height: 45px; font-size: 10px;">بدون صورة</div>
+                                        {% endif %}
+                                        <div>
+                                            <strong>{{ prod_title }}</strong>
+                                            {% if item.product_qid %}
+                                                <br><small class="text-muted">معرف قمرة: {{ item.product_qid }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>{{ qty }}</td>
                                 <td>{{ "{:,.2f}".format(price) }} ريال</td>
                                 <td class="fw-bold text-success">{{ "{:,.2f}".format(total) }} ريال</td>
                                 <td>
+                                    <!-- حقل بحث مصغر لتصفية الموردين سريعاً -->
+                                    <input type="text" class="form-control form-control-sm mb-1 supplier-search-input" placeholder="ابحث عن مورد..." style="font-size: 11px;">
+                                    
                                     <select class="form-select form-select-sm item-supplier-select" 
                                             data-order-id="{{ order.id }}" 
                                             data-item-id="{{ item_id }}">
@@ -64,3 +79,27 @@
         </div>
     </div>
 </div>
+
+<!-- سكريبت تفعيل البحث السريع داخل قائمة الموردين -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInputs = document.querySelectorAll('.supplier-search-input');
+    searchInputs.forEach(input => {
+        input.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase();
+            const select = this.nextElementSibling;
+            if (!select || select.tagName !== 'SELECT') return;
+
+            const options = select.querySelectorAll('option');
+            options.forEach(opt => {
+                const text = opt.textContent.toLowerCase();
+                if (opt.value === "" || text.includes(query)) {
+                    opt.style.display = '';
+                } else {
+                    opt.style.display = 'none';
+                }
+            });
+        });
+    });
+});
+</script>
