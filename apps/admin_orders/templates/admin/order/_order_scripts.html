@@ -2,7 +2,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     
-    // 1. تحديث مورد عنصر محدد (مع التأكد من وجود العناصر لتجنب توقف السكربت)
+    // 1. تحديث مورد عنصر محدد ديناميكياً مع التفاعل الفوري للواجهة
     const supplierSelects = document.querySelectorAll('.item-supplier-select');
     if (supplierSelects.length > 0) {
         supplierSelects.forEach(select => {
@@ -10,10 +10,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 const orderId = this.dataset.orderId;
                 const itemId = this.dataset.itemId;
                 const supplierId = this.value;
+                const selectedOptionText = this.options[this.selectedIndex].text;
 
                 if (!orderId || !itemId) return;
 
-                // إضافة مؤشر مرئي بسيط أو تعطيل مؤقت للقائمة أثناء الحفظ (اختياري لزيادة الاحترافية)
+                const td = this.closest('td');
+                const displayView = td.querySelector('.supplier-display-view');
+                const editView = td.querySelector('.supplier-edit-view');
+                
                 this.disabled = true;
 
                 fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
@@ -27,7 +31,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     this.disabled = false;
                     if (data.success) {
-                        // إشعار سريع أو تحديث خفيف إذا لزم الأمر
+                        // تحديث اسم المورد المعروض في الشاشة فوراً
+                        const nameSpan = displayView.querySelector('span');
+                        if (nameSpan) {
+                            nameSpan.textContent = selectedOptionText;
+                            nameSpan.setAttribute('title', selectedOptionText);
+                        }
+
+                        // تبديل الواجهة وإخفاء قائمة التعديل والعودة لشكل العرض الثابت
+                        editView.classList.add('d-none');
+                        displayView.classList.remove('d-none');
+
                         console.log(data.message || 'تم تعيين المورد بنجاح');
                     } else {
                         alert('خطأ: ' + (data.message || 'فشل التعيين'));
