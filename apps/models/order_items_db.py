@@ -15,25 +15,16 @@ class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
-    
     product_qid = db.Column(db.String(255), nullable=True)
     product_name = db.Column(db.String(255), nullable=True)
     quantity = db.Column(db.Integer, default=1)
-    
-    # ⚡️ استخدام Numeric(18, 2) لدقة الحسابات وتجنب مشاكل الأرقام العشرية
     price = db.Column(db.Numeric(18, 2), default=0.00)
-    
-    # ✅ إضافة حقل الصورة لتجنب أي خطأ keyword argument عند المزامنة
     product_image = db.Column(db.String(500), nullable=True)
 
-    # العلاقة العكسية مع جدول الطلبات لحل خطأ الربط بشكل جذري
     order = db.relationship('Order', back_populates='items')
-    
-    # علاقة مباشرة مع المورد لتسهيل الاستعلامات
     supplier = db.relationship('Supplier', lazy='joined')
 
     def to_dict(self):
-        """دالة ضرورية جداً لتحويل العنصر إلى JSON عند عرض الطلبات"""
         return {
             'id': self.id,
             'order_id': self.order_id,
