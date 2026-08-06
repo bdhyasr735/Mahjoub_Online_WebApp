@@ -24,7 +24,6 @@ ADMIN_MODULES = {}
 SUPPLIER_MODULES = {}
 
 def create_app():
-    # ✅ تم التعديل: إضافة static_folder='../static' ليجد التطبيق المجلد الجذري للـ static
     app = Flask(__name__, static_folder='../static')
     app.config.from_object('config.Config')
     config.Config.validate_config()
@@ -40,7 +39,7 @@ def create_app():
     db.init_app(app)
     
     # ============================================================
-    # ✅ إنشاء الجداول وزراعة البيانات الأولية (عند حذف الجداول يبنيها من جديد)
+    # ✅ إعادة بناء الجداول تلقائياً لتحديث الأعمدة الناقصة على الخطة المجانية
     # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
@@ -57,12 +56,14 @@ def create_app():
         from apps.models.marketer_db import Marketer
         from apps.models.admin_staff_db import AdminStaff
         
-        print("🔄 [DB]: جاري إنشاء الجداول (بما فيها الموديلات الجديدة)...")
-        # يضمن إنشاء جميع الجداول بناءً على الموديلات الحالية
+        print("🔄 [DB]: جاري إعادة ضبط وبناء الجداول بالهيكلة الكاملة...")
+        
+        # ⚠️ مسح الجداول القديمة البائدة وإعادة إنشائها بأحدث الأعمدة المطلوبة
+        db.drop_all()
         db.create_all()
-        print("✅ [DB]: تم إنشاء جميع الجداول بنجاح.")
+        print("✅ [DB]: تم إعادة إنشاء جميع الجداول بنجاح.")
 
-        # ✅ زراعة المالك "علي محجوب" (بيانات حساسة)
+        # ✅ زراعة المالك (علي محجوب)
         try:
             if not AdminUser.query.filter_by(username='ali_mahjoub').first():
                 new_admin = AdminUser(username='ali_mahjoub', role='Owner')
@@ -76,7 +77,7 @@ def create_app():
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المالك: {e}")
         
-        # ✅ زراعة مورد تجريبي (للتجربة الأولية للنظام)
+        # ✅ زراعة مورد تجريبي
         try:
             existing_supplier = Supplier.query.filter_by(username='test_supplier').first()
             if not existing_supplier:
@@ -101,20 +102,18 @@ def create_app():
                     db.session.add(wallet)
                     db.session.commit()
                     print("✅ [Seed]: تم زرع مورد تجريبي test_supplier / 123 مع محفظة.")
-                else:
-                    print("ℹ️ [Seed]: المحفظة موجودة بالفعل للمورد التجريبي")
             else:
                 print("ℹ️ [Seed]: المورد التجريبي موجود بالفعل")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المورد التجريبي: {e}")
 
-        # ✅ زراعة منتج تجريبي وربطه بالمورد في جدول ProductSupplierMapping (ضروري لظهور الطلبات)
+        # ✅ زراعة منتج تجريبي وربطه بالمورد
         try:
             supplier = Supplier.query.filter_by(username='test_supplier').first()
             if supplier and not ProductSupplierMapping.query.filter_by(product_qid='TEST_PROD_001').first():
                 mapping = ProductSupplierMapping(
-                    product_qid='TEST_PROD_001',  # معرف وهمي للمنتج من قمرة
+                    product_qid='TEST_PROD_001',
                     supplier_id=supplier.id,
                     price=100.00,
                     quantity=10,
@@ -168,9 +167,6 @@ def create_app():
             return redirect(url_for('suppliers_auth.login'))
         return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
 
-    # ============================================================
-    # 🔒 حماية الروابط والتحقق من التسجيل (حماية منطقية للبوابات)
-    # ============================================================
     @app.before_request
     def protect_routes():
         path = request.path
@@ -204,7 +200,6 @@ def create_app():
         if not path.startswith(admin_login_path):
             return redirect(admin_login_path)
 
-    # ✅ إعداد السياسة الأمنية (CSP)
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
@@ -224,12 +219,8 @@ def create_app():
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
 
-    # ============================================================
-    # ✅ مسار اختبار الاتصال المباشر بـ GraphQL
-    # ============================================================
     @app.route('/m7jb_test_connection')
     def test_graphql_connection():
-        """اختبار الاتصال بـ GraphQL API"""
         try:
             client = GraphQLClient()
             success = client.test_connection()
@@ -245,9 +236,6 @@ def create_app():
                 "message": f"❌ خطأ: {str(e)}"
             }), 500
 
-    # ============================================================
-    # ✅ تسجيل البوابات الأساسية يدوياً
-    # ============================================================
     @app.route('/')
     def index():
         return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
@@ -275,9 +263,6 @@ def create_app():
     except ImportError:
         pass
 
-    # ============================================================
-    # ✅ تسجيل باقي الموديولات تلقائياً عبر ملفات registry.py
-    # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin']
     
@@ -327,9 +312,6 @@ def create_app():
     for bp_name in app.blueprints:
         print(f"  - {bp_name}")
 
-    # ============================================================
-    # ✅ إضافة فلاتر وسياق Jinja
-    # ============================================================
     @app.context_processor
     def inject_vars():
         def safe_url_for(endpoint, **values):
@@ -345,9 +327,6 @@ def create_app():
             safe_url_for=safe_url_for
         )
 
-    # ============================================================
-    # ✅ معالج الأخطاء العام
-    # ============================================================
     @app.errorhandler(500)
     def handle_500_error(e):
         if request.path.startswith('/admin/orders') and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
