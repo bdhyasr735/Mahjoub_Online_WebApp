@@ -25,7 +25,6 @@
                             {% set total = qty * price %}
                             {% set item_id = item.id %}
                             
-                            <!-- مسارات مرنة وشاملة لجلب عنوان المنتج وصورته بدقة -->
                             {% set prod_title = (item.productData.title if item.productData and item.productData.title else (item.product.title if item.product and item.product.title else item.product_name)) or 'منتج بدون عنوان' %}
                             
                             {% set prod_img = item.product_image or 
@@ -34,7 +33,6 @@
                                         (item.product.image.fileUrl if item.product and item.product.image and item.product.image.fileUrl else 
                                         (item.product.image_url if item.product and item.product.image_url else '')))) %}
 
-                            <!-- جلب اسم المورد الحالي ديناميكياً -->
                             {% set current_supplier_name = '-- بدون مورد --' %}
                             {% if suppliers and item.supplier_id %}
                                 {% for sup in suppliers %}
@@ -64,7 +62,7 @@
                                 <td>{{ "{:,.2f}".format(price) }} ريال</td>
                                 <td class="fw-bold text-success">{{ "{:,.2f}".format(total) }} ريال</td>
                                 <td>
-                                    <!-- 1. عرض اسم المورد الحالي مع زر التعديل -->
+                                    <!-- عرض اسم المورد الحالي مع زر التعديل -->
                                     <div class="supplier-display-view d-flex align-items-center justify-content-between bg-light p-2 rounded border">
                                         <span class="text-dark fw-semibold text-truncate" style="max-width: 170px; font-size: 13px;" title="{{ current_supplier_name }}">
                                             {{ current_supplier_name }}
@@ -74,13 +72,12 @@
                                         </button>
                                     </div>
 
-                                    <!-- 2. واجهة التعديل بقائمة بحث مخصصة تضمن عمل الفلترة بطلاقة -->
+                                    <!-- واجهة التعديل بقائمة بحث مخصصة -->
                                     <div class="supplier-edit-view d-none p-2 bg-white rounded border shadow-sm position-relative text-start">
                                         <div class="mb-1">
                                             <input type="text" class="form-control form-control-sm supplier-search-filter mb-1" placeholder="اكتب للبحث عن المورد..." style="font-size: 11px;">
                                         </div>
                                         
-                                        <!-- حاوية قائمة الخيارات المخصصة -->
                                         <div class="custom-suppliers-dropdown border rounded bg-white overflow-auto shadow-sm" style="max-height: 140px; font-size: 12px;">
                                             <div class="supplier-option p-1 border-bottom text-muted cursor-pointer" data-supplier-id="" data-order-id="{{ order.id }}" data-item-id="{{ item_id }}">
                                                 -- بدون مورد --
@@ -117,10 +114,9 @@
     </div>
 </div>
 
-<!-- سكربت إدارة التبديل، والبحث المباشر، واختيار المورد ومعاينة الصور -->
+<!-- سكربت التفاعل وإرسال البيانات لحفظها في الخلفية -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // فتح واجهة التعديل
     document.querySelectorAll('.toggle-supplier-edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const td = this.closest('td');
@@ -135,7 +131,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // إغلاق واجهة التعديل
     document.querySelectorAll('.cancel-supplier-edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const td = this.closest('td');
@@ -144,7 +139,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // فلترة الخيارات فوراً عند الكتابة في خانة البحث
     document.querySelectorAll('.supplier-search-filter').forEach(input => {
         input.addEventListener('input', function () {
             const query = this.value.toLowerCase().trim();
@@ -166,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // التعامل مع اختيار المورد وتحديثه
+    // تنفيذ عملية الحفظ الفعلي عبر Fetch عند النقر على المورد
     document.querySelectorAll('.supplier-option').forEach(option => {
         option.addEventListener('click', function () {
             const supplierId = this.getAttribute('data-supplier-id');
@@ -175,22 +169,41 @@ document.addEventListener('DOMContentLoaded', function () {
             const supplierName = this.textContent.trim();
             const td = this.closest('td');
 
-            console.log(`Updating Item ${itemId} in Order ${orderId} with Supplier ${supplierId}`);
-            
-            const displaySpan = td.querySelector('.supplier-display-view span');
-            displaySpan.textContent = supplierName;
-            displaySpan.setAttribute('title', supplierName);
+            if (!orderId || !itemId) return;
 
-            td.querySelector('.supplier-edit-view').classList.add('d-none');
-            td.querySelector('.supplier-display-view').classList.remove('d-none');
+            fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ supplier_id: supplierId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const displaySpan = td.querySelector('.supplier-display-view span');
+                    displaySpan.textContent = supplierName;
+                    displaySpan.setAttribute('title', supplierName);
 
-            if (typeof updateOrderItemSupplier === 'function') {
-                updateOrderItemSupplier(orderId, itemId, supplierId);
-            }
+                    td.querySelector('.supplier-edit-view').classList.add('d-none');
+                    td.querySelector('.supplier-display-view').classList.remove('d-none');
+
+                    td.querySelectorAll('.supplier-option').forEach(opt => opt.classList.remove('bg-light', 'fw-bold'));
+                    if (supplierId !== "") {
+                        this.classList.add('bg-light', 'fw-bold');
+                    }
+                } else {
+                    alert('خطأ: ' + (data.message || 'فشل حفظ المورد'));
+                }
+            })
+            .catch(err => {
+                console.error('Error assigning supplier:', err);
+                alert('فشل الاتصال بالسيرفر أثناء محاولة الحفظ');
+            });
         });
     });
 
-    // معاينة الصورة عند النقر عليها
     document.addEventListener('click', function (e) {
         if (e.target.classList.contains('preview-image-btn')) {
             const imgUrl = e.target.getAttribute('data-img-url');
