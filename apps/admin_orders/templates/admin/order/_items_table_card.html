@@ -24,9 +24,11 @@
                             {% set price = (item.price | float(0)) if item.price is defined else 0 %}
                             {% set total = qty * price %}
                             {% set item_id = item.id %}
-                            {% set prod_title = item.product_name or 'منتج بدون عنوان' %}
                             
-                            <!-- استخراج رابط الصورة من كائن المنتج أو الـ productData -->
+                            <!-- اعتماد المسار الدقيق المستخرج من الساند بوكس لجلب العنوان واسم المنتج -->
+                            {% set prod_title = (item.productData.title if item.productData and item.productData.title else item.product_name) or 'منتج بدون عنوان' %}
+                            
+                            <!-- استخراج رابط الصورة الدقيق من الـ productData المعتمد -->
                             {% set prod_img = item.product_image or (item.productData.image.fileUrl if item.productData and item.productData.image else '') %}
 
                             <tr>
