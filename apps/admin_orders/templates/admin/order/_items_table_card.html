@@ -51,8 +51,8 @@
                                 <td>{{ "{:,.2f}".format(price) }} ريال</td>
                                 <td class="fw-bold text-success">{{ "{:,.2f}".format(total) }} ريال</td>
                                 <td>
-                                    <!-- حاوية المورد الاحترافية -->
-                                    <div class="supplier-container position-relative">
+                                    <!-- حقل البحث السريع المدمج مع القائمة المنسدلة -->
+                                    <div class="supplier-filter-container">
                                         <input type="text" class="form-control form-control-sm mb-1 supplier-search-input" placeholder="🔍 ابحث عن مورد..." style="font-size: 11px;">
                                         
                                         <select class="form-select form-select-sm item-supplier-select" 
@@ -84,10 +84,9 @@
     </div>
 </div>
 
-<!-- سكريبت إدارة البحث الفوري والحفظ التلقائي في قاعدة البيانات -->
+<!-- سكربت تفعيل البحث الفوري في خيارات القائمة -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. تفعيل البحث السريع داخل القائمة المنسدلة
     const searchInputs = document.querySelectorAll('.supplier-search-input');
     searchInputs.forEach(input => {
         input.addEventListener('keyup', function () {
@@ -103,43 +102,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     opt.style.display = 'none';
                 }
-            });
-        });
-    });
-
-    // 2. إرسال وحفظ التغيير عبر AJAX فور اختيار المورد
-    const supplierSelects = document.querySelectorAll('.item-supplier-select');
-    supplierSelects.forEach(select => {
-        select.addEventListener('change', function () {
-            const orderId = this.getAttribute('data-order-id');
-            const itemId = this.getAttribute('data-item-id');
-            const supplierId = this.value;
-
-            // إظهار مؤشر بسيط التحميل (اختياري)
-            this.disabled = true;
-
-            fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ supplier_id: supplierId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                this.disabled = false;
-                if (data.success) {
-                    // إشعار نجاح خفيف أو تحديث بصري سريع
-                    console.log(data.message);
-                } else {
-                    alert('خطأ: ' + (data.message || 'فشل حفظ المورد'));
-                }
-            })
-            .catch(error => {
-                this.disabled = false;
-                console.error('Error:', error);
-                alertحدث خطأ في الاتصال بالسيرفر);
             });
         });
     });
