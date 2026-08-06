@@ -2,7 +2,20 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    // 1. تحديث مورد عنصر محدد ديناميكياً مع التفاعل الفوري للواجهة (القائمة المخصصة)
+    // 1. ميزة عرض الصورة عند الضغط عليها (LightBox بسيط)
+    const productImages = document.querySelectorAll('.product-img-thumbnail');
+    productImages.forEach(img => {
+        img.style.cursor = 'pointer'; // تغيير شكل المؤشر
+        img.addEventListener('click', function () {
+            const fullImageUrl = this.getAttribute('data-full-image') || this.src;
+            if (fullImageUrl) {
+                // فتح الصورة في نافذة جديدة أو استخدام مكتبة عرض إذا كانت متوفرة
+                window.open(fullImageUrl, '_blank');
+            }
+        });
+    });
+
+    // 2. تحديث مورد عنصر محدد ديناميكياً مع التفاعل الفوري للواجهة
     const supplierOptions = document.querySelectorAll('.supplier-option');
     if (supplierOptions.length > 0) {
         supplierOptions.forEach(option => {
@@ -38,8 +51,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         // تحديث اسم المورد المعروض في الشاشة فوراً
                         const nameSpan = displayView.querySelector('span');
                         if (nameSpan) {
-                            nameSpan.textContent = selectedOptionText;
-                            nameSpan.setAttribute('title', selectedOptionText);
+                            nameSpan.textContent = data.supplier_name || selectedOptionText;
+                            nameSpan.setAttribute('title', data.supplier_name || selectedOptionText);
                         }
 
                         // تحديث شكل العنصر المختار داخل القائمة المخصصة
@@ -67,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // 2. تحديث حالة الطلب العام
+    // 3. تحديث حالة الطلب العام
     const btnUpdateStatus = document.getElementById('btn-update-status');
     if (btnUpdateStatus) {
         btnUpdateStatus.addEventListener('click', function () {
