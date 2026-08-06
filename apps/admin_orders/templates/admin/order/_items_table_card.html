@@ -1,4 +1,4 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_items_table_card.html -->
+<!-- apps/admin_orders/templates/admin/order/_items_table_card.html -->
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">عناصر الطلب</h6>
@@ -16,28 +16,38 @@
                     </tr>
                 </thead>
                 <tbody id="order-items-tbody">
-                    {% for item in items_list %}
-                        <tr class="item-row" data-order-id="{{ order_id }}" data-item-id="{{ item.id }}">
-                            <td class="text-start">
-                                <strong>{{ item.productData.title or 'منتج بدون عنوان' }}</strong>
-                                <small class="d-block text-muted">QID: {{ item.product_qid or 'N/A' }}</small>
-                            </td>
-                            <td>{{ item.quantity }}</td>
-                            <td>{{ "{:,.2f}".format(item.price or 0) }}</td>
-                            <td class="fw-bold">{{ "{:,.2f}".format((item.quantity or 0) * (item.price or 0)) }}</td>
-                            <td>
-                                <select class="form-select form-select-sm supplier-select" 
-                                        onchange="updateSupplier(this, '{{ order_id }}', '{{ item.id }}')">
-                                    <option value="">-- بدون مورد --</option>
-                                    {% for s in all_suppliers %}
-                                        <option value="{{ s.id }}" {% if item.supplier_id == s.id %}selected{% endif %}>
-                                            {{ s.trade_name or s.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
+                    {% if items_list and items_list|length > 0 %}
+                        {% for item in items_list %}
+                            <tr class="item-row" data-order-id="{{ order_id }}" data-item-id="{{ item.id }}">
+                                <td class="text-start">
+                                    <strong>{{ item.product_title or item.productData.title or 'منتج بدون عنوان' }}</strong>
+                                    <small class="d-block text-muted">QID: {{ item.product_qid or 'N/A' }}</small>
+                                </td>
+                                <td>{{ item.quantity }}</td>
+                               <td>{{ "{:,.2f}".format(item.price | float if item.price else 0.0) }}</td>
+                               <td class="fw-bold">{{ "{:,.2f}".format((item.quantity | float if item.quantity else 0) * (item.price | float if item.price else 0.0)) }}</td>
+                                <td>
+                                    <select class="form-select form-select-sm supplier-select" 
+                                            onchange="updateSupplier(this, '{{ order_id }}', '{{ item.id }}')">
+                                        <option value="">-- بدون مورد --</option>
+                                        {% if all_suppliers %}
+                                            {% for s in all_suppliers %}
+                                                <option value="{{ s.id }}" {% if item.supplier_id == s.id %}selected{% endif %}>
+                                                    {{ s.trade_name or s.name }}
+                                                </option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                لا توجد عناصر مسجلة لهذا الطلب
                             </td>
                         </tr>
-                    {% endfor %}
+                    {% endif %}
                 </tbody>
             </table>
         </div>
@@ -50,7 +60,6 @@
  */
 function updateSupplier(selectElement, orderId, itemId) {
     const supplierId = selectElement.value;
-    const row = selectElement.closest('.item-row');
     
     console.log(`جارٍ الربط: طلب ${orderId}، عنصر ${itemId}، مورد ${supplierId}`);
 
@@ -66,12 +75,10 @@ function updateSupplier(selectElement, orderId, itemId) {
     .then(data => {
         if (data.success) {
             console.log("✅ تم التحديث:", data.message);
-            // إشعار بسيط بالتحديث الناجح
             selectElement.classList.add('is-valid');
             setTimeout(() => selectElement.classList.remove('is-valid'), 2000);
         } else {
             alert("خطأ: " + data.message);
-            // إرجاع القائمة للحالة السابقة في حال الفشل
             location.reload(); 
         }
     })
