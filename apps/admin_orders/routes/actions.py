@@ -19,7 +19,7 @@ def print_order_invoice(order_id):
     عرض/طباعة فاتورة الطلب
     """
     try:
-        if session.get('user_type') != 'admin':
+        if session.get('user_type') not in ['admin', 'staff']:
             return "غير مصرح لك بالوصول", 403
 
         return f"""
@@ -53,7 +53,7 @@ def update_order_status(order_id):
     تحديث حالة الطلب
     """
     try:
-        if session.get('user_type') != 'admin':
+        if session.get('user_type') not in ['admin', 'staff']:
             return jsonify({'success': False, 'message': 'غير مصرح لك بذلك'}), 403
 
         data = request.get_json() or {}
@@ -87,7 +87,7 @@ def assign_item_supplier(order_id, item_id):
     تعيين المورد للمنتج داخل الطلب وتحديث خريطة الربط السيادية
     """
     try:
-        if session.get('user_type') != 'admin':
+        if session.get('user_type') not in ['admin', 'staff']:
             return jsonify({'success': False, 'message': 'غير مصرح لك بذلك'}), 403
 
         data = request.get_json() or {}
