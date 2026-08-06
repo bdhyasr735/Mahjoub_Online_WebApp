@@ -1,8 +1,8 @@
 <!-- 📂 apps/admin_orders/templates/admin/order/_order_scripts.html -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    
-    // 1. تحديث مورد عنصر محدد ديناميكياً (عبر القائمة المخصصة والبحث الفوري)
+
+    // 1. تحديث مورد عنصر محدد ديناميكياً مع التفاعل الفوري للواجهة (القائمة المخصصة)
     const supplierOptions = document.querySelectorAll('.supplier-option');
     if (supplierOptions.length > 0) {
         supplierOptions.forEach(option => {
@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const td = this.closest('td');
                 const displayView = td.querySelector('.supplier-display-view');
                 const editView = td.querySelector('.supplier-edit-view');
-                
-                // منع التكرار وتعطيل النقر مؤقتاً أثناء المعالجة
+
+                // تعطيل مؤقت للتفاعل أثناء الإرسال
                 editView.style.opacity = '0.6';
                 editView.style.pointerEvents = 'none';
 
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             nameSpan.setAttribute('title', selectedOptionText);
                         }
 
-                        // تحديث تنسيق الخيار المختار في القائمة
+                        // تحديث شكل العنصر المختار داخل القائمة المخصصة
                         td.querySelectorAll('.supplier-option').forEach(opt => opt.classList.remove('bg-light', 'fw-bold'));
                         if (supplierId !== "") {
                             this.classList.add('bg-light', 'fw-bold');
