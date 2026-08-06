@@ -3,7 +3,7 @@
 
 import os
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time
 from sqlalchemy import or_, cast, Integer, String
 from .graphql_client import GraphQLClient
 
@@ -279,10 +279,14 @@ class OrderService:
                 )
             if status:
                 query = query.filter(Order.status_code == status)
+                
+            # 💡 تعديل فلترة التاريخ ليشمل نهاية اليوم المحدد بـ date_to
             if date_from:
                 query = query.filter(Order.created_at >= datetime.strptime(date_from, '%Y-%m-%d'))
             if date_to:
-                query = query.filter(Order.created_at <= datetime.strptime(date_to, '%Y-%m-%d'))
+                dt_to = datetime.combine(datetime.strptime(date_to, '%Y-%m-%d').date(), time.max)
+                query = query.filter(Order.created_at <= dt_to)
+                
             if search:
                 query = query.filter(or_(
                     Order.id.ilike(f'%{search}%'),
