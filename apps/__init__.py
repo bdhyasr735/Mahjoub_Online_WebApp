@@ -3,7 +3,7 @@
 
 import os
 import importlib
-from flask import Flask, redirect, session, url_for, request, jsonify
+from flask import Flask, redirect, session, url_for, request, jsonify, render_template
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
@@ -113,8 +113,6 @@ def create_app():
         try:
             supplier = Supplier.query.filter_by(username='test_supplier').first()
             if supplier and not ProductSupplierMapping.query.filter_by(product_qid='TEST_PROD_001').first():
-                # إنشاء منتج تجريبي وهمي في جدول المنتجات (إذا كان النظام يتطلب ذلك)
-                # لكن بما أن منتجاتكم خارجية (قمرة)، نكتفي بجدول الربط
                 mapping = ProductSupplierMapping(
                     product_qid='TEST_PROD_001',  # معرف وهمي للمنتج من قمرة
                     supplier_id=supplier.id,
@@ -157,7 +155,6 @@ def create_app():
         elif user_type == 'supplier': 
             return db.session.get(Supplier, user_id_int)
             
-        # البحث الشامل في حال عدم توفر نوع محدد في الجلسة
         return (
             db.session.get(Supplier, user_id_int) or
             db.session.get(SupplierStaff, user_id_int) or
@@ -178,29 +175,24 @@ def create_app():
     def protect_routes():
         path = request.path
         
-        # استثناء الملفات الثابتة، مسارات المصادقة، والـ GraphQL
         exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection']
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
 
-        # ✅ الاعتماد على Flask-Login للتحقق من حالة تسجيل الدخول بشكل صحيح وثابت
         if current_user.is_authenticated:
             user_type = session.get('user_type')
-            # التحقق من صلاحية المستخدم للمسارات الإدارية
             if path.startswith('/admin') or path.startswith('/dashboard'):
                 if user_type in ['admin', 'staff']:
-                    return  # مسموح
+                    return  
                 else:
                     return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
-            # التحقق من صلاحية المستخدم لمسارات الموردين
             if path.startswith('/supplier'):
                 if user_type in ['supplier', 'staff']:
-                    return  # مسموح
+                    return  
                 else:
                     return redirect(url_for('suppliers_auth.login'))
-            return  # مسموح لبقية المسارات
+            return  
 
-        # 🔒 غير مسجل دخول → إعادة توجيه
         if path.startswith('/supplier'):
             return redirect(url_for('suppliers_auth.login'))
         
@@ -208,12 +200,11 @@ def create_app():
             admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
             return redirect(admin_login_path)
         
-        # حماية أي مسار آخر
         admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
         if not path.startswith(admin_login_path):
             return redirect(admin_login_path)
 
-    # ✅ إعداد السياسة الأمنية (CSP) مع إضافة جميع النطاقات المطلوبة
+    # ✅ إعداد السياسة الأمنية (CSP)
     talisman.init_app(app, 
         content_security_policy={
             'default-src': ["'self'"],
@@ -257,13 +248,10 @@ def create_app():
     # ============================================================
     # ✅ تسجيل البوابات الأساسية يدوياً
     # ============================================================
-    
-    # 1. مسار الصفحة الرئيسية للتوجيه الآمن وتجنب 404
     @app.route('/')
     def index():
         return redirect(os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x'))
 
-    # 2. بوابة المصادقة الإدارية
     try:
         from apps.auth_portal.routes import auth_portal
         app.register_blueprint(auth_portal)
@@ -271,7 +259,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [Portal]: خطأ في تسجيل بوابة المصادقة الإدارية: {e}")
 
-    # 3. بوابة ومسارات الموردين مع استثناء CSRF وبادئة المسار
     try:
         from apps.suppliers_auth_portal.routes import suppliers_bp
         app.register_blueprint(suppliers_bp, url_prefix='/supplier')
@@ -280,7 +267,6 @@ def create_app():
     except Exception as e:
         print(f"❌ [Portal]: خطأ في تسجيل بوابة الموردين: {e}")
 
-    # 4. مسارات GraphQL
     try:
         from apps.admin.graphql_routes import graphql_bp 
         app.register_blueprint(graphql_bp)
@@ -337,7 +323,6 @@ def create_app():
 
     print(f"✅ [Registry]: تم تسجيل {len(ADMIN_MODULES)} موديول للإدارة و {len(SUPPLIER_MODULES)} موديول للموردين.")
     
-    # ✅ طباعة الـ Blueprints المسجلة للتأكد
     print("\n📋 [Blueprints] المسجلة:")
     for bp_name in app.blueprints:
         print(f"  - {bp_name}")
@@ -347,12 +332,10 @@ def create_app():
     # ============================================================
     @app.context_processor
     def inject_vars():
-        # ✅ دالة safe_url_for مبسطة وآمنة
         def safe_url_for(endpoint, **values):
             try:
                 return url_for(endpoint, **values)
             except Exception:
-                # في حال فشل توليد الرابط، نعيد # (آمن ولا يسبب أخطاء)
                 return '#'
         
         return dict(
@@ -363,11 +346,10 @@ def create_app():
         )
 
     # ============================================================
-    # ✅ معالج الأخطاء العام (يعيد JSON بدلاً من HTML للطلبات AJAX)
+    # ✅ معالج الأخطاء العام
     # ============================================================
     @app.errorhandler(500)
     def handle_500_error(e):
-        # إذا كان الطلب من لوحة الطلبات ويرسل AJAX → نعيد JSON
         if request.path.startswith('/admin/orders') and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'حدث خطأ داخلي في الخادم أثناء معالجة الطلب.'}), 500
         return render_template('errors/500.html'), 500
