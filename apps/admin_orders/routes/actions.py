@@ -1,160 +1,225 @@
-# coding: utf-8
-# 📂 apps/admin_orders/routes/actions.py
+<!-- 📂 apps/admin_orders/templates/admin/order/_items_table_card.html -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 bg-secondary text-white d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold">عناصر الطلب والمنتجات</h6>
+        {% set items_list = order.items if (order and order.items) else [] %}
+        <span class="badge bg-light text-dark">{{ items_list | length }} عناصر</span>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle" width="100%" cellspacing="0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-start" style="width: 35%;">المنتج</th>
+                        <th style="width: 8%;">الكمية</th>
+                        <th style="width: 12%;">السعر</th>
+                        <th style="width: 15%;">الإجمالي</th>
+                        <th style="width: 30%;">المورد المسؤول</th>
+                    </tr>
+                </thead>
+                <tbody id="order-items-tbody">
+                    {% if items_list %}
+                        {% for item in items_list %}
+                            {% set qty = (item.quantity | int(1)) if item.quantity is defined else 1 %}
+                            {% set price = (item.price | float(0)) if item.price is defined else 0 %}
+                            {% set total = qty * price %}
+                            {% set item_id = item.id %}
+                            
+                            {% set prod_title = (item.productData.title if item.productData and item.productData.title else (item.product.title if item.product and item.product.title else item.product_name)) or 'منتج بدون عنوان' %}
+                            
+                            {% set prod_img = item.product_image or 
+                                        (item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else 
+                                        (item.productData.image_url if item.productData and item.productData.image_url else 
+                                        (item.product.image.fileUrl if item.product and item.product.image and item.product.image.fileUrl else 
+                                        (item.product.image_url if item.product and item.product.image_url else '')))) %}
 
-from flask import Blueprint, request, jsonify, current_app, session
-from flask_login import login_required
-from apps.extensions import db
+                            {% set current_supplier_name = '-- بدون مورد --' %}
+                            {% if suppliers and item.supplier_id %}
+                                {% for sup in suppliers %}
+                                    {% if sup.id == item.supplier_id %}
+                                        {% set current_supplier_name = sup.trade_name or sup.name or 'مورد محلي' %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
 
-# ✅ تعريف actions_bp بالاسم المطابق تماماً لعملية الاستيراد في النظام
-actions_bp = Blueprint(
-    'admin_order_actions', 
-    __name__,
-    url_prefix='/admin/orders'
-)
+                            <tr>
+                                <td class="text-start">
+                                    <div class="d-flex align-items-center">
+                                        {% if prod_img and prod_img != '' %}
+                                            <img src="{{ prod_img }}" alt="{{ prod_title }}" class="rounded border me-2 shadow-sm preview-image-btn cursor-pointer" data-img-url="{{ prod_img }}" style="width: 50px; height: 50px; object-fit: cover; flex-shrink: 0;" title="انقر لعرض الصورة بحجم أكبر">
+                                        {% else %}
+                                            <div class="rounded border bg-light d-flex align-items-center justify-content-center me-2 text-muted shadow-sm" style="width: 50px; height: 50px; font-size: 9px; flex-shrink: 0;">بدون صورة</div>
+                                        {% endif %}
+                                        <div class="overflow-hidden">
+                                            <strong class="d-block text-truncate" style="max-width: 250px;" title="{{ prod_title }}">{{ prod_title }}</strong>
+                                            {% if item.product_qid %}
+                                                <small class="text-muted">QID: {{ item.product_qid }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-secondary fs-6">{{ qty }}</span></td>
+                                <td>{{ "{:,.2f}".format(price) }} ريال</td>
+                                <td class="fw-bold text-success">{{ "{:,.2f}".format(total) }} ريال</td>
+                                <td>
+                                    <!-- عرض اسم المورد الحالي مع زر التعديل -->
+                                    <div class="supplier-display-view d-flex align-items-center justify-content-between bg-light p-2 rounded border">
+                                        <span class="text-dark fw-semibold text-truncate" style="max-width: 170px; font-size: 13px;" title="{{ current_supplier_name }}">
+                                            {{ current_supplier_name }}
+                                        </span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 toggle-supplier-edit" title="تعديل المورد المسؤول">
+                                            <i class="fas fa-pen" style="font-size: 11px;"></i>
+                                        </button>
+                                    </div>
 
-@actions_bp.route('/<order_id>/print', methods=['GET'])
-@login_required
-def print_order_invoice(order_id):
-    """
-    عرض/طباعة فاتورة الطلب
-    """
-    try:
-        if session.get('user_type') not in ['admin', 'staff']:
-            return "غير مصرح لك بالوصول", 403
+                                    <!-- واجهة التعديل بقائمة بحث مخصصة -->
+                                    <div class="supplier-edit-view d-none p-2 bg-white rounded border shadow-sm position-relative text-start">
+                                        <div class="mb-1">
+                                            <input type="text" class="form-control form-control-sm supplier-search-filter mb-1" placeholder="اكتب للبحث عن المورد..." style="font-size: 11px;">
+                                        </div>
+                                        
+                                        <div class="custom-suppliers-dropdown border rounded bg-white overflow-auto shadow-sm" style="max-height: 140px; font-size: 12px;">
+                                            <div class="supplier-option p-1 border-bottom text-muted cursor-pointer" data-supplier-id="" data-order-id="{{ order.id }}" data-item-id="{{ item_id }}">
+                                                -- بدون مورد --
+                                            </div>
+                                            {% if suppliers %}
+                                                {% for sup in suppliers %}
+                                                    {% set sup_id = sup.id %}
+                                                    {% set sup_name = sup.trade_name or sup.name or 'مورد محلي' %}
+                                                    <div class="supplier-option p-1 border-bottom cursor-pointer {% if item.supplier_id == sup_id %}bg-light fw-bold{% endif %}" 
+                                                         data-supplier-id="{{ sup_id }}" 
+                                                         data-order-id="{{ order.id }}" 
+                                                         data-item-id="{{ item_id }}">
+                                                        {{ sup_name }}
+                                                    </div>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
 
-        return f"""
-        <!DOCTYPE html>
-        <html dir="rtl" lang="ar">
-        <head>
-            <meta charset="UTF-8">
-            <title>فاتورة رقم #{order_id}</title>
-            <style>
-                body {{ font-family: sans-serif; padding: 20px; }}
-                @media print {{ .no-print {{ display: none; }} }}
-            </style>
-        </head>
-        <body>
-            <button class="no-print" onclick="window.print()">طباعة الفاتورة</button>
-            <h2>تفاصيل فاتورة الطلب #{order_id}</h2>
-            <hr>
-            <p>تم استخراج الفاتورة بنجاح.</p>
-        </body>
-        </html>
-        """
-    except Exception as e:
-        current_app.logger.error(f"Error printing order {order_id}: {str(e)}")
-        return f"حدث خطأ أثناء إعداد الفاتورة: {str(e)}", 500
+                                        <div class="text-end mt-1">
+                                            <button type="button" class="btn btn-xs btn-secondary cancel-supplier-edit" style="font-size: 10px; padding: 1px 6px;">إلغاء</button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-muted py-4">لا توجد عناصر مسجلة لهذا الطلب</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
+<!-- سكربت التفاعل وإرسال البيانات لحفظها في الخلفية -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.toggle-supplier-edit').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const td = this.closest('td');
+            td.querySelector('.supplier-display-view').classList.add('d-none');
+            td.querySelector('.supplier-edit-view').classList.remove('d-none');
+            const searchInput = td.querySelector('.supplier-search-filter');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            td.querySelectorAll('.supplier-option').forEach(opt => opt.style.display = '');
+        });
+    });
 
-@actions_bp.route('/<order_id>/update-status', methods=['POST'])
-@login_required
-def update_order_status(order_id):
-    """
-    تحديث حالة الطلب
-    """
-    try:
-        if session.get('user_type') not in ['admin', 'staff']:
-            return jsonify({'success': False, 'message': 'غير مصرح لك بذلك'}), 403
+    document.querySelectorAll('.cancel-supplier-edit').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const td = this.closest('td');
+            td.querySelector('.supplier-edit-view').classList.add('d-none');
+            td.querySelector('.supplier-display-view').classList.remove('d-none');
+        });
+    });
 
-        data = request.get_json() or {}
-        new_status = data.get('status')
+    document.querySelectorAll('.supplier-search-filter').forEach(input => {
+        input.addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+            const dropdown = this.closest('.supplier-edit-view').querySelector('.custom-suppliers-dropdown');
+            const options = dropdown.querySelectorAll('.supplier-option');
 
-        if not new_status:
-            return jsonify({'success': False, 'message': 'حالة الطلب غير محددة'}), 400
+            options.forEach(opt => {
+                if (opt.getAttribute('data-supplier-id') === "") {
+                    opt.style.display = '';
+                    return;
+                }
+                const text = opt.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    opt.style.display = '';
+                } else {
+                    opt.style.display = 'none';
+                }
+            });
+        });
+    });
 
-        db.session.execute(
-            db.text("UPDATE orders SET status_code = :status WHERE id = :order_id"),
-            {'status': new_status, 'order_id': order_id}
-        )
-        db.session.commit()
+    // تنفيذ عملية الحفظ الفعلي عبر Fetch عند النقر على المورد
+    document.querySelectorAll('.supplier-option').forEach(option => {
+        option.addEventListener('click', function () {
+            const supplierId = this.getAttribute('data-supplier-id');
+            const orderId = this.getAttribute('data-order-id');
+            const itemId = this.getAttribute('data-item-id');
+            const supplierName = this.textContent.trim();
+            const td = this.closest('td');
 
-        return jsonify({
-            'success': True,
-            'message': 'تم تحديث حالة الطلب بنجاح',
-            'status': new_status
-        }), 200
+            if (!orderId || !itemId) return;
 
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Error updating order {order_id} status: {str(e)}")
-        return jsonify({'success': False, 'message': f'حدث خطأ أثناء التحديث: {str(e)}'}), 500
+            fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ supplier_id: supplierId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const displaySpan = td.querySelector('.supplier-display-view span');
+                    displaySpan.textContent = supplierName;
+                    displaySpan.setAttribute('title', supplierName);
 
+                    td.querySelector('.supplier-edit-view').classList.add('d-none');
+                    td.querySelector('.supplier-display-view').classList.remove('d-none');
 
-@actions_bp.route('/<order_id>/item/<item_id>/assign-supplier', methods=['POST'])
-@login_required
-def assign_item_supplier(order_id, item_id):
-    """
-    تعيين المورد للمنتج داخل الطلب وتحديث خريطة الربط السيادية
-    """
-    try:
-        if session.get('user_type') not in ['admin', 'staff']:
-            return jsonify({'success': False, 'message': 'غير مصرح لك بذلك'}), 403
+                    td.querySelectorAll('.supplier-option').forEach(opt => opt.classList.remove('bg-light', 'fw-bold'));
+                    if (supplierId !== "") {
+                        this.classList.add('bg-light', 'fw-bold');
+                    }
+                } else {
+                    alert('خطأ: ' + (data.message || 'فشل حفظ المورد'));
+                }
+            })
+            .catch(err => {
+                console.error('Error assigning supplier:', err);
+                alert('فشل الاتصال بالسيرفر أثناء محاولة الحفظ');
+            });
+        });
+    });
 
-        data = request.get_json() or {}
-        supplier_id = data.get('supplier_id') or None
-        if supplier_id:
-            supplier_id = int(supplier_id)
+    document.addEventListener('click', function (e) {
+        if (e.target.classList.contains('preview-image-btn')) {
+            const imgUrl = e.target.getAttribute('data-img-url');
+            if (imgUrl) {
+                window.open(imgUrl, '_blank');
+            }
+        }
+    });
+});
+</script>
 
-        # 1. تحديث المورد في عنصر الطلب الحالي
-        db.session.execute(
-            db.text("""
-                UPDATE order_items 
-                SET supplier_id = :supplier_id 
-                WHERE id = :item_id AND order_id = :order_id
-            """),
-            {'supplier_id': supplier_id, 'item_id': item_id, 'order_id': order_id}
-        )
-
-        # 🔄 تحديث المورد الرئيسي للطلب لضمان المزامنة السريعة
-        db.session.execute(
-            db.text("""
-                UPDATE orders 
-                SET supplier_id = :supplier_id 
-                WHERE id = :order_id AND (supplier_id IS NULL OR supplier_id = :supplier_id)
-            """),
-            {'supplier_id': supplier_id, 'order_id': order_id}
-        )
-
-        # 2. جلب product_qid لهذا العنصر لتحديث خريطة الربط السيادية إن وجد
-        item_res = db.session.execute(
-            db.text("SELECT product_qid FROM order_items WHERE id = :item_id"),
-            {'item_id': item_id}
-        ).fetchone()
-
-        if item_res and item_res[0]:
-            product_qid = item_res[0]
-            # التحقق مما إذا كان الربط موجوداً مسبقاً في جدول product_supplier_mapping
-            existing_map = db.session.execute(
-                db.text("SELECT id FROM product_supplier_mapping WHERE product_qid = :qid"),
-                {'qid': product_qid}
-            ).fetchone()
-
-            if existing_map:
-                if supplier_id:
-                    db.session.execute(
-                        db.text("UPDATE product_supplier_mapping SET supplier_id = :supplier_id WHERE product_qid = :qid"),
-                        {'supplier_id': supplier_id, 'qid': product_qid}
-                    )
-                else:
-                    db.session.execute(
-                        db.text("DELETE FROM product_supplier_mapping WHERE product_qid = :qid"),
-                        {'qid': product_qid}
-                    )
-            elif supplier_id:
-                db.session.execute(
-                    db.text("INSERT INTO product_supplier_mapping (product_qid, supplier_id, status) VALUES (:qid, :supplier_id, 'active')"),
-                    {'qid': product_qid, 'supplier_id': supplier_id}
-                )
-
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'تم تعيين المورد وتحديث الخريطة بنجاح',
-            'supplier_id': supplier_id
-        }), 200
-
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Error assigning supplier for item {item_id}: {str(e)}")
-        return jsonify({'success': False, 'message': f'حدث خطأ أثناء تعيين المورد: {str(e)}'}), 500
+<style>
+.cursor-pointer {
+    cursor: pointer;
+}
+.supplier-option:hover {
+    background-color: #f8f9fa;
+}
+</style>
