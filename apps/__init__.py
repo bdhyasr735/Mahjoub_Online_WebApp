@@ -58,8 +58,9 @@ def create_app():
         
         print("🔄 [DB]: جاري إعادة ضبط وبناء الجداول بالهيكلة الكاملة...")
         
-        # ⚠️ مسح الجداول القديمة البائدة وإعادة إنشائها بأحدث الأعمدة المطلوبة (مع تفعيل cascade لحذف القيود المرتبطة)
-        db.drop_all(cascade=True)
+        # ⚠️ تفريغ وحذف جميع الجداول وقيود الارتباط بشكل قسري وآمن عبر قاعدة البيانات
+        db.session.execute(db.text('DROP SCHEMA public CASCADE; CREATE SCHEMA public;'))
+        db.session.commit()
         db.create_all()
         print("✅ [DB]: تم إعادة إنشاء جميع الجداول بنجاح.")
 
