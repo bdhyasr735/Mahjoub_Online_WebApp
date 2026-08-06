@@ -105,6 +105,16 @@ def assign_item_supplier(order_id, item_id):
             {'supplier_id': supplier_id, 'item_id': item_id, 'order_id': order_id}
         )
 
+        # 🔄 تحديث المورد الرئيسي للطلب لضمان المزامنة السريعة
+        db.session.execute(
+            db.text("""
+                UPDATE orders 
+                SET supplier_id = :supplier_id 
+                WHERE id = :order_id AND (supplier_id IS NULL OR supplier_id = :supplier_id)
+            """),
+            {'supplier_id': supplier_id, 'order_id': order_id}
+        )
+
         # 2. جلب product_qid لهذا العنصر لتحديث خريطة الربط السيادية إن وجد
         item_res = db.session.execute(
             db.text("SELECT product_qid FROM order_items WHERE id = :item_id"),
