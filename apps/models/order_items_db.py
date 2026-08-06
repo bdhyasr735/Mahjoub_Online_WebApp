@@ -23,7 +23,7 @@ class OrderItem(db.Model):
     # ⚡️ استخدام Numeric(18, 2) لدقة الحسابات وتجنب مشاكل الأرقام العشرية
     price = db.Column(db.Numeric(18, 2), default=0.00)
     
-    # ✅ إضافة هذا السطر خصيصاً لمنع انهيار عملية الحفظ عند إرسال المزامنة للصورة
+    # ✅ إضافة حقل الصورة لتجنب أي خطأ keyword argument عند المزامنة
     product_image = db.Column(db.String(500), nullable=True)
 
     # العلاقة العكسية مع جدول الطلبات لحل خطأ الربط بشكل جذري
