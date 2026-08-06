@@ -22,6 +22,9 @@ class OrderItem(db.Model):
     
     # ⚡️ استخدام Numeric(18, 2) لدقة الحسابات وتجنب مشاكل الأرقام العشرية
     price = db.Column(db.Numeric(18, 2), default=0.00)
+    
+    # ✅ إضافة هذا السطر خصيصاً لمنع انهيار عملية الحفظ عند إرسال المزامنة للصورة
+    product_image = db.Column(db.String(500), nullable=True)
 
     # العلاقة العكسية مع جدول الطلبات لحل خطأ الربط بشكل جذري
     order = db.relationship('Order', back_populates='items')
@@ -38,7 +41,8 @@ class OrderItem(db.Model):
             'product_qid': self.product_qid,
             'product_name': self.product_name,
             'quantity': self.quantity,
-            'price': float(self.price) if self.price is not None else 0.0
+            'price': float(self.price) if self.price is not None else 0.0,
+            'product_image': self.product_image
         }
 
     def __repr__(self):
