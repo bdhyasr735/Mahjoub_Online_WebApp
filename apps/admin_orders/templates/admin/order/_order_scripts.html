@@ -1,15 +1,14 @@
-<!-- 📂 apps/admin_orders/templates/admin/order/_order_scripts.html -->
+<!-- apps/admin_orders/templates/admin/order/_order_scripts.html -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
     // 1. ميزة عرض الصورة عند الضغط عليها (LightBox بسيط)
     const productImages = document.querySelectorAll('.product-img-thumbnail');
     productImages.forEach(img => {
-        img.style.cursor = 'pointer'; // تغيير شكل المؤشر
+        img.style.cursor = 'pointer';
         img.addEventListener('click', function () {
             const fullImageUrl = this.getAttribute('data-full-image') || this.src;
             if (fullImageUrl) {
-                // فتح الصورة في نافذة جديدة أو استخدام مكتبة عرض إذا كانت متوفرة
                 window.open(fullImageUrl, '_blank');
             }
         });
