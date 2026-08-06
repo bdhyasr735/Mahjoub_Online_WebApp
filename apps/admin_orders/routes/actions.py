@@ -148,10 +148,21 @@ def assign_item_supplier(order_id, item_id):
 
         db.session.commit()
 
+        # جلب اسم المورد لإعادته للواجهة
+        supplier_name = '-- بدون مورد --'
+        if supplier_id:
+            sup_res = db.session.execute(
+                db.text("SELECT trade_name, name FROM suppliers WHERE id = :sid"),
+                {'sid': supplier_id}
+            ).fetchone()
+            if sup_res:
+                supplier_name = sup_res[0] or sup_res[1] or 'مورد محلي'
+
         return jsonify({
             'success': True,
             'message': 'تم تعيين المورد وتحديث الخريطة بنجاح',
-            'supplier_id': supplier_id
+            'supplier_id': supplier_id,
+            'supplier_name': supplier_name
         }), 200
 
     except Exception as e:
