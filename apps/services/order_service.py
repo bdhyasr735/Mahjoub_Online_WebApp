@@ -47,7 +47,7 @@ class OrderService:
         return '\n'.join(result)
 
     def _save_orders_to_db(self, orders_data: List[Dict[str, Any]]):
-        """دالة مساعدة مجمعة لحفظ وتحديث الطلبات وعناصرها مع دعم تعدد الموردين المحليين"""
+        """دالة مساعدة مجمعة لحفظ وتحديث الطلبات وعناصرها مع دعم تعدد الموردين المحليين وصور المنتجات"""
         try:
             from apps.models.orders_db import Order
             from apps.models.order_items_db import OrderItem
@@ -139,6 +139,18 @@ class OrderService:
                             (f"منتج ({safe_prod_id[:8]})" if safe_prod_id else "منتج بدون اسم")
                         )
 
+                        # 🖼️ استخراج رابط صورة المنتج بدقة من الهياكل المحتملة
+                        prod_image = ""
+                        if isinstance(prod_data, dict):
+                            image_obj = prod_data.get('image')
+                            if isinstance(image_obj, dict):
+                                prod_image = image_obj.get('fileUrl') or image_obj.get('url') or ''
+                            elif isinstance(image_obj, str):
+                                prod_image = image_obj
+                        
+                        if not prod_image and item.get('product_image'):
+                            prod_image = item.get('product_image')
+
                         # البحث عن المورد المحلي
                         item_supplier_id = None
                         if safe_prod_id:
@@ -156,6 +168,7 @@ class OrderService:
                             order_id=existing_order.id,
                             supplier_id=item_supplier_id,
                             product_name=product_name,  # حفظ اسم المنتج الحقيقي
+                            product_image=prod_image,   # حفظ رابط صورة المنتج محلياً
                             quantity=qty,
                             price=price
                         )
