@@ -25,11 +25,11 @@
                             {% set total = qty * price %}
                             {% set item_id = item.id %}
                             
-                            <!-- اعتماد المسار الدقيق المستخرج من الساند بوكس لجلب العنوان واسم المنتج -->
-                            {% set prod_title = (item.productData.title if item.productData and item.productData.title else item.product_name) or 'منتج بدون عنوان' %}
+                            <!-- اعتماد مسارات متعددة ومرنة لجلب العنوان بدقة تامة -->
+                            {% set prod_title = (item.productData.title if item.productData and item.productData.title else (item.product.title if item.product and item.product.title else item.product_name)) or 'منتج بدون عنوان' %}
                             
-                            <!-- استخراج رابط الصورة الدقيق من الـ productData المعتمد -->
-                            {% set prod_img = item.product_image or (item.productData.image.fileUrl if item.productData and item.productData.image else '') %}
+                            <!-- اعتماد مسارات متعددة ومرنة لجلب رابط الصورة بدقة تامة -->
+                            {% set prod_img = item.product_image or (item.productData.image.fileUrl if item.productData and item.productData.image and item.productData.image.fileUrl else (item.product.image.fileUrl if item.product and item.product.image and item.product.image.fileUrl else '')) %}
 
                             <tr>
                                 <td class="text-start">
