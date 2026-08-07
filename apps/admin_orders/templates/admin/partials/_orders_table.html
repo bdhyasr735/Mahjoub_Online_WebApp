@@ -16,29 +16,35 @@
                 <tbody>
                     {% if orders %}
                         {%- for order in orders -%}
-                        {% set current_order_id = order.id or order._id %}
+                        {% set current_order_id = order._id or order.id %}
+                        {% set customer_name = order.account.account.fullname if order.account and order.account.account else order.customer_name or 'زائر' %}
+                        {% set status_code = order.status.code if order.status else order.status_code %}
+                        {% set status_title = order.status.title if order.status else order.status_title %}
+                        {% set total_price = order.totalPrice or order.total_price or 0 %}
+                        {% set is_paid = order.isPaid if order.isPaid is not none else order.is_paid or false %}
+                        {% set created_at = order.createdAt or order.created_at or order.created_at %}
                         <tr>
-                            <!-- معرف الطلب (عرض مختصر للمعرف + حماية احتياطية) -->
+                            <!-- معرف الطلب -->
                             <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="{{ current_order_id }}">
-                                #{{ order.orderNumber if order.orderNumber else (current_order_id[:8] if current_order_id else 'N/A') }}...
+                                #{{ current_order_id[:8] if current_order_id else 'N/A' }}...
                             </td>
                             
                             <!-- اسم العميل -->
-                            <td class="py-2 text-truncate" style="max-width: 200px;" title="{{ order.customer_name }}">
-                                {% if order.customer_name and order.customer_name != 'زائر' and order.customer_name != 'عميل غير معروف' %}
-                                    {{ order.customer_name }}
+                            <td class="py-2 text-truncate" style="max-width: 200px;" title="{{ customer_name }}">
+                                {% if customer_name and customer_name != 'زائر' and customer_name != 'عميل غير معروف' %}
+                                    {{ customer_name }}
                                 {% else %}
                                     <span class="text-muted fst-italic">ضيف</span>
                                 {% endif %}
                             </td>
 
-                            <!-- التاريخ (معالجة آمنة جذرياً لئلا يحدث تضارب بين النص والكائن) -->
+                            <!-- التاريخ -->
                             <td class="py-2 text-muted" style="font-size: 0.78rem;">
-                                {% if order.created_at %}
-                                    {% if order.created_at is string %}
-                                        {{ order.created_at[:10] }}
+                                {% if created_at %}
+                                    {% if created_at is string %}
+                                        {{ created_at[:10] }}
                                     {% else %}
-                                        {{ order.created_at.strftime('%Y-%m-%d') }}
+                                        {{ created_at.strftime('%Y-%m-%d') }}
                                     {% endif %}
                                 {% else %}
                                     -
@@ -47,35 +53,36 @@
 
                             <!-- الإجمالي -->
                             <td class="py-2 fw-bold text-success">
-                                {{ order.total_price }} ر.س
+                                {{ "%.2f"|format(total_price) }} ر.س
                             </td>
 
-                            <!-- قائمة حالة الطلب المنسدلة التفاعلية -->
+                            <!-- حالة الطلب -->
                             <td class="py-2">
                                 <select class="form-select form-select-sm border text-center fw-semibold mx-auto 
-                                    {% if order.status_code == 'pending' %}bg-warning-subtle text-warning-emphasis
-                                    {% elif order.status_code == 'processing' %}bg-info-subtle text-info-emphasis
-                                    {% elif order.status_code == 'shipped' %}bg-primary-subtle text-primary-emphasis
-                                    {% elif order.status_code == 'completed' %}bg-success-subtle text-success-emphasis
+                                    {% if status_code == 'pending' %}bg-warning-subtle text-warning-emphasis
+                                    {% elif status_code == 'processing' %}bg-info-subtle text-info-emphasis
+                                    {% elif status_code == 'shipped' %}bg-primary-subtle text-primary-emphasis
+                                    {% elif status_code == 'delivered' or status_code == 'completed' %}bg-success-subtle text-success-emphasis
+                                    {% elif status_code == 'cancelled' %}bg-danger-subtle text-danger-emphasis
                                     {% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}" 
                                     style="font-size: 0.8rem; max-width: 130px;" 
                                     onchange="updateOrderStatusInline('{{ current_order_id }}', this.value)">
-                                    <option value="pending" {% if order.status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-                                    <option value="processing" {% if order.status_code == 'processing' %}selected{% endif %}>جاري التجهيز</option>
-                                    <option value="shipped" {% if order.status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
-                                    <option value="completed" {% if order.status_code == 'completed' %}selected{% endif %}>مكتمل</option>
-                                    <option value="cancelled" {% if order.status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
+                                    <option value="pending" {% if status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
+                                    <option value="processing" {% if status_code == 'processing' %}selected{% endif %}>جاري التجهيز</option>
+                                    <option value="shipped" {% if status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
+                                    <option value="delivered" {% if status_code == 'delivered' or status_code == 'completed' %}selected{% endif %}>تم التسليم</option>
+                                    <option value="cancelled" {% if status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
                                 </select>
                             </td>
 
                             <!-- الدفع -->
                             <td class="py-2">
-                                <span class="badge {{ 'bg-success' if order.is_paid else 'bg-danger' }} px-2 py-1">
-                                    {{ 'مدفوع' if order.is_paid else 'غير مدفوع' }}
+                                <span class="badge {{ 'bg-success' if is_paid else 'bg-danger' }} px-2 py-1">
+                                    {{ 'مدفوع' if is_paid else 'غير مدفوع' }}
                                 </span>
                             </td>
 
-                            <!-- الإجراءات (معدل ليفتح مباشرة بـ window.location ويتخطى أي تعليق) -->
+                            <!-- الإجراءات -->
                             <td class="py-2">
                                 <a href="{{ url_for('admin_orders_bp.view_admin_order', order_id=current_order_id) }}" 
                                    class="btn btn-sm btn-outline-primary py-0 px-2" 
@@ -116,8 +123,11 @@ function updateOrderStatusInline(orderId, newStatus) {
     .then(data => {
         if (!data.success) {
             alert('❌ فشل تحديث الحالة: ' + (data.message || 'خطأ غير معروف'));
+        } else {
+            // تحديث الصف الحالي لإظهار التغيير (اختياري)
+            fetchAdminOrders({{ pagination.current_page if pagination else 1 }});
         }
     })
-    .catch(err => alert('❌ حدث خطأ في الاتصال بالسيرفر'));
+    .catch(err => alert('❌ حدث خطأ في الاتصال بالسيرفر: ' + err.message));
 }
 </script>
