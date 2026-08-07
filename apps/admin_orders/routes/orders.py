@@ -58,7 +58,7 @@ def _save_or_update_order(order_data):
     if not order:
         order = Order(id=order_id)
 
-    # ✅ النظام يعتمد على الـ _id لتوليد رقم فريد وآمن
+    # ✅ النظام يعتمد على الـ _id لتوليد رقم فريد وآمن (رقم احتياطي لحين استقبال الرقم الحقيقي)
     try:
         order.order_number = int(order_id[:8], 16) % 1000000
     except:
@@ -323,4 +323,36 @@ def update_order_status_inline(order_id):
         return jsonify({'success': True, 'message': 'تم تحديث الحالة'})
     except Exception as e:
         current_app.logger.error(f"خطأ في تحديث حالة الطلب: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 🚀 إضافة جديدة: نقطة نهاية لتحديث رقم الطلب الحقيقي من المتجر
+# ============================================================
+@admin_orders_bp.route('/api/update-order-number', methods=['POST'])
+def api_update_order_number():
+    """استقبال رقم الطلب الحقيقي من صفحة الشكر وتحديثه في قاعدة البيانات"""
+    try:
+        data = request.get_json()
+        external_order_id = data.get('external_order_id') # هذا هو _id الخاص بقمره (6a7304...)
+        display_number = data.get('display_number')       # الرقم الحقيقي (10000000946)
+        
+        if not external_order_id or not display_number:
+            return jsonify({'success': False, 'message': 'بيانات ناقصة (مطلوب external_order_id و display_number)'}), 400
+
+        # البحث عن الطلب في قاعدة محجوب باستخدام الـ order_reference
+        order = Order.query.filter_by(order_reference=external_order_id).first()
+        
+        if order:
+            # تحديث الرقم في قاعدة البيانات
+            try:
+                order.order_number = int(display_number)
+                db.session.commit()
+                return jsonify({'success': True, 'message': f'تم تحديث رقم الطلب إلى {display_number}'})
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'success': False, 'message': str(e)}), 500
+        else:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود في قاعدة محجوب'}), 404
+    except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
