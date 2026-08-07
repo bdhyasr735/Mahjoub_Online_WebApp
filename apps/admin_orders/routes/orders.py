@@ -164,8 +164,9 @@ def _sync_orders_from_graphql(app=None):
         app = current_app._get_current_object()
     with app.app_context():
         try:
-            total = sync_all_orders_from_graphql(max_pages=None)
-            current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (تم جلب الكل)")
+            # ✅ تحديث هام: عند فتح الصفحة، نجلب أول 5 صفحات فقط لتجنب الضغط على الذاكرة
+            total = sync_all_orders_from_graphql(max_pages=5)
+            current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (أول 5 صفحات)")
         except Exception as e:
             current_app.logger.error(f"❌ خطأ في مزامنة الطلبات الخلفية: {e}")
 
@@ -256,8 +257,20 @@ def sync_admin_orders():
         if session.get('user_type') != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        total = sync_all_orders_from_graphql()
-        return jsonify({'success': True, 'message': f'✅ تمت مزامنة {total} طلباً بنجاح.'})
+        # ✅ تحسين هام: تشغيل المزامنة الكاملة في خيط منفصل لتجنب تعليق الخادم وانتهاء المهلة
+        def sync_background():
+            with current_app.app_context():
+                try:
+                    total = sync_all_orders_from_graphql()
+                    print(f"✅ اكتملت المزامنة اليدوية لـ {total} طلب")
+                except Exception as e:
+                    print(f"❌ خطأ في المزامنة اليدوية: {e}")
+
+        thread = threading.Thread(target=sync_background)
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({'success': True, 'message': '⏳ تم بدء المزامنة الكاملة في الخلفية. سيتم تحديث الجدول تلقائياً...'})
     except Exception as e:
         current_app.logger.error(f"خطأ في المزامنة: {traceback.format_exc()}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -308,9 +321,6 @@ def update_order_status_inline(order_id):
         new_status = data.get('status')
         if not new_status:
             return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
-
-        # ✅ طباعة تصحيح للتأكد من وصول الطلب إلى الخادم
-        print(f"🚨 [DEBUG] تم استلام طلب تحديث الحالة في orders.py للطلب {order_id} إلى الحالة {new_status}")
 
         order = db.session.get(Order, order_id)
         if not order:
