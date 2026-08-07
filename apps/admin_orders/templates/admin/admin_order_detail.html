@@ -9,9 +9,16 @@
     {% include "admin/order/_order_header.html" ignore missing %}
 
     <div class="row">
-        <!-- المنتجات (تظل جزءاً من الصفحة الأساسية للسرعة) -->
+        <!-- المنتجات (تحميل ديناميكي عبر HTMX لضمان جلب العناصر وعرضها فوراً) -->
         <div class="col-xl-8 col-lg-7 mb-4">
-            {% include "admin/order/_items_table_card.html" ignore missing %}
+            <div id="items-table-container" hx-get="/admin/orders/{{ order.id }}/items" hx-trigger="load">
+                <div class="card shadow mb-4">
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 text-muted">جاري تحميل عناصر الطلب...</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- المنطقة المخصصة للبطاقات المحملة ديناميكياً -->
