@@ -30,8 +30,9 @@
                         {% set created_at = order.created_at %}
                         <tr>
                             <!-- معرف الطلب -->
-                            <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="{{ current_order_id }}">
-                                #{{ current_order_id[:8] if current_order_id else 'N/A' }}...
+                            <!-- ✅ تم التعديل: عرض رقم التتبع الحقيقي (order_number) -->
+                            <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="المعرف التقني: {{ current_order_id }}">
+                                #{{ order.order_number if order.order_number else current_order_id[:8] }}
                             </td>
                             
                             <!-- اسم العميل -->
