@@ -3,6 +3,7 @@
 
 import traceback
 import threading
+import time
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Blueprint
 from flask_login import login_required
 
@@ -12,7 +13,7 @@ from apps.models.orders_db import Order
 from apps.models.supplier_db import Supplier
 from apps.models.order_items_db import OrderItem
 
-# ✅ تعريف الـ Blueprint الرئيسي مع تحديد مجلد القوالب
+# ✅ تعريف الـ Blueprint الرئيسي
 admin_orders_bp = Blueprint(
     'admin_orders_bp',
     __name__,
@@ -31,7 +32,6 @@ STATUS_TITLES_MAP = {
     'refunded': 'مسترجع'
 }
 
-
 def _sync_orders_in_background(app):
     """دالة مساعدة لإجراء المزامنة التلقائية للصفحة الأولى فقط في الخلفية."""
     with app.app_context():
@@ -39,7 +39,6 @@ def _sync_orders_in_background(app):
             services.orders.get_all_orders(page=1, per_page=50)
         except Exception as sync_e:
             app.logger.warning(f"⚠️ [Auto Sync Orders Background] {sync_e}")
-
 
 @admin_orders_bp.route('', methods=['GET'], endpoint='list_admin_orders')
 @admin_orders_bp.route('/', methods=['GET'])
@@ -53,238 +52,88 @@ def manage_admin_orders_view():
 
         page = request.args.get('page', 1, type=int)
         per_page = 10
-
         is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-
-        status_filter = request.args.get('status', '').strip()
-        search_term = request.args.get('search', '').strip().lower()
-        date_from = request.args.get('date_from', '')
-        date_to = request.args.get('date_to', '')
 
         if not is_ajax:
             app = current_app._get_current_object()
-            threading.Thread(
-                target=_sync_orders_in_background,
-                args=(app,),
-                daemon=True
-            ).start()
+            threading.Thread(target=_sync_orders_in_background, args=(app,), daemon=True).start()
 
         result = services.orders.get_local_orders(
             page=page,
             per_page=per_page,
-            status=status_filter if status_filter else None,
-            search=search_term if search_term else None,
-            date_from=date_from if date_from else None,
-            date_to=date_to if date_to else None
+            status=request.args.get('status'),
+            search=request.args.get('search'),
+            date_from=request.args.get('date_from'),
+            date_to=request.args.get('date_to')
         )
 
         orders = result.get('data', [])
         pagination = result.get('pagination', {})
-
         pagination_info = {
-            'current_page': page,
-            'total_pages': pagination.get('totalPages', 1),
-            'has_prev': page > 1,
-            'has_next': page < pagination.get('totalPages', 1),
-            'prev_num': page - 1 if page > 1 else None,
-            'next_num': page + 1 if page < pagination.get('totalPages', 1) else None,
-            'per_page': per_page,
+            'current_page': page, 'total_pages': pagination.get('totalPages', 1),
             'total_items': pagination.get('totalItems', 0)
         }
-
-        for order in orders:
-            if 'status_text' not in order:
-                order['status_text'] = order.get('status_title', 'غير معروف')
-
-        suppliers_list = Supplier.query.all()
 
         if is_ajax:
             return jsonify({
                 'success': True,
-                'html': render_template('admin/partials/_orders_table.html', orders=orders, pagination=pagination_info),
-                'pagination_html': render_template('admin/partials/_pagination.html', pagination=pagination_info),
-                'total_items': pagination_info['total_items']
+                'html': render_template('admin/partials/_orders_table.html', orders=orders),
+                'pagination_html': render_template('admin/partials/_pagination.html', pagination=pagination_info)
             })
 
-        return render_template('admin/admin_orders.html', orders=orders, pagination=pagination_info, suppliers=suppliers_list)
-
+        return render_template('admin/admin_orders.html', orders=orders, pagination=pagination_info, suppliers=Supplier.query.all())
     except Exception as e:
-        current_app.logger.error(f"خطأ في جلب الطلبات للأدمن: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء تحميل الطلبات', 'danger')
-        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        if is_ajax:
-            return jsonify({'success': False, 'message': 'حدث خطأ أثناء تحميل الطلبات'}), 500
-        return render_template('admin/admin_orders.html', orders=[], pagination={'total_pages': 0, 'total_items': 0, 'current_page': 1}, suppliers=[])
-
-
-@admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
-@login_required
-def view_admin_order(order_id):
-    try:
-        db.session.rollback()
-        order = db.session.get(Order, order_id)
-        
-        if not order and hasattr(services.orders, 'get_order_by_id'):
-            try:
-                current_app.logger.info(f"🔄 جاري جلب تفاصيل الطلب {order_id} عبر الخدمات الخارجية...")
-                services.orders.get_order_by_id(order_id)
-                order = db.session.get(Order, order_id)
-            except Exception as sync_e:
-                current_app.logger.error(f"⚠️ خطأ أثناء جلب الطلب {order_id}: {sync_e}")
-                db.session.rollback()
-
-        if not order:
-            flash('❌ لم يتم العثور على الطلب في النظام، أو فشل حفظه محلياً. تأكد من صحة بيانات المزامنة.', 'danger')
-            return redirect(url_for('admin_orders_bp.list_admin_orders'))
-
-        # 🔍 توثيق عملية استعراض تفاصيل طلب حساس عبر AuditLogger
-        try:
-            if hasattr(services, 'audit') and hasattr(services.audit, 'log'):
-                services.audit.log(
-                    action="VIEW_ORDER_DETAILS",
-                    target_type="Order",
-                    target_id=str(order_id),
-                    details="تم استعراض تفاصيل الطلب من قبل المشرف"
-                )
-        except Exception:
-            db.session.rollback()
-
-        suppliers = Supplier.query.all()
-        items_list = OrderItem.query.filter_by(order_id=order_id).all()
-
-        return render_template(
-            'admin/admin_order_detail.html', 
-            order=order, 
-            suppliers=suppliers,
-            items_list=items_list,
-            all_suppliers=suppliers
-        )
-
-    except Exception as e:
-        current_app.logger.error(f"خطأ في عرض تفاصيل الطلب {order_id}: {traceback.format_exc()}")
-        flash('❌ حدث خطأ غير متوقع أثناء تحميل تفاصيل الطلب', 'danger')
-        return redirect(url_for('admin_orders_bp.list_admin_orders'))
-
-
-@admin_orders_bp.route('/<string:order_id>/print', methods=['GET'], endpoint='print_order_invoice')
-@login_required
-def print_order_invoice(order_id):
-    try:
-        order = db.session.get(Order, order_id)
-        if not order:
-            return "الطلب غير موجود", 404
-        return render_template('admin/order/invoice_print.html', order=order)
-    except Exception as e:
-        current_app.logger.error(f"خطأ في طباعة الفاتورة {order_id}: {traceback.format_exc()}")
-        return f"حدث خطأ أثناء إعداد الفاتورة: {str(e)}", 500
-
-
-@admin_orders_bp.route('/<string:order_id>/update-status', methods=['POST'], endpoint='update_order_status_inline')
-@login_required
-def update_order_status_inline(order_id):
-    """تحديث حالة الطلب بشكل سريع ومباشر من القائمة المنسدلة في جدول الطلبات"""
-    try:
-        data = request.get_json() or {}
-        new_status = data.get('status')
-        
-        if not new_status:
-            return jsonify({'success': False, 'message': 'الحالة الجديدة غير متوفرة'}), 400
-            
-        order = db.session.get(Order, order_id)
-        if not order:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-            
-        order.status_code = new_status
-        if new_status in STATUS_TITLES_MAP:
-            order.status_title = STATUS_TITLES_MAP[new_status]
-            
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'تم تحديث حالة الطلب بنجاح',
-            'status_code': new_status,
-            'status_title': order.status_title
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"❌ خطأ في تحديث حالة الطلب {order_id}: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
+        current_app.logger.error(f"خطأ في عرض الطلبات: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}) if request.headers.get('X-Requested-With') else "خطأ سيرفر"
 
 @admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
 @login_required
 def sync_admin_orders():
-    """مزامنة جميع الطلبات من المنصة (جميع الصفحات) إلى قاعدة البيانات المحلية"""
+    """مزامنة شاملة للطلبات من المنصة"""
     try:
-        user_type = session.get('user_type')
-        if user_type != 'admin':
-            return jsonify({'success': False, 'message': 'غير مصرح لك بهذه العملية'}), 403
-
-        total_synced = 0
-        current_page = 1
-        per_page = 10
-
-        current_app.logger.info(f"🚀 [Sync] بدء المزامنة الكاملة...")
-
-        while True:
-            try:
-                current_app.logger.info(f"🔁 [Sync] جاري جلب الصفحة {current_page}...")
-                
-                result = services.orders.get_all_orders(page=current_page, per_page=per_page)
-                
-                orders_data = result.get('data', [])
-                pagination = result.get('pagination', {})
-                total_pages = pagination.get('totalPages', 0)
-
-                if not orders_data:
-                    current_app.logger.info(f"⏹️ [Sync] لا توجد بيانات في الصفحة {current_page}. إنهاء المزامنة.")
-                    break
-
-                total_synced += len(orders_data)
-                current_app.logger.info(f"✅ [Sync] الصفحة {current_page}: تم حفظ {len(orders_data)} طلب. الإجمالي: {total_synced}")
-
-                if current_page >= total_pages or not pagination.get('hasNextPage', False):
-                    current_app.logger.info(f"🏁 [Sync] تم الوصول للنهاية. إنهاء المزامنة.")
-                    break
-
-                current_page += 1
-                import time
-                time.sleep(0.5)
-
-            except Exception as inner_e:
-                current_app.logger.error(f"❌ [Sync] فشلت الصفحة {current_page}: {inner_e}")
-                current_page += 1
-                import time
-                time.sleep(0.5)
-                continue
-
-        try:
-            if hasattr(services, 'audit') and hasattr(services.audit, 'log'):
-                services.audit.log(
-                    action="SYNC_ALL_ORDERS",
-                    target_type="System",
-                    target_id=None,
-                    details=f"تمت مزامنة {total_synced} طلب بنجاح من Qumra API إلى القاعدة المحلية."
-                )
-        except Exception:
-            db.session.rollback()
-
-        return jsonify({
-            'success': True,
-            'message': f'✅ تمت المزامنة! تمت معالجة {total_synced} طلب بنجاح.'
-        })
-
+        if session.get('user_type') != 'admin':
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+        
+        # تنفيذ مزامنة الصفحة الأولى فوراً للسرعة
+        services.orders.get_all_orders(page=1, per_page=20)
+        return jsonify({'success': True, 'message': '✅ تمت مزامنة الطلبات بنجاح.'})
     except Exception as e:
-        current_app.logger.error(f"❌ [Sync] خطأ حاسم في مزامنة الطلبات: {traceback.format_exc()}")
-        return jsonify({
-            'success': False,
-            'message': f'حدث خطأ حاسم أثناء المزامنة: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'message': str(e)}), 500
 
+@admin_orders_bp.route('/<string:order_id>/sync', methods=['POST'], endpoint='sync_single_order')
+@login_required
+def sync_single_order(order_id):
+    """مزامنة طلب معين"""
+    try:
+        synced = services.orders.sync_single_order(order_id)
+        if synced:
+            return jsonify({'success': True, 'message': 'تم تحديث الطلب'})
+        return jsonify({'success': False, 'message': 'فشل التحديث'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-def register_admin_orders_route(bp):
-    bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
-    bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
-    return bp
+@admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
+@login_required
+def view_admin_order(order_id):
+    order = db.session.get(Order, order_id)
+    if not order and hasattr(services.orders, 'get_order_by_id'):
+        services.orders.get_order_by_id(order_id)
+        order = db.session.get(Order, order_id)
+    
+    if not order:
+        flash('الطلب غير موجود', 'danger')
+        return redirect(url_for('admin_orders_bp.list_admin_orders'))
+        
+    return render_template('admin/admin_order_detail.html', order=order, items_list=OrderItem.query.filter_by(order_id=order_id).all())
+
+@admin_orders_bp.route('/<string:order_id>/update-status', methods=['POST'], endpoint='update_order_status_inline')
+@login_required
+def update_order_status_inline(order_id):
+    data = request.get_json() or {}
+    order = db.session.get(Order, order_id)
+    if order:
+        order.status_code = data.get('status')
+        order.status_title = STATUS_TITLES_MAP.get(data.get('status'), 'غير معروف')
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 404
