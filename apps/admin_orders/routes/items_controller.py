@@ -18,21 +18,22 @@ def get_order_items(order_id):
             order_id=order_id
         )
     except Exception as e:
-        return f'<div class="alert alert-danger">خطأ: {str(e)}</div>', 500
+        current_app.logger.error(f"Error loading items: {str(e)}")
+        return f'<div class="alert alert-danger m-3">خطأ في تحميل العناصر: {str(e)}</div>', 500
 
 @items_bp.route('/admin/orders/<string:order_id>/item/<int:item_id>/assign-supplier', methods=['POST'])
 def assign_supplier(order_id, item_id):
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         s_id = data.get('supplier_id')
-        supplier_id = int(s_id) if s_id else None
+        supplier_id = int(s_id) if s_id not in [None, ""] else None
         
         item = OrderItem.query.filter_by(id=item_id, order_id=order_id).first()
         if item:
             item.supplier_id = supplier_id
             db.session.commit()
-            return jsonify({'success': True, 'message': 'تم التحديث'})
-        return jsonify({'success': False, 'message': 'لم يتم العثور على العنصر'}), 404
+            return jsonify({'success': True, 'message': 'تم تعيين المورد بنجاح'})
+        return jsonify({'success': False, 'message': 'العنصر غير موجود'}), 404
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
