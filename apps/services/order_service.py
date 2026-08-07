@@ -1,6 +1,5 @@
 # coding: utf-8
 # 📂 apps/services/order_service.py
-# تم التحديث بناءً على orders_queries.graphql
 
 from apps.services.graphql_client import GraphQLClient
 
@@ -11,9 +10,7 @@ class OrderService:
         self.client = client if client else GraphQLClient()
 
     def get_all_orders(self, page: int = 1, limit: int = 50):
-        # ✅ تم تبني استعلام FindAllOrdersBasic من الملف
-        # ✅ استخدام totalItems بدلاً من totalCount
-        # ✅ إضافة التداخل الصحيح لـ account { account { fullname, phone } }
+        # ✅ تمت إزالة الحقل الخطأ "images"، والاكتفاء بـ "image" فقط كما طلب الساندبوكس
         query = """
         query FindAllOrdersBasic($input: FindAllOrdersInput!) {
             findAllOrders(input: $input) {
@@ -43,9 +40,6 @@ class OrderService:
                             image {
                                 fileUrl
                             }
-                            images {
-                                fileUrl
-                            }
                         }
                     }
                 }
@@ -60,7 +54,6 @@ class OrderService:
         }
         """
         try:
-            # ✅ استخدام input بدلاً من المتغيرات المفككة ليتطابق مع الساند بوكس
             data = self.client.execute(query, {"input": {"page": page, "limit": limit}})
             
             if data and isinstance(data, dict) and "findAllOrders" in data:
@@ -72,7 +65,7 @@ class OrderService:
             return {"data": [], "pagination": {"totalItems": 0, "hasNextPage": False}}
 
     def get_order_by_id(self, order_id: str):
-        # ✅ تم تحديث استعلام الطلب الفردي بنفس الهيكل
+        # ✅ نفس التعديل هنا (إزالة images)
         query = """
         query FindOrderByIdBasic($id: ID!) {
             findOrderById(id: $id) {
@@ -99,9 +92,6 @@ class OrderService:
                         title
                         price
                         image {
-                            fileUrl
-                        }
-                        images {
                             fileUrl
                         }
                     }
