@@ -35,12 +35,8 @@ class GraphQLClient:
         if operation_name:
             payload["operationName"] = operation_name
         
-        # ✅ نسخ الـ headers
+        # ✅ نسخ الـ headers (تم إزالة إضافة x-apollo-operation-name التي كانت تسبب خطأ 400)
         headers = self.headers.copy()
-        
-        # ✅ أضف operation_name في الـ header إذا كان موجوداً
-        if operation_name:
-            headers["x-apollo-operation-name"] = operation_name
         
         # ✅ طباعة للتصحيح
         print(f"🔍 [GraphQLClient] Operation: {operation_name}")
