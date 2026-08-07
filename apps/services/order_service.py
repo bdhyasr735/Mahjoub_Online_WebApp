@@ -228,16 +228,12 @@ class OrderService:
         date_from: str = None,
         date_to: str = None
     ) -> Dict[str, Any]:
-        input_data = {"page": page, "limit": per_page}
-        if supplier_id: input_data["supplierId"] = supplier_id
-        if status: input_data["status"] = status
-        if search: input_data["search"] = search
-        if date_from: input_data["dateFrom"] = date_from
-        if date_to: input_data["dateTo"] = date_to
+        # تمرير المتغيرات بشكل مباشر كما يتطلب السيرفر الحالي
+        variables = {"page": page, "limit": per_page}
 
         query = self._extract_query("FindAllOrders")
         try:
-            result = self.client.execute(query, {"input": input_data}, operation_name="FindAllOrders")
+            result = self.client.execute(query, variables, operation_name="FindAllOrders")
 
             orders_data = []
             pagination_data = {
@@ -313,7 +309,7 @@ class OrderService:
                             'status_title': order.status_title,
                             'is_paid': order.is_paid,
                             'total_amount': getattr(order, 'total_amount', 0.0),
-                            'total_price': getattr(order, 'total_amount', 0.0), # ✅ مطابقة حقل السعر مع الواجهة
+                            'total_price': getattr(order, 'total_amount', 0.0),
                             'created_at': order.created_at.isoformat() if order.created_at else None
                         }
                     
