@@ -163,4 +163,4 @@ def get_all_orders(page=1, limit=50):
     return orders_service.get_all_orders(page, limit)
 
 def get_order_by_id(order_id):
-    return orders_service.get_order_by_id(order_id
+    return orders_service.get_order_by_id(order_id)
