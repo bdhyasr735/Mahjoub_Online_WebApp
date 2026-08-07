@@ -1,6 +1,5 @@
 # coding: utf-8
 # 📂 apps/admin_orders/routes/orders.py
-# ✅ تمت إضافة سجلات المراقبة لتتبع سبب جلب 0 طلب من المصدر
 
 import traceback
 import threading
@@ -104,9 +103,6 @@ def _save_or_update_order(order_data):
 
 
 def sync_all_orders_from_graphql(max_pages=None):
-    """
-    مزامنة جميع الطلبات من GraphQL إلى قاعدة البيانات المحلية
-    """
     page = 1
     limit = 50
     total_synced = 0
@@ -118,7 +114,6 @@ def sync_all_orders_from_graphql(max_pages=None):
             print(f"⏳ جاري جلب الصفحة رقم {page}...")
             result = services.orders.get_all_orders(page=page, limit=limit)
             
-            # ✅ طباعة عينة من النتيجة لمعرفة ماذا يرجع المصدر
             print(f"📦 [DEBUG] نوع البيانات المستقبلة: {type(result)}")
             if isinstance(result, dict):
                 print(f"📦 [DEBUG] مفاتيح الاستجابة: {list(result.keys())}")
@@ -130,10 +125,9 @@ def sync_all_orders_from_graphql(max_pages=None):
             orders = []
             has_next = False
 
-            # التعامل الآمن مع أنواع البيانات
             if isinstance(result, dict):
                 orders = result.get('data', [])
-                pagination = result.get('pagination', {}) or {} # مهم جداً للتجنب من الخطأ
+                pagination = result.get('pagination', {}) or {}
                 has_next = pagination.get('hasNextPage', False)
             elif isinstance(result, list):
                 orders = result
