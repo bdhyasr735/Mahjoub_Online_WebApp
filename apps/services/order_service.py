@@ -8,6 +8,7 @@ class OrderService:
         self.client = client if client else GraphQLClient()
 
     def get_all_orders(self, page: int = 1, limit: int = 50):
+        # ✅ تمت إزالة orderId لأنه يسبب خطأ 400 (الحقل غير موجود في الـ Schema)
         query = """
         query FindAllOrdersBasic($input: FindAllOrdersInput!) {
             findAllOrders(input: $input) {
