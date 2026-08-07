@@ -20,13 +20,14 @@
                 <tbody>
                     {% if orders %}
                         {%- for order in orders -%}
-                        {% set current_order_id = order._id or order.id %}
-                        {% set customer_name = order.account.account.fullname if order.account and order.account.account else order.customer_name or 'زائر' %}
-                        {% set status_code = order.status.code if order.status else order.status_code %}
-                        {% set status_title = order.status.title if order.status else order.status_title %}
-                        {% set total_price = order.totalPrice or order.total_price or 0 %}
-                        {% set is_paid = order.isPaid if order.isPaid is not none else order.is_paid or false %}
-                        {% set created_at = order.createdAt or order.created_at or order.created_at %}
+                        {# ✅ استخدام الحقول المحلية مباشرة #}
+                        {% set current_order_id = order.id %}
+                        {% set customer_name = order.customer_name or 'زائر' %}
+                        {% set status_code = order.status_code or 'pending' %}
+                        {% set status_title = order.status_title or 'قيد الانتظار' %}
+                        {% set total_price = order.total_price or 0 %}
+                        {% set is_paid = order.is_paid or false %}
+                        {% set created_at = order.created_at %}
                         <tr>
                             <!-- معرف الطلب -->
                             <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="{{ current_order_id }}">
@@ -128,7 +129,7 @@ function updateOrderStatusInline(orderId, newStatus) {
         if (!data.success) {
             alert('❌ فشل تحديث الحالة: ' + (data.message || 'خطأ غير معروف'));
         } else {
-            // ✅ استخدام الدالة الصحيحة fetchOrders الموجودة في الصفحة الرئيسية
+            // إعادة تحميل الصفحة الحالية
             if (typeof fetchOrders === 'function') {
                 fetchOrders({{ pagination.current_page if pagination else 1 }});
             } else if (typeof fetchAdminOrders === 'function') {
