@@ -19,18 +19,21 @@
                     <tr>
                         <!-- 1. صورة المنتج -->
                         <td class="text-center">
-                            {% set img_url = item.productData.image or item.image or url_for('static', filename='img/default-product.png') %}
+                            {% set img_url = (item.productData.image if item.productData and item.productData.image else none) or (item.image if item.image else url_for('static', filename='img/default-product.png')) %}
                             <img src="{{ img_url }}" alt="صورة المنتج" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
                         </td>
 
                         <!-- 2. عنوان المنتج -->
                         <td>
                             <div class="fw-bold text-dark">
-                                {{ item.productData.title if item.productData and item.productData.title else (item.title or 'منتج بدون عنوان') }}
+                                {% if item.productData and item.productData.title %}
+                                    {{ item.productData.title }}
+                                {% elif item.title %}
+                                    {{ item.title }}
+                                {% else %}
+                                    منتج رقم: {{ item.productId or item.id }}
+                                {% endif %}
                             </div>
-                            {% if item.productData and item.productData.slug %}
-                            <small class="text-muted">الرابط: {{ item.productData.slug }}</small>
-                            {% endif %}
                         </td>
 
                         <!-- 3. الكمية -->
@@ -64,7 +67,6 @@
 </div>
 
 <script>
-    // سكربت التحديث الفوري للمورد عند الاختيار
     document.querySelectorAll('.supplier-select').forEach(select => {
         select.addEventListener('change', function() {
             const itemId = this.dataset.itemId;
