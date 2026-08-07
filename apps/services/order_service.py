@@ -138,7 +138,6 @@ class OrderService:
                             product_name = prod_data.get('title') or prod_data.get('name') or prod_data.get('productName')
                         
                         if not product_name:
-                            # محاولة البحث في حقول بديلة داخل العنصر نفسه
                             product_name = item.get('title') or item.get('product_name')
 
                         if not product_name:
@@ -172,14 +171,13 @@ class OrderService:
                         new_item = OrderItem(
                             order_id=existing_order.id,
                             supplier_id=item_supplier_id,
-                            product_name=product_name,  # حفظ اسم المنتج الحقيقي
-                            product_image=prod_image,   # حفظ رابط صورة المنتج محلياً
+                            product_name=product_name,
+                            product_image=prod_image,
                             quantity=qty,
                             price=price
                         )
                         db.session.add(new_item)
 
-                    # تحديث المورد الرئيسي للطلب
                     if hasattr(existing_order, 'supplier_id'):
                         existing_order.supplier_id = primary_supplier_id
 
@@ -285,7 +283,6 @@ class OrderService:
             if status:
                 query = query.filter(Order.status_code == status)
                 
-            # 💡 تعديل فلترة التاريخ ليشمل نهاية اليوم المحدد بـ date_to
             if date_from:
                 query = query.filter(Order.created_at >= datetime.strptime(date_from, '%Y-%m-%d'))
             if date_to:
@@ -315,7 +312,8 @@ class OrderService:
                             'status_code': order.status_code,
                             'status_title': order.status_title,
                             'is_paid': order.is_paid,
-                            'total_amount': order.total_amount,
+                            'total_amount': getattr(order, 'total_amount', 0.0),
+                            'total_price': getattr(order, 'total_amount', 0.0), # ✅ مطابقة حقل السعر مع الواجهة
                             'created_at': order.created_at.isoformat() if order.created_at else None
                         }
                     
