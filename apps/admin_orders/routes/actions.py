@@ -1,12 +1,17 @@
-from flask import Blueprint, render_template
+# coding: utf-8
+# 📂 apps/admin_orders/routes/actions.py
 
-api_bp = Blueprint('api_bp', __name__)
+from flask import Blueprint, render_template, request, jsonify
+# استيراد النماذج حسب الحاجة
+# from apps.models import Order, db
 
-@api_bp.route('/api/orders/<int:order_id>/status')
-def get_status_card(order_id):
-    # 1. جلب البيانات من قاعدة البيانات
-    order = Order.query.get_or_404(order_id)
-    # 2. إرجاع قالب البطاقة فقط (وليس الصفحة كاملة)
-    return render_template('admin/order/_order_status_card.html', order=order)
+actions_bp = Blueprint('actions_bp', __name__)
 
-# كرر نفس المنطق لباقي البطاقات...
+# مثال لمسار خاص بمعالجة البطاقات أو الأزرار
+@actions_bp.route('/admin/orders/<int:order_id>/action', methods=['POST'])
+def handle_order_action(order_id):
+    try:
+        # منطق المعالجة هنا
+        return jsonify({'success': True, 'message': 'تم تنفيذ الإجراء بنجاح'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
