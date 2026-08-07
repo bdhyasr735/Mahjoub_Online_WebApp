@@ -79,22 +79,27 @@ function debounceFetchOrders() {
     }, 450);
 }
 
-// متغير لتخزين مؤقت التحميل المسبق
-let prefetchTimeout;
-
 // دالة جلب الطلبات عبر AJAX
 function fetchOrders(page = 1, prefetch = false) {
     const container = document.getElementById('ordersContainer');
     const paginationContainer = document.getElementById('paginationContainer');
     if (!container) return;
 
+    // ✅ فقط إذا لم تكن هذه هي المرة الأولى (التحميل الأولي) نضع Spinner.
+    // إذا كان المستخدم يبحث أو يغير الفلاتر، نضع Spinner لأن البيانات الجديدة قادمة.
     if (!prefetch) {
-        container.innerHTML = `
-            <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
-                <div class="spinner-border mx-auto mb-3" style="color: #D4AF37; width: 3rem; height: 3rem;" role="status"></div>
-                <p class="text-muted fw-semibold mb-0">⏳ جاري تحميل الطلبات...</p>
-            </div>`;
-        if (paginationContainer) paginationContainer.innerHTML = '';
+        // فحص: هل لدينا بيانات من السيرفر بالفعل، وهل هذه هي الصفحة 1؟ إذا نعم لا نمسح الجدول.
+        const hasInitialData = container.querySelector('table tbody tr');
+        
+        // إذا كان الجدول فارغاً (لا توجد طلبات)، أو نحن في صفحة غير 1 أو قادمون من مزامنة، نضع الـ Spinner
+        if (!hasInitialData || page !== 1 || container.dataset.refreshing === 'true') {
+            container.innerHTML = `
+                <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
+                    <div class="spinner-border mx-auto mb-3" style="color: #D4AF37; width: 3rem; height: 3rem;" role="status"></div>
+                    <p class="text-muted fw-semibold mb-0">⏳ جاري تحميل الطلبات...</p>
+                </div>`;
+            if (paginationContainer) paginationContainer.innerHTML = '';
+        }
     }
 
     const params = new URLSearchParams({
@@ -123,6 +128,9 @@ function fetchOrders(page = 1, prefetch = false) {
             }
 
             container.innerHTML = data.html;
+            // إزالة علامة التحديث
+            delete container.dataset.refreshing;
+            
             if (paginationContainer) {
                 paginationContainer.innerHTML = data.pagination_html || '';
             }
@@ -200,6 +208,11 @@ function syncAdminOrders(event) {
         }
         btn.innerHTML = originalContent;
         btn.disabled = false;
+        
+        // ✅ إضافة علامة لتحديث الجدول بالقوة (لإجبار الـ Spinner عند إعادة التحميل بعد المزامنة)
+        const container = document.getElementById('ordersContainer');
+        container.dataset.refreshing = 'true';
+        
         // إعادة تحميل الطلبات بعد 5 ثوانٍ (لإعطاء وقت للمزامنة)
         setTimeout(() => fetchOrders(1), 5000);
     })
@@ -219,8 +232,19 @@ function syncAdminOrders(event) {
 
 // ربط الأحداث عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', function() {
-    // جلب الطلبات الأولي
-    fetchOrders(1);
+    const container = document.getElementById('ordersContainer');
+    
+    // ✅ فحص: هل لدينا طلبات معروضة مسبقاً من الخادم؟
+    const hasInitialOrders = container && container.querySelector('table tbody tr');
+
+    // إذا كانت هناك طلبات معروضة مسبقاً، لا نقوم بعمل AJAX أولي (سيظهر فوراً للمستخدم)
+    if (!hasInitialOrders) {
+        // في حال كانت الصفحة فارغة فعلاً، نقوم بجلبها عبر AJAX
+        fetchOrders(1);
+    } else {
+        // نربط أحداث الصفحات فقط لأن البيانات موجودة
+        attachPaginationEvents();
+    }
 
     // ربط أحداث الفلاتر والبحث
     const searchInput = document.getElementById('searchInput');
@@ -239,7 +263,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'financialStatusFilter', 
         'fulfillmentStatusFilter', 
         'dateFrom', 
-        'dateTo'
+        'dateTo',
+        'supplierFilter' // ✅ أضفنا هذا حتى لا تنسى ربطه بـ AJAX إذا كان موجوداً في الفلاتر
     ];
     filterIds.forEach(id => {
         const el = document.getElementById(id);
