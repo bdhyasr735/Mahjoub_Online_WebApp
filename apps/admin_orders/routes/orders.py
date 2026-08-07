@@ -1,5 +1,6 @@
 # coding: utf-8
 # 📂 apps/admin_orders/routes/orders.py
+# ✅ تم تحديث دالة المزامنة (sync_all_orders_from_graphql) لتتحمل أنواع البيانات المختلفة
 
 import traceback
 import threading
@@ -33,7 +34,7 @@ STATUS_TITLES_MAP = {
 
 
 # ============================================================
-# دوال مساعدة للمزامنة والحفظ (معدلة لتتوافق مع النماذج الفعلية)
+# دوال مساعدة للمزامنة والحفظ
 # ============================================================
 
 def _save_or_update_order_item(order_id, item_data):
@@ -62,9 +63,6 @@ def _save_or_update_order_item(order_id, item_data):
     image_data = product_data.get('image', {})
     item.product_image = image_data.get('fileUrl', '')
 
-    # يمكن تعيين supplier_id لاحقاً إذا توفر
-    # item.supplier_id = ...
-
     db.session.merge(item)
     db.session.commit()
 
@@ -84,7 +82,6 @@ def _save_or_update_order(order_data):
         order = Order(id=order_id)  # المفتاح الأساسي هو id وليس _id
 
     # تعيين الحقول حسب النموذج الفعلي
-    # ⚠️ order_number من نوع Integer، لذا نحول القيمة إلى عدد صحيح
     order_number = order_data.get('orderNumber')
     if order_number:
         try:
@@ -148,26 +145,38 @@ def _save_or_update_order(order_data):
     db.session.commit()
 
 
+# ============================================================
+# 🛠️ تم تعديل هذه الدالة لتحمل جميع صيغ البيانات القادمة من "قمره"
+# ============================================================
 def sync_all_orders_from_graphql(max_pages=None):
     """
-    مزامنة جميع الطلبات من GraphQL إلى قاعدة البيانات المحلية
-    بالتكرار على جميع الصفحات حتى نفاذ البيانات.
-
+    مزامنة جميع الطلبات من GraphQL إلى قاعدة البيانات المحلية.
     المعاملات:
-        max_pages: عدد الصفحات المحدد (اختياري)،
-                   إذا كان None فيجلب الكل (حتى آخر صفحة).
-    العائد:
-        عدد الطلبات التي تمت مزامنتها.
+        max_pages: عدد الصفحات المحدد (اختياري).
     """
     page = 1
-    limit = 50  # يمكن تعديلها حسب الحاجة
+    limit = 50
     total_synced = 0
 
     while True:
         try:
             result = services.orders.get_all_orders(page=page, limit=limit)
-            orders = result.get('data', [])
-            pagination = result.get('pagination', {})
+            
+            # ✅ إذا كانت النتيجة فارغة (None أو [] أو {}) نكسر الحلقة
+            if not result:
+                break
+
+            # ✅ التعامل الذكي مع نوع البيانات (تحديث جوهري)
+            if isinstance(result, dict):
+                orders = result.get('data', [])
+                pagination = result.get('pagination', {})
+                has_next = pagination.get('hasNextPage', False)
+            elif isinstance(result, list):
+                orders = result
+                has_next = False  # إذا كانت قائمة بسيطة لا يوجد ترقيم صفحات
+            else:
+                # نوع بيانات غير متوقع (نخليها تسلم)
+                break
 
             if not orders:
                 break
@@ -176,7 +185,7 @@ def sync_all_orders_from_graphql(max_pages=None):
                 _save_or_update_order(order_data)
                 total_synced += 1
 
-            has_next = pagination.get('hasNextPage', False)
+            # التحقق من الصفحة التالية
             if not has_next:
                 break
 
@@ -187,6 +196,7 @@ def sync_all_orders_from_graphql(max_pages=None):
 
         except Exception as e:
             current_app.logger.error(f"خطأ في جلب الصفحة {page}: {e}")
+            traceback.print_exc()  # طباعة التتبع الكامل في سجل الخادم (Render)
             break
 
     return total_synced
