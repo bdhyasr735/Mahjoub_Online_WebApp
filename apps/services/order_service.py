@@ -4,20 +4,15 @@
 from apps.services.graphql_client import GraphQLClient
 
 class OrderService:
-    """خدمة إدارة الطلبات - تعتمد على GraphQLClient"""
-
     def __init__(self, client=None):
         self.client = client if client else GraphQLClient()
 
     def get_all_orders(self, page: int = 1, limit: int = 50):
-        # ✅ تمت إزالة الحقل الخطأ "images"، والاكتفاء بـ "image" فقط كما طلب الساندبوكس
-        # ✅ تمت إضافة orderId ليتمكن النظام من قراءة رقم الطلب الحقيقي من قمره
         query = """
         query FindAllOrdersBasic($input: FindAllOrdersInput!) {
             findAllOrders(input: $input) {
                 data {
                     _id
-                    orderId
                     type
                     totalPrice
                     isPaid
@@ -57,22 +52,18 @@ class OrderService:
         """
         try:
             data = self.client.execute(query, {"input": {"page": page, "limit": limit}})
-            
             if data and isinstance(data, dict) and "findAllOrders" in data:
                 return data["findAllOrders"]
-            
             return {"data": [], "pagination": {"totalItems": 0, "hasNextPage": False}}
         except Exception as e:
             print(f"❌ [OrderService] خطأ في get_all_orders: {e}")
             return {"data": [], "pagination": {"totalItems": 0, "hasNextPage": False}}
 
     def get_order_by_id(self, order_id: str):
-        # ✅ نفس التعديل هنا (إزالة images وإضافة orderId)
         query = """
         query FindOrderByIdBasic($id: ID!) {
             findOrderById(id: $id) {
                 _id
-                orderId
                 type
                 totalPrice
                 isPaid
@@ -111,11 +102,8 @@ class OrderService:
             print(f"❌ [OrderService] خطأ في get_order_by_id: {e}")
             return None
 
-# ✅ تعريف المتغير العام
 orders_service = OrderService()
-
 def get_all_orders(page=1, limit=50):
     return orders_service.get_all_orders(page, limit)
-
 def get_order_by_id(order_id):
     return orders_service.get_order_by_id(order_id)
