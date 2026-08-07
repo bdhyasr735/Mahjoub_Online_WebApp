@@ -2,7 +2,6 @@
 # 📂 apps/services/__init__.py
 
 import logging
-from typing import Optional
 from apps.services.graphql_client import GraphQLClient
 
 logger = logging.getLogger(__name__)
@@ -26,11 +25,9 @@ class Services:
             try:
                 from apps.services.product_service import ProductService
                 self._products = ProductService(client=self.client)
-            except ImportError as e:
-                logger.warning(f"⚠️ ProductService غير متوفرة: {e}")
-                self._products = None
+                logger.info("✅ [Services] تم تحميل ProductService بنجاح")
             except Exception as e:
-                logger.error(f"❌ خطأ في تحميل ProductService: {e}")
+                logger.error(f"❌ [Services] فشل تحميل ProductService: {e}")
                 self._products = None
         return self._products
     
@@ -40,11 +37,8 @@ class Services:
             try:
                 from apps.services.collection_service import CollectionService
                 self._collections = CollectionService(client=self.client)
-            except ImportError as e:
-                logger.warning(f"⚠️ CollectionService غير متوفرة: {e}")
-                self._collections = None
             except Exception as e:
-                logger.error(f"❌ خطأ في تحميل CollectionService: {e}")
+                logger.error(f"❌ [Services] فشل تحميل CollectionService: {e}")
                 self._collections = None
         return self._collections
     
@@ -54,11 +48,8 @@ class Services:
             try:
                 from apps.services.supplier_service import SupplierService
                 self._suppliers = SupplierService(client=self.client)
-            except ImportError as e:
-                logger.warning(f"⚠️ SupplierService غير متوفرة: {e}")
-                self._suppliers = None
             except Exception as e:
-                logger.error(f"❌ خطأ في تحميل SupplierService: {e}")
+                logger.error(f"❌ [Services] فشل تحميل SupplierService: {e}")
                 self._suppliers = None
         return self._suppliers
     
@@ -68,11 +59,9 @@ class Services:
             try:
                 from apps.services.order_service import OrderService
                 self._orders = OrderService(client=self.client)
-            except ImportError as e:
-                logger.warning(f"⚠️ OrderService غير متوفرة: {e}")
-                self._orders = None
+                logger.info("✅ [Services] تم تحميل OrderService بنجاح")
             except Exception as e:
-                logger.error(f"❌ خطأ في تحميل OrderService: {e}")
+                logger.error(f"❌ [Services] فشل تحميل OrderService: {e}")
                 self._orders = None
         return self._orders
     
@@ -82,59 +71,20 @@ class Services:
             try:
                 from apps.services.user_service import UserService
                 self._users = UserService(client=self.client)
-            except ImportError as e:
-                logger.warning(f"⚠️ UserService غير متوفرة: {e}")
-                self._users = None
             except Exception as e:
-                logger.error(f"❌ خطأ في تحميل UserService: {e}")
+                logger.error(f"❌ [Services] فشل تحميل UserService: {e}")
                 self._users = None
         return self._users
-    
+
     @property
     def variants(self):
         if self._variants is None:
             try:
                 from apps.services.variant_service import VariantService
                 self._variants = VariantService(client=self.client)
-            except ImportError as e:
-                logger.warning(f"⚠️ VariantService غير متوفرة: {e}")
-                self._variants = None
             except Exception as e:
-                logger.error(f"❌ خطأ في تحميل VariantService: {e}")
+                logger.error(f"❌ [Services] فشل تحميل VariantService: {e}")
                 self._variants = None
         return self._variants
 
-    @property
-    def audit(self):
-        if self._audit is None:
-            try:
-                from apps.services.audit_logger import AuditLogger
-                self._audit = AuditLogger
-            except ImportError as e:
-                logger.warning(f"⚠️ AuditLogger غير متوفرة: {e}")
-                self._audit = None
-            except Exception as e:
-                logger.error(f"❌ خطأ في تحميل AuditLogger: {e}")
-                self._audit = None
-        return self._audit
-
 services = Services()
-
-def get_products(): return services.products
-def get_collections(): return services.collections
-def get_suppliers(): return services.suppliers
-def get_orders(): return services.orders
-def get_users(): return services.users
-def get_variants(): return services.variants
-def get_audit(): return services.audit
-
-__all__ = [
-    'services',
-    'get_products',
-    'get_collections',
-    'get_suppliers',
-    'get_orders',
-    'get_users',
-    'get_variants',
-    'get_audit'
-]
