@@ -130,6 +130,9 @@ class OrderService:
                 "status": status_code # الحالة الجديدة
             }
             
+            # ✅ إضافة طباعة لما يتم إرساله إلى قمره لمعرفة السبب الحقيقي
+            print(f"🚀 [DEBUG] إرسال الطلب إلى قمره: {input_data}")
+            
             data = self.client.execute(mutation, {"changeOrderStatusInput2": input_data})
             
             if data and "changeOrderStatus" in data:
