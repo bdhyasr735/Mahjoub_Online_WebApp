@@ -34,10 +34,7 @@ fragment OrderSummary on Order {
     productData {
       title
       price
-      image {
-        fileUrl
-      }
-      images {
+      image {         # ✅ تم التصحيح هنا (image بدلاً من images)
         fileUrl
       }
     }
