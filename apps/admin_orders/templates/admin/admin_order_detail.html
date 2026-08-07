@@ -5,28 +5,24 @@
 {% block content %}
 <div class="container-fluid mb-5">
     
-    <!-- رأس الصفحة (العنوان والأزرار) -->
+    <!-- رأس الصفحة -->
     {% include "admin/order/_order_header.html" ignore missing %}
 
     <div class="row">
-        <!-- العمود الأيمن: قائمة المنتجات -->
+        <!-- المنتجات (تظل جزءاً من الصفحة الأساسية للسرعة) -->
         <div class="col-xl-8 col-lg-7 mb-4">
             {% include "admin/order/_items_table_card.html" ignore missing %}
         </div>
 
-        <!-- العمود الأيسر: بطاقات المعلومات الجانبية -->
+        <!-- المنطقة المخصصة للبطاقات المحملة ديناميكياً -->
         <div class="col-xl-4 col-lg-5">
-            {% include "admin/order/_order_status_card.html" ignore missing %}
-            {% include "admin/order/_customer_info_card.html" ignore missing %}
-            {% include "admin/order/_financial_summary_card.html" ignore missing %}
-            {% include "admin/order/_supplier_stats_card.html" ignore missing %}
+            <div id="status-card-container" hx-get="/api/orders/{{ order.id }}/status" hx-trigger="load">
+                <div class="spinner-border"></div> <!-- مؤشر تحميل -->
+            </div>
+            <div id="customer-card-container" hx-get="/api/orders/{{ order.id }}/customer" hx-trigger="load"></div>
+            <div id="financial-card-container" hx-get="/api/orders/{{ order.id }}/financials" hx-trigger="load"></div>
+            <div id="supplier-card-container" hx-get="/api/orders/{{ order.id }}/supplier-stats" hx-trigger="load"></div>
         </div>
     </div>
-
 </div>
-{% endblock %}
-
-{% block scripts %}
-    {{ super() }}
-    {% include "admin/order/_order_scripts.html" ignore missing %}
 {% endblock %}
