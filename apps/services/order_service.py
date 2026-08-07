@@ -13,13 +13,15 @@ class OrderService:
     تتولى عمليات المصادقة، الاستعلام، وتنظيم البيانات.
     """
 
-    def __init__(self):
-        # 🔑 إعدادات الاتصال بالسيرفر الخارجي (يجب وضعها في ملف config أو env)
-        # مثال: 
-        # self.api_url = current_app.config.get('GRAPHQL_API_URL')
-        # self.access_token = current_app.config.get('API_ACCESS_TOKEN')
-        
-        # يمكنك وضع رابط المصدر هنا (مثال افتراضي للمنصة):
+    # ✅ هذا هو التعديل الجذري: إضافة client=None ليستقبل الوسيط ولا ينهار
+    def __init__(self, client=None):
+        if client:
+            self.client = client
+        else:
+            self.client = None
+            
+        # 🔑 إعدادات الاتصال بالسيرفر الخارجي
+        # ضع هنا الرابط والـ Token الحقيقيين الخاصين بـ "قمره"
         self.api_url = "https://api.mahjoub-sa.com/graphql"  
         self.access_token = "YOUR_API_TOKEN_HERE" 
 
@@ -43,7 +45,7 @@ class OrderService:
             # إرسال الطلب
             response = requests.post(self.api_url, json=payload, headers=headers, timeout=30)
             
-            # ✅ **تصحيح الأخطاء (مهم جداً):** طباعة الاستجابة الخام في سجل الخادم
+            # ✅ طباعة الاستجابة الخام في سجل الخادم (مهم جداً للتصحيح)
             print(f"\n🔍 [OrderService DEBUG] Request URL: {self.api_url}")
             print(f"🔍 [OrderService DEBUG] Status Code: {response.status_code}")
             if response.status_code != 200:
@@ -52,12 +54,10 @@ class OrderService:
 
             result = response.json()
             
-            # التحقق من وجود أخطاء GraphQL داخل الاستجابة
             if 'errors' in result:
                 print(f"❌ [OrderService DEBUG] GraphQL Errors: {json.dumps(result['errors'], indent=2)}")
                 return None
             
-            # إرجاع البيانات الناجحة (عادة تكون داخل data)
             return result.get('data')
 
         except requests.exceptions.RequestException as req_err:
@@ -73,16 +73,6 @@ class OrderService:
             return None
 
     def get_all_orders(self, page=1, limit=50):
-        """
-        جلب قائمة الطلبات مع إمكانية التصفح (Pagination).
-        المعاملات:
-            page: رقم الصفحة الحالية
-            limit: عدد الطلبات في الصفحة
-        العائد:
-            قاموس يحتوي على المفاتيح: 'data' و 'pagination'
-        """
-        # 📝 استعلام GraphQL لجلب الطلبات (عليك كتابة الاستعلام الصحيح الخاص بـ "قمره")
-        # يرجى التأكد من أن الأسماء (orders, items, account...) تطابق ما هو موجود في نظامكم
         query = """
         query GetOrders($page: Int, $limit: Int) {
             orders(page: $page, limit: $limit) {
@@ -128,24 +118,14 @@ class OrderService:
         }
         """
         
-        variables = {
-            "page": page,
-            "limit": limit
-        }
-
-        # تنفيذ الاستعلام
+        variables = {"page": page, "limit": limit}
         data = self._execute_graphql_query(query, variables)
 
         if not data:
             return None
-
-        # إعادة البيانات بالصيغة التي يتوقعها ملف orders.py (data و pagination)
         return data.get('orders', {})
 
     def get_order_by_id(self, order_id):
-        """
-        جلب تفاصيل طلب محدد باستخدام معرفه (ID).
-        """
         query = """
         query GetOrder($id: ID!) {
             order(id: $id) {
@@ -185,21 +165,16 @@ class OrderService:
         }
         """
         
-        variables = {
-            "id": order_id
-        }
-
+        variables = {"id": order_id}
         data = self._execute_graphql_query(query, variables)
         if not data:
             return None
-            
         return data.get('order')
 
-# ✅ تعريف المتغير العام لاستخدامه في باقي النظام
+# ✅ تعريف المتغير العام
 orders_service = OrderService()
 
-# لضمان توافق الاستيراد القديم للملفات الأخرى التي تستخدم (services.orders)
-# سنقوم بربط الدوال بالمتغير العام
+# ربط الدوال لتكون متاحة للاستيراد المباشر
 def get_all_orders(page=1, limit=50):
     return orders_service.get_all_orders(page, limit)
 
