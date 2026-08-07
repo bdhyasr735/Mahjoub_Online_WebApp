@@ -109,27 +109,31 @@ class OrderService:
             return None
 
     # ============================================================
-    # 🚀 إضافة جديدة: دالة لإرسال تحديث الحالة إلى قمره عبر Mutation
+    # 🚀 دالة تحديث الحالة في قمره باستخدام changeOrderStatus
     # ============================================================
     def update_order_status_in_qumra(self, order_id: str, status_code: str) -> bool:
         """
         إرسال طلب تحديث الحالة إلى قمره عبر GraphQL Mutation.
         """
-        # ⚠️ ملاحظة هامة: هذا هو الشكل المفترض للـ Mutation في قمره.
-        # يجب عليك فتح الساندبوكس والبحث عن Mutation باسم updateOrderStatus أو updateStatus أو updateOrder.
-        # إذا كان الاسم مختلفاً، قم بتعديل 'updateOrderStatus' في السطر التالي.
+        # ✅ استخدمنا الاسم الصحيح changeOrderStatus بناءً على الساندبوكس
+        # ✅ نضيف المتغير الإلزامي input (كائن فارغ حالياً، يمكن تعديله إذا طلب السيرفر حقولاً)
         mutation = """
-        mutation UpdateOrderStatus($id: ID!, $status: String!) {
-            updateOrderStatus(id: $id, status: $status) {
+        mutation ChangeOrderStatus($id: ID!, $status: String!, $input: ChangeOrderStatusInput!) {
+            changeOrderStatus(id: $id, status: $status, input: $input) {
                 success
                 message
             }
         }
         """
         try:
-            data = self.client.execute(mutation, {"id": order_id, "status": status_code})
-            if data and "updateOrderStatus" in data:
-                return data["updateOrderStatus"].get("success", False)
+            # 🔴 في حال طلب السيرفر حقلاً معيناً داخل input (مثل reason)، يمكنك تعديل الكائن هنا
+            data = self.client.execute(mutation, {
+                "id": order_id,
+                "status": status_code,
+                "input": {}  # نرسل كائن فارغ، وإذا احتاج حقولاً سنقوم بتعبئتها
+            })
+            if data and "changeOrderStatus" in data:
+                return data["changeOrderStatus"].get("success", False)
             return False
         except Exception as e:
             print(f"❌ [OrderService] فشل تحديث الحالة في قمره: {e}")
