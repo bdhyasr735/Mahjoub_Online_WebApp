@@ -1,76 +1,98 @@
-query FindAllOrders($page: Int, $limit: Int) {
-    findAllOrders(page: $page, limit: $limit) {
-        data {
-            _id
-            type
-            totalPrice
-            isPaid
-            createdAt
-            status {
-                code
-                title
-            }
-            account {
-                account {
-                    fullname
-                }
-            }
-            items {
-                productId
-                quantity
-                price
-                productData {
-                    title
-                    price
-                    image {
-                        fileUrl
-                    }
-                }
-            }
-        }
-        pagination {
-            totalItems
-            totalPages
-            currentPage
-            limit
-            hasNextPage
-        }
-    }
+# ========== FRAGMENTS ==========
+fragment OrderSummary on Order {
+  _id
+  totalPrice
+  isPaid
+  createdAt
+  status { code title }
+  account { account { fullname } }
+  items {
+    productId
+    quantity
+    price
+    productData { title price image { fileUrl } }
+  }
 }
 
+fragment OrderFull on Order {
+  ...OrderSummary
+  status { _id title code }
+  COD
+  type
+  currency { _id title currencyCode currencySymbol }
+  freeze
+  totalPriceWithTax
+  priceWithShipping
+  shippingPrice
+  handel
+  taxAmount
+  taxType
+  taxValue
+  taxLines { title amountType value amount base }
+  paymentMethod { ... }
+  market { ... }
+  shippingAddress { ... }
+  app
+  isFastOrder
+  salesLead { _id firstName lastName district street phone1 phone2 email }
+  account {
+    _id
+    app
+    account { _id fullname phone type verified blocked blockedReason status avatarUrl createdAt updatedAt }
+    verified
+    blocked
+    orderCount
+    lastSeen
+    createdAt
+    updatedAt
+  }
+  items {
+    _id
+    orderId
+    productId
+    variantId
+    productData { title slug app image { _id fileUrl } price }
+    variantData { price compareAtPrice options { _id option { _id name type product } label sortOrder } }
+    quantity
+    weight
+    price
+    compareAtPrice
+    totalPrice
+    totalCompareAtPrice
+    totalSavings
+  }
+}
+
+# ========== QUERIES ==========
 query FindOrderById($id: ID!) {
-    findOrderById(id: $id) {
-        data {
-            _id
-            type
-            totalPrice
-            isPaid
-            createdAt
-            status {
-                code
-                title
-            }
-            account {
-                account {
-                    fullname
-                }
-            }
-            items {
-                productId
-                quantity
-                price
-                productData {
-                    title
-                    price
-                    image {
-                        fileUrl
-                    }
-                }
-            }
-        }
-    }
+  findOrderById(id: $id) {
+    ...OrderFull
+  }
 }
 
-mutation DeleteOrder($id: ID!) {
-    deleteOrder(id: $id)
+query FindAllOrders($input: FindAllOrdersInput!) {
+  findAllOrders(input: $input) {
+    data { ...OrderSummary }
+    pagination {
+      totalItems
+      totalPages
+      currentPage
+      limit
+      hasNextPage
+    }
+  }
+}
+
+query GetOrdersByIds($input: FindOrdersByIdsInput!) {
+  getOrdersByIds(input: $input) {
+    data { ...OrderFull }
+    pagination {
+      totalItems
+      hasPreviousPage
+      totalPages
+      currentPage
+      limit
+      hasNextPage
+    }
+  }
 }
