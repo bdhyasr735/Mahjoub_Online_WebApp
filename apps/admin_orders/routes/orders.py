@@ -58,6 +58,7 @@ def _save_or_update_order(order_data):
     if not order:
         order = Order(id=order_id)
 
+    # قد لا تكون هذه الحقول موجودة في الـ API، لكن get() ستتعامل معها بمرونة
     order_number = order_data.get('orderNumber')
     if order_number:
         try:
@@ -71,6 +72,8 @@ def _save_or_update_order(order_data):
             order.order_number = None
 
     order.order_reference = order_data.get('orderReference') or order_id
+    
+    # تداخل account الصحيح (من الساند بوكس: account { account { fullname, phone } })
     account = order_data.get('account', {})
     account_data = account.get('account', {})
     customer_name = account_data.get('fullname', 'زائر')
@@ -78,10 +81,12 @@ def _save_or_update_order(order_data):
     phone = account_data.get('phone')
     if phone:
         order.customer_phone = phone
+        
     shipping = order_data.get('shippingAddress', {})
     address = shipping.get('street') or shipping.get('description')
     if address:
         order.customer_address = address
+        
     order.total_price = order_data.get('totalPrice', 0)
     status_obj = order_data.get('status', {})
     order.status_code = status_obj.get('code', 'pending')
@@ -89,6 +94,7 @@ def _save_or_update_order(order_data):
     order.is_paid = order_data.get('isPaid', False)
     order.created_at = order_data.get('createdAt')
     order.updated_at = order_data.get('updatedAt')
+    
     items_list = order_data.get('items', [])
     order.items_count = len(items_list)
 
