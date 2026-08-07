@@ -9,26 +9,19 @@
     {% include "admin/order/_order_header.html" ignore missing %}
 
     <div class="row">
-        <!-- المنتجات (تحميل ديناميكي عبر HTMX لضمان جلب العناصر وعرضها فوراً) -->
+        <!-- المنتجات: تم تغيير التحميل ليتم مباشرة -->
         <div class="col-xl-8 col-lg-7 mb-4">
-            <div id="items-table-container" hx-get="/admin/orders/{{ order.id }}/items" hx-trigger="load">
-                <div class="card shadow mb-4">
-                    <div class="card-body text-center py-5">
-                        <div class="spinner-border text-primary" role="status"></div>
-                        <p class="mt-2 text-muted">جاري تحميل عناصر الطلب...</p>
-                    </div>
-                </div>
+            <div id="items-table-container">
+                {% include "admin/order/_items_table_card.html" %}
             </div>
         </div>
 
-        <!-- المنطقة المخصصة للبطاقات المحملة ديناميكياً -->
+        <!-- البطاقات الجانبية: تم تحميلها مباشرة -->
         <div class="col-xl-4 col-lg-5">
-            <div id="status-card-container" hx-get="/api/orders/{{ order.id }}/status" hx-trigger="load">
-                <div class="spinner-border"></div> <!-- مؤشر تحميل -->
-            </div>
-            <div id="customer-card-container" hx-get="/api/orders/{{ order.id }}/customer" hx-trigger="load"></div>
-            <div id="financial-card-container" hx-get="/api/orders/{{ order.id }}/financials" hx-trigger="load"></div>
-            <div id="supplier-card-container" hx-get="/api/orders/{{ order.id }}/supplier-stats" hx-trigger="load"></div>
+            <div id="status-card-container">{% include "admin/order/_status_card.html" ignore missing %}</div>
+            <div id="customer-card-container">{% include "admin/order/_customer_card.html" ignore missing %}</div>
+            <div id="financial-card-container">{% include "admin/order/_financial_card.html" ignore missing %}</div>
+            <div id="supplier-card-container">{% include "admin/order/_supplier_card.html" ignore missing %}</div>
         </div>
     </div>
 </div>
