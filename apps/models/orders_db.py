@@ -1,359 +1,175 @@
 # coding: utf-8
-# 📂 apps/admin_orders/routes/orders.py
+# 📂 apps/models/orders_db.py
 
-import traceback
-import threading
-from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Blueprint
-from flask_login import login_required
-
+import os
+from datetime import datetime
+from cryptography.fernet import Fernet
 from apps.extensions import db
-from apps.services import services
-from apps.models.orders_db import Order
-from apps.models.supplier_db import Supplier
-from apps.models.order_items_db import OrderItem
 
-# ✅ تعريف الـ Blueprint الرئيسي
-admin_orders_bp = Blueprint(
-    'admin_orders_bp',
-    __name__,
-    template_folder='../templates',
-    url_prefix='/admin/orders'
-)
+def get_cipher():
+    key = os.getenv('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=')
+    return Fernet(key.encode())
 
-# 🏷️ خريطة المسميات العربية للحالات
-STATUS_TITLES_MAP = {
-    'pending': 'قيد الانتظار',
-    'processing': 'قيد التجهيز',
-    'shipped': 'تم الشحن',
-    'delivered': 'تم التسليم',
-    'completed': 'مكتمل',
-    'cancelled': 'ملغي',
-    'refunded': 'مسترجع'
-}
+cipher = get_cipher()
 
+class Order(db.Model):
+    __tablename__ = 'orders'
 
-# ============================================================
-# دوال مساعدة للمزامنة والحفظ (معدلة حسب نموذج Order)
-# ============================================================
+    __table_args__ = (
+        db.Index('idx_ord_supplier_id', 'supplier_id'),
+        db.Index('idx_ord_marketer_id', 'marketer_id'),
+        db.Index('idx_ord_tracking_tag', 'tracking_tag'),
+        db.Index('idx_ord_ref', 'order_reference'),
+        db.Index('idx_ord_status', 'status_code'),
+        db.Index('idx_ord_created', 'created_at'),
+        {'extend_existing': True}
+    )
 
-def _save_or_update_order(order_data):
-    """
-    حفظ أو تحديث طلب في قاعدة البيانات المحلية.
-    يتوافق مع نموذج Order الموجود (مع تشفير name, phone, address).
-    """
-    order_id = order_data.get('_id')  # من GraphQL
-    if not order_id:
-        return
+    id = db.Column(db.String(100), primary_key=True)
+    order_id_display = db.Column(db.String(50), nullable=True)
+    
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
+    marketer_id = db.Column(db.Integer, db.ForeignKey('marketers.id'), nullable=True)
+    
+    tracking_tag = db.Column(db.String(100), nullable=True)
+    order_reference = db.Column(db.String(100), unique=True, nullable=True)
+    
+    total_price = db.Column(db.Numeric(18, 2), default=0.00)
+    items_count = db.Column(db.Integer, default=0)
+    
+    order_number = db.Column(db.Integer, nullable=True)
+    
+    status_code = db.Column(db.String(30), default='pending')
+    status_title = db.Column(db.String(50), default='قيد الانتظار')
+    is_paid = db.Column(db.Boolean, default=False)
+    
+    _customer_name = db.Column(db.Text)
+    _customer_phone = db.Column(db.Text)
+    _customer_address = db.Column(db.Text)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # ✅ استخدام id كمفتاح أساسي (كما في النموذج)
-    order = Order.query.get(order_id)
-    if not order:
-        order = Order(id=order_id)
+    supplier = db.relationship('Supplier', back_populates='orders', lazy='joined')
+    marketer = db.relationship('Marketer', back_populates='orders', lazy='joined')
+    
+    items = db.relationship('apps.models.order_items_db.OrderItem', back_populates='order', cascade="all, delete-orphan", lazy='joined')
+    
+    financials = db.relationship('OrderFinancial', back_populates='order', uselist=False, cascade="all, delete-orphan", lazy='joined')
 
-    # تعيين الحقول حسب النموذج الفعلي
-    order.order_number = order_data.get('orderNumber') or order_id[:8]
-    order.order_reference = order_data.get('orderReference') or order_id
+    @property
+    def amount(self):
+        return float(self.financials.total_paid) if self.financials and self.financials.total_paid else float(self.total_price or 0.0)
 
-    # استخراج اسم العميل من account (سيتم تشفيره تلقائياً عبر setter)
-    account = order_data.get('account', {})
-    account_data = account.get('account', {})
-    customer_name = account_data.get('fullname', 'زائر')
-    order.customer_name = customer_name  # ✅ يستخدم setter المشفر
+    @property
+    def customer_name(self):
+        if not self._customer_name: return "غير معروف"
+        try: return cipher.decrypt(self._customer_name.encode()).decode()
+        except Exception: return str(self._customer_name)
 
-    # رقم الهاتف والعنوان (إذا وجدا)
-    phone = account_data.get('phone')
-    if phone:
-        order.customer_phone = phone
+    @customer_name.setter
+    def customer_name(self, value):
+        if value: self._customer_name = cipher.encrypt(str(value).encode()).decode()
+        else: self._customer_name = None
 
-    # قد يكون العنوان في shippingAddress
-    shipping = order_data.get('shippingAddress', {})
-    address = shipping.get('street') or shipping.get('description')
-    if address:
-        order.customer_address = address
+    @property
+    def customer_phone(self):
+        if not self._customer_phone: return None
+        try: return cipher.decrypt(self._customer_phone.encode()).decode()
+        except Exception: return str(self._customer_phone)
 
-    # المبلغ الإجمالي
-    order.total_price = order_data.get('totalPrice', 0)
+    @customer_phone.setter
+    def customer_phone(self, value):
+        if value: self._customer_phone = cipher.encrypt(str(value).encode()).decode()
+        else: self._customer_phone = None
 
-    # الحالة
-    status_obj = order_data.get('status', {})
-    order.status_code = status_obj.get('code', 'pending')
-    order.status_title = status_obj.get('title', 'قيد الانتظار')
+    @property
+    def customer_address(self):
+        if not self._customer_address: return None
+        try: return cipher.decrypt(self._customer_address.encode()).decode()
+        except Exception: return str(self._customer_address)
 
-    # الدفع
-    order.is_paid = order_data.get('isPaid', False)
+    @customer_address.setter
+    def customer_address(self, value):
+        if value: self._customer_address = cipher.encrypt(str(value).encode()).decode()
+        else: self._customer_address = None
 
-    # التواريخ
-    order.created_at = order_data.get('createdAt')
-    order.updated_at = order_data.get('updatedAt')
+    @property
+    def _id(self): return self.id
 
-    # عدد العناصر (سيتم تحديثه لاحقاً)
-    items_list = order_data.get('items', [])
-    order.items_count = len(items_list)
+    @property
+    def status(self):
+        code_val = self.status_code or 'pending'
+        title_val = self.status_title or 'قيد الانتظار'
+        class StatusWrapper:
+            def __init__(self, code, title):
+                self.code = code; self.title = title
+            def __getitem__(self, item): return getattr(self, item, '')
+            def __str__(self): return str(self.code)
+        return StatusWrapper(code_val, title_val)
 
-    db.session.merge(order)
-    db.session.commit()
+    @property
+    def account(self):
+        fullname_val = self.customer_name or 'عميل'
+        class AccountInner:
+            def __init__(self, fullname):
+                self.fullname = fullname; self.phone = None; self.avatarUrl = None
+        class AccountOuter:
+            def __init__(self, fullname):
+                self.account = AccountInner(fullname)
+        return AccountOuter(fullname_val)
 
-    # ✅ حفظ عناصر الطلب (سنعدلها بعد معرفة نموذج OrderItem)
-    for item_data in items_list:
-        _save_or_update_order_item(order_id, item_data)
+    @property
+    def total_amount(self): 
+        return float(self.total_price or 0.0)
 
-    # تحديث عدد العناصر مرة أخرى للتأكد
-    order.items_count = len(items_list)
-    db.session.commit()
+    @total_amount.setter
+    def total_amount(self, value):
+        self.total_price = float(value or 0.0)
 
+    @property
+    def totalPrice(self): 
+        return float(self.total_price or 0.0)
 
-def _save_or_update_order_item(order_id, item_data):
-    """
-    حفظ أو تحديث عنصر طلب.
-    (سيتم تعديلها بعد رؤية نموذج OrderItem)
-    """
-    product_id = item_data.get('productId')
-    if not product_id:
-        return
+    @totalPrice.setter
+    def totalPrice(self, value):
+        self.total_price = float(value or 0.0)
 
-    # البحث عن العنصر باستخدام order_id و product_id
-    item = OrderItem.query.filter_by(order_id=order_id, product_id=product_id).first()
-    if not item:
-        item = OrderItem(order_id=order_id, product_id=product_id)
+    @property
+    def shippingPrice(self): return 0.0
 
-    # تعيين الحقول الأساسية (قد تختلف حسب النموذج)
-    item.quantity = item_data.get('quantity', 0)
-    item.price = item_data.get('price', 0)
-    product_data = item_data.get('productData', {})
-    item.product_title = product_data.get('title', '')
-    # يمكن إضافة حقول أخرى مثل variant_id, total_price, supplier_id إلخ
+    @property
+    def shipping_address(self): return self.customer_address
 
-    db.session.merge(item)
-    db.session.commit()
+    @property
+    def suppliers_list(self):
+        from apps.models.supplier_db import Supplier
+        suppliers_dict = {}
+        if self.supplier_id:
+            supplier = db.session.get(Supplier, self.supplier_id)
+            if supplier: suppliers_dict[supplier.id] = supplier
+        for item in self.items:
+            if item.supplier_id and item.supplier_id not in suppliers_dict:
+                supplier = db.session.get(Supplier, item.supplier_id)
+                if supplier: suppliers_dict[supplier.id] = supplier
+        return list(suppliers_dict.values())
 
-
-def sync_all_orders_from_graphql(max_pages=None):
-    """
-    مزامنة جميع الطلبات من GraphQL إلى قاعدة البيانات المحلية
-    بالتكرار على جميع الصفحات حتى نفاذ البيانات.
-
-    المعاملات:
-        max_pages: عدد الصفحات المحدد (اختياري)،
-                   إذا كان None فيجلب الكل (حتى آخر صفحة).
-    العائد:
-        عدد الطلبات التي تمت مزامنتها.
-    """
-    page = 1
-    limit = 50  # يمكن تعديلها حسب الحاجة
-    total_synced = 0
-
-    while True:
-        try:
-            result = services.orders.get_all_orders(page=page, limit=limit)
-            orders = result.get('data', [])
-            pagination = result.get('pagination', {})
-
-            if not orders:
-                break
-
-            for order_data in orders:
-                _save_or_update_order(order_data)
-                total_synced += 1
-
-            has_next = pagination.get('hasNextPage', False)
-            if not has_next:
-                break
-
-            if max_pages is not None and page >= max_pages:
-                break
-
-            page += 1
-
-        except Exception as e:
-            current_app.logger.error(f"خطأ في جلب الصفحة {page}: {e}")
-            break
-
-    return total_synced
-
-
-# ============================================================
-# دالة المزامنة الخلفية (تعمل في خيط منفصل)
-# ============================================================
-def _sync_orders_from_graphql(app=None):
-    """مزامنة الطلبات من GraphQL إلى قاعدة البيانات المحلية في الخلفية."""
-    if app is None:
-        app = current_app._get_current_object()
-    with app.app_context():
-        try:
-            # في الخلفية نجلب فقط أول 5 صفحات (250 طلب) لتجنب الضغط
-            total = sync_all_orders_from_graphql(max_pages=5)
-            current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (أول 5 صفحات)")
-        except Exception as e:
-            current_app.logger.error(f"❌ خطأ في مزامنة الطلبات الخلفية: {e}")
-
-
-# ============================================================
-# عرض قائمة الطلبات
-# ============================================================
-@admin_orders_bp.route('', methods=['GET'], endpoint='list_admin_orders')
-@admin_orders_bp.route('/', methods=['GET'])
-@login_required
-def manage_admin_orders_view():
-    try:
-        user_type = session.get('user_type')
-        if user_type != 'admin':
-            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
-            return redirect(url_for('admin_dashboard_bp.dashboard'))
-
-        page = request.args.get('page', 1, type=int)
-        per_page = 10
-        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-
-        # ✅ تشغيل المزامنة الخلفية فقط إذا لم تكن AJAX
-        if not is_ajax:
-            app = current_app._get_current_object()
-            thread = threading.Thread(target=_sync_orders_from_graphql, args=(app,), daemon=True)
-            thread.start()
-
-        # ✅ جلب الطلبات من قاعدة البيانات المحلية مع الفلاتر
-        query = Order.query
-
-        status_filter = request.args.get('status')
-        if status_filter:
-            query = query.filter(Order.status_code == status_filter)
-
-        search = request.args.get('search')
-        if search:
-            query = query.filter(
-                db.or_(
-                    Order.order_number.ilike(f'%{search}%'),
-                    Order._customer_name.ilike(f'%{search}%')  # نبحث في الحقل المشفر
-                )
-            )
-
-        date_from = request.args.get('date_from')
-        if date_from:
-            query = query.filter(Order.created_at >= date_from)
-
-        date_to = request.args.get('date_to')
-        if date_to:
-            query = query.filter(Order.created_at <= date_to)
-
-        query = query.order_by(Order.created_at.desc())
-
-        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
-        orders = paginated.items
-
-        pagination_info = {
-            'current_page': page,
-            'total_pages': paginated.pages,
-            'total_items': paginated.total,
-            'has_prev': paginated.has_prev,
-            'has_next': paginated.has_next,
-            'prev_num': page - 1 if paginated.has_prev else None,
-            'next_num': page + 1 if paginated.has_next else None,
+    def to_dict(self):
+        return {
+            'id': self.id, '_id': self.id, 'qid': self.id,
+            'order_reference': self.order_reference, 'order_number': self.order_number,
+            'supplier_id': self.supplier_id, 'status_code': self.status_code,
+            'status_title': self.status_title, 'status_text': self.status_title or 'غير معروف',
+            'customer_name': self.customer_name, 'customer_phone': self.customer_phone,
+            'customer_address': self.customer_address, 'is_paid': self.is_paid,
+            'total_price': float(self.total_price) if self.total_price else 0.0,
+            'items_count': self.items_count or (len(self.items) if self.items else 0),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'supplier_name': self.supplier.trade_name if self.supplier else 'غير مرتبط',
+            'suppliers': [{'id': s.id, 'trade_name': getattr(s, 'trade_name', 'مورد محلي')} for s in self.suppliers_list],
+            'items': [item.to_dict() for item in self.items] if self.items else []
         }
 
-        suppliers = Supplier.query.all()
-
-        if is_ajax:
-            return jsonify({
-                'success': True,
-                'html': render_template('admin/partials/_orders_table.html', orders=orders),
-                'pagination_html': render_template('admin/partials/_pagination.html', pagination=pagination_info)
-            })
-
-        return render_template('admin/admin_orders.html',
-                               orders=orders,
-                               pagination=pagination_info,
-                               suppliers=suppliers)
-
-    except Exception as e:
-        current_app.logger.error(f"خطأ في عرض الطلبات: {traceback.format_exc()}")
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': str(e)}), 500
-        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
-        return redirect(url_for('admin_dashboard_bp.dashboard'))
-
-
-# ============================================================
-# مزامنة الطلبات (يدوي - زر المزامنة)
-# ============================================================
-@admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
-@login_required
-def sync_admin_orders():
-    """مزامنة شاملة لجميع الطلبات من المنصة (بدون حدود)."""
-    try:
-        if session.get('user_type') != 'admin':
-            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
-
-        total = sync_all_orders_from_graphql()
-        return jsonify({'success': True, 'message': f'✅ تمت مزامنة {total} طلباً بنجاح.'})
-    except Exception as e:
-        current_app.logger.error(f"خطأ في المزامنة: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-# ============================================================
-# مزامنة طلب واحد
-# ============================================================
-@admin_orders_bp.route('/<string:order_id>/sync', methods=['POST'], endpoint='sync_single_order')
-@login_required
-def sync_single_order(order_id):
-    """مزامنة طلب معين من GraphQL إلى المحلية."""
-    try:
-        order_data = services.orders.get_order_by_id(order_id)
-        if order_data:
-            _save_or_update_order(order_data)
-            return jsonify({'success': True, 'message': 'تم تحديث الطلب'})
-        return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-    except Exception as e:
-        current_app.logger.error(f"خطأ في مزامنة الطلب {order_id}: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-# ============================================================
-# عرض تفاصيل الطلب
-# ============================================================
-@admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
-@login_required
-def view_admin_order(order_id):
-    try:
-        order = db.session.get(Order, order_id)
-        if not order:
-            order_data = services.orders.get_order_by_id(order_id)
-            if order_data:
-                _save_or_update_order(order_data)
-                order = db.session.get(Order, order_id)
-
-        if not order:
-            flash('الطلب غير موجود', 'danger')
-            return redirect(url_for('admin_orders_bp.list_admin_orders'))
-
-        items = OrderItem.query.filter_by(order_id=order_id).all()
-        return render_template('admin/admin_order_detail.html', order=order, items_list=items)
-    except Exception as e:
-        current_app.logger.error(f"خطأ في عرض تفاصيل الطلب: {traceback.format_exc()}")
-        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
-        return redirect(url_for('admin_orders_bp.list_admin_orders'))
-
-
-# ============================================================
-# تحديث حالة الطلب (من القائمة مباشرة)
-# ============================================================
-@admin_orders_bp.route('/<string:order_id>/update-status', methods=['POST'], endpoint='update_order_status_inline')
-@login_required
-def update_order_status_inline(order_id):
-    try:
-        data = request.get_json() or {}
-        new_status = data.get('status')
-        if not new_status:
-            return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
-
-        order = db.session.get(Order, order_id)
-        if not order:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-
-        order.status_code = new_status
-        order.status_title = STATUS_TITLES_MAP.get(new_status, 'غير معروف')
-        db.session.commit()
-
-        return jsonify({'success': True, 'message': 'تم تحديث الحالة'})
-    except Exception as e:
-        current_app.logger.error(f"خطأ في تحديث حالة الطلب: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+    def __repr__(self):
+        return f'<Order {self.order_id_display or self.id} | Status: {self.status_title} | Amount: {self.amount} SAR>'
