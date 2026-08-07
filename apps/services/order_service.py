@@ -1,359 +1,331 @@
 # coding: utf-8
-# 📂 apps/services/order_service.py
+# 📂 apps/admin_orders/routes/orders.py
+# ✅ تمت إضافة سجلات المراقبة لتتبع سبب جلب 0 طلب من المصدر
 
-import logging
-from typing import Optional, Dict, Any, List
-from pathlib import Path
+import traceback
+import threading
+from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Blueprint
+from flask_login import login_required
 
-from apps.services.graphql_client import GraphQLClient
+from apps.extensions import db
+from apps.services import services
+from apps.models.orders_db import Order
+from apps.models.supplier_db import Supplier
+from apps.models.order_items_db import OrderItem
 
-logger = logging.getLogger(__name__)
+admin_orders_bp = Blueprint(
+    'admin_orders_bp',
+    __name__,
+    template_folder='../templates',
+    url_prefix='/admin/orders'
+)
+
+STATUS_TITLES_MAP = {
+    'pending': 'قيد الانتظار',
+    'processing': 'قيد التجهيز',
+    'shipped': 'تم الشحن',
+    'delivered': 'تم التسليم',
+    'completed': 'مكتمل',
+    'cancelled': 'ملغي',
+    'refunded': 'مسترجع'
+}
 
 
-class OrderService:
+def _save_or_update_order_item(order_id, item_data):
+    product_id = item_data.get('productId')
+    if not product_id:
+        return
+    item = OrderItem.query.filter_by(order_id=order_id, product_qid=product_id).first()
+    if not item:
+        item = OrderItem(order_id=order_id, product_qid=product_id)
+
+    item.quantity = item_data.get('quantity', 0)
+    item.price = item_data.get('price', 0)
+    product_data = item_data.get('productData', {})
+    item.product_name = product_data.get('title', '')
+    image_data = product_data.get('image', {})
+    item.product_image = image_data.get('fileUrl', '')
+
+    db.session.merge(item)
+    db.session.commit()
+
+
+def _save_or_update_order(order_data):
+    order_id = order_data.get('_id')
+    if not order_id:
+        return
+
+    order = Order.query.get(order_id)
+    if not order:
+        order = Order(id=order_id)
+
+    order_number = order_data.get('orderNumber')
+    if order_number:
+        try:
+            order.order_number = int(order_number)
+        except (ValueError, TypeError):
+            order.order_number = None
+    else:
+        try:
+            order.order_number = int(order_id[:8], 16) % 1000000
+        except:
+            order.order_number = None
+
+    order.order_reference = order_data.get('orderReference') or order_id
+    account = order_data.get('account', {})
+    account_data = account.get('account', {})
+    customer_name = account_data.get('fullname', 'زائر')
+    order.customer_name = customer_name
+    phone = account_data.get('phone')
+    if phone:
+        order.customer_phone = phone
+    shipping = order_data.get('shippingAddress', {})
+    address = shipping.get('street') or shipping.get('description')
+    if address:
+        order.customer_address = address
+    order.total_price = order_data.get('totalPrice', 0)
+    status_obj = order_data.get('status', {})
+    order.status_code = status_obj.get('code', 'pending')
+    order.status_title = status_obj.get('title', 'قيد الانتظار')
+    order.is_paid = order_data.get('isPaid', False)
+    order.created_at = order_data.get('createdAt')
+    order.updated_at = order_data.get('updatedAt')
+    items_list = order_data.get('items', [])
+    order.items_count = len(items_list)
+
+    db.session.merge(order)
+    db.session.commit()
+
+    for item_data in items_list:
+        _save_or_update_order_item(order_id, item_data)
+
+    order.items_count = len(items_list)
+    db.session.commit()
+
+
+def sync_all_orders_from_graphql(max_pages=None):
     """
-    خدمة الطلبات (Orders) المسؤولة عن:
-    - جلب طلب واحد (مفصل أو مختصر)
-    - جلب قائمة الطلبات مع ترقيم (Pagination)
-    - جلب طلبات متعددة باستخدام قائمة IDs
+    مزامنة جميع الطلبات من GraphQL إلى قاعدة البيانات المحلية
     """
+    page = 1
+    limit = 50
+    total_synced = 0
 
-    def __init__(self, client: GraphQLClient):
-        self.client = client
+    print("\n🔍 [DEBUG] بدء مزامنة الطلبات من المصدر...")
 
-        # (اختياري) تحميل الاستعلامات من ملف .graphql إذا كان موجوداً
-        # وإلا سنستخدم الاستعلامات المضمنة في الأسفل
-        queries_path = Path(__file__).parent / "orders_queries.graphql"
-        self.queries_raw = ""
-        if queries_path.exists():
-            try:
-                with open(queries_path, "r", encoding="utf-8") as f:
-                    self.queries_raw = f.read()
-                logger.info("✅ تم تحميل orders_queries.graphql بنجاح")
-            except Exception as e:
-                logger.error(f"❌ فشل تحميل ملف الاستعلامات: {e}")
+    while True:
+        try:
+            print(f"⏳ جاري جلب الصفحة رقم {page}...")
+            result = services.orders.get_all_orders(page=page, limit=limit)
+            
+            # ✅ طباعة عينة من النتيجة لمعرفة ماذا يرجع المصدر
+            print(f"📦 [DEBUG] نوع البيانات المستقبلة: {type(result)}")
+            if isinstance(result, dict):
+                print(f"📦 [DEBUG] مفاتيح الاستجابة: {list(result.keys())}")
+            
+            if not result:
+                print("⛔ [DEBUG] الـ API رجع قيمة فارغة (None أو Empty)!")
+                break
 
-    # =========================================================
-    # 1. جلب طلب واحد بالمعرف (إصدار كامل ومفصل)
-    # =========================================================
-    def get_order_by_id(self, order_id: str) -> Optional[Dict[str, Any]]:
-        """
-        يستخدم الاستعلام المعقد الذي يعيد { data, success, message }
-        ويعيد لك الكائن الداخلي (data) مباشرة لتسهيل التعامل.
-        """
-        query = """
-        fragment OrderFull on Order {
-            _id
-            status { _id title code }
-            COD
-            type
-            currency { _id title currencyCode currencySymbol }
-            freeze
-            totalPrice
-            totalPriceWithTax
-            priceWithShipping
-            shippingPrice
-            handel
-            taxAmount
-            taxType
-            taxValue
-            taxLines { title amountType value amount base }
-            paymentMethod {
-                _id
-                payment {
-                    _id key descreption installed enable deleted schema
-                    createdAt updatedAt icon iconUrl needConfig methods name instructions id
-                }
-                enable unable action install deleted complete createdAt updatedAt data
-            }
-            market {
-                _id app title status
-                countryIds { _id name image { image imageUrl } code continent capital active deleted phonekey }
-                countryCodes
-                targetCurrency { _id title currencyCode currencySymbol }
-                targetCurrencyId { _id title currencyCode currencySymbol }
-                targetCurrencyCode enableRounding localCurrencies fxMode exchangeRate providerName
-                lastUpdated history { rate updatedAt } createdAt updatedAt
-            }
-            marketSnapshot
-            shippingAddress {
-                _id
-                country { _id name code continent capital active deleted phonekey }
-                city { _id name description active deleted isSelected createdAt }
-                street neighborhood zipCode description device deleted createdAt updatedAt
-            }
-            app
-            isPaid
-            isFastOrder
-            createdAt
-            salesLead {
-                _id firstName lastName district street phone1 phone2 email
-            }
-            account {
-                _id app
-                account {
-                    _id fullname phone type verified blocked blockedReason status avatarUrl createdAt updatedAt
-                }
-                verified blocked orderCount lastSeen createdAt updatedAt
-            }
-            items {
-                _id orderId productId variantId
-                productData { title slug app image { _id fileUrl } price }
-                variantData {
-                    price compareAtPrice
-                    options {
-                        _id
-                        option { _id name type product }
-                        label sortOrder
-                    }
-                }
-                quantity weight price compareAtPrice totalPrice totalCompareAtPrice totalSavings
-            }
+            orders = []
+            has_next = False
+
+            # التعامل الآمن مع أنواع البيانات
+            if isinstance(result, dict):
+                orders = result.get('data', [])
+                pagination = result.get('pagination', {}) or {} # مهم جداً للتجنب من الخطأ
+                has_next = pagination.get('hasNextPage', False)
+            elif isinstance(result, list):
+                orders = result
+                has_next = False
+
+            print(f"📊 [DEBUG] عدد الطلبات الموجودة في هذه الصفحة: {len(orders)}")
+
+            if not orders:
+                print("⛔ [DEBUG] لا توجد طلبات في هذه الصفحة، ننهي التزامن.")
+                break
+
+            for order_data in orders:
+                _save_or_update_order(order_data)
+                total_synced += 1
+
+            if not has_next:
+                print("✅ [DEBUG] وصلنا لآخر صفحة، ننهي التزامن.")
+                break
+
+            if max_pages is not None and page >= max_pages:
+                break
+
+            page += 1
+
+        except Exception as e:
+            current_app.logger.error(f"خطأ في جلب الصفحة {page}: {e}")
+            traceback.print_exc()
+            break
+
+    print(f"🏁 [DEBUG] انتهت المزامنة، إجمالي الطلبات التي تم جلبها وحفظها: {total_synced}")
+    return total_synced
+
+
+def _sync_orders_from_graphql(app=None):
+    if app is None:
+        app = current_app._get_current_object()
+    with app.app_context():
+        try:
+            total = sync_all_orders_from_graphql(max_pages=5)
+            current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (أول 5 صفحات)")
+        except Exception as e:
+            current_app.logger.error(f"❌ خطأ في مزامنة الطلبات الخلفية: {e}")
+
+
+@admin_orders_bp.route('', methods=['GET'], endpoint='list_admin_orders')
+@admin_orders_bp.route('/', methods=['GET'])
+@login_required
+def manage_admin_orders_view():
+    try:
+        user_type = session.get('user_type')
+        if user_type != 'admin':
+            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
+            return redirect(url_for('admin_dashboard_bp.dashboard'))
+
+        page = request.args.get('page', 1, type=int)
+        per_page = 10
+        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        if not is_ajax:
+            app = current_app._get_current_object()
+            thread = threading.Thread(target=_sync_orders_from_graphql, args=(app,), daemon=True)
+            thread.start()
+
+        query = Order.query
+
+        status_filter = request.args.get('status')
+        if status_filter:
+            query = query.filter(Order.status_code == status_filter)
+
+        search = request.args.get('search')
+        if search:
+            query = query.filter(
+                db.or_(
+                    Order.order_number.ilike(f'%{search}%'),
+                    Order._customer_name.ilike(f'%{search}%')
+                )
+            )
+
+        date_from = request.args.get('date_from')
+        if date_from:
+            query = query.filter(Order.created_at >= date_from)
+
+        date_to = request.args.get('date_to')
+        if date_to:
+            query = query.filter(Order.created_at <= date_to)
+
+        query = query.order_by(Order.created_at.desc())
+
+        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
+        orders = paginated.items
+
+        pagination_info = {
+            'current_page': page,
+            'total_pages': paginated.pages,
+            'total_items': paginated.total,
+            'has_prev': paginated.has_prev,
+            'has_next': paginated.has_next,
+            'prev_num': page - 1 if paginated.has_prev else None,
+            'next_num': page + 1 if paginated.has_next else None,
         }
 
-        query FindOrderById($id: ID!) {
-            findOrderById(id: $id) {
-                data { ...OrderFull }
-                success
-                message
-            }
-        }
-        """
+        suppliers = Supplier.query.all()
 
-        variables = {"id": order_id}
-        result = self.client.execute(query, variables)
+        if is_ajax:
+            return jsonify({
+                'success': True,
+                'html': render_template('admin/partials/_orders_table.html', orders=orders),
+                'pagination_html': render_template('admin/partials/_pagination.html', pagination=pagination_info)
+            })
 
-        # التحقق من وجود أخطاء في الاستجابة
-        if "errors" in result:
-            logger.error(f"❌ خطأ في GraphQL: {result['errors']}")
-            return None
+        return render_template('admin/admin_orders.html',
+                               orders=orders,
+                               pagination=pagination_info,
+                               suppliers=suppliers)
 
-        # استخراج البيانات من الطبقة الداخلية
-        data_wrapper = result.get("data", {}).get("findOrderById", {})
-        if not data_wrapper.get("success", False):
-            logger.warning(f"⚠️ الطلب غير موجود أو فشل: {data_wrapper.get('message')}")
-            return None
+    except Exception as e:
+        current_app.logger.error(f"خطأ في عرض الطلبات: {traceback.format_exc()}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': str(e)}), 500
+        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
+        return redirect(url_for('admin_dashboard_bp.dashboard'))
 
-        return data_wrapper.get("data")  # هنا الكائن الكامل للطلب
 
-    # =========================================================
-    # 2. جلب طلب واحد ولكن بإصدار مختصر (خفيف للقوائم)
-    # =========================================================
-    def get_order_summary(self, order_id: str) -> Optional[Dict[str, Any]]:
-        """
-        يستخدم الاستعلام البسيط (الأول في مشاركتك) الذي يعيد الحقول مباشرة
-        مناسب لعرض سريع بدون تفاصيل الدفع والشحن المعقدة.
-        """
-        query = """
-        query FindOrderById($id: ID!) {
-            findOrderById(id: $id) {
-                _id
-                type
-                totalPrice
-                isPaid
-                createdAt
-                status { code title }
-                account {
-                    account { fullname }
-                }
-                items {
-                    productId
-                    quantity
-                    price
-                    productData {
-                        title
-                        price
-                        image { fileUrl }
-                        images { fileUrl }
-                    }
-                }
-            }
-        }
-        """
-        variables = {"id": order_id}
-        result = self.client.execute(query, variables)
+@admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
+@login_required
+def sync_admin_orders():
+    try:
+        if session.get('user_type') != 'admin':
+            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        if "errors" in result:
-            logger.error(f"❌ خطأ في GraphQL: {result['errors']}")
-            return None
+        total = sync_all_orders_from_graphql()
+        return jsonify({'success': True, 'message': f'✅ تمت مزامنة {total} طلباً بنجاح.'})
+    except Exception as e:
+        current_app.logger.error(f"خطأ في المزامنة: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-        return result.get("data", {}).get("findOrderById")
 
-    # =========================================================
-    # 3. جلب قائمة الطلبات (مع Pagination)
-    # =========================================================
-    def get_all_orders(
-        self,
-        page: int = 1,
-        limit: int = 10,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """
-        جلب قائمة الطلبات مع دعم الترقيم والفلترة.
-        المدخلات:
-            - page: رقم الصفحة (افتراضي 1)
-            - limit: عدد العناصر في الصفحة (افتراضي 10)
-            - filters: كائن Filter اختياري (مثل { status: "PAID" })
-        المخرجات:
-            {
-                "data": [OrderSummary, ...],
-                "pagination": { totalItems, totalPages, currentPage, limit, hasNextPage }
-            }
-        """
-        query = """
-        fragment OrderSummary on Order {
-            _id
-            totalPrice
-            isPaid
-            createdAt
-            status { code title }
-            account { account { fullname } }
-            items {
-                productId
-                quantity
-                price
-                productData { title price image { fileUrl } }
-            }
-        }
+@admin_orders_bp.route('/<string:order_id>/sync', methods=['POST'], endpoint='sync_single_order')
+@login_required
+def sync_single_order(order_id):
+    try:
+        order_data = services.orders.get_order_by_id(order_id)
+        if order_data:
+            _save_or_update_order(order_data)
+            return jsonify({'success': True, 'message': 'تم تحديث الطلب'})
+        return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+    except Exception as e:
+        current_app.logger.error(f"خطأ في مزامنة الطلب {order_id}: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-        query FindAllOrders($input: FindAllOrdersInput!) {
-            findAllOrders(input: $input) {
-                data { ...OrderSummary }
-                pagination {
-                    totalItems
-                    totalPages
-                    currentPage
-                    limit
-                    hasNextPage
-                }
-            }
-        }
-        """
 
-        # بناء كائن الإدخال حسب الـ Schema المتوقعة
-        input_data = {
-            "page": page,
-            "limit": limit,
-        }
-        if filters:
-            input_data["filters"] = filters
+@admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
+@login_required
+def view_admin_order(order_id):
+    try:
+        order = db.session.get(Order, order_id)
+        if not order:
+            order_data = services.orders.get_order_by_id(order_id)
+            if order_data:
+                _save_or_update_order(order_data)
+                order = db.session.get(Order, order_id)
 
-        variables = {"input": input_data}
-        result = self.client.execute(query, variables)
+        if not order:
+            flash('الطلب غير موجود', 'danger')
+            return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
-        if "errors" in result:
-            logger.error(f"❌ خطأ في جلب الطلبات: {result['errors']}")
-            return {"data": [], "pagination": {}}
+        items = OrderItem.query.filter_by(order_id=order_id).all()
+        return render_template('admin/admin_order_detail.html', order=order, items_list=items)
+    except Exception as e:
+        current_app.logger.error(f"خطأ في عرض تفاصيل الطلب: {traceback.format_exc()}")
+        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
+        return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
-        return result.get("data", {}).get("findAllOrders", {})
 
-    # =========================================================
-    # 4. جلب طلبات متعددة باستخدام قائمة المعرفات
-    # =========================================================
-    def get_orders_by_ids(self, ids: List[str]) -> Dict[str, Any]:
-        """
-        يستخدم getOrdersByIds لجلب عدة طلبات دفعة واحدة (مفصلة).
-        """
-        query = """
-        fragment OrderFull on Order {
-            _id
-            status { _id title code }
-            COD
-            type
-            currency { _id title currencyCode currencySymbol }
-            freeze
-            totalPrice
-            totalPriceWithTax
-            priceWithShipping
-            shippingPrice
-            handel
-            taxAmount
-            taxType
-            taxValue
-            taxLines { title amountType value amount base }
-            paymentMethod {
-                _id
-                payment {
-                    _id key descreption installed enable deleted schema
-                    createdAt updatedAt icon iconUrl needConfig methods name instructions id
-                }
-                enable unable action install deleted complete createdAt updatedAt data
-            }
-            market {
-                _id app title status
-                countryIds { _id name image { image imageUrl } code continent capital active deleted phonekey }
-                countryCodes
-                targetCurrency { _id title currencyCode currencySymbol }
-                targetCurrencyId { _id title currencyCode currencySymbol }
-                targetCurrencyCode enableRounding localCurrencies fxMode exchangeRate providerName
-                lastUpdated history { rate updatedAt } createdAt updatedAt
-            }
-            marketSnapshot
-            shippingAddress {
-                _id
-                country { _id name code continent capital active deleted phonekey }
-                city { _id name description active deleted isSelected createdAt }
-                street neighborhood zipCode description device deleted createdAt updatedAt
-            }
-            app
-            isPaid
-            isFastOrder
-            createdAt
-            salesLead {
-                _id firstName lastName district street phone1 phone2 email
-            }
-            account {
-                _id app
-                account {
-                    _id fullname phone type verified blocked blockedReason status avatarUrl createdAt updatedAt
-                }
-                verified blocked orderCount lastSeen createdAt updatedAt
-            }
-            items {
-                _id orderId productId variantId
-                productData { title slug app image { _id fileUrl } price }
-                variantData {
-                    price compareAtPrice
-                    options {
-                        _id
-                        option { _id name type product }
-                        label sortOrder
-                    }
-                }
-                quantity weight price compareAtPrice totalPrice totalCompareAtPrice totalSavings
-            }
-        }
+@admin_orders_bp.route('/<string:order_id>/update-status', methods=['POST'], endpoint='update_order_status_inline')
+@login_required
+def update_order_status_inline(order_id):
+    try:
+        data = request.get_json() or {}
+        new_status = data.get('status')
+        if not new_status:
+            return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
 
-        query GetOrdersByIds($input: FindOrdersByIdsInput!) {
-            getOrdersByIds(input: $input) {
-                data { ...OrderFull }
-                pagination {
-                    totalItems
-                    hasPreviousPage
-                    totalPages
-                    currentPage
-                    limit
-                    hasNextPage
-                }
-            }
-        }
-        """
+        order = db.session.get(Order, order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
 
-        variables = {"input": {"ids": ids}}
-        result = self.client.execute(query, variables)
+        order.status_code = new_status
+        order.status_title = STATUS_TITLES_MAP.get(new_status, 'غير معروف')
+        db.session.commit()
 
-        if "errors" in result:
-            logger.error(f"❌ خطأ في جلب الطلبات بالـ IDs: {result['errors']}")
-            return {"data": [], "pagination": {}}
-
-        return result.get("data", {}).get("getOrdersByIds", {})
-
-    # =========================================================
-    # 5. دالة مساعدة للتنظيف (اختياري)
-    # =========================================================
-    @staticmethod
-    def extract_order_items(order_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """استخراج قائمة العناصر من كائن الطلب مع معالجة البيانات الناقصة."""
-        if not order_data:
-            return []
-        return order_data.get("items", [])
+        return jsonify({'success': True, 'message': 'تم تحديث الحالة'})
+    except Exception as e:
+        current_app.logger.error(f"خطأ في تحديث حالة الطلب: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
