@@ -312,15 +312,24 @@ def update_order_status_inline(order_id):
         if not new_status:
             return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
 
+        # 1. جلب الطلب من قاعدة محجوب
         order = db.session.get(Order, order_id)
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
 
+        # 2. إرسال التحديث إلى قمره أولاً
+        qumra_success = services.orders.update_order_status_in_qumra(order_id, new_status)
+
+        if not qumra_success:
+            # إذا فشل تحديث قمره، نعيد الخطأ ولا نقوم بتحديث محجوب (لنمنع التناقض)
+            return jsonify({'success': False, 'message': 'فشل تحديث الحالة في المنصة (قمره)'}), 500
+
+        # 3. إذا نجح التحديث في قمره، نقوم بتحديث محجوب وحفظه
         order.status_code = new_status
         order.status_title = STATUS_TITLES_MAP.get(new_status, 'غير معروف')
         db.session.commit()
 
-        return jsonify({'success': True, 'message': 'تم تحديث الحالة'})
+        return jsonify({'success': True, 'message': 'تم تحديث الحالة في النظام والمنصة بنجاح'})
     except Exception as e:
         current_app.logger.error(f"خطأ في تحديث حالة الطلب: {traceback.format_exc()}")
         return jsonify({'success': False, 'message': str(e)}), 500
