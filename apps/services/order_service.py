@@ -1,78 +1,20 @@
 # coding: utf-8
 # 📂 apps/services/order_service.py
-# خدمة جلب الطلبات من المصدر الخارجي (GraphQL API) ومعالجة البيانات
+# خدمة جلب الطلبات - تعتمد على GraphQLClient الخاص بـ Qumra
 
-import requests
-import json
-import traceback
-from flask import current_app
+from apps.services.graphql_client import GraphQLClient
 
 class OrderService:
-    """
-    خدمة التعامل مع الطلبات من واجهة برمجة التطبيقات (API) الخارجية.
-    تتولى عمليات المصادقة، الاستعلام، وتنظيم البيانات.
-    """
+    """خدمة إدارة الطلبات (تستخدم نفس عميل GraphQL الخاص بالمنتجات)"""
 
-    # ✅ هذا هو التعديل الجذري: إضافة client=None ليستقبل الوسيط ولا ينهار
     def __init__(self, client=None):
-        if client:
-            self.client = client
-        else:
-            self.client = None
-            
-        # 🔑 إعدادات الاتصال بالسيرفر الخارجي
-        # ضع هنا الرابط والـ Token الحقيقيين الخاصين بـ "قمره"
-        self.api_url = "https://api.mahjoub-sa.com/graphql"  
-        self.access_token = "YOUR_API_TOKEN_HERE" 
+        # ✅ استخدام نفس الـ Client تماماً الموجود في graphql_client.py
+        self.client = client if client else GraphQLClient()
 
-    def _execute_graphql_query(self, query, variables=None):
+    def get_all_orders(self, page: int = 1, limit: int = 50):
         """
-        دالة مساعدة لتنفيذ استعلامات GraphQL وإرجاع النتيجة
-        مع التقاط الأخطاء لطباعتها في الـ Logs.
+        جلب الطلبات من المصدر الخارجي عبر نفس الرابط الذي تعمل به المنتجات.
         """
-        headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-        
-        payload = {
-            "query": query,
-            "variables": variables or {}
-        }
-
-        try:
-            # إرسال الطلب
-            response = requests.post(self.api_url, json=payload, headers=headers, timeout=30)
-            
-            # ✅ طباعة الاستجابة الخام في سجل الخادم (مهم جداً للتصحيح)
-            print(f"\n🔍 [OrderService DEBUG] Request URL: {self.api_url}")
-            print(f"🔍 [OrderService DEBUG] Status Code: {response.status_code}")
-            if response.status_code != 200:
-                print(f"❌ [OrderService DEBUG] Response Text: {response.text}")
-                return None
-
-            result = response.json()
-            
-            if 'errors' in result:
-                print(f"❌ [OrderService DEBUG] GraphQL Errors: {json.dumps(result['errors'], indent=2)}")
-                return None
-            
-            return result.get('data')
-
-        except requests.exceptions.RequestException as req_err:
-            print(f"❌ [OrderService] فشل الاتصال بالسيرفر الخارجي: {req_err}")
-            traceback.print_exc()
-            return None
-        except json.JSONDecodeError as json_err:
-            print(f"❌ [OrderService] خطأ في قراءة JSON القادم من السيرفر: {json_err}")
-            return None
-        except Exception as e:
-            print(f"❌ [OrderService] خطأ غير متوقع في جلب البيانات: {e}")
-            traceback.print_exc()
-            return None
-
-    def get_all_orders(self, page=1, limit=50):
         query = """
         query GetOrders($page: Int, $limit: Int) {
             orders(page: $page, limit: $limit) {
@@ -117,15 +59,21 @@ class OrderService:
             }
         }
         """
-        
-        variables = {"page": page, "limit": limit}
-        data = self._execute_graphql_query(query, variables)
+        try:
+            # ✅ استخدام self.client.execute فقط، الرابط والـ Token موجودان داخلياً
+            data = self.client.execute(query, {"page": page, "limit": limit})
+            
+            if data and isinstance(data, dict) and "orders" in data:
+                return data["orders"]
+            
+            return {"data": [], "pagination": {"hasNextPage": False, "totalCount": 0}}
 
-        if not data:
-            return None
-        return data.get('orders', {})
+        except Exception as e:
+            print(f"❌ [OrderService] خطأ في get_all_orders: {e}")
+            return {"data": [], "pagination": {"hasNextPage": False, "totalCount": 0}}
 
-    def get_order_by_id(self, order_id):
+    def get_order_by_id(self, order_id: str):
+        """جلب طلب محدد بواسطة ID"""
         query = """
         query GetOrder($id: ID!) {
             order(id: $id) {
@@ -164,17 +112,19 @@ class OrderService:
             }
         }
         """
-        
-        variables = {"id": order_id}
-        data = self._execute_graphql_query(query, variables)
-        if not data:
+        try:
+            data = self.client.execute(query, {"id": order_id})
+            if data and "order" in data:
+                return data["order"]
             return None
-        return data.get('order')
+        except Exception as e:
+            print(f"❌ [OrderService] خطأ في get_order_by_id: {e}")
+            return None
 
-# ✅ تعريف المتغير العام
+# ✅ تعريف المتغير العام للاستخدام
 orders_service = OrderService()
 
-# ربط الدوال لتكون متاحة للاستيراد المباشر
+# الدوال المباشرة للاستيراد من باقي الملفات
 def get_all_orders(page=1, limit=50):
     return orders_service.get_all_orders(page, limit)
 
