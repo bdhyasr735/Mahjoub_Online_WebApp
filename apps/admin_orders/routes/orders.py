@@ -164,7 +164,6 @@ def _sync_orders_from_graphql(app=None):
         app = current_app._get_current_object()
     with app.app_context():
         try:
-            # ✅ تحديث هام: عند فتح الصفحة، نجلب أول 5 صفحات فقط لتجنب الضغط على الذاكرة
             total = sync_all_orders_from_graphql(max_pages=5)
             current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (أول 5 صفحات)")
         except Exception as e:
@@ -257,16 +256,20 @@ def sync_admin_orders():
         if session.get('user_type') != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        # ✅ تحسين هام: تشغيل المزامنة الكاملة في خيط منفصل لتجنب تعليق الخادم وانتهاء المهلة
-        def sync_background():
-            with current_app.app_context():
+        # ✅ استلام كائن التطبيق
+        app = current_app._get_current_object()
+
+        def sync_background(app_context):
+            # تشغيل الخيط داخل سياق التطبيق
+            with app_context.app_context():
                 try:
                     total = sync_all_orders_from_graphql()
                     print(f"✅ اكتملت المزامنة اليدوية لـ {total} طلب")
                 except Exception as e:
                     print(f"❌ خطأ في المزامنة اليدوية: {e}")
 
-        thread = threading.Thread(target=sync_background)
+        # تمرير السياق إلى الخيط
+        thread = threading.Thread(target=sync_background, args=(app,))
         thread.daemon = True
         thread.start()
 
