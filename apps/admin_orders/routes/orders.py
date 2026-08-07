@@ -58,16 +58,15 @@ def _save_or_update_order(order_data):
     if not order:
         order = Order(id=order_id)
 
-    # ✅ التعديل: استخدام التوليد العشري الآمن (لأن orderId غير موجود في الـ Schema)
+    # ✅ النظام يعتمد على الـ _id لتوليد رقم فريد وآمن
     try:
         order.order_number = int(order_id[:8], 16) % 1000000
     except:
         order.order_number = None
 
-    # ✅ تحديث المرجع ليكون هو الـ _id (بما أن orderId غير موجود)
+    # المرجع هو الـ _id
     order.order_reference = order_id
     
-    # التعامل مع account إذا كان None
     account = order_data.get('account')
     if isinstance(account, dict):
         account_data = account.get('account', {})
@@ -90,8 +89,6 @@ def _save_or_update_order(order_data):
     order.status_title = status_obj.get('title', 'قيد الانتظار')
     order.is_paid = order_data.get('isPaid', False)
     order.created_at = order_data.get('createdAt')
-    
-    # ✅ إضافة حماية لـ updated_at (لأنها قد لا تأتي من API)
     updated_at = order_data.get('updatedAt')
     if updated_at:
         order.updated_at = updated_at
@@ -120,10 +117,6 @@ def sync_all_orders_from_graphql(max_pages=None):
         try:
             print(f"⏳ جاري جلب الصفحة رقم {page}...")
             result = services.orders.get_all_orders(page=page, limit=limit)
-            
-            print(f"📦 [DEBUG] نوع البيانات المستقبلة: {type(result)}")
-            if isinstance(result, dict):
-                print(f"📦 [DEBUG] مفاتيح الاستجابة: {list(result.keys())}")
             
             if not result:
                 print("⛔ [DEBUG] الـ API رجع قيمة فارغة (None أو Empty)!")
@@ -173,8 +166,9 @@ def _sync_orders_from_graphql(app=None):
         app = current_app._get_current_object()
     with app.app_context():
         try:
-            total = sync_all_orders_from_graphql(max_pages=5)
-            current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (أول 5 صفحات)")
+            # ✅ التغيير الجذري: جلب الكل (max_pages=None)
+            total = sync_all_orders_from_graphql(max_pages=None)
+            current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (تم جلب الكل)")
         except Exception as e:
             current_app.logger.error(f"❌ خطأ في مزامنة الطلبات الخلفية: {e}")
 
