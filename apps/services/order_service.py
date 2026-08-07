@@ -108,8 +108,41 @@ class OrderService:
             print(f"❌ [OrderService] خطأ في get_order_by_id: {e}")
             return None
 
+    # ============================================================
+    # 🚀 إضافة جديدة: دالة لإرسال تحديث الحالة إلى قمره عبر Mutation
+    # ============================================================
+    def update_order_status_in_qumra(self, order_id: str, status_code: str) -> bool:
+        """
+        إرسال طلب تحديث الحالة إلى قمره عبر GraphQL Mutation.
+        """
+        # ⚠️ ملاحظة هامة: هذا هو الشكل المفترض للـ Mutation في قمره.
+        # يجب عليك فتح الساندبوكس والبحث عن Mutation باسم updateOrderStatus أو updateStatus أو updateOrder.
+        # إذا كان الاسم مختلفاً، قم بتعديل 'updateOrderStatus' في السطر التالي.
+        mutation = """
+        mutation UpdateOrderStatus($id: ID!, $status: String!) {
+            updateOrderStatus(id: $id, status: $status) {
+                success
+                message
+            }
+        }
+        """
+        try:
+            data = self.client.execute(mutation, {"id": order_id, "status": status_code})
+            if data and "updateOrderStatus" in data:
+                return data["updateOrderStatus"].get("success", False)
+            return False
+        except Exception as e:
+            print(f"❌ [OrderService] فشل تحديث الحالة في قمره: {e}")
+            return False
+
+
+# ============================================================
+# تعريف المتغيرات العامة للاستخدام
+# ============================================================
 orders_service = OrderService()
+
 def get_all_orders(page=1, limit=50):
     return orders_service.get_all_orders(page, limit)
+
 def get_order_by_id(order_id):
     return orders_service.get_order_by_id(order_id)
