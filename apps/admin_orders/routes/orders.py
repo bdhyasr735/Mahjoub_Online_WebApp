@@ -33,55 +33,118 @@ STATUS_TITLES_MAP = {
 
 
 # ============================================================
-# دوال مساعدة للمزامنة والحفظ
+# دوال مساعدة للمزامنة والحفظ (معدلة لتتوافق مع النماذج الفعلية)
 # ============================================================
 
+def _save_or_update_order_item(order_id, item_data):
+    """
+    حفظ أو تحديث عنصر طلب في قاعدة البيانات المحلية.
+    يتوافق مع نموذج OrderItem.
+    """
+    product_id = item_data.get('productId')  # من GraphQL
+    if not product_id:
+        return
+
+    # ✅ استخدام product_qid كما هو في النموذج
+    item = OrderItem.query.filter_by(order_id=order_id, product_qid=product_id).first()
+    if not item:
+        item = OrderItem(order_id=order_id, product_qid=product_id)
+
+    # تعيين الحقول حسب النموذج
+    item.quantity = item_data.get('quantity', 0)
+    item.price = item_data.get('price', 0)
+
+    # استخراج بيانات المنتج
+    product_data = item_data.get('productData', {})
+    item.product_name = product_data.get('title', '')
+
+    # استخراج رابط الصورة (اختياري)
+    image_data = product_data.get('image', {})
+    item.product_image = image_data.get('fileUrl', '')
+
+    # يمكن تعيين supplier_id لاحقاً إذا توفر
+    # item.supplier_id = ...
+
+    db.session.merge(item)
+    db.session.commit()
+
+
 def _save_or_update_order(order_data):
-    """حفظ أو تحديث طلب في قاعدة البيانات المحلية."""
-    order_id = order_data.get('_id')
+    """
+    حفظ أو تحديث طلب في قاعدة البيانات المحلية.
+    يتوافق مع نموذج Order الموجود (مع تشفير name, phone, address).
+    """
+    order_id = order_data.get('_id')  # من GraphQL
     if not order_id:
         return
 
+    # ✅ استخدام id كمفتاح أساسي (كما في النموذج)
     order = Order.query.get(order_id)
     if not order:
-        order = Order(_id=order_id)
+        order = Order(id=order_id)  # المفتاح الأساسي هو id وليس _id
 
-    # تعيين الحقول (حسب هيكل الـ Order المحلي)
-    order.order_number = order_data.get('orderNumber') or order_id[:8]
-    
+    # تعيين الحقول حسب النموذج الفعلي
+    # ⚠️ order_number من نوع Integer، لذا نحول القيمة إلى عدد صحيح
+    order_number = order_data.get('orderNumber')
+    if order_number:
+        try:
+            order.order_number = int(order_number)
+        except (ValueError, TypeError):
+            order.order_number = None
+    else:
+        # استخدام جزء من الـ id كرقم افتراضي (تحويل سداسي عشري إلى عشري)
+        try:
+            order.order_number = int(order_id[:8], 16) % 1000000
+        except:
+            order.order_number = None
+
+    order.order_reference = order_data.get('orderReference') or order_id
+
+    # استخراج اسم العميل من account (سيتم تشفيره تلقائياً عبر setter)
     account = order_data.get('account', {})
     account_data = account.get('account', {})
-    order.customer_name = account_data.get('fullname', 'زائر')
-    
+    customer_name = account_data.get('fullname', 'زائر')
+    order.customer_name = customer_name  # ✅ يستخدم setter المشفر
+
+    # رقم الهاتف والعنوان (إذا وجدا)
+    phone = account_data.get('phone')
+    if phone:
+        order.customer_phone = phone
+
+    # قد يكون العنوان في shippingAddress
+    shipping = order_data.get('shippingAddress', {})
+    address = shipping.get('street') or shipping.get('description')
+    if address:
+        order.customer_address = address
+
+    # المبلغ الإجمالي
     order.total_price = order_data.get('totalPrice', 0)
-    
+
+    # الحالة
     status_obj = order_data.get('status', {})
     order.status_code = status_obj.get('code', 'pending')
     order.status_title = status_obj.get('title', 'قيد الانتظار')
-    
+
+    # الدفع
     order.is_paid = order_data.get('isPaid', False)
+
+    # التواريخ
     order.created_at = order_data.get('createdAt')
     order.updated_at = order_data.get('updatedAt')
+
+    # عدد العناصر (سيتم تحديثه لاحقاً)
+    items_list = order_data.get('items', [])
+    order.items_count = len(items_list)
 
     db.session.merge(order)
     db.session.commit()
 
-    # حفظ عناصر الطلب
-    for item_data in order_data.get('items', []):
-        product_id = item_data.get('productId')
-        if not product_id:
-            continue
-        item = OrderItem.query.filter_by(order_id=order_id, product_id=product_id).first()
-        if not item:
-            item = OrderItem(order_id=order_id, product_id=product_id)
-        
-        item.quantity = item_data.get('quantity', 0)
-        item.price = item_data.get('price', 0)
-        product_data = item_data.get('productData', {})
-        item.product_title = product_data.get('title', '')
-        # يمكن إضافة حقول أخرى حسب الحاجة
+    # ✅ حفظ عناصر الطلب
+    for item_data in items_list:
+        _save_or_update_order_item(order_id, item_data)
 
-        db.session.merge(item)
+    # تحديث عدد العناصر مرة أخرى للتأكد
+    order.items_count = len(items_list)
     db.session.commit()
 
 
@@ -89,7 +152,7 @@ def sync_all_orders_from_graphql(max_pages=None):
     """
     مزامنة جميع الطلبات من GraphQL إلى قاعدة البيانات المحلية
     بالتكرار على جميع الصفحات حتى نفاذ البيانات.
-    
+
     المعاملات:
         max_pages: عدد الصفحات المحدد (اختياري)،
                    إذا كان None فيجلب الكل (حتى آخر صفحة).
@@ -97,7 +160,7 @@ def sync_all_orders_from_graphql(max_pages=None):
         عدد الطلبات التي تمت مزامنتها.
     """
     page = 1
-    limit = 50  # يمكن تعديلها حسب الحاجة (مثلاً 100)
+    limit = 50  # يمكن تعديلها حسب الحاجة
     total_synced = 0
 
     while True:
@@ -107,18 +170,16 @@ def sync_all_orders_from_graphql(max_pages=None):
             pagination = result.get('pagination', {})
 
             if not orders:
-                break  # لا توجد طلبات في هذه الصفحة
+                break
 
             for order_data in orders:
                 _save_or_update_order(order_data)
                 total_synced += 1
 
-            # التحقق من وجود صفحات تالية
             has_next = pagination.get('hasNextPage', False)
             if not has_next:
                 break
 
-            # إذا تم تحديد عدد صفحات أقصى ووصلنا له، توقف
             if max_pages is not None and page >= max_pages:
                 break
 
@@ -135,17 +196,12 @@ def sync_all_orders_from_graphql(max_pages=None):
 # دالة المزامنة الخلفية (تعمل في خيط منفصل)
 # ============================================================
 def _sync_orders_from_graphql(app=None):
-    """
-    مزامنة الطلبات من GraphQL إلى قاعدة البيانات المحلية في الخلفية.
-    يتم جلب جميع الصفحات (بدون حد أقصى) ولكن يمكن تقييدها بـ max_pages=5
-    لتجنب التحميل الزائد في الخلفية.
-    """
+    """مزامنة الطلبات من GraphQL إلى قاعدة البيانات المحلية في الخلفية."""
     if app is None:
         app = current_app._get_current_object()
     with app.app_context():
         try:
             # في الخلفية نجلب فقط أول 5 صفحات (250 طلب) لتجنب الضغط
-            # ولكن يمكنك إزالة max_pages لجلب الكل
             total = sync_all_orders_from_graphql(max_pages=5)
             current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (أول 5 صفحات)")
         except Exception as e:
@@ -187,7 +243,7 @@ def manage_admin_orders_view():
             query = query.filter(
                 db.or_(
                     Order.order_number.ilike(f'%{search}%'),
-                    Order.customer_name.ilike(f'%{search}%')
+                    Order._customer_name.ilike(f'%{search}%')  # البحث في الحقل المشفر
                 )
             )
 
@@ -247,7 +303,6 @@ def sync_admin_orders():
         if session.get('user_type') != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        # ✅ جلب جميع الصفحات (بدون حد أقصى)
         total = sync_all_orders_from_graphql()
         return jsonify({'success': True, 'message': f'✅ تمت مزامنة {total} طلباً بنجاح.'})
     except Exception as e:
@@ -319,7 +374,6 @@ def update_order_status_inline(order_id):
         order.status_title = STATUS_TITLES_MAP.get(new_status, 'غير معروف')
         db.session.commit()
 
-        # (اختياري) يمكن إضافة استدعاء GraphQL Mutation هنا لتحديث الحالة في المصدر
         return jsonify({'success': True, 'message': 'تم تحديث الحالة'})
     except Exception as e:
         current_app.logger.error(f"خطأ في تحديث حالة الطلب: {traceback.format_exc()}")
