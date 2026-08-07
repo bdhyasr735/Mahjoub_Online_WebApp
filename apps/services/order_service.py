@@ -11,11 +11,13 @@ class OrderService:
 
     def get_all_orders(self, page: int = 1, limit: int = 50):
         # ✅ تمت إزالة الحقل الخطأ "images"، والاكتفاء بـ "image" فقط كما طلب الساندبوكس
+        # ✅ تمت إضافة orderId ليتمكن النظام من قراءة رقم الطلب الحقيقي من قمره
         query = """
         query FindAllOrdersBasic($input: FindAllOrdersInput!) {
             findAllOrders(input: $input) {
                 data {
                     _id
+                    orderId
                     type
                     totalPrice
                     isPaid
@@ -65,11 +67,12 @@ class OrderService:
             return {"data": [], "pagination": {"totalItems": 0, "hasNextPage": False}}
 
     def get_order_by_id(self, order_id: str):
-        # ✅ نفس التعديل هنا (إزالة images)
+        # ✅ نفس التعديل هنا (إزالة images وإضافة orderId)
         query = """
         query FindOrderByIdBasic($id: ID!) {
             findOrderById(id: $id) {
                 _id
+                orderId
                 type
                 totalPrice
                 isPaid
