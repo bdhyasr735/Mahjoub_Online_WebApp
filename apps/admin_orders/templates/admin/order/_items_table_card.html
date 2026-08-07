@@ -21,7 +21,7 @@
                                 <td class="text-start">
                                     <div class="d-flex align-items-center">
                                         {% if item.image_url or item.productData.image %}
-                                            <img src="{{ item.image_url or item.productData.image }}" alt="صورة المنتج" class="product-img-thumbnail rounded me-2" style="width: 45px; height: 45px; object-fit: cover;" data-full-image="{{ item.image_url or item.productData.image }}">
+                                            <img src="{{ item.image_url or item.productData.image }}" alt="صورة المنتج" class="product-img-thumbnail rounded me-2" style="width: 45px; height: 45px; object-fit: cover; cursor: pointer;" onclick="const imgUrl = this.getAttribute('data-full-image') || this.src; if(imgUrl) window.open(imgUrl, '_blank');" data-full-image="{{ item.image_url or item.productData.image }}">
                                         {% endif %}
                                         <div>
                                             <strong>{{ item.product_title or item.productData.title or 'منتج بدون عنوان' }}</strong>
@@ -43,7 +43,7 @@
                                         </button>
                                     </div>
 
-                                    <!-- طريقة التعديل (Dropdown مخصص متوافق مع السكربت الخاص بك) -->
+                                    <!-- طريقة التعديل -->
                                     <div class="supplier-edit-view d-none text-start">
                                         <div class="list-group list-group-flush border rounded" style="max-height: 150px; overflow-y: auto; font-size: 0.85rem;">
                                             <a href="javascript:void(0);" class="list-group-item list-group-item-action supplier-option {% if not item.supplier_id %}bg-light fw-bold{% endif %}"
@@ -80,3 +80,62 @@
         </div>
     </div>
 </div>
+
+<!-- سكريبت محلي خاص بهذه البطاقة فقط (يعمل بدلاً من الملف المحذوف) -->
+<script>
+document.addEventListener('click', function (e) {
+    const option = e.target.closest('.supplier-option');
+    if (!option) return;
+
+    const orderId = option.dataset.orderId;
+    const itemId = option.dataset.itemId;
+    const supplierId = option.dataset.supplierId;
+    const selectedOptionText = option.textContent.trim();
+
+    if (!orderId || !itemId) return;
+
+    const td = option.closest('td');
+    const displayView = td.querySelector('.supplier-display-view');
+    const editView = td.querySelector('.supplier-edit-view');
+
+    editView.style.opacity = '0.6';
+    editView.style.pointerEvents = 'none';
+
+    fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ supplier_id: supplierId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        editView.style.opacity = '1';
+        editView.style.pointerEvents = 'auto';
+
+        if (data.success) {
+            const nameSpan = displayView.querySelector('span');
+            if (nameSpan) {
+                nameSpan.textContent = data.supplier_name || selectedOptionText;
+                nameSpan.setAttribute('title', data.supplier_name || selectedOptionText);
+            }
+
+            td.querySelectorAll('.supplier-option').forEach(opt => opt.classList.remove('bg-light', 'fw-bold'));
+            if (supplierId !== "") {
+                option.classList.add('bg-light', 'fw-bold');
+            }
+
+            editView.classList.add('d-none');
+            displayView.classList.remove('d-none');
+        } else {
+            alert('خطأ: ' + (data.message || 'فشل التعيين'));
+        }
+    })
+    .catch(err => {
+        editView.style.opacity = '1';
+        editView.style.pointerEvents = 'auto';
+        console.error('Error:', err);
+        alert('فشل الاتصال بالسيرفر أثناء تعيين المورد');
+    });
+});
+</script>
