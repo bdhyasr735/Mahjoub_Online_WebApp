@@ -3,7 +3,6 @@
 
 import traceback
 import threading
-import time
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Blueprint
 from flask_login import login_required
 
@@ -34,23 +33,8 @@ STATUS_TITLES_MAP = {
 
 
 # ============================================================
-# دالة المزامنة الخلفية (معدلة لتقبل معامل واحد فقط)
+# دوال مساعدة للمزامنة والحفظ
 # ============================================================
-def _sync_orders_from_graphql(app=None):
-    """مزامنة الطلبات من GraphQL إلى قاعدة البيانات المحلية في الخلفية."""
-    if app is None:
-        app = current_app._get_current_object()
-    with app.app_context():
-        try:
-            # ✅ استخدام الدالة الموجودة في OrderService (من الساندبوكس)
-            result = services.orders.get_all_orders(page=1, limit=50)
-            orders = result.get('data', [])
-            for order_data in orders:
-                _save_or_update_order(order_data)
-            current_app.logger.info(f"✅ تمت مزامنة {len(orders)} طلباً في الخلفية")
-        except Exception as e:
-            current_app.logger.error(f"❌ خطأ في مزامنة الطلبات الخلفية: {e}")
-
 
 def _save_or_update_order(order_data):
     """حفظ أو تحديث طلب في قاعدة البيانات المحلية."""
@@ -65,7 +49,6 @@ def _save_or_update_order(order_data):
     # تعيين الحقول (حسب هيكل الـ Order المحلي)
     order.order_number = order_data.get('orderNumber') or order_id[:8]
     
-    # استخراج اسم العميل من الـ account
     account = order_data.get('account', {})
     account_data = account.get('account', {})
     order.customer_name = account_data.get('fullname', 'زائر')
@@ -102,6 +85,73 @@ def _save_or_update_order(order_data):
     db.session.commit()
 
 
+def sync_all_orders_from_graphql(max_pages=None):
+    """
+    مزامنة جميع الطلبات من GraphQL إلى قاعدة البيانات المحلية
+    بالتكرار على جميع الصفحات حتى نفاذ البيانات.
+    
+    المعاملات:
+        max_pages: عدد الصفحات المحدد (اختياري)،
+                   إذا كان None فيجلب الكل (حتى آخر صفحة).
+    العائد:
+        عدد الطلبات التي تمت مزامنتها.
+    """
+    page = 1
+    limit = 50  # يمكن تعديلها حسب الحاجة (مثلاً 100)
+    total_synced = 0
+
+    while True:
+        try:
+            result = services.orders.get_all_orders(page=page, limit=limit)
+            orders = result.get('data', [])
+            pagination = result.get('pagination', {})
+
+            if not orders:
+                break  # لا توجد طلبات في هذه الصفحة
+
+            for order_data in orders:
+                _save_or_update_order(order_data)
+                total_synced += 1
+
+            # التحقق من وجود صفحات تالية
+            has_next = pagination.get('hasNextPage', False)
+            if not has_next:
+                break
+
+            # إذا تم تحديد عدد صفحات أقصى ووصلنا له، توقف
+            if max_pages is not None and page >= max_pages:
+                break
+
+            page += 1
+
+        except Exception as e:
+            current_app.logger.error(f"خطأ في جلب الصفحة {page}: {e}")
+            break
+
+    return total_synced
+
+
+# ============================================================
+# دالة المزامنة الخلفية (تعمل في خيط منفصل)
+# ============================================================
+def _sync_orders_from_graphql(app=None):
+    """
+    مزامنة الطلبات من GraphQL إلى قاعدة البيانات المحلية في الخلفية.
+    يتم جلب جميع الصفحات (بدون حد أقصى) ولكن يمكن تقييدها بـ max_pages=5
+    لتجنب التحميل الزائد في الخلفية.
+    """
+    if app is None:
+        app = current_app._get_current_object()
+    with app.app_context():
+        try:
+            # في الخلفية نجلب فقط أول 5 صفحات (250 طلب) لتجنب الضغط
+            # ولكن يمكنك إزالة max_pages لجلب الكل
+            total = sync_all_orders_from_graphql(max_pages=5)
+            current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (أول 5 صفحات)")
+        except Exception as e:
+            current_app.logger.error(f"❌ خطأ في مزامنة الطلبات الخلفية: {e}")
+
+
 # ============================================================
 # عرض قائمة الطلبات
 # ============================================================
@@ -121,7 +171,6 @@ def manage_admin_orders_view():
 
         # ✅ تشغيل المزامنة الخلفية فقط إذا لم تكن AJAX
         if not is_ajax:
-            # استخدام الخيط مع تمرير app واحد فقط
             app = current_app._get_current_object()
             thread = threading.Thread(target=_sync_orders_from_graphql, args=(app,), daemon=True)
             thread.start()
@@ -150,14 +199,11 @@ def manage_admin_orders_view():
         if date_to:
             query = query.filter(Order.created_at <= date_to)
 
-        # ترتيب تنازلي حسب التاريخ
         query = query.order_by(Order.created_at.desc())
 
-        # تطبيق الترقيم (Pagination)
         paginated = query.paginate(page=page, per_page=per_page, error_out=False)
         orders = paginated.items
 
-        # بناء كائن الترقيم المتوافق مع القوالب
         pagination_info = {
             'current_page': page,
             'total_pages': paginated.pages,
@@ -177,9 +223,9 @@ def manage_admin_orders_view():
                 'pagination_html': render_template('admin/partials/_pagination.html', pagination=pagination_info)
             })
 
-        return render_template('admin/admin_orders.html', 
-                               orders=orders, 
-                               pagination=pagination_info, 
+        return render_template('admin/admin_orders.html',
+                               orders=orders,
+                               pagination=pagination_info,
                                suppliers=suppliers)
 
     except Exception as e:
@@ -191,23 +237,19 @@ def manage_admin_orders_view():
 
 
 # ============================================================
-# مزامنة الطلبات (يدوي)
+# مزامنة الطلبات (يدوي - زر المزامنة)
 # ============================================================
 @admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
 @login_required
 def sync_admin_orders():
-    """مزامنة شاملة للطلبات من المنصة"""
+    """مزامنة شاملة لجميع الطلبات من المنصة (بدون حدود)."""
     try:
         if session.get('user_type') != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        # ✅ جلب الصفحة الأولى من GraphQL وحفظها
-        result = services.orders.get_all_orders(page=1, limit=50)
-        orders = result.get('data', [])
-        for order_data in orders:
-            _save_or_update_order(order_data)
-
-        return jsonify({'success': True, 'message': f'✅ تمت مزامنة {len(orders)} طلباً بنجاح.'})
+        # ✅ جلب جميع الصفحات (بدون حد أقصى)
+        total = sync_all_orders_from_graphql()
+        return jsonify({'success': True, 'message': f'✅ تمت مزامنة {total} طلباً بنجاح.'})
     except Exception as e:
         current_app.logger.error(f"خطأ في المزامنة: {traceback.format_exc()}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -219,9 +261,8 @@ def sync_admin_orders():
 @admin_orders_bp.route('/<string:order_id>/sync', methods=['POST'], endpoint='sync_single_order')
 @login_required
 def sync_single_order(order_id):
-    """مزامنة طلب معين من GraphQL إلى المحلية"""
+    """مزامنة طلب معين من GraphQL إلى المحلية."""
     try:
-        # ✅ استخدام الدالة الموجودة في OrderService
         order_data = services.orders.get_order_by_id(order_id)
         if order_data:
             _save_or_update_order(order_data)
@@ -241,7 +282,6 @@ def view_admin_order(order_id):
     try:
         order = db.session.get(Order, order_id)
         if not order:
-            # ✅ محاولة جلب الطلب من GraphQL إن لم يكن موجوداً محلياً
             order_data = services.orders.get_order_by_id(order_id)
             if order_data:
                 _save_or_update_order(order_data)
