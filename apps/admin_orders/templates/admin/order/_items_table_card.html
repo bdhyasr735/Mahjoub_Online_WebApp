@@ -1,39 +1,62 @@
-# coding: utf-8
-from flask import Blueprint, request, jsonify, render_template, current_app
-from apps.models.order_items_db import OrderItem
-from apps.models.supplier_db import Supplier
-from apps.extensions import db
+<!-- 📂 apps/admin_orders/templates/admin/order/_items_table_card.html -->
+<div class="card shadow-sm">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">عناصر الطلب</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="thead-light">
+                <tr>
+                    <th>المنتج</th>
+                    <th>الكمية</th>
+                    <th>المورد</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items_list %}
+                <tr>
+                    <td>{{ item.productData.title if item.productData else 'منتج غير معروف' }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>
+                        <select class="form-select form-select-sm supplier-select" 
+                                data-item-id="{{ item.id }}" 
+                                data-order-id="{{ order_id }}">
+                            <option value="">-- بدون مورد --</option>
+                            {% for supplier in all_suppliers %}
+                            <option value="{{ supplier.id }}" {% if item.supplier_id == supplier.id %}selected{% endif %}>
+                                {{ supplier.trade_name or supplier.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
-items_bp = Blueprint('items_bp', __name__)
+<script>
+    // سكربت بسيط لتعيين المورد عند التغيير
+    document.querySelectorAll('.supplier-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const itemId = this.dataset.itemId;
+            const orderId = this.dataset.orderId;
+            const supplierId = this.value;
 
-@items_bp.route('/admin/orders/<string:order_id>/items', methods=['GET'])
-def get_order_items(order_id):
-    try:
-        items_list = OrderItem.query.filter_by(order_id=order_id).all()
-        all_suppliers = Supplier.query.all()
-        return render_template(
-            'admin/order/_items_table_card.html', 
-            items_list=items_list, 
-            all_suppliers=all_suppliers,
-            order_id=order_id
-        )
-    except Exception as e:
-        current_app.logger.error(f"Error loading items: {str(e)}")
-        return f'<div class="alert alert-danger m-3">خطأ في تحميل العناصر: {str(e)}</div>', 500
-
-@items_bp.route('/admin/orders/<string:order_id>/item/<int:item_id>/assign-supplier', methods=['POST'])
-def assign_supplier(order_id, item_id):
-    try:
-        data = request.get_json() or {}
-        s_id = data.get('supplier_id')
-        supplier_id = int(s_id) if s_id not in [None, ""] else None
-        
-        item = OrderItem.query.filter_by(id=item_id, order_id=order_id).first()
-        if item:
-            item.supplier_id = supplier_id
-            db.session.commit()
-            return jsonify({'success': True, 'message': 'تم تعيين المورد بنجاح'})
-        return jsonify({'success': False, 'message': 'العنصر غير موجود'}), 404
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+            fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({supplier_id: supplierId})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    alert('تم التحديث بنجاح');
+                } else {
+                    alert('خطأ: ' + data.message);
+                }
+            });
+        });
+    });
+</script>
