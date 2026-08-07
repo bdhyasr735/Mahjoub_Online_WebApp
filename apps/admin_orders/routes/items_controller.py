@@ -45,7 +45,7 @@ def assign_supplier(order_id, item_id):
             supplier_name = supplier_obj.trade_name if (supplier_obj and hasattr(supplier_obj, 'trade_name') and supplier_obj.trade_name) else (supplier_obj.name if supplier_obj else "مورد محدد")
 
         from apps.models.order_items_db import OrderItem
-        from apps.extensions and db
+        from apps.extensions import db
         
         item = OrderItem.query.filter_by(id=item_id, order_id=order_id).first()
         if item:
