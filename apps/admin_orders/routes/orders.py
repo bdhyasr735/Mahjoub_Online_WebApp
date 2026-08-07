@@ -58,7 +58,6 @@ def _save_or_update_order(order_data):
     if not order:
         order = Order(id=order_id)
 
-    # قد لا تكون هذه الحقول موجودة في الـ API، لكن get() ستتعامل معها بمرونة
     order_number = order_data.get('orderNumber')
     if order_number:
         try:
@@ -73,14 +72,18 @@ def _save_or_update_order(order_data):
 
     order.order_reference = order_data.get('orderReference') or order_id
     
-    # تداخل account الصحيح (من الساند بوكس: account { account { fullname, phone } })
-    account = order_data.get('account', {})
-    account_data = account.get('account', {})
-    customer_name = account_data.get('fullname', 'زائر')
-    order.customer_name = customer_name
-    phone = account_data.get('phone')
-    if phone:
-        order.customer_phone = phone
+    # ✅ التعديل الجذري هنا: التعامل مع account إذا كان None
+    account = order_data.get('account')  # لا نضع {} هنا، لنتركه يحمل None إذا كان كذلك
+    if isinstance(account, dict):
+        account_data = account.get('account', {})
+        customer_name = account_data.get('fullname', 'زائر')
+        order.customer_name = customer_name
+        phone = account_data.get('phone')
+        if phone:
+            order.customer_phone = phone
+    else:
+        # إذا كان account هو None، نضع اسم افتراضي
+        order.customer_name = 'زائر'
         
     shipping = order_data.get('shippingAddress', {})
     address = shipping.get('street') or shipping.get('description')
