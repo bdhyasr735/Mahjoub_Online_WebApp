@@ -115,7 +115,6 @@ class OrderService:
         """
         إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
         """
-        # ✅ استخدام المتغير الصحيح $changeOrderStatusInput2
         mutation = """
         mutation ChangeOrderStatus($changeOrderStatusInput2: ChangeOrderStatusInput!) {
             changeOrderStatus(input: $changeOrderStatusInput2) {
@@ -125,12 +124,10 @@ class OrderService:
         }
         """
         try:
-            # 🔴 بناء كائن input بالحقول المتوقعة (بناءً على الساندبوكس)
-            # إذا كانت الحقول مختلفة، قم بتعديل المفاتيح أدناه
+            # ✅ التصحيح النهائي: نرسل فقط الحقول المطلوبة من قمره (_id و status)
             input_data = {
-                "orderId": order_id,   # معرف الطلب
-                "status": status_code, # الحالة الجديدة
-                "reason": "تحديث الحالة من لوحة التحكم" # حقل اختياري أو إلزامي حسب الساندبوكس
+                "_id": order_id,      # قمره تتطلب _id وليس orderId
+                "status": status_code # الحالة الجديدة
             }
             
             data = self.client.execute(mutation, {"changeOrderStatusInput2": input_data})
