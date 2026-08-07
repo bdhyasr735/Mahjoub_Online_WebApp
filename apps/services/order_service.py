@@ -109,13 +109,13 @@ class OrderService:
             return None
 
     # ============================================================
-    # 🚀 دالة تحديث الحالة في قمره (النسخة النهائية والصحيحة)
+    # 🚀 دالة تحديث الحالة في قمره (النسخة النهائية والمُصححة)
     # ============================================================
     def update_order_status_in_qumra(self, order_id: str, status_code: str) -> bool:
         """
         إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
         """
-        # ✅ التصحيح النهائي: استخدام المتغير الصحيح $changeOrderStatusInput2
+        # ✅ استخدام المتغير الصحيح $changeOrderStatusInput2
         mutation = """
         mutation ChangeOrderStatus($changeOrderStatusInput2: ChangeOrderStatusInput!) {
             changeOrderStatus(input: $changeOrderStatusInput2) {
@@ -125,11 +125,12 @@ class OrderService:
         }
         """
         try:
-            # 🔴 بناء كائن input يحتوي على الحقول المطلوبة
-            # وفقاً لملاحظتك، قد يكون الحقل المطلوب هو 'state' وليس 'status'
+            # 🔴 بناء كائن input بالحقول المتوقعة (بناءً على الساندبوكس)
+            # إذا كانت الحقول مختلفة، قم بتعديل المفاتيح أدناه
             input_data = {
-                "state": status_code,  # قمرة قد تتوقع "state" بدلاً من "status"
-                "reason": "تحديث الحالة من لوحة التحكم"
+                "orderId": order_id,   # معرف الطلب
+                "status": status_code, # الحالة الجديدة
+                "reason": "تحديث الحالة من لوحة التحكم" # حقل اختياري أو إلزامي حسب الساندبوكس
             }
             
             data = self.client.execute(mutation, {"changeOrderStatusInput2": input_data})
