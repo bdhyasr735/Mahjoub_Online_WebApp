@@ -1,19 +1,16 @@
 # coding: utf-8
-# 📂 apps/admin_orders/routes/items_controller.py
-
 from flask import Blueprint, request, jsonify, render_template, current_app
+from apps.models.order_items_db import OrderItem
+from apps.models.supplier_db import Supplier
+from apps.extensions import db
 
 items_bp = Blueprint('items_bp', __name__)
 
 @items_bp.route('/admin/orders/<string:order_id>/items', methods=['GET'])
 def get_order_items(order_id):
     try:
-        from apps.models.order_items_db import OrderItem
-        from apps.models.supplier_db import Supplier
-        
         items_list = OrderItem.query.filter_by(order_id=order_id).all()
-        all_suppliers = Supplier.query.all() if hasattr(Supplier, 'query') else []
-        
+        all_suppliers = Supplier.query.all()
         return render_template(
             'admin/order/_items_table_card.html', 
             items_list=items_list, 
@@ -21,43 +18,21 @@ def get_order_items(order_id):
             order_id=order_id
         )
     except Exception as e:
-        import traceback
-        current_app.logger.error(f"❌ [Items Error]: {traceback.format_exc()}")
-        return f'<div class="alert alert-danger m-3">خطأ في تحميل العناصر: {str(e)}</div>', 500
+        return f'<div class="alert alert-danger">خطأ: {str(e)}</div>', 500
 
 @items_bp.route('/admin/orders/<string:order_id>/item/<int:item_id>/assign-supplier', methods=['POST'])
 def assign_supplier(order_id, item_id):
     try:
-        data = request.get_json() or {}
-        supplier_id = data.get('supplier_id')
+        data = request.get_json()
+        s_id = data.get('supplier_id')
+        supplier_id = int(s_id) if s_id else None
         
-        from apps.extensions import db
-        from apps.models.supplier_db import Supplier
-        from apps.models.order_items_db import OrderItem
-
-        if supplier_id == "" or supplier_id is None:
-            supplier_id = None
-            supplier_name = "-- بدون مورد --"
-        else:
-            supplier_id = int(supplier_id)
-            supplier_obj = db.session.get(Supplier, supplier_id)
-            supplier_name = supplier_obj.trade_name if (supplier_obj and hasattr(supplier_obj, 'trade_name') and supplier_obj.trade_name) else (supplier_obj.name if supplier_obj else "مورد محدد")
-
         item = OrderItem.query.filter_by(id=item_id, order_id=order_id).first()
         if item:
             item.supplier_id = supplier_id
             db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'تم تعيين المورد بنجاح',
-            'supplier_name': supplier_name
-        })
-        
+            return jsonify({'success': True, 'message': 'تم التحديث'})
+        return jsonify({'success': False, 'message': 'لم يتم العثور على العنصر'}), 404
     except Exception as e:
-        from apps.extensions import db
         db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 400
+        return jsonify({'success': False, 'message': str(e)}), 400
