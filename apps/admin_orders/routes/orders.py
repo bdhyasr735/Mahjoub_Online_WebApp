@@ -149,7 +149,6 @@ def view_admin_order(order_id):
         except Exception:
             db.session.rollback()
 
-        # جلب الموردين وعناصر الطلب لتمريرها مباشرة للقالب
         suppliers = Supplier.query.all()
         items_list = OrderItem.query.filter_by(order_id=order_id).all()
 
@@ -167,7 +166,6 @@ def view_admin_order(order_id):
         return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
 
-# 🖨️ إضافة مسار طباعة الفاتورة هنا لمنع خطأ الـ BuildError نهائياً
 @admin_orders_bp.route('/<string:order_id>/print', methods=['GET'], endpoint='print_order_invoice')
 @login_required
 def print_order_invoice(order_id):
@@ -181,10 +179,38 @@ def print_order_invoice(order_id):
         return f"حدث خطأ أثناء إعداد الفاتورة: {str(e)}", 500
 
 
-def register_admin_orders_route(bp):
-    bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
-    bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
-    return bp
+@admin_orders_bp.route('/<string:order_id>/update-status', methods=['POST'], endpoint='update_order_status_inline')
+@login_required
+def update_order_status_inline(order_id):
+    """تحديث حالة الطلب بشكل سريع ومباشر من القائمة المنسدلة في جدول الطلبات"""
+    try:
+        data = request.get_json() or {}
+        new_status = data.get('status')
+        
+        if not new_status:
+            return jsonify({'success': False, 'message': 'الحالة الجديدة غير متوفرة'}), 400
+            
+        order = db.session.get(Order, order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+            
+        order.status_code = new_status
+        if new_status in STATUS_TITLES_MAP:
+            order.status_title = STATUS_TITLES_MAP[new_status]
+            
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديث حالة الطلب بنجاح',
+            'status_code': new_status,
+            'status_title': order.status_title
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"❌ خطأ في تحديث حالة الطلب {order_id}: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
@@ -219,12 +245,8 @@ def sync_admin_orders():
                 total_synced += len(orders_data)
                 current_app.logger.info(f"✅ [Sync] الصفحة {current_page}: تم حفظ {len(orders_data)} طلب. الإجمالي: {total_synced}")
 
-                if current_page >= total_pages:
-                    current_app.logger.info(f"🏁 [Sync] وصلنا للصفحة الأخيرة. إنهاء المزامنة.")
-                    break
-                
-                if not pagination.get('hasNextPage', False):
-                    current_app.logger.info(f"🚫 [Sync] لا توجد صفحة تالية. إنهاء المزامنة.")
+                if current_page >= total_pages or not pagination.get('hasNextPage', False):
+                    current_app.logger.info(f"🏁 [Sync] تم الوصول للنهاية. إنهاء المزامنة.")
                     break
 
                 current_page += 1
@@ -232,20 +254,19 @@ def sync_admin_orders():
                 time.sleep(0.5)
 
             except Exception as inner_e:
-                current_app.logger.error(f"❌ [Sync] فشلت الصفحة {current_page}، سنتخطاها ونكمل للصفحة التالية: {inner_e}")
+                current_app.logger.error(f"❌ [Sync] فشلت الصفحة {current_page}: {inner_e}")
                 current_page += 1
                 import time
                 time.sleep(0.5)
                 continue
 
-        # 🔍 توثيق عملية المزامنة الشاملة (محمي)
         try:
             if hasattr(services, 'audit') and hasattr(services.audit, 'log'):
                 services.audit.log(
                     action="SYNC_ALL_ORDERS",
                     target_type="System",
                     target_id=None,
-                    details=f"تمت مزامنة {total_synced} طلب بنجاح من Qumra API إلى قاعدة البيانات المحلية."
+                    details=f"تمت مزامنة {total_synced} طلب بنجاح من Qumra API إلى القاعدة المحلية."
                 )
         except Exception:
             db.session.rollback()
@@ -261,3 +282,9 @@ def sync_admin_orders():
             'success': False,
             'message': f'حدث خطأ حاسم أثناء المزامنة: {str(e)}'
         }), 500
+
+
+def register_admin_orders_route(bp):
+    bp.add_url_rule('', view_func=manage_admin_orders_view, methods=['GET'], endpoint='list_admin_orders')
+    bp.add_url_rule('/<string:order_id>', view_func=view_admin_order, methods=['GET'], endpoint='view_admin_order')
+    return bp
