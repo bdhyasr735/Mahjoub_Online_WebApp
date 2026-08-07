@@ -228,7 +228,7 @@ class OrderService:
         date_from: str = None,
         date_to: str = None
     ) -> Dict[str, Any]:
-        # تمرير المتغيرات بشكل مباشر كما يتطلب السيرفر الحالي
+        # إرسال المتغيرات بشكل آمن أو بدونها بناءً على تصميم السيرفر
         variables = {"page": page, "limit": per_page}
 
         query = self._extract_query("FindAllOrders")
@@ -241,8 +241,13 @@ class OrderService:
             }
 
             if result and isinstance(result, dict) and 'findAllOrders' in result and result['findAllOrders']:
-                orders_data = result['findAllOrders'].get('data', []) or []
-                pagination_data = result['findAllOrders'].get('pagination', {}) or {}
+                res_content = result['findAllOrders']
+                if isinstance(res_content, dict):
+                    orders_data = res_content.get('data', []) or []
+                    pagination_data = res_content.get('pagination', {}) or {}
+                elif isinstance(res_content, list):
+                    orders_data = res_content
+                
                 self._save_orders_to_db(orders_data)
 
             return {"data": orders_data, "pagination": pagination_data}
