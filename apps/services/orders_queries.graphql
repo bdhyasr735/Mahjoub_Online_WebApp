@@ -2,7 +2,7 @@
 # 📂 apps/services/orders_queries.graphql
 
 # ============================================================
-# ✅ 1. استعلام جلب كافة الطلبات (FindAllOrders)
+# ✅ 1. استعلام جلب كافة الطلبات (FindAllOrders) - محدث وشامل للصورة والاسم
 # ============================================================
 query FindAllOrders($input: FindAllOrdersInput) {
     findAllOrders(input: $input) {
@@ -29,7 +29,13 @@ query FindAllOrders($input: FindAllOrdersInput) {
                 price
                 productData {
                     title
+                    name
                     slug
+                    image {
+                        _id
+                        fileUrl
+                        url
+                    }
                 }
             }
         }
@@ -239,12 +245,14 @@ query FindOrderById($id: ID!) {
                 totalSavings
                 productData {
                     title
+                    name
                     slug
                     app
                     price
                     image {
                         _id
                         fileUrl
+                        url
                     }
                 }
                 variantData {
@@ -271,7 +279,6 @@ query FindOrderById($id: ID!) {
 # 🔄 3. التحويرات (Mutations) المدعومة للطلبات
 # ============================================================
 
-# تغيير حالة الطلب العامة
 mutation ChangeOrderStatus($input: ChangeOrderStatusInput!) {
     changeOrderStatus(input: $input) {
         _id
@@ -283,7 +290,6 @@ mutation ChangeOrderStatus($input: ChangeOrderStatusInput!) {
     }
 }
 
-# تغيير الحالة المالية للطلب (مدفوع / غير مدفوع / مسترجع)
 mutation ChangeFinancialStatus($input: ChangeFinancialStatusInput!) {
     changeFinancialStatus(input: $input) {
         _id
@@ -291,7 +297,6 @@ mutation ChangeFinancialStatus($input: ChangeFinancialStatusInput!) {
     }
 }
 
-# تغيير حالة الشحن والتسليم للطلب
 mutation ChangeFulfillmentStatus($input: ChangeFulfillmentStatusInput!) {
     changeFulfillmentStatus(input: $input) {
         _id
@@ -303,7 +308,6 @@ mutation ChangeFulfillmentStatus($input: ChangeFulfillmentStatusInput!) {
     }
 }
 
-# إنشاء طلب جديد
 mutation CreateOrder($input: OrderInput!) {
     createOrder(input: $input) {
         _id
@@ -311,7 +315,6 @@ mutation CreateOrder($input: OrderInput!) {
     }
 }
 
-# حذف طلب
 mutation DeleteOrder($id: ID!) {
     deleteOrder(id: $id)
 }
