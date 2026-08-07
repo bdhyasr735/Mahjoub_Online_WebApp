@@ -116,9 +116,10 @@ class OrderService:
         إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
         """
         # ✅ خريطة تحويل حالات محجوب إلى حالات مقبولة في قمره
+        # ملاحظة هامة: قمره تتطلب مرور الحالات بشكل متسلسل (pending -> confirmed -> shipped)
         qumra_status_map = {
             'pending': 'pending',
-            'processing': 'shipped',
+            'processing': 'confirmed',   # 🔥 قمره تقبل confirmed كخطوة تالية بعد pending
             'shipped': 'shipped',
             'delivered': 'delivered',
             'completed': 'delivered',
@@ -137,10 +138,10 @@ class OrderService:
         }
         """
         try:
-            # ✅ التصحيح النهائي: استخدام '_id' بدلاً من 'id'
+            # ✅ قمره تتطلب '_id' وليس 'id'
             input_data = {
-                "_id": order_id,          # قمره تتطلب _id
-                "status": target_status   # الحالة المحولة المقبولة
+                "_id": order_id,          
+                "status": target_status   
             }
             
             print(f"🚀 [DEBUG] إرسال الطلب إلى قمره: {input_data}")
