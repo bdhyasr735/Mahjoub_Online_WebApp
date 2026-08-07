@@ -29,8 +29,7 @@
                         {% set is_paid = order.is_paid or false %}
                         {% set created_at = order.created_at %}
                         <tr>
-                            <!-- معرف الطلب -->
-                            <!-- ✅ تم التعديل: عرض رقم التتبع الحقيقي (order_number) -->
+                            <!-- ✅ معرف الطلب: الآن يعرض رقم التتبع النظيف، مع الاحتفاظ بالمعرف التقني في الـ title -->
                             <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="المعرف التقني: {{ current_order_id }}">
                                 #{{ order.order_number if order.order_number else current_order_id[:8] }}
                             </td>
