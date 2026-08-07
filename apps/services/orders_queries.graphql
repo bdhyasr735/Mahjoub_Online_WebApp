@@ -1,26 +1,19 @@
-# coding: utf-8
-# 📂 apps/services/orders_queries.graphql
-
-# ============================================================
-# ✅ 1. استعلام جلب كافة الطلبات (FindAllOrders) - محدث وشامل للصورة والاسم
-# ============================================================
-query FindAllOrders($input: FindAllOrdersInput) {
+query FindAllOrders($input: OrdersInput) {
     findAllOrders(input: $input) {
         data {
             _id
+            id
             type
             totalPrice
             isPaid
             createdAt
             status {
-                _id
-                title
                 code
+                title
             }
             account {
                 account {
                     fullname
-                    phone
                 }
             }
             items {
@@ -29,12 +22,9 @@ query FindAllOrders($input: FindAllOrdersInput) {
                 price
                 productData {
                     title
-                    name
-                    slug
+                    price
                     image {
-                        _id
                         fileUrl
-                        url
                     }
                 }
             }
@@ -49,269 +39,37 @@ query FindAllOrders($input: FindAllOrdersInput) {
     }
 }
 
-# ============================================================
-# 🔍 2. استعلام تفاصيل طلب محدد شامل لكافة الحقول (FindOrderById)
-# ============================================================
 query FindOrderById($id: ID!) {
     findOrderById(id: $id) {
-        success
-        message
         data {
             _id
-            app
+            id
             type
-            COD
-            freeze
-            isPaid
-            isFastOrder
-            createdAt
-            handel
             totalPrice
-            totalPriceWithTax
-            priceWithShipping
-            shippingPrice
-            taxAmount
-            taxType
-            taxValue
+            isPaid
+            createdAt
             status {
-                _id
-                title
                 code
-            }
-            currency {
-                _id
                 title
-                currencyCode
-                currencySymbol
-            }
-            taxLines {
-                title
-                amountType
-                value
-                amount
-                base
-            }
-            shippingAddress {
-                _id
-                street
-                neighborhood
-                zipCode
-                description
-                device
-                deleted
-                createdAt
-                updatedAt
-                city {
-                    _id
-                    name
-                    description
-                    active
-                    deleted
-                    isSelected
-                    createdAt
-                }
-                country {
-                    _id
-                    name
-                    code
-                    continent
-                    capital
-                    active
-                    deleted
-                    phonekey
-                }
-            }
-            salesLead {
-                _id
-                firstName
-                lastName
-                district
-                street
-                phone1
-                phone2
-                email
             }
             account {
-                _id
-                app
-                verified
-                blocked
-                orderCount
-                lastSeen
-                createdAt
-                updatedAt
                 account {
-                    _id
                     fullname
-                    phone
-                    type
-                    verified
-                    blocked
-                    blockedReason
-                    status
-                    avatarUrl
-                    createdAt
-                    updatedAt
                 }
             }
-            paymentMethod {
-                _id
-                enable
-                unable
-                action
-                install
-                deleted
-                complete
-                createdAt
-                updatedAt
-                data
-                payment {
-                    _id
-                    key
-                    descreption
-                    installed
-                    enable
-                    deleted
-                    schema
-                    createdAt
-                    updatedAt
-                    icon
-                    iconUrl
-                    needConfig
-                    methods
-                    name
-                    instructions
-                    id
-                }
-            }
-            market {
-                _id
-                app
-                title
-                status
-                countryCodes
-                enableRounding
-                localCurrencies
-                fxMode
-                exchangeRate
-                providerName
-                lastUpdated
-                createdAt
-                updatedAt
-                targetCurrencyCode
-                targetCurrency {
-                    _id
-                    title
-                    currencyCode
-                    currencySymbol
-                }
-                targetCurrencyId {
-                    _id
-                    title
-                    currencyCode
-                    currencySymbol
-                }
-                countryIds {
-                    _id
-                    name
-                    code
-                    continent
-                    capital
-                    active
-                    deleted
-                    phonekey
-                    image {
-                        image
-                        imageUrl
-                    }
-                }
-                history {
-                    rate
-                    updatedAt
-                }
-            }
-            marketSnapshot
             items {
-                _id
-                orderId
                 productId
-                variantId
                 quantity
-                weight
                 price
-                compareAtPrice
-                totalPrice
-                totalCompareAtPrice
-                totalSavings
                 productData {
                     title
-                    name
-                    slug
-                    app
                     price
                     image {
-                        _id
                         fileUrl
-                        url
-                    }
-                }
-                variantData {
-                    price
-                    compareAtPrice
-                    options {
-                        label
-                        sortOrder
-                        _id
-                        option {
-                            _id
-                            name
-                            type
-                            product
-                        }
                     }
                 }
             }
         }
-    }
-}
-
-# ============================================================
-# 🔄 3. التحويرات (Mutations) المدعومة للطلبات
-# ============================================================
-
-mutation ChangeOrderStatus($input: ChangeOrderStatusInput!) {
-    changeOrderStatus(input: $input) {
-        _id
-        status {
-            _id
-            code
-            title
-        }
-    }
-}
-
-mutation ChangeFinancialStatus($input: ChangeFinancialStatusInput!) {
-    changeFinancialStatus(input: $input) {
-        _id
-        isPaid
-    }
-}
-
-mutation ChangeFulfillmentStatus($input: ChangeFulfillmentStatusInput!) {
-    changeFulfillmentStatus(input: $input) {
-        _id
-        status {
-            _id
-            code
-            title
-        }
-    }
-}
-
-mutation CreateOrder($input: OrderInput!) {
-    createOrder(input: $input) {
-        _id
-        totalPrice
     }
 }
 
