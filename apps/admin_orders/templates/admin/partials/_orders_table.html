@@ -114,8 +114,24 @@
 
 <script>
 function updateOrderStatusInline(orderId, newStatus) {
-    const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-    fetch(`/admin/orders/${orderId}/update-status`, {
+    console.log(`📤 محاولة تحديث الطلب ${orderId} إلى الحالة: ${newStatus}`);
+
+    // ✅ البحث عن الـ CSRF Token بطرق متعددة لضمان العثور عليه
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
+                      document.querySelector('meta[name="csrf-token"]')?.content || 
+                      '';
+
+    if (!csrfToken) {
+        console.error('❌ لم يتم العثور على CSRF Token!');
+        alert('خطأ أمني: لم يتم العثور على رمز الحماية (CSRF). يرجى تحديث الصفحة أو الاتصال بالدعم.');
+        return;
+    }
+
+    console.log(`🔑 تم العثور على CSRF Token: ${csrfToken.substring(0, 10)}...`);
+
+    const url = `/admin/orders/${orderId}/update-status`;
+
+    fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -124,12 +140,15 @@ function updateOrderStatusInline(orderId, newStatus) {
         },
         body: JSON.stringify({ status: newStatus })
     })
-    .then(res => res.json())
+    .then(res => {
+        console.log(`🔍 استجابة الخادم: ${res.status}`);
+        if (!res.ok) throw new Error(`فشل الاتصال بالسيرفر (HTTP ${res.status})`);
+        return res.json();
+    })
     .then(data => {
-        if (!data.success) {
-            alert('❌ فشل تحديث الحالة: ' + (data.message || 'خطأ غير معروف'));
-        } else {
-            // إعادة تحميل الصفحة الحالية
+        if (data.success) {
+            console.log('✅ تم تحديث الحالة بنجاح.');
+            // تحديث الجدول إذا كانت الدوال موجودة
             if (typeof fetchOrders === 'function') {
                 fetchOrders({{ pagination.current_page if pagination else 1 }});
             } else if (typeof fetchAdminOrders === 'function') {
@@ -137,8 +156,13 @@ function updateOrderStatusInline(orderId, newStatus) {
             } else {
                 location.reload();
             }
+        } else {
+            alert('❌ فشل تحديث الحالة: ' + (data.message || 'خطأ غير معروف'));
         }
     })
-    .catch(err => alert('❌ حدث خطأ في الاتصال بالسيرفر: ' + err.message));
+    .catch(err => {
+        console.error('❌ خطأ في الاتصال:', err);
+        alert('❌ حدث خطأ في الاتصال بالسيرفر: ' + err.message);
+    });
 }
 </script>
