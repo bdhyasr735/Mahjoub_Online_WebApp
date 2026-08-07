@@ -64,13 +64,13 @@
                 <option value="">الكل</option>
                 {% if suppliers %}
                     {% for supplier in suppliers %}
-                    <option value="{{ supplier.id }}">{{ supplier.trade_name or supplier.name }}</option>
+                    <option value="{{ supplier._id or supplier.id }}">{{ supplier.trade_name or supplier.name }}</option>
                     {% endfor %}
                 {% endif %}
             </select>
         </div>
 
-        <!-- 6. نطاق التاريخ + زر تحديث مدمجين -->
+        <!-- 6. نطاق التاريخ + زر تحديث -->
         <div class="col-md-3">
             <label class="form-label fw-bold small text-uppercase text-muted">
                 <i class="fas fa-calendar-alt me-1"></i> الفترة الزمنية
