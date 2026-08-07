@@ -1,331 +1,207 @@
 # coding: utf-8
-# 📂 apps/admin_orders/routes/orders.py
-# ✅ تمت إضافة سجلات المراقبة لتتبع سبب جلب 0 طلب من المصدر
+# 📂 apps/services/order_service.py
+# خدمة جلب الطلبات من المصدر الخارجي (GraphQL API) ومعالجة البيانات
 
+import requests
+import json
 import traceback
-import threading
-from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Blueprint
-from flask_login import login_required
+from flask import current_app
 
-from apps.extensions import db
-from apps.services import services
-from apps.models.orders_db import Order
-from apps.models.supplier_db import Supplier
-from apps.models.order_items_db import OrderItem
-
-admin_orders_bp = Blueprint(
-    'admin_orders_bp',
-    __name__,
-    template_folder='../templates',
-    url_prefix='/admin/orders'
-)
-
-STATUS_TITLES_MAP = {
-    'pending': 'قيد الانتظار',
-    'processing': 'قيد التجهيز',
-    'shipped': 'تم الشحن',
-    'delivered': 'تم التسليم',
-    'completed': 'مكتمل',
-    'cancelled': 'ملغي',
-    'refunded': 'مسترجع'
-}
-
-
-def _save_or_update_order_item(order_id, item_data):
-    product_id = item_data.get('productId')
-    if not product_id:
-        return
-    item = OrderItem.query.filter_by(order_id=order_id, product_qid=product_id).first()
-    if not item:
-        item = OrderItem(order_id=order_id, product_qid=product_id)
-
-    item.quantity = item_data.get('quantity', 0)
-    item.price = item_data.get('price', 0)
-    product_data = item_data.get('productData', {})
-    item.product_name = product_data.get('title', '')
-    image_data = product_data.get('image', {})
-    item.product_image = image_data.get('fileUrl', '')
-
-    db.session.merge(item)
-    db.session.commit()
-
-
-def _save_or_update_order(order_data):
-    order_id = order_data.get('_id')
-    if not order_id:
-        return
-
-    order = Order.query.get(order_id)
-    if not order:
-        order = Order(id=order_id)
-
-    order_number = order_data.get('orderNumber')
-    if order_number:
-        try:
-            order.order_number = int(order_number)
-        except (ValueError, TypeError):
-            order.order_number = None
-    else:
-        try:
-            order.order_number = int(order_id[:8], 16) % 1000000
-        except:
-            order.order_number = None
-
-    order.order_reference = order_data.get('orderReference') or order_id
-    account = order_data.get('account', {})
-    account_data = account.get('account', {})
-    customer_name = account_data.get('fullname', 'زائر')
-    order.customer_name = customer_name
-    phone = account_data.get('phone')
-    if phone:
-        order.customer_phone = phone
-    shipping = order_data.get('shippingAddress', {})
-    address = shipping.get('street') or shipping.get('description')
-    if address:
-        order.customer_address = address
-    order.total_price = order_data.get('totalPrice', 0)
-    status_obj = order_data.get('status', {})
-    order.status_code = status_obj.get('code', 'pending')
-    order.status_title = status_obj.get('title', 'قيد الانتظار')
-    order.is_paid = order_data.get('isPaid', False)
-    order.created_at = order_data.get('createdAt')
-    order.updated_at = order_data.get('updatedAt')
-    items_list = order_data.get('items', [])
-    order.items_count = len(items_list)
-
-    db.session.merge(order)
-    db.session.commit()
-
-    for item_data in items_list:
-        _save_or_update_order_item(order_id, item_data)
-
-    order.items_count = len(items_list)
-    db.session.commit()
-
-
-def sync_all_orders_from_graphql(max_pages=None):
+class OrderService:
     """
-    مزامنة جميع الطلبات من GraphQL إلى قاعدة البيانات المحلية
+    خدمة التعامل مع الطلبات من واجهة برمجة التطبيقات (API) الخارجية.
+    تتولى عمليات المصادقة، الاستعلام، وتنظيم البيانات.
     """
-    page = 1
-    limit = 50
-    total_synced = 0
 
-    print("\n🔍 [DEBUG] بدء مزامنة الطلبات من المصدر...")
+    def __init__(self):
+        # 🔑 إعدادات الاتصال بالسيرفر الخارجي (يجب وضعها في ملف config أو env)
+        # مثال: 
+        # self.api_url = current_app.config.get('GRAPHQL_API_URL')
+        # self.access_token = current_app.config.get('API_ACCESS_TOKEN')
+        
+        # يمكنك وضع رابط المصدر هنا (مثال افتراضي للمنصة):
+        self.api_url = "https://api.mahjoub-sa.com/graphql"  
+        self.access_token = "YOUR_API_TOKEN_HERE" 
 
-    while True:
-        try:
-            print(f"⏳ جاري جلب الصفحة رقم {page}...")
-            result = services.orders.get_all_orders(page=page, limit=limit)
-            
-            # ✅ طباعة عينة من النتيجة لمعرفة ماذا يرجع المصدر
-            print(f"📦 [DEBUG] نوع البيانات المستقبلة: {type(result)}")
-            if isinstance(result, dict):
-                print(f"📦 [DEBUG] مفاتيح الاستجابة: {list(result.keys())}")
-            
-            if not result:
-                print("⛔ [DEBUG] الـ API رجع قيمة فارغة (None أو Empty)!")
-                break
-
-            orders = []
-            has_next = False
-
-            # التعامل الآمن مع أنواع البيانات
-            if isinstance(result, dict):
-                orders = result.get('data', [])
-                pagination = result.get('pagination', {}) or {} # مهم جداً للتجنب من الخطأ
-                has_next = pagination.get('hasNextPage', False)
-            elif isinstance(result, list):
-                orders = result
-                has_next = False
-
-            print(f"📊 [DEBUG] عدد الطلبات الموجودة في هذه الصفحة: {len(orders)}")
-
-            if not orders:
-                print("⛔ [DEBUG] لا توجد طلبات في هذه الصفحة، ننهي التزامن.")
-                break
-
-            for order_data in orders:
-                _save_or_update_order(order_data)
-                total_synced += 1
-
-            if not has_next:
-                print("✅ [DEBUG] وصلنا لآخر صفحة، ننهي التزامن.")
-                break
-
-            if max_pages is not None and page >= max_pages:
-                break
-
-            page += 1
-
-        except Exception as e:
-            current_app.logger.error(f"خطأ في جلب الصفحة {page}: {e}")
-            traceback.print_exc()
-            break
-
-    print(f"🏁 [DEBUG] انتهت المزامنة، إجمالي الطلبات التي تم جلبها وحفظها: {total_synced}")
-    return total_synced
-
-
-def _sync_orders_from_graphql(app=None):
-    if app is None:
-        app = current_app._get_current_object()
-    with app.app_context():
-        try:
-            total = sync_all_orders_from_graphql(max_pages=5)
-            current_app.logger.info(f"✅ تمت مزامنة {total} طلباً في الخلفية (أول 5 صفحات)")
-        except Exception as e:
-            current_app.logger.error(f"❌ خطأ في مزامنة الطلبات الخلفية: {e}")
-
-
-@admin_orders_bp.route('', methods=['GET'], endpoint='list_admin_orders')
-@admin_orders_bp.route('/', methods=['GET'])
-@login_required
-def manage_admin_orders_view():
-    try:
-        user_type = session.get('user_type')
-        if user_type != 'admin':
-            flash('❌ هذا القسم مخصص للإدارة فقط', 'danger')
-            return redirect(url_for('admin_dashboard_bp.dashboard'))
-
-        page = request.args.get('page', 1, type=int)
-        per_page = 10
-        is_ajax = request.args.get('ajax', '0') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-
-        if not is_ajax:
-            app = current_app._get_current_object()
-            thread = threading.Thread(target=_sync_orders_from_graphql, args=(app,), daemon=True)
-            thread.start()
-
-        query = Order.query
-
-        status_filter = request.args.get('status')
-        if status_filter:
-            query = query.filter(Order.status_code == status_filter)
-
-        search = request.args.get('search')
-        if search:
-            query = query.filter(
-                db.or_(
-                    Order.order_number.ilike(f'%{search}%'),
-                    Order._customer_name.ilike(f'%{search}%')
-                )
-            )
-
-        date_from = request.args.get('date_from')
-        if date_from:
-            query = query.filter(Order.created_at >= date_from)
-
-        date_to = request.args.get('date_to')
-        if date_to:
-            query = query.filter(Order.created_at <= date_to)
-
-        query = query.order_by(Order.created_at.desc())
-
-        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
-        orders = paginated.items
-
-        pagination_info = {
-            'current_page': page,
-            'total_pages': paginated.pages,
-            'total_items': paginated.total,
-            'has_prev': paginated.has_prev,
-            'has_next': paginated.has_next,
-            'prev_num': page - 1 if paginated.has_prev else None,
-            'next_num': page + 1 if paginated.has_next else None,
+    def _execute_graphql_query(self, query, variables=None):
+        """
+        دالة مساعدة لتنفيذ استعلامات GraphQL وإرجاع النتيجة
+        مع التقاط الأخطاء لطباعتها في الـ Logs.
+        """
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+        
+        payload = {
+            "query": query,
+            "variables": variables or {}
         }
 
-        suppliers = Supplier.query.all()
+        try:
+            # إرسال الطلب
+            response = requests.post(self.api_url, json=payload, headers=headers, timeout=30)
+            
+            # ✅ **تصحيح الأخطاء (مهم جداً):** طباعة الاستجابة الخام في سجل الخادم
+            print(f"\n🔍 [OrderService DEBUG] Request URL: {self.api_url}")
+            print(f"🔍 [OrderService DEBUG] Status Code: {response.status_code}")
+            if response.status_code != 200:
+                print(f"❌ [OrderService DEBUG] Response Text: {response.text}")
+                return None
 
-        if is_ajax:
-            return jsonify({
-                'success': True,
-                'html': render_template('admin/partials/_orders_table.html', orders=orders),
-                'pagination_html': render_template('admin/partials/_pagination.html', pagination=pagination_info)
-            })
+            result = response.json()
+            
+            # التحقق من وجود أخطاء GraphQL داخل الاستجابة
+            if 'errors' in result:
+                print(f"❌ [OrderService DEBUG] GraphQL Errors: {json.dumps(result['errors'], indent=2)}")
+                return None
+            
+            # إرجاع البيانات الناجحة (عادة تكون داخل data)
+            return result.get('data')
 
-        return render_template('admin/admin_orders.html',
-                               orders=orders,
-                               pagination=pagination_info,
-                               suppliers=suppliers)
+        except requests.exceptions.RequestException as req_err:
+            print(f"❌ [OrderService] فشل الاتصال بالسيرفر الخارجي: {req_err}")
+            traceback.print_exc()
+            return None
+        except json.JSONDecodeError as json_err:
+            print(f"❌ [OrderService] خطأ في قراءة JSON القادم من السيرفر: {json_err}")
+            return None
+        except Exception as e:
+            print(f"❌ [OrderService] خطأ غير متوقع في جلب البيانات: {e}")
+            traceback.print_exc()
+            return None
 
-    except Exception as e:
-        current_app.logger.error(f"خطأ في عرض الطلبات: {traceback.format_exc()}")
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': str(e)}), 500
-        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
-        return redirect(url_for('admin_dashboard_bp.dashboard'))
+    def get_all_orders(self, page=1, limit=50):
+        """
+        جلب قائمة الطلبات مع إمكانية التصفح (Pagination).
+        المعاملات:
+            page: رقم الصفحة الحالية
+            limit: عدد الطلبات في الصفحة
+        العائد:
+            قاموس يحتوي على المفاتيح: 'data' و 'pagination'
+        """
+        # 📝 استعلام GraphQL لجلب الطلبات (عليك كتابة الاستعلام الصحيح الخاص بـ "قمره")
+        # يرجى التأكد من أن الأسماء (orders, items, account...) تطابق ما هو موجود في نظامكم
+        query = """
+        query GetOrders($page: Int, $limit: Int) {
+            orders(page: $page, limit: $limit) {
+                data {
+                    _id
+                    orderNumber
+                    orderReference
+                    totalPrice
+                    isPaid
+                    createdAt
+                    updatedAt
+                    account {
+                        account {
+                            fullname
+                            phone
+                        }
+                    }
+                    shippingAddress {
+                        street
+                        description
+                    }
+                    status {
+                        code
+                        title
+                    }
+                    items {
+                        productId
+                        quantity
+                        price
+                        productData {
+                            title
+                            image {
+                                fileUrl
+                            }
+                        }
+                    }
+                }
+                pagination {
+                    hasNextPage
+                    totalCount
+                }
+            }
+        }
+        """
+        
+        variables = {
+            "page": page,
+            "limit": limit
+        }
 
+        # تنفيذ الاستعلام
+        data = self._execute_graphql_query(query, variables)
 
-@admin_orders_bp.route('/sync', methods=['POST'], endpoint='sync_admin_orders')
-@login_required
-def sync_admin_orders():
-    try:
-        if session.get('user_type') != 'admin':
-            return jsonify({'success': False, 'message': 'غير مصرح'}), 403
+        if not data:
+            return None
 
-        total = sync_all_orders_from_graphql()
-        return jsonify({'success': True, 'message': f'✅ تمت مزامنة {total} طلباً بنجاح.'})
-    except Exception as e:
-        current_app.logger.error(f"خطأ في المزامنة: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        # إعادة البيانات بالصيغة التي يتوقعها ملف orders.py (data و pagination)
+        return data.get('orders', {})
 
+    def get_order_by_id(self, order_id):
+        """
+        جلب تفاصيل طلب محدد باستخدام معرفه (ID).
+        """
+        query = """
+        query GetOrder($id: ID!) {
+            order(id: $id) {
+                _id
+                orderNumber
+                orderReference
+                totalPrice
+                isPaid
+                createdAt
+                updatedAt
+                account {
+                    account {
+                        fullname
+                        phone
+                    }
+                }
+                shippingAddress {
+                    street
+                    description
+                }
+                status {
+                    code
+                    title
+                }
+                items {
+                    productId
+                    quantity
+                    price
+                    productData {
+                        title
+                        image {
+                            fileUrl
+                        }
+                    }
+                }
+            }
+        }
+        """
+        
+        variables = {
+            "id": order_id
+        }
 
-@admin_orders_bp.route('/<string:order_id>/sync', methods=['POST'], endpoint='sync_single_order')
-@login_required
-def sync_single_order(order_id):
-    try:
-        order_data = services.orders.get_order_by_id(order_id)
-        if order_data:
-            _save_or_update_order(order_data)
-            return jsonify({'success': True, 'message': 'تم تحديث الطلب'})
-        return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-    except Exception as e:
-        current_app.logger.error(f"خطأ في مزامنة الطلب {order_id}: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        data = self._execute_graphql_query(query, variables)
+        if not data:
+            return None
+            
+        return data.get('order')
 
+# ✅ تعريف المتغير العام لاستخدامه في باقي النظام
+orders_service = OrderService()
 
-@admin_orders_bp.route('/<string:order_id>', methods=['GET'], endpoint='view_admin_order')
-@login_required
-def view_admin_order(order_id):
-    try:
-        order = db.session.get(Order, order_id)
-        if not order:
-            order_data = services.orders.get_order_by_id(order_id)
-            if order_data:
-                _save_or_update_order(order_data)
-                order = db.session.get(Order, order_id)
+# لضمان توافق الاستيراد القديم للملفات الأخرى التي تستخدم (services.orders)
+# سنقوم بربط الدوال بالمتغير العام
+def get_all_orders(page=1, limit=50):
+    return orders_service.get_all_orders(page, limit)
 
-        if not order:
-            flash('الطلب غير موجود', 'danger')
-            return redirect(url_for('admin_orders_bp.list_admin_orders'))
-
-        items = OrderItem.query.filter_by(order_id=order_id).all()
-        return render_template('admin/admin_order_detail.html', order=order, items_list=items)
-    except Exception as e:
-        current_app.logger.error(f"خطأ في عرض تفاصيل الطلب: {traceback.format_exc()}")
-        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
-        return redirect(url_for('admin_orders_bp.list_admin_orders'))
-
-
-@admin_orders_bp.route('/<string:order_id>/update-status', methods=['POST'], endpoint='update_order_status_inline')
-@login_required
-def update_order_status_inline(order_id):
-    try:
-        data = request.get_json() or {}
-        new_status = data.get('status')
-        if not new_status:
-            return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
-
-        order = db.session.get(Order, order_id)
-        if not order:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-
-        order.status_code = new_status
-        order.status_title = STATUS_TITLES_MAP.get(new_status, 'غير معروف')
-        db.session.commit()
-
-        return jsonify({'success': True, 'message': 'تم تحديث الحالة'})
-    except Exception as e:
-        current_app.logger.error(f"خطأ في تحديث حالة الطلب: {traceback.format_exc()}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+def get_order_by_id(order_id):
+    return orders_service.get_order_by_id(order_id)
