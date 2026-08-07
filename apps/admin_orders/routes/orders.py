@@ -309,6 +309,9 @@ def update_order_status_inline(order_id):
         if not new_status:
             return jsonify({'success': False, 'message': 'الحالة مطلوبة'}), 400
 
+        # ✅ طباعة تصحيح للتأكد من وصول الطلب إلى الخادم
+        print(f"🚨 [DEBUG] تم استلام طلب تحديث الحالة في orders.py للطلب {order_id} إلى الحالة {new_status}")
+
         order = db.session.get(Order, order_id)
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
