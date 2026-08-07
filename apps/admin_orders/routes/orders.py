@@ -10,6 +10,7 @@ from apps.extensions import db
 from apps.services import services
 from apps.models.orders_db import Order
 from apps.models.supplier_db import Supplier
+from apps.models.order_items_db import OrderItem
 
 # ✅ تعريف الـ Blueprint الرئيسي مع تحديد مجلد القوالب
 admin_orders_bp = Blueprint(
@@ -136,7 +137,7 @@ def view_admin_order(order_id):
             flash('❌ لم يتم العثور على الطلب في النظام، أو فشل حفظه محلياً. تأكد من صحة بيانات المزامنة.', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
-        # 🔍 توثيق عملية استعراض تفاصيل طلب حساس عبر AuditLogger (محمي ضد عدم وجود الجدول لتفادي التعليق)
+        # 🔍 توثيق عملية استعراض تفاصيل طلب حساس عبر AuditLogger
         try:
             if hasattr(services, 'audit') and hasattr(services.audit, 'log'):
                 services.audit.log(
@@ -148,9 +149,17 @@ def view_admin_order(order_id):
         except Exception:
             db.session.rollback()
 
+        # جلب الموردين وعناصر الطلب لتمريرها مباشرة للقالب
         suppliers = Supplier.query.all()
+        items_list = OrderItem.query.filter_by(order_id=order_id).all()
 
-        return render_template('admin/admin_order_detail.html', order=order, suppliers=suppliers)
+        return render_template(
+            'admin/admin_order_detail.html', 
+            order=order, 
+            suppliers=suppliers,
+            items_list=items_list,
+            all_suppliers=suppliers
+        )
 
     except Exception as e:
         current_app.logger.error(f"خطأ في عرض تفاصيل الطلب {order_id}: {traceback.format_exc()}")
