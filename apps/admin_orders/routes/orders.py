@@ -58,22 +58,14 @@ def _save_or_update_order(order_data):
     if not order:
         order = Order(id=order_id)
 
-    # ✅ التعديل الأساسي: استخدام orderId من قمرة بدلاً من التوليد العشري
-    order_id_from_qumra = order_data.get('orderId')
-    if order_id_from_qumra:
-        try:
-            order.order_number = int(order_id_from_qumra)
-        except (ValueError, TypeError):
-            order.order_number = None
-    else:
-        # في حال عدم وجود orderId (احتياطي)، نستخدم جزء من _id كما كان سابقاً
-        try:
-            order.order_number = int(order_id[:8], 16) % 1000000
-        except:
-            order.order_number = None
+    # ✅ التعديل: استخدام التوليد العشري الآمن (لأن orderId غير موجود في الـ Schema)
+    try:
+        order.order_number = int(order_id[:8], 16) % 1000000
+    except:
+        order.order_number = None
 
-    # ✅ تحديث المرجع ليكون هو orderId إن وجد
-    order.order_reference = order_id_from_qumra or order_id
+    # ✅ تحديث المرجع ليكون هو الـ _id (بما أن orderId غير موجود)
+    order.order_reference = order_id
     
     # التعامل مع account إذا كان None
     account = order_data.get('account')
@@ -98,7 +90,11 @@ def _save_or_update_order(order_data):
     order.status_title = status_obj.get('title', 'قيد الانتظار')
     order.is_paid = order_data.get('isPaid', False)
     order.created_at = order_data.get('createdAt')
-    order.updated_at = order_data.get('updatedAt')
+    
+    # ✅ إضافة حماية لـ updated_at (لأنها قد لا تأتي من API)
+    updated_at = order_data.get('updatedAt')
+    if updated_at:
+        order.updated_at = updated_at
     
     items_list = order_data.get('items', [])
     order.items_count = len(items_list)
