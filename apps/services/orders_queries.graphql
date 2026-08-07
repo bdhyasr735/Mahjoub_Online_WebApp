@@ -1,8 +1,7 @@
-query FindAllOrders($input: OrdersInput) {
-    findAllOrders(input: $input) {
+query FindAllOrders($page: Int, $limit: Int) {
+    findAllOrders(page: $page, limit: $limit) {
         data {
             _id
-            id
             type
             totalPrice
             isPaid
@@ -43,7 +42,6 @@ query FindOrderById($id: ID!) {
     findOrderById(id: $id) {
         data {
             _id
-            id
             type
             totalPrice
             isPaid
