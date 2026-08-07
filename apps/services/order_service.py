@@ -132,19 +132,24 @@ class OrderService:
                         prod_id = item.get('productId', '')
                         safe_prod_id = str(prod_id) if prod_id is not None else ""
 
-                        # ⚡️ سحب الاسم الحقيقي من الـ productData بجميع الاحتمالات الممكنة
-                        product_name = (
-                            prod_data.get('title') or 
-                            prod_data.get('name') or 
-                            (f"منتج ({safe_prod_id[:8]})" if safe_prod_id else "منتج بدون اسم")
-                        )
+                        # ⚡️ سحب الاسم الحقيقي بجميع الاحتمالات الممكنة
+                        product_name = "منتج غير معروف"
+                        if isinstance(prod_data, dict):
+                            product_name = prod_data.get('title') or prod_data.get('name') or prod_data.get('productName')
+                        
+                        if not product_name:
+                            # محاولة البحث في حقول بديلة داخل العنصر نفسه
+                            product_name = item.get('title') or item.get('product_name')
 
-                        # 🖼️ استخراج رابط صورة المنتج بدقة من الهياكل المحتملة
+                        if not product_name:
+                            product_name = f"منتج ({safe_prod_id[:8]})" if safe_prod_id else "منتج بدون اسم"
+
+                        # 🖼️ استخراج رابط صورة المنتج بدقة
                         prod_image = ""
                         if isinstance(prod_data, dict):
-                            image_obj = prod_data.get('image')
+                            image_obj = prod_data.get('image') or prod_data.get('img')
                             if isinstance(image_obj, dict):
-                                prod_image = image_obj.get('fileUrl') or image_obj.get('url') or ''
+                                prod_image = image_obj.get('fileUrl') or image_obj.get('url') or image_obj.get('path') or ''
                             elif isinstance(image_obj, str):
                                 prod_image = image_obj
                         
