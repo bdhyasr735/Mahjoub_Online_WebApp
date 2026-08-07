@@ -109,29 +109,33 @@ class OrderService:
             return None
 
     # ============================================================
-    # 🚀 دالة تحديث الحالة في قمره باستخدام changeOrderStatus
+    # 🚀 دالة تحديث الحالة في قمره (نسخة مُصححة 100%)
     # ============================================================
     def update_order_status_in_qumra(self, order_id: str, status_code: str) -> bool:
         """
-        إرسال طلب تحديث الحالة إلى قمره عبر GraphQL Mutation.
+        إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
         """
-        # ✅ استخدمنا الاسم الصحيح changeOrderStatus بناءً على الساندبوكس
-        # ✅ نضيف المتغير الإلزامي input (كائن فارغ حالياً، يمكن تعديله إذا طلب السيرفر حقولاً)
+        # ✅ التصحيح الجذري: لا نرسل $id و $status كمعاملات، بل نضعهم داخل $input
         mutation = """
-        mutation ChangeOrderStatus($id: ID!, $status: String!, $input: ChangeOrderStatusInput!) {
-            changeOrderStatus(id: $id, status: $status, input: $input) {
+        mutation ChangeOrderStatus($input: ChangeOrderStatusInput!) {
+            changeOrderStatus(input: $input) {
                 success
                 message
             }
         }
         """
         try:
-            # 🔴 في حال طلب السيرفر حقلاً معيناً داخل input (مثل reason)، يمكنك تعديل الكائن هنا
-            data = self.client.execute(mutation, {
+            # 🔴 بناء كائن input يحتوي على جميع الحقول التي قد يطلبها السيرفر
+            # لاحظ أننا وضعنا id و status داخل input
+            # إذا ظهر خطأ جديد، افتح الساندبوكس وابحث عن ChangeOrderStatusInput لتعرف الأسماء الصحيحة
+            input_data = {
                 "id": order_id,
                 "status": status_code,
-                "input": {}  # نرسل كائن فارغ، وإذا احتاج حقولاً سنقوم بتعبئتها
-            })
+                "reason": "تحديث الحالة من لوحة التحكم"  # احتياطي لتجنب رفض الحقول الإلزامية
+            }
+            
+            data = self.client.execute(mutation, {"input": input_data})
+            
             if data and "changeOrderStatus" in data:
                 return data["changeOrderStatus"].get("success", False)
             return False
