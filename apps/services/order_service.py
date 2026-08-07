@@ -115,6 +115,21 @@ class OrderService:
         """
         إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
         """
+        # ✅ خريطة تحويل حالات محجوب إلى حالات مقبولة في قمره
+        # قمره تقبل: pending, confirmed, shipped, delivered, cancelled, refunded
+        qumra_status_map = {
+            'pending': 'pending',
+            'processing': 'shipped',  # تحويل processing إلى shipped (أو confirmed حسب النظام)
+            'shipped': 'shipped',
+            'delivered': 'delivered',
+            'completed': 'delivered',
+            'cancelled': 'cancelled',
+            'refunded': 'refunded'
+        }
+        
+        # اختيار الحالة المناسبة
+        target_status = qumra_status_map.get(status_code, 'pending')
+        
         mutation = """
         mutation ChangeOrderStatus($changeOrderStatusInput2: ChangeOrderStatusInput!) {
             changeOrderStatus(input: $changeOrderStatusInput2) {
@@ -124,13 +139,13 @@ class OrderService:
         }
         """
         try:
-            # ✅ التصحيح النهائي: نرسل فقط الحقول المطلوبة من قمره (_id و status)
+            # ✅ التصحيح النهائي: استخدام 'id' بدلاً من '_id' (كما طلبت قمره)
             input_data = {
-                "_id": order_id,      # قمره تتطلب _id وليس orderId
-                "status": status_code # الحالة الجديدة
+                "id": order_id,          # قمره تتطلب 'id'
+                "status": target_status  # الحالة المحولة المقبولة
             }
             
-            # ✅ إضافة طباعة لما يتم إرساله إلى قمره لمعرفة السبب الحقيقي
+            # ✅ طباعة لما يتم إرساله لتأكيد الوصول
             print(f"🚀 [DEBUG] إرسال الطلب إلى قمره: {input_data}")
             
             data = self.client.execute(mutation, {"changeOrderStatusInput2": input_data})
