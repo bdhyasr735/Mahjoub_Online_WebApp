@@ -1,26 +1,69 @@
-# ========== FRAGMENTS ==========
+# ============================================================
+# 📂 apps/services/orders_queries.graphql
+# ============================================================
+# جميع استعلامات الطلبات (Orders) مع استخدام Fragments
+# لتجنب التكرار وتسهيل الصيانة.
+# ============================================================
+
+# ============================================================
+# 1. FRAGMENTS (أجزاء مشتركة)
+# ============================================================
+
+# ------------------------------------------------------------
+# 1.1 ملخص الطلب (للجوائب والقوائم السريعة)
+# ------------------------------------------------------------
 fragment OrderSummary on Order {
   _id
+  type
   totalPrice
   isPaid
   createdAt
-  status { code title }
-  account { account { fullname } }
+  status {
+    code
+    title
+  }
+  account {
+    account {
+      fullname
+    }
+  }
   items {
     productId
     quantity
     price
-    productData { title price image { fileUrl } }
+    productData {
+      title
+      price
+      image {
+        fileUrl
+      }
+      images {
+        fileUrl
+      }
+    }
   }
 }
 
+# ------------------------------------------------------------
+# 1.2 الطلب الكامل (كل التفاصيل للصفحة الواحدة)
+# ------------------------------------------------------------
 fragment OrderFull on Order {
-  ...OrderSummary
-  status { _id title code }
+  _id
+  status {
+    _id
+    title
+    code
+  }
   COD
   type
-  currency { _id title currencyCode currencySymbol }
+  currency {
+    _id
+    title
+    currencyCode
+    currencySymbol
+  }
   freeze
+  totalPrice
   totalPriceWithTax
   priceWithShipping
   shippingPrice
@@ -28,17 +71,150 @@ fragment OrderFull on Order {
   taxAmount
   taxType
   taxValue
-  taxLines { title amountType value amount base }
-  paymentMethod { ... }
-  market { ... }
-  shippingAddress { ... }
+  taxLines {
+    title
+    amountType
+    value
+    amount
+    base
+  }
+  paymentMethod {
+    _id
+    payment {
+      _id
+      key
+      descreption
+      installed
+      enable
+      deleted
+      schema
+      createdAt
+      updatedAt
+      icon
+      iconUrl
+      needConfig
+      methods
+      name
+      instructions
+      id
+    }
+    enable
+    unable
+    action
+    install
+    deleted
+    complete
+    createdAt
+    updatedAt
+    data
+  }
+  market {
+    _id
+    app
+    title
+    status
+    countryIds {
+      _id
+      name
+      image {
+        image
+        imageUrl
+      }
+      code
+      continent
+      capital
+      active
+      deleted
+      phonekey
+    }
+    countryCodes
+    targetCurrency {
+      _id
+      title
+      currencyCode
+      currencySymbol
+    }
+    targetCurrencyId {
+      _id
+      title
+      currencyCode
+      currencySymbol
+    }
+    targetCurrencyCode
+    enableRounding
+    localCurrencies
+    fxMode
+    exchangeRate
+    providerName
+    lastUpdated
+    history {
+      rate
+      updatedAt
+    }
+    createdAt
+    updatedAt
+  }
+  marketSnapshot
+  shippingAddress {
+    _id
+    country {
+      _id
+      name
+      code
+      continent
+      capital
+      active
+      deleted
+      phonekey
+    }
+    city {
+      _id
+      name
+      description
+      active
+      deleted
+      isSelected
+      createdAt
+    }
+    street
+    neighborhood
+    zipCode
+    description
+    device
+    deleted
+    createdAt
+    updatedAt
+  }
   app
+  isPaid
   isFastOrder
-  salesLead { _id firstName lastName district street phone1 phone2 email }
+  createdAt
+  salesLead {
+    _id
+    firstName
+    lastName
+    district
+    street
+    phone1
+    phone2
+    email
+  }
   account {
     _id
     app
-    account { _id fullname phone type verified blocked blockedReason status avatarUrl createdAt updatedAt }
+    account {
+      _id
+      fullname
+      phone
+      type
+      verified
+      blocked
+      blockedReason
+      status
+      avatarUrl
+      createdAt
+      updatedAt
+    }
     verified
     blocked
     orderCount
@@ -51,8 +227,31 @@ fragment OrderFull on Order {
     orderId
     productId
     variantId
-    productData { title slug app image { _id fileUrl } price }
-    variantData { price compareAtPrice options { _id option { _id name type product } label sortOrder } }
+    productData {
+      title
+      slug
+      app
+      image {
+        _id
+        fileUrl
+      }
+      price
+    }
+    variantData {
+      price
+      compareAtPrice
+      options {
+        _id
+        option {
+          _id
+          name
+          type
+          product
+        }
+        label
+        sortOrder
+      }
+    }
     quantity
     weight
     price
@@ -63,16 +262,43 @@ fragment OrderFull on Order {
   }
 }
 
-# ========== QUERIES ==========
-query FindOrderById($id: ID!) {
+# ============================================================
+# 2. QUERIES (الاستعلامات)
+# ============================================================
+
+# ------------------------------------------------------------
+# 2.1 استعلام أساسي (ملخص) - يعيد الحقول مباشرة
+#    يقابل الاستعلام الأول في مشاركتك
+# ------------------------------------------------------------
+query FindOrderByIdBasic($id: ID!) {
   findOrderById(id: $id) {
-    ...OrderFull
+    ...OrderSummary
   }
 }
 
-query FindAllOrders($input: FindAllOrdersInput!) {
+# ------------------------------------------------------------
+# 2.2 استعلام مفصل (كامل) - يعيد { data, success, message }
+#    يقابل الجزء الأول من الاستعلام الثاني في مشاركتك
+# ------------------------------------------------------------
+query FindOrderByIdFull($id: ID!) {
+  findOrderById(id: $id) {
+    data {
+      ...OrderFull
+    }
+    success
+    message
+  }
+}
+
+# ------------------------------------------------------------
+# 2.3 جلب قائمة الطلبات (ملخص مع Pagination)
+#    يقابل الاستعلام الثالث (FindAllOrders) في مشاركتك
+# ------------------------------------------------------------
+query FindAllOrdersBasic($input: FindAllOrdersInput!) {
   findAllOrders(input: $input) {
-    data { ...OrderSummary }
+    data {
+      ...OrderSummary
+    }
     pagination {
       totalItems
       totalPages
@@ -83,9 +309,83 @@ query FindAllOrders($input: FindAllOrdersInput!) {
   }
 }
 
-query GetOrdersByIds($input: FindOrdersByIdsInput!) {
+# ------------------------------------------------------------
+# 2.4 جلب قائمة الطلبات (كامل مع Success و Pagination)
+#    يقابل الجزء الثاني من الاستعلام الثاني في مشاركتك
+# ------------------------------------------------------------
+query FindAllOrdersFull($input: FindAllOrdersInput!) {
+  findAllOrders(input: $input) {
+    success
+    data {
+      ...OrderFull
+    }
+    pagination {
+      totalItems
+      totalPages
+      currentPage
+      limit
+      hasNextPage
+    }
+  }
+}
+
+# ------------------------------------------------------------
+# 2.5 جلب طلبات متعددة بواسطة IDs (كامل مع Pagination)
+#    يقابل الجزء الثالث من الاستعلام الثاني في مشاركتك
+# ------------------------------------------------------------
+query GetOrdersByIdsFull($input: FindOrdersByIdsInput!) {
   getOrdersByIds(input: $input) {
-    data { ...OrderFull }
+    success
+    data {
+      ...OrderFull
+    }
+    pagination {
+      totalItems
+      hasPreviousPage
+      totalPages
+      currentPage
+      limit
+      hasNextPage
+    }
+  }
+}
+
+# ------------------------------------------------------------
+# 2.6 الاستعلام المُجمَّع (الاستعلام الضخم الأصلي)
+#    يجلب البيانات الثلاث معاً في طلب واحد،
+#    مع الحفاظ على نفس أسماء المتغيرات الأصلية
+#    (للتوافق مع الكود القديم إن احتجت)
+# ------------------------------------------------------------
+query GetOrdersAggregated(
+  $findOrderByIdId: ID!,
+  $findAllOrdersInput2: FindAllOrdersInput,
+  $getOrdersByIdsInput2: FindOrdersByIdsInput!
+) {
+  findOrderById(id: $findOrderByIdId) {
+    data {
+      ...OrderFull
+    }
+    success
+    message
+  }
+  findAllOrders(input: $findAllOrdersInput2) {
+    success
+    data {
+      ...OrderFull
+    }
+    pagination {
+      totalItems
+      totalPages
+      currentPage
+      limit
+      hasNextPage
+    }
+  }
+  getOrdersByIds(input: $getOrdersByIdsInput2) {
+    success
+    data {
+      ...OrderFull
+    }
     pagination {
       totalItems
       hasPreviousPage
