@@ -109,32 +109,30 @@ class OrderService:
             return None
 
     # ============================================================
-    # 🚀 دالة تحديث الحالة في قمره (نسخة مُصححة 100%)
+    # 🚀 دالة تحديث الحالة في قمره (النسخة النهائية والصحيحة)
     # ============================================================
     def update_order_status_in_qumra(self, order_id: str, status_code: str) -> bool:
         """
         إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
         """
-        # ✅ التصحيح الجذري: لا نرسل $id و $status كمعاملات، بل نضعهم داخل $input
+        # ✅ التصحيح النهائي: استخدام المتغير الصحيح $changeOrderStatusInput2
         mutation = """
-        mutation ChangeOrderStatus($input: ChangeOrderStatusInput!) {
-            changeOrderStatus(input: $input) {
+        mutation ChangeOrderStatus($changeOrderStatusInput2: ChangeOrderStatusInput!) {
+            changeOrderStatus(input: $changeOrderStatusInput2) {
                 success
                 message
             }
         }
         """
         try:
-            # 🔴 بناء كائن input يحتوي على جميع الحقول التي قد يطلبها السيرفر
-            # لاحظ أننا وضعنا id و status داخل input
-            # إذا ظهر خطأ جديد، افتح الساندبوكس وابحث عن ChangeOrderStatusInput لتعرف الأسماء الصحيحة
+            # 🔴 بناء كائن input يحتوي على الحقول المطلوبة
+            # وفقاً لملاحظتك، قد يكون الحقل المطلوب هو 'state' وليس 'status'
             input_data = {
-                "id": order_id,
-                "status": status_code,
-                "reason": "تحديث الحالة من لوحة التحكم"  # احتياطي لتجنب رفض الحقول الإلزامية
+                "state": status_code,  # قمرة قد تتوقع "state" بدلاً من "status"
+                "reason": "تحديث الحالة من لوحة التحكم"
             }
             
-            data = self.client.execute(mutation, {"input": input_data})
+            data = self.client.execute(mutation, {"changeOrderStatusInput2": input_data})
             
             if data and "changeOrderStatus" in data:
                 return data["changeOrderStatus"].get("success", False)
