@@ -1,141 +1,49 @@
-<div class="card shadow mb-4">
-    <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">عناصر الطلب</h6>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered text-center align-middle" width="100%">
-                <thead class="table-light">
-                    <tr>
-                        <th class="text-start">المنتج</th>
-                        <th>الكمية</th>
-                        <th>السعر</th>
-                        <th>الإجمالي</th>
-                        <th>المورد المسؤول</th>
-                    </tr>
-                </thead>
-                <tbody id="order-items-tbody">
-                    {% if items_list and items_list|length > 0 %}
-                        {% for item in items_list %}
-                            <tr class="item-row" data-order-id="{{ order_id }}" data-item-id="{{ item.id }}">
-                                <td class="text-start">
-                                    <div class="d-flex align-items-center">
-                                        {% if item.image_url or item.productData.image %}
-                                            <img src="{{ item.image_url or item.productData.image }}" alt="صورة المنتج" class="product-img-thumbnail rounded me-2" style="width: 45px; height: 45px; object-fit: cover; cursor: pointer;" onclick="const imgUrl = this.getAttribute('data-full-image') || this.src; if(imgUrl) window.open(imgUrl, '_blank');" data-full-image="{{ item.image_url or item.productData.image }}">
-                                        {% endif %}
-                                        <div>
-                                            <strong>{{ item.product_title or item.productData.title or 'منتج بدون عنوان' }}</strong>
-                                            <small class="d-block text-muted">QID: {{ item.product_qid or 'N/A' }}</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>{{ item.quantity }}</td>
-                                <td>{{ "{:,.2f}".format(item.price | float if item.price else 0.0) }}</td>
-                                <td class="fw-bold">{{ "{:,.2f}".format((item.quantity | float if item.quantity else 0) * (item.price | float if item.price else 0.0)) }}</td>
-                                <td>
-                                    <!-- طريقة العرض الثابتة -->
-                                    <div class="supplier-display-view d-flex justify-content-between align-items-center">
-                                        <span class="text-truncate" style="max-width: 140px;" title="{{ item.supplier_trade_name or item.supplier_name or '-- بدون مورد --' }}">
-                                            {{ item.supplier_trade_name or item.supplier_name or '-- بدون مورد --' }}
-                                        </span>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="this.closest('td').querySelector('.supplier-display-view').classList.add('d-none'); this.closest('td').querySelector('.supplier-edit-view').classList.remove('d-none');" title="تعديل المورد">
-                                            <i class="fas fa-edit"></i> تعديل
-                                        </button>
-                                    </div>
+# coding: utf-8
+# 📂 apps/admin_orders/routes/items_controller.py
 
-                                    <!-- طريقة التعديل -->
-                                    <div class="supplier-edit-view d-none text-start">
-                                        <div class="list-group list-group-flush border rounded" style="max-height: 150px; overflow-y: auto; font-size: 0.85rem;">
-                                            <a href="javascript:void(0);" class="list-group-item list-group-item-action supplier-option {% if not item.supplier_id %}bg-light fw-bold{% endif %}"
-                                               data-order-id="{{ order_id }}" data-item-id="{{ item.id }}" data-supplier-id="">
-                                                -- بدون مورد --
-                                            </a>
-                                            {% if all_suppliers %}
-                                                {% for s in all_suppliers %}
-                                                    <a href="javascript:void(0);" class="list-group-item list-group-item-action supplier-option {% if item.supplier_id == s.id %}bg-light fw-bold{% endif %}"
-                                                       data-order-id="{{ order_id }}" data-item-id="{{ item.id }}" data-supplier-id="{{ s.id }}">
-                                                        {{ s.trade_name or s.name }}
-                                                    </a>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </div>
-                                        <div class="text-end mt-1">
-                                            <button type="button" class="btn btn-xs btn-secondary py-0 px-1" style="font-size: 0.75rem;" onclick="this.closest('td').querySelector('.supplier-edit-view').classList.add('d-none'); this.closest('td').querySelector('.supplier-display-view').classList.remove('d-none');">
-                                                إلغاء
-                                            </button>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
-                                لا توجد عناصر مسجلة لهذا الطلب
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+from flask import Blueprint, request, jsonify, render_template
 
-<!-- سكريبت محلي خاص بهذه البطاقة فقط (يعمل بدلاً من الملف المحذوف) -->
-<script>
-document.addEventListener('click', function (e) {
-    const option = e.target.closest('.supplier-option');
-    if (!option) return;
+items_bp = Blueprint('items_bp', __name__)
 
-    const orderId = option.dataset.orderId;
-    const itemId = option.dataset.itemId;
-    const supplierId = option.dataset.supplierId;
-    const selectedOptionText = option.textContent.trim();
+# 1. مسار جلب وعرض عناصر الطلب داخل الجدول
+@items_bp.route('/admin/orders/<int:order_id>/items', methods=['GET'])
+def get_order_items(order_id):
+    try:
+        from apps.models.order_items_db import OrderItem
+        items = OrderItem.query.filter_by(order_id=order_id).all()
+        return render_template('admin/order/_items_table_card.html', items=items, order_id=order_id)
+    except Exception as e:
+        return f'<div class="alert alert-danger">خطأ في تحميل العناصر: {str(e)}</div>', 500
 
-    if (!orderId || !itemId) return;
+# 2. مسار تعيين المورد للعنصر
+@items_bp.route('/admin/orders/<int:order_id>/item/<int:item_id>/assign-supplier', methods=['POST'])
+def assign_supplier(order_id, item_id):
+    try:
+        data = request.get_json()
+        supplier_id = data.get('supplier_id')
+        
+        if supplier_id == "":
+            supplier_id = None
+        else:
+            supplier_id = int(supplier_id) if supplier_id else None
 
-    const td = option.closest('td');
-    const displayView = td.querySelector('.supplier-display-view');
-    const editView = td.querySelector('.supplier-edit-view');
+        # منطق التحديث في قاعدة البيانات هنا...
+        from apps.models.order_items_db import OrderItem
+        from apps.extensions import db
+        
+        item = OrderItem.query.filter_by(id=item_id, order_id=order_id).first()
+        if item:
+            item.supplier_id = supplier_id
+            db.session.commit()
 
-    editView.style.opacity = '0.6';
-    editView.style.pointerEvents = 'none';
-
-    fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ supplier_id: supplierId })
-    })
-    .then(res => res.json())
-    .then(data => {
-        editView.style.opacity = '1';
-        editView.style.pointerEvents = 'auto';
-
-        if (data.success) {
-            const nameSpan = displayView.querySelector('span');
-            if (nameSpan) {
-                nameSpan.textContent = data.supplier_name || selectedOptionText;
-                nameSpan.setAttribute('title', data.supplier_name || selectedOptionText);
-            }
-
-            td.querySelectorAll('.supplier-option').forEach(opt => opt.classList.remove('bg-light', 'fw-bold'));
-            if (supplierId !== "") {
-                option.classList.add('bg-light', 'fw-bold');
-            }
-
-            editView.classList.add('d-none');
-            displayView.classList.remove('d-none');
-        } else {
-            alert('خطأ: ' + (data.message || 'فشل التعيين'));
-        }
-    })
-    .catch(err => {
-        editView.style.opacity = '1';
-        editView.style.pointerEvents = 'auto';
-        console.error('Error:', err);
-        alert('فشل الاتصال بالسيرفر أثناء تعيين المورد');
-    });
-});
-</script>
+        return jsonify({
+            'success': True,
+            'message': 'تم تعيين المورد بنجاح',
+            'supplier_name': 'اسم المورد'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 400
