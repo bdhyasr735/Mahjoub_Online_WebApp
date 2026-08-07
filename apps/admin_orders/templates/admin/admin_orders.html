@@ -22,7 +22,6 @@
 
     <!-- حاوية الطلبات والترقيم -->
     <div id="ordersContainer" class="mt-4">
-        <!-- إذا كانت قاعدة محجوب المحلية فارغة تماماً، نعرض مؤشر التحميل فوراً -->
         {% if orders|length == 0 %}
         <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
             <div class="spinner-border mx-auto mb-3" style="color: #D4AF37; width: 3rem; height: 3rem;" role="status"></div>
@@ -85,13 +84,12 @@ function debounceFetchOrders() {
     }, 450);
 }
 
-// دالة جلب الطلبات عبر AJAX (بعد نجاح المزامنة)
+// دالة جلب الطلبات عبر AJAX
 function fetchOrders(page = 1, prefetch = false) {
     const container = document.getElementById('ordersContainer');
     const paginationContainer = document.getElementById('paginationContainer');
     if (!container) return;
 
-    // إذا قمنا بجلب جديد (وليس التحميل الأولي)، نضع Spinner للانتظار
     if (!prefetch && container.dataset.refreshing === 'true') {
         container.innerHTML = `
             <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
@@ -207,7 +205,6 @@ function syncAdminOrders(event) {
         const container = document.getElementById('ordersContainer');
         container.dataset.refreshing = 'true';
         
-        // إعادة تحميل الطلبات بعد 5 ثوانٍ (لإعطاء وقت لمزامنة قمره -> محجوب)
         setTimeout(() => fetchOrders(1), 5000);
     })
     .catch(err => {
@@ -226,12 +223,10 @@ function syncAdminOrders(event) {
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('ordersContainer');
     
-    // ✅ نتحقق: إذا كان الـ Spinner للمزامنة موجوداً، سنقوم بتحديث الصفحة تلقائياً بعد 6 ثوانٍ
-    // لأن خيط الخلفية (Background Thread) سيكون قد انتهى بحفظ الطلبات في قاعدة محجوب
     if (container && container.innerHTML.includes('spinner-border')) {
         setTimeout(() => {
             fetchOrders(1);
-        }, 6000); // انتظر 6 ثوانٍ حتى تنتهي المزامنة الخلفية
+        }, 6000);
     } else {
         const hasInitialOrders = container && container.querySelector('table tbody tr');
         if (!hasInitialOrders) {
