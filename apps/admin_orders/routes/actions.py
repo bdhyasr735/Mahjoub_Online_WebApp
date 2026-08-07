@@ -7,11 +7,12 @@ from flask import Blueprint, render_template, request, jsonify
 
 actions_bp = Blueprint('actions_bp', __name__)
 
-# مثال لمسار خاص بمعالجة البطاقات أو الأزرار
-@actions_bp.route('/admin/orders/<int:order_id>/action', methods=['POST'])
+# مسار خاص بمعالجة البطاقات أو الأزرار (مصحح ليقبل المعرفات النصية)
+@actions_bp.route('/admin/orders/<string:order_id>/action', methods=['POST'])
 def handle_order_action(order_id):
     try:
         # منطق المعالجة هنا
-        return jsonify({'success': True, 'message': 'تم تنفيذ الإجراء بنجاح'})
+        data = request.get_json() or {}
+        return jsonify({'success': True, 'message': 'تم تنفيذ الإجراء بنجاح', 'order_id': order_id})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
