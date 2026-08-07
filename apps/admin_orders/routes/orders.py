@@ -58,22 +58,25 @@ def _save_or_update_order(order_data):
     if not order:
         order = Order(id=order_id)
 
-    order_number = order_data.get('orderNumber')
-    if order_number:
+    # ✅ التعديل الأساسي: استخدام orderId من قمرة بدلاً من التوليد العشري
+    order_id_from_qumra = order_data.get('orderId')
+    if order_id_from_qumra:
         try:
-            order.order_number = int(order_number)
+            order.order_number = int(order_id_from_qumra)
         except (ValueError, TypeError):
             order.order_number = None
     else:
+        # في حال عدم وجود orderId (احتياطي)، نستخدم جزء من _id كما كان سابقاً
         try:
             order.order_number = int(order_id[:8], 16) % 1000000
         except:
             order.order_number = None
 
-    order.order_reference = order_data.get('orderReference') or order_id
+    # ✅ تحديث المرجع ليكون هو orderId إن وجد
+    order.order_reference = order_id_from_qumra or order_id
     
-    # ✅ التعديل الجذري هنا: التعامل مع account إذا كان None
-    account = order_data.get('account')  # لا نضع {} هنا، لنتركه يحمل None إذا كان كذلك
+    # التعامل مع account إذا كان None
+    account = order_data.get('account')
     if isinstance(account, dict):
         account_data = account.get('account', {})
         customer_name = account_data.get('fullname', 'زائر')
@@ -82,7 +85,6 @@ def _save_or_update_order(order_data):
         if phone:
             order.customer_phone = phone
     else:
-        # إذا كان account هو None، نضع اسم افتراضي
         order.customer_name = 'زائر'
         
     shipping = order_data.get('shippingAddress', {})
