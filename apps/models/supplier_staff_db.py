@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 # 📂 apps/models/supplier_staff_db.py
 
 import os
@@ -11,12 +11,10 @@ from apps.extensions import db
 class SupplierStaff(db.Model, UserMixin):
     __tablename__ = 'supplier_staff'
     
-    # [فهرسة متقدمة]: فهرسة الحقول الأكثر استخداماً في البحث والفلترة
     __table_args__ = (
         db.Index('idx_sup_staff_username', 'username'),
         db.Index('idx_sup_staff_phone', 'search_phone'),
         db.Index('idx_sup_staff_active', 'is_active'),
-        # فهرس فريد مركب لمنع تكرار الموظف لنفس المورد
         db.Index('idx_unique_staff_in_supplier', 'supplier_id', 'username', unique=True),
         {'extend_existing': True}
     )
@@ -24,24 +22,22 @@ class SupplierStaff(db.Model, UserMixin):
     # 1. الأعمدة الأساسية
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    name = db.Column(db.String(150), nullable=True) # الحقل المفقود للإسم الكامل
     username = db.Column(db.String(100), nullable=False)
     
-    # [التشفير السيادي]: الهاتف مشفر وله فهرس للبحث
-    _phone_enc = db.Column(db.String(255), nullable=False) 
+    # الهاتف المشفر
+    _phone_enc = db.Column(db.String(255), nullable=True) 
     search_phone = db.Column(db.String(20)) 
     
     email = db.Column(db.String(150), nullable=True)
-    
-    # [تعديل هام]: زيادة الطول إلى 500 لتجنب قص الـ Hash الناتج عن pbkdf2:sha256
     password_hash = db.Column(db.String(500), nullable=False)
     
     role = db.Column(db.String(50), default='worker')
+    role_title = db.Column(db.String(100), default='موظف مورد') # الحقل المفقود للمسمى الوظيفي
     is_active = db.Column(db.Boolean, default=True)
     
-    # [الصلاحيات الديناميكية الشاملة]: لتخزين الصلاحيات بصيغة JSON مرنة
+    # الصلاحيات
     permissions = db.Column(db.JSON, default=dict)
-    
-    # [الصلاحيات المخصصة السابقة]: الإبقاء عليها للتوافقية التامة
     can_view_wallet = db.Column(db.Boolean, default=False)
     can_manage_orders = db.Column(db.Boolean, default=False)
     
@@ -54,10 +50,9 @@ class SupplierStaff(db.Model, UserMixin):
         lazy='joined' 
     )
 
-    # 4. التشفير (Fernet AES-256 للهاتف)
+    # 4. التشفير
     @staticmethod
     def _get_key():
-        # استخدام مفتاح البيئة لضمان سرية البيانات
         return os.environ.get('ENCRYPTION_KEY', 'w1Kk9P7zY5mZg4tE8Lp2nJvR6cXsA9qB0xU3jH5oI8Vq=').encode()
 
     @property
@@ -73,13 +68,10 @@ class SupplierStaff(db.Model, UserMixin):
             self._phone_enc = Fernet(self._get_key()).encrypt(str(value).encode()).decode()
             self.search_phone = str(value)[-9:] 
 
-    # 5. التشفير الآمن لكلمة المرور (مع تنظيف المسافات)
     def set_password(self, password):
-        """تشقير كلمة المرور وتخزينها مع إزالة أي مسافات زائدة."""
         self.password_hash = generate_password_hash(password.strip(), method='pbkdf2:sha256')
 
     def check_password(self, password):
-        """التحقق من كلمة المرور مع تنظيف المدخلات."""
         return check_password_hash(self.password_hash, password.strip())
 
     def __repr__(self):
