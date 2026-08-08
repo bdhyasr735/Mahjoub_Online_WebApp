@@ -84,25 +84,17 @@ function debounceFetchOrders() {
     }, 450);
 }
 
-// ✅ دالة تحديث حالة الطلب (تم نقلها إلى هنا لتكون عمومية وتجنب خطأ "not defined")
+// ✅ دالة تحديث حالة الطلب
 function updateOrderStatusInline(orderId, newStatus) {
-    console.log(`📤 محاولة تحديث الطلب ${orderId} إلى الحالة: ${newStatus}`);
-
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
-                      document.querySelector('meta[name="csrf-token"]')?.content || 
-                      '';
+                      document.querySelector('meta[name="csrf-token"]')?.content || '';
 
     if (!csrfToken) {
-        console.error('❌ لم يتم العثور على CSRF Token!');
         alert('خطأ أمني: لم يتم العثور على رمز الحماية (CSRF). يرجى تحديث الصفحة.');
         return;
     }
 
-    console.log(`🔑 تم العثور على CSRF Token: ${csrfToken.substring(0, 10)}...`);
-
-    const url = `/admin/orders/${orderId}/update-status`;
-
-    fetch(url, {
+    fetch(`/admin/orders/${orderId}/update-status`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -112,53 +104,39 @@ function updateOrderStatusInline(orderId, newStatus) {
         body: JSON.stringify({ status: newStatus })
     })
     .then(res => {
-        console.log(`🔍 استجابة الخادم: ${res.status}`);
         if (!res.ok) throw new Error(`فشل الاتصال بالسيرفر (HTTP ${res.status})`);
         return res.json();
     })
     .then(data => {
         if (data.success) {
-            console.log('✅ تم تحديث الحالة بنجاح.');
-            if (typeof fetchOrders === 'function') {
-                fetchOrders({{ pagination.current_page if pagination else 1 }});
-            } else if (typeof fetchAdminOrders === 'function') {
-                fetchAdminOrders({{ pagination.current_page if pagination else 1 }});
-            } else {
-                location.reload();
-            }
+            fetchOrders({{ pagination.current_page if pagination else 1 }});
         } else {
             alert('❌ فشل تحديث الحالة: ' + (data.message || 'خطأ غير معروف'));
         }
     })
     .catch(err => {
-        console.error('❌ خطأ في الاتصال:', err);
         alert('❌ حدث خطأ في الاتصال بالسيرفر: ' + err.message);
     });
 }
 
-// دالة جلب الطلبات عبر AJAX
-function fetchOrders(page = 1, prefetch = false) {
+// دالة جلب الطلبات عبر AJAX الفعالة والمتوافقة تماماً مع البايثون
+function fetchOrders(page = 1) {
     const container = document.getElementById('ordersContainer');
     const paginationContainer = document.getElementById('paginationContainer');
     if (!container) return;
 
-    if (!prefetch && container.dataset.refreshing === 'true') {
-        container.innerHTML = `
-            <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
-                <div class="spinner-border mx-auto mb-3" style="color: #D4AF37; width: 3rem; height: 3rem;" role="status"></div>
-                <p class="text-muted fw-semibold mb-0">⏳ جاري تحميل الطلبات...</p>
-            </div>`;
-        if (paginationContainer) paginationContainer.innerHTML = '';
-    }
+    // جلب القيم مع دعم عدة احتمالات لأسماء الـ IDs في شريط الفلاتر
+    const searchValue = getVal('searchInput');
+    const statusValue = getVal('statusFilter') || getVal('orderStatusFilter');
+    const dateFromValue = getVal('dateFrom');
+    const dateToValue = getVal('dateTo');
 
     const params = new URLSearchParams({
         page: page,
-        search: getVal('searchInput'),
-        status: getVal('statusFilter'),
-        financial_status: getVal('financialStatusFilter'),
-        fulfillment_status: getVal('fulfillmentStatusFilter'),
-        date_from: getVal('dateFrom'),
-        date_to: getVal('dateTo'),
+        search: searchValue,
+        status: statusValue,
+        date_from: dateFromValue,
+        date_to: dateToValue,
         ajax: '1'
     });
 
@@ -171,14 +149,7 @@ function fetchOrders(page = 1, prefetch = false) {
     })
     .then(data => {
         if (data.success && data.html) {
-            if (prefetch) {
-                window._prefetchedPageData = data;
-                return;
-            }
-
             container.innerHTML = data.html;
-            delete container.dataset.refreshing;
-            
             if (paginationContainer) {
                 paginationContainer.innerHTML = data.pagination_html || '';
             }
@@ -193,15 +164,8 @@ function fetchOrders(page = 1, prefetch = false) {
         }
     })
     .catch(error => {
-        if (!prefetch) {
-            console.error('Fetch Orders Error:', error);
-            container.innerHTML = `
-                <div class="alert alert-danger text-center py-4 rounded-4 shadow-sm">
-                    <i class="fas fa-exclamation-triangle fa-2x d-block mb-2"></i>
-                    حدث خطأ أثناء جلب الطلبات. يرجى إعادة المحاولة.
-                </div>`;
-            showToast('حدث خطأ أثناء تحميل الطلبات', 'error');
-        }
+        console.error('Fetch Orders Error:', error);
+        showToast('حدث خطأ أثناء تحميل الطلبات', 'error');
     });
 }
 
@@ -209,7 +173,7 @@ function attachPaginationEvents() {
     document.querySelectorAll('.page-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
-            const page = this.dataset.page;
+            const page = this.dataset.page || this.getAttribute('href')?.split('page=')[1];
             if (page) {
                 fetchOrders(parseInt(page));
             }
@@ -228,8 +192,6 @@ function syncAdminOrders(event) {
     btn.disabled = true;
 
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => { controller.abort(); }, 12000);
 
     fetch("{{ url_for('admin_orders_bp.sync_admin_orders') }}", {
         method: 'POST',
@@ -237,15 +199,10 @@ function syncAdminOrders(event) {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken,
             'X-Requested-With': 'XMLHttpRequest'
-        },
-        signal: controller.signal
+        }
     })
-    .then(res => {
-        if (!res.ok) throw new Error('فشل الاتصال بالخادم');
-        return res.json();
-    })
+    .then(res => res.json())
     .then(data => {
-        clearTimeout(timeoutId);
         if (data.success) {
             showToast('✅ ' + (data.message || 'تم بدء المزامنة بنجاح.'), 'success');
         } else {
@@ -253,40 +210,17 @@ function syncAdminOrders(event) {
         }
         btn.innerHTML = originalContent;
         btn.disabled = false;
-        
-        const container = document.getElementById('ordersContainer');
-        container.dataset.refreshing = 'true';
-        
-        setTimeout(() => fetchOrders(1), 5000);
+        setTimeout(() => fetchOrders(1), 4000);
     })
     .catch(err => {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-            showToast('✅ تم استلام طلب المزامنة وتشغيلها في الخلفية.', 'info');
-        } else {
-            showToast('❌ حدث خطأ أثناء المزامنة: ' + err.message, 'error');
-        }
+        showToast('❌ حدث خطأ أثناء المزامنة', 'error');
         btn.innerHTML = originalContent;
         btn.disabled = false;
-        setTimeout(() => fetchOrders(1), 5000);
     });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('ordersContainer');
-    
-    if (container && container.innerHTML.includes('spinner-border')) {
-        setTimeout(() => {
-            fetchOrders(1);
-        }, 6000);
-    } else {
-        const hasInitialOrders = container && container.querySelector('table tbody tr');
-        if (!hasInitialOrders) {
-            fetchOrders(1);
-        } else {
-            attachPaginationEvents();
-        }
-    }
+    attachPaginationEvents();
 
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
@@ -301,12 +235,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const filterIds = [
         'statusFilter', 
+        'orderStatusFilter', 
         'financialStatusFilter', 
         'fulfillmentStatusFilter', 
         'dateFrom', 
         'dateTo',
         'supplierFilter'
     ];
+    
     filterIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
