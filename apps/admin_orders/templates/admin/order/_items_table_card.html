@@ -17,22 +17,18 @@
                 <tbody>
                     {% for item in items_list %}
                     <tr>
-                        <!-- 1. صورة المنتج -->
+                        <!-- 1. صورة المنتج (استخدام الحقل الصحيح product_image) -->
                         <td class="text-center">
-                            {% set img_url = (item.productData.image if item.productData and item.productData.image else none) or (item.image if item.image else url_for('static', filename='img/default-product.png')) %}
-                            <img src="{{ img_url }}" alt="صورة المنتج" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
+                            <img src="{{ item.product_image if item.product_image else url_for('static', filename='img/default-product.png') }}" 
+                                 alt="صورة المنتج" 
+                                 class="rounded border" 
+                                 style="width: 50px; height: 50px; object-fit: cover;">
                         </td>
 
-                        <!-- 2. عنوان المنتج -->
+                        <!-- 2. عنوان المنتج (استخدام الحقل الصحيح product_name) -->
                         <td>
                             <div class="fw-bold text-dark">
-                                {% if item.productData and item.productData.title %}
-                                    {{ item.productData.title }}
-                                {% elif item.title %}
-                                    {{ item.title }}
-                                {% else %}
-                                    منتج رقم: {{ item.productId or item.id }}
-                                {% endif %}
+                                {{ item.product_name if item.product_name else 'منتج بدون اسم' }}
                             </div>
                         </td>
 
@@ -45,9 +41,9 @@
                         <td>
                             <select class="form-select form-select-sm supplier-select" 
                                     data-item-id="{{ item.id }}" 
-                                    data-order-id="{{ order_id }}">
+                                    data-order-id="{{ order.id }}">
                                 <option value="">-- بدون مورد --</option>
-                                {% for supplier in all_suppliers %}
+                                {% for supplier in suppliers %}
                                 <option value="{{ supplier.id }}" {% if item.supplier_id == supplier.id %}selected{% endif %}>
                                     {{ supplier.trade_name or supplier.name }}
                                 </option>
