@@ -1,17 +1,16 @@
-from flask import Blueprint, render_template, request, jsonify
-from apps.utils.ai_service import analyze_permissions_query
+import os
+from google import genai
 
-suppliers_permissions_bp = Blueprint('suppliers_permissions', __name__, template_folder='templates')
+# تهيئة عميل جوجل باستخدام المفتاح المخفي في البيئة
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-@suppliers_permissions_bp.route('/ai-check-permissions', methods=['POST'])
-def ai_check_permissions():
-    data = request.get_json()
-    user_prompt = data.get('prompt', '')
-    
-    # استدعاء الذكاء الاصطناعي لمعالجة الطلب الخاص بالصلاحيات
-    ai_response = analyze_permissions_query(user_prompt)
-    
-    return jsonify({
-        'status': 'success',
-        'result': ai_response
-    })
+def analyze_permissions_query(prompt: str) -> str:
+    try:
+        # استخدام نموذج فلاش السريع والمناسب لطلبات التطبيق
+        response = client.models.generate_content(
+            model='gemini-2.5-flash', # أو gemini-3.6-flash حسب المتاح في مكتبتك
+            contents=prompt,
+        )
+        return response.text
+    except Exception as e:
+        return f"حدث خطأ أثناء معالجة الطلب: {str(e)}"
