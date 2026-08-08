@@ -41,9 +41,7 @@
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
     <div id="liveToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
-            <div class="toast-body" id="toastMessage">
-                <!-- رسالة الإشعار -->
-            </div>
+            <div class="toast-body" id="toastMessage"></div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     </div>
@@ -52,7 +50,6 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
 
 <script>
-// دالة لعرض إشعار Toast
 function showToast(message, type = 'success') {
     const toastEl = document.getElementById('liveToast');
     const toastMsg = document.getElementById('toastMessage');
@@ -71,9 +68,15 @@ function showToast(message, type = 'success') {
     toast.show();
 }
 
+// ✅ دالة getVal المعدلة لدعم Choices.js
 function getVal(id) {
     const el = document.getElementById(id);
-    return el ? el.value.trim() : '';
+    if (!el) return '';
+    // إذا كان العنصر مرتبطاً بـ Choices، نجلب القيمة منه
+    if (el.choicesInstance) {
+        return el.choicesInstance.getValue(true) || '';
+    }
+    return el.value.trim();
 }
 
 let debounceTimer;
@@ -84,15 +87,9 @@ function debounceFetchOrders() {
     }, 450);
 }
 
-// ✅ دالة تحديث حالة الطلب
 function updateOrderStatusInline(orderId, newStatus) {
-    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
-                      document.querySelector('meta[name="csrf-token"]')?.content || '';
-
-    if (!csrfToken) {
-        alert('خطأ أمني: لم يتم العثور على رمز الحماية (CSRF). يرجى تحديث الصفحة.');
-        return;
-    }
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || document.querySelector('meta[name="csrf-token"]')?.content || '';
+    if (!csrfToken) { alert('خطأ أمني'); return; }
 
     fetch(`/admin/orders/${orderId}/update-status`, {
         method: 'POST',
@@ -103,68 +100,38 @@ function updateOrderStatusInline(orderId, newStatus) {
         },
         body: JSON.stringify({ status: newStatus })
     })
-    .then(res => {
-        if (!res.ok) throw new Error(`فشل الاتصال بالسيرفر (HTTP ${res.status})`);
-        return res.json();
-    })
+    .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            fetchOrders({{ pagination.current_page if pagination else 1 }});
-        } else {
-            alert('❌ فشل تحديث الحالة: ' + (data.message || 'خطأ غير معروف'));
-        }
-    })
-    .catch(err => {
-        alert('❌ حدث خطأ في الاتصال بالسيرفر: ' + err.message);
+        if (data.success) fetchOrders({{ pagination.current_page if pagination else 1 }});
+        else alert('❌ فشل تحديث الحالة');
     });
 }
 
-// دالة جلب الطلبات عبر AJAX الشاملة والمدعومة بكافة الفلاتر والبحث
 function fetchOrders(page = 1) {
     const container = document.getElementById('ordersContainer');
     const paginationContainer = document.getElementById('paginationContainer');
     if (!container) return;
 
-    // جلب القيم مع دعم جميع الاحتمالات الممكنة لمعرفات الحقول في القالب
-    const searchValue = getVal('searchInput');
-    const statusValue = getVal('statusFilter') || getVal('orderStatusFilter');
-    const paymentStatusValue = getVal('paymentStatusFilter') || getVal('payment_status');
-    const supplierValue = getVal('supplierFilter') || getVal('supplier_id');
-    const dateFromValue = getVal('dateFrom');
-    const dateToValue = getVal('dateTo');
-
     const params = new URLSearchParams({
         page: page,
-        search: searchValue,
-        status: statusValue,
-        payment_status: paymentStatusValue,
-        supplier_id: supplierValue,
-        date_from: dateFromValue,
-        date_to: dateToValue,
+        search: getVal('searchInput'),
+        status: getVal('statusFilter') || getVal('orderStatusFilter'),
+        payment_status: getVal('paymentStatusFilter') || getVal('payment_status'),
+        supplier_id: getVal('supplierFilter'), // سيتم جلبه بشكل صحيح الآن
+        date_from: getVal('dateFrom'),
+        date_to: getVal('dateTo'),
         ajax: '1'
     });
 
     fetch("{{ url_for('admin_orders_bp.list_admin_orders') }}?" + params.toString(), {
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
-    .then(response => {
-        if (!response.ok) throw new Error('فشل الاستجابة من السيرفر');
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         if (data.success && data.html) {
             container.innerHTML = data.html;
-            if (paginationContainer) {
-                paginationContainer.innerHTML = data.pagination_html || '';
-            }
+            if (paginationContainer) paginationContainer.innerHTML = data.pagination_html || '';
             attachPaginationEvents();
-        } else {
-            container.innerHTML = `
-                <div class="alert alert-warning text-center py-4 rounded-4 shadow-sm">
-                    <i class="fas fa-search fa-2x d-block mb-2 opacity-50"></i>
-                    لا توجد طلبات مطابقة لمعايير البحث الحالية.
-                </div>`;
-            if (paginationContainer) paginationContainer.innerHTML = '';
         }
     })
     .catch(error => {
@@ -178,48 +145,28 @@ function attachPaginationEvents() {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const page = this.dataset.page || this.getAttribute('href')?.split('page=')[1];
-            if (page) {
-                fetchOrders(parseInt(page));
-            }
+            if (page) fetchOrders(parseInt(page));
         });
     });
 }
 
 function syncAdminOrders(event) {
     if (event) event.preventDefault();
-    if (!confirm('هل تريد مزامنة الطلبات من المنصة الآن؟ قد يستغرق ذلك بضع ثوانٍ.')) return;
+    if (!confirm('هل تريد مزامنة الطلبات؟')) return;
     
     const btn = document.getElementById('syncOrdersBtn');
-    const originalContent = btn.innerHTML;
-    
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري المزامنة...';
     btn.disabled = true;
-
     const csrfToken = document.querySelector('[name="csrf_token"]')?.value || '';
 
     fetch("{{ url_for('admin_orders_bp.sync_admin_orders') }}", {
         method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
-        }
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            showToast('✅ ' + (data.message || 'تم بدء المزامنة بنجاح.'), 'success');
-        } else {
-            showToast('❌ ' + (data.message || 'فشل بدء المزامنة.'), 'error');
-        }
-        btn.innerHTML = originalContent;
+        if (data.success) showToast('تمت المزامنة بنجاح', 'success');
         btn.disabled = false;
-        setTimeout(() => fetchOrders(1), 4000);
-    })
-    .catch(err => {
-        showToast('❌ حدث خطأ أثناء المزامنة', 'error');
-        btn.innerHTML = originalContent;
-        btn.disabled = false;
+        setTimeout(() => fetchOrders(1), 2000);
     });
 }
 
@@ -228,30 +175,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        searchInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                fetchOrders(1);
-            }
-        });
+        searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); fetchOrders(1); } });
         searchInput.addEventListener('input', debounceFetchOrders);
     }
 
-    const filterIds = [
-        'statusFilter', 
-        'orderStatusFilter', 
-        'paymentStatusFilter', 
-        'fulfillmentStatusFilter', 
-        'dateFrom', 
-        'dateTo',
-        'supplierFilter'
-    ];
-    
-    filterIds.forEach(id => {
+    // مراقبة الفلاتر الأخرى
+    ['statusFilter', 'orderStatusFilter', 'paymentStatusFilter', 'dateFrom', 'dateTo'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) {
-            el.addEventListener('change', () => fetchOrders(1));
-        }
+        if (el) el.addEventListener('change', () => fetchOrders(1));
     });
 });
 </script>
