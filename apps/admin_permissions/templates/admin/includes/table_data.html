@@ -27,11 +27,11 @@
                                 <span class="badge bg-secondary-subtle text-dark border me-1">@{{ getattr(staff, 'username', 'N/A') }}</span>
                                 <span>{{ getattr(staff, 'role_title', 'موظف') }}</span>
                             </div>
-                            <!-- عرض اسم المتجر التابع له بوضوح -->
+                            <!-- عرض اسم المتجر التابع له بوضوح تام -->
                             {% if staff_type == 'supplier_staff' and staff.supplier %}
                             <div class="mt-1">
                                 <span class="badge border" style="background-color: #F4ECF7; color: #6C3483; font-size: 0.75rem;">
-                                    <i class="fas fa-store me-1"></i> متجر: {{ staff.supplier.trade_name }}
+                                    <i class="fas fa-store me-1"></i> متجر: {{ staff.supplier.store_name or staff.supplier.name or staff.supplier.company_name }}
                                 </span>
                             </div>
                             {% endif %}
