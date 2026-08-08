@@ -1,4 +1,6 @@
 # coding: utf-8
+# 📂 apps/admin_orders/routes/items_controller.py
+
 from flask import Blueprint, request, jsonify, render_template, current_app
 from apps.models.order_items_db import OrderItem
 from apps.models.supplier_db import Supplier
@@ -10,11 +12,12 @@ items_bp = Blueprint('items_bp', __name__)
 def get_order_items(order_id):
     try:
         items_list = OrderItem.query.filter_by(order_id=order_id).all()
-        all_suppliers = Supplier.query.all()
+        # ✅ تعديل اسم المتغير ليكون 'suppliers' ليتطابق مع القالب المحدث
+        suppliers = Supplier.query.all()
         return render_template(
             'admin/order/_items_table_card.html', 
             items_list=items_list, 
-            all_suppliers=all_suppliers,
+            suppliers=suppliers,
             order_id=order_id
         )
     except Exception as e:
@@ -26,7 +29,12 @@ def assign_supplier(order_id, item_id):
     try:
         data = request.get_json() or {}
         s_id = data.get('supplier_id')
-        supplier_id = int(s_id) if s_id not in [None, ""] else None
+        
+        # ✅ تحسين: التعامل مع القيم الفارغة بأمان قبل التحويل إلى int
+        if s_id is not None and s_id != '':
+            supplier_id = int(s_id)
+        else:
+            supplier_id = None
         
         item = OrderItem.query.filter_by(id=item_id, order_id=order_id).first()
         if item:
