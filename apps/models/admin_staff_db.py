@@ -23,9 +23,15 @@ class AdminStaff(db.Model, UserMixin):
     # 1. الحقول الأساسية
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+    
+    # [تعديل هام]: زيادة الطول إلى 500 لتجنب قص الـ Hash الناتج عن pbkdf2:sha256
+    password_hash = db.Column(db.String(500), nullable=False)
+    
     role = db.Column(db.String(20), default='worker')
     is_active = db.Column(db.Boolean, default=True)
+    
+    # [الصلاحيات الديناميكية الشاملة]: لتخزين الأذونات بصيغة JSON مرنة
+    permissions = db.Column(db.JSON, default=dict)
     
     # 2. التشفير السيادي للهاتف
     # _phone_enc يخزن البيانات المشفرة، بينما search_phone مخصص للبحث السريع (نص عادي)
@@ -62,12 +68,12 @@ class AdminStaff(db.Model, UserMixin):
 
     # --- إدارة كلمة المرور (PBKDF2) ---
     def set_password(self, password):
-        """توليد Hash مشفر بـ SHA256 للكلمة المرور."""
-        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        """توليد Hash مشفر بـ SHA256 للكلمة المرور مع تنظيف المسافات."""
+        self.password_hash = generate_password_hash(password.strip(), method='pbkdf2:sha256')
 
     def check_password(self, password):
         """التحقق من صحة كلمة المرور المدخلة."""
-        return check_password_hash(self.password_hash, password)
+        return check_password_hash(self.password_hash, password.strip())
 
     def __repr__(self):
         return f'<AdminStaff {self.username}>'
