@@ -138,11 +138,10 @@ class OrderService:
         }
         """
         try:
-            # ✅ التصحيح النهائي بناءً على تبويب Variables في الساندبوكس:
-            # قمره تتطلب "id" و "status" (حيث status هو الـ _id للحالة)
+            # ✅ التصحيح النهائي: استخدام "_id" بدلاً من "id" لتتوافق مع متطلبات الـ Schema
             input_data = {
-                "id": order_id,                 # معرف الطلب (مفتاح id وليس _id)
-                "status": target_status_id      # معرف الحالة (الـ _id الخاص بـ preparing)
+                "_id": order_id,            # معرف الطلب (_id بدلاً من id)
+                "status": target_status_id  # معرف الحالة
             }
             
             print(f"🚀 [DEBUG] إرسال الطلب إلى قمره: {input_data}")
