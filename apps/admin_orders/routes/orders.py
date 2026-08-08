@@ -329,16 +329,23 @@ def update_order_status_inline(order_id):
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
 
+        # 1. إرسال التحديث إلى منصة قمرة
         qumra_success = services.orders.update_order_status_in_qumra(order_id, new_status)
 
         if not qumra_success:
             return jsonify({'success': False, 'message': 'فشل تحديث الحالة في المنصة (قمره)'}), 500
 
-        order.status_code = new_status
-        order.status_title = STATUS_TITLES_MAP.get(new_status, 'غير معروف')
-        db.session.commit()
+        # 2. إجراء مزامنة فورية فردية لهذا الطلب من المصدر لضمان جلب الحالة المعتمدة وتطابقها تماماً
+        order_data = services.orders.get_order_by_id(order_id)
+        if order_data:
+            _save_or_update_order(order_data)
+        else:
+            # تحديث احتياطي محلي في حال تأخر الاستجابة المباشرة للمزامنة الفردية
+            order.status_code = new_status
+            order.status_title = STATUS_TITLES_MAP.get(new_status, 'غير معروف')
+            db.session.commit()
 
-        return jsonify({'success': True, 'message': 'تم تحديث الحالة في النظام والمنصة بنجاح'})
+        return jsonify({'success': True, 'message': 'تم تحديث الحالة في المنصة والمزامنة بنجاح'})
     except Exception as e:
         current_app.logger.error(f"خطأ في تحديث حالة الطلب: {traceback.format_exc()}")
         return jsonify({'success': False, 'message': str(e)}), 500
