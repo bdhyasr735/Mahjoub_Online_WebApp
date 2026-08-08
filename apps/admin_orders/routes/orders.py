@@ -248,7 +248,7 @@ def manage_admin_orders_view():
             is_paid_bool = True if str(payment_status).lower() in ['true', '1', 'yes'] else False
             query = query.filter(Order.is_paid == is_paid_bool)
 
-        # 3. فلتر المورد (يدعم الموردين المحددين أو المنتجات التي لا تتبع أي مورد عبر خيار 'none')
+        # 3. فلتر المورد (محدث لضمان جلب كافة الطلبات والمنتجات المرتبطة بالمورد بدقة تامة)
         supplier_filter = request.args.get('supplier_id')
         if supplier_filter and supplier_filter != '':
             if supplier_filter == 'none':
@@ -260,16 +260,31 @@ def manage_admin_orders_view():
                     )
                 )
             else:
-                s_id = int(supplier_filter) if supplier_filter.isdigit() else supplier_filter
-                query = query.outerjoin(OrderItem, Order.id == OrderItem.order_id).outerjoin(
+                try:
+                    s_id_int = int(supplier_filter)
+                except ValueError:
+                    s_id_int = None
+                
+                s_id_str = str(supplier_filter)
+
+                matching_order_ids = db.session.query(OrderItem.order_id).outerjoin(
                     ProductSupplierMapping, OrderItem.product_qid == ProductSupplierMapping.product_qid
                 ).filter(
                     db.or_(
-                        Order.supplier_id == s_id,
-                        OrderItem.supplier_id == s_id,
-                        ProductSupplierMapping.supplier_id == s_id
+                        OrderItem.supplier_id == s_id_str,
+                        *( [OrderItem.supplier_id == s_id_int] if s_id_int is not None else [] ),
+                        ProductSupplierMapping.supplier_id == s_id_str,
+                        *( [ProductSupplierMapping.supplier_id == s_id_int] if s_id_int is not None else [] )
                     )
-                ).distinct()
+                ).distinct().subquery()
+
+                query = query.filter(
+                    db.or_(
+                        Order.supplier_id == s_id_str,
+                        *( [Order.supplier_id == s_id_int] if s_id_int is not None else [] ),
+                        Order.id.in_(db.session.query(matching_order_ids.c.order_id))
+                    )
+                )
 
         # 4. الفترات الزمنية
         date_from = request.args.get('date_from')
