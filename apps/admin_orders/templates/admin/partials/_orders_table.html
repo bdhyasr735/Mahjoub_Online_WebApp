@@ -65,22 +65,18 @@
                             <td class="py-2">
                                 <select class="form-select form-select-sm border text-center fw-semibold mx-auto 
                                     {% if status_code == 'pending' %}bg-warning-subtle text-warning-emphasis
-                                    {% elif status_code in ['processing', 'preparing'] %}bg-info-subtle text-info-emphasis
-                                    {% elif status_code in ['shipped', 'onHold'] %}bg-primary-subtle text-primary-emphasis
-                                    {% elif status_code in ['delivered', 'completed', 'complete'] %}bg-success-subtle text-success-emphasis
-                                    {% elif status_code in ['cancelled', 'failed', 'rejected', 'returned', 'frozen'] %}bg-danger-subtle text-danger-emphasis
+                                    {% elif status_code == 'processing' or status_code == 'preparing' %}bg-info-subtle text-info-emphasis
+                                    {% elif status_code == 'shipped' %}bg-primary-subtle text-primary-emphasis
+                                    {% elif status_code == 'delivered' or status_code == 'completed' %}bg-success-subtle text-success-emphasis
+                                    {% elif status_code == 'cancelled' %}bg-danger-subtle text-danger-emphasis
                                     {% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}" 
                                     style="font-size: 0.8rem; max-width: 130px;" 
                                     onchange="updateOrderStatusInline('{{ current_order_id }}', this.value)">
                                     <option value="pending" {% if status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-                                    <option value="preparing" {% if status_code in ['preparing', 'processing'] %}selected{% endif %}>جاري التجهيز</option>
+                                    <option value="processing" {% if status_code == 'processing' or status_code == 'preparing' %}selected{% endif %}>جاري التجهيز</option>
                                     <option value="shipped" {% if status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
-                                    <option value="delivered" {% if status_code in ['delivered', 'completed'] %}selected{% endif %}>تم التوصيل</option>
-                                    <option value="complete" {% if status_code == 'complete' %}selected{% endif %}>مكتمل</option>
-                                    <option value="cancelled" {% if status_code == 'cancelled' %}selected{% endif %}>تم الإلغاء</option>
-                                    <option value="onHold" {% if status_code == 'onHold' %}selected{% endif %}>معلق</option>
-                                    <option value="rejected" {% if status_code == 'rejected' %}selected{% endif %}>مرفوض</option>
-                                    <option value="returned" {% if status_code == 'returned' %}selected{% endif %}>تم الإرجاع</option>
+                                    <option value="delivered" {% if status_code == 'delivered' or status_code == 'completed' %}selected{% endif %}>تم التسليم</option>
+                                    <option value="cancelled" {% if status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
                                 </select>
                             </td>
 
