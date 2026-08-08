@@ -66,13 +66,13 @@ def index():
     page = request.args.get('page', 1, type=int)
     per_page = 10
 
+    # جلب قائمة الموردين بشكل دائم لتعبئة خانة المتاجر في واجهة الإضافة
+    all_suppliers = Supplier.query.all()
+
     # تحديد النطاق والمستخدمين بناءً على رتبة الحساب الحالي مع تطبيق الـ Pagination
     if isinstance(current_user, (AdminUser, AdminStaff)):
-        # استخدام paginate بدلاً من all() لتقسيم النتائج بواقع 10 عناصر لكل صفحة
         admin_pagination = AdminStaff.query.paginate(page=page, per_page=per_page, error_out=False)
         admin_staffs = admin_pagination.items
-        
-        suppliers = Supplier.query.all()
         
         supplier_pagination = SupplierStaff.query.paginate(page=page, per_page=per_page, error_out=False)
         supplier_staffs = supplier_pagination.items
@@ -81,14 +81,13 @@ def index():
         
     elif isinstance(current_user, Supplier):
         admin_staffs = []
-        suppliers = [current_user]
         
         supplier_pagination = SupplierStaff.query.filter_by(supplier_id=current_user.id).paginate(page=page, per_page=per_page, error_out=False)
         supplier_staffs = supplier_pagination.items
         
         user_scope = 'supplier'
     else:
-        admin_staffs, suppliers, supplier_staffs = [], [], []
+        admin_staffs, supplier_staffs = [], []
         user_scope = 'restricted'
         supplier_pagination = None
         admin_pagination = None
@@ -96,7 +95,7 @@ def index():
     return render_template(
         'admin/permissions.html',
         admin_staffs=admin_staffs,
-        suppliers=suppliers,
+        suppliers=all_suppliers,  # تمرير قائمة الموردين المتاحة بالكامل للقالب
         supplier_staffs=supplier_staffs,
         # تمرير كائنات الـ pagination للقوالب
         pagination=supplier_pagination if user_scope == 'supplier' else admin_pagination,
