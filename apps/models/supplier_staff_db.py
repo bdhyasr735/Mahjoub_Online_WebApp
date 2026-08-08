@@ -38,7 +38,10 @@ class SupplierStaff(db.Model, UserMixin):
     role = db.Column(db.String(50), default='worker')
     is_active = db.Column(db.Boolean, default=True)
     
-    # [الصلاحيات]: حقول للتحكم في وصول الموظف
+    # [الصلاحيات الديناميكية الشاملة]: لتخزين الصلاحيات بصيغة JSON مرنة
+    permissions = db.Column(db.JSON, default=dict)
+    
+    # [الصلاحيات المخصصة السابقة]: الإبقاء عليها للتوافقية التامة
     can_view_wallet = db.Column(db.Boolean, default=False)
     can_manage_orders = db.Column(db.Boolean, default=False)
     
