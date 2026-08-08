@@ -60,6 +60,8 @@ def _save_or_update_order_item(order_id, item_data):
             
     if supplier_id:
         item.supplier_id = supplier_id
+    else:
+        item.supplier_id = None
 
     # التحقق الآمن والجذري لمنع خطأ AttributeError نهائياً
     image_data = product_data.get('image', {})
@@ -126,6 +128,8 @@ def _save_or_update_order(order_data):
     # ربط المورد الأساسي إذا كان موجوداً في بيانات الطلب
     if 'supplier_id' in order_data and order_data.get('supplier_id'):
         order.supplier_id = order_data.get('supplier_id')
+    else:
+        order.supplier_id = None
 
     order.created_at = order_data.get('createdAt')
     updated_at = order_data.get('updatedAt')
@@ -243,11 +247,18 @@ def manage_admin_orders_view():
             is_paid_bool = True if str(payment_status).lower() in ['true', '1', 'yes'] else False
             query = query.filter(Order.is_paid == is_paid_bool)
 
-        # 3. فلتر المورد (ربط صحيح يدعم المورد الأساسي ومورد البنود والمنتجات)
+        # 3. فلتر المورد (يدعم الموردين المحددين أو المنتجات التي لا تتبع أي مورد عبر خيار 'none')
         supplier_filter = request.args.get('supplier_id')
         if supplier_filter and supplier_filter != '':
             if supplier_filter == 'none':
-                query = query.filter(db.or_(Order.supplier_id == None, Order.supplier_id == ''))
+                # جلب الطلبات التي لا يتبع أي من بنودها أو أساسها أي مورد
+                subquery_with_supplier = db.session.query(OrderItem.order_id).filter(OrderItem.supplier_id != None).distinct()
+                query = query.filter(
+                    db.and_(
+                        db.or_(Order.supplier_id == None, Order.supplier_id == ''),
+                        ~Order.id.in_(subquery_with_supplier)
+                    )
+                )
             else:
                 s_id = int(supplier_filter) if supplier_filter.isdigit() else supplier_filter
                 query = query.outerjoin(OrderItem, Order.id == OrderItem.order_id).outerjoin(
