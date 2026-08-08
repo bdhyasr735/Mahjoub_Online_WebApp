@@ -31,6 +31,7 @@
             <label class="form-label fw-bold small text-muted">المورد</label>
             <select id="supplierFilter" class="form-select">
                 <option value="">كل الموردين...</option>
+                <option value="none">🏷️ بدون مورد (منتجات المتجر)</option>
                 {% for supplier in suppliers %}
                 <option value="{{ supplier._id }}">{{ supplier.trade_name }}</option>
                 {% endfor %}
