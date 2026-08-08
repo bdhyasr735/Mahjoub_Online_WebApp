@@ -9,17 +9,21 @@
             <label class="form-label fw-bold small text-muted">بحث سريع</label>
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                <input type="text" id="searchInput" class="form-control border-start-0" placeholder="معرف الطلب أو اسم العميل...">
+                <input type="text" id="searchInput" class="form-control border-start-0" placeholder="رقم الطلب أو اسم العميل...">
             </div>
         </div>
 
         <div class="col-md-4">
             <label class="form-label fw-bold small text-muted">حالة الطلب</label>
             <select id="orderStatusFilter" class="form-select">
-                <option value="">الكل</option>
-                <option value="confirmed">✅ مؤكد</option>
-                <option value="cancelled">❌ ملغي</option>
+                <option value="">الكل (جميع الحالات)</option>
+                <option value="pending">⏳ قيد الانتظار</option>
+                <option value="processing">🔄 قيد التجهيز</option>
+                <option value="shipped">🚚 تم الشحن</option>
                 <option value="delivered">📦 تم التسليم</option>
+                <option value="completed">✅ مكتمل</option>
+                <option value="cancelled">❌ ملغي</option>
+                <option value="refunded">↩️ مسترجع</option>
             </select>
         </div>
 
@@ -33,30 +37,8 @@
             </select>
         </div>
 
-        <!-- الصف الثاني: حالة الدفع، حالة التوصيل، والفترة الزمنية -->
-        <div class="col-md-3">
-            <label class="form-label fw-bold small text-muted">حالة الدفع</label>
-            <select id="paymentStatusFilter" class="form-select">
-                <option value="">الكل</option>
-                <option value="paid">✅ مدفوع</option>
-                <option value="unpaid">❌ غير مدفوع</option>
-                <option value="pending">⏳ قيد الانتظار</option>
-                <option value="refunded">↩️ مسترجع</option>
-                <option value="partially_refunded">↩️ مسترجع جزئي</option>
-            </select>
-        </div>
-
-        <div class="col-md-3">
-            <label class="form-label fw-bold small text-muted">حالة التوصيل</label>
-            <select id="fulfillmentStatusFilter" class="form-select">
-                <option value="">الكل</option>
-                <option value="unfulfilled">📦 لم يُشحن</option>
-                <option value="fulfilled">🚚 تم الشحن</option>
-                <option value="delivered">✅ تم التسليم</option>
-            </select>
-        </div>
-
-        <div class="col-md-6">
+        <!-- الصف الثاني: الفترة الزمنية -->
+        <div class="col-md-12">
             <label class="form-label fw-bold small text-muted">الفترة الزمنية</label>
             <div class="d-flex gap-2">
                 <div class="input-group">
@@ -87,8 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // قائمة الحقول للمراقبة التلقائية
     const filterIds = [
-        'searchInput', 'paymentStatusFilter', 'orderStatusFilter', 
-        'fulfillmentStatusFilter', 'supplierFilter', 'dateFrom', 'dateTo'
+        'searchInput', 'orderStatusFilter', 'supplierFilter', 'dateFrom', 'dateTo'
     ];
 
     // إضافة مستمعين للأحداث لتحديث النتائج تلقائياً
@@ -110,9 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // دالة مسح جميع الفلاتر
     window.clearAllFilters = function() {
         document.getElementById('searchInput').value = '';
-        document.getElementById('paymentStatusFilter').value = '';
         document.getElementById('orderStatusFilter').value = '';
-        document.getElementById('fulfillmentStatusFilter').value = '';
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
         supplierSelect.setChoiceByValue('');
