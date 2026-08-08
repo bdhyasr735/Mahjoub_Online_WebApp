@@ -3,7 +3,8 @@
         <div class="modal-content rounded-4 border-0 shadow">
             <form id="addStaffForm" action="{{ url_for('admin_permissions.add_staff') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="modal-header bg-primary text-white rounded-top-4">
+                <!-- رأس النافذة بالبنفسجي الملكي -->
+                <div class="modal-header text-white rounded-top-4" style="background-color: #4A154B;">
                     <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i>إضافة موظف جديد وتعيين صلاحياته</h5>
                     <button type="button" class="btn-close btn-close-white ms-0" data-bs-dismiss="modal" aria-label="إغلاق"></button>
                 </div>
@@ -49,13 +50,13 @@
                     </div>
 
                     <hr class="my-4">
-                    <h6 class="fw-bold mb-3"><i class="fas fa-key text-warning me-2"></i>الأذونات والصلاحيات الأولية:</h6>
+                    <h6 class="fw-bold mb-3"><i class="fas fa-key me-2" style="color: #4A154B;"></i>الأذونات والصلاحيات الأولية:</h6>
                     
                     <div class="row g-2" id="adminPermsBox">
                         {% for perm_key, perm_label in admin_permissions_list.items() %}
                         <div class="col-md-6">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="perm_{{ perm_key }}" id="add_admin_perm_{{ perm_key }}">
+                                <input class="form-check-input custom-checkbox" type="checkbox" name="perm_{{ perm_key }}" id="add_admin_perm_{{ perm_key }}">
                                 <label class="form-check-label fw-semibold me-2" for="add_admin_perm_{{ perm_key }}">{{ perm_label }}</label>
                             </div>
                         </div>
@@ -66,7 +67,7 @@
                         {% for perm_key, perm_label in supplier_permissions_list.items() %}
                         <div class="col-md-6">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="perm_{{ perm_key }}" id="add_supp_perm_{{ perm_key }}">
+                                <input class="form-check-input custom-checkbox" type="checkbox" name="perm_{{ perm_key }}" id="add_supp_perm_{{ perm_key }}">
                                 <label class="form-check-label fw-semibold me-2" for="add_supp_perm_{{ perm_key }}">{{ perm_label }}</label>
                             </div>
                         </div>
@@ -75,7 +76,8 @@
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">حفظ الموظف</button>
+                    <!-- زر الحفظ بالبنفسجي الملكي -->
+                    <button type="submit" class="btn text-white rounded-pill px-4" style="background-color: #4A154B;">حفظ الموظف</button>
                 </div>
             </form>
         </div>
