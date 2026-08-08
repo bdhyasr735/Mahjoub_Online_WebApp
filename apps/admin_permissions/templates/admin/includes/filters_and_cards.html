@@ -64,7 +64,8 @@
         <option value="" disabled selected>ابحث واختار المورد التابع له...</option>
         {% if suppliers %}
             {% for sup in suppliers %}
-                <option value="{{ sup.id }}">{{ sup.trade_name }} ({{ sup.username }})</option>
+                <!-- استخدام store_name لضمان التوافق مع التعديلات السابقة -->
+                <option value="{{ sup.id }}">{{ sup.store_name or sup.trade_name or sup.name }} (@{{ sup.username }})</option>
             {% endfor %}
         {% else %}
             <option value="" disabled>لا يوجد موردين متاحين حالياً</option>
