@@ -119,15 +119,17 @@ function updateOrderStatusInline(orderId, newStatus) {
     });
 }
 
-// دالة جلب الطلبات عبر AJAX الفعالة والمتوافقة تماماً مع البايثون
+// دالة جلب الطلبات عبر AJAX الشاملة والمدعومة بكافة الفلاتر والبحث
 function fetchOrders(page = 1) {
     const container = document.getElementById('ordersContainer');
     const paginationContainer = document.getElementById('paginationContainer');
     if (!container) return;
 
-    // جلب القيم مع دعم عدة احتمالات لأسماء الـ IDs في شريط الفلاتر
+    // جلب القيم مع دعم جميع الاحتمالات الممكنة لمعرفات الحقول في القالب
     const searchValue = getVal('searchInput');
     const statusValue = getVal('statusFilter') || getVal('orderStatusFilter');
+    const paymentStatusValue = getVal('paymentStatusFilter') || getVal('payment_status');
+    const supplierValue = getVal('supplierFilter') || getVal('supplier_id');
     const dateFromValue = getVal('dateFrom');
     const dateToValue = getVal('dateTo');
 
@@ -135,6 +137,8 @@ function fetchOrders(page = 1) {
         page: page,
         search: searchValue,
         status: statusValue,
+        payment_status: paymentStatusValue,
+        supplier_id: supplierValue,
         date_from: dateFromValue,
         date_to: dateToValue,
         ajax: '1'
@@ -236,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterIds = [
         'statusFilter', 
         'orderStatusFilter', 
-        'financialStatusFilter', 
+        'paymentStatusFilter', 
         'fulfillmentStatusFilter', 
         'dateFrom', 
         'dateTo',
