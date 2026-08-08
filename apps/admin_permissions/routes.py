@@ -79,8 +79,6 @@ def index():
         
         user_scope = 'admin'
         
-        # لتحديد أي كائن pagination سيتم تمريره حسب التبويب النشط أو تمريرهما معاً
-        # سنمرر pagination خاص بكل جدول ليعمل بسلاسة
     elif isinstance(current_user, Supplier):
         admin_staffs = []
         suppliers = [current_user]
@@ -92,6 +90,8 @@ def index():
     else:
         admin_staffs, suppliers, supplier_staffs = [], [], []
         user_scope = 'restricted'
+        supplier_pagination = None
+        admin_pagination = None
 
     return render_template(
         'admin/permissions.html',
