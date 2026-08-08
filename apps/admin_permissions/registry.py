@@ -11,9 +11,9 @@ MODULE_VERSION = "1.0.0"
 MODULE_ORDER = 5
 MODULE_ENABLED = True
 
-# إضافة الروابط لكي يقرأها قالب القائمة الجانبية (Sidebar)
+# الروابط الديناميكية التي ستظهر في القائمة الجانبية (Sidebar)
 LINKS = {
-    "قائمة الصلاحيات": "admin_permissions.index"
+    "admin_permissions.index": "عرض الصلاحيات"
 }
 
 def register_module(app):
@@ -35,5 +35,5 @@ def register_module(app):
         "description": MODULE_DESCRIPTION,
         "version": MODULE_VERSION,
         "endpoint": "admin_permissions.index",
-        "links": LINKS  # ربط الروابط هنا لتظهر في القائمة
+        "links": LINKS
     }
