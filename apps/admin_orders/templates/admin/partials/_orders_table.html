@@ -20,16 +20,16 @@
                 <tbody>
                     {% if orders %}
                         {%- for order in orders -%}
-                        {# ✅ استخدام الحقول المحلية مباشرة مع دعم استخراج كود الحالة من أكثر من احتمال لمنع الخطأ الافتراضي #}
+                        {# ✅ التقاط آمن للبيانات والحقول لتجنب أي أخطاء وقت التشغيل #}
                         {% set current_order_id = order.id %}
                         {% set customer_name = order.customer_name or 'زائر' %}
-                        {% set status_code = order.status_code or (order.status.code if order.status is mapping else none) or (order.status.code if order.status else none) or 'pending' %}
+                        {% set status_code = order.status_code or 'pending' %}
                         {% set status_title = order.status_title or 'قيد الانتظار' %}
                         {% set total_price = order.total_price or 0 %}
                         {% set is_paid = order.is_paid or false %}
                         {% set created_at = order.created_at %}
                         <tr>
-                            <!-- ✅ معرف الطلب: الآن يعرض رقم التتبع النظيف، مع الاحتفاظ بالمعرف التقني في الـ title -->
+                            <!-- معرف الطلب -->
                             <td class="fw-bold py-2 text-truncate" style="max-width: 180px;" title="المعرف التقني: {{ current_order_id }}">
                                 #{{ order.order_number if order.order_number else current_order_id[:8] }}
                             </td>
@@ -61,22 +61,26 @@
                                 {{ "%.2f"|format(total_price) }} ر.س
                             </td>
 
-                            <!-- حالة الطلب -->
+                            <!-- حالة الطلب (تحديث متوافق مع خريطة الحالات الشاملة) -->
                             <td class="py-2">
                                 <select class="form-select form-select-sm border text-center fw-semibold mx-auto 
                                     {% if status_code == 'pending' %}bg-warning-subtle text-warning-emphasis
-                                    {% elif status_code == 'processing' or status_code == 'preparing' %}bg-info-subtle text-info-emphasis
-                                    {% elif status_code == 'shipped' %}bg-primary-subtle text-primary-emphasis
-                                    {% elif status_code == 'delivered' or status_code == 'completed' %}bg-success-subtle text-success-emphasis
-                                    {% elif status_code == 'cancelled' %}bg-danger-subtle text-danger-emphasis
+                                    {% elif status_code in ['preparing', 'processing'] %}bg-info-subtle text-info-emphasis
+                                    {% elif status_code in ['shipped', 'onHold'] %}bg-primary-subtle text-primary-emphasis
+                                    {% elif status_code in ['delivered', 'complete'] %}bg-success-subtle text-success-emphasis
+                                    {% elif status_code in ['cancelled', 'failed', 'rejected', 'returned', 'frozen'] %}bg-danger-subtle text-danger-emphasis
                                     {% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}" 
                                     style="font-size: 0.8rem; max-width: 130px;" 
                                     onchange="updateOrderStatusInline('{{ current_order_id }}', this.value)">
                                     <option value="pending" {% if status_code == 'pending' %}selected{% endif %}>قيد الانتظار</option>
-                                    <option value="processing" {% if status_code == 'processing' or status_code == 'preparing' %}selected{% endif %}>جاري التجهيز</option>
+                                    <option value="preparing" {% if status_code in ['preparing', 'processing'] %}selected{% endif %}>جاري التجهيز</option>
                                     <option value="shipped" {% if status_code == 'shipped' %}selected{% endif %}>تم الشحن</option>
-                                    <option value="delivered" {% if status_code == 'delivered' or status_code == 'completed' %}selected{% endif %}>تم التسليم</option>
-                                    <option value="cancelled" {% if status_code == 'cancelled' %}selected{% endif %}>ملغي</option>
+                                    <option value="delivered" {% if status_code == 'delivered' %}selected{% endif %}>تم التوصيل</option>
+                                    <option value="complete" {% if status_code == 'complete' %}selected{% endif %}>مكتمل</option>
+                                    <option value="cancelled" {% if status_code == 'cancelled' %}selected{% endif %}>تم الإلغاء</option>
+                                    <option value="onHold" {% if status_code == 'onHold' %}selected{% endif %}>معلق</option>
+                                    <option value="rejected" {% if status_code == 'rejected' %}selected{% endif %}>مرفوض</option>
+                                    <option value="returned" {% if status_code == 'returned' %}selected{% endif %}>تم الإرجاع</option>
                                 </select>
                             </td>
 
@@ -89,7 +93,6 @@
 
                             <!-- الإجراءات -->
                             <td class="py-2">
-                                <!-- ✅ تم التعديل هنا: استخدام رابط مباشر وإزالة onclick المعطل -->
                                 <a href="/admin/orders/{{ current_order_id }}" 
                                    class="btn btn-sm btn-outline-primary py-0 px-2" 
                                    title="عرض التفاصيل">
@@ -114,13 +117,12 @@
 
 <script>
 function updateOrderStatusInline(orderId, newStatus) {
-    // ✅ البحث عن الـ CSRF Token بطرق متعددة لضمان العثور عليه
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
                       document.querySelector('meta[name="csrf-token"]')?.content || 
                       '';
 
     if (!csrfToken) {
-        alert('خطأ أمني: لم يتم العثور على رمز الحماية (CSRF). يرجى تحديث الصفحة أو الاتصال بالدعم.');
+        alert('خطأ أمني: لم يتم العثور على رمز الحماية (CSRF). يرجى تحديث الصفحة.');
         return;
     }
 
@@ -141,7 +143,6 @@ function updateOrderStatusInline(orderId, newStatus) {
     })
     .then(data => {
         if (data.success) {
-            // تحديث الجدول إذا كانت الدوال موجودة
             if (typeof fetchOrders === 'function') {
                 fetchOrders({{ pagination.current_page if pagination else 1 }});
             } else if (typeof fetchAdminOrders === 'function') {
