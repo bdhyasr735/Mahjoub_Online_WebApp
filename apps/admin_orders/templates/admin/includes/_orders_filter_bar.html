@@ -1,109 +1,72 @@
+<!-- إضافة مكتبة Choices.js للبحث في القائمة المنسدلة -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
 <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
     <div class="row g-3 align-items-end">
-        <!-- 1. البحث -->
+        <!-- البحث -->
         <div class="col-md-3">
-            <label class="form-label fw-bold small text-uppercase text-muted">
-                <i class="fas fa-search me-1"></i> بحث
-            </label>
-            <div class="input-group">
-                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                <input type="text" id="searchInput" class="form-control border-start-0" placeholder="معرف الطلب أو اسم العميل...">
-            </div>
+            <label class="form-label fw-bold small text-muted">بحث</label>
+            <input type="text" id="searchInput" class="form-control" placeholder="معرف الطلب أو العميل..." onkeyup="handleFilterChange()">
         </div>
 
-        <!-- 2. فلتر الحالة الرئيسية -->
+        <!-- فلاتر الحالة (تم ربطهم بـ handleFilterChange) -->
         <div class="col-md-2">
-            <label class="form-label fw-bold small text-uppercase text-muted">
-                <i class="fas fa-circle me-1" style="color: #D4AF37;"></i> الحالة
-            </label>
-            <select id="statusFilter" class="form-select">
+            <label class="form-label fw-bold small text-muted">الحالة</label>
+            <select id="statusFilter" class="form-select" onchange="handleFilterChange()">
                 <option value="">الكل</option>
-                <option value="pending">⏳ قيد الانتظار</option>
-                <option value="confirmed">✅ مؤكد</option>
-                <option value="processing">🔄 قيد المعالجة</option>
-                <option value="shipped">📦 تم الشحن</option>
-                <option value="delivered">✅ تم التسليم</option>
-                <option value="cancelled">❌ ملغي</option>
-                <option value="refunded">💸 مسترد</option>
-                <option value="returned">↩️ مرتجع</option>
+                <option value="pending">قيد الانتظار</option>
+                <option value="processing">جاري التجهيز</option>
+                <option value="shipped">تم الشحن</option>
+                <option value="delivered">تم التسليم</option>
+                <option value="cancelled">ملغي</option>
             </select>
         </div>
 
-        <!-- 3. فلتر الحالة المالية -->
-        <div class="col-md-2">
-            <label class="form-label fw-bold small text-uppercase text-muted">
-                <i class="fas fa-coins me-1" style="color: #D4AF37;"></i> الحالة المالية
-            </label>
-            <select id="financialStatusFilter" class="form-select">
-                <option value="">الكل</option>
-                <option value="paid">مدفوع</option>
-                <option value="unpaid">غير مدفوع</option>
-                <option value="refunded">مسترد</option>
-            </select>
-        </div>
-
-        <!-- 4. فلتر حالة الشحن -->
-        <div class="col-md-2">
-            <label class="form-label fw-bold small text-uppercase text-muted">
-                <i class="fas fa-truck me-1" style="color: #D4AF37;"></i> حالة الشحن
-            </label>
-            <select id="fulfillmentStatusFilter" class="form-select">
-                <option value="">الكل</option>
-                <option value="fulfilled">مكتمل</option>
-                <option value="unfulfilled">غير مكتمل</option>
-                <option value="partial">جزئي</option>
-            </select>
-        </div>
-
-        <!-- 5. فلتر المورد -->
-        <div class="col-md-2">
-            <label class="form-label fw-bold small text-uppercase text-muted">
-                <i class="fas fa-store me-1"></i> المورد
-            </label>
-            <select id="supplierFilter" class="form-select" onchange="fetchAdminOrders(1)">
-                <option value="">الكل</option>
-                {% if suppliers %}
-                    {% for supplier in suppliers %}
-                    <option value="{{ supplier._id or supplier.id }}">{{ supplier.trade_name or supplier.name }}</option>
-                    {% endfor %}
-                {% endif %}
-            </select>
-        </div>
-
-        <!-- 6. نطاق التاريخ + زر تحديث -->
+        <!-- فلتر المورد (سيتم تحويله إلى بحث متطور) -->
         <div class="col-md-3">
-            <label class="form-label fw-bold small text-uppercase text-muted">
-                <i class="fas fa-calendar-alt me-1"></i> الفترة الزمنية
-            </label>
-            <div class="d-flex gap-2">
-                <div class="input-group flex-grow-1">
-                    <span class="input-group-text bg-light border-end-0">من</span>
-                    <input type="date" id="dateFrom" class="form-control border-start-0">
-                </div>
-                <div class="input-group flex-grow-1">
-                    <span class="input-group-text bg-light border-end-0">إلى</span>
-                    <input type="date" id="dateTo" class="form-control border-start-0">
-                </div>
-                <button class="btn btn-primary flex-shrink-0" style="background: #2d0b36; border: none; width: 40px; height: 40px; border-radius: 8px;" onclick="fetchAdminOrders(1)" title="تحديث النتائج">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
+            <label class="form-label fw-bold small text-muted">المورد</label>
+            <select id="supplierFilter" class="form-select" onchange="handleFilterChange()">
+                <option value="">اختر مورداً...</option>
+                {% for supplier in suppliers %}
+                <option value="{{ supplier._id }}">{{ supplier.trade_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- زر مسح الفلاتر -->
+        <div class="col-md-1">
+            <button class="btn btn-outline-danger w-100" onclick="clearAllFilters()" title="مسح">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
     </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // دالة مسح جميع الفلاتر وإعادة التحميل للصفحة الأولى
+    // تفعيل البحث المتطور للمورد
+    document.addEventListener('DOMContentLoaded', function() {
+        new Choices('#supplierFilter', {
+            searchEnabled: true,
+            itemSelectText: '',
+            placeholder: true,
+        });
+    });
+
+    // دالة تحديث موحدة لكل الفلاتر
+    function handleFilterChange() {
+        // تأخير بسيط لتجنب كثرة طلبات السيرفر أثناء الكتابة (Debounce)
+        clearTimeout(window.filterTimeout);
+        window.filterTimeout = setTimeout(() => {
+            fetchAdminOrders(1);
+        }, 500);
+    }
+
     window.clearAllFilters = function() {
         document.getElementById('searchInput').value = '';
         document.getElementById('statusFilter').value = '';
-        document.getElementById('financialStatusFilter').value = '';
-        document.getElementById('fulfillmentStatusFilter').value = '';
         document.getElementById('supplierFilter').value = '';
-        document.getElementById('dateFrom').value = '';
-        document.getElementById('dateTo').value = '';
+        // إعادة تفعيل القائمة بعد المسح
         fetchAdminOrders(1);
     };
-});
 </script>
