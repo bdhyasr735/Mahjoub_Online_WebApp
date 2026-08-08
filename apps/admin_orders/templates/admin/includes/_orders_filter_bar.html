@@ -81,12 +81,28 @@ document.addEventListener('DOMContentLoaded', function() {
         placeholder: true
     });
 
-    // قائمة الحقول للمراقبة التلقائية
+    // ✅ ربط الكائن بالعنصر لكي تستطيع دالة getVal قراءته من الصفحة الرئيسية
+    const supplierEl = document.getElementById('supplierFilter');
+    if (supplierEl) {
+        supplierEl.choicesInstance = supplierSelect;
+        
+        // مراقبة تغيير المورد عبر Choices.js
+        supplierEl.addEventListener('choice', function() {
+            clearTimeout(window.filterTimeout);
+            window.filterTimeout = setTimeout(() => {
+                if (typeof fetchOrders === 'function') {
+                    fetchOrders(1);
+                }
+            }, 300);
+        });
+    }
+
+    // قائمة الحقول الأخرى للمراقبة التلقائية
     const filterIds = [
-        'searchInput', 'orderStatusFilter', 'paymentStatusFilter', 'supplierFilter', 'dateFrom', 'dateTo'
+        'searchInput', 'orderStatusFilter', 'paymentStatusFilter', 'dateFrom', 'dateTo'
     ];
 
-    // إضافة مستمعين للأحداث
+    // إضافة مستمعين للأحداث لباقي الفلاتر
     filterIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
