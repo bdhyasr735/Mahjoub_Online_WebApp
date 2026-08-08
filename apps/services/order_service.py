@@ -7,8 +7,8 @@ class OrderService:
     def __init__(self, client=None):
         self.client = client if client else GraphQLClient()
 
-    def get_all_orders(self, page: int = 1, limit: int = 50):
-        # ✅ استعلام نظيف وآمن، يطلب فقط الحقول الموجودة والمؤكدة
+    def get_all_orders(self, page: int = 1, limit: int = 50, search: str = None, status: str = None, supplier_id: str = None, date_from: str = None, date_to: str = None):
+        # ✅ استعلام نظيف وآمن يدعم الفلاتر الكاملة (بحث، حالة، مورد، وفترة زمنية)
         query = """
         query FindAllOrdersBasic($input: FindAllOrdersInput!) {
             findAllOrders(input: $input) {
@@ -52,7 +52,32 @@ class OrderService:
         }
         """
         try:
-            data = self.client.execute(query, {"input": {"page": page, "limit": limit}})
+            # تجهيز مدخلات البحث والفلاتر لتتوافق مع الـ Schema
+            filter_input = {
+                "page": page,
+                "limit": limit
+            }
+            
+            if search and search.strip():
+                filter_input["search"] = search.strip()
+            
+            if status and status.strip():
+                filter_input["status"] = status.strip()
+                
+            if supplier_id:
+                if supplier_id == "none":
+                    # تصفية المنتجات بدون مورد (منتجات المتجر الخاصة)
+                    filter_input["supplier"] = None # أو القيمة المعتمدة في الـ Backend حسب هيكلة قمره
+                else:
+                    filter_input["supplier"] = supplier_id
+                    
+            if date_from and date_from.strip():
+                filter_input["dateFrom"] = date_from.strip()
+                
+            if date_to and date_to.strip():
+                filter_input["dateTo"] = date_to.strip()
+
+            data = self.client.execute(query, {"input": filter_input})
             if data and isinstance(data, dict) and "findAllOrders" in data:
                 return data["findAllOrders"]
             return {"data": [], "pagination": {"totalItems": 0, "hasNextPage": False}}
@@ -159,8 +184,8 @@ class OrderService:
 # ============================================================
 orders_service = OrderService()
 
-def get_all_orders(page=1, limit=50):
-    return orders_service.get_all_orders(page, limit)
+def get_all_orders(page=1, limit=50, search=None, status=None, supplier_id=None, date_from=None, date_to=None):
+    return orders_service.get_all_orders(page, limit, search, status, supplier_id, date_from, date_to)
 
 def get_order_by_id(order_id):
     return orders_service.get_order_by_id(order_id)
