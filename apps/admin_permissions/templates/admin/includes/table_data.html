@@ -3,7 +3,7 @@
         <thead class="table-light">
             <tr>
                 <th scope="col" class="py-3">#</th>
-                <th scope="col" class="py-3">الموظف / بيانات الدخول</th>
+                <th scope="col" class="py-3">الموظف / المتجر التابع له</th>
                 <th scope="col" class="py-3">رقم الهاتف</th>
                 <th scope="col" class="py-3">البريد الإلكتروني</th>
                 <th scope="col" class="py-3">الحالة</th>
@@ -27,6 +27,14 @@
                                 <span class="badge bg-secondary-subtle text-dark border me-1">@{{ getattr(staff, 'username', 'N/A') }}</span>
                                 <span>{{ getattr(staff, 'role_title', 'موظف') }}</span>
                             </div>
+                            <!-- عرض اسم المتجر التابع له بوضوح -->
+                            {% if staff_type == 'supplier_staff' and staff.supplier %}
+                            <div class="mt-1">
+                                <span class="badge border" style="background-color: #F4ECF7; color: #6C3483; font-size: 0.75rem;">
+                                    <i class="fas fa-store me-1"></i> متجر: {{ staff.supplier.trade_name }}
+                                </span>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </td>
