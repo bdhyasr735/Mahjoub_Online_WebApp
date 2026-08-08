@@ -20,7 +20,7 @@ admin_orders_bp = Blueprint(
     url_prefix='/admin/orders'
 )
 
-# ✅ خريطة الحالات المحدثة بناءً على استجابة الـ API الفعلية من المنصة
+# خريطة الحالات المحدثة بناءً على استجابة الـ API الفعلية من المنصة
 STATUS_TITLES_MAP = {
     'pending': 'قيد الانتظار',
     'preparing': 'جاري التجهيز',
@@ -49,7 +49,7 @@ def _save_or_update_order_item(order_id, item_data):
     product_data = item_data.get('productData', {})
     item.product_name = product_data.get('title', '')
     
-    # ✅ التحقق الآمن والجذري لمنع خطأ AttributeError نهائياً
+    # التحقق الآمن والجذري لمنع خطأ AttributeError نهائياً
     image_data = product_data.get('image', {})
     if isinstance(image_data, dict):
         item.product_image = image_data.get('fileUrl', '')
@@ -105,7 +105,7 @@ def _save_or_update_order(order_data):
         order.status_code = str(status_obj)
         order.status_title = STATUS_TITLES_MAP.get(order.status_code, 'قيد الانتظار')
 
-    # ✅ معالجة وتحديث حالة وطريقة الدفع بشكل آمن ومتوافق مع الـ Schema
+    # معالجة وتحديث حالة وطريقة الدفع بشكل آمن ومتوافق مع الـ Schema
     order.is_paid = bool(order_data.get('isPaid', False))
     
     if hasattr(order, 'payment_method'):
