@@ -3,7 +3,6 @@ import json
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash
 
 # استيراد قاعدة البيانات والنماذج 
 from apps.models import db, AdminUser, AdminStaff, Supplier, SupplierStaff
@@ -107,8 +106,6 @@ def add_staff():
         if not name or not email or not password:
             return jsonify({'status': 'error', 'message': 'يرجى ملء جميع الحقول المطلوبة.'}), 400
 
-        hashed_pw = generate_password_hash(password)
-        
         # استخراج الصلاحيات المحددة من النموذج
         selected_permissions = {}
         prefix = 'perm_'
@@ -124,11 +121,12 @@ def add_staff():
             new_staff = AdminStaff(
                 name=name,
                 email=email,
-                password=hashed_pw,
                 role_title=role_title,
                 permissions=selected_permissions,
                 is_active=True
             )
+            # استخدام دالة التشفير الآمن المعرفة في الموديل
+            new_staff.set_password(password)
             db.session.add(new_staff)
 
         elif staff_type == 'supplier_staff':
@@ -146,11 +144,12 @@ def add_staff():
                 supplier_id=supplier_id,
                 name=name,
                 email=email,
-                password=hashed_pw,
                 role_title=role_title,
                 permissions=selected_permissions,
                 is_active=True
             )
+            # استخدام دالة التشفير الآمن المعرفة في الموديل
+            new_staff.set_password(password)
             db.session.add(new_staff)
         else:
             return jsonify({'status': 'error', 'message': 'نوع الموظف غير صالح.'}), 400
