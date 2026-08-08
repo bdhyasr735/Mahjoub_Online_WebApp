@@ -43,8 +43,15 @@ def _save_or_update_order_item(order_id, item_data):
     item.price = item_data.get('price', 0)
     product_data = item_data.get('productData', {})
     item.product_name = product_data.get('title', '')
+    
+    # ✅ التحقق الآمن والجذري لمنع خطأ AttributeError نهائياً
     image_data = product_data.get('image', {})
-    item.product_image = image_data.fileUrl if hasattr(image_data, 'get') else image_data.get('fileUrl', '')
+    if isinstance(image_data, dict):
+        item.product_image = image_data.get('fileUrl', '')
+    elif image_data is not None:
+        item.product_image = getattr(image_data, 'fileUrl', '')
+    else:
+        item.product_image = ''
 
     db.session.merge(item)
     db.session.commit()
@@ -104,7 +111,7 @@ def _save_or_update_order(order_data):
     updated_at = order_data.get('updatedAt')
     if updated_at:
         order.updated_at = updated_at
-    
+        
     items_list = order_data.get('items', [])
     order.items_count = len(items_list)
 
@@ -211,7 +218,6 @@ def manage_admin_orders_view():
 
         search = request.args.get('search')
         if search:
-            # ✅ البحث يدعم رقم الطلب والاسم بكل كفاءة بفضل حقل البحث الجديد
             query = query.filter(
                 db.or_(
                     cast(Order.order_number, String).ilike(f'%{search}%'),
