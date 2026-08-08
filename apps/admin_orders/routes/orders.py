@@ -248,7 +248,7 @@ def manage_admin_orders_view():
             is_paid_bool = True if str(payment_status).lower() in ['true', '1', 'yes'] else False
             query = query.filter(Order.is_paid == is_paid_bool)
 
-        # 3. فلتر المورد (محدث لضمان جلب كافة الطلبات والمنتجات المرتبطة بالمورد بدقة تامة)
+        # 3. فلتر المورد
         supplier_filter = request.args.get('supplier_id')
         if supplier_filter and supplier_filter != '':
             if supplier_filter == 'none':
@@ -425,6 +425,24 @@ def view_admin_order(order_id):
         return render_template('admin/admin_order_detail.html', order=order, items_list=items)
     except Exception as e:
         current_app.logger.error(f"خطأ في عرض تفاصيل الطلب: {traceback.format_exc()}")
+        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
+        return redirect(url_for('admin_orders_bp.list_admin_orders'))
+
+
+@admin_orders_bp.route('/<string:order_id>/invoice', methods=['GET'], endpoint='print_order_invoice')
+@login_required
+def print_order_invoice(order_id):
+    """مسار طباعة فاتورة الطلب المضاف حديثاً لحل خطأ الـ BuildError"""
+    try:
+        order = db.session.get(Order, order_id)
+        if not order:
+            flash('الطلب غير موجود', 'danger')
+            return redirect(url_for('admin_orders_bp.list_admin_orders'))
+        
+        items = OrderItem.query.filter_by(order_id=order_id).all()
+        return render_template('admin/order/print_invoice.html', order=order, items_list=items)
+    except Exception as e:
+        current_app.logger.error(f"خطأ في طباعة الفاتورة: {traceback.format_exc()}")
         flash(f'❌ حدث خطأ: {str(e)}', 'danger')
         return redirect(url_for('admin_orders_bp.list_admin_orders'))
 
