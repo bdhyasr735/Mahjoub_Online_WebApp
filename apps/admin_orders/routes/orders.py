@@ -100,9 +100,20 @@ def _save_or_update_order(order_data):
         order.status_code = str(status_obj)
         order.status_title = STATUS_TITLES_MAP.get(order.status_code, 'قيد الانتظار')
 
-    # تحديث حالة الدفع بشكل مباشر وصحيح
+    # ✅ معالجة وتحديث حالة وطريقة وتاريخ الدفع بشكل شامل وجذري
     order.is_paid = bool(order_data.get('isPaid', False))
     
+    # جلب تفاصيل الدفع الإضافية إن وجدت في هيكل الـ API (مثل paymentMethod و paidAt)
+    if hasattr(order, 'payment_method'):
+        payment_info = order_data.get('payment', {}) or order_data.get('paymentMethod')
+        if isinstance(payment_info, dict):
+            order.payment_method = payment_info.get('method', 'manual')
+        else:
+            order.payment_method = str(payment_info) if payment_info else 'manual'
+
+    if hasattr(order, 'paid_at'):
+        order.paid_at = order_data.get('paidAt')
+
     # ربط المورد إذا كان موجوداً في بيانات الطلب
     if 'supplier_id' in order_data and order_data.get('supplier_id'):
         order.supplier_id = order_data.get('supplier_id')
@@ -218,7 +229,6 @@ def manage_admin_orders_view():
 
         search = request.args.get('search')
         if search:
-            # ✅ تم التصحيح للاستعلام عن اسم العميل المعتمد في الجدول مباشرة
             query = query.filter(
                 db.or_(
                     cast(Order.order_number, String).ilike(f'%{search}%'),
