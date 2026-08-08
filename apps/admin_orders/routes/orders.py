@@ -225,18 +225,18 @@ def manage_admin_orders_view():
         if status_filter:
             query = query.filter(Order.status_code == status_filter)
 
-        # 2. فلتر حالة الدفع (تم التعديل ليعمل بدقة مع القيمة المرسلة)
+        # 2. فلتر حالة الدفع (يعمل الآن بدقة)
         payment_status = request.args.get('payment_status')
         if payment_status is not None and payment_status != '':
             is_paid_bool = True if str(payment_status).lower() in ['true', '1', 'yes'] else False
             query = query.filter(Order.is_paid == is_paid_bool)
 
-        # 3. فلتر المورد (تم التفعيل ليعمل مع عمود supplier_id في قاعدة البيانات)
+        # 3. فلتر المورد (يعمل الآن بدقة مع عمود supplier_id)
         supplier_filter = request.args.get('supplier_id')
         if supplier_filter and supplier_filter != '':
             query = query.filter(Order.supplier_id == supplier_filter)
 
-        # 4. البحث السريع (رقم الطلب أو اسم العميل بطريقة آمنة)
+        # 4. البحث السريع (رقم الطلب أو اسم العميل)
         search = request.args.get('search')
         if search:
             query = query.filter(
@@ -411,7 +411,7 @@ def api_update_order_number():
                 return jsonify({'success': False, 'message': str(e)}), 500
         else:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-    exceptException as e:
+    except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
