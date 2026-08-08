@@ -17,15 +17,16 @@
                 <tbody>
                     {% for item in items_list %}
                     <tr>
-                        <!-- 1. صورة المنتج (استخدام الحقل الصحيح product_image) -->
+                        <!-- 1. صورة المنتج مع التحقق الآمن من النص الفارغ -->
                         <td class="text-center">
-                            <img src="{{ item.product_image if item.product_image else url_for('static', filename='img/default-product.png') }}" 
+                            {% set img_src = item.product_image if item.product_image and item.product_image.strip() else url_for('static', filename='img/default-product.png') %}
+                            <img src="{{ img_src }}" 
                                  alt="صورة المنتج" 
                                  class="rounded border" 
                                  style="width: 50px; height: 50px; object-fit: cover;">
                         </td>
 
-                        <!-- 2. عنوان المنتج (استخدام الحقل الصحيح product_name) -->
+                        <!-- 2. عنوان المنتج -->
                         <td>
                             <div class="fw-bold text-dark">
                                 {{ item.product_name if item.product_name else 'منتج بدون اسم' }}
@@ -41,7 +42,7 @@
                         <td>
                             <select class="form-select form-select-sm supplier-select" 
                                     data-item-id="{{ item.id }}" 
-                                    data-order-id="{{ order.id }}">
+                                    data-order-id="{{ order.id or current_order_id }}">
                                 <option value="">-- بدون مورد --</option>
                                 {% for supplier in suppliers %}
                                 <option value="{{ supplier.id }}" {% if item.supplier_id == supplier.id %}selected{% endif %}>
@@ -69,18 +70,32 @@
             const orderId = this.dataset.orderId;
             const supplierId = this.value;
 
+            // استخراج رمز حماية CSRF لضمان نجاح طلب الـ POST وعدم رفضه أمنياً
+            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
+                              document.querySelector('meta[name="csrf-token"]')?.content || '';
+
             fetch(`/admin/orders/${orderId}/item/${itemId}/assign-supplier`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({supplier_id: supplierId})
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ supplier_id: supplierId })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error(`فشل الاتصال بالسيرفر (HTTP ${res.status})`);
+                return res.json();
+            })
             .then(data => {
-                if(!data.success) {
-                    alert('خطأ أثناء الحفظ: ' + data.message);
+                if (!data.success) {
+                    alert('❌ خطأ أثناء الحفظ: ' + (data.message || 'خطأ غير معروف'));
                 }
             })
-            .catch(err => console.error('Error:', err));
+            .catch(err => {
+                console.error('Error:', err);
+                alert('❌ حدث خطأ في الاتصال بالسيرفر: ' + err.message);
+            });
         });
     });
 </script>
