@@ -77,6 +77,28 @@ def create_app():
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المالك: {e}")
+
+        # ✅ زراعة موظف إدارة افتراضي (AdminStaff)
+        try:
+            if not AdminStaff.query.filter_by(username='admin_staff_test').first():
+                new_admin_staff = AdminStaff(
+                    name='موظف الإدارة',
+                    username='admin_staff_test',
+                    email='admin_staff@mahjoub.com',
+                    phone='770000001',
+                    role_title='مشرف عام',
+                    is_active=True,
+                    permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
+                )
+                new_admin_staff.set_password('123')
+                db.session.add(new_admin_staff)
+                db.session.commit()
+                print("✅ [Seed]: تم زرع موظف الإدارة افتراضياً (admin_staff_test / 123).")
+            else:
+                print("ℹ️ [Seed]: موظف الإدارة موجود بالفعل.")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [Seed]: خطأ في زراعة موظف الإدارة: {e}")
         
         # ✅ زراعة مورد تجريبي
         try:
@@ -84,10 +106,10 @@ def create_app():
             if not existing_supplier:
                 test_supplier = Supplier(
                     username='test_supplier',
-                    trade_name='متجر تجريبي',
-                    owner_name='محمد التجريبي',
+                    email='supplier@mahjoub.com',
                     phone='0500000000',
-                    status='active'
+                    company_name='متجر تجريبي',
+                    is_active=True
                 )
                 test_supplier.set_password('123')
                 db.session.add(test_supplier)
@@ -109,6 +131,30 @@ def create_app():
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المورد التجريبي: {e}")
 
+        # ✅ زراعة موظف مورد افتراضي (SupplierStaff)
+        try:
+            supplier = Supplier.query.filter_by(username='test_supplier').first()
+            if supplier and not SupplierStaff.query.filter_by(username='supplier_staff_test').first():
+                new_supplier_staff = SupplierStaff(
+                    supplier_id=supplier.id,
+                    name='موظف المورد',
+                    username='supplier_staff_test',
+                    email='supplier_staff@mahjoub.com',
+                    phone='770000002',
+                    role_title='مساعد مبيعات',
+                    is_active=True,
+                    permissions={'manage_catalog': True, 'process_orders': True}
+                )
+                new_supplier_staff.set_password('123')
+                db.session.add(new_supplier_staff)
+                db.session.commit()
+                print("✅ [Seed]: تم زرع موظف المورد افتراضياً (supplier_staff_test / 123) تحت المورد التجريبي.")
+            else:
+                print("ℹ️ [Seed]: موظف المورد موجود بالفعل أو المورد غير مسجل.")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ [Seed]: خطأ في زراعة موظف المورد: {e}")
+
         # ✅ زراعة منتج تجريبي وربطه بالمورد
         try:
             supplier = Supplier.query.filter_by(username='test_supplier').first()
@@ -122,7 +168,7 @@ def create_app():
                 )
                 db.session.add(mapping)
                 db.session.commit()
-                print(f"✅ [Seed]: تم ربط منتج تجريبي (TEST_PROD_001) بالمورد {supplier.trade_name}.")
+                print(f"✅ [Seed]: تم ربط منتج تجريبي (TEST_PROD_001) بالمورد.")
             else:
                 print("ℹ️ [Seed]: المنتج التجريبي موجود مسبقاً أو المورد غير موجود.")
         except Exception as e:
