@@ -3,52 +3,42 @@ import json
 from functools import wraps
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
+from werkzeug.security import generate_password_hash
 
-# استيراد النماذج وقاعدة البيانات من الموديول الرئيسي للنظام
+# استيراد قاعدة البيانات والنماذج 
 from apps.models import db, AdminUser, AdminStaff, Supplier, SupplierStaff
 
-permissions_bp = Blueprint(
+admin_permissions_bp = Blueprint(
     'admin_permissions',
     __name__,
+    url_prefix='/admin/permissions',
     template_folder='templates'
 )
 
 # ==========================================
-# قائمة الصلاحيات القياسية لنظام محجوب أونلاين
+# مصفوفة الصلاحيات القياسية لمنصة محجوب أونلاين
 # ==========================================
-ADMIN_PERMISSIONS_LIST = {
+ADMIN_PERMISSIONS = {
     'manage_staff': 'إدارة موظفي الإدارة والصلاحيات',
-    'manage_suppliers': 'إدارة الموردين وتفعيل حساباتهم',
+    'manage_suppliers': 'إدارة حسابات الموردين',
     'manage_products': 'إدارة المنتجات والأقسام',
-    'manage_orders': 'إدارة وسحب الطلبات والعمليات',
-    'view_financials': 'الاطلاع على التقارير المالية والتقارير العامة',
-    'manage_settings': 'تعديل إعدادات المنصة والهوية'
+    'manage_orders': 'معالجة وتتبع الطلبات',
+    'view_reports': 'عرض التقارير المالية والإحصائيات',
+    'manage_settings': 'تعديل إعدادات النظام'
 }
 
-SUPPLIER_PERMISSIONS_LIST = {
-    'manage_catalog': 'إضافة وتحديث المنتجات والمخزون',
-    'process_orders': 'معالجة وتجهيز طلبات الشراء',
-    'view_supplier_reports': 'عرض التقارير المبيعات الخاصة بالمورد',
+SUPPLIER_PERMISSIONS = {
+    'manage_catalog': 'إضافة وتعديل منتجات المورد',
+    'process_orders': 'معالجة طلبات الشراء الواردة',
+    'view_supplier_reports': 'عرض تقارير مبيعات المورد',
     'manage_substaff': 'إدارة موظفي المورد الفرعيين'
 }
 
-
 # ==========================================
-# الديكورات المخصصة للحماية والتحكم بالوصول
+# التحقق ودوال المساعدة (Helpers & Decorators)
 # ==========================================
-def require_super_admin(f):
-    """زخرفة تسمح بالدخول فقط للإدارة العليا (AdminUser)"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not isinstance(current_user, AdminUser):
-            flash("عفواً، هذه الصفحة مخصصة لمالكي النظام والمدراء التنفيذيين فقط.", "danger")
-            return redirect(url_for('admin_permissions.index'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-
-def can_manage_permissions(user):
-    """دالة فحص هل للـ User صلاحية التعديل على الصلاحيات"""
+def check_permission_access(user):
+    """فحص إمكانية المستخدم للوصول والتعديل في شاشة الصلاحيات"""
     if isinstance(user, AdminUser):
         return True
     if isinstance(user, AdminStaff):
@@ -58,21 +48,22 @@ def can_manage_permissions(user):
             except: perms = {}
         return perms.get('manage_staff', False)
     if isinstance(user, Supplier):
-        return True # المورد له صلاحية إدارة موظفيه
+        return True # المورد يملك صلاحية كاملة على موظفيه
     return False
 
-
 # ==========================================
-# المسارات والوظائف البرمجية
+# المسارات (Routes)
 # ==========================================
 
-@permissions_bp.route('/', methods=['GET'])
+@admin_permissions_bp.route('/', methods=['GET'])
 @login_required
 def index():
-    """
-    عرض شاشة التحكم بالصلاحيات والموظفين والموردين
-    """
-    # فحص نوع المستخدم وسحب الموظفين المناسبين لنطاق الصلاحيات
+    """عرض الشاشة الرئيسية لإدارة الصلاحيات"""
+    if not check_permission_access(current_user) and not isinstance(current_user, (AdminUser, AdminStaff, Supplier)):
+        flash("غير مسموح لك بالوصول لإدارة الصلاحيات.", "danger")
+        return redirect('/')
+
+    # تحديد النطاق والمستخدمين بناءً على رتبة الحساب الحالي
     if isinstance(current_user, (AdminUser, AdminStaff)):
         admin_staffs = AdminStaff.query.all()
         suppliers = Supplier.query.all()
@@ -84,88 +75,143 @@ def index():
         supplier_staffs = SupplierStaff.query.filter_by(supplier_id=current_user.id).all()
         user_scope = 'supplier'
     else:
-        flash("غير مسموح لك بالوصول لصفحة إدارة الصلاحيات.", "warning")
-        return redirect('/')
+        admin_staffs, suppliers, supplier_staffs = [], [], []
+        user_scope = 'restricted'
 
     return render_template(
-        'admin_permissions/permissions.html',
+        'admin/permissions.html',
         admin_staffs=admin_staffs,
         suppliers=suppliers,
         supplier_staffs=supplier_staffs,
-        admin_permissions_list=ADMIN_PERMISSIONS_LIST,
-        supplier_permissions_list=SUPPLIER_PERMISSIONS_LIST,
+        admin_permissions_list=ADMIN_PERMISSIONS,
+        supplier_permissions_list=SUPPLIER_PERMISSIONS,
         user_scope=user_scope,
-        can_manage=can_manage_permissions(current_user)
+        can_manage=check_permission_access(current_user)
     )
 
 
-@permissions_bp.route('/update-user-permissions/<string:target_type>/<int:target_id>', methods=['POST'])
+@admin_permissions_bp.route('/add-staff', methods=['POST'])
 @login_required
-def update_permissions(target_type, target_id):
-    """
-    مسار تحديث وحفظ الصلاحيات الخاصة بالموظف أو المورد
-    """
-    if not can_manage_permissions(current_user):
-        return jsonify({'status': 'error', 'message': 'لا تملك الصلاحية الكافية لتعديل الأذونات.'}), 403
-
-    # استخراج البيانات المرسلة (JSON أو Form Data)
-    if request.is_json:
-        data = request.get_json()
-        selected_permissions = data.get('permissions', {})
-    else:
-        # من خلال إرسال Form عادي
-        selected_permissions = {}
-        prefix = 'perm_'
-        for key, value in request.form.items():
-            if key.startswith(prefix):
-                perm_name = key[len(prefix):]
-                selected_permissions[perm_name] = True if value == 'on' else False
-
-    target_user = None
+def add_staff():
+    """إضافة موظف جديد (إدارة أو مورد) مع تحديد صلاحياته أولياً"""
+    if not check_permission_access(current_user):
+        return jsonify({'status': 'error', 'message': 'غير مصرح لك بإضافة موظفين جُدد.'}), 403
 
     try:
-        # 1. موظف إدارة
-        if target_type == 'admin_staff':
-            if not isinstance(current_user, (AdminUser, AdminStaff)):
-                return jsonify({'status': 'error', 'message': 'غير مصرح لك بتعديل أذونات كادر الإدارة.'}), 403
-            target_user = AdminStaff.query.get_or_404(target_id)
-            target_user.permissions = selected_permissions
+        staff_type = request.form.get('staff_type')
+        name = request.form.get('name')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        role_title = request.form.get('role_title', 'موظف')
 
-        # 2. موظف مورد
-        elif target_type == 'supplier_staff':
-            target_user = SupplierStaff.query.get_or_404(target_id)
-            # التأكد أن المورد يشرف على الموظف الخاضع للتعديل
-            if isinstance(current_user, Supplier) and target_user.supplier_id != current_user.id:
-                return jsonify({'status': 'error', 'message': 'لا يمكنك تعديل موظفي موردين آخرين.'}), 403
-            target_user.permissions = selected_permissions
+        if not name or not email or not password:
+            return jsonify({'status': 'error', 'message': 'يرجى ملء جميع الحقول المطلوبة.'}), 400
 
+        hashed_pw = generate_password_hash(password)
+        
+        # استخراج الصلاحيات المحددة من النموذج
+        selected_permissions = {}
+        prefix = 'perm_'
+        for key, val in request.form.items():
+            if key.startswith(prefix):
+                perm_key = key[len(prefix):]
+                selected_permissions[perm_key] = True
+
+        if staff_type == 'admin_staff' and isinstance(current_user, (AdminUser, AdminStaff)):
+            if AdminStaff.query.filter_by(email=email).first():
+                return jsonify({'status': 'error', 'message': 'البريد الإلكتروني مستخدم بالفعل.'}), 400
+            
+            new_staff = AdminStaff(
+                name=name,
+                email=email,
+                password=hashed_pw,
+                role_title=role_title,
+                permissions=selected_permissions,
+                is_active=True
+            )
+            db.session.add(new_staff)
+
+        elif staff_type == 'supplier_staff':
+            supplier_id = request.form.get('supplier_id')
+            if isinstance(current_user, Supplier):
+                supplier_id = current_user.id
+
+            if not supplier_id:
+                return jsonify({'status': 'error', 'message': 'يجب تحديد المورد التابع له الموظف.'}), 400
+
+            if SupplierStaff.query.filter_by(email=email).first():
+                return jsonify({'status': 'error', 'message': 'البريد الإلكتروني مستخدم بالفعل.'}), 400
+
+            new_staff = SupplierStaff(
+                supplier_id=supplier_id,
+                name=name,
+                email=email,
+                password=hashed_pw,
+                role_title=role_title,
+                permissions=selected_permissions,
+                is_active=True
+            )
+            db.session.add(new_staff)
         else:
-            return jsonify({'status': 'error', 'message': 'نوع المستهدف غير معروف.'}), 400
+            return jsonify({'status': 'error', 'message': 'نوع الموظف غير صالح.'}), 400
 
         db.session.commit()
-        
+        return jsonify({'status': 'success', 'message': f'تمت إضافة الموظف ({name}) بنجاح.'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': f'حدث خطأ أثناء الإضافة: {str(e)}'}), 500
+
+
+@admin_permissions_bp.route('/update/<string:target_type>/<int:target_id>', methods=['POST'])
+@login_required
+def update_permissions(target_type, target_id):
+    """تعديل وحفظ أذونات الموظف"""
+    if not check_permission_access(current_user):
+        return jsonify({'status': 'error', 'message': 'لا تملك صلاحية تعديل الأذونات.'}), 403
+
+    try:
         if request.is_json:
-            return jsonify({'status': 'success', 'message': f'تم تحديث صلاحيات {getattr(target_user, "name", "المستخدم")} بنجاح.'})
+            data = request.get_json()
+            selected_permissions = data.get('permissions', {})
+        else:
+            selected_permissions = {}
+            prefix = 'perm_'
+            for key, val in request.form.items():
+                if key.startswith(prefix):
+                    selected_permissions[key[len(prefix):]] = True
+
+        if target_type == 'admin_staff':
+            if not isinstance(current_user, (AdminUser, AdminStaff)):
+                return jsonify({'status': 'error', 'message': 'غير مصرح.'}), 403
+            user_obj = AdminStaff.query.get_or_404(target_id)
+        elif target_type == 'supplier_staff':
+            user_obj = SupplierStaff.query.get_or_404(target_id)
+            if isinstance(current_user, Supplier) and user_obj.supplier_id != current_user.id:
+                return jsonify({'status': 'error', 'message': 'غير مسموح لك بتعديل موظف كادر آخر.'}), 403
+        else:
+            return jsonify({'status': 'error', 'message': 'نوع الحساب غير معروف.'}), 400
+
+        user_obj.permissions = selected_permissions
+        db.session.commit()
+
+        if request.is_json:
+            return jsonify({'status': 'success', 'message': 'تم تحديث الصلاحيات بنجاح.'})
         
-        flash(f'تم تحديث الصلاحيات بنجاح لـ {getattr(target_user, "name", "المستخدم")}.', 'success')
+        flash('تم حفظ الصلاحيات بنجاح.', 'success')
         return redirect(url_for('admin_permissions.index'))
 
     except Exception as e:
         db.session.rollback()
-        if request.is_json:
-            return jsonify({'status': 'error', 'message': f'حدث خطأ أثناء الحفظ: {str(e)}'}), 500
-        flash('حدث خطأ أثناء التحديث.', 'danger')
-        return redirect(url_for('admin_permissions.index'))
+        return jsonify({'status': 'error', 'message': f'خطأ أثناء التحديث: {str(e)}'}), 500
 
 
-@permissions_bp.route('/toggle-status/<string:target_type>/<int:target_id>', methods=['POST'])
+@admin_permissions_bp.route('/toggle-status/<string:target_type>/<int:target_id>', methods=['POST'])
 @login_required
 def toggle_status(target_type, target_id):
-    """
-    تفعيل أو إيقاف حساب موظف/مورد سريعاً
-    """
-    if not can_manage_permissions(current_user):
-        return jsonify({'status': 'error', 'message': 'إجراء غير مصرح به.'}), 403
+    """تنشيط أو إيقاف حساب موظف"""
+    if not check_permission_access(current_user):
+        return jsonify({'status': 'error', 'message': 'إجراء غير مسموح به.'}), 403
 
     model_map = {
         'admin_staff': AdminStaff,
@@ -175,18 +221,17 @@ def toggle_status(target_type, target_id):
 
     model = model_map.get(target_type)
     if not model:
-        return jsonify({'status': 'error', 'message': 'النوع المفضل غير صالح.'}), 400
+        return jsonify({'status': 'error', 'message': 'نوع الفئة غير صالح.'}), 400
 
     user_obj = model.query.get_or_404(target_id)
     
-    # حماية: المورد لا يوقف سوى موظفيه
     if isinstance(current_user, Supplier) and target_type == 'supplier_staff' and user_obj.supplier_id != current_user.id:
-        return jsonify({'status': 'error', 'message': 'غير متاح.'}), 403
+        return jsonify({'status': 'error', 'message': 'غير مصرح.'}), 403
 
     if hasattr(user_obj, 'is_active'):
         user_obj.is_active = not user_obj.is_active
         db.session.commit()
-        status_txt = "نشط" if user_obj.is_active else "معطل"
-        return jsonify({'status': 'success', 'message': f'تم تغيير حالة الحساب إلى ({status_txt}).', 'is_active': user_obj.is_active})
+        status_str = "نشط" if user_obj.is_active else "معطل"
+        return jsonify({'status': 'success', 'message': f'تم تغيير حالة الحساب إلى ({status_str}).', 'is_active': user_obj.is_active})
 
-    return jsonify({'status': 'error', 'message': 'هذا الحساب لا يدعم التغيير السريع للوضع.'}), 400
+    return jsonify({'status': 'error', 'message': 'الحساب لا يدعم هذه الخاصية.'}), 400
