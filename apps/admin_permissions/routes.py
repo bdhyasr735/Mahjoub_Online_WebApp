@@ -92,19 +92,21 @@ def index():
 @admin_permissions_bp.route('/add-staff', methods=['POST'])
 @login_required
 def add_staff():
-    """إضافة موظف جديد (إدارة أو مورد) مع تحديد صلاحياته أولياً"""
+    """إضافة موظف جديد (إدارة أو مورد) مع تحديد صلاحياته أولياً وتلقي اسم المستخدم ورقم الهاتف"""
     if not check_permission_access(current_user):
         return jsonify({'status': 'error', 'message': 'غير مصرح لك بإضافة موظفين جُدد.'}), 403
 
     try:
         staff_type = request.form.get('staff_type')
         name = request.form.get('name')
+        username = request.form.get('username')
+        phone = request.form.get('phone')
         email = request.form.get('email')
         password = request.form.get('password')
         role_title = request.form.get('role_title', 'موظف')
 
-        if not name or not email or not password:
-            return jsonify({'status': 'error', 'message': 'يرجى ملء جميع الحقول المطلوبة.'}), 400
+        if not name or not username or not email or not password:
+            return jsonify({'status': 'error', 'message': 'يرجى ملء جميع الحقول الإلزامية (الاسم، اسم المستخدم، البريد، وكلمة المرور).'}), 400
 
         # استخراج الصلاحيات المحددة من النموذج
         selected_permissions = {}
@@ -115,17 +117,19 @@ def add_staff():
                 selected_permissions[perm_key] = True
 
         if staff_type == 'admin_staff' and isinstance(current_user, (AdminUser, AdminStaff)):
-            if AdminStaff.query.filter_by(email=email).first():
-                return jsonify({'status': 'error', 'message': 'البريد الإلكتروني مستخدم بالفعل.'}), 400
+            # التحقق من عدم تكرار البريد أو اسم المستخدم أو الهاتف لموظفي الإدارة
+            if AdminStaff.query.filter((AdminStaff.email == email) | (AdminStaff.username == username) | ((AdminStaff.phone == phone) if phone else False)).first():
+                return jsonify({'status': 'error', 'message': 'البريد الإلكتروني أو اسم المستخدم أو رقم الهاتف مستخدم بالفعل.'}), 400
             
             new_staff = AdminStaff(
                 name=name,
+                username=username,
+                phone=phone,
                 email=email,
                 role_title=role_title,
                 permissions=selected_permissions,
                 is_active=True
             )
-            # استخدام دالة التشفير الآمن المعرفة في الموديل
             new_staff.set_password(password)
             db.session.add(new_staff)
 
@@ -137,18 +141,20 @@ def add_staff():
             if not supplier_id:
                 return jsonify({'status': 'error', 'message': 'يجب تحديد المورد التابع له الموظف.'}), 400
 
-            if SupplierStaff.query.filter_by(email=email).first():
-                return jsonify({'status': 'error', 'message': 'البريد الإلكتروني مستخدم بالفعل.'}), 400
+            # التحقق من عدم تكرار البيانات لموظفي الموردين
+            if SupplierStaff.query.filter((SupplierStaff.email == email) | (SupplierStaff.username == username) | ((SupplierStaff.phone == phone) if phone else False)).first():
+                return jsonify({'status': 'error', 'message': 'البريد الإلكتروني أو اسم المستخدم أو رقم الهاتف مستخدم بالفعل.'}), 400
 
             new_staff = SupplierStaff(
                 supplier_id=supplier_id,
                 name=name,
+                username=username,
+                phone=phone,
                 email=email,
                 role_title=role_title,
                 permissions=selected_permissions,
                 is_active=True
             )
-            # استخدام دالة التشفير الآمن المعرفة في الموديل
             new_staff.set_password(password)
             db.session.add(new_staff)
         else:
