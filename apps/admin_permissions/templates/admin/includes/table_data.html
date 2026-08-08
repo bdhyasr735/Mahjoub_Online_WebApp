@@ -3,7 +3,8 @@
         <thead class="table-light">
             <tr>
                 <th scope="col" class="py-3">#</th>
-                <th scope="col" class="py-3">الموظف</th>
+                <th scope="col" class="py-3">الموظف / بيانات الدخول</th>
+                <th scope="col" class="py-3">رقم الهاتف</th>
                 <th scope="col" class="py-3">البريد الإلكتروني</th>
                 <th scope="col" class="py-3">الحالة</th>
                 <th scope="col" class="py-3">الأذونات الممنوحة</th>
@@ -17,16 +18,20 @@
                 <td>
                     <div class="d-flex align-items-center">
                         <!-- الأفاتار بالبنفسجي الملكي -->
-                        <div class="avatar rounded-circle me-3 d-flex justify-content-center align-items-center fw-bold text-white" style="width: 42px; height: 42px; background-color: #4A154B;">
+                        <div class="avatar rounded-circle me-3 d-flex justify-content-center align-items-center fw-bold text-white flex-shrink-0" style="width: 42px; height: 42px; background-color: #4A154B;">
                             {{ staff.name[0] if staff.name else 'U' }}
                         </div>
                         <div>
                             <h6 class="mb-0 fw-bold">{{ getattr(staff, 'name', 'بدون اسم') }}</h6>
-                            <small class="text-muted">{{ getattr(staff, 'role_title', 'موظف') }}</small>
+                            <div class="text-muted small">
+                                <span class="badge bg-secondary-subtle text-dark border me-1">@{{ getattr(staff, 'username', 'N/A') }}</span>
+                                <span>{{ getattr(staff, 'role_title', 'موظف') }}</span>
+                            </div>
                         </div>
                     </div>
                 </td>
-                <td class="dir-ltr text-end">{{ getattr(staff, 'email', '-') }}</td>
+                <td class="dir-ltr text-end fw-semibold">{{ getattr(staff, 'phone', '-') }}</td>
+                <td class="dir-ltr text-end text-muted">{{ getattr(staff, 'email', '-') }}</td>
                 <td>
                     {% if getattr(staff, 'is_active', True) %}
                         <span class="badge rounded-pill px-3 py-1 text-white" style="background-color: #4A154B;">نشط</span>
@@ -85,7 +90,7 @@
             </div>
             {% else %}
             <tr>
-                <td colspan="6" class="text-center py-5 text-muted">لا يوجد موظفين مسجلين حالياً ضمن هذا القسم.</td>
+                <td colspan="7" class="text-center py-5 text-muted">لا يوجد موظفين مسجلين حالياً ضمن هذا القسم.</td>
             </tr>
             {% endfor %}
         </tbody>
