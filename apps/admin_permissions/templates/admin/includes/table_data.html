@@ -16,7 +16,8 @@
                 <td>{{ loop.index }}</td>
                 <td>
                     <div class="d-flex align-items-center">
-                        <div class="avatar bg-primary-subtle text-primary rounded-circle me-3 d-flex justify-content-center align-items-center fw-bold" style="width: 42px; height: 42px;">
+                        <!-- الأفاتار بالبنفسجي الملكي -->
+                        <div class="avatar rounded-circle me-3 d-flex justify-content-center align-items-center fw-bold text-white" style="width: 42px; height: 42px; background-color: #4A154B;">
                             {{ staff.name[0] if staff.name else 'U' }}
                         </div>
                         <div>
@@ -28,7 +29,7 @@
                 <td class="dir-ltr text-end">{{ getattr(staff, 'email', '-') }}</td>
                 <td>
                     {% if getattr(staff, 'is_active', True) %}
-                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">نشط</span>
+                        <span class="badge rounded-pill px-3 py-1 text-white" style="background-color: #4A154B;">نشط</span>
                     {% else %}
                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1">معطل</span>
                     {% endif %}
@@ -38,14 +39,14 @@
                         {% set perms = getattr(staff, 'permissions', {}) or {} %}
                         {% for perm_key, perm_label in perm_dict.items() %}
                             {% if perms.get(perm_key) %}
-                                <span class="badge bg-light text-dark border"><i class="fas fa-check text-success me-1"></i>{{ perm_label }}</span>
+                                <span class="badge bg-light text-dark border"><i class="fas fa-check me-1" style="color: #4A154B;"></i>{{ perm_label }}</span>
                             {% endif %}
                         {% endfor %}
                     </div>
                 </td>
                 <td class="text-center">
                     {% if can_manage %}
-                    <button class="btn btn-sm btn-outline-primary rounded-circle me-1" data-bs-toggle="modal" data-bs-target="#editModal-{{ staff_type }}-{{ staff.id }}" title="تعديل الأذونات">
+                    <button class="btn btn-sm rounded-circle me-1" style="color: #4A154B; border-color: #4A154B;" data-bs-toggle="modal" data-bs-target="#editModal-{{ staff_type }}-{{ staff.id }}" title="تعديل الأذونات">
                         <i class="fas fa-user-lock"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-warning rounded-circle btn-toggle-status" data-id="{{ staff.id }}" data-type="{{ staff_type }}" title="تبديل الحالة">
@@ -62,7 +63,7 @@
                         <form action="{{ url_for('admin_permissions.update_permissions', target_type=staff_type, target_id=staff.id) }}" method="POST">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <div class="modal-header border-0 bg-light rounded-top-4">
-                                <h5 class="modal-title fw-bold"><i class="fas fa-sliders-h text-primary me-2"></i>صلاحيات: {{ staff.name }}</h5>
+                                <h5 class="modal-title fw-bold"><i class="fas fa-sliders-h me-2" style="color: #4A154B;"></i>صلاحيات: {{ staff.name }}</h5>
                                 <button type="button" class="btn-close ms-0" data-bs-dismiss="modal" aria-label="إغلاق"></button>
                             </div>
                             <div class="modal-body p-4">
@@ -76,7 +77,7 @@
                             </div>
                             <div class="modal-footer border-0">
                                 <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
-                                <button type="submit" class="btn btn-primary rounded-pill px-4">حفظ التغييرات</button>
+                                <button type="submit" class="btn text-white rounded-pill px-4" style="background-color: #4A154B;">حفظ التغييرات</button>
                             </div>
                         </form>
                     </div>
