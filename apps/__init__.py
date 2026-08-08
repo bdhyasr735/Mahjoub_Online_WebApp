@@ -39,7 +39,7 @@ def create_app():
     db.init_app(app)
     
     # ============================================================
-    # ✅ إعادة بناء الجداول تلقائياً وتحديث الأعمدة والزراعة
+    # ✅ إعادة بناء الجداول تلقائياً وتحديث الأعمدة والزراعة (الحل الجذري)
     # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
@@ -64,107 +64,89 @@ def create_app():
         db.create_all()
         print("✅ [DB]: تم إعادة إنشاء جميع الجداول بنجاح.")
 
-        # ✅ زراعة المالك (علي محجوب)
+        # ✅ 1. زراعة المالك (AdminUser)
         try:
-            if not AdminUser.query.filter_by(username='ali_mahjoub').first():
-                new_admin = AdminUser(username='ali_mahjoub', role='Owner')
-                new_admin.set_password('123')
-                db.session.add(new_admin)
-                db.session.commit()
-                print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
-            else:
-                print("ℹ️ [Seed]: المالك علي محجوب موجود بالفعل.")
+            admin = AdminUser(username='ali_mahjoub', role='Owner')
+            admin.set_password('123')
+            db.session.merge(admin)
+            db.session.commit()
+            print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المالك: {e}")
 
-        # ✅ زراعة موظف إدارة افتراضي (AdminStaff)
+        # ✅ 2. زراعة موظف إدارة افتراضي (AdminStaff) - بدون حقل role_title الوهمي
         try:
-            if not AdminStaff.query.filter_by(username='admin_staff_test').first():
-                new_admin_staff = AdminStaff(
-                    username='admin_staff_test',
-                    role_title='مشرف عام',
-                    is_active=True,
-                    permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
-                )
-                new_admin_staff.set_password('123')
-                db.session.add(new_admin_staff)
-                db.session.commit()
-                print("✅ [Seed]: تم زرع موظف الإدارة افتراضياً (admin_staff_test / 123).")
-            else:
-                print("ℹ️ [Seed]: موظف الإدارة موجود بالفعل.")
+            staff = AdminStaff(
+                username='admin_staff_test',
+                is_active=True,
+                permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
+            )
+            staff.set_password('123')
+            db.session.merge(staff)
+            db.session.commit()
+            print("✅ [Seed]: تم زرع موظف الإدارة افتراضياً (admin_staff_test / 123).")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة موظف الإدارة: {e}")
         
-        # ✅ زراعة مورد تجريبي
+        # ✅ 3. زراعة مورد تجريبي مع محفظة
         try:
-            existing_supplier = Supplier.query.filter_by(username='test_supplier').first()
-            if not existing_supplier:
-                test_supplier = Supplier(
-                    username='test_supplier',
-                    trade_name='متجر تجريبي',
-                    owner_name='المورد التجريبي',
-                    phone='0500000000',
-                    status='active'
-                )
-                test_supplier.set_password('123')
-                db.session.add(test_supplier)
-                db.session.flush()
+            supplier = Supplier(
+                username='test_supplier',
+                trade_name='متجر تجريبي',
+                owner_name='المورد التجريبي',
+                phone='0500000000',
+                status='active'
+            )
+            supplier.set_password('123')
+            db.session.add(supplier)
+            db.session.flush()
                 
-                existing_wallet = SupplierWallet.query.filter_by(supplier_id=test_supplier.id).first()
-                if not existing_wallet:
-                    wallet = SupplierWallet(
-                        supplier_id=test_supplier.id,
-                        wallet_code=f"MAH-WEL963{test_supplier.id}",
-                        balance_sar=1000.00
-                    )
-                    db.session.add(wallet)
-                    db.session.commit()
-                    print("✅ [Seed]: تم زرع مورد تجريبي test_supplier / 123 مع محفظة.")
-            else:
-                print("ℹ️ [Seed]: المورد التجريبي موجود بالفعل")
+            wallet = SupplierWallet(
+                supplier_id=supplier.id,
+                wallet_code=f"MAH-WEL963{supplier.id}",
+                balance_sar=1000.00
+            )
+            db.session.add(wallet)
+            db.session.commit()
+            print("✅ [Seed]: تم زرع مورد تجريبي test_supplier / 123 مع محفظة.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المورد التجريبي: {e}")
 
-        # ✅ زراعة موظف مورد افتراضي (SupplierStaff)
+        # ✅ 4. زراعة موظف مورد افتراضي (SupplierStaff) - بدون حقل role_title الوهمي
         try:
-            supplier = Supplier.query.filter_by(username='test_supplier').first()
-            if supplier and not SupplierStaff.query.filter_by(username='supplier_staff_test').first():
-                new_supplier_staff = SupplierStaff(
-                    supplier_id=supplier.id,
+            sup = Supplier.query.filter_by(username='test_supplier').first()
+            if sup:
+                s_staff = SupplierStaff(
+                    supplier_id=sup.id,
                     username='supplier_staff_test',
-                    role_title='مساعد مبيعات',
                     is_active=True,
                     permissions={'manage_catalog': True, 'process_orders': True}
                 )
-                new_supplier_staff.set_password('123')
-                db.session.add(new_supplier_staff)
+                s_staff.set_password('123')
+                db.session.merge(s_staff)
                 db.session.commit()
                 print("✅ [Seed]: تم زرع موظف المورد افتراضياً (supplier_staff_test / 123).")
-            else:
-                print("ℹ️ [Seed]: موظف المورد موجود بالفعل أو المورد غير مسجل.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة موظف المورد: {e}")
 
-        # ✅ زراعة منتج تجريبي وربطه بالمورد
+        # ✅ 5. زراعة منتج تجريبي وربطه بالمورد
         try:
-            supplier = Supplier.query.filter_by(username='test_supplier').first()
-            if supplier and not ProductSupplierMapping.query.filter_by(product_qid='TEST_PROD_001').first():
+            sup = Supplier.query.filter_by(username='test_supplier').first()
+            if sup:
                 mapping = ProductSupplierMapping(
                     product_qid='TEST_PROD_001',
-                    supplier_id=supplier.id,
+                    supplier_id=sup.id,
                     price=100.00,
                     quantity=10,
                     status='active'
                 )
-                db.session.add(mapping)
+                db.session.merge(mapping)
                 db.session.commit()
                 print(f"✅ [Seed]: تم ربط منتج تجريبي (TEST_PROD_001) بالمورد.")
-            else:
-                print("ℹ️ [Seed]: المنتج التجريبي موجود مسبقاً أو المورد غير موجود.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المنتج التجريبي: {e}")
