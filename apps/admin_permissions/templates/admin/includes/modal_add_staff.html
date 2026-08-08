@@ -22,12 +22,18 @@
                         </div>
                         
                         <div class="col-md-6" id="supplierSelectContainer" style="display: none;">
-                            <label class="form-label fw-bold">المورد التابع له</label>
-                            <select name="supplier_id" class="form-select rounded-3 py-2">
+                            <label class="form-label fw-bold">المورد التابع له (اسم المتجر)</label>
+                            <!-- حقل بحث تفاعلي متطور لتصفية واختيار المتاجر بسرعة -->
+                            <div class="input-group mb-1">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" id="supplierSearchInput" class="form-control border-start-0 ps-0" placeholder="ابحث باسم المتجر...">
+                            </div>
+                            <select name="supplier_id" id="supplierSelectDropdown" class="form-select rounded-3 py-2" size="4" style="max-height: 120px; overflow-y: auto;">
                                 {% for supp in suppliers %}
-                                <option value="{{ supp.id }}">{{ supp.name or supp.company_name }}</option>
+                                <option value="{{ supp.id }}">{{ supp.store_name or supp.name or supp.company_name }}</option>
                                 {% endfor %}
                             </select>
+                            <small class="text-muted" style="font-size: 0.75rem;">اختر المتجر المطلوب من القائمة أو استخدم حقل البحث أعلاه.</small>
                         </div>
 
                         <!-- بقية الحقول متناسقة في أعمدة ثنائية (6 و 6) -->
@@ -98,6 +104,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const supplierContainer = document.getElementById('supplierSelectContainer');
     const adminPermsBox = document.getElementById('adminPermsBox');
     const supplierPermsBox = document.getElementById('supplierPermsBox');
+    const supplierSearchInput = document.getElementById('supplierSearchInput');
+    const supplierSelectDropdown = document.getElementById('supplierSelectDropdown');
 
     function toggleFormFields() {
         if(!staffTypeSelect) return;
@@ -118,6 +126,18 @@ document.addEventListener("DOMContentLoaded", function() {
     if(staffTypeSelect) {
         staffTypeSelect.addEventListener('change', toggleFormFields);
         toggleFormFields();
+    }
+
+    // تصفية وبحث متطور ضمن قائمة المتاجر المنسدلة
+    if(supplierSearchInput && supplierSelectDropdown) {
+        supplierSearchInput.addEventListener('keyup', function() {
+            const query = this.value.toLowerCase();
+            const options = supplierSelectDropdown.options;
+            for (let i = 0; i < options.length; i++) {
+                const text = options[i].text.toLowerCase();
+                options[i].style.display = text.includes(query) ? '' : 'none';
+            }
+        });
     }
 
     // إرسال نموذج الإضافة عبر AJAX
