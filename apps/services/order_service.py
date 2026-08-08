@@ -115,19 +115,19 @@ class OrderService:
         """
         إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
         """
-        # ✅ خريطة تحويل حالات محجوب إلى حالات مقبولة في قمره
-        # 🔥 بناءً على استعلام findOrderStatus، الحالة الصحيحة لـ "جاري التجهيز" هي 'preparing'
-        qumra_status_map = {
-            'pending': 'pending',
-            'processing': 'preparing',   # ✅ الآن نرسل 'preparing' بناءً على الساندبوكس
-            'shipped': 'shipped',
-            'delivered': 'delivered',
-            'completed': 'complete',
-            'cancelled': 'cancelled',
-            'refunded': 'returned' # أو أي حالة أخرى تناسب النظام
+        # ✅ خريطة تحويل حالات محجوب إلى معرفات الحالة (_id) في قمره (معتمدة رسمياً من الساندبوكس)
+        qumra_status_id_map = {
+            'pending': '68651b7d99fc8f5413cf6fe0',    # pending
+            'processing': '68651b7d99fc8f5413cf6fe1', # preparing
+            'shipped': '68651b7d99fc8f5413cf6fe2',    # shipped
+            'delivered': '68651b7d99fc8f5413cf6fe3',  # delivered
+            'completed': '68651b7d99fc8f5413cf6fe9',  # complete
+            'cancelled': '68651b7d99fc8f5413cf6fe4',  # cancelled
+            'refunded': '68651b7d99fc8f5413cf6fe8'    # returned
         }
         
-        target_status = qumra_status_map.get(status_code, 'pending')
+        # الحصول على معرف الحالة الصحيح من القائمة
+        target_status_id = qumra_status_id_map.get(status_code, '68651b7d99fc8f5413cf6fe0') # افتراضي: pending ID
         
         mutation = """
         mutation ChangeOrderStatus($changeOrderStatusInput2: ChangeOrderStatusInput!) {
@@ -138,10 +138,11 @@ class OrderService:
         }
         """
         try:
-            # ✅ قمره تتطلب '_id' وليس 'id'
+            # ✅ التصحيح النهائي بناءً على تبويب Variables في الساندبوكس:
+            # قمره تتطلب "id" و "status" (حيث status هو الـ _id للحالة)
             input_data = {
-                "_id": order_id,          
-                "status": target_status   
+                "id": order_id,                 # معرف الطلب (مفتاح id وليس _id)
+                "status": target_status_id      # معرف الحالة (الـ _id الخاص بـ preparing)
             }
             
             print(f"🚀 [DEBUG] إرسال الطلب إلى قمره: {input_data}")
