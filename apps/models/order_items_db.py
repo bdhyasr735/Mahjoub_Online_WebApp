@@ -16,7 +16,10 @@ class OrderItem(db.Model):
     order_id = db.Column(db.String(100), db.ForeignKey('orders.id'), nullable=False)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
     product_qid = db.Column(db.String(255), nullable=True)
-    product_name = db.Column(db.String(255), nullable=True)
+    
+    # ✅ تم تعديل هذا الحقل من String(255) إلى Text لاستيعاب الأوصاف الطويلة
+    product_name = db.Column(db.Text, nullable=True)  
+    
     quantity = db.Column(db.Integer, default=1)
     price = db.Column(db.Numeric(18, 2), default=0.00)
     product_image = db.Column(db.String(500), nullable=True)
