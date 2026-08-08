@@ -239,7 +239,7 @@ def manage_admin_orders_view():
             else:
                 query = query.filter(Order.supplier_id == supplier_filter)
 
-        # 4. البحث السريع (معالجة آمنة تتجنب خصائص الـ property التي لا تدعم ilike مباشرة)
+        # 4. البحث السريع (معالجة آمنة تماماً تتجنب خصائص الـ property التي لا تدعم ilike مباشرة)
         search = request.args.get('search')
         if search:
             search_pattern = f'%{search}%'
@@ -247,14 +247,22 @@ def manage_admin_orders_view():
                 cast(Order.order_number, String).ilike(search_pattern),
                 cast(Order.order_reference, String).ilike(search_pattern)
             ]
-            if hasattr(Order, 'customer_phone') and Order.customer_phone is not None:
-                conditions.append(Order.customer_phone.ilike(search_pattern))
             
-            # فحص إن كان حقل الاسم عمود قاعدة بيانات حقيقي أو استخدام البديل المتاح
-            if hasattr(Order, 'customer_name_db'):
-                conditions.append(Order.customer_name_db.ilike(search_pattern))
-            elif hasattr(Order, 'customer_name') and not isinstance(getattr(Order, 'customer_name', None), property):
-                conditions.append(Order.customer_name.ilike(search_pattern))
+            # التحقق الآمن لرقم الهاتف
+            try:
+                if hasattr(Order, 'customer_phone') and not isinstance(getattr(Order, 'customer_phone', None), property):
+                    conditions.append(cast(Order.customer_phone, String).ilike(search_pattern))
+            except Exception:
+                pass
+            
+            # التحقق الآمن لاسم العميل
+            try:
+                if hasattr(Order, 'customer_name_db'):
+                    conditions.append(Order.customer_name_db.ilike(search_pattern))
+                elif hasattr(Order, 'customer_name') and not isinstance(getattr(Order, 'customer_name', None), property):
+                    conditions.append(Order.customer_name.ilike(search_pattern))
+            except Exception:
+                pass
 
             query = query.filter(db.or_(*conditions))
 
