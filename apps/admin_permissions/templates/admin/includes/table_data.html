@@ -1,43 +1,92 @@
-<div class="row g-3">
-    {% if user_scope == 'admin' %}
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm rounded-4 bg-primary text-white">
-            <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                <div>
-                    <h6 class="mb-1 opacity-75">موظفي الإدارة</h6>
-                    <h3 class="fw-bold mb-0">{{ admin_staffs|length }}</h3>
-                </div>
-                <div class="bg-white bg-opacity-25 p-3 rounded-circle fs-3">
-                    <i class="fas fa-user-shield"></i>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">الاسم / الموظف</th>
+                <th scope="col">البريد الإلكتروني</th>
+                <th scope="col">الحالة</th>
+                <th scope="col">الصلاحيات النشطة</th>
+                <th scope="col" class="text-center">إجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for staff in staff_list %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-light text-primary rounded-circle me-3 d-flex justify-content-center align-items-center fw-bold" style="width: 40px; height: 40px;">
+                            {{ staff.name[0] if staff.name else 'U' }}
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">{{ getattr(staff, 'name', 'بدون اسم') }}</h6>
+                            <small class="text-muted">{{ getattr(staff, 'role_title', 'موظف') }}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>{{ getattr(staff, 'email', '-') }}</td>
+                <td>
+                    {% if getattr(staff, 'is_active', True) %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">نشط</span>
+                    {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2">موقف</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% set perms = getattr(staff, 'permissions', {}) or {} %}
+                        {% for perm_key, perm_label in perm_dict.items() %}
+                            {% if perms.get(perm_key) %}
+                                <span class="badge bg-light text-dark border me-1"><i class="fas fa-check text-success me-1"></i>{{ perm_label }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </td>
+                <td class="text-center">
+                    {% if can_manage %}
+                    <button class="btn btn-sm btn-outline-primary me-1 rounded-circle" data-bs-toggle="modal" data-bs-target="#editPermsModal-{{ staff_type }}-{{ staff.id }}" title="تعديل الصلاحيات">
+                        <i class="fas fa-user-lock"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning rounded-circle btn-toggle-status" data-id="{{ staff.id }}" data-type="{{ staff_type }}" title="تغيير الحالة">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                    {% endif %}
+                </td>
+            </tr>
+
+            <!-- Modal تعديل الصلاحيات لكل موظف -->
+            <div class="modal fade" id="editPermsModal-{{ staff_type }}-{{ staff.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content rounded-4 border-0 shadow">
+                        <form action="{{ url_for('admin_permissions.update_permissions', target_type=staff_type, target_id=staff.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <div class="modal-header border-0 bg-light rounded-top-4">
+                                <h5 class="modal-title fw-bold"><i class="fas fa-sliders-h me-2"></i>صلاحيات: {{ staff.name }}</h5>
+                                <button type="button" class="btn-close ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-4">
+                                {% set active_perms = getattr(staff, 'permissions', {}) or {} %}
+                                {% for perm_key, perm_label in perm_dict.items() %}
+                                <div class="form-check form-switch mb-3 text-end">
+                                    <input class="form-check-input" type="checkbox" role="switch" name="perm_{{ perm_key }}" id="perm_{{ staff.id }}_{{ perm_key }}" {% if active_perms.get(perm_key) %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold me-2" for="perm_{{ staff.id }}_{{ perm_key }}">{{ perm_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="modal-footer border-0">
+                                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4">حفظ الأذونات</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm rounded-4 bg-dark text-white">
-            <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                <div>
-                    <h6 class="mb-1 opacity-75">إجمالي الموردين</h6>
-                    <h3 class="fw-bold mb-0">{{ suppliers|length }}</h3>
-                </div>
-                <div class="bg-white bg-opacity-25 p-3 rounded-circle fs-3">
-                    <i class="fas fa-store"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm rounded-4 bg-success text-white">
-            <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                <div>
-                    <h6 class="mb-1 opacity-75">موظفو الموردين</h6>
-                    <h3 class="fw-bold mb-0">{{ supplier_staffs|length }}</h3>
-                </div>
-                <div class="bg-white bg-opacity-25 p-3 rounded-circle fs-3">
-                    <i class="fas fa-users"></i>
-                </div>
-            </div>
-        </div>
-    </div>
+            {% else %}
+            <tr>
+                <td colspan="6" class="text-center py-4 text-muted">لا يوجد موظفين مسجلين حالياً.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
