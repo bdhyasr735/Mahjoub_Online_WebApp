@@ -19,6 +19,7 @@ class Supplier(db.Model, UserMixin):
         db.Index('idx_sup_username', 'username'),
         db.Index('idx_sup_code', 'supplier_code'),
         db.Index('idx_sup_trade', 'trade_name'),
+        db.Index('idx_sup_store', 'store_name'),
         db.Index('idx_sup_phone', 'search_phone'),
         db.Index('idx_sup_status', 'status'),
         db.Index('idx_sup_rank', 'rank'),
@@ -32,6 +33,7 @@ class Supplier(db.Model, UserMixin):
     supplier_code = db.Column(db.String(50), unique=True, nullable=True)
     owner_name = db.Column(db.String(150), nullable=True) 
     trade_name = db.Column(db.String(150), nullable=True)
+    store_name = db.Column(db.String(150), nullable=True)  # ✅ حقل اسم المتجر الجديد مضافاً مع الفهرسة
     
     # [التشفير السيادي]: رقم الهاتف مشفر بالكامل
     _phone_enc = db.Column(db.String(255), nullable=False) 
@@ -84,7 +86,7 @@ class Supplier(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    # ✅ دالة to_dict الموجودة بالفعل
+    # ✅ دالة to_dict المحدثة لتشمل اسم المتجر
     def to_dict(self):
         """تحويل المورد إلى قاموس"""
         return {
@@ -93,6 +95,7 @@ class Supplier(db.Model, UserMixin):
             'supplier_code': self.supplier_code,
             'owner_name': self.owner_name,
             'trade_name': self.trade_name,
+            'store_name': self.store_name,
             'phone': self.phone,
             'status': self.status,
             'rank': self.rank,
@@ -101,7 +104,7 @@ class Supplier(db.Model, UserMixin):
         }
 
     def __repr__(self):
-        return f"<Supplier {self.id}: {self.trade_name or self.username}>"
+        return f"<Supplier {self.id}: {self.store_name or self.trade_name or self.username}>"
 
 
 # --- المحرك التلقائي لضبط الأكواد الفريدة ---
