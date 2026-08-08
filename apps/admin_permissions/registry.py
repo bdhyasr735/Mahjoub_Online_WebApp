@@ -11,6 +11,11 @@ MODULE_VERSION = "1.0.0"
 MODULE_ORDER = 5
 MODULE_ENABLED = True
 
+# إضافة الروابط لكي يقرأها قالب القائمة الجانبية (Sidebar)
+LINKS = {
+    "قائمة الصلاحيات": "admin_permissions.index"
+}
+
 def register_module(app):
     """
     تسجيل الـ Blueprint والموديول داخل تطبيق Flask الرئيسي تلقائياً
@@ -29,5 +34,6 @@ def register_module(app):
         "icon": MODULE_ICON,
         "description": MODULE_DESCRIPTION,
         "version": MODULE_VERSION,
-        "endpoint": "admin_permissions.index"
+        "endpoint": "admin_permissions.index",
+        "links": LINKS  # ربط الروابط هنا لتظهر في القائمة
     }
