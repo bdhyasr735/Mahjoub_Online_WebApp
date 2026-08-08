@@ -91,11 +91,19 @@ class Config:
     # ✅ النموذج النشط - qwen افتراضياً
     OPENROUTER_MODEL_KEY = os.environ.get('OPENROUTER_MODEL_KEY', 'qwen')
     OPENROUTER_MODEL = OPENROUTER_MODELS.get(OPENROUTER_MODEL_KEY, OPENROUTER_MODELS['qwen'])
+
+    # ============================================================
+    # 💎 إعدادات Google Gemini AI
+    # ============================================================
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
     
-    # ✅ طباعة للتأكد من وجود المفتاح (في السجلات)
+    # ✅ طباعة للتأكد من وجود المفاتيح (في السجلات)
     print(f"🔑 DEEPSEEK_API_KEY: {DEEPSEEK_API_KEY[:10] if DEEPSEEK_API_KEY else '❌ غير موجود'}...")
     print(f"🌐 OPENROUTER_API_KEY: {OPENROUTER_API_KEY[:15] if OPENROUTER_API_KEY else '❌ غير موجود'}...")
+    print(f"💎 GEMINI_API_KEY: {GEMINI_API_KEY[:10] if GEMINI_API_KEY else '❌ غير موجود'}...")
     print(f"🤖 OPENROUTER_MODEL: {OPENROUTER_MODEL}")
+    print(f"💎 GEMINI_MODEL: {GEMINI_MODEL}")
     print(f"🤖 AI_ENABLED: {AI_ENABLED}")
 
     @classmethod
@@ -119,5 +127,12 @@ class Config:
         elif cls.AI_ENABLED and cls.OPENROUTER_API_KEY:
             print(f"✅ [OpenRouter]: OPENROUTER_API_KEY موجود ومفعل.")
             print(f"✅ [OpenRouter]: النموذج المستخدم: {cls.OPENROUTER_MODEL}")
+
+        # ✅ التحقق من مفتاح Gemini
+        if cls.AI_ENABLED and not cls.GEMINI_API_KEY:
+            print("⚠️ [Gemini]: GEMINI_API_KEY غير موجود. سيتم تعطيل Gemini.")
+        elif cls.AI_ENABLED and cls.GEMINI_API_KEY:
+            print(f"✅ [Gemini]: GEMINI_API_KEY موجود ومفعل.")
+            print(f"✅ [Gemini]: النموذج المستخدم: {cls.GEMINI_MODEL}")
         
         return True
