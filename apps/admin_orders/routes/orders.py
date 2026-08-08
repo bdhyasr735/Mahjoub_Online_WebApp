@@ -220,21 +220,24 @@ def manage_admin_orders_view():
 
         query = Order.query
 
-        # 1. فلتر حالة الطلب
-        status_filter = request.args.get('status')
+        # 1. فلتر حالة الطلب (يدعم القيمة القادمة من orderStatusFilter أو statusFilter)
+        status_filter = request.args.get('status') or request.args.get('orderStatusFilter')
         if status_filter:
             query = query.filter(Order.status_code == status_filter)
 
-        # 2. فلتر حالة الدفع (يعمل الآن بدقة)
+        # 2. فلتر حالة الدفع
         payment_status = request.args.get('payment_status')
         if payment_status is not None and payment_status != '':
             is_paid_bool = True if str(payment_status).lower() in ['true', '1', 'yes'] else False
             query = query.filter(Order.is_paid == is_paid_bool)
 
-        # 3. فلتر المورد (يعمل الآن بدقة مع عمود supplier_id)
+        # 3. فلتر المورد (مع معالجة قيمة "none" التي تعني بدون مورد / المتجر)
         supplier_filter = request.args.get('supplier_id')
         if supplier_filter and supplier_filter != '':
-            query = query.filter(Order.supplier_id == supplier_filter)
+            if supplier_filter == 'none':
+                query = query.filter(db.or_(Order.supplier_id == None, Order.supplier_id == ''))
+            else:
+                query = query.filter(Order.supplier_id == supplier_filter)
 
         # 4. البحث السريع (رقم الطلب أو اسم العميل)
         search = request.args.get('search')
