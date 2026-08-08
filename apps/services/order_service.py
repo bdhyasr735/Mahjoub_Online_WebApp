@@ -116,15 +116,15 @@ class OrderService:
         إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
         """
         # ✅ خريطة تحويل حالات محجوب إلى حالات مقبولة في قمره
-        # 🔥 التعديل النهائي: نرسل 'shipped' بدلاً من 'processing' أو 'confirmed'
+        # 🔥 بناءً على استعلام findOrderStatus، الحالة الصحيحة لـ "جاري التجهيز" هي 'preparing'
         qumra_status_map = {
             'pending': 'pending',
-            'processing': 'shipped',   # ✅ قمره تقبل shipped
+            'processing': 'preparing',   # ✅ الآن نرسل 'preparing' بناءً على الساندبوكس
             'shipped': 'shipped',
             'delivered': 'delivered',
-            'completed': 'delivered',
+            'completed': 'complete',
             'cancelled': 'cancelled',
-            'refunded': 'refunded'
+            'refunded': 'returned' # أو أي حالة أخرى تناسب النظام
         }
         
         target_status = qumra_status_map.get(status_code, 'pending')
