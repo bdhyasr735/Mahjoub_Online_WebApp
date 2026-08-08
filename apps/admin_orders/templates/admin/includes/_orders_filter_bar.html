@@ -1,4 +1,4 @@
-<!-- إضافة مكتبة Choices.js للبحث في القائمة المنسدلة -->
+<!-- مكتبة البحث المتطور -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
@@ -7,26 +7,26 @@
         <!-- البحث -->
         <div class="col-md-3">
             <label class="form-label fw-bold small text-muted">بحث</label>
-            <input type="text" id="searchInput" class="form-control" placeholder="معرف الطلب أو العميل..." onkeyup="handleFilterChange()">
+            <input type="text" id="searchInput" class="form-control" placeholder="معرف الطلب أو اسم العميل...">
         </div>
 
-        <!-- فلاتر الحالة (تم ربطهم بـ handleFilterChange) -->
+        <!-- فلتر الحالة -->
         <div class="col-md-2">
             <label class="form-label fw-bold small text-muted">الحالة</label>
-            <select id="statusFilter" class="form-select" onchange="handleFilterChange()">
+            <select id="statusFilter" class="form-select">
                 <option value="">الكل</option>
-                <option value="pending">قيد الانتظار</option>
-                <option value="processing">جاري التجهيز</option>
-                <option value="shipped">تم الشحن</option>
-                <option value="delivered">تم التسليم</option>
-                <option value="cancelled">ملغي</option>
+                <option value="pending">⏳ قيد الانتظار</option>
+                <option value="processing">🔄 جاري التجهيز</option>
+                <option value="shipped">📦 تم الشحن</option>
+                <option value="delivered">✅ تم التسليم</option>
+                <option value="cancelled">❌ ملغي</option>
             </select>
         </div>
 
-        <!-- فلتر المورد (سيتم تحويله إلى بحث متطور) -->
+        <!-- فلتر المورد (بحث متطور) -->
         <div class="col-md-3">
             <label class="form-label fw-bold small text-muted">المورد</label>
-            <select id="supplierFilter" class="form-select" onchange="handleFilterChange()">
+            <select id="supplierFilter" class="form-select">
                 <option value="">اختر مورداً...</option>
                 {% for supplier in suppliers %}
                 <option value="{{ supplier._id }}">{{ supplier.trade_name }}</option>
@@ -34,7 +34,7 @@
             </select>
         </div>
 
-        <!-- زر مسح الفلاتر -->
+        <!-- زر مسح -->
         <div class="col-md-1">
             <button class="btn btn-outline-danger w-100" onclick="clearAllFilters()" title="مسح">
                 <i class="fas fa-times"></i>
@@ -44,29 +44,23 @@
 </div>
 
 <script>
-    // تفعيل البحث المتطور للمورد
-    document.addEventListener('DOMContentLoaded', function() {
-        new Choices('#supplierFilter', {
-            searchEnabled: true,
-            itemSelectText: '',
-            placeholder: true,
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    // تفعيل البحث في قائمة الموردين
+    const supplierSelect = new Choices('#supplierFilter', {
+        searchEnabled: true,
+        itemSelectText: '',
+        shouldSort: false
     });
 
-    // دالة تحديث موحدة لكل الفلاتر
-    function handleFilterChange() {
-        // تأخير بسيط لتجنب كثرة طلبات السيرفر أثناء الكتابة (Debounce)
-        clearTimeout(window.filterTimeout);
-        window.filterTimeout = setTimeout(() => {
-            fetchAdminOrders(1);
-        }, 500);
-    }
-
+    // دالة مسح الفلاتر
     window.clearAllFilters = function() {
         document.getElementById('searchInput').value = '';
         document.getElementById('statusFilter').value = '';
-        document.getElementById('supplierFilter').value = '';
-        // إعادة تفعيل القائمة بعد المسح
-        fetchAdminOrders(1);
+        // مسح قيمة Choices.js
+        supplierSelect.setChoiceByValue(''); 
+        
+        // استدعاء الدالة الموجودة في صفحتك الرئيسية
+        fetchOrders(1);
     };
+});
 </script>
