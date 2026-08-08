@@ -36,6 +36,14 @@
                             <input type="text" name="name" class="form-control rounded-3 py-2" required placeholder="مثال: محمد علي">
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label fw-bold">اسم المستخدم (للتسجيل)</label>
+                            <input type="text" name="username" class="form-control rounded-3 py-2" required placeholder="مثال: mohammed_ali">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">رقم الهاتف (للتسجيل والبحث)</label>
+                            <input type="text" name="phone" class="form-control rounded-3 py-2 dir-ltr text-end" placeholder="77xxxxxxx">
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label fw-bold">المسمى الوظيفي</label>
                             <input type="text" name="role_title" class="form-control rounded-3 py-2" placeholder="مثال: مدير المبيعات">
                         </div>
@@ -56,7 +64,7 @@
                         {% for perm_key, perm_label in admin_permissions_list.items() %}
                         <div class="col-md-6">
                             <div class="form-check form-switch">
-                                <input class="form-check-input custom-checkbox" type="checkbox" name="perm_{{ perm_key }}" id="add_admin_perm_{{ perm_key }}">
+                                <input class="form-check-input" type="checkbox" name="perm_{{ perm_key }}" id="add_admin_perm_{{ perm_key }}">
                                 <label class="form-check-label fw-semibold me-2" for="add_admin_perm_{{ perm_key }}">{{ perm_label }}</label>
                             </div>
                         </div>
@@ -67,7 +75,7 @@
                         {% for perm_key, perm_label in supplier_permissions_list.items() %}
                         <div class="col-md-6">
                             <div class="form-check form-switch">
-                                <input class="form-check-input custom-checkbox" type="checkbox" name="perm_{{ perm_key }}" id="add_supp_perm_{{ perm_key }}">
+                                <input class="form-check-input" type="checkbox" name="perm_{{ perm_key }}" id="add_supp_perm_{{ perm_key }}">
                                 <label class="form-check-label fw-semibold me-2" for="add_supp_perm_{{ perm_key }}">{{ perm_label }}</label>
                             </div>
                         </div>
