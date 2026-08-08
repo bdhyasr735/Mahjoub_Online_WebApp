@@ -7,8 +7,10 @@ class OrderService:
     def __init__(self, client=None):
         self.client = client if client else GraphQLClient()
 
-    def get_all_orders(self, page: int = 1, limit: int = 50, search: str = None, status: str = None, supplier_id: str = None, date_from: str = None, date_to: str = None):
-        # ✅ استعلام نظيف وآمن يدعم الفلاتر الكاملة (بحث، حالة، مورد، وفترة زمنية)
+    def get_all_orders(self, page: int = 1, limit: int = 50, search: str = None, 
+                       status: str = None, supplier_id: str = None, 
+                       is_paid: bool = None, date_from: str = None, date_to: str = None):
+        # ✅ استعلام نظيف وآمن يدعم الفلاتر الكاملة
         query = """
         query FindAllOrdersBasic($input: FindAllOrdersInput!) {
             findAllOrders(input: $input) {
@@ -64,10 +66,14 @@ class OrderService:
             if status and status.strip():
                 filter_input["status"] = status.strip()
                 
+            # إضافة فلتر حالة الدفع
+            if is_paid is not None:
+                filter_input["isPaid"] = is_paid
+                
             if supplier_id:
                 if supplier_id == "none":
                     # تصفية المنتجات بدون مورد (منتجات المتجر الخاصة)
-                    filter_input["supplier"] = None # أو القيمة المعتمدة في الـ Backend حسب هيكلة قمره
+                    filter_input["supplier"] = None
                 else:
                     filter_input["supplier"] = supplier_id
                     
@@ -184,8 +190,8 @@ class OrderService:
 # ============================================================
 orders_service = OrderService()
 
-def get_all_orders(page=1, limit=50, search=None, status=None, supplier_id=None, date_from=None, date_to=None):
-    return orders_service.get_all_orders(page, limit, search, status, supplier_id, date_from, date_to)
+def get_all_orders(page=1, limit=50, search=None, status=None, supplier_id=None, is_paid=None, date_from=None, date_to=None):
+    return orders_service.get_all_orders(page, limit, search, status, supplier_id, is_paid, date_from, date_to)
 
 def get_order_by_id(order_id):
     return orders_service.get_order_by_id(order_id)
