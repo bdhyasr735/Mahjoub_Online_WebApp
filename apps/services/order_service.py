@@ -116,10 +116,10 @@ class OrderService:
         إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
         """
         # ✅ خريطة تحويل حالات محجوب إلى حالات مقبولة في قمره
-        # 🔥 التعديل الأخير: نرسل 'processing' بدلاً من 'confirmed'
+        # 🔥 التعديل النهائي: نرسل 'shipped' بدلاً من 'processing' أو 'confirmed'
         qumra_status_map = {
             'pending': 'pending',
-            'processing': 'processing',   # ✅ قمره تقبل processing
+            'processing': 'shipped',   # ✅ قمره تقبل shipped
             'shipped': 'shipped',
             'delivered': 'delivered',
             'completed': 'delivered',
