@@ -109,7 +109,15 @@ function updateOrderStatusInline(orderId, newStatus) {
     })
     .then(data => {
         if (data.success) {
-            fetchOrders({{ pagination.current_page if pagination else 1 }});
+            // دعم استدعاء الوظيفة المحدثة بناءً على المتاح
+            const currentPage = (typeof current_page !== 'undefined') ? current_page : {{ pagination.current_page if pagination else 1 }};
+            if (typeof fetchOrders === 'function') {
+                fetchOrders(currentPage);
+            } else if (typeof fetchAdminOrders === 'function') {
+                fetchAdminOrders(currentPage);
+            } else {
+                location.reload();
+            }
         } else {
             alert('❌ فشل تحديث الحالة: ' + (data.message || 'خطأ غير معروف'));
         }
