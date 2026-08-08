@@ -8,9 +8,9 @@
     <!-- زر الرجوع وعنوان الصفحة -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-light rounded-pill px-4 shadow-sm text-secondary mb-2">
-                <i class="fas fa-arrow-right ms-2" style="color: #4A154B;"></i> الرجوع للوحة الرئيسية
-            </a>
+            <button onclick="history.back()" class="btn btn-light rounded-pill px-4 shadow-sm text-secondary mb-2 border-0">
+                <i class="fas fa-arrow-right ms-2" style="color: #4A154B;"></i> رجوع للصفحة السابقة
+            </button>
             <h3 class="fw-bold mb-1" style="color: #4A154B;"><i class="fas fa-shield-alt me-2" style="color: #4A154B;"></i>إدارة الصلاحيات ورتب الموظفين</h3>
             <p class="text-muted mb-0">التحكم الموحد بالأذونات والحسابات لموظفي منصة محجوب أونلاين والموردين.</p>
         </div>
