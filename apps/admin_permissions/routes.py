@@ -57,21 +57,37 @@ def check_permission_access(user):
 @admin_permissions_bp.route('/', methods=['GET'])
 @login_required
 def index():
-    """عرض الشاشة الرئيسية لإدارة الصلاحيات"""
+    """عرض الشاشة الرئيسية لإدارة الصلاحيات مع دعم Pagination"""
     if not check_permission_access(current_user) and not isinstance(current_user, (AdminUser, AdminStaff, Supplier)):
         flash("غير مسموح لك بالوصول لإدارة الصلاحيات.", "danger")
         return redirect('/')
 
-    # تحديد النطاق والمستخدمين بناءً على رتبة الحساب الحالي
+    # استقبال رقم الصفحة الحالية من الـ Request (الافتراضي هي الصفحة الأولى)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
+    # تحديد النطاق والمستخدمين بناءً على رتبة الحساب الحالي مع تطبيق الـ Pagination
     if isinstance(current_user, (AdminUser, AdminStaff)):
-        admin_staffs = AdminStaff.query.all()
+        # استخدام paginate بدلاً من all() لتقسيم النتائج بواقع 10 عناصر لكل صفحة
+        admin_pagination = AdminStaff.query.paginate(page=page, per_page=per_page, error_out=False)
+        admin_staffs = admin_pagination.items
+        
         suppliers = Supplier.query.all()
-        supplier_staffs = SupplierStaff.query.all()
+        
+        supplier_pagination = SupplierStaff.query.paginate(page=page, per_page=per_page, error_out=False)
+        supplier_staffs = supplier_pagination.items
+        
         user_scope = 'admin'
+        
+        # لتحديد أي كائن pagination سيتم تمريره حسب التبويب النشط أو تمريرهما معاً
+        # سنمرر pagination خاص بكل جدول ليعمل بسلاسة
     elif isinstance(current_user, Supplier):
         admin_staffs = []
         suppliers = [current_user]
-        supplier_staffs = SupplierStaff.query.filter_by(supplier_id=current_user.id).all()
+        
+        supplier_pagination = SupplierStaff.query.filter_by(supplier_id=current_user.id).paginate(page=page, per_page=per_page, error_out=False)
+        supplier_staffs = supplier_pagination.items
+        
         user_scope = 'supplier'
     else:
         admin_staffs, suppliers, supplier_staffs = [], [], []
@@ -82,6 +98,8 @@ def index():
         admin_staffs=admin_staffs,
         suppliers=suppliers,
         supplier_staffs=supplier_staffs,
+        # تمرير كائنات الـ pagination للقوالب
+        pagination=supplier_pagination if user_scope == 'supplier' else admin_pagination,
         admin_permissions_list=ADMIN_PERMISSIONS,
         supplier_permissions_list=SUPPLIER_PERMISSIONS,
         user_scope=user_scope,
