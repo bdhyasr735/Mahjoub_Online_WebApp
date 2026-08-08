@@ -40,15 +40,27 @@ def _save_or_update_order_item(order_id, item_data):
     product_id = item_data.get('productId')
     if not product_id:
         return
+        
     item = OrderItem.query.filter_by(order_id=order_id, product_qid=product_id).first()
     if not item:
         item = OrderItem(order_id=order_id, product_qid=product_id)
 
     item.quantity = item_data.get('quantity', 0)
     item.price = item_data.get('price', 0)
+    
     product_data = item_data.get('productData', {})
     item.product_name = product_data.get('title', '')
     
+    # 🔍 ربط المورد تلقائياً بالبند بناءً على بيانات المنتج أو جدول الموردين
+    supplier_id = item_data.get('supplier_id') or product_data.get('supplier_id')
+    if not supplier_id:
+        supplier_match = Supplier.query.filter_by(product_qid=product_id).first()
+        if supplier_match:
+            supplier_id = supplier_match.id
+            
+    if supplier_id:
+        item.supplier_id = supplier_id
+
     # التحقق الآمن والجذري لمنع خطأ AttributeError نهائياً
     image_data = product_data.get('image', {})
     if isinstance(image_data, dict):
@@ -111,7 +123,7 @@ def _save_or_update_order(order_data):
     if hasattr(order, 'payment_method'):
         order.payment_method = 'يدوي'
 
-    # ربط المورد إذا كان موجوداً في بيانات الطلب
+    # ربط المورد الأساسي إذا كان موجوداً في بيانات الطلب
     if 'supplier_id' in order_data and order_data.get('supplier_id'):
         order.supplier_id = order_data.get('supplier_id')
 
@@ -231,46 +243,24 @@ def manage_admin_orders_view():
             is_paid_bool = True if str(payment_status).lower() in ['true', '1', 'yes'] else False
             query = query.filter(Order.is_paid == is_paid_bool)
 
-        # 3. فلتر المورد (تم ربطه بشكل صحيح بجدول البنود والمنتجات)
+        # 3. فلتر المورد (ربط صحيح يدعم المورد الأساسي ومورد البنود والمنتجات)
         supplier_filter = request.args.get('supplier_id')
         if supplier_filter and supplier_filter != '':
             if supplier_filter == 'none':
                 query = query.filter(db.or_(Order.supplier_id == None, Order.supplier_id == ''))
             else:
-                query = query.join(OrderItem, Order.id == OrderItem.order_id).join(
+                s_id = int(supplier_filter) if supplier_filter.isdigit() else supplier_filter
+                query = query.outerjoin(OrderItem, Order.id == OrderItem.order_id).outerjoin(
                     Supplier, OrderItem.product_qid == Supplier.product_qid
-                ).filter(Supplier.id == supplier_filter).distinct()
+                ).filter(
+                    db.or_(
+                        Order.supplier_id == s_id,
+                        OrderItem.supplier_id == s_id,
+                        Supplier.id == s_id
+                    )
+                ).distinct()
 
-        # 4. البحث السريع والشامل (الرقم، المرجع، الهاتف، والاسم بدقة عالية)
-        search = request.args.get('search')
-        if search:
-            search_pattern = f'%{search.strip()}%'
-            search_conditions = []
-            
-            try:
-                search_conditions.append(cast(Order.order_number, String).ilike(search_pattern))
-            except Exception:
-                pass
-                
-            try:
-                search_conditions.append(cast(Order.order_reference, String).ilike(search_pattern))
-            except Exception:
-                pass
-            
-            try:
-                search_conditions.append(cast(Order.customer_phone, String).ilike(search_pattern))
-            except Exception:
-                pass
-            
-            try:
-                search_conditions.append(cast(Order.customer_name, String).ilike(search_pattern))
-            except Exception:
-                pass
-
-            if search_conditions:
-                query = query.filter(db.or_(*search_conditions))
-
-        # 5. الفترات الزمنية
+        # 4. الفترات الزمنية
         date_from = request.args.get('date_from')
         if date_from:
             query = query.filter(Order.created_at >= date_from)
@@ -281,18 +271,52 @@ def manage_admin_orders_view():
 
         query = query.order_by(Order.created_at.desc())
 
-        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
-        orders = paginated.items
-
-        pagination_info = {
-            'current_page': page,
-            'total_pages': paginated.pages,
-            'total_items': paginated.total,
-            'has_prev': paginated.has_prev,
-            'has_next': paginated.has_next,
-            'prev_num': page - 1 if paginated.has_prev else None,
-            'next_num': page + 1 if paginated.has_next else None,
-        }
+        # جلب كل الطلبات المطابقة للفلترة الأساسية أولاً لتنفيذ بحث دقيق شامل (يتعامل مع تشفير الاسم والجوال)
+        search = request.args.get('search')
+        if search:
+            search_val = search.strip().lower()
+            all_matched_orders = query.all()
+            filtered_orders = []
+            
+            for ord_item in all_matched_orders:
+                c_name = str(ord_item.customer_name or '').lower()
+                c_phone = str(ord_item.customer_phone or '').lower()
+                ord_num = str(ord_item.order_number or '').lower()
+                ord_ref = str(ord_item.order_reference or '').lower()
+                
+                if (search_val in c_name) or \
+                   (search_val in c_phone) or \
+                   (search_val in ord_num) or \
+                   (search_val in ord_ref):
+                    filtered_orders.append(ord_item)
+            
+            total_items = len(filtered_orders)
+            start_idx = (page - 1) * per_page
+            end_idx = start_idx + per_page
+            orders = filtered_orders[start_idx:end_idx]
+            
+            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
+            pagination_info = {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_items': total_items,
+                'has_prev': page > 1,
+                'has_next': page < total_pages,
+                'prev_num': page - 1 if page > 1 else None,
+                'next_num': page + 1 if page < total_pages else None,
+            }
+        else:
+            paginated = query.paginate(page=page, per_page=per_page, error_out=False)
+            orders = paginated.items
+            pagination_info = {
+                'current_page': page,
+                'total_pages': paginated.pages,
+                'total_items': paginated.total,
+                'has_prev': paginated.has_prev,
+                'has_next': paginated.has_next,
+                'prev_num': page - 1 if paginated.has_prev else None,
+                'next_num': page + 1 if paginated.has_next else None,
+            }
 
         suppliers = Supplier.query.all()
 
