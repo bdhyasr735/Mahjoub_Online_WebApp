@@ -1,7 +1,8 @@
 <div class="row g-3">
     {% if user_scope == 'admin' %}
+    <!-- بطاقة كادر الإدارة (بنفسجي ملكي) -->
     <div class="col-md-4">
-        <div class="card border-0 shadow-sm rounded-4 bg-primary text-white">
+        <div class="card border-0 shadow-sm rounded-4 text-white" style="background-color: #4A154B;">
             <div class="card-body p-3 d-flex align-items-center justify-content-between">
                 <div>
                     <h6 class="mb-1 opacity-75">كادر الإدارة العليا</h6>
@@ -13,6 +14,7 @@
             </div>
         </div>
     </div>
+    <!-- بطاقة الموردين النشطين (رمادي داكن/فحمي) -->
     <div class="col-md-4">
         <div class="card border-0 shadow-sm rounded-4 bg-dark text-white">
             <div class="card-body p-3 d-flex align-items-center justify-content-between">
@@ -27,8 +29,9 @@
         </div>
     </div>
     {% endif %}
+    <!-- بطاقة موظفي الموردين (بنفسجي فاتح/أرجواني للإشارة للفرعية) -->
     <div class="col-md-4">
-        <div class="card border-0 shadow-sm rounded-4 bg-success text-white">
+        <div class="card border-0 shadow-sm rounded-4 text-white" style="background-color: #6C3483;">
             <div class="card-body p-3 d-flex align-items-center justify-content-between">
                 <div>
                     <h6 class="mb-1 opacity-75">موظفي الموردين</h6>
@@ -47,9 +50,9 @@
     <div class="col-md-6">
         <div class="input-group">
             <span class="input-group-text bg-white border-0 shadow-sm rounded-start-4 pe-3">
-                <i class="fas fa-search text-muted"></i>
+                <i class="fas fa-search" style="color: #4A154B;"></i>
             </span>
-            <input type="text" id="searchStaffInput" class="form-borderless form-control shadow-sm rounded-end-4 py-2" placeholder="ابحث باسم الموظف، البريد، أو المسمى الوظيفي...">
+            <input type="text" id="searchStaffInput" class="form-control border-0 shadow-sm rounded-end-4 py-2" placeholder="ابحث باسم الموظف، البريد، أو المسمى الوظيفي...">
         </div>
     </div>
 </div>
