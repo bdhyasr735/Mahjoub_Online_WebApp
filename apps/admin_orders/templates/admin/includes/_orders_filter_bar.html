@@ -8,19 +8,19 @@
 
 <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
     <div class="row g-3">
-        <!-- الصف الأول: البحث، حالة الطلب، والمورد -->
-        <div class="col-md-4">
+        <!-- الصف الأول: البحث، حالة الطلب، حالة الدفع، والمورد -->
+        <div class="col-md-3">
             <label class="form-label fw-bold small text-muted">بحث سريع</label>
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                <input type="text" id="searchInput" class="form-control border-start-0" placeholder="رقم الطلب أو اسم العميل...">
+                <input type="text" id="searchInput" class="form-control border-start-0" placeholder="رقم الطلب أو العميل...">
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <label class="form-label fw-bold small text-muted">حالة الطلب</label>
             <select id="orderStatusFilter" class="form-select">
-                <option value="">الكل (جميع الحالات)</option>
+                <option value="">الكل</option>
                 <option value="pending">⏳ قيد الانتظار</option>
                 <option value="processing">🔄 قيد التجهيز</option>
                 <option value="shipped">🚚 تم الشحن</option>
@@ -31,11 +31,20 @@
             </select>
         </div>
 
-        <div class="col-md-4">
-            <label class="form-label fw-bold small text-muted">المورد (منتجات المورد الخاص)</label>
+        <div class="col-md-3">
+            <label class="form-label fw-bold small text-muted">حالة الدفع</label>
+            <select id="paymentStatusFilter" class="form-select">
+                <option value="">الكل</option>
+                <option value="true">💰 مدفوع</option>
+                <option value="false">💳 غير مدفوع</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label fw-bold small text-muted">المورد</label>
             <select id="supplierFilter" class="form-select">
                 <option value="">كل الموردين...</option>
-                <option value="none">🏷️ بدون مورد (منتجات المتجر)</option>
+                <option value="none">🏷️ بدون مورد (المتجر)</option>
                 {% for supplier in suppliers %}
                 <option value="{{ supplier._id }}">{{ supplier.trade_name }}</option>
                 {% endfor %}
@@ -54,7 +63,7 @@
                     <span class="input-group-text bg-light border-end-0 small">إلى</span>
                     <input type="date" id="dateTo" class="form-control border-start-0">
                 </div>
-                <button class="btn btn-outline-danger" onclick="clearAllFilters()" title="إعادة تعيين الفلاتر">
+                <button class="btn btn-outline-danger" onclick="clearAllFilters()" title="إعادة تعيين">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -74,14 +83,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // قائمة الحقول للمراقبة التلقائية
     const filterIds = [
-        'searchInput', 'orderStatusFilter', 'supplierFilter', 'dateFrom', 'dateTo'
+        'searchInput', 'orderStatusFilter', 'paymentStatusFilter', 'supplierFilter', 'dateFrom', 'dateTo'
     ];
 
-    // إضافة مستمعين للأحداث لتحديث النتائج تلقائياً
+    // إضافة مستمعين للأحداث
     filterIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            // الـ Choices.js يغير الـ select، لذا نراقب حدث change دائماً للـ select
             const eventType = (el.tagName === 'INPUT') ? 'input' : 'change';
             el.addEventListener(eventType, function() {
                 clearTimeout(window.filterTimeout);
@@ -98,6 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.clearAllFilters = function() {
         document.getElementById('searchInput').value = '';
         document.getElementById('orderStatusFilter').value = '';
+        document.getElementById('paymentStatusFilter').value = '';
         document.getElementById('dateFrom').value = '';
         document.getElementById('dateTo').value = '';
         supplierSelect.setChoiceByValue('');
