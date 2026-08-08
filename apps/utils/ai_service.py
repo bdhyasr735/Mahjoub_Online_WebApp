@@ -1,14 +1,14 @@
 import os
 from google import genai
 
-# تهيئة عميل جوجل باستخدام المفتاح المخفي في البيئة
+# تهيئة العميل باستخدام المفتاح الذي قمت بإضافته في ملف الـ .env
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 def analyze_permissions_query(prompt: str) -> str:
     try:
-        # استخدام نموذج فلاش السريع والمناسب لطلبات التطبيق
+        # استخدام النموذج السريع لمعالجة طلبات صلاحيات الموردين
         response = client.models.generate_content(
-            model='gemini-2.5-flash', # أو gemini-3.6-flash حسب المتاح في مكتبتك
+            model='gemini-2.5-flash',
             contents=prompt,
         )
         return response.text
