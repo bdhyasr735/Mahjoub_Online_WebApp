@@ -239,16 +239,24 @@ def manage_admin_orders_view():
             else:
                 query = query.filter(Order.supplier_id == supplier_filter)
 
-        # 4. البحث السريع (رقم الطلب أو اسم العميل)
+        # 4. البحث السريع (معالجة آمنة تتجنب خصائص الـ property التي لا تدعم ilike مباشرة)
         search = request.args.get('search')
         if search:
-            query = query.filter(
-                db.or_(
-                    cast(Order.order_number, String).ilike(f'%{search}%'),
-                    cast(Order.order_reference, String).ilike(f'%{search}%'),
-                    Order.customer_name.ilike(f'%{search}%')
-                )
-            )
+            search_pattern = f'%{search}%'
+            conditions = [
+                cast(Order.order_number, String).ilike(search_pattern),
+                cast(Order.order_reference, String).ilike(search_pattern)
+            ]
+            if hasattr(Order, 'customer_phone') and Order.customer_phone is not None:
+                conditions.append(Order.customer_phone.ilike(search_pattern))
+            
+            # فحص إن كان حقل الاسم عمود قاعدة بيانات حقيقي أو استخدام البديل المتاح
+            if hasattr(Order, 'customer_name_db'):
+                conditions.append(Order.customer_name_db.ilike(search_pattern))
+            elif hasattr(Order, 'customer_name') and not isinstance(getattr(Order, 'customer_name', None), property):
+                conditions.append(Order.customer_name.ilike(search_pattern))
+
+            query = query.filter(db.or_(*conditions))
 
         # 5. الفترات الزمنية
         date_from = request.args.get('date_from')
