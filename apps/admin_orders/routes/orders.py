@@ -218,10 +218,11 @@ def manage_admin_orders_view():
 
         search = request.args.get('search')
         if search:
+            # ✅ تم التصحيح للاستعلام عن اسم العميل المعتمد في الجدول مباشرة
             query = query.filter(
                 db.or_(
                     cast(Order.order_number, String).ilike(f'%{search}%'),
-                    Order.customer_name_search.ilike(f'%{search}%')
+                    Order.customer_name.ilike(f'%{search}%')
                 )
             )
 
