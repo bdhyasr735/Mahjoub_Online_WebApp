@@ -231,44 +231,44 @@ def manage_admin_orders_view():
             is_paid_bool = True if str(payment_status).lower() in ['true', '1', 'yes'] else False
             query = query.filter(Order.is_paid == is_paid_bool)
 
-        # 3. فلتر المورد (تم تعديله ليشمل الطلبات التي تحتوي على منتجات تابعة للمورد حصرياً)
+        # 3. فلتر المورد (تم ربطه بشكل صحيح بجدول البنود والمنتجات)
         supplier_filter = request.args.get('supplier_id')
         if supplier_filter and supplier_filter != '':
             if supplier_filter == 'none':
                 query = query.filter(db.or_(Order.supplier_id == None, Order.supplier_id == ''))
             else:
-                subquery = db.session.query(OrderItem.order_id).join(
-                    Supplier, OrderItem.product_qid == Supplier.product_qid # أو بحسب ربط المورد بالمنتج لديك
-                ).filter(Supplier.id == supplier_filter).subquery()
-                
-                # استخدام الربط المباشر عبر جدول المنتجات والبنود التابعة للمورد
                 query = query.join(OrderItem, Order.id == OrderItem.order_id).join(
                     Supplier, OrderItem.product_qid == Supplier.product_qid
                 ).filter(Supplier.id == supplier_filter).distinct()
 
-        # 4. البحث السريع (تم إصلاح البحث بالاسم ورقم الهاتف عبر استخدام دالة الأعمدة والـ cast بشكل آمن)
+        # 4. البحث السريع والشامل (الرقم، المرجع، الهاتف، والاسم بدقة عالية)
         search = request.args.get('search')
         if search:
-            search_pattern = f'%{search}%'
-            conditions = [
-                cast(Order.order_number, String).ilike(search_pattern),
-                cast(Order.order_reference, String).ilike(search_pattern)
-            ]
+            search_pattern = f'%{search.strip()}%'
+            search_conditions = []
             
-            # محاولة البحث في حقل الهاتف إذا كان موجوداً كعمود
             try:
-                conditions.append(cast(Order.customer_phone, String).ilike(search_pattern))
+                search_conditions.append(cast(Order.order_number, String).ilike(search_pattern))
+            except Exception:
+                pass
+                
+            try:
+                search_conditions.append(cast(Order.order_reference, String).ilike(search_pattern))
             except Exception:
                 pass
             
-            # محاولة البحث في حقل الاسم الحقيقي في الجدول لتجنب مشاكل الـ property
             try:
-                if hasattr(Order, 'customer_name'):
-                    conditions.append(cast(Order.customer_name, String).ilike(search_pattern))
+                search_conditions.append(cast(Order.customer_phone, String).ilike(search_pattern))
+            except Exception:
+                pass
+            
+            try:
+                search_conditions.append(cast(Order.customer_name, String).ilike(search_pattern))
             except Exception:
                 pass
 
-            query = query.filter(db.or_(*conditions))
+            if search_conditions:
+                query = query.filter(db.or_(*search_conditions))
 
         # 5. الفترات الزمنية
         date_from = request.args.get('date_from')
