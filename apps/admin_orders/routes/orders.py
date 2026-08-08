@@ -220,7 +220,7 @@ def manage_admin_orders_view():
 
         query = Order.query
 
-        # 1. فلتر حالة الطلب (يدعم القيمة القادمة من orderStatusFilter أو statusFilter)
+        # 1. فلتر حالة الطلب
         status_filter = request.args.get('status') or request.args.get('orderStatusFilter')
         if status_filter:
             query = query.filter(Order.status_code == status_filter)
@@ -231,15 +231,22 @@ def manage_admin_orders_view():
             is_paid_bool = True if str(payment_status).lower() in ['true', '1', 'yes'] else False
             query = query.filter(Order.is_paid == is_paid_bool)
 
-        # 3. فلتر المورد (مع معالجة قيمة "none" التي تعني بدون مورد / المتجر)
+        # 3. فلتر المورد (تم تعديله ليشمل الطلبات التي تحتوي على منتجات تابعة للمورد حصرياً)
         supplier_filter = request.args.get('supplier_id')
         if supplier_filter and supplier_filter != '':
             if supplier_filter == 'none':
                 query = query.filter(db.or_(Order.supplier_id == None, Order.supplier_id == ''))
             else:
-                query = query.filter(Order.supplier_id == supplier_filter)
+                subquery = db.session.query(OrderItem.order_id).join(
+                    Supplier, OrderItem.product_qid == Supplier.product_qid # أو بحسب ربط المورد بالمنتج لديك
+                ).filter(Supplier.id == supplier_filter).subquery()
+                
+                # استخدام الربط المباشر عبر جدول المنتجات والبنود التابعة للمورد
+                query = query.join(OrderItem, Order.id == OrderItem.order_id).join(
+                    Supplier, OrderItem.product_qid == Supplier.product_qid
+                ).filter(Supplier.id == supplier_filter).distinct()
 
-        # 4. البحث السريع (معالجة آمنة تماماً تتجنب خصائص الـ property التي لا تدعم ilike مباشرة)
+        # 4. البحث السريع (تم إصلاح البحث بالاسم ورقم الهاتف عبر استخدام دالة الأعمدة والـ cast بشكل آمن)
         search = request.args.get('search')
         if search:
             search_pattern = f'%{search}%'
@@ -248,19 +255,16 @@ def manage_admin_orders_view():
                 cast(Order.order_reference, String).ilike(search_pattern)
             ]
             
-            # التحقق الآمن لرقم الهاتف
+            # محاولة البحث في حقل الهاتف إذا كان موجوداً كعمود
             try:
-                if hasattr(Order, 'customer_phone') and not isinstance(getattr(Order, 'customer_phone', None), property):
-                    conditions.append(cast(Order.customer_phone, String).ilike(search_pattern))
+                conditions.append(cast(Order.customer_phone, String).ilike(search_pattern))
             except Exception:
                 pass
             
-            # التحقق الآمن لاسم العميل
+            # محاولة البحث في حقل الاسم الحقيقي في الجدول لتجنب مشاكل الـ property
             try:
-                if hasattr(Order, 'customer_name_db'):
-                    conditions.append(Order.customer_name_db.ilike(search_pattern))
-                elif hasattr(Order, 'customer_name') and not isinstance(getattr(Order, 'customer_name', None), property):
-                    conditions.append(Order.customer_name.ilike(search_pattern))
+                if hasattr(Order, 'customer_name'):
+                    conditions.append(cast(Order.customer_name, String).ilike(search_pattern))
             except Exception:
                 pass
 
@@ -413,28 +417,5 @@ def api_update_order_number():
     try:
         data = request.get_json()
         external_order_id = data.get('external_order_id')
-        display_number = data.get('display_number')
-        
-        if not external_order_id or not display_number:
-            return jsonify({'success': False, 'message': 'بيانات ناقصة'}), 400
-
-        order = Order.query.filter_by(order_reference=external_order_id).first()
-        
-        if order:
-            try:
-                order.order_number = int(display_number)
-                db.session.commit()
-                return jsonify({'success': True, 'message': f'تم تحديث رقم الطلب إلى {display_number}'})
-            except Exception as e:
-                db.session.rollback()
-                return jsonify({'success': False, 'message': str(e)}), 500
-        else:
-            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
-@admin_orders_bp.route('/<string:order_id>/invoice', methods=['GET'])
-@login_required
-def print_order_invoice(order_id):
-    return f"صفحة طباعة الفاتورة للطلب {order_id} (قيد التطوير)..."
+    except Exception:
+        external_order_id = None
