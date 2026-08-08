@@ -59,13 +59,24 @@
 
 <!-- نموذج اختيار المورد التابع له (يتم وضعه داخل نافذة المودال Modal الخاصة بإضافة موظف) -->
 <div class="mb-3 mt-3">
-    <label for="supplierSelect" class="form-label fw-bold text-dark">المورد التابع له</label>
+    <label for="supplierSelect" class="form-label fw-bold text-dark">المورد / المتجر التابع له</label>
     <select id="supplierSelect" name="supplier_id" class="form-select rounded-3 shadow-sm" required>
-        <option value="" disabled selected>ابحث واختار المورد التابع له...</option>
+        <option value="" disabled selected>ابحث واختار المتجر أو المورد التابع له...</option>
         {% if suppliers %}
             {% for sup in suppliers %}
-                <!-- استخدام store_name لضمان التوافق مع التعديلات السابقة -->
-                <option value="{{ sup.id }}">{{ sup.store_name or sup.trade_name or sup.name }} (@{{ sup.username }})</option>
+                <!-- التسلسل الذكي لعرض اسم المتجر أو المورد بدقة -->
+                <option value="{{ sup.id }}">
+                    {% if sup.store_name %}
+                        {{ sup.store_name }} {% if sup.trade_name and sup.trade_name != sup.store_name %}({{ sup.trade_name }}){% endif %}
+                    {% elif sup.trade_name %}
+                        {{ sup.trade_name }}
+                    {% elif sup.owner_name %}
+                        {{ sup.owner_name }}
+                    {% else %}
+                        مورد رقم {{ sup.id }}
+                    {% endif %}
+                    (@{{ sup.username }})
+                </option>
             {% endfor %}
         {% else %}
             <option value="" disabled>لا يوجد موردين متاحين حالياً</option>
@@ -85,7 +96,7 @@
                     field: "text",
                     direction: "asc"
                 },
-                placeholder: "اكتب للبحث عن اسم المورد..."
+                placeholder: "اكتب للبحث عن اسم المتجر أو المورد..."
             });
         }
     });
