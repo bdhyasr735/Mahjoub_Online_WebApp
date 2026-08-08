@@ -5,6 +5,7 @@ import traceback
 import threading
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Blueprint
 from flask_login import login_required
+from sqlalchemy import cast, String
 
 from apps.extensions import db
 from apps.services import services
@@ -199,7 +200,7 @@ def manage_admin_orders_view():
         if search:
             query = query.filter(
                 db.or_(
-                    Order.order_number.ilike(f'%{search}%'),
+                    cast(Order.order_number, String).ilike(f'%{search}%'),
                     Order._customer_name.ilike(f'%{search}%')
                 )
             )
@@ -256,11 +257,9 @@ def sync_admin_orders():
         if session.get('user_type') != 'admin':
             return jsonify({'success': False, 'message': 'غير مصرح'}), 403
 
-        # ✅ استلام كائن التطبيق
         app = current_app._get_current_object()
 
         def sync_background(app_context):
-            # تشغيل الخيط داخل سياق التطبيق
             with app_context.app_context():
                 try:
                     total = sync_all_orders_from_graphql()
@@ -268,7 +267,6 @@ def sync_admin_orders():
                 except Exception as e:
                     print(f"❌ خطأ في المزامنة اليدوية: {e}")
 
-        # تمرير السياق إلى الخيط
         thread = threading.Thread(target=sync_background, args=(app,))
         thread.daemon = True
         thread.start()
@@ -329,18 +327,15 @@ def update_order_status_inline(order_id):
         if not order:
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
 
-        # 1. إرسال التحديث إلى منصة قمرة
         qumra_success = services.orders.update_order_status_in_qumra(order_id, new_status)
 
         if not qumra_success:
             return jsonify({'success': False, 'message': 'فشل تحديث الحالة في المنصة (قمره)'}), 500
 
-        # 2. إجراء مزامنة فورية فردية لهذا الطلب من المصدر لضمان جلب الحالة المعتمدة وتطابقها تماماً
         order_data = services.orders.get_order_by_id(order_id)
         if order_data:
             _save_or_update_order(order_data)
         else:
-            # تحديث احتياطي محلي في حال تأخر الاستجابة المباشرة للمزامنة الفردية
             order.status_code = new_status
             order.status_title = STATUS_TITLES_MAP.get(new_status, 'غير معروف')
             db.session.commit()
@@ -377,12 +372,7 @@ def api_update_order_number():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# ============================================================
-# ✅ حل مشكلة خطأ BuildError في صفحة تفاصيل الطلب (طباعة الفاتورة)
-# ============================================================
 @admin_orders_bp.route('/<string:order_id>/invoice', methods=['GET'])
 @login_required
 def print_order_invoice(order_id):
-    # وظيفة مؤقتة لإنهاء خطأ url_for وتعويضها برسالة بسيطة
-    # يمكنك لاحقاً تحويل هذا الكود لتوليد فاتورة PDF
     return f"صفحة طباعة الفاتورة للطلب {order_id} (قيد التطوير)..."
