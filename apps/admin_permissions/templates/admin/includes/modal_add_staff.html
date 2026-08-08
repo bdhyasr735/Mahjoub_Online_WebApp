@@ -10,6 +10,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="row g-3">
+                        <!-- صف الفئة والمورد التابع لضمان التناسق -->
                         <div class="col-md-6">
                             <label class="form-label fw-bold">فئة الموظف</label>
                             <select name="staff_type" id="staffTypeSelect" class="form-select rounded-3 py-2">
@@ -20,7 +21,6 @@
                             </select>
                         </div>
                         
-                        {% if user_scope == 'admin' %}
                         <div class="col-md-6" id="supplierSelectContainer" style="display: none;">
                             <label class="form-label fw-bold">المورد التابع له</label>
                             <select name="supplier_id" class="form-select rounded-3 py-2">
@@ -29,8 +29,8 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        {% endif %}
 
+                        <!-- بقية الحقول متناسقة في أعمدة ثنائية (6 و 6) -->
                         <div class="col-md-6">
                             <label class="form-label fw-bold">الاسم الكامل</label>
                             <input type="text" name="name" class="form-control rounded-3 py-2" required placeholder="مثال: محمد علي">
@@ -103,7 +103,9 @@ document.addEventListener("DOMContentLoaded", function() {
         if(!staffTypeSelect) return;
         const val = staffTypeSelect.value;
         if(val === 'supplier_staff') {
+            {% if user_scope == 'admin' %}
             if(supplierContainer) supplierContainer.style.display = 'block';
+            {% endif %}
             adminPermsBox.style.display = 'none';
             supplierPermsBox.style.display = 'flex';
         } else {
