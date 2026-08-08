@@ -23,17 +23,25 @@
                         
                         <div class="col-md-6" id="supplierSelectContainer" style="display: none;">
                             <label class="form-label fw-bold">المورد التابع له (اسم المتجر)</label>
-                            <!-- حقل بحث تفاعلي متطور لتصفية واختيار المتاجر بسرعة -->
-                            <div class="input-group mb-1">
-                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                                <input type="text" id="supplierSearchInput" class="form-control border-start-0 ps-0" placeholder="ابحث باسم المتجر...">
+                            <div class="position-relative">
+                                <!-- حقل البحث والتحكم الذكي -->
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-store text-muted"></i></span>
+                                    <input type="text" id="supplierSearchInput" class="form-control border-start-0 py-2" placeholder="ابحث واختر اسم المتجر..." autocomplete="off">
+                                    <input type="hidden" name="supplier_id" id="selectedSupplierId">
+                                </div>
+                                
+                                <!-- قائمة النتائج المنسدلة الذكية بتصميم احترافي -->
+                                <div id="supplierDropdownList" class="dropdown-menu w-100 shadow-sm border-0 rounded-3 mt-1 p-1" style="max-height: 180px; overflow-y: auto; display: none; position: absolute; z-index: 1050; background-color: #fff;">
+                                    {% for supp in suppliers %}
+                                    <a href="javascript:void(0);" class="dropdown-item rounded-2 py-2 px-3 supplier-option" data-id="{{ supp.id }}" data-name="{{ supp.store_name or supp.name or supp.company_name }}">
+                                        <i class="fas fa-shopping-bag me-2 text-muted" style="font-size: 0.85rem;"></i>
+                                        <span class="fw-semibold" style="color: #333;">{{ supp.store_name or supp.name or supp.company_name }}</span>
+                                    </a>
+                                    {% endfor %}
+                                </div>
                             </div>
-                            <select name="supplier_id" id="supplierSelectDropdown" class="form-select rounded-3 py-2" size="4" style="max-height: 120px; overflow-y: auto;">
-                                {% for supp in suppliers %}
-                                <option value="{{ supp.id }}">{{ supp.store_name or supp.name or supp.company_name }}</option>
-                                {% endfor %}
-                            </select>
-                            <small class="text-muted" style="font-size: 0.75rem;">اختر المتجر المطلوب من القائمة أو استخدم حقل البحث أعلاه.</small>
+                            <small class="text-muted" style="font-size: 0.75rem;">انقر وابحث لتظهر لك قائمة المتاجر بوضوح تام.</small>
                         </div>
 
                         <!-- بقية الحقول متناسقة في أعمدة ثنائية (6 و 6) -->
@@ -104,8 +112,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const supplierContainer = document.getElementById('supplierSelectContainer');
     const adminPermsBox = document.getElementById('adminPermsBox');
     const supplierPermsBox = document.getElementById('supplierPermsBox');
-    const supplierSearchInput = document.getElementById('supplierSearchInput');
-    const supplierSelectDropdown = document.getElementById('supplierSelectDropdown');
+    
+    const searchInput = document.getElementById('supplierSearchInput');
+    const hiddenIdInput = document.getElementById('selectedSupplierId');
+    const dropdownList = document.getElementById('supplierDropdownList');
+    const options = dropdownList ? dropdownList.querySelectorAll('.supplier-option') : [];
 
     function toggleFormFields() {
         if(!staffTypeSelect) return;
@@ -128,14 +139,39 @@ document.addEventListener("DOMContentLoaded", function() {
         toggleFormFields();
     }
 
-    // تصفية وبحث متطور ضمن قائمة المتاجر المنسدلة
-    if(supplierSearchInput && supplierSelectDropdown) {
-        supplierSearchInput.addEventListener('keyup', function() {
+    // نظام البحث التفاعلي واختيار المتجر بسلاسة
+    if(searchInput && dropdownList) {
+        searchInput.addEventListener('focus', function() {
+            dropdownList.style.display = 'block';
+        });
+
+        searchInput.addEventListener('input', function() {
             const query = this.value.toLowerCase();
-            const options = supplierSelectDropdown.options;
-            for (let i = 0; i < options.length; i++) {
-                const text = options[i].text.toLowerCase();
-                options[i].style.display = text.includes(query) ? '' : 'none';
+            dropdownList.style.display = 'block';
+            options.forEach(option => {
+                const text = option.getAttribute('data-name').toLowerCase();
+                if(text.includes(query)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        });
+
+        options.forEach(option => {
+            option.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                searchInput.value = name;
+                hiddenIdInput.value = id;
+                dropdownList.style.display = 'none';
+            });
+        });
+
+        // إغلاق القائمة عند النقر خارجها
+        document.addEventListener('click', function(e) {
+            if(!supplierContainer.contains(e.target)) {
+                dropdownList.style.display = 'none';
             }
         });
     }
