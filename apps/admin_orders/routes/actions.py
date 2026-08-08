@@ -23,9 +23,9 @@ def update_item_details(item_id):
         
         data = request.get_json() or {}
         
-        # مثال: تحديث بيانات تفصيلية للعنصر
+        # ✅ تصحيح: تحديث حقل product_image بدلاً من image_url ليتطابق مع الموديل
         if 'image_url' in data:
-            item.image_url = data['image_url']
+            item.product_image = data['image_url']
             
         db.session.commit()
         return jsonify({'success': True, 'message': 'تم تحديث تفاصيل المنتج بنجاح'})
