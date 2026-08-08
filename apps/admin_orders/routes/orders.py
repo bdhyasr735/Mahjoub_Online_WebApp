@@ -375,3 +375,14 @@ def api_update_order_number():
             return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# ✅ حل مشكلة خطأ BuildError في صفحة تفاصيل الطلب (طباعة الفاتورة)
+# ============================================================
+@admin_orders_bp.route('/<string:order_id>/invoice', methods=['GET'])
+@login_required
+def print_order_invoice(order_id):
+    # وظيفة مؤقتة لإنهاء خطأ url_for وتعويضها برسالة بسيطة
+    # يمكنك لاحقاً تحويل هذا الكود لتوليد فاتورة PDF
+    return f"صفحة طباعة الفاتورة للطلب {order_id} (قيد التطوير)..."
