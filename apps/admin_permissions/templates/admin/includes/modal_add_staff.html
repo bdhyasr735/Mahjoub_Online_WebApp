@@ -1,126 +1,16 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-
 <div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <form id="addStaffForm" class="modal-content gold-border">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="modal-header bg-light text-royal">
-                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> إضافة موظف جديد</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i>إضافة موظف جديد</h5>
+                <button type="button" class="btn-close btn-close-white ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div class="mb-3 position-relative">
-                    <label class="form-label fw-bold">اسم المستخدم</label>
-                    <input type="text" name="username" id="usernameInput" class="form-control" placeholder="يجب أن يكون فريداً" required oninput="debounceCheck()">
-                    <span id="userStatus" class="position-absolute" style="left: 15px; top: 35px;"></span>
-                </div>
-
-                <div class="mb-3 position-relative">
-                    <label class="form-label fw-bold">رقم الهاتف</label>
-                    <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="7xxxxxxxx" maxlength="9" required oninput="debounceCheck()">
-                    <span id="phoneStatus" class="position-absolute" style="left: 15px; top: 35px;"></span>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">نوع الصلاحية</label>
-                    <select name="type" id="staffTypeSelect" class="form-select" onchange="toggleSupplierField(this.value); debounceCheck()">
-                        <option value="admin">إدارة مركزية</option>
-                        <option value="supplier">موظف شريك</option>
-                    </select>
-                </div>
-
-                <div class="mb-3" id="supplierContainer" style="display:none;">
-                    <label class="form-label fw-bold">اختر المتجر/المورد</label>
-                    <select name="supplier_id" id="supplierField" class="form-select">
-                        {% for sup in suppliers %}
-                        <option value="{{ sup.id }}">{{ sup.trade_name }} - ({{ sup.supplier_code }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small">يمكنك إضافة الحساب مباشرة من موديول الموظفين الرئيسي مع إمكانية تعيين أذونات الحساب من هذه الشاشة لاحقاً.</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="submit" id="submitBtn" class="btn btn-royal" disabled>حفظ البيانات</button>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">إغلاق</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
-
-<script>
-    // تهيئة Choices.js
-    const supplierSelect = document.getElementById('supplierField');
-    const choices = new Choices(supplierSelect, { searchEnabled: true, itemSelectText: '', shouldSort: false });
-
-    function toggleSupplierField(val) {
-        document.getElementById('supplierContainer').style.display = (val === 'supplier') ? 'block' : 'none';
-    }
-
-    let debounceTimer;
-    function debounceCheck() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(checkAll, 500);
-    }
-
-    async function checkAll() {
-        const username = document.getElementById('usernameInput').value;
-        const phone = document.getElementById('phoneInput').value;
-        const type = document.getElementById('staffTypeSelect').value;
-        const submitBtn = document.getElementById('submitBtn');
-        const userStatus = document.getElementById('userStatus');
-        const phoneStatus = document.getElementById('phoneStatus');
-
-        if (username.length < 3 || !/^[7]\d{8}$/.test(phone)) {
-            submitBtn.disabled = true;
-            return;
-        }
-
-        try {
-            const [userRes, phoneRes] = await Promise.all([
-                fetch(`/admin/permissions/check-user?username=${encodeURIComponent(username)}`),
-                fetch(`/admin/permissions/check-phone?phone=${phone}&type=${type}`)
-            ]);
-
-            const uStatus = await userRes.json();
-            const pStatus = await phoneRes.json();
-
-            userStatus.innerHTML = uStatus.available ? '✅' : '❌';
-            phoneStatus.innerHTML = pStatus.available ? '✅' : '❌';
-            submitBtn.disabled = !(uStatus.available && pStatus.available);
-        } catch (err) {
-            console.error("خطأ في التحقق:", err);
-        }
-    }
-
-    document.getElementById('addStaffForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
-
-        try {
-            // تم تحديث المسار هنا ليتوافق مع الـ Blueprint: admin_permissions_bp
-            const res = await fetch("{{ url_for('admin_permissions_bp.assign_permissions') }}", { 
-                method: 'POST', 
-                body: new FormData(this),
-                headers: { "X-CSRFToken": document.querySelector('input[name="csrf_token"]').value }
-            });
-            const data = await res.json();
-            
-            if(data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addStaffModal'));
-                modal.hide();
-                showSuccessModal(data.username, data.new_password, data.store_name, data.store_code);
-                this.reset();
-                choices.removeActiveItems(); 
-            } else {
-                alert('خطأ: ' + data.message);
-            }
-        } catch (err) {
-            alert('حدث خطأ في الاتصال بالسيرفر، تأكد من الشبكة.');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = 'حفظ البيانات';
-        }
-    });
-</script>
