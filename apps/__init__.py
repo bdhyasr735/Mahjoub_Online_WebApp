@@ -34,6 +34,9 @@ def create_app():
         SESSION_COOKIE_SAMESITE='Lax',
     )
 
+    # ✅ إتاحة دالة getattr في قوالب جينجا لمنع أخطاء العرض نهائياً
+    app.jinja_env.globals.update(getattr=getattr)
+
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
 
     db.init_app(app)
