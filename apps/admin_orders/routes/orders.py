@@ -44,7 +44,7 @@ def _save_or_update_order_item(order_id, item_data):
     product_data = item_data.get('productData', {})
     item.product_name = product_data.get('title', '')
     image_data = product_data.get('image', {})
-    item.product_image = image_data.get('fileUrl', '')
+    item.product_image = image_data.fileUrl if hasattr(image_data, 'get') else image_data.get('fileUrl', '')
 
     db.session.merge(item)
     db.session.commit()
@@ -83,10 +83,23 @@ def _save_or_update_order(order_data):
         order.customer_address = address
         
     order.total_price = order_data.get('totalPrice', 0)
+    
+    # تحديث الحالة بوضوح
     status_obj = order_data.get('status', {})
-    order.status_code = status_obj.get('code', 'pending')
-    order.status_title = status_obj.get('title', 'قيد الانتظار')
-    order.is_paid = order_data.get('isPaid', False)
+    if isinstance(status_obj, dict):
+        order.status_code = status_obj.get('code', 'pending')
+        order.status_title = status_obj.get('title', 'قيد الانتظار')
+    else:
+        order.status_code = str(status_obj)
+        order.status_title = STATUS_TITLES_MAP.get(order.status_code, 'قيد الانتظار')
+
+    # تحديث حالة الدفع بشكل مباشر وصحيح
+    order.is_paid = bool(order_data.get('isPaid', False))
+    
+    # ربط المورد إذا كان موجوداً في بيانات الطلب
+    if 'supplier_id' in order_data and order_data.get('supplier_id'):
+        order.supplier_id = order_data.get('supplier_id')
+
     order.created_at = order_data.get('createdAt')
     updated_at = order_data.get('updatedAt')
     if updated_at:
@@ -198,10 +211,11 @@ def manage_admin_orders_view():
 
         search = request.args.get('search')
         if search:
+            # ✅ البحث يدعم رقم الطلب والاسم بكل كفاءة بفضل حقل البحث الجديد
             query = query.filter(
                 db.or_(
                     cast(Order.order_number, String).ilike(f'%{search}%'),
-                    Order._customer_name.ilike(f'%{search}%')
+                    Order.customer_name_search.ilike(f'%{search}%')
                 )
             )
 
