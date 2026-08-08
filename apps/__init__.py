@@ -75,10 +75,13 @@ def create_app():
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المالك: {e}")
 
-        # ✅ 2. زراعة موظف إدارة افتراضي (AdminStaff) - بدون حقل role_title الوهمي
+        # ✅ 2. زراعة موظف إدارة افتراضي (AdminStaff)
         try:
             staff = AdminStaff(
                 username='admin_staff_test',
+                name='موظف الإدارة التجريبي',
+                email='admin_staff@mahjoub.online',
+                role_title='مشرف عام الإدارة',
                 is_active=True,
                 permissions={'manage_staff': True, 'manage_suppliers': True, 'manage_products': True}
             )
@@ -115,13 +118,16 @@ def create_app():
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المورد التجريبي: {e}")
 
-        # ✅ 4. زراعة موظف مورد افتراضي (SupplierStaff) - بدون حقل role_title الوهمي
+        # ✅ 4. زراعة موظف مورد افتراضي (SupplierStaff)
         try:
             sup = Supplier.query.filter_by(username='test_supplier').first()
             if sup:
                 s_staff = SupplierStaff(
                     supplier_id=sup.id,
                     username='supplier_staff_test',
+                    name='موظف المورد التجريبي',
+                    email='supplier_staff@mahjoub.online',
+                    role_title='مسؤول مبيعات المورد',
                     is_active=True,
                     permissions={'manage_catalog': True, 'process_orders': True}
                 )
