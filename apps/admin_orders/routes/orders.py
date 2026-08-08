@@ -20,14 +20,19 @@ admin_orders_bp = Blueprint(
     url_prefix='/admin/orders'
 )
 
+# ✅ خريطة الحالات المحدثة بناءً على استجابة الـ API الفعلية من المنصة
 STATUS_TITLES_MAP = {
     'pending': 'قيد الانتظار',
-    'processing': 'قيد التجهيز',
+    'preparing': 'جاري التجهيز',
     'shipped': 'تم الشحن',
-    'delivered': 'تم التسليم',
-    'completed': 'مكتمل',
-    'cancelled': 'ملغي',
-    'refunded': 'مسترجع'
+    'delivered': 'تم التوصيل',
+    'complete': 'مكتمل',
+    'cancelled': 'تم الإلغاء',
+    'failed': 'فشل الطلب',
+    'onHold': 'معلق',
+    'rejected': 'مرفوض',
+    'returned': 'تم الإرجاع',
+    'frozen': 'مجمد'
 }
 
 
@@ -95,24 +100,16 @@ def _save_or_update_order(order_data):
     status_obj = order_data.get('status', {})
     if isinstance(status_obj, dict):
         order.status_code = status_obj.get('code', 'pending')
-        order.status_title = status_obj.get('title', 'قيد الانتظار')
+        order.status_title = status_obj.get('title', STATUS_TITLES_MAP.get(order.status_code, 'قيد الانتظار'))
     else:
         order.status_code = str(status_obj)
         order.status_title = STATUS_TITLES_MAP.get(order.status_code, 'قيد الانتظار')
 
-    # ✅ معالجة وتحديث حالة وطريقة وتاريخ الدفع بشكل شامل وجذري
+    # ✅ معالجة وتحديث حالة وطريقة الدفع بشكل آمن ومتوافق مع الـ Schema
     order.is_paid = bool(order_data.get('isPaid', False))
     
-    # جلب تفاصيل الدفع الإضافية إن وجدت في هيكل الـ API (مثل paymentMethod و paidAt)
     if hasattr(order, 'payment_method'):
-        payment_info = order_data.get('payment', {}) or order_data.get('paymentMethod')
-        if isinstance(payment_info, dict):
-            order.payment_method = payment_info.get('method', 'manual')
-        else:
-            order.payment_method = str(payment_info) if payment_info else 'manual'
-
-    if hasattr(order, 'paid_at'):
-        order.paid_at = order_data.get('paidAt')
+        order.payment_method = 'يدوي'
 
     # ربط المورد إذا كان موجوداً في بيانات الطلب
     if 'supplier_id' in order_data and order_data.get('supplier_id'):
