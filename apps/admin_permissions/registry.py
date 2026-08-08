@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
 """
-اسم الموديول: إدارة الصلاحيات ورتب المستخدمين
-الوصف: موديول مستقل لإدارة صلاحيات موظفي الإدارة، الموردين، وموظفي الموردين منصة محجوب أونلاين.
+ملف التسجيل الديناميكي لـ موديول الصلاحيات (Registry)
+يتكامل تلقائياً مع دالة create_app ومصنع الموديولات.
 """
 
 MODULE_NAME = "إدارة الصلاحيات"
 MODULE_ICON = "fa-shield-alt"
-MODULE_DESCRIPTION = "التحكم الكامل والجامع لصلاحيات موظفي الإدارة والموردين وكوادرهم"
+MODULE_DESCRIPTION = "وحدة التحكم المستقلة لصلاحيات موظفي الإدارة، الموردين، وموظفيهم"
 MODULE_VERSION = "1.0.0"
 MODULE_ORDER = 5
 MODULE_ENABLED = True
 
 def register_module(app):
     """
-    دالة تسجيل الموديول تلقائياً في تطبيق Flask عند الإقلاع عبر Dynamic Factory System
+    تسجيل الـ Blueprint والموديول داخل تطبيق Flask الرئيسي تلقائياً
     """
-    from apps.admin_permissions.routes import permissions_bp
+    from apps.admin_permissions.routes import admin_permissions_bp
     
-    # تسجيل الـ Blueprint داخل تطبيق Flask
-    app.register_blueprint(permissions_bp, url_prefix="/admin/permissions")
+    # تسجيل البلوبرينت
+    app.register_blueprint(admin_permissions_bp)
     
-    # تسجيل الموديول في القائمة العامة بالتطبيق إذا كانت موجودة
+    # حصر الموديولات المسجلة في التطبيق
     if not hasattr(app, "registered_modules"):
         app.registered_modules = {}
         
