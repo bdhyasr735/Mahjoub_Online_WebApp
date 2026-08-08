@@ -2,9 +2,82 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
+<div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
+    <div class="row g-3">
+        <!-- الصف الأول: البحث، حالة الطلب، والمورد -->
+        <div class="col-md-4">
+            <label class="form-label fw-bold small text-muted">بحث سريع</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="searchInput" class="form-control border-start-0" placeholder="معرف الطلب أو اسم العميل...">
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label fw-bold small text-muted">حالة الطلب</label>
+            <select id="orderStatusFilter" class="form-select">
+                <option value="">الكل</option>
+                <option value="confirmed">✅ مؤكد</option>
+                <option value="cancelled">❌ ملغي</option>
+                <option value="delivered">📦 تم التسليم</option>
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label fw-bold small text-muted">المورد</label>
+            <select id="supplierFilter" class="form-select">
+                <option value="">كل الموردين...</option>
+                {% for supplier in suppliers %}
+                <option value="{{ supplier._id }}">{{ supplier.trade_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- الصف الثاني: حالة الدفع، حالة التوصيل، والفترة الزمنية -->
+        <div class="col-md-3">
+            <label class="form-label fw-bold small text-muted">حالة الدفع</label>
+            <select id="paymentStatusFilter" class="form-select">
+                <option value="">الكل</option>
+                <option value="paid">✅ مدفوع</option>
+                <option value="unpaid">❌ غير مدفوع</option>
+                <option value="pending">⏳ قيد الانتظار</option>
+                <option value="refunded">↩️ مسترجع</option>
+                <option value="partially_refunded">↩️ مسترجع جزئي</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label fw-bold small text-muted">حالة التوصيل</label>
+            <select id="fulfillmentStatusFilter" class="form-select">
+                <option value="">الكل</option>
+                <option value="unfulfilled">📦 لم يُشحن</option>
+                <option value="fulfilled">🚚 تم الشحن</option>
+                <option value="delivered">✅ تم التسليم</option>
+            </select>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label fw-bold small text-muted">الفترة الزمنية</label>
+            <div class="d-flex gap-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 small">من</span>
+                    <input type="date" id="dateFrom" class="form-control border-start-0">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 small">إلى</span>
+                    <input type="date" id="dateTo" class="form-control border-start-0">
+                </div>
+                <button class="btn btn-outline-danger" onclick="clearAllFilters()" title="إعادة تعيين الفلاتر">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. تفعيل البحث المتطور على قائمة الموردين
+    // تفعيل البحث المتقدم للموردين
     const supplierSelect = new Choices('#supplierFilter', {
         searchEnabled: true,
         itemSelectText: '',
@@ -12,28 +85,19 @@ document.addEventListener('DOMContentLoaded', function() {
         placeholder: true
     });
 
-    // 2. ربط جميع الفلاتر بـ الأحداث لتحديث الجدول تلقائياً (AJAX)
-    const filterElements = [
-        'searchInput',
-        'paymentStatusFilter',
-        'orderStatusFilter',
-        'fulfillmentStatusFilter',
-        'supplierFilter'
-    ];
-
-    filterElements.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            const eventType = el.tagName === 'INPUT' ? 'input' : 'change';
-            
-            el.addEventListener(eventType, function() {
-                // إذا كانت دالة الجلب موجودة (مثل fetchOrders) يتم استدعاؤها للصفحة الأولى
-                if (typeof fetchOrders === 'function') {
-                    clearTimeout(window.filterTimeout);
-                    window.filterTimeout = setTimeout(() => fetchOrders(1), 400);
-                }
-            });
+    // دالة مسح جميع الفلاتر
+    window.clearAllFilters = function() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('paymentStatusFilter').value = '';
+        document.getElementById('orderStatusFilter').value = '';
+        document.getElementById('fulfillmentStatusFilter').value = '';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        supplierSelect.setChoiceByValue('');
+        
+        if (typeof fetchOrders === 'function') {
+            fetchOrders(1);
         }
-    });
+    };
 });
 </script>
