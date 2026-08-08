@@ -85,6 +85,28 @@ document.addEventListener('DOMContentLoaded', function() {
         placeholder: true
     });
 
+    // قائمة الحقول للمراقبة التلقائية
+    const filterIds = [
+        'searchInput', 'paymentStatusFilter', 'orderStatusFilter', 
+        'fulfillmentStatusFilter', 'supplierFilter', 'dateFrom', 'dateTo'
+    ];
+
+    // إضافة مستمعين للأحداث لتحديث النتائج تلقائياً
+    filterIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            const eventType = el.tagName === 'INPUT' ? 'input' : 'change';
+            el.addEventListener(eventType, function() {
+                clearTimeout(window.filterTimeout);
+                window.filterTimeout = setTimeout(() => {
+                    if (typeof fetchOrders === 'function') {
+                        fetchOrders(1);
+                    }
+                }, 400);
+            });
+        }
+    });
+
     // دالة مسح جميع الفلاتر
     window.clearAllFilters = function() {
         document.getElementById('searchInput').value = '';
