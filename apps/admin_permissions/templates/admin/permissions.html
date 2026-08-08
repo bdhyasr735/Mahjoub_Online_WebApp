@@ -1,152 +1,93 @@
 {% extends "admin/admin_base.html" %}
 
+{% block title %}إدارة الصلاحيات | محجوب أونلاين{% endblock %}
+
 {% block content %}
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-
-<style>
-    /* التنسيق الملكي الفاخر للأزرار */
-    .btn-royal {
-        background: linear-gradient(135deg, #491269 0%, #210433 70%, #09010e 100%) !important;
-        border: 1px solid #05000a !important;
-        color: #ffffff !important;
-        font-weight: 600 !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
-        transition: all 0.3s ease !important;
-    }
-
-    .btn-royal:hover {
-        background: linear-gradient(135deg, #320b49 0%, #12011d 70%, #000000 100%) !important;
-        transform: translateY(-1px);
-    }
+<div class="container-fluid py-4" dir="rtl">
     
-    .text-royal { color: #210433 !important; }
-
-    .modal-confirm-header {
-        background-color: #fcf8e3 !important;
-        border-bottom: 2px solid #f0ad4e !important;
-        color: #8a6d3b !important;
-    }
-
-    .table thead.table-royal-header th {
-        background: linear-gradient(135deg, #491269 0%, #210433 100%) !important;
-        color: #ffffff !important;
-        text-align: center;
-        border-bottom: 2px solid #ffffff !important;
-        padding: 12px !important;
-    }
-
-    /* إجبار عناصر DataTable على الظهور */
-    .dataTables_wrapper .dataTables_filter, 
-    .dataTables_wrapper .dataTables_paginate {
-        display: block !important;
-        visibility: visible !important;
-    }
-</style>
-
-<div class="container-fluid py-4" style="direction: rtl;">
+    <!-- العنوان والترويسة -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" class="btn btn-outline-secondary btn-sm mb-2 rounded-2 px-3">
-                <i class="fas fa-arrow-right me-1"></i> رجوع للرئيسية
-            </a>
-            <h4 class="text-royal fw-bold m-0">
-                <i class="fas fa-user-shield me-2 text-royal"></i> إدارة صلاحيات النظام وحوكمة الحسابات
-            </h4>
+            <h3 class="fw-bold mb-1"><i class="fas fa-shield-alt text-primary me-2"></i>إدارة الصلاحيات ورتب المستخدمين</h3>
+            <p class="text-muted mb-0">لوحة تحكم الصلاحيات الموحدة لكوادر الإدارة والموردين وموظفيهم منصة محجوب أونلاين.</p>
         </div>
-        <button class="btn btn-royal px-4 py-2" data-bs-toggle="modal" data-bs-target="#addStaffModal">
-            <i class="fas fa-plus-circle me-1"></i> إضافة موظف جديد
+        {% if can_manage %}
+        <button class="btn btn-primary shadow-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+            <i class="fas fa-user-plus me-2"></i>إضافة موظف جديد
         </button>
+        {% endif %}
     </div>
 
-    {% include 'admin/includes/filters_and_cards.html' %}
-    
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm border-0 rounded-3">
-                <div class="card-body p-0">
-                    {% include 'admin/includes/table_data.html' %}
+    <!-- البطاقات التلخيصية والفلاتر -->
+    {% include 'admin_permissions/includes/filters_and_cards.html' %}
+
+    <!-- جداول البيانات والتعديل -->
+    <div class="card border-0 shadow-sm rounded-4 mt-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+            <ul class="nav nav-pills card-header-pills" id="permissionsTab" role="tablist">
+                {% if user_scope == 'admin' %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold px-4 rounded-pill" id="admin-staff-tab" data-bs-toggle="tab" data-bs-target="#admin-staff" type="button" role="tab">
+                        <i class="fas fa-user-shield me-2"></i>موظفو الإدارة ({{ admin_staffs|length }})
+                    </button>
+                </li>
+                {% endif %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if user_scope == 'supplier' %}active{% endif %} fw-bold px-4 rounded-pill" id="supplier-staff-tab" data-bs-toggle="tab" data-bs-target="#supplier-staff" type="button" role="tab">
+                        <i class="fas fa-users-cog me-2"></i>موظفو الموردين ({{ supplier_staffs|length }})
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body p-4">
+            <div class="tab-content" id="permissionsTabContent">
+                {% if user_scope == 'admin' %}
+                <div class="tab-pane fade show active" id="admin-staff" role="tabpanel">
+                    {% with staff_list=admin_staffs, staff_type='admin_staff', perm_dict=admin_permissions_list %}
+                        {% include 'admin_permissions/includes/table_data.html' %}
+                    {% endwith %}
+                </div>
+                {% endif %}
+                <div class="tab-pane fade {% if user_scope == 'supplier' %}show active{% endif %}" id="supplier-staff" role="tabpanel">
+                    {% with staff_list=supplier_staffs, staff_type='supplier_staff', perm_dict=supplier_permissions_list %}
+                        {% include 'admin_permissions/includes/table_data.html' %}
+                    {% endwith %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-{% include 'admin/includes/modal_add_staff.html' %}
-{% include 'admin/includes/modal_success.html' %}
-
-<div class="modal fade" id="confirmResetModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
-            <div class="modal-header modal-confirm-header py-3">
-                <h5 class="modal-title fw-bold m-0 fs-6">
-                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i> تأكيد إعادة تعيين كلمة المرور
-                </h5>
-            </div>
-            <div class="modal-body p-4 text-start">
-                <p class="mb-0 text-dark fs-6">تنبيه أمني: أنت على وشك تصفير وتغيير كلمة المرور الخاصة بالموظف: <span id="confirmUsername" class="badge bg-dark px-2 py-1.5 fs-6 mx-1 fw-bold"></span>.</p>
-            </div>
-            <div class="modal-footer justify-content-end bg-light border-0 py-3">
-                <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn btn-warning px-4 fw-bold text-dark" id="btnConfirmReset">
-                    <i class="fas fa-key me-1"></i> تأكيد التغيير الآن
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<!-- المودال التفاعلي لإضافة/تعديل -->
+{% include 'admin_permissions/includes/modal_add_staff.html' %}
 
 <script>
-    let currentStaff = {};
+// نص برمجي للتفاعل السريع وحفظ الصلاحيات عبر AJAX
+document.addEventListener("DOMContentLoaded", function() {
+    // تبديل حالة الحساب السريعة
+    document.querySelectorAll('.btn-toggle-status').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.dataset.id;
+            const userType = this.dataset.type;
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
-    function resetPassword(staffId, staffType, username) {
-        currentStaff = {staffId, staffType, username};
-        $('#confirmUsername').text(username);
-        $('#confirmResetModal').modal('show');
-    }
-
-    $('#btnConfirmReset').click(function() {
-        const confirmBtn = $(this);
-        confirmBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> جاري المعالجة...');
-        $('#confirmResetModal').modal('hide');
-        
-        $.ajax({
-            url: `/admin/permissions/reset-password/${currentStaff.staffId}/${currentStaff.staffType}`,
-            type: 'GET',
-            success: function(response) {
-                if (response.success) {
-                    showSuccessModal(response.username, response.new_password, response.store_name, response.store_code);
-                } else {
-                    alert('خطأ: ' + (response.message || 'فشل التحديث'));
+            fetch(`/admin/permissions/toggle-status/${userType}/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
                 }
-            },
-            complete: function() {
-                confirmBtn.prop('disabled', false).html('<i class="fas fa-key me-1"></i> تأكيد التغيير الآن');
-            }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            });
         });
     });
-
-    $(document).ready(function() {
-        $('#staffTable').DataTable({
-            "destroy": true,
-            "pageLength": 10,
-            "responsive": true,
-            "paging": true,
-            "searching": true,
-            "ordering": true,
-            "language": {
-                "search": "بحث:",
-                "lengthMenu": "عرض _MENU_ سجل",
-                "info": "عرض _START_ إلى _END_ من أصل _TOTAL_ سجل",
-                "paginate": {
-                    "next": "التالي",
-                    "previous": "السابق"
-                },
-                "emptyTable": "لا توجد بيانات متاحة"
-            }
-        });
-    });
+});
 </script>
 {% endblock %}
