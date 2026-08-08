@@ -1,66 +1,55 @@
-<!-- مكتبة البحث المتطور -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-
 <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
     <div class="row g-3 align-items-end">
-        <!-- البحث -->
-        <div class="col-md-3">
+        <!-- 1. البحث -->
+        <div class="col-md-2">
             <label class="form-label fw-bold small text-muted">بحث</label>
-            <input type="text" id="searchInput" class="form-control" placeholder="معرف الطلب أو اسم العميل...">
+            <input type="text" id="searchInput" class="form-control" placeholder="معرف الطلب...">
         </div>
 
-        <!-- فلتر الحالة -->
+        <!-- 2. حالة الدفع -->
         <div class="col-md-2">
-            <label class="form-label fw-bold small text-muted">الحالة</label>
-            <select id="statusFilter" class="form-select">
+            <label class="form-label fw-bold small text-muted">الدفع</label>
+            <select id="paymentStatusFilter" class="form-select">
                 <option value="">الكل</option>
+                <option value="paid">✅ مدفوع</option>
+                <option value="unpaid">❌ غير مدفوع</option>
                 <option value="pending">⏳ قيد الانتظار</option>
-                <option value="processing">🔄 جاري التجهيز</option>
-                <option value="shipped">📦 تم الشحن</option>
-                <option value="delivered">✅ تم التسليم</option>
-                <option value="cancelled">❌ ملغي</option>
+                <option value="refunded">↩️ مسترجع</option>
+                <option value="partially_refunded">↩️ مسترجع جزئي</option>
             </select>
         </div>
 
-        <!-- فلتر المورد (بحث متطور) -->
+        <!-- 3. حالة الطلب -->
+        <div class="col-md-2">
+            <label class="form-label fw-bold small text-muted">حالة الطلب</label>
+            <select id="orderStatusFilter" class="form-select">
+                <option value="">الكل</option>
+                <option value="confirmed">✅ مؤكد</option>
+                <option value="cancelled">❌ ملغي</option>
+                <option value="delivered">📦 تم التسليم</option>
+            </select>
+        </div>
+
+        <!-- 4. حالة التوصيل -->
+        <div class="col-md-2">
+            <label class="form-label fw-bold small text-muted">التوصيل</label>
+            <select id="fulfillmentStatusFilter" class="form-select">
+                <option value="">الكل</option>
+                <option value="unfulfilled">📦 لم يُشحن</option>
+                <option value="fulfilled">🚚 تم الشحن</option>
+                <option value="delivered">✅ تم التسليم</option>
+            </select>
+        </div>
+
+        <!-- 5. المورد (مع Choices.js) -->
         <div class="col-md-3">
             <label class="form-label fw-bold small text-muted">المورد</label>
             <select id="supplierFilter" class="form-select">
-                <option value="">اختر مورداً...</option>
+                <option value="">كل الموردين...</option>
                 {% for supplier in suppliers %}
                 <option value="{{ supplier._id }}">{{ supplier.trade_name }}</option>
                 {% endfor %}
             </select>
         </div>
-
-        <!-- زر مسح -->
-        <div class="col-md-1">
-            <button class="btn btn-outline-danger w-100" onclick="clearAllFilters()" title="مسح">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // تفعيل البحث في قائمة الموردين
-    const supplierSelect = new Choices('#supplierFilter', {
-        searchEnabled: true,
-        itemSelectText: '',
-        shouldSort: false
-    });
-
-    // دالة مسح الفلاتر
-    window.clearAllFilters = function() {
-        document.getElementById('searchInput').value = '';
-        document.getElementById('statusFilter').value = '';
-        // مسح قيمة Choices.js
-        supplierSelect.setChoiceByValue(''); 
-        
-        // استدعاء الدالة الموجودة في صفحتك الرئيسية
-        fetchOrders(1);
-    };
-});
-</script>
