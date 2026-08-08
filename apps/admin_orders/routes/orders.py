@@ -12,6 +12,7 @@ from apps.services import services
 from apps.models.orders_db import Order
 from apps.models.supplier_db import Supplier
 from apps.models.order_items_db import OrderItem
+from apps.models.product_supplier_map import ProductSupplierMapping
 
 admin_orders_bp = Blueprint(
     'admin_orders_bp',
@@ -51,12 +52,12 @@ def _save_or_update_order_item(order_id, item_data):
     product_data = item_data.get('productData', {})
     item.product_name = product_data.get('title', '')
     
-    # 🔍 ربط المورد تلقائياً بالبند بناءً على بيانات المنتج أو جدول الموردين
+    # 🔍 ربط المورد تلقائياً بالبند بناءً على جدول الربط السيادي ProductSupplierMapping
     supplier_id = item_data.get('supplier_id') or product_data.get('supplier_id')
     if not supplier_id:
-        supplier_match = Supplier.query.filter_by(product_qid=product_id).first()
-        if supplier_match:
-            supplier_id = supplier_match.id
+        mapping_match = ProductSupplierMapping.query.filter_by(product_qid=product_id).first()
+        if mapping_match:
+            supplier_id = mapping_match.supplier_id
             
     if supplier_id:
         item.supplier_id = supplier_id
@@ -251,7 +252,6 @@ def manage_admin_orders_view():
         supplier_filter = request.args.get('supplier_id')
         if supplier_filter and supplier_filter != '':
             if supplier_filter == 'none':
-                # جلب الطلبات التي لا يتبع أي من بنودها أو أساسها أي مورد
                 subquery_with_supplier = db.session.query(OrderItem.order_id).filter(OrderItem.supplier_id != None).distinct()
                 query = query.filter(
                     db.and_(
@@ -262,12 +262,12 @@ def manage_admin_orders_view():
             else:
                 s_id = int(supplier_filter) if supplier_filter.isdigit() else supplier_filter
                 query = query.outerjoin(OrderItem, Order.id == OrderItem.order_id).outerjoin(
-                    Supplier, OrderItem.product_qid == Supplier.product_qid
+                    ProductSupplierMapping, OrderItem.product_qid == ProductSupplierMapping.product_qid
                 ).filter(
                     db.or_(
                         Order.supplier_id == s_id,
                         OrderItem.supplier_id == s_id,
-                        Supplier.id == s_id
+                        ProductSupplierMapping.supplier_id == s_id
                     )
                 ).distinct()
 
@@ -282,7 +282,6 @@ def manage_admin_orders_view():
 
         query = query.order_by(Order.created_at.desc())
 
-        # جلب كل الطلبات المطابقة للفلترة الأساسية أولاً لتنفيذ بحث دقيق شامل (يتعامل مع تشفير الاسم والجوال)
         search = request.args.get('search')
         if search:
             search_val = search.strip().lower()
