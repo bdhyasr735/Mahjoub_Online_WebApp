@@ -1,16 +1,135 @@
 <div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header bg-primary text-white rounded-top-4">
-                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i>إضافة موظف جديد</h5>
-                <button type="button" class="btn-close btn-close-white ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <p class="text-muted small">يمكنك إضافة الحساب مباشرة من موديول الموظفين الرئيسي مع إمكانية تعيين أذونات الحساب من هذه الشاشة لاحقاً.</p>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">إغلاق</button>
-            </div>
+            <form id="addStaffForm" action="{{ url_for('admin_permissions.add_staff') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i>إضافة موظف جديد وتعيين صلاحياته</h5>
+                    <button type="button" class="btn-close btn-close-white ms-0" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">فئة الموظف</label>
+                            <select name="staff_type" id="staffTypeSelect" class="form-select rounded-3 py-2">
+                                {% if user_scope == 'admin' %}
+                                <option value="admin_staff">موظف إدارة عليا</option>
+                                {% endif %}
+                                <option value="supplier_staff">موظف كادر مورد</option>
+                            </select>
+                        </div>
+                        
+                        {% if user_scope == 'admin' %}
+                        <div class="col-md-6" id="supplierSelectContainer" style="display: none;">
+                            <label class="form-label fw-bold">المورد التابع له</label>
+                            <select name="supplier_id" class="form-select rounded-3 py-2">
+                                {% for supp in suppliers %}
+                                <option value="{{ supp.id }}">{{ supp.name or supp.company_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">الاسم الكامل</label>
+                            <input type="text" name="name" class="form-control rounded-3 py-2" required placeholder="مثال: محمد علي">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">المسمى الوظيفي</label>
+                            <input type="text" name="role_title" class="form-control rounded-3 py-2" placeholder="مثال: مدير المبيعات">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">البريد الإلكتروني</label>
+                            <input type="email" name="email" class="form-control rounded-3 py-2" required placeholder="staff@mahjoub.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">كلمة المرور</label>
+                            <input type="password" name="password" class="form-control rounded-3 py-2" required>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-key text-warning me-2"></i>الأذونات والصلاحيات الأولية:</h6>
+                    
+                    <div class="row g-2" id="adminPermsBox">
+                        {% for perm_key, perm_label in admin_permissions_list.items() %}
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="perm_{{ perm_key }}" id="add_admin_perm_{{ perm_key }}">
+                                <label class="form-check-label fw-semibold me-2" for="add_admin_perm_{{ perm_key }}">{{ perm_label }}</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row g-2" id="supplierPermsBox" style="display: none;">
+                        {% for perm_key, perm_label in supplier_permissions_list.items() %}
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="perm_{{ perm_key }}" id="add_supp_perm_{{ perm_key }}">
+                                <label class="form-check-label fw-semibold me-2" for="add_supp_perm_{{ perm_key }}">{{ perm_label }}</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">حفظ الموظف</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const staffTypeSelect = document.getElementById('staffTypeSelect');
+    const supplierContainer = document.getElementById('supplierSelectContainer');
+    const adminPermsBox = document.getElementById('adminPermsBox');
+    const supplierPermsBox = document.getElementById('supplierPermsBox');
+
+    function toggleFormFields() {
+        if(!staffTypeSelect) return;
+        const val = staffTypeSelect.value;
+        if(val === 'supplier_staff') {
+            if(supplierContainer) supplierContainer.style.display = 'block';
+            adminPermsBox.style.display = 'none';
+            supplierPermsBox.style.display = 'flex';
+        } else {
+            if(supplierContainer) supplierContainer.style.display = 'none';
+            adminPermsBox.style.display = 'flex';
+            supplierPermsBox.style.display = 'none';
+        }
+    }
+
+    if(staffTypeSelect) {
+        staffTypeSelect.addEventListener('change', toggleFormFields);
+        toggleFormFields();
+    }
+
+    // إرسال نموذج الإضافة عبر AJAX
+    const form = document.getElementById('addStaffForm');
+    if(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
+                    showSuccessModal(data.message);
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    alert(data.message);
+                }
+            });
+        });
+    }
+});
+</script>
