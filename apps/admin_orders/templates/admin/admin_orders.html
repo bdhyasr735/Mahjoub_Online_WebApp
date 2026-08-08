@@ -68,11 +68,9 @@ function showToast(message, type = 'success') {
     toast.show();
 }
 
-// ✅ دالة getVal المعدلة لدعم Choices.js
 function getVal(id) {
     const el = document.getElementById(id);
     if (!el) return '';
-    // إذا كان العنصر مرتبطاً بـ Choices، نجلب القيمة منه
     if (el.choicesInstance) {
         return el.choicesInstance.getValue(true) || '';
     }
@@ -117,7 +115,7 @@ function fetchOrders(page = 1) {
         search: getVal('searchInput'),
         status: getVal('statusFilter') || getVal('orderStatusFilter'),
         payment_status: getVal('paymentStatusFilter') || getVal('payment_status'),
-        supplier_id: getVal('supplierFilter'), // سيتم جلبه بشكل صحيح الآن
+        supplier_id: getVal('supplierFilter'),
         date_from: getVal('dateFrom'),
         date_to: getVal('dateTo'),
         ajax: '1'
@@ -173,13 +171,24 @@ function syncAdminOrders(event) {
 document.addEventListener('DOMContentLoaded', function() {
     attachPaginationEvents();
 
+    // ✅ الحل الجذري: تفويض النقر على أي صف يحتوي على data-url
+    document.addEventListener('click', function(e) {
+        const row = e.target.closest('tr[data-url]');
+        // التأكد أن النقر ليس على زر أو رابط داخلي (مثل أزرار التعديل)
+        if (row && !e.target.closest('a') && !e.target.closest('button')) {
+            const url = row.getAttribute('data-url');
+            if (url) {
+                window.location.href = url;
+            }
+        }
+    });
+
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); fetchOrders(1); } });
         searchInput.addEventListener('input', debounceFetchOrders);
     }
 
-    // مراقبة الفلاتر الأخرى
     ['statusFilter', 'orderStatusFilter', 'paymentStatusFilter', 'dateFrom', 'dateTo'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => fetchOrders(1));
