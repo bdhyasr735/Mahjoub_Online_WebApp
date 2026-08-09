@@ -89,9 +89,16 @@ def check_availability():
 @admin_permissions_bp.route('/staff/<int:target_id>/update-permissions', methods=['POST'])
 @login_required
 def update_permissions(target_id):
-    # ملاحظة: يجب تعديل هذا المسار ليدعم التمييز بين AdminStaff و SupplierStaff
-    staff = AdminStaff.query.get_or_404(target_id)
+    staff_type = request.form.get('staff_type', 'admin_staff')
+    
+    if staff_type == 'admin_staff':
+        staff = AdminStaff.query.get_or_404(target_id)
+    else:
+        staff = SupplierStaff.query.get_or_404(target_id)
+        
     perms = {k.replace('perm_', ''): True for k in request.form if k.startswith('perm_')}
     staff.permissions = perms
     db.session.commit()
-    return redirect(url_for('admin_permissions.index'))
+    
+    flash('تم تحديث الصلاحيات بنجاح.', 'success')
+    return redirect(url_for('admin_permissions.index', staff_type=staff_type))
