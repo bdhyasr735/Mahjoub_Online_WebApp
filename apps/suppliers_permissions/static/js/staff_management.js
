@@ -1,7 +1,7 @@
 // 📂 apps/suppliers_permissions/static/js/staff_management.js
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 5. التعامل مع نموذج إضافة موظف جديد
+    // 5. التعامل مع نموذج إضافة موظف جديد عبر Fetch لمنع إعادة التحميل كـ GET
     const addStaffForm = document.getElementById('addStaffForm');
     if (addStaffForm) {
         addStaffForm.addEventListener('submit', async function(e) {
@@ -15,8 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
                               document.querySelector('input[name="csrf_token"]').value : '';
 
             try {
-                // ملاحظة: تأكد أن المسار يطابق url_prefix الخاص بالـ Blueprint
-                const response = await fetch('/supplier/permissions/api/staff/add', {
+                const response = await fetch('/supplier/permissions/api/staff', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -85,5 +84,4 @@ async function deleteStaff(staffId) {
 // 4. فتح مودال الصلاحيات
 function openPermissionsModal(staffId, staffName) {
     console.log("تعديل صلاحيات الموظف:", staffId);
-    // منطق فتح المودال الخاص بك هنا
 }
