@@ -1,152 +1,50 @@
-<style>
-    .royal-gradient {
-        background: linear-gradient(135deg, #4b0082 0%, #000000 100%) !important;
-        color: white !important;
-        border: none !important;
-    }
-    .modal-content { border-radius: 15px !important; border: none !important; box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important; }
-    .modal-header.royal-gradient { border-radius: 15px 15px 0 0 !important; }
-</style>
-
-<div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+<div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header royal-gradient">
-                <h5 class="modal-title"><i class="fa fa-user-plus me-2"></i> إضافة موظف جديد</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">إضافة موظف أو مساعد جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="addStaffForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-body p-4 text-end" style="direction: rtl;">
+            <div class="modal-body pt-3">
+                <form id="addStaffForm">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">اسم المستخدم</label>
-                        <input type="text" id="username" name="username" class="form-control" placeholder="أدخل اسم المستخدم" oninput="checkAvailability('username', this.value)" required>
-                        <div id="username-msg" class="mt-1 small fw-bold"></div>
+                        <label class="form-label small fw-bold">اسم الموظف الكامل <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required placeholder="مثال: أحمد محمد">
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">رقم الهاتف</label>
-                        <input type="tel" id="phone" name="phone" class="form-control" placeholder="مثال: 7xxxxxxxx" oninput="checkAvailability('phone', this.value)" required>
-                        <div id="phone-msg" class="mt-1 small fw-bold"></div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">اسم المستخدم للدخول <span class="text-danger">*</span></label>
+                        <input type="text" name="username" class="form-control" required placeholder="مثال: ahmed_staff">
                     </div>
-                    
-                    <h6 class="fw-bold mb-3 border-bottom pb-2 text-muted">صلاحيات النظام</h6>
-                    <div class="form-check form-switch mb-3 d-flex align-items-center">
-                        <input class="form-check-input ms-3 mt-0" type="checkbox" name="can_view_wallet" id="wallet">
-                        <label class="form-check-label" for="wallet">السماح برؤية المحفظة (الرصيد والمعاملات)</label>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">رقم الجوال</label>
+                            <input type="text" name="phone" class="form-control" placeholder="05xxxxxxxx">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">البريد الإلكتروني</label>
+                            <input type="email" name="email" class="form-control" placeholder="name@domain.com">
+                        </div>
                     </div>
-                    <div class="form-check form-switch mb-2 d-flex align-items-center">
-                        <input class="form-check-input ms-3 mt-0" type="checkbox" name="can_manage_orders" id="orders">
-                        <label class="form-check-label" for="orders">السماح بإدارة الطلبات (استلام وتحديث الحالة)</label>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">الدور الأساسي</label>
+                        <select name="role" class="form-select">
+                            <option value="worker">موظف (صلاحيات تشغيلية محددة)</option>
+                            <option value="manager">مدير مساعد (صلاحيات موسعة)</option>
+                        </select>
                     </div>
-                </div>
-                <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 15px 15px;">
-                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">إغلاق</button>
-                    <button type="button" id="submit-btn" class="btn royal-gradient px-4" onclick="submitStaff()" style="border-radius: 8px;" disabled>
-                        <i class="fa fa-save me-1"></i> حفظ الموظف
-                    </button>
-                </div>
-            </form>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">المسمى الوظيفي المخصص</label>
+                        <input type="text" name="role_title" class="form-control" value="موظف مورد" placeholder="مثال: مسؤول الشحن والتوصيل">
+                    </div>
+                    <div class="alert alert-info small border-0 rounded-3">
+                        <i class="bi bi-info-circle-fill ms-1"></i> سيتم توليد كلمة مرور مؤقتة تلقائياً وعرضها لك فوراً عند الحفظ لتسليمها للموظف.
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary px-4" style="background-color: {{ brand_color }}; border-color: {{ brand_color }};">حفظ وتوليد الحساب</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
-
-<script>
-// متغيرات لتتبع حالة التحقق من الحقول
-let isUsernameValid = false;
-let isPhoneValid = false;
-
-// دالة التحقق اللحظي من توفر البيانات
-async function checkAvailability(field, value) {
-    const msgDiv = document.getElementById(field + '-msg');
-    
-    if (value.length < 3) {
-        msgDiv.innerHTML = '';
-        if (field === 'username') isUsernameValid = false;
-        if (field === 'phone') isPhoneValid = false;
-        updateSubmitButton();
-        return;
-    }
-    
-    try {
-        const response = await fetch("{{ url_for('suppliers_permissions.check_availability') }}", {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
-            body: JSON.stringify({ field: field, value: value })
-        });
-        
-        const data = await response.json();
-        
-        if (data.available) {
-            msgDiv.innerHTML = '<span class="text-success"><i class="fa fa-check-circle"></i> متاح للتسجيل</span>';
-            if (field === 'username') isUsernameValid = true;
-            if (field === 'phone') isPhoneValid = true;
-        } else {
-            msgDiv.innerHTML = '<span class="text-danger"><i class="fa fa-times-circle"></i> غير متاح أو مسجل مسبقاً!</span>';
-            if (field === 'username') isUsernameValid = false;
-            if (field === 'phone') isPhoneValid = false;
-        }
-    } catch (error) {
-        console.error('Error checking availability:', error);
-    }
-    
-    updateSubmitButton();
-}
-
-// تحديث حالة زر الحفظ
-function updateSubmitButton() {
-    const submitBtn = document.getElementById('submit-btn');
-    submitBtn.disabled = !(isUsernameValid && isPhoneValid);
-}
-
-// دالة إرسال البيانات
-async function submitStaff() {
-    const form = document.getElementById('addStaffForm');
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-
-    const btn = document.getElementById('submit-btn');
-    const originalContent = btn.innerHTML;
-    
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> جاري الحفظ...';
-    btn.disabled = true;
-
-    try {
-        const response = await fetch("{{ url_for('suppliers_permissions.add_staff') }}", {
-            method: 'POST',
-            body: new FormData(form)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
-            
-            form.reset();
-            isUsernameValid = false;
-            isPhoneValid = false;
-            updateSubmitButton();
-            document.getElementById('username-msg').innerHTML = '';
-            document.getElementById('phone-msg').innerHTML = '';
-
-            // تفعيل نافذة عرض البيانات (الموجودة في ملف آخر)
-            if (typeof showCredentialsModal === 'function') {
-                showCredentialsModal('تم إضافة الموظف بنجاح', data.username, data.password);
-                
-                document.getElementById('staffCredentialsModal').addEventListener('hidden.bs.modal', function () {
-                    location.reload();
-                }, { once: true });
-            }
-        } else {
-            Swal.fire({ icon: 'error', title: 'عفواً', text: data.message || 'حدث خطأ أثناء الحفظ' });
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
-        }
-    } catch (error) {
-        Swal.fire({ icon: 'error', title: 'خطأ بالاتصال', text: 'تعذر الاتصال بالخادم.' });
-        btn.innerHTML = originalContent;
-        btn.disabled = false;
-    }
-}
-</script>
