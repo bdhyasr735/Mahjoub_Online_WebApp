@@ -22,7 +22,7 @@ class SupplierStaff(db.Model, UserMixin):
     # 1. الأعمدة الأساسية
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
-    name = db.Column(db.String(150), nullable=True) # الحقل المفقود للإسم الكامل
+    name = db.Column(db.String(150), nullable=True) # الحقل للإسم الكامل
     username = db.Column(db.String(100), nullable=False)
     
     # الهاتف المشفر
@@ -33,7 +33,7 @@ class SupplierStaff(db.Model, UserMixin):
     password_hash = db.Column(db.String(500), nullable=False)
     
     role = db.Column(db.String(50), default='worker')
-    role_title = db.Column(db.String(100), default='موظف مورد') # الحقل المفقود للمسمى الوظيفي
+    role_title = db.Column(db.String(100), default='موظف مورد') # الحقل للمسمى الوظيفي
     is_active = db.Column(db.Boolean, default=True)
     
     # الصلاحيات
@@ -73,6 +73,24 @@ class SupplierStaff(db.Model, UserMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password.strip())
+
+    def to_dict(self):
+        """تحويل بيانات الموظف إلى قاموس (Dictionary) لتسهيل تمريرها لصفحات الواجهة والـ JavaScript"""
+        return {
+            'id': self.id,
+            'supplier_id': self.supplier_id,
+            'name': self.name,
+            'username': self.username,
+            'email': self.email,
+            'phone': self.phone,
+            'role': self.role,
+            'role_title': self.role_title,
+            'is_active': self.is_active,
+            'permissions': self.permissions or {},
+            'can_view_wallet': self.can_view_wallet,
+            'can_manage_orders': self.can_manage_orders,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
 
     def __repr__(self):
         return f'<SupplierStaff {self.username} | Active: {self.is_active}>'
