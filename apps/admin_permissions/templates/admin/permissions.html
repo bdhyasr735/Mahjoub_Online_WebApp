@@ -24,8 +24,20 @@
     <!-- بطاقات الإحصائيات والفلاتر -->
     {% include 'admin/includes/filters_and_cards.html' %}
 
+    <!-- أداة البحث الفوري الذكية -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white">
+                <span class="input-group-text bg-white border-0 ps-3" style="color: #4A154B;">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" id="searchStaffInput" class="form-control border-0 py-2" placeholder="بحث فوري (بالاسم، اسم المستخدم، الهاتف)...">
+            </div>
+        </div>
+    </div>
+
     <!-- قائمة الجداول والتبويبات -->
-    <div class="card border-0 shadow-sm rounded-4 mt-4">
+    <div class="card border-0 shadow-sm rounded-4 mt-2">
         <div class="card-header bg-white border-bottom-0 pt-4 px-4">
             <ul class="nav nav-pills card-header-pills custom-royal-tabs" id="permissionsTab" role="tablist">
                 {% if user_scope == 'admin' %}
@@ -106,14 +118,19 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    // البحث السريع
+    // أداة البحث الفوري الذكية داخل الجداول
     const searchInput = document.getElementById('searchStaffInput');
     if(searchInput) {
         searchInput.addEventListener('keyup', function() {
-            const filter = this.value.toLowerCase();
-            document.querySelectorAll('.staff-row').forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
-            });
+            const filter = this.value.toLowerCase().trim();
+            // البحث داخل صفوف الجدول النشط حالياً
+            const activeTabPane = document.querySelector('.tab-pane.fade.show.active');
+            if(activeTabPane) {
+                activeTabPane.querySelectorAll('tbody tr').forEach(row => {
+                    const textContent = row.textContent.toLowerCase();
+                    row.style.display = textContent.includes(filter) ? '' : 'none';
+                });
+            }
         });
     }
 });
