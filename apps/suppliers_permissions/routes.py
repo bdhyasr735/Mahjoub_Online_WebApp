@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/supplier_permissions/routes.py
+# 📂 apps/suppliers_permissions/routes.py
 
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 import secrets
 import string
 
-from apps.supplier_permissions import supplier_perms_bp
-from apps.supplier_permissions.registry import (
+from apps.suppliers_permissions import suppliers_permissions_bp
+from apps.suppliers_permissions.registry import (
     SUPPLIER_PERMISSIONS_REGISTRY,
     DEFAULT_WORKER_PERMISSIONS,
     DEFAULT_MANAGER_PERMISSIONS
@@ -22,7 +22,7 @@ def generate_temp_password(length=10):
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
-@supplier_perms_bp.route('/', methods=['GET'])
+@suppliers_permissions_bp.route('/', methods=['GET'])
 @login_required
 def index():
     """عرض الصفحة الرئيسية لإدارة صلاحيات وموظفي المورد"""
@@ -77,7 +77,7 @@ def index():
     )
 
 
-@supplier_perms_bp.route('/api/staff', methods=['GET', 'POST'])
+@suppliers_permissions_bp.route('/api/staff', methods=['GET', 'POST'])
 @login_required
 def handle_staff():
     """جلب أو إضافة موظف جديد لمورد معين"""
@@ -149,7 +149,7 @@ def handle_staff():
             return jsonify({'status': 'error', 'message': f'حدث خطأ أثناء الحفظ: {str(e)}'}), 500
 
 
-@supplier_perms_bp.route('/api/staff/<int:staff_id>/toggle-status', methods=['POST'])
+@suppliers_permissions_bp.route('/api/staff/<int:staff_id>/toggle-status', methods=['POST'])
 @login_required
 def toggle_status(staff_id):
     """تنشيط أو إيقاف حساب موظف المورد"""
@@ -166,7 +166,7 @@ def toggle_status(staff_id):
     })
 
 
-@supplier_perms_bp.route('/api/staff/<int:staff_id>/permissions', methods=['POST'])
+@suppliers_permissions_bp.route('/api/staff/<int:staff_id>/permissions', methods=['POST'])
 @login_required
 def update_permissions(staff_id):
     """تحديث جدول صلاحيات الموظف التفصيلية"""
@@ -189,7 +189,7 @@ def update_permissions(staff_id):
     })
 
 
-@supplier_perms_bp.route('/api/staff/<int:staff_id>/reset-password', methods=['POST'])
+@suppliers_permissions_bp.route('/api/staff/<int:staff_id>/reset-password', methods=['POST'])
 @login_required
 def reset_password(staff_id):
     """إعادة تعيين كلمة مرور الموظف وتوليد كلمة مرور مؤقتة جديدة"""
@@ -211,7 +211,7 @@ def reset_password(staff_id):
     })
 
 
-@supplier_perms_bp.route('/api/staff/<int:staff_id>/delete', methods=['POST', 'DELETE'])
+@suppliers_permissions_bp.route('/api/staff/<int:staff_id>/delete', methods=['POST', 'DELETE'])
 @login_required
 def delete_staff(staff_id):
     """حذف حساب الموظف نهائياً"""
