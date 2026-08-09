@@ -97,7 +97,6 @@
                   </button>
                 </li>
                 <li>
-                  <!-- إعادة تعيين كلمة المرور عبر نموذج POST مباشر -->
                   <form action="{{ url_for('suppliers_permissions_bp.reset_password', staff_id=staff.id) }}" method="POST" onsubmit="return confirm('هل أنت متأكد من رغبتك في إعادة تعيين كلمة المرور؟');">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="dropdown-item d-flex align-items-center gap-2 text-warning">
@@ -106,7 +105,6 @@
                   </form>
                 </li>
                 <li>
-                  <!-- تبديل حالة الحساب (تفعيل/إيقاف) عبر نموذج POST مباشر -->
                   <form action="{{ url_for('suppliers_permissions_bp.toggle_status', staff_id=staff.id) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
