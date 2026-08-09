@@ -1,213 +1,454 @@
-{% extends 'suppliers/base.html' %}
+<!-- -*- coding: utf-8 -*- -->
+<!-- 📂 apps/suppliers_permissions/templates/suppliers_permissions/supplier_permissions.html -->
+{% extends "supplier/base.html" %}
+
+{% block title %}إدارة صلاحيات الموظفين{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4" dir="rtl">
-    <!-- Breadcrumb & Page Title -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div class="d-flex align-items-center gap-3">
-            <button onclick="window.history.length > 1 ? window.history.back() : window.location.href='/'" class="btn btn-outline-secondary rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px;" title="زر الرجوع">
-                <i class="bi bi-arrow-right fs-5 text-dark"></i>
-            </button>
-            <div>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-1 text-muted small">
-                        <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">الرئيسية</a></li>
-                        <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-muted">إدارة المتجر</a></li>
-                        <li class="breadcrumb-item active text-royal-purple fw-bold" aria-current="page">صلاحيات الموظفين والمساعدين</li>
-                    </ol>
-                </nav>
-                <h3 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                    <i class="bi bi-shield-lock-fill text-royal-purple"></i> إدارة صلاحيات وموظفي المورد
-                </h3>
-            </div>
+<div class="container-fluid py-4" dir="rtl">
+    <!-- رأس الصفحة والإحصائيات -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6">
+            <h2 class="fw-bold mb-1" style="color: {{ brand_color }};">
+                <i class="bi bi-shield-lock-fill ms-2"></i> إدارة صلاحيات وموظفي المورد
+            </h2>
+            <p class="text-muted mb-0">تحكم بصلاحيات مساعديك وموظفيك وتتبع أنشطتهم بدقة داخل متجرك.</p>
         </div>
-
-        <div class="d-flex gap-2">
-            <button onclick="window.history.length > 1 ? window.history.back() : window.location.href='/'" class="btn btn-outline-dark px-3 py-2 rounded-3 shadow-sm d-flex align-items-center gap-2">
-                <i class="bi bi-arrow-right fs-5"></i>
-                <span>رجوع</span>
-            </button>
-            <button class="btn btn-royal-purple px-4 py-2 rounded-3 shadow-sm d-flex align-items-center gap-2"
-                    data-bs-toggle="modal" data-bs-target="#addStaffModal">
-                <i class="bi bi-person-plus-fill fs-5"></i>
-                <span>إضافة موظف / مساعد جديد</span>
+        <div class="col-md-6 text-md-end mt-3 mt-md-0">
+            <button type="button" class="btn btn-primary px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#addStaffModal" style="background-color: {{ brand_color }}; border-color: {{ brand_color }};">
+                <i class="bi bi-person-plus-fill ms-1"></i> إضافة موظف جديد
             </button>
         </div>
     </div>
 
-    <!-- Quick Stats Cards (Clickable Filters) -->
+    <!-- بطاقات الإحصائيات السريعة -->
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <a href="{{ url_for('supplier_permissions.index', filter='all', search=search_query) }}" class="text-decoration-none">
-                <div class="card card-dashboard p-3 transition-all {% if not current_filter or current_filter == 'all' %}border border-2 border-purple shadow-sm{% endif %}" style="cursor: pointer; {% if not current_filter or current_filter == 'all' %}border-color: #4A154B !important; background-color: #FBF8FB;{% endif %}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted small">إجمالي الموظفين</span>
-                            <h4 class="fw-bold mb-0 mt-1 text-dark" id="statTotal">{{ total_staff if total_staff is defined else staff_list | length }}</h4>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4" style="border-color: {{ brand_color }} !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <span class="text-muted small d-block mb-1">إجمالي الموظفين</span>
+                            <h3 class="fw-bold mb-0">{{ total_staff }}</h3>
                         </div>
-                        <div class="p-3 rounded-3" style="background-color: var(--brand-purple-light, #f3e8f4); color: #4A154B;">
-                            <i class="bi bi-people fs-4"></i>
-                        </div>
+                        <div class="fs-2 text-primary opacity-75"><i class="bi bi-people"></i></div>
                     </div>
                 </div>
-            </a>
+            </div>
         </div>
-
-        <div class="col-md-3">
-            <a href="{{ url_for('supplier_permissions.index', filter='active', search=search_query) }}" class="text-decoration-none">
-                <div class="card card-dashboard p-3 transition-all {% if current_filter == 'active' %}border border-2 border-success shadow-sm{% endif %}" style="cursor: pointer; {% if current_filter == 'active' %}background-color: #F2FDF5;{% endif %}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted small">الموظفين النشطين</span>
-                            <h4 class="fw-bold mb-0 mt-1 text-success" id="statActive">
-                                {{ active_staff if active_staff is defined else (staff_list | selectattr('is_active') | list | length) }}
-                            </h4>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-success">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <span class="text-muted small d-block mb-1">الحسابات النشطة</span>
+                            <h3 class="fw-bold mb-0 text-success">{{ active_staff }}</h3>
                         </div>
-                        <div class="p-3 rounded-3 bg-success-subtle text-success">
-                            <i class="bi bi-check-circle fs-4"></i>
-                        </div>
+                        <div class="fs-2 text-success opacity-75"><i class="bi bi-person-check"></i></div>
                     </div>
                 </div>
-            </a>
+            </div>
         </div>
-
-        <div class="col-md-3">
-            <a href="{{ url_for('supplier_permissions.index', filter='wallet', search=search_query) }}" class="text-decoration-none">
-                <div class="card card-dashboard p-3 transition-all {% if current_filter == 'wallet' %}border border-2 border-primary shadow-sm{% endif %}" style="cursor: pointer; {% if current_filter == 'wallet' %}background-color: #F0F4FF;{% endif %}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted small">صلاحيات المحفظة</span>
-                            <h4 class="fw-bold mb-0 mt-1 text-primary" id="statWallet">
-                                {{ wallet_staff if wallet_staff is defined else (staff_list | selectattr('can_view_wallet') | list | length) }}
-                            </h4>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-warning">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <span class="text-muted small d-block mb-1">صلاحية المالية</span>
+                            <h3 class="fw-bold mb-0 text-warning">{{ wallet_staff }}</h3>
                         </div>
-                        <div class="p-3 rounded-3 bg-primary-subtle text-primary">
-                            <i class="bi bi-wallet2 fs-4"></i>
-                        </div>
+                        <div class="fs-2 text-warning opacity-75"><i class="bi bi-wallet2"></i></div>
                     </div>
                 </div>
-            </a>
+            </div>
         </div>
-
-        <div class="col-md-3">
-            <a href="{{ url_for('supplier_permissions.index', filter='orders', search=search_query) }}" class="text-decoration-none">
-                <div class="card card-dashboard p-3 transition-all {% if current_filter == 'orders' %}border border-2 border-info shadow-sm{% endif %}" style="cursor: pointer; {% if current_filter == 'orders' %}background-color: #E0F7FA;{% endif %}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted small">إدارة الطلبات</span>
-                            <h4 class="fw-bold mb-0 mt-1 text-info" id="statOrders">
-                                {{ orders_staff if orders_staff is defined else (staff_list | selectattr('can_manage_orders') | list | length) }}
-                            </h4>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-4 border-info">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <span class="text-muted small d-block mb-1">إدارة الطلبات</span>
+                            <h3 class="fw-bold mb-0 text-info">{{ orders_staff }}</h3>
                         </div>
-                        <div class="p-3 rounded-3 bg-info-subtle text-info">
-                            <i class="bi bi-box-seam fs-4"></i>
-                        </div>
+                        <div class="fs-2 text-info opacity-75"><i class="bi bi-box-seam"></i></div>
                     </div>
                 </div>
-            </a>
+            </div>
         </div>
     </div>
 
-    <!-- Staff Table Container -->
-    <div class="card card-dashboard overflow-hidden">
-        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                <i class="bi bi-list-ul text-royal-purple"></i> قائمة حسابات الموظفين والمساعدين
-            </h5>
-            <div class="input-group style-search" style="max-width: 280px;">
-                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control bg-light border-start-0 text-xs" id="tableSearch" placeholder="بحث باسم الموظف أو اليوزر...">
-            </div>
+    <!-- شريط البحث والفلاتر -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('suppliers_permissions_bp.index') }}" class="row g-3 align-items-center">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control bg-light border-0" value="{{ search_query }}" placeholder="ابحث باسم الموظف، اسم المستخدم، أو المسمى الوظيفي...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select name="filter" class="form-select bg-light border-0" onchange="this.form.submit()">
+                        <option value="all" {% if current_filter == 'all' %}selected{% endif %}>جميع الموظفين</option>
+                        <option value="active" {% if current_filter == 'active' %}selected{% endif %}>الحسابات النشطة فقط</option>
+                        <option value="wallet" {% if current_filter == 'wallet' %}selected{% endif %}>من يمتلكون صلاحية المالية</option>
+                        <option value="orders" {% if current_filter == 'orders' %}selected{% endif %}>من يمتلكون إدارة الطلبات</option>
+                    </select>
+                </div>
+                <div class="col-md-2 text-md-end">
+                    <a href="{{ url_for('suppliers_permissions_bp.index') }}" class="btn btn-outline-secondary w-100 border-0 bg-light">إعادة ضبط</a>
+                </div>
+            </form>
         </div>
-        <div class="card-body p-0">
-            {% include 'supplier_perms/includes/_staff_table.html' %}
+    </div>
+
+    <!-- جدول الموظفين -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary small">
+                    <tr>
+                        <th class="py-3 ps-4">الموظف</th>
+                        <th class="py-3">اسم المستخدم / الرتبة</th>
+                        <th class="py-3">الحالة</th>
+                        <th class="py-3">الصلاحيات السريعة</th>
+                        <th class="py-3 text-end pe-4">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if staff_list %}
+                        {% for staff in staff_list %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-initial rounded-circle bg-light text-primary fw-bold d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px; font-size: 1.1rem; border: 2px solid #eee;">
+                                        {{ staff.name[:2] | upper }}
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold mb-0">{{ staff.name }}</h6>
+                                        <small class="text-muted"><i class="bi bi-envelope ms-1"></i>{{ staff.email or 'لا يوجد بريد' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div><code class="text-dark bg-light px-2 py-1 rounded">{{ staff.username }}</code></div>
+                                <span class="badge bg-secondary-subtle text-secondary mt-1 px-2 py-1">{{ staff.role_title or ('مدير مساعد' if staff.role == 'manager' else 'موظف') }}</span>
+                            </td>
+                            <td>
+                                {% if staff.is_active %}
+                                    <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill"><i class="bi bi-check-circle-fill ms-1"></i> نشط</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill"><i class="bi bi-x-circle-fill ms-1"></i> موقوف</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <span class="badge {% if staff.can_manage_orders %}bg-primary-subtle text-primary{% else %}bg-light text-muted{% endif %} px-2 py-1" title="إدارة الطلبات">الطلبات</span>
+                                    <span class="badge {% if staff.can_view_wallet %}bg-warning-subtle text-warning{% else %}bg-light text-muted{% endif %} px-2 py-1" title="المالية">المالية</span>
+                                </div>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="dropdown">
+                                    <button class="btn btn-light btn-sm rounded-circle shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2">
+                                        <li><a class="dropdown-item py-2" href="#" onclick="openPermissionsModal({{ staff.to_dict() | tojson | safe }})"><i class="bi bi-shield-check text-primary ms-2"></i> تعديل الصلاحيات</a></li>
+                                        <li><a class="dropdown-item py-2" href="#" onclick="toggleStatus({{ staff.id }})"><i class="bi bi-toggle-on text-secondary ms-2"></i> تغيير الحالة</a></li>
+                                        <li><a class="dropdown-item py-2" href="#" onclick="resetPassword({{ staff.id }})"><i class="bi bi-key text-warning ms-2"></i> إعادة تعيين كلمة المرور</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item py-2 text-danger" href="#" onclick="deleteStaff({{ staff.id }})"><i class="bi bi-trash ms-2"></i> حذف الحساب</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <div class="my-4">
+                                    <i class="bi bi-people-fill display-4 opacity-25 d-block mb-3"></i>
+                                    <h5>لا يوجد موظفين مضافين حالياً</h5>
+                                    <p class="small text-muted">قم بإضافة مساعدين جدد لتوزيع المهام وإدارة متجرك بكفاءة.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- الترقيم (Pagination) -->
+        {% if pagination.pages > 1 %}
+        <div class="card-footer bg-white border-0 py-3">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('suppliers_permissions_bp.index', page=pagination.prev_num, search=search_query, filter=current_filter) }}">السابق</a>
+                    </li>
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('suppliers_permissions_bp.index', page=page_num, search=search_query, filter=current_filter) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('suppliers_permissions_bp.index', page=pagination.next_num, search=search_query, filter=current_filter) }}">التالي</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal: إضافة موظف جديد -->
+<div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">إضافة موظف أو مساعد جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <form id="addStaffForm">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">اسم الموظف الكامل <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required placeholder="مثال: أحمد محمد">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">اسم المستخدم للدخول <span class="text-danger">*</span></label>
+                        <input type="text" name="username" class="form-control" required placeholder="مثال: ahmed_staff">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">رقم الجوال</label>
+                            <input type="text" name="phone" class="form-control" placeholder="05xxxxxxxx">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">البريد الإلكتروني</label>
+                            <input type="email" name="email" class="form-control" placeholder="name@domain.com">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">الدور الأساسي</label>
+                        <select name="role" class="form-select">
+                            <option value="worker">موظف (صلاحيات تشغيلية محددة)</option>
+                            <option value="manager">مدير مساعد (صلاحيات موسعة)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">المسمى الوظيفي المخصص</label>
+                        <input type="text" name="role_title" class="form-control" value="موظف مورد" placeholder="مثال: مسؤول الشحن والتوصيل">
+                    </div>
+                    <div class="alert alert-info small border-0 rounded-3">
+                        <i class="bi bi-info-circle-fill ms-1"></i> سيتم توليد كلمة مرور مؤقتة تلقائياً وعرضها لك فوراً عند الحفظ لتسليمها للموظف.
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary px-4" style="background-color: {{ brand_color }}; border-color: {{ brand_color }};">حفظ وتوليد الحساب</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Include Modals -->
-{% include 'supplier_perms/includes/_add_staff_modal.html' %}
-{% include 'supplier_perms/includes/_credentials_modal.html' %}
-{% include 'supplier_perms/includes/modal_success.html' %}
-{% endblock %}
+<!-- Modal: تعديل الصلاحيات التفضيلية -->
+<div class="modal fade" id="permissionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">تعديل صلاحيات الموظف: <span id="permStaffName" class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <form id="permissionsForm">
+                    <input type="hidden" id="permStaffId">
+                    <div id="permissionsRegistryContainer" class="row g-3">
+                        <!-- سيتم تعبئتها ديناميكياً عبر الجافاسكريبت بناءً على سجل الصلاحيات -->
+                    </div>
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary px-4" style="background-color: {{ brand_color }}; border-color: {{ brand_color }};">حفظ التغييرات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
-{% block scripts %}
+<!-- Modal: عرض بيانات الاعتماد المؤقتة -->
+<div class="modal fade" id="credentialsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 text-center">
+            <div class="modal-body p-4">
+                <div class="mb-3 text-success display-4"><i class="bi bi-check-circle-fill"></i></div>
+                <h4 class="fw-bold mb-2">تم إنشاء الحساب بنجاح!</h4>
+                <p class="text-muted small mb-4">يرجى حفظ بيانات الدخول التالية وإرسالها للموظف، فل لن تظهر هذه كلمة المرور مرة أخرى:</p>
+                
+                <div class="bg-light p-3 rounded-4 text-start mb-4 border">
+                    <div class="mb-2"><strong>اسم الموظف:</strong> <span id="credName"></span></div>
+                    <div class="mb-2"><strong>اسم المستخدم:</strong> <code id="credUsername" class="text-dark bg-white px-2 py-1 rounded border"></code></div>
+                    <div><strong>كلمة المرور المؤقتة:</strong> <code id="credPassword" class="text-danger bg-white px-2 py-1 rounded border fw-bold"></code></div>
+                </div>
+
+                <button type="button" class="btn btn-primary w-100 py-2 rounded-3" data-bs-dismiss="modal" style="background-color: {{ brand_color }}; border-color: {{ brand_color }};">تم، حفظ البيانات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript للتحكم بالعمليات والـ APIs -->
 <script>
-    function submitAddStaff(e) {
-      e.preventDefault();
-      const form = document.getElementById('addStaffForm');
-      const formData = new FormData(form);
+    const permissionsRegistry = {{ permissions_registry | tojson | safe }};
 
-      fetch('/supplier/permissions/api/staff', {
-        method: 'POST',
-        body: formData
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.status === 'success') {
-          const addModal = bootstrap.Modal.getInstance(document.getElementById('addStaffModal'));
-          if(addModal) addModal.hide();
+    // إرسال نموذج إضافة موظف جديد
+    document.getElementById('addStaffForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
 
-          document.getElementById('credStaffName').innerText = data.credentials.name;
-          document.getElementById('credUsername').innerText = '@' + data.credentials.username;
-          document.getElementById('credPassword').innerText = data.credentials.password;
-
-          const credModal = new bootstrap.Modal(document.getElementById('credentialsModal'));
-          credModal.show();
-          
-          setTimeout(() => location.reload(), 3000);
-        } else {
-          alert('خطأ: ' + data.message);
-        }
-      })
-      .catch(err => alert('حدث خطأ بالاتصال بالنظام'));
-    }
-
-    function toggleStaffActive(staffId) {
-      fetch(`/supplier/permissions/api/staff/${staffId}/toggle-status`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          if(data.status === 'success') {
-            location.reload();
-          }
-        });
-    }
-
-    function resetStaffPassword(staffId) {
-      fetch(`/supplier/permissions/api/staff/${staffId}/reset-password`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          if(data.status === 'success') {
-            document.getElementById('credStaffName').innerText = data.credentials.name;
-            document.getElementById('credUsername').innerText = '@' + data.credentials.username;
-            document.getElementById('credPassword').innerText = data.credentials.password;
-
-            const credModal = new bootstrap.Modal(document.getElementById('credentialsModal'));
-            credModal.show();
-          }
-        });
-    }
-
-    function deleteStaff(staffId) {
-      if(confirm('هل أنت تأكد من رغبتك بنهائياً حذف حساب هذا الموظف؟')) {
-        fetch(`/supplier/permissions/api/staff/${staffId}/delete`, { method: 'POST' })
-          .then(res => res.json())
-          .then(data => {
-            if(data.status === 'success') {
-              location.reload();
+        try {
+            const response = await fetch('/supplier/permissions/api/staff', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
+                
+                // عرض بيانات الاعتماد المؤقتة
+                document.getElementById('credName').innerText = result.credentials.name;
+                document.getElementById('credUsername').innerText = result.credentials.username;
+                document.getElementById('credPassword').innerText = result.credentials.password;
+                new bootstrap.Modal(document.getElementById('credentialsModal')).show();
+                
+                // إعادة تحميل الصفحة بعد الإغلاق
+                document.getElementById('credentialsModal').addEventListener('hidden.bs.modal', () => location.reload(), { once: true });
+            } else {
+                alert(result.message || 'حدث خطأ ما');
             }
-          });
-      }
+        } catch (error) {
+            alert('خطأ في الاتصال بالخادم');
+        }
+    });
+
+    // تغيير حالة الموظف (نشط / موقوف)
+    async function toggleStatus(staffId) {
+        try {
+            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/toggle-status`, { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        } catch (e) { alert('خطأ في الاتصال'); }
     }
 
-    function copyCredentials() {
-      const username = document.getElementById('credUsername').innerText;
-      const pass = document.getElementById('credPassword').innerText;
-      const text = `بيانات دخول لوحة تحكم المورد (mahjoub.online):\nاسم المستخدم: ${username}\nكلمة المرور: ${pass}\nالرابط: https://www.mahjoub.online/login`;
-
-      navigator.clipboard.writeText(text).then(() => {
-        alert('تم نسخ بيانات الدخول إلى الحافظة بنجاح!');
-      });
+    // إعادة تعيين كلمة المرور
+    async function resetPassword(staffId) {
+        if (!confirm('هل أنت متأكد من رغبتك في إعادة تعيين كلمة مرور هذا الموظف؟')) return;
+        try {
+            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/reset-password`, { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                document.getElementById('credName').innerText = result.credentials.name;
+                document.getElementById('credUsername').innerText = result.credentials.username;
+                document.getElementById('credPassword').innerText = result.credentials.password;
+                new bootstrap.Modal(document.getElementById('credentialsModal')).show();
+            } else {
+                alert(result.message);
+            }
+        } catch (e) { alert('خطأ في الاتصال'); }
     }
+
+    // حذف الحساب
+    async function deleteStaff(staffId) {
+        if (!confirm('تحذير: هل أنت متأكد من حذف حساب الموظف نهائياً؟')) return;
+        try {
+            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/delete`, { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        } catch (e) { alert('خطأ في الاتصال'); }
+    }
+
+    // فتح نافذة تعديل الصلاحيات وتعبئتها
+    function openPermissionsModal(staff) {
+        document.getElementById('permStaffId').value = staff.id;
+        document.getElementById('permStaffName').innerText = staff.name;
+        
+        const container = document.getElementById('permissionsRegistryContainer');
+        container.innerHTML = '';
+
+        const currentPerms = staff.permissions || {};
+
+        for (const [catKey, catData] of Object.entries(permissionsRegistry)) {
+            let itemsHtml = '';
+            const catSelectedPerms = currentPerms[catKey] || [];
+
+            for (const [itemKey, itemName] of Object.entries(catData.items)) {
+                const isChecked = catSelectedPerms.includes(itemKey) ? 'checked' : '';
+                itemsHtml += `
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input perm-checkbox" type="checkbox" value="${itemKey}" data-category="${catKey}" id="perm_${catKey}_${itemKey}" ${isChecked}>
+                            <label class="form-check-label small" for="perm_${catKey}_${itemKey}">${itemName}</label>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML += `
+                <div class="col-12">
+                    <div class="p-3 bg-light rounded-3 border">
+                        <h6 class="fw-bold mb-3" style="color: ${catData.color || '#333'};"><i class="bi ${catData.icon} ms-1"></i> ${catData.title}</h6>
+                        <div class="row g-2">${itemsHtml}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        new bootstrap.Modal(document.getElementById('permissionsModal')).show();
+    }
+
+    // حفظ الصلاحيات المحدثة
+    document.getElementById('permissionsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const staffId = document.getElementById('permStaffId').value;
+        
+        let newPermissions = {};
+        document.querySelectorAll('.perm-checkbox:checked').forEach(cb => {
+            const cat = cb.getAttribute('data-category');
+            const val = cb.value;
+            if (!newPermissions[cat]) newPermissions[cat] = [];
+            newPermissions[cat].push(val);
+        });
+
+        try {
+            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/permissions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ permissions: newPermissions })
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                bootstrap.Modal.getInstance(document.getElementById('permissionsModal')).hide();
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        } catch (e) { alert('خطأ في الاتصال'); }
+    });
 </script>
 {% endblock %}
