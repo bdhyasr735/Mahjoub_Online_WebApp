@@ -2,9 +2,11 @@
 # 📂 apps/suppliers_permissions/registry.py
 
 """
-سجل الصلاحيات المتاحة لموظفي الموردين والمساعدين في منصة محجوب أونلاين
+سجل الصلاحيات المتاحة لموظفي الموردين والمساعدين في منصة www.mahjoub.online
 mahjoub.online Supplier Permissions Registry
 """
+
+from apps.suppliers_permissions.routes import suppliers_permissions_bp
 
 MODULE_NAME = "إدارة الصلاحيات"
 MODULE_ICON = "bi-shield-lock"
@@ -15,8 +17,6 @@ LINKS = {
 }
 
 def register_module(app):
-    from apps.suppliers_permissions.routes import suppliers_permissions_bp
-    
     if 'suppliers_permissions_bp' not in app.blueprints:
         app.register_blueprint(suppliers_permissions_bp, url_prefix='/supplier/permissions')
         print("✅ [Registry]: تم تسجيل موديول 'suppliers_permissions' بنجاح.")
