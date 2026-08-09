@@ -1,4 +1,4 @@
-{# 📂 apps/supplier_permissions/templates/supplier_perms/includes/_staff_table.html #}
+{# 📂 apps/suppliers_permissions/templates/suppliers/includes/_staff_table.html #}
 <div class="table-responsive">
   <table class="table table-hover align-middle text-right" id="staffTable">
     <thead class="table-light">
@@ -53,7 +53,7 @@
           <td class="py-3 px-4">
             <div class="d-flex flex-wrap gap-1">
               {% if staff.can_view_wallet %}
-                <span class="badge bg-purple-light text-purple border px-2 py-1" style="color: #4A154B; background-color: #f3e8f4;">
+                <span class="badge text-purple border px-2 py-1" style="color: #4A154B; background-color: #f3e8f4;">
                   <i class="bi bi-wallet2 me-1"></i> المحفظة
                 </span>
               {% endif %}
@@ -62,9 +62,11 @@
                   <i class="bi bi-box-seam me-1"></i> إدارة الطلبات
                 </span>
               {% endif %}
-              <button class="btn btn-sm btn-link p-0 text-decoration-none fw-bold me-2" 
+              <!-- زر فتح مودال الصلاحيات -->
+              <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold me-2" 
                       style="color: #4A154B;"
-                      onclick="openPermissionsModal({{ staff.id }}, '{{ staff.name }}')">
+                      data-bs-toggle="modal" data-bs-target="#permissionsModal"
+                      onclick="document.getElementById('permStaffId').value='{{ staff.id }}'; document.getElementById('permStaffName').textContent='{{ staff.name }}';">
                 <i class="bi bi-shield-lock me-1"></i> تخصيص الصلاحيات
               </button>
             </div>
@@ -76,29 +78,43 @@
               </button>
               <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                 <li>
-                  <button class="dropdown-item d-flex align-items-center gap-2" onclick="openPermissionsModal({{ staff.id }}, '{{ staff.name }}')">
+                  <button type="button" class="dropdown-item d-flex align-items-center gap-2" 
+                          data-bs-toggle="modal" data-bs-target="#permissionsModal"
+                          onclick="document.getElementById('permStaffId').value='{{ staff.id }}'; document.getElementById('permStaffName').textContent='{{ staff.name }}';">
                     <i class="bi bi-sliders text-primary"></i> الصلاحيات والتفويض
                   </button>
                 </li>
                 <li>
-                  <button class="dropdown-item d-flex align-items-center gap-2" onclick="resetStaffPassword({{ staff.id }})">
-                    <i class="bi bi-key text-warning"></i> إعادة تعيين كلمة المرور
-                  </button>
+                  <!-- إعادة تعيين كلمة المرور عبر نموذج POST مباشر -->
+                  <form action="{{ url_for('suppliers_permissions_bp.reset_password', staff_id=staff.id) }}" method="POST" onsubmit="return confirm('هل أنت متأكد من رغبتك في إعادة تعيين كلمة المرور؟');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2 text-warning">
+                      <i class="bi bi-key"></i> إعادة تعيين كلمة المرور
+                    </button>
+                  </form>
                 </li>
                 <li>
-                  <button class="dropdown-item d-flex align-items-center gap-2" onclick="toggleStaffActive({{ staff.id }})">
-                    {% if staff.is_active %}
-                      <i class="bi bi-pause-circle text-danger"></i> إيقاف الحساب
-                    {% else %}
-                      <i class="bi bi-play-circle text-success"></i> تفعيل الحساب
-                    {% endif %}
-                  </button>
+                  <!-- تبديل حالة الحساب (تفعيل/إيقاف) عبر نموذج POST مباشر -->
+                  <form action="{{ url_for('suppliers_permissions_bp.toggle_status', staff_id=staff.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                      {% if staff.is_active %}
+                        <i class="bi bi-pause-circle text-danger"></i> إيقاف الحساب
+                      {% else %}
+                        <i class="bi bi-play-circle text-success"></i> تفعيل الحساب
+                      {% endif %}
+                    </button>
+                  </form>
                 </li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
-                  <button class="dropdown-item d-flex align-items-center gap-2 text-danger" onclick="deleteStaff({{ staff.id }})">
-                    <i class="bi bi-trash"></i> حذف الموظف
-                  </button>
+                  <!-- حذف الموظف عبر نموذج POST مباشر -->
+                  <form action="{{ url_for('suppliers_permissions_bp.delete_staff', staff_id=staff.id) }}" method="POST" onsubmit="return confirm('هل أنت متأكد من حذف هذا الموظف نهائياً؟');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2 text-danger">
+                      <i class="bi bi-trash"></i> حذف الموظف
+                    </button>
+                  </form>
                 </li>
               </ul>
             </div>
@@ -133,7 +149,7 @@
   <nav aria-label="Page navigation">
     <ul class="pagination pagination-sm mb-0">
       <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-        <a class="page-link" style="color: #4A154B;" href="{{ url_for('supplier_perms.index', page=pagination.prev_num, filter=current_filter, search=search_query) if pagination.has_prev else '#' }}" aria-label="السابق">
+        <a class="page-link" style="color: #4A154B;" href="{{ url_for('suppliers_permissions_bp.index', page=pagination.prev_num, filter=current_filter, search=search_query) if pagination.has_prev else '#' }}" aria-label="السابق">
           <i class="bi bi-chevron-right ms-1"></i> السابق
         </a>
       </li>
@@ -142,14 +158,14 @@
           {% if p == pagination.page %}
             <li class="page-item active"><span class="page-link text-white border-0" style="background-color: #4A154B;">{{ p }}</span></li>
           {% else %}
-            <li class="page-item"><a class="page-link" style="color: #4A154B;" href="{{ url_for('supplier_perms.index', page=p, filter=current_filter, search=search_query) }}">{{ p }}</a></li>
+            <li class="page-item"><a class="page-link" style="color: #4A154B;" href="{{ url_for('suppliers_permissions_bp.index', page=p, filter=current_filter, search=search_query) }}">{{ p }}</a></li>
           {% endif %}
         {% else %}
           <li class="page-item disabled"><span class="page-link">...</span></li>
         {% endif %}
       {% endfor %}
       <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-        <a class="page-link" style="color: #4A154B;" href="{{ url_for('supplier_perms.index', page=pagination.next_num, filter=current_filter, search=search_query) if pagination.has_next else '#' }}" aria-label="التالي">
+        <a class="page-link" style="color: #4A154B;" href="{{ url_for('suppliers_permissions_bp.index', page=pagination.next_num, filter=current_filter, search=search_query) if pagination.has_next else '#' }}" aria-label="التالي">
           التالي <i class="bi bi-chevron-left mr-1"></i>
         </a>
       </li>
