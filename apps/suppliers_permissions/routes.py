@@ -91,10 +91,9 @@ def handle_staff():
         })
 
     if request.method == 'POST':
-        # استقبال البيانات سواء كانت JSON أو Form Data
         data = request.get_json(silent=True) or request.form or {}
         
-        name = data.get('name') or data.get('username') # افتراض الاسم من اسم المستخدم إن لم يوجد
+        name = data.get('name') or data.get('username')
         username = data.get('username')
         phone = data.get('phone')
         email = data.get('email')
@@ -107,14 +106,11 @@ def handle_staff():
         if not username:
             return jsonify({'success': False, 'message': 'يرجى إدخال اسم المستخدم'}), 400
 
-        # التحقق من عدم تكرار اسم المستخدم لنفس المورد
         existing = SupplierStaff.query.filter_by(supplier_id=supplier_id, username=username).first()
         if existing:
             return jsonify({'success': False, 'message': 'اسم المستخدم مستخدم بالفعل في حسابك'}), 400
 
         temp_password = generate_temp_password(10)
-
-        # تحديد الصلاحيات الافتراضية
         initial_perms = DEFAULT_MANAGER_PERMISSIONS if role == 'manager' else DEFAULT_WORKER_PERMISSIONS
 
         new_staff = SupplierStaff(
