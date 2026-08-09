@@ -46,7 +46,7 @@
                             <small class="text-muted" style="font-size: 0.75rem;">انقر وابحث لتظهر لك قائمة المتاجر والموردين بوضوح تام.</small>
                         </div>
 
-                        <!-- الحقول الأساسية مع دعم مؤشرات التحقق اللحظي (صح / خطأ) -->
+                        <!-- الحقول الأساسية مع دعم مؤشرات التحقق اللحظي ودائرة التحميل -->
                         <div class="col-md-6">
                             <label class="form-label fw-bold">الاسم الكامل</label>
                             <input type="text" name="name" class="form-control rounded-3 py-2" required placeholder="مثال: محمد علي">
@@ -56,7 +56,10 @@
                             <label class="form-label fw-bold">اسم المستخدم (للتسجيل)</label>
                             <div class="input-group">
                                 <input type="text" name="username" class="form-control rounded-start-0 rounded-end-3 py-2" required placeholder="مثال: mohammed_ali">
-                                <span class="input-group-text bg-light validation-icon-box" style="display: none;"><i class="fas"></i></span>
+                                <span class="input-group-text bg-light validation-status-box" style="display: none; width: 45px; justify-content: center;">
+                                    <span class="spinner-border spinner-border-sm text-secondary loading-spinner" style="display: none;" role="status"></span>
+                                    <i class="fas status-icon" style="display: none;"></i>
+                                </span>
                             </div>
                             <div class="invalid-feedback d-block text-danger mt-1" style="font-size: 0.75rem; display: none;">اسم المستخدم مستخدم مسبقاً.</div>
                         </div>
@@ -65,7 +68,10 @@
                             <label class="form-label fw-bold">رقم الهاتف (للتسجيل والبحث)</label>
                             <div class="input-group">
                                 <input type="text" name="phone" class="form-control rounded-start-0 rounded-end-3 py-2 dir-ltr text-end" placeholder="77xxxxxxx">
-                                <span class="input-group-text bg-light validation-icon-box" style="display: none;"><i class="fas"></i></span>
+                                <span class="input-group-text bg-light validation-status-box" style="display: none; width: 45px; justify-content: center;">
+                                    <span class="spinner-border spinner-border-sm text-secondary loading-spinner" style="display: none;" role="status"></span>
+                                    <i class="fas status-icon" style="display: none;"></i>
+                                </span>
                             </div>
                             <div class="invalid-feedback d-block text-danger mt-1" style="font-size: 0.75rem; display: none;">رقم الهاتف مستخدم مسبقاً.</div>
                         </div>
@@ -79,7 +85,10 @@
                             <label class="form-label fw-bold">البريد الإلكتروني</label>
                             <div class="input-group">
                                 <input type="email" name="email" class="form-control rounded-start-0 rounded-end-3 py-2" required placeholder="staff@mahjoub.online">
-                                <span class="input-group-text bg-light validation-icon-box" style="display: none;"><i class="fas"></i></span>
+                                <span class="input-group-text bg-light validation-status-box" style="display: none; width: 45px; justify-content: center;">
+                                    <span class="spinner-border spinner-border-sm text-secondary loading-spinner" style="display: none;" role="status"></span>
+                                    <i class="fas status-icon" style="display: none;"></i>
+                                </span>
                             </div>
                             <div class="invalid-feedback d-block text-danger mt-1" style="font-size: 0.75rem; display: none;">البريد الإلكتروني مستخدم مسبقاً.</div>
                         </div>
@@ -195,55 +204,77 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // ميزة التحقق الفوري وتحديث الأيقونات (صح ✅ / خطأ ❌) بجانب الحقول
-    const usernameInput = document.querySelector('#addStaffForm input[name="username"]');
-    const emailInput = document.querySelector('#addStaffForm input[name="email"]');
-    const phoneInput = document.querySelector('#addStaffForm input[name="phone"]');
-
-    function checkFieldAvailability(fieldInput, fieldType) {
+    // ميزة التحقق الفوري مع دائرة تحميل ددّارة وأيقونات (صح ✅ / خطأ ❌)
+    function setupLiveValidation(inputSelector, fieldType) {
+        const fieldInput = document.querySelector(inputSelector);
         if (!fieldInput) return;
         
         const inputGroup = fieldInput.closest('.input-group');
-        const iconBox = inputGroup ? inputGroup.querySelector('.validation-icon-box') : null;
-        const iconElem = iconBox ? iconBox.querySelector('i') : null;
+        const statusBox = inputGroup ? inputGroup.querySelector('.validation-status-box') : null;
+        const spinner = statusBox ? statusBox.querySelector('.loading-spinner') : null;
+        const iconElem = statusBox ? statusBox.querySelector('.status-icon') : null;
         const feedbackMsg = inputGroup && inputGroup.nextElementSibling ? inputGroup.nextElementSibling : null;
+
+        let typingTimer;
+        const doneTypingInterval = 400; // وقت الانتظار لحين توقف الكتابة قليلاً
 
         fieldInput.addEventListener('input', function() {
             const value = this.value.trim();
+            clearTimeout(typingTimer);
+
             if (!value) {
-                if (iconBox) iconBox.style.display = 'none';
+                if (statusBox) statusBox.style.display = 'none';
+                if (spinner) spinner.style.display = 'none';
+                if (iconElem) iconElem.style.display = 'none';
                 if (feedbackMsg) feedbackMsg.style.display = 'none';
                 fieldInput.classList.remove('is-invalid', 'is-valid');
                 return;
             }
 
-            fetch(`{{ url_for('admin_permissions.check_availability') }}?field=${fieldType}&value=${encodeURIComponent(value)}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (iconBox) iconBox.style.display = 'flex';
-                    if (data.exists) {
-                        fieldInput.classList.add('is-invalid');
-                        fieldInput.classList.remove('is-valid');
-                        if (iconElem) {
-                            iconElem.className = 'fas fa-times-circle text-danger';
+            // إظهار دائرة التحميل أثناء الكتابة
+            if (statusBox) statusBox.style.display = 'flex';
+            if (spinner) spinner.style.display = 'inline-block';
+            if (iconElem) iconElem.style.display = 'none';
+            fieldInput.classList.remove('is-invalid', 'is-valid');
+            if (feedbackMsg) feedbackMsg.style.display = 'none';
+
+            // إرسال الطلب بعد التوقف الموجب عن الكتابة لمنع كثرة الطلبات المتلاحقة
+            typingTimer = setTimeout(() => {
+                fetch(`{{ url_for('admin_permissions.check_availability') }}?field=${fieldType}&value=${encodeURIComponent(value)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        // إخفاء دائرة التحميل وإظهار أيقونة الصح أو الخطأ
+                        if (spinner) spinner.style.display = 'none';
+                        if (iconElem) iconElem.style.display = 'inline-block';
+
+                        if (data.exists) {
+                            fieldInput.classList.add('is-invalid');
+                            fieldInput.classList.remove('is-valid');
+                            if (iconElem) {
+                                iconElem.className = 'fas fa-times-circle text-danger';
+                            }
+                            if (feedbackMsg) feedbackMsg.style.display = 'block';
+                        } else {
+                            fieldInput.classList.remove('is-invalid');
+                            fieldInput.classList.add('is-valid');
+                            if (iconElem) {
+                                iconElem.className = 'fas fa-check-circle text-success';
+                            }
+                            if (feedbackMsg) feedbackMsg.style.display = 'none';
                         }
-                        if (feedbackMsg) feedbackMsg.style.display = 'block';
-                    } else {
-                        fieldInput.classList.remove('is-invalid');
-                        fieldInput.classList.add('is-valid');
-                        if (iconElem) {
-                            iconElem.className = 'fas fa-check-circle text-success';
-                        }
-                        if (feedbackMsg) feedbackMsg.style.display = 'none';
-                    }
-                })
-                .catch(err => console.error('Error checking availability:', err));
+                    })
+                    .catch(err => {
+                        console.error('Error checking availability:', err);
+                        if (spinner) spinner.style.display = 'none';
+                        if (statusBox) statusBox.style.display = 'none';
+                    });
+            }, doneTypingInterval);
         });
     }
 
-    checkFieldAvailability(usernameInput, 'username');
-    checkFieldAvailability(emailInput, 'email');
-    checkFieldAvailability(phoneInput, 'phone');
+    setupLiveValidation('#addStaffForm input[name="username"]', 'username');
+    setupLiveValidation('#addStaffForm input[name="email"]', 'email');
+    setupLiveValidation('#addStaffForm input[name="phone"]', 'phone');
 
     // إرسال نموذج الإضافة عبر AJAX
     const form = document.getElementById('addStaffForm');
@@ -251,7 +282,6 @@ document.addEventListener("DOMContentLoaded", function() {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // التحقق من وجود أخطاء سابقة ظاهرة لمنع التكرار
             if (this.querySelectorAll('.is-invalid').length > 0) {
                 alert('يرجى تصحيح الحقول المخالفة أو التأكد من عدم تكرار البيانات.');
                 return;
