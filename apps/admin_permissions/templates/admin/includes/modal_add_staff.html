@@ -46,30 +46,44 @@
                             <small class="text-muted" style="font-size: 0.75rem;">انقر وابحث لتظهر لك قائمة المتاجر والموردين بوضوح تام.</small>
                         </div>
 
-                        <!-- بقية الحقول متناسقة في أعمدة ثنائية (6 و 6) -->
+                        <!-- الحقول الأساسية مع دعم مؤشرات التحقق اللحظي (صح / خطأ) -->
                         <div class="col-md-6">
                             <label class="form-label fw-bold">الاسم الكامل</label>
                             <input type="text" name="name" class="form-control rounded-3 py-2" required placeholder="مثال: محمد علي">
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">اسم المستخدم (للتسجيل)</label>
-                            <input type="text" name="username" class="form-control rounded-3 py-2" required placeholder="مثال: mohammed_ali">
-                            <div class="invalid-feedback">اسم المستخدم مستخدم مسبقاً.</div>
+                            <div class="input-group">
+                                <input type="text" name="username" class="form-control rounded-start-0 rounded-end-3 py-2" required placeholder="مثال: mohammed_ali">
+                                <span class="input-group-text bg-light validation-icon-box" style="display: none;"><i class="fas"></i></span>
+                            </div>
+                            <div class="invalid-feedback d-block text-danger mt-1" style="font-size: 0.75rem; display: none;">اسم المستخدم مستخدم مسبقاً.</div>
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">رقم الهاتف (للتسجيل والبحث)</label>
-                            <input type="text" name="phone" class="form-control rounded-3 py-2 dir-ltr text-end" placeholder="77xxxxxxx">
-                            <div class="invalid-feedback">رقم الهاتف مستخدم مسبقاً.</div>
+                            <div class="input-group">
+                                <input type="text" name="phone" class="form-control rounded-start-0 rounded-end-3 py-2 dir-ltr text-end" placeholder="77xxxxxxx">
+                                <span class="input-group-text bg-light validation-icon-box" style="display: none;"><i class="fas"></i></span>
+                            </div>
+                            <div class="invalid-feedback d-block text-danger mt-1" style="font-size: 0.75rem; display: none;">رقم الهاتف مستخدم مسبقاً.</div>
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">المسمى الوظيفي</label>
                             <input type="text" name="role_title" class="form-control rounded-3 py-2" placeholder="مثال: مدير المبيعات">
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">البريد الإلكتروني</label>
-                            <input type="email" name="email" class="form-control rounded-3 py-2" required placeholder="staff@mahjoub.online">
-                            <div class="invalid-feedback">البريد الإلكتروني مستخدم مسبقاً.</div>
+                            <div class="input-group">
+                                <input type="email" name="email" class="form-control rounded-start-0 rounded-end-3 py-2" required placeholder="staff@mahjoub.online">
+                                <span class="input-group-text bg-light validation-icon-box" style="display: none;"><i class="fas"></i></span>
+                            </div>
+                            <div class="invalid-feedback d-block text-danger mt-1" style="font-size: 0.75rem; display: none;">البريد الإلكتروني مستخدم مسبقاً.</div>
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">كلمة المرور</label>
                             <input type="password" name="password" class="form-control rounded-3 py-2" required>
@@ -181,26 +195,46 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // ميزة التحقق الفوري من توفر البيانات (اسم المستخدم، البريد، الهاتف)
+    // ميزة التحقق الفوري وتحديث الأيقونات (صح ✅ / خطأ ❌) بجانب الحقول
     const usernameInput = document.querySelector('#addStaffForm input[name="username"]');
     const emailInput = document.querySelector('#addStaffForm input[name="email"]');
     const phoneInput = document.querySelector('#addStaffForm input[name="phone"]');
 
     function checkFieldAvailability(fieldInput, fieldType) {
         if (!fieldInput) return;
-        fieldInput.addEventListener('blur', function() {
+        
+        const inputGroup = fieldInput.closest('.input-group');
+        const iconBox = inputGroup ? inputGroup.querySelector('.validation-icon-box') : null;
+        const iconElem = iconBox ? iconBox.querySelector('i') : null;
+        const feedbackMsg = inputGroup && inputGroup.nextElementSibling ? inputGroup.nextElementSibling : null;
+
+        fieldInput.addEventListener('input', function() {
             const value = this.value.trim();
-            if (!value) return;
+            if (!value) {
+                if (iconBox) iconBox.style.display = 'none';
+                if (feedbackMsg) feedbackMsg.style.display = 'none';
+                fieldInput.classList.remove('is-invalid', 'is-valid');
+                return;
+            }
 
             fetch(`{{ url_for('admin_permissions.check_availability') }}?field=${fieldType}&value=${encodeURIComponent(value)}`)
                 .then(res => res.json())
                 .then(data => {
+                    if (iconBox) iconBox.style.display = 'flex';
                     if (data.exists) {
                         fieldInput.classList.add('is-invalid');
                         fieldInput.classList.remove('is-valid');
+                        if (iconElem) {
+                            iconElem.className = 'fas fa-times-circle text-danger';
+                        }
+                        if (feedbackMsg) feedbackMsg.style.display = 'block';
                     } else {
                         fieldInput.classList.remove('is-invalid');
                         fieldInput.classList.add('is-valid');
+                        if (iconElem) {
+                            iconElem.className = 'fas fa-check-circle text-success';
+                        }
+                        if (feedbackMsg) feedbackMsg.style.display = 'none';
                     }
                 })
                 .catch(err => console.error('Error checking availability:', err));
@@ -217,7 +251,7 @@ document.addEventListener("DOMContentLoaded", function() {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // التحقق من وجود أخطاء سابقة ظاهرة
+            // التحقق من وجود أخطاء سابقة ظاهرة لمنع التكرار
             if (this.querySelectorAll('.is-invalid').length > 0) {
                 alert('يرجى تصحيح الحقول المخالفة أو التأكد من عدم تكرار البيانات.');
                 return;
