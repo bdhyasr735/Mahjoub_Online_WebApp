@@ -66,7 +66,13 @@
               <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-bold me-2" 
                       style="color: #4A154B;"
                       data-bs-toggle="modal" data-bs-target="#permissionsModal"
-                      onclick="document.getElementById('permStaffId').value='{{ staff.id }}'; document.getElementById('permStaffName').textContent='{{ staff.name }}';">
+                      onclick="
+                        document.getElementById('permStaffId').value='{{ staff.id }}'; 
+                        document.getElementById('permStaffName').textContent='{{ staff.name }}';
+                        document.getElementById('can_manage_wallet').checked = {{ 'true' if staff.can_view_wallet else 'false' }};
+                        document.getElementById('can_manage_orders').checked = {{ 'true' if staff.can_manage_orders else 'false' }};
+                        document.getElementById('permissionsForm').action = '{{ url_for('suppliers_permissions_bp.update_permissions', staff_id=staff.id) }}';
+                      ">
                 <i class="bi bi-shield-lock me-1"></i> تخصيص الصلاحيات
               </button>
             </div>
@@ -80,7 +86,13 @@
                 <li>
                   <button type="button" class="dropdown-item d-flex align-items-center gap-2" 
                           data-bs-toggle="modal" data-bs-target="#permissionsModal"
-                          onclick="document.getElementById('permStaffId').value='{{ staff.id }}'; document.getElementById('permStaffName').textContent='{{ staff.name }}';">
+                          onclick="
+                            document.getElementById('permStaffId').value='{{ staff.id }}'; 
+                            document.getElementById('permStaffName').textContent='{{ staff.name }}';
+                            document.getElementById('can_manage_wallet').checked = {{ 'true' if staff.can_view_wallet else 'false' }};
+                            document.getElementById('can_manage_orders').checked = {{ 'true' if staff.can_manage_orders else 'false' }};
+                            document.getElementById('permissionsForm').action = '{{ url_for('suppliers_permissions_bp.update_permissions', staff_id=staff.id) }}';
+                          ">
                     <i class="bi bi-sliders text-primary"></i> الصلاحيات والتفويض
                   </button>
                 </li>
