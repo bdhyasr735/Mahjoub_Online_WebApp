@@ -1,11 +1,57 @@
-// apps/supplier_permissions/static/js/staff_management.js
+// 📂 apps/suppliers_permissions/static/js/staff_management.js
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 5. التعامل مع نموذج إضافة موظف جديد
+    const addStaffForm = document.getElementById('addStaffForm');
+    if (addStaffForm) {
+        addStaffForm.addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            // جلب الـ CSRF Token من حقل مخفي في النموذج أو الصفحة
+            const csrfToken = document.querySelector('input[name="csrf_token"]') ? 
+                              document.querySelector('input[name="csrf_token"]').value : '';
+
+            try {
+                // ملاحظة: تأكد أن المسار يطابق url_prefix الخاص بالـ Blueprint
+                const response = await fetch('/supplier/permissions/api/staff/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const addModalEl = document.getElementById('addStaffModal');
+                    const addModal = bootstrap.Modal.getInstance(addModalEl);
+                    if (addModal) addModal.hide();
+                    addStaffForm.reset();
+                    
+                    alert('تم إضافة الموظف بنجاح!\nاسم المستخدم: ' + result.username + '\nكلمة المرور: ' + result.password);
+                    location.reload(); 
+                } else {
+                    alert(result.message || 'حدث خطأ أثناء إضافة الموظف');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('تعذر الاتصال بالسيرفر');
+            }
+        });
+    }
+});
 
 // 1. إعادة تعيين كلمة المرور
 async function resetStaffPassword(staffId) {
     if (!confirm('هل أنت متأكد من رغبتك في إعادة تعيين كلمة المرور؟')) return;
     
     try {
-        const response = await fetch(`/supplier_perms/staff/${staffId}/reset-password`, { method: 'POST' });
+        const response = await fetch(`/supplier/permissions/api/staff/${staffId}/reset-password`, { method: 'POST' });
         if (response.ok) alert('تم إعادة تعيين كلمة المرور بنجاح');
         else alert('حدث خطأ أثناء إعادة التعيين');
     } catch (e) { console.error(e); }
@@ -14,9 +60,9 @@ async function resetStaffPassword(staffId) {
 // 2. تغيير حالة الحساب (تفعيل/إيقاف)
 async function toggleStaffActive(staffId) {
     try {
-        const response = await fetch(`/supplier_perms/staff/${staffId}/toggle-status`, { method: 'POST' });
+        const response = await fetch(`/supplier/permissions/api/staff/${staffId}/toggle-status`, { method: 'POST' });
         if (response.ok) {
-            location.reload(); // إعادة تحميل الصفحة لتحديث أيقونة الحالة
+            location.reload(); 
         }
     } catch (e) { console.error(e); }
 }
@@ -26,20 +72,18 @@ async function deleteStaff(staffId) {
     if (!confirm('هل أنت متأكد من حذف هذا الموظف نهائياً؟')) return;
     
     try {
-        const response = await fetch(`/supplier_perms/staff/${staffId}/delete`, { method: 'POST' });
+        const response = await fetch(`/supplier/permissions/api/staff/${staffId}/delete`, { method: 'POST' });
         if (response.ok) {
-            document.getElementById(`staff-row-${staffId}`).remove();
+            const row = document.getElementById(`staff-row-${staffId}`);
+            if (row) row.remove();
         } else {
             alert('تعذر حذف الموظف');
         }
     } catch (e) { console.error(e); }
 }
 
-// 4. فتح مودال الصلاحيات (يتم استدعاؤه من الزر)
+// 4. فتح مودال الصلاحيات
 function openPermissionsModal(staffId, staffName) {
-    // هنا تقوم بفتح المودال الخاص بك وتمرير البيانات إليه
     console.log("تعديل صلاحيات الموظف:", staffId);
-    // مثال إذا كنت تستخدم Bootstrap:
-    // const modal = new bootstrap.Modal(document.getElementById('permissionsModal'));
-    // modal.show();
+    // منطق فتح المودال الخاص بك هنا
 }
