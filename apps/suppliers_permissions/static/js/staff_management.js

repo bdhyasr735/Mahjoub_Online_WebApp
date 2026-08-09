@@ -1,103 +1,74 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const addStaffForm = document.getElementById('addStaffForm');
-    if (addStaffForm) {
-        addStaffForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
+    const form = document.getElementById('addStaffForm');
+    if (!form) return;
 
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData.entries());
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const fd = new FormData(this);
+        const data = Object.fromEntries(fd.entries());
+        const token = document.querySelector('input[name="csrf_token"]')?.value || '';
 
-            const csrfTokenElement = document.querySelector('input[name="csrf_token"]');
-            const csrfToken = csrfTokenElement ? csrfTokenElement.value : '';
+        try {
+            const res = await fetch('/supplier/permissions/api/staff', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': token
+                },
+                body: JSON.stringify(data)
+            });
 
-            try {
-                const response = await fetch('/supplier/permissions/api/staff', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify(data)
-                });
+            const result = await res.json();
 
-                const result = await response.json();
+            if (res.ok && result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('addStaffModal'))?.hide();
+                form.reset();
 
-                if (response.ok && result.success) {
-                    const addModalEl = document.getElementById('addStaffModal');
-                    const addModal = bootstrap.Modal.getInstance(addModalEl);
-                    if (addModal) addModal.hide();
-                    
-                    addStaffForm.reset();
+                document.getElementById('credName').textContent = result.staff?.name || data.name;
+                document.getElementById('credUsername').textContent = result.username || data.username;
+                document.getElementById('credPassword').textContent = result.password || '';
 
-                    if (document.getElementById('credName')) {
-                        document.getElementById('credName').textContent = result.staff.name || data.name;
-                        document.getElementById('credUsername').textContent = result.username || data.username;
-                        document.getElementById('credPassword').textContent = result.password || '';
-                        
-                        const credModal = new bootstrap.Modal(document.getElementById('credentialsModal'));
-                        credModal.show();
-                    } else {
-                        alert('تم إضافة الموظف بنجاح!');
-                        location.reload();
-                    }
-                } else {
-                    alert(result.message || 'حدث خطأ أثناء إضافة الموظف');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('تعذر الاتصال بالسيرفر');
+                new bootstrap.Modal(document.getElementById('credentialsModal')).show();
+            } else {
+                alert(result.message || 'خطأ في الحفظ');
             }
-        });
-    }
+        } catch (err) {
+            console.error(err);
+            alert('خطأ في الاتصال');
+        }
+    });
 });
 
-async function resetStaffPassword(staffId) {
-    if (!confirm('هل أنت متأكد من رغبتك في إعادة تعيين كلمة المرور؟')) return;
-    
-    try {
-        const response = await fetch(`/supplier/permissions/api/staff/${staffId}/reset-password`, { method: 'POST' });
-        const result = await response.json();
-        if (response.ok && result.success) {
-            alert('تم إعادة تعيين كلمة المرور بنجاح\nكلمة المرور الجديدة المؤقتة: ' + result.password);
-        } else {
-            alert(result.message || 'حدث خطأ أثناء إعادة التعيين');
-        }
-    } catch (e) { console.error(e); }
-}
-
-async function toggleStaffActive(staffId) {
-    try {
-        const response = await fetch(`/supplier/permissions/api/staff/${staffId}/toggle-status`, { method: 'POST' });
-        if (response.ok) {
-            location.reload();
-        }
-    } catch (e) { console.error(e); }
-}
-
-async function deleteStaff(staffId) {
-    if (!confirm('هل أنت متأكد من حذف هذا الموظف نهائياً؟')) return;
-    
-    try {
-        const response = await fetch(`/supplier/permissions/api/staff/${staffId}/delete`, { method: 'POST' });
-        if (response.ok) {
-            const row = document.getElementById(`staff-row-${staffId}`);
-            if (row) row.remove();
-        } else {
-            alert('تعذر حذف الموظف');
-        }
-    } catch (e) { console.error(e); }
-}
-
-function openPermissionsModal(staffId, staffName) {
-    const permIdInput = document.getElementById('permStaffId');
-    const permNameSpan = document.getElementById('permStaffName');
-    
-    if (permIdInput) permIdInput.value = staffId;
-    if (permNameSpan) permNameSpan.textContent = staffName;
-    
-    const modalEl = document.getElementById('permissionsModal');
-    if (modalEl) {
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
+async function resetStaffPassword(id) {
+    if (!confirm('تأكيد إعادة التعيين؟')) return;
+    const res = await fetch(`/supplier/permissions/api/staff/${id}/reset-password`, { method: 'POST' });
+    const r = await res.json();
+    if (res.ok && r.success) {
+        alert('كلمة المرور المؤقتة: ' + r.password);
+    } else {
+        alert(r.message || 'فشل التعيين');
     }
+}
+
+async function toggleStaffActive(id) {
+    const res = await fetch(`/supplier/permissions/api/staff/${id}/toggle-status`, { method: 'POST' });
+    if (res.ok) location.reload();
+}
+
+async function deleteStaff(id) {
+    if (!confirm('تأكيد الحذف؟')) return;
+    const res = await fetch(`/supplier/permissions/api/staff/${id}/delete`, { method: 'POST' });
+    if (res.ok) {
+        document.getElementById(`staff-row-${id}`)?.remove();
+    } else {
+        alert('فشل الحذف');
+    }
+}
+
+function openPermissionsModal(id, name) {
+    document.getElementById('permStaffId').value = id;
+    document.getElementById('permStaffName').textContent = name;
+    const m = document.getElementById('permissionsModal');
+    if (m) new bootstrap.Modal(m).show();
 }
