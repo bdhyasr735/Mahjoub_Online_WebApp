@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/suppliers_permissions/routes.py
 
-from flask import render_template, request, jsonify, flash, redirect, url_for
+from flask import render_template, request, jsonify, flash, redirect, url_for, session
 from flask_login import login_required, current_user
 import secrets
 import string
@@ -62,6 +62,9 @@ def index():
     wallet_staff = sum(1 for s in all_staff if s.can_view_wallet)
     orders_staff = sum(1 for s in all_staff if s.can_manage_orders)
 
+    # جلب بيانات الاعتماد المؤقتة من الجلسة (إن وجدت لمرة واحدة) ثم حذفها
+    new_staff_credentials = session.pop('new_staff_credentials', None)
+
     return render_template(
         'suppliers/permissions.html',
         staff_list=staff_list,
@@ -73,78 +76,70 @@ def index():
         wallet_staff=wallet_staff,
         orders_staff=orders_staff,
         permissions_registry=SUPPLIER_PERMISSIONS_REGISTRY,
-        brand_color='#4A154B'
+        brand_color='#4A154B',
+        new_staff_credentials=new_staff_credentials
     )
 
 
-@suppliers_permissions_bp.route('/api/staff', methods=['GET', 'POST'])
+@suppliers_permissions_bp.route('/staff/add', methods=['POST'])
 @login_required
-def handle_staff():
-    """جلب أو إضافة موظف جديد لمورد معين"""
+def add_staff():
+    """إضافة موظف جديد عبر نموذج تقليدي من الواجهة"""
     supplier_id = getattr(current_user, 'id', 1)
+    
+    name = request.form.get('name')
+    username = request.form.get('username')
+    phone = request.form.get('phone')
+    email = request.form.get('email')
+    role = request.form.get('role', 'worker')
+    role_title = request.form.get('role_title', 'موظف مورد')
+    
+    if not username:
+        flash('يرجى إدخال اسم المستخدم الأساسي للدخول.', 'error')
+        return redirect(url_for('suppliers_permissions_bp.index'))
 
-    if request.method == 'GET':
-        staff_members = SupplierStaff.query.filter_by(supplier_id=supplier_id).all()
-        return jsonify({
-            'success': True,
-            'data': [s.to_dict() for s in staff_members]
-        })
+    existing = SupplierStaff.query.filter_by(supplier_id=supplier_id, username=username).first()
+    if existing:
+        flash('اسم المستخدم مستخدم بالفعل، يرجى اختيار اسم مستخدم آخر.', 'error')
+        return redirect(url_for('suppliers_permissions_bp.index'))
 
-    if request.method == 'POST':
-        data = request.get_json(silent=True) or request.form or {}
-        
-        name = data.get('name') or data.get('username')
-        username = data.get('username')
-        phone = data.get('phone')
-        email = data.get('email')
-        role = data.get('role', 'worker')
-        role_title = data.get('role_title', 'موظف مورد')
-        
-        can_view_wallet = str(data.get('can_view_wallet', False)).lower() in ['true', '1', 'on', 'yes']
-        can_manage_orders = str(data.get('can_manage_orders', False)).lower() in ['true', '1', 'on', 'yes']
+    temp_password = generate_temp_password(10)
+    initial_perms = DEFAULT_MANAGER_PERMISSIONS if role == 'manager' else DEFAULT_WORKER_PERMISSIONS
 
-        if not username:
-            return jsonify({'success': False, 'message': 'يرجى إدخال اسم المستخدم'}), 400
+    new_staff = SupplierStaff(
+        supplier_id=supplier_id,
+        name=name or username,
+        username=username,
+        phone=phone,
+        email=email,
+        role=role,
+        role_title=role_title,
+        is_active=True,
+        can_view_wallet=False,
+        can_manage_orders=False,
+        permissions=initial_perms
+    )
+    new_staff.set_password(temp_password)
 
-        existing = SupplierStaff.query.filter_by(supplier_id=supplier_id, username=username).first()
-        if existing:
-            return jsonify({'success': False, 'message': 'اسم المستخدم مستخدم بالفعل في حسابك'}), 400
+    try:
+        db.session.add(new_staff)
+        db.session.commit()
 
-        temp_password = generate_temp_password(10)
-        initial_perms = DEFAULT_MANAGER_PERMISSIONS if role == 'manager' else DEFAULT_WORKER_PERMISSIONS
+        # تخزين بيانات الاعتماد في الجلسة لعرضها في النافذة المنبثقة لمرة واحدة
+        session['new_staff_credentials'] = {
+            'name': new_staff.name,
+            'username': username,
+            'password': temp_password
+        }
+        flash('تم إضافة الموظف بنجاح.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ أثناء حفظ الموظف: {str(e)}', 'error')
 
-        new_staff = SupplierStaff(
-            supplier_id=supplier_id,
-            name=name,
-            username=username,
-            phone=phone,
-            email=email,
-            role=role,
-            role_title=role_title,
-            is_active=True,
-            can_view_wallet=can_view_wallet,
-            can_manage_orders=can_manage_orders,
-            permissions=initial_perms
-        )
-        new_staff.set_password(temp_password)
-
-        try:
-            db.session.add(new_staff)
-            db.session.commit()
-
-            return jsonify({
-                'success': True,
-                'message': 'تم إضافة الموظف بنجاح',
-                'username': username,
-                'password': temp_password,
-                'staff': new_staff.to_dict()
-            })
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'success': False, 'message': f'حدث خطأ أثناء الحفظ: {str(e)}'}), 500
+    return redirect(url_for('suppliers_permissions_bp.index'))
 
 
-@suppliers_permissions_bp.route('/api/staff/<int:staff_id>/toggle-status', methods=['POST'])
+@suppliers_permissions_bp.route('/staff/<int:staff_id>/toggle-status', methods=['POST'])
 @login_required
 def toggle_status(staff_id):
     """تنشيط أو إيقاف حساب موظف المورد"""
@@ -154,40 +149,33 @@ def toggle_status(staff_id):
     staff.is_active = not staff.is_active
     db.session.commit()
 
-    return jsonify({
-        'success': True,
-        'is_active': staff.is_active,
-        'message': 'تم تغيير حالة الحساب بنجاح'
-    })
+    flash('تم تغيير حالة حساب الموظف بنجاح.', 'success')
+    return redirect(url_for('suppliers_permissions_bp.index'))
 
 
-@suppliers_permissions_bp.route('/api/staff/<int:staff_id>/permissions', methods=['POST'])
+@suppliers_permissions_bp.route('/staff/<int:staff_id>/permissions', methods=['POST'])
 @login_required
 def update_permissions(staff_id):
-    """تحديث جدول صلاحيات الموظف التفصيلية"""
+    """تحديث جدول صلاحيات الموظف التفصيلية عبر النماذج التقليدية"""
     supplier_id = getattr(current_user, 'id', 1)
     staff = SupplierStaff.query.filter_by(id=staff_id, supplier_id=supplier_id).first_or_404()
 
-    data = request.get_json() or {}
-    new_perms = data.get('permissions', {})
-    
-    staff.permissions = new_perms
-    staff.can_view_wallet = 'view_wallet' in new_perms.get('financials', [])
-    staff.can_manage_orders = 'process_orders' in new_perms.get('orders', [])
+    can_manage_wallet = request.form.get('can_manage_wallet') == 'y'
+    can_manage_orders = request.form.get('can_manage_orders') == 'y'
+
+    staff.can_view_wallet = can_manage_wallet
+    staff.can_manage_orders = can_manage_orders
 
     db.session.commit()
 
-    return jsonify({
-        'success': True,
-        'message': 'تم تحديث الصلاحيات بنجاح',
-        'permissions': staff.permissions
-    })
+    flash('تم تحديث صلاحيات الموظف بنجاح.', 'success')
+    return redirect(url_for('suppliers_permissions_bp.index'))
 
 
-@suppliers_permissions_bp.route('/api/staff/<int:staff_id>/reset-password', methods=['POST'])
+@suppliers_permissions_bp.route('/staff/<int:staff_id>/reset-password', methods=['POST'])
 @login_required
 def reset_password(staff_id):
-    """إعادة تعيين كلمة مرور الموظف وتوليد كلمة مرور مؤقتة جديدة"""
+    """إعادة تعيين كلمة مرور الموظف وتوليد كلمة مرور مؤقتة جديدة وتخزينها بالجلسة"""
     supplier_id = getattr(current_user, 'id', 1)
     staff = SupplierStaff.query.filter_by(id=staff_id, supplier_id=supplier_id).first_or_404()
 
@@ -195,16 +183,17 @@ def reset_password(staff_id):
     staff.set_password(new_temp_pass)
     db.session.commit()
 
-    return jsonify({
-        'success': True,
-        'message': 'تم إعادة تعيين كلمة المرور بنجاح',
+    session['new_staff_credentials'] = {
+        'name': staff.name or staff.username,
         'username': staff.username,
-        'password': new_temp_pass,
-        'name': staff.name or staff.username
-    })
+        'password': new_temp_pass
+    }
+
+    flash('تم إعادة تعيين كلمة المرور بنجاح.', 'success')
+    return redirect(url_for('suppliers_permissions_bp.index'))
 
 
-@suppliers_permissions_bp.route('/api/staff/<int:staff_id>/delete', methods=['POST', 'DELETE'])
+@suppliers_permissions_bp.route('/staff/<int:staff_id>/delete', methods=['POST'])
 @login_required
 def delete_staff(staff_id):
     """حذف حساب الموظف نهائياً"""
@@ -214,29 +203,19 @@ def delete_staff(staff_id):
     db.session.delete(staff)
     db.session.commit()
 
-    return jsonify({
-        'success': True,
-        'message': 'تم حذف الموظف بنجاح'
-    })
+    flash('تم حذف الموظف بنجاح.', 'success')
+    return redirect(url_for('suppliers_permissions_bp.index'))
 
 
-@suppliers_permissions_bp.route('/api/check-availability', methods=['POST'])
+# بقية مسارات الـ API القديمة لدعم التطبيقات الخارجية أو الواجهات البرمجية (إن وجدت)
+@suppliers_permissions_bp.route('/api/staff', methods=['GET', 'POST'])
 @login_required
-def check_availability():
-    """التحقق اللحظي من توفر اسم المستخدم أو الهاتف"""
+def handle_staff_api():
     supplier_id = getattr(current_user, 'id', 1)
-    data = request.get_json() or {}
-    field = data.get('field')
-    value = data.get('value')
-
-    if not field or not value:
-        return jsonify({'available': False}), 400
-
-    if field == 'username':
-        exists = SupplierStaff.query.filter_by(supplier_id=supplier_id, username=value).first()
-    elif field == 'phone':
-        exists = SupplierStaff.query.filter_by(supplier_id=supplier_id, search_phone=str(value)[-9:]).first()
-    else:
-        return jsonify({'available': False}), 400
-
-    return jsonify({'available': not bool(exists)})
+    if request.method == 'GET':
+        staff_members = SupplierStaff.query.filter_by(supplier_id=supplier_id).all()
+        return jsonify({
+            'success': True,
+            'data': [s.to_dict() for s in staff_members]
+        })
+    return jsonify({'success': False, 'message': 'Not supported via JSON API'}), 400
