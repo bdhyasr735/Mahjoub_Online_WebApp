@@ -193,20 +193,6 @@ def reset_password(staff_id):
     return redirect(url_for('suppliers_permissions_bp.index'))
 
 
-@suppliers_permissions_bp.route('/staff/<int:staff_id>/delete', methods=['POST'])
-@login_required
-def delete_staff(staff_id):
-    """حذف حساب الموظف نهائياً"""
-    supplier_id = getattr(current_user, 'id', 1)
-    staff = SupplierStaff.query.filter_by(id=staff_id, supplier_id=supplier_id).first_or_404()
-
-    db.session.delete(staff)
-    db.session.commit()
-
-    flash('تم حذف الموظف بنجاح.', 'success')
-    return redirect(url_for('suppliers_permissions_bp.index'))
-
-
 # بقية مسارات الـ API القديمة لدعم التطبيقات الخارجية أو الواجهات البرمجية (إن وجدت)
 @suppliers_permissions_bp.route('/api/staff', methods=['GET', 'POST'])
 @login_required
