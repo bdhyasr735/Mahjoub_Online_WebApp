@@ -65,7 +65,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">البريد الإلكتروني</label>
-                            <input type="email" name="email" class="form-control rounded-3 py-2" required placeholder="staff@mahjoub.com">
+                            <input type="email" name="email" class="form-control rounded-3 py-2" required placeholder="staff@mahjoub.online">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">كلمة المرور</label>
@@ -79,8 +79,8 @@
                     <div class="row g-2" id="adminPermsBox">
                         {% for perm_key, perm_label in admin_permissions_list.items() %}
                         <div class="col-md-6">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="perm_{{ perm_key }}" id="add_admin_perm_{{ perm_key }}">
+                            <div class="form-check form-switch text-end">
+                                <input class="form-check-input" type="checkbox" role="switch" name="perm_{{ perm_key }}" id="add_admin_perm_{{ perm_key }}">
                                 <label class="form-check-label fw-semibold me-2" for="add_admin_perm_{{ perm_key }}">{{ perm_label }}</label>
                             </div>
                         </div>
@@ -90,8 +90,8 @@
                     <div class="row g-2" id="supplierPermsBox" style="display: none;">
                         {% for perm_key, perm_label in supplier_permissions_list.items() %}
                         <div class="col-md-6">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="perm_{{ perm_key }}" id="add_supp_perm_{{ perm_key }}">
+                            <div class="form-check form-switch text-end">
+                                <input class="form-check-input" type="checkbox" role="switch" name="perm_{{ perm_key }}" id="add_supp_perm_{{ perm_key }}">
                                 <label class="form-check-label fw-semibold me-2" for="add_supp_perm_{{ perm_key }}">{{ perm_label }}</label>
                             </div>
                         </div>
@@ -192,12 +192,21 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
-                    bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
-                    showSuccessModal(data.message);
+                    const modalEl = document.getElementById('addStaffModal');
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if(modalInstance) modalInstance.hide();
+                    
+                    if(typeof showSuccessModal === 'function') {
+                        showSuccessModal(data.message);
+                    }
                     setTimeout(() => location.reload(), 1200);
                 } else {
-                    alert(data.message);
+                    alert(data.message || 'حدث خطأ ما');
                 }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('تعذر الاتصال بالخادم');
             });
         });
     }
