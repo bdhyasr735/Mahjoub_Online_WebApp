@@ -25,6 +25,11 @@ def index():
         staff_list = pagination.items
         perm_dict = SUPPLIER_PERMISSIONS_REGISTRY
 
+    # حساب الأعداد الإجمالية للبطاقات العلوية
+    total_admin_staffs = AdminStaff.query.count()
+    total_suppliers = Supplier.query.count()
+    total_supplier_staffs = SupplierStaff.query.count()
+
     return render_template(
         'admin/permissions.html',
         user_scope=user_scope,
@@ -33,7 +38,10 @@ def index():
         pagination=pagination,
         admin_permissions_list=ADMIN_PERMISSIONS_REGISTRY,
         supplier_permissions_list=SUPPLIER_PERMISSIONS_REGISTRY,
-        suppliers=Supplier.query.all()
+        suppliers=Supplier.query.all(),
+        total_admin_staffs=total_admin_staffs,
+        total_suppliers=total_suppliers,
+        total_supplier_staffs=total_supplier_staffs
     )
 
 @admin_permissions_bp.route('/staff/add', methods=['POST'])
@@ -47,14 +55,25 @@ def add_staff():
         email = request.form.get('email', '').strip() or None
         password = request.form.get('password', '').strip()
         supplier_id = request.form.get('supplier_id')
+        role_title = request.form.get('role_title', '').strip()
 
         # التحقق من المدخلات
         if not username or not name or not password:
             return jsonify({'status': 'error', 'message': 'بيانات الموظف غير مكتملة.'}), 400
 
+        # استخراج الصلاحيات المرسلة من نموذج الإضافة
+        perms = {k.replace('perm_', ''): True for k in request.form if k.startswith('perm_')}
+
         # منطق الإضافة حسب النوع
         if staff_type == 'admin_staff':
-            new_staff = AdminStaff(name=name, username=username, phone=phone, email=email, permissions={})
+            new_staff = AdminStaff(
+                name=name, 
+                username=username, 
+                phone=phone, 
+                email=email, 
+                role_title=role_title,
+                permissions=perms
+            )
             new_staff.set_password(password)
             db.session.add(new_staff)
         
@@ -63,8 +82,13 @@ def add_staff():
                 return jsonify({'status': 'error', 'message': 'يجب تحديد المورد.'}), 400
             
             new_staff = SupplierStaff(
-                name=name, username=username, phone=phone, email=email, 
-                supplier_id=supplier_id, permissions={}
+                name=name, 
+                username=username, 
+                phone=phone, 
+                email=email, 
+                role_title=role_title,
+                supplier_id=supplier_id, 
+                permissions=perms
             )
             new_staff.set_password(password)
             db.session.add(new_staff)
