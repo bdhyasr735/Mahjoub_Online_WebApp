@@ -106,16 +106,6 @@
                     </button>
                   </form>
                 </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                  <!-- حذف الموظف عبر نموذج POST مباشر -->
-                  <form action="{{ url_for('suppliers_permissions_bp.delete_staff', staff_id=staff.id) }}" method="POST" onsubmit="return confirm('هل أنت متأكد من حذف هذا الموظف نهائياً؟');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2 text-danger">
-                      <i class="bi bi-trash"></i> حذف الموظف
-                    </button>
-                  </form>
-                </li>
               </ul>
             </div>
           </td>
