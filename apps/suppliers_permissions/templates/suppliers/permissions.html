@@ -5,6 +5,9 @@
 {% block title %}إدارة صلاحيات الموظفين{% endblock %}
 
 {% block content %}
+<!-- حقل مخفي لرمز الحماية CSRF ليتم قراءته بواسطة الجافاسكريبت -->
+<input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token() }}">
+
 <div class="container-fluid py-4" dir="rtl">
     <!-- رأس الصفحة والإحصائيات -->
     <div class="row mb-4 align-items-center">
@@ -306,6 +309,12 @@
 <script>
     const permissionsRegistry = {{ permissions_registry | tojson | safe }};
 
+    // دالة مساعدة لجلب رمز الحماية CSRF من الحقل المخفي
+    function getCsrfToken() {
+        const tokenElement = document.getElementById('csrf_token');
+        return tokenElement ? tokenElement.value : '';
+    }
+
     // إرسال نموذج إضافة موظف جديد
     document.getElementById('addStaffForm').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -315,7 +324,10 @@
         try {
             const response = await fetch('/supplier/permissions/api/staff', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
                 body: JSON.stringify(data)
             });
             const result = await response.json();
@@ -342,7 +354,13 @@
     // تغيير حالة الموظف (نشط / موقوف)
     async function toggleStatus(staffId) {
         try {
-            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/toggle-status`, { method: 'POST' });
+            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/toggle-status`, { 
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            });
             const result = await response.json();
             if (result.status === 'success') {
                 location.reload();
@@ -356,7 +374,13 @@
     async function resetPassword(staffId) {
         if (!confirm('هل أنت متأكد من رغبتك في إعادة تعيين كلمة مرور هذا الموظف؟')) return;
         try {
-            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/reset-password`, { method: 'POST' });
+            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/reset-password`, { 
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            });
             const result = await response.json();
             if (result.status === 'success') {
                 document.getElementById('credName').innerText = result.credentials.name;
@@ -373,7 +397,13 @@
     async function deleteStaff(staffId) {
         if (!confirm('تحذير: هل أنت متأكد من حذف حساب الموظف نهائياً؟')) return;
         try {
-            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/delete`, { method: 'POST' });
+            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/delete`, { 
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            });
             const result = await response.json();
             if (result.status === 'success') {
                 location.reload();
@@ -438,7 +468,10 @@
         try {
             const response = await fetch(`/supplier/permissions/api/staff/${staffId}/permissions`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
                 body: JSON.stringify({ permissions: newPermissions })
             });
             const result = await response.json();
