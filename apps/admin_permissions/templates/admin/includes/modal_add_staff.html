@@ -54,10 +54,12 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold">اسم المستخدم (للتسجيل)</label>
                             <input type="text" name="username" class="form-control rounded-3 py-2" required placeholder="مثال: mohammed_ali">
+                            <div class="invalid-feedback">اسم المستخدم مستخدم مسبقاً.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">رقم الهاتف (للتسجيل والبحث)</label>
                             <input type="text" name="phone" class="form-control rounded-3 py-2 dir-ltr text-end" placeholder="77xxxxxxx">
+                            <div class="invalid-feedback">رقم الهاتف مستخدم مسبقاً.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">المسمى الوظيفي</label>
@@ -66,6 +68,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold">البريد الإلكتروني</label>
                             <input type="email" name="email" class="form-control rounded-3 py-2" required placeholder="staff@mahjoub.online">
+                            <div class="invalid-feedback">البريد الإلكتروني مستخدم مسبقاً.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">كلمة المرور</label>
@@ -178,11 +181,48 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    // ميزة التحقق الفوري من توفر البيانات (اسم المستخدم، البريد، الهاتف)
+    const usernameInput = document.querySelector('#addStaffForm input[name="username"]');
+    const emailInput = document.querySelector('#addStaffForm input[name="email"]');
+    const phoneInput = document.querySelector('#addStaffForm input[name="phone"]');
+
+    function checkFieldAvailability(fieldInput, fieldType) {
+        if (!fieldInput) return;
+        fieldInput.addEventListener('blur', function() {
+            const value = this.value.trim();
+            if (!value) return;
+
+            fetch(`{{ url_for('admin_permissions.check_availability') }}?field=${fieldType}&value=${encodeURIComponent(value)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.exists) {
+                        fieldInput.classList.add('is-invalid');
+                        fieldInput.classList.remove('is-valid');
+                    } else {
+                        fieldInput.classList.remove('is-invalid');
+                        fieldInput.classList.add('is-valid');
+                    }
+                })
+                .catch(err => console.error('Error checking availability:', err));
+        });
+    }
+
+    checkFieldAvailability(usernameInput, 'username');
+    checkFieldAvailability(emailInput, 'email');
+    checkFieldAvailability(phoneInput, 'phone');
+
     // إرسال نموذج الإضافة عبر AJAX
     const form = document.getElementById('addStaffForm');
     if(form) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            // التحقق من وجود أخطاء سابقة ظاهرة
+            if (this.querySelectorAll('.is-invalid').length > 0) {
+                alert('يرجى تصحيح الحقول المخالفة أو التأكد من عدم تكرار البيانات.');
+                return;
+            }
+
             const formData = new FormData(this);
 
             fetch(this.action, {
