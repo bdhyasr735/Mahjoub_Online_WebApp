@@ -1,16 +1,12 @@
-// 📂 apps/suppliers_permissions/static/js/staff_management.js
-
 document.addEventListener('DOMContentLoaded', function() {
-    // 5. التعامل مع نموذج إضافة موظف جديد عبر Fetch لمنع إعادة التحميل كـ GET
     const addStaffForm = document.getElementById('addStaffForm');
     if (addStaffForm) {
         addStaffForm.addEventListener('submit', async function(e) {
-            e.preventDefault(); 
+            e.preventDefault();
             
             const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
             
-            // جلب الـ CSRF Token من حقل مخفي في النموذج أو الصفحة
             const csrfToken = document.querySelector('input[name="csrf_token"]') ? 
                               document.querySelector('input[name="csrf_token"]').value : '';
 
@@ -45,7 +41,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// 1. إعادة تعيين كلمة المرور
 async function resetStaffPassword(staffId) {
     if (!confirm('هل أنت متأكد من رغبتك في إعادة تعيين كلمة المرور؟')) return;
     
@@ -56,7 +51,6 @@ async function resetStaffPassword(staffId) {
     } catch (e) { console.error(e); }
 }
 
-// 2. تغيير حالة الحساب (تفعيل/إيقاف)
 async function toggleStaffActive(staffId) {
     try {
         const response = await fetch(`/supplier/permissions/api/staff/${staffId}/toggle-status`, { method: 'POST' });
@@ -66,7 +60,6 @@ async function toggleStaffActive(staffId) {
     } catch (e) { console.error(e); }
 }
 
-// 3. حذف الموظف
 async function deleteStaff(staffId) {
     if (!confirm('هل أنت متأكد من حذف هذا الموظف نهائياً؟')) return;
     
@@ -81,7 +74,6 @@ async function deleteStaff(staffId) {
     } catch (e) { console.error(e); }
 }
 
-// 4. فتح مودال الصلاحيات
 function openPermissionsModal(staffId, staffName) {
     console.log("تعديل صلاحيات الموظف:", staffId);
 }
