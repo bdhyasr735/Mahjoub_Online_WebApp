@@ -1,4 +1,5 @@
-<div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
+<!-- 📂 apps/templates/admin/includes/modal_add_staff.html -->
+<div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true" dir="rtl">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content rounded-4 border-0 shadow">
             <form id="addStaffForm" action="{{ url_for('admin_permissions.add_staff') }}" method="POST">
@@ -27,21 +28,22 @@
                                 <!-- حقل البحث والتحكم الذكي -->
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-end-0 rounded-start-3"><i class="fas fa-store text-muted"></i></span>
-                                    <input type="text" id="supplierSearchInput" class="form-control border-start-0 py-2" placeholder="ابحث واختر اسم المتجر..." autocomplete="off">
+                                    <input type="text" id="supplierSearchInput" class="form-control border-start-0 py-2" placeholder="ابحث واختر اسم المتجر أو المورد..." autocomplete="off">
                                     <input type="hidden" name="supplier_id" id="selectedSupplierId">
                                 </div>
                                 
                                 <!-- قائمة النتائج المنسدلة الذكية بتصميم احترافي -->
                                 <div id="supplierDropdownList" class="dropdown-menu w-100 shadow-sm border-0 rounded-3 mt-1 p-1" style="max-height: 180px; overflow-y: auto; display: none; position: absolute; z-index: 1050; background-color: #fff;">
                                     {% for supp in suppliers %}
-                                    <a href="javascript:void(0);" class="dropdown-item rounded-2 py-2 px-3 supplier-option" data-id="{{ supp.id }}" data-name="{{ supp.store_name or supp.name or supp.company_name }}">
+                                        {% set display_name = supp.store_name if supp.store_name else (supp.trade_name if supp.trade_name else (supp.owner_name if supp.owner_name else 'مورد رقم ' ~ supp.id)) %}
+                                    <a href="javascript:void(0);" class="dropdown-item rounded-2 py-2 px-3 supplier-option" data-id="{{ supp.id }}" data-name="{{ display_name }}">
                                         <i class="fas fa-shopping-bag me-2 text-muted" style="font-size: 0.85rem;"></i>
-                                        <span class="fw-semibold" style="color: #333;">{{ supp.store_name or supp.name or supp.company_name }}</span>
+                                        <span class="fw-semibold" style="color: #333;">{{ display_name }} (@{{ supp.username }})</span>
                                     </a>
                                     {% endfor %}
                                 </div>
                             </div>
-                            <small class="text-muted" style="font-size: 0.75rem;">انقر وابحث لتظهر لك قائمة المتاجر بوضوح تام.</small>
+                            <small class="text-muted" style="font-size: 0.75rem;">انقر وابحث لتظهر لك قائمة المتاجر والموردين بوضوح تام.</small>
                         </div>
 
                         <!-- بقية الحقول متناسقة في أعمدة ثنائية (6 و 6) -->
@@ -116,8 +118,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const searchInput = document.getElementById('supplierSearchInput');
     const hiddenIdInput = document.getElementById('selectedSupplierId');
     const dropdownList = document.getElementById('supplierDropdownList');
-    const options = dropdownList ? dropdownList.querySelectorAll('.supplier-option') : [];
-
+    
     function toggleFormFields() {
         if(!staffTypeSelect) return;
         const val = staffTypeSelect.value;
@@ -141,6 +142,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // نظام البحث التفاعلي واختيار المتجر بسلاسة
     if(searchInput && dropdownList) {
+        const options = dropdownList.querySelectorAll('.supplier-option');
+
         searchInput.addEventListener('focus', function() {
             dropdownList.style.display = 'block';
         });
@@ -168,7 +171,6 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         });
 
-        // إغلاق القائمة عند النقر خارجها
         document.addEventListener('click', function(e) {
             if(!supplierContainer.contains(e.target)) {
                 dropdownList.style.display = 'none';
