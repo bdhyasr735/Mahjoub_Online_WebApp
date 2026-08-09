@@ -21,7 +21,7 @@
         {% endif %}
     </div>
 
-    <!-- بطاقات الإحصائيات والفلاتر (تم إزالة شريط البحث المكرر منها) -->
+    <!-- بطاقات الإحصائيات والفلاتر -->
     {% include 'admin/includes/filters_and_cards.html' %}
 
     <!-- قائمة الجداول والتبويبات -->
@@ -74,14 +74,28 @@ document.addEventListener("DOMContentLoaded", function() {
         modal.show();
     };
 
-    // التبديل السريع للحالة
-    document.querySelectorAll('.btn-toggle-status').forEach(button => {
-        button.addEventListener('click', function() {
+    // التبديل السريع للحالة (تم توحيد الكلاس ليطابق toggle-status-btn)
+    document.querySelectorAll('.toggle-status-btn, .btn-toggle-status').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // دعم قراءة البيانات سواء كانت عبر data-url مباشرة أو عبر المعرفات
             const userId = this.dataset.id;
             const userType = this.dataset.type;
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            let url = this.dataset.url;
+            
+            if (!url && userId && userType) {
+                url = `/admin/permissions/toggle-status/${userType}/${userId}`;
+            }
 
-            fetch(`/admin/permissions/toggle-status/${userType}/${userId}`, {
+            if (!url) return;
+
+            const badgeId = this.dataset.badgeId;
+            const badgeEl = badgeId ? document.getElementById(badgeId) : this.closest('tr')?.querySelector('.badge');
+            const iconEl = this.querySelector('i');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="csrf_token"]')?.value || '';
+
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrfToken,
@@ -91,11 +105,33 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
+                    // التحديث البصري الفوري للحالة والشارة والأيقونة
+                    if (data.is_active) {
+                        if (badgeEl) {
+                            badgeEl.className = 'badge rounded-pill bg-success px-3 py-2';
+                            badgeEl.textContent = 'نشط';
+                        }
+                        if (iconEl) {
+                            iconEl.className = 'fas fa-power-off text-success';
+                        }
+                    } else {
+                        if (badgeEl) {
+                            badgeEl.className = 'badge rounded-pill bg-danger px-3 py-2';
+                            badgeEl.textContent = 'معطل';
+                        }
+                        if (iconEl) {
+                            iconEl.className = 'fas fa-power-off text-muted';
+                        }
+                    }
+                    
                     showSuccessModal(data.message);
-                    setTimeout(() => location.reload(), 1200);
                 } else {
-                    alert(data.message);
+                    alert(data.message || 'حدث خطأ أثناء تغيير الحالة');
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('تعذر الاتصال بالخادم');
             });
         });
     });
