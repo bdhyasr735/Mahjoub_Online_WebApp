@@ -1,0 +1,22 @@
+<div class="modal fade" id="permissionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">تعديل صلاحيات الموظف: <span id="permStaffName" class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <form id="permissionsForm">
+                    <input type="hidden" id="permStaffId">
+                    <div id="permissionsRegistryContainer" class="row g-3">
+                        <!-- سيتم تعبئتها ديناميكياً عبر الجافاسكريبت -->
+                    </div>
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary px-4" style="background-color: {{ brand_color }}; border-color: {{ brand_color }};">حفظ التغييرات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
