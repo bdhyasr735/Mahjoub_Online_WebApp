@@ -106,9 +106,23 @@ def add_staff():
 def check_availability():
     field = request.args.get('field')
     value = request.args.get('value')
-    # تحقق في كلا الجدولين لمنع التكرار الشامل
-    exists = AdminStaff.query.filter_by(**{field: value}).first() is not None or \
-             SupplierStaff.query.filter_by(**{field: value}).first() is not None
+    
+    if not field or not value:
+        return jsonify({'exists': False})
+
+    exists = False
+    try:
+        if field in ['username', 'email', 'phone']:
+            filter_args = {field: value}
+            # تحقق في كلا الجدولين لمنع التكرار الشامل لاسم المستخدم أو البريد أو الهاتف
+            exists = (
+                AdminStaff.query.filter_by(**filter_args).first() is not None or 
+                SupplierStaff.query.filter_by(**filter_args).first() is not None
+            )
+    except Exception as e:
+        print(f"Availability Check Error: {e}")
+        exists = False
+
     return jsonify({'exists': exists})
 
 @admin_permissions_bp.route('/staff/<int:target_id>/update-permissions', methods=['POST'])
