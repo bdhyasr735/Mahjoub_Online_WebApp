@@ -1,5 +1,5 @@
 <!-- -*- coding: utf-8 -*- -->
-<!-- 📂 apps/suppliers_permissions/templates/suppliers_permissions/supplier_permissions.html -->
+<!-- 📂 apps/suppliers_permissions/templates/suppliers/permissions.html -->
 {% extends "suppliers/base.html" %}
 
 {% block title %}إدارة صلاحيات الموظفين{% endblock %}
@@ -105,8 +105,12 @@
         </div>
     </div>
 
-    <!-- جدول الموظفين (مضمن من الملف الخارجي) -->
-    {% include 'suppliers/includes/_staff_table.html' %}
+    <!-- جدول الموظفين (مضمن من مجلد الـ includes) -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            {% include 'suppliers/includes/_staff_table.html' %}
+        </div>
+    </div>
 </div>
 
 <!-- تضمين النوافذ المنبثقة (Modals) من مجلد الـ includes -->
@@ -114,183 +118,9 @@
 {% include 'suppliers/includes/_permissions_modal.html' %}
 {% include 'suppliers/includes/_credentials_modal.html' %}
 
-<!-- JavaScript للتحكم بالعمليات والـ APIs -->
-<script>
-    const permissionsRegistry = {{ permissions_registry | tojson | safe }};
+{% endblock %}
 
-    // دالة مساعدة لجلب رمز الحماية CSRF من الحقل المخفي
-    function getCsrfToken() {
-        const tokenElement = document.getElementById('csrf_token');
-        return tokenElement ? tokenElement.value : '';
-    }
-
-    // إرسال نموذج إضافة موظف جديد
-    document.getElementById('addStaffForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const data = Object.fromEntries(formData.entries());
-
-        try {
-            const response = await fetch('/supplier/permissions/api/staff', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCsrfToken()
-                },
-                body: JSON.stringify(data)
-            });
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                bootstrap.Modal.getInstance(document.getElementById('addStaffModal')).hide();
-                
-                // عرض بيانات الاعتماد المؤقتة
-                document.getElementById('credName').innerText = result.credentials.name;
-                document.getElementById('credUsername').innerText = result.credentials.username;
-                document.getElementById('credPassword').innerText = result.credentials.password;
-                new bootstrap.Modal(document.getElementById('credentialsModal')).show();
-                
-                // إعادة تحميل الصفحة بعد الإغلاق
-                document.getElementById('credentialsModal').addEventListener('hidden.bs.modal', () => location.reload(), { once: true });
-            } else {
-                alert(result.message || 'حدث خطأ ما');
-            }
-        } catch (error) {
-            alert('خطأ في الاتصال بالخادم');
-        }
-    });
-
-    // تغيير حالة الموظف (نشط / موقوف)
-    async function toggleStatus(staffId) {
-        try {
-            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/toggle-status`, { 
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCsrfToken()
-                }
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                location.reload();
-            } else {
-                alert(result.message);
-            }
-        } catch (e) { alert('خطأ في الاتصال'); }
-    }
-
-    // إعادة تعيين كلمة المرور
-    async function resetPassword(staffId) {
-        if (!confirm('هل أنت متأكد من رغبتك في إعادة تعيين كلمة مرور هذا الموظف؟')) return;
-        try {
-            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/reset-password`, { 
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCsrfToken()
-                }
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                document.getElementById('credName').innerText = result.credentials.name;
-                document.getElementById('credUsername').innerText = result.credentials.username;
-                document.getElementById('credPassword').innerText = result.credentials.password;
-                new bootstrap.Modal(document.getElementById('credentialsModal')).show();
-            } else {
-                alert(result.message);
-            }
-        } catch (e) { alert('خطأ في الاتصال'); }
-    }
-
-    // حذف الحساب
-    async function deleteStaff(staffId) {
-        if (!confirm('تحذير: هل أنت متأكد من حذف حساب الموظف نهائياً؟')) return;
-        try {
-            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/delete`, { 
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCsrfToken()
-                }
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                location.reload();
-            } else {
-                alert(result.message);
-            }
-        } catch (e) { alert('خطأ في الاتصال'); }
-    }
-
-    // فتح نافذة تعديل الصلاحيات وتعبئتها
-    function openPermissionsModal(staff) {
-        document.getElementById('permStaffId').value = staff.id;
-        document.getElementById('permStaffName').innerText = staff.name;
-        
-        const container = document.getElementById('permissionsRegistryContainer');
-        container.innerHTML = '';
-
-        const currentPerms = staff.permissions || {};
-
-        for (const [catKey, catData] of Object.entries(permissionsRegistry)) {
-            let itemsHtml = '';
-            const catSelectedPerms = currentPerms[catKey] || [];
-
-            for (const [itemKey, itemName] of Object.entries(catData.items)) {
-                const isChecked = catSelectedPerms.includes(itemKey) ? 'checked' : '';
-                itemsHtml += `
-                    <div class="col-md-6">
-                        <div class="form-check">
-                            <input class="form-check-input perm-checkbox" type="checkbox" value="${itemKey}" data-category="${catKey}" id="perm_${catKey}_${itemKey}" ${isChecked}>
-                            <label class="form-check-label small" for="perm_${catKey}_${itemKey}">${itemName}</label>
-                        </div>
-                    </div>
-                `;
-            }
-
-            container.innerHTML += `
-                <div class="col-12">
-                    <div class="p-3 bg-light rounded-3 border">
-                        <h6 class="fw-bold mb-3" style="color: ${catData.color || '#333'};"><i class="bi ${catData.icon} ms-1"></i> ${catData.title}</h6>
-                        <div class="row g-2">${itemsHtml}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        new bootstrap.Modal(document.getElementById('permissionsModal')).show();
-    }
-
-    // حفظ الصلاحيات المحدثة
-    document.getElementById('permissionsForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const staffId = document.getElementById('permStaffId').value;
-        
-        let newPermissions = {};
-        document.querySelectorAll('.perm-checkbox:checked').forEach(cb => {
-            const cat = cb.getAttribute('data-category');
-            const val = cb.value;
-            if (!newPermissions[cat]) newPermissions[cat] = [];
-            newPermissions[cat].push(val);
-        });
-
-        try {
-            const response = await fetch(`/supplier/permissions/api/staff/${staffId}/permissions`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCsrfToken()
-                },
-                body: JSON.stringify({ permissions: newPermissions })
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                bootstrap.Modal.getInstance(document.getElementById('permissionsModal')).hide();
-                location.reload();
-            } else {
-                alert(result.message);
-            }
-        } catch (e) { alert('خطأ في الاتصال'); }
-    });
-</script>
+{% block extra_js %}
+<!-- استدعاء ملف الجافاسكريبت المستقل لإدارة العمليات -->
+<script src="{{ url_for('suppliers_permissions_bp.static', filename='js/staff_management.js') }}"></script>
 {% endblock %}
