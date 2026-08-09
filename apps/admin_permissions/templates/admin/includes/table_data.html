@@ -27,11 +27,20 @@
                                 <span class="badge bg-secondary-subtle text-dark border me-1">@{{ getattr(staff, 'username', 'N/A') }}</span>
                                 <span>{{ getattr(staff, 'role_title', 'موظف') }}</span>
                             </div>
-                            <!-- عرض اسم المتجر التابع له بوضوح تام -->
+                            <!-- عرض اسم المتجر التابع له بوضوح تام باستخدام التسلسل الذكي المحدث -->
                             {% if staff_type == 'supplier_staff' and staff.supplier %}
                             <div class="mt-1">
                                 <span class="badge border" style="background-color: #F4ECF7; color: #6C3483; font-size: 0.75rem;">
-                                    <i class="fas fa-store me-1"></i> متجر: {{ staff.supplier.store_name or staff.supplier.name or staff.supplier.company_name }}
+                                    <i class="fas fa-store me-1"></i> متجر: 
+                                    {% if staff.supplier.store_name %}
+                                        {{ staff.supplier.store_name }}
+                                    {% elif staff.supplier.trade_name %}
+                                        {{ staff.supplier.trade_name }}
+                                    {% elif staff.supplier.owner_name %}
+                                        {{ staff.supplier.owner_name }}
+                                    {% else %}
+                                        متجر رقم {{ staff.supplier.id }}
+                                    {% endif %}
                                 </span>
                             </div>
                             {% endif %}
@@ -70,7 +79,7 @@
             </tr>
 
             <!-- Modal تعديل الصلاحيات الفردية -->
-            <div class="modal fade" id="editModal-{{ staff_type }}-{{ staff.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal fade" id="editModal-{{ staff_type }}-{{ staff.id }}" tabindex="-1" aria-hidden="true" dir="rtl">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content rounded-4 border-0 shadow">
                         <form action="{{ url_for('admin_permissions.update_permissions', target_type=staff_type, target_id=staff.id) }}" method="POST">
@@ -121,7 +130,7 @@
                     <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
                         <a class="page-link" href="{{ url_for('admin_permissions.manage_permissions', page=page_num, staff_type=staff_type) }}" 
                            {% if page_num == pagination.page %}style="background-color: #4A154B; border-color: #4A154B; color: white;"{% endif %}>
-                           {{ page_num }}
+                            {{ page_num }}
                         </a>
                     </li>
                 {% else %}
