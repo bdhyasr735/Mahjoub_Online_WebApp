@@ -63,7 +63,7 @@ def index():
     orders_staff = sum(1 for s in all_staff if s.can_manage_orders)
 
     return render_template(
-        'suppliers/permissions.html',  # <-- تم تصحيح المسار هنا ليتوافق تماماً مع مكان الملف
+        'suppliers/permissions.html',
         staff_list=staff_list,
         pagination=pagination,
         current_filter=current_filter,
@@ -86,29 +86,31 @@ def handle_staff():
     if request.method == 'GET':
         staff_members = SupplierStaff.query.filter_by(supplier_id=supplier_id).all()
         return jsonify({
-            'status': 'success',
+            'success': True,
             'data': [s.to_dict() for s in staff_members]
         })
 
     if request.method == 'POST':
-        data = request.form or request.get_json() or {}
+        # استقبال البيانات سواء كانت JSON أو Form Data
+        data = request.get_json(silent=True) or request.form or {}
         
-        name = data.get('name')
+        name = data.get('name') or data.get('username') # افتراض الاسم من اسم المستخدم إن لم يوجد
         username = data.get('username')
         phone = data.get('phone')
         email = data.get('email')
         role = data.get('role', 'worker')
         role_title = data.get('role_title', 'موظف مورد')
-        can_view_wallet = str(data.get('can_view_wallet')).lower() in ['true', '1', 'on']
-        can_manage_orders = str(data.get('can_manage_orders')).lower() in ['true', '1', 'on']
+        
+        can_view_wallet = str(data.get('can_view_wallet', False)).lower() in ['true', '1', 'on', 'yes']
+        can_manage_orders = str(data.get('can_manage_orders', False)).lower() in ['true', '1', 'on', 'yes']
 
-        if not username or not name:
-            return jsonify({'status': 'error', 'message': 'يرجى إدخال اسم الموظف واسم المستخدم'}), 400
+        if not username:
+            return jsonify({'success': False, 'message': 'يرجى إدخال اسم المستخدم'}), 400
 
         # التحقق من عدم تكرار اسم المستخدم لنفس المورد
         existing = SupplierStaff.query.filter_by(supplier_id=supplier_id, username=username).first()
         if existing:
-            return jsonify({'status': 'error', 'message': 'اسم المستخدم مستخدم بالفعل في حسابك'}), 400
+            return jsonify({'success': False, 'message': 'اسم المستخدم مستخدم بالفعل في حسابك'}), 400
 
         temp_password = generate_temp_password(10)
 
@@ -135,18 +137,15 @@ def handle_staff():
             db.session.commit()
 
             return jsonify({
-                'status': 'success',
+                'success': True,
                 'message': 'تم إضافة الموظف بنجاح',
-                'credentials': {
-                    'username': username,
-                    'password': temp_password,
-                    'name': name
-                },
+                'username': username,
+                'password': temp_password,
                 'staff': new_staff.to_dict()
             })
         except Exception as e:
             db.session.rollback()
-            return jsonify({'status': 'error', 'message': f'حدث خطأ أثناء الحفظ: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': f'حدث خطأ أثناء الحفظ: {str(e)}'}), 500
 
 
 @suppliers_permissions_bp.route('/api/staff/<int:staff_id>/toggle-status', methods=['POST'])
@@ -160,7 +159,7 @@ def toggle_status(staff_id):
     db.session.commit()
 
     return jsonify({
-        'status': 'success',
+        'success': True,
         'is_active': staff.is_active,
         'message': 'تم تغيير حالة الحساب بنجاح'
     })
@@ -183,7 +182,7 @@ def update_permissions(staff_id):
     db.session.commit()
 
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'تم تحديث الصلاحيات بنجاح',
         'permissions': staff.permissions
     })
@@ -201,13 +200,11 @@ def reset_password(staff_id):
     db.session.commit()
 
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'تم إعادة تعيين كلمة المرور بنجاح',
-        'credentials': {
-            'username': staff.username,
-            'password': new_temp_pass,
-            'name': staff.name or staff.username
-        }
+        'username': staff.username,
+        'password': new_temp_pass,
+        'name': staff.name or staff.username
     })
 
 
@@ -222,6 +219,28 @@ def delete_staff(staff_id):
     db.session.commit()
 
     return jsonify({
-        'status': 'success',
+        'success': True,
         'message': 'تم حذف الموظف بنجاح'
     })
+
+
+@suppliers_permissions_bp.route('/api/check-availability', methods=['POST'])
+@login_required
+def check_availability():
+    """التحقق اللحظي من توفر اسم المستخدم أو الهاتف"""
+    supplier_id = getattr(current_user, 'id', 1)
+    data = request.get_json() or {}
+    field = data.get('field')
+    value = data.get('value')
+
+    if not field or not value:
+        return jsonify({'available': False}), 400
+
+    if field == 'username':
+        exists = SupplierStaff.query.filter_by(supplier_id=supplier_id, username=value).first()
+    elif field == 'phone':
+        exists = SupplierStaff.query.filter_by(supplier_id=supplier_id, search_phone=str(value)[-9:]).first()
+    else:
+        return jsonify({'available': False}), 400
+
+    return jsonify({'available': not bool(exists)})
