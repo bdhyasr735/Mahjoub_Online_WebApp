@@ -3,12 +3,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (addStaffForm) {
         addStaffForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
-            
-            const csrfToken = document.querySelector('input[name="csrf_token"]') ? 
-                              document.querySelector('input[name="csrf_token"]').value : '';
+
+            const csrfTokenElement = document.querySelector('input[name="csrf_token"]');
+            const csrfToken = csrfTokenElement ? csrfTokenElement.value : '';
 
             try {
                 const response = await fetch('/supplier/permissions/api/staff', {
@@ -26,10 +26,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     const addModalEl = document.getElementById('addStaffModal');
                     const addModal = bootstrap.Modal.getInstance(addModalEl);
                     if (addModal) addModal.hide();
-                    addStaffForm.reset();
                     
-                    alert('تم إضافة الموظف بنجاح!\nاسم المستخدم: ' + result.username + '\nكلمة المرور: ' + result.password);
-                    location.reload(); 
+                    addStaffForm.reset();
+
+                    // تعبئة وإظهار مودال بيانات الاعتماد
+                    if (document.getElementById('credName')) {
+                        document.getElementById('credName').textContent = result.name || data.name;
+                        document.getElementById('credUsername').textContent = result.username || data.username;
+                        document.getElementById('credPassword').textContent = result.password || '';
+                        
+                        const credModal = new bootstrap.Modal(document.getElementById('credentialsModal'));
+                        credModal.show();
+                    } else {
+                        alert('تم إضافة الموظف بنجاح!');
+                        location.reload();
+                    }
                 } else {
                     alert(result.message || 'حدث خطأ أثناء إضافة الموظف');
                 }
@@ -55,7 +66,7 @@ async function toggleStaffActive(staffId) {
     try {
         const response = await fetch(`/supplier/permissions/api/staff/${staffId}/toggle-status`, { method: 'POST' });
         if (response.ok) {
-            location.reload(); 
+            location.reload();
         }
     } catch (e) { console.error(e); }
 }
@@ -75,5 +86,15 @@ async function deleteStaff(staffId) {
 }
 
 function openPermissionsModal(staffId, staffName) {
-    console.log("تعديل صلاحيات الموظف:", staffId);
+    const permIdInput = document.getElementById('permStaffId');
+    const permNameSpan = document.getElementById('permStaffName');
+    
+    if (permIdInput) permIdInput.value = staffId;
+    if (permNameSpan) permNameSpan.textContent = staffName;
+    
+    const modalEl = document.getElementById('permissionsModal');
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
 }
