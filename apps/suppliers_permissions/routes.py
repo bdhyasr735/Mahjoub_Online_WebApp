@@ -63,7 +63,7 @@ def index():
     orders_staff = sum(1 for s in all_staff if s.can_manage_orders)
 
     return render_template(
-        'supplier_perms/supplier_permissions.html',
+        'suppliers/permissions.html',  # <-- تم تصحيح المسار هنا ليتوافق تماماً مع مكان الملف
         staff_list=staff_list,
         pagination=pagination,
         current_filter=current_filter,
