@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/supplier_permissions/__init__.py
+# 📂 apps/suppliers_permissions/__init__.py
 
 from flask import Blueprint
 
-supplier_perms_bp = Blueprint(
-    'supplier_perms',
+suppliers_permissions_bp = Blueprint(
+    'suppliers_permissions_bp',
     __name__,
     template_folder='templates',
-    url_prefix='/supplier/permissions'
+    static_folder='static'
 )
 
-from . import routes
+from apps.suppliers_permissions import routes
