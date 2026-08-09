@@ -61,7 +61,7 @@
     </div>
 </div>
 
-<!-- تضمين النوافذ التفاعلية (Modals) -->
+<!-- تضمين النوافذ التفاعلية -->
 {% include 'admin/includes/modal_add_staff.html' %}
 {% include 'admin/includes/modal_success.html' %}
 
@@ -74,76 +74,45 @@ document.addEventListener("DOMContentLoaded", function() {
         modal.show();
     };
 
-    // التبديل السريع للحالة (تم توحيد الكلاس ليطابق toggle-status-btn)
+    // التبديل السريع للحالة عبر AJAX
     document.querySelectorAll('.toggle-status-btn, .btn-toggle-status').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            
-            // دعم قراءة البيانات سواء كانت عبر data-url مباشرة أو عبر المعرفات
             const userId = this.dataset.id;
             const userType = this.dataset.type;
-            let url = this.dataset.url;
-            
-            if (!url && userId && userType) {
-                url = `/admin/permissions/toggle-status/${userType}/${userId}`;
-            }
+            let url = this.dataset.url || `/admin/permissions/toggle-status/${userType}/${userId}`;
 
-            if (!url) return;
-
-            const badgeId = this.dataset.badgeId;
-            const badgeEl = badgeId ? document.getElementById(badgeId) : this.closest('tr')?.querySelector('.badge');
+            const badgeEl = this.closest('tr')?.querySelector('.badge');
             const iconEl = this.querySelector('i');
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="csrf_token"]')?.value || '';
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
             fetch(url, {
                 method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
             })
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'success') {
-                    // التحديث البصري الفوري للحالة والشارة والأيقونة
-                    if (data.is_active) {
-                        if (badgeEl) {
-                            badgeEl.className = 'badge rounded-pill bg-success px-3 py-2';
-                            badgeEl.textContent = 'نشط';
-                        }
-                        if (iconEl) {
-                            iconEl.className = 'fas fa-power-off text-success';
-                        }
-                    } else {
-                        if (badgeEl) {
-                            badgeEl.className = 'badge rounded-pill bg-danger px-3 py-2';
-                            badgeEl.textContent = 'معطل';
-                        }
-                        if (iconEl) {
-                            iconEl.className = 'fas fa-power-off text-muted';
-                        }
+                    if (badgeEl) {
+                        badgeEl.className = `badge rounded-pill ${data.is_active ? 'bg-success' : 'bg-danger'} px-3 py-2`;
+                        badgeEl.textContent = data.is_active ? 'نشط' : 'معطل';
                     }
-                    
+                    if (iconEl) iconEl.className = `fas fa-power-off ${data.is_active ? 'text-success' : 'text-muted'}`;
                     showSuccessModal(data.message);
                 } else {
-                    alert(data.message || 'حدث خطأ أثناء تغيير الحالة');
+                    alert(data.message || 'حدث خطأ');
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('تعذر الاتصال بالخادم');
             });
         });
     });
 
-    // تصفية نتائج البحث في الجداول
+    // البحث السريع
     const searchInput = document.getElementById('searchStaffInput');
     if(searchInput) {
         searchInput.addEventListener('keyup', function() {
             const filter = this.value.toLowerCase();
             document.querySelectorAll('.staff-row').forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(filter) ? '' : 'none';
+                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
             });
         });
     }
