@@ -1,3 +1,4 @@
+<!-- 📂 apps/templates/admin/includes/filters_and_cards.html -->
 <div class="row g-3">
     {% if user_scope == 'admin' %}
     <!-- بطاقة كادر الإدارة (بنفسجي ملكي) -->
@@ -44,60 +45,3 @@
         </div>
     </div>
 </div>
-
-<!-- شريط البحث السريع -->
-<div class="row mt-3">
-    <div class="col-md-6">
-        <div class="input-group">
-            <span class="input-group-text bg-white border-0 shadow-sm rounded-start-4 pe-3">
-                <i class="fas fa-search" style="color: #4A154B;"></i>
-            </span>
-            <input type="text" id="searchStaffInput" class="form-control border-0 shadow-sm rounded-end-4 py-2" placeholder="ابحث باسم الموظف، البريد، أو المسمى الوظيفي...">
-        </div>
-    </div>
-</div>
-
-<!-- نموذج اختيار المورد التابع له (يتم وضعه داخل نافذة المودال Modal الخاصة بإضافة موظف) -->
-<div class="mb-3 mt-3">
-    <label for="supplierSelect" class="form-label fw-bold text-dark">المورد / المتجر التابع له</label>
-    <select id="supplierSelect" name="supplier_id" class="form-select rounded-3 shadow-sm" required>
-        <option value="" disabled selected>ابحث واختار المتجر أو المورد التابع له...</option>
-        {% if suppliers %}
-            {% for sup in suppliers %}
-                <!-- التسلسل الذكي لعرض اسم المتجر أو المورد بدقة -->
-                <option value="{{ sup.id }}">
-                    {% if sup.store_name %}
-                        {{ sup.store_name }} {% if sup.trade_name and sup.trade_name != sup.store_name %}({{ sup.trade_name }}){% endif %}
-                    {% elif sup.trade_name %}
-                        {{ sup.trade_name }}
-                    {% elif sup.owner_name %}
-                        {{ sup.owner_name }}
-                    {% else %}
-                        مورد رقم {{ sup.id }}
-                    {% endif %}
-                    (@{{ sup.username }})
-                </option>
-            {% endfor %}
-        {% else %}
-            <option value="" disabled>لا يوجد موردين متاحين حالياً</option>
-        {% endif %}
-    </select>
-</div>
-
-<!-- تضمين مكتبة Tom Select للبحث المباشر داخل القائمة المنسدلة -->
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function(){
-        if(document.getElementById('supplierSelect')){
-            new TomSelect("#supplierSelect",{
-                create: false,
-                sortField: {
-                    field: "text",
-                    direction: "asc"
-                },
-                placeholder: "اكتب للبحث عن اسم المتجر أو المورد..."
-            });
-        }
-    });
-</script>
