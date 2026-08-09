@@ -25,13 +25,15 @@ def generate_temp_password(length=10):
 @suppliers_permissions_bp.route('/', methods=['GET'])
 @login_required
 def index():
-    """عرض الصفحة الرئيسية لإدارة صلاحيات وموظفي المورد"""
+    """عرض الصفحة الرئيسية لإدارة صلاحيات وموظفي المورد بنظام الحاويات المتجاوبة والتحمل العالي"""
     supplier_id = getattr(current_user, 'id', 1)
     
     page = request.args.get('page', 1, type=int)
     current_filter = request.args.get('filter', 'all')
     search_query = request.args.get('search', '').strip()
-    per_page = 10
+    
+    # ضبط عدد العناصر ليناسب شبكة الحاويات (Grid) 3 عناصر في كل صف للشاشات الكبيرة
+    per_page = 12
     
     query = SupplierStaff.query.filter_by(supplier_id=supplier_id)
     
@@ -50,6 +52,7 @@ def index():
             (SupplierStaff.role_title.ilike(f'%{search_query}%'))
         )
     
+    # جلب الصفحة المطلوبة فقط من قاعدة البيانات لتوفير الذاكرة وتحمل الضغط العالي
     pagination = query.order_by(SupplierStaff.created_at.desc())\
         .paginate(page=page, per_page=per_page, error_out=False)
         
