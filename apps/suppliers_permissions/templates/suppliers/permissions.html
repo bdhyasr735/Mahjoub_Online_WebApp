@@ -6,17 +6,24 @@
 
 {% block content %}
 <div class="container-fluid py-4" dir="rtl">
-    <!-- عرض رسائل التنبيه الفورية من الخادم -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show shadow-sm rounded-4 mb-4" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    
+    <!-- عرض رسائل التنبيه الفورية بشكل احترافي في منتصف الشاشة -->
+    <div class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1080; width: 100%; max-width: 500px;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show shadow-lg border-0 rounded-4 d-flex align-items-center justify-content-between mb-2 py-3 px-4" role="alert" 
+                         style="background-color: {{ '#f8d7da' if category == 'error' else '#d1e7dd' }}; color: {{ '#842029' if category == 'error' else '#0f5132' }};">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="bi {{ 'bi-exclamation-triangle-fill' if category == 'error' else 'bi-check-circle-fill' }} fs-4"></i>
+                            <div class="fw-bold">{{ message }}</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
 
     <!-- رأس الصفحة والإحصائيات -->
     <div class="row mb-4 align-items-center">
@@ -114,7 +121,7 @@
         </div>
     </div>
 
-    <!-- جدول الموظفين (مضمن من مجلد الـ includes) -->
+    <!-- جدول الموظفين -->
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body p-0">
             {% include 'suppliers/includes/_staff_table.html' %}
@@ -122,12 +129,11 @@
     </div>
 </div>
 
-<!-- تضمين النوافذ المنبثقة (Modals) من مجلد الـ includes -->
+<!-- تضمين النوافذ المنبثقة -->
 {% include 'suppliers/includes/_add_staff_modal.html' %}
 {% include 'suppliers/includes/_permissions_modal.html' %}
 {% include 'suppliers/includes/_credentials_modal.html' %}
 
-<!-- إظهار نافذة بيانات الاعتماد المؤقتة تلقائياً في حال تم إضافة موظف جديد وتخزين بياناته في الجلسة -->
 {% if new_staff_credentials %}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -137,8 +143,4 @@
 </script>
 {% endif %}
 
-{% endblock %}
-
-{% block extra_js %}
-<!-- تم الاستغناء التام عن الأكواد المعقدة والاعتماد على معالجة الخادم -->
 {% endblock %}
