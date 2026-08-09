@@ -1,12 +1,18 @@
+<!-- -*- coding: utf-8 -*- -->
+<!-- 📂 apps/suppliers_permissions/templates/suppliers/includes/_add_staff_modal.html -->
 <div class="modal fade" id="addStaffModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow rounded-4">
+        <div class="modal-content border-0 shadow rounded-4" dir="rtl">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title fw-bold">إضافة موظف أو مساعد جديد</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body pt-3">
-                <form id="addStaffForm">
+                <!-- تم تحويل الفورم ليعمل بشكل مباشر عبر إرسال الطلب للخادم -->
+                <form id="addStaffForm" method="POST" action="{{ url_for('suppliers_permissions_bp.add_staff') }}">
+                    <!-- حقل حماية الـ CSRF الأساسي -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <div class="mb-3">
                         <label class="form-label small fw-bold">اسم الموظف الكامل <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control" required placeholder="مثال: أحمد محمد">
