@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 # 📂 apps/admin_permissions/registry.py
 
-# هذه التعريفات ضرورية لمنع الخطأ الذي واجهته (Module Registry Requirement)
 MODULE_NAME = "إدارة الصلاحيات"
 MODULE_ICON = "bi-shield-lock"
 SHOW_IN_ADMIN = True
+
+# 💡 أضف هذا المتغير ليتمكن القالب من العثور على الروابط
+LINKS = {
+    'admin_permissions.index': 'صلاحيات الموظفين والمتاجر'
+}
 
 # قواميس الصلاحيات
 ADMIN_PERMISSIONS_REGISTRY = {
@@ -23,10 +27,8 @@ SUPPLIER_PERMISSIONS_REGISTRY = {
     'supplier_manage_staff': 'إدارة موظفي المتجر'
 }
 
-# دالة التسجيل الأساسية للموديول
 def register_module(app):
     from apps.admin_permissions.routes import admin_permissions_bp
     
-    # التأكد من عدم تكرار التسجيل
     if 'admin_permissions_bp' not in app.blueprints:
         app.register_blueprint(admin_permissions_bp, url_prefix='/admin/permissions')
