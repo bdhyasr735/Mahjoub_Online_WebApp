@@ -6,6 +6,23 @@
 mahjoub.online Supplier Permissions Registry
 """
 
+MODULE_NAME = "إدارة الصلاحيات"
+MODULE_ICON = "bi-shield-lock"
+SHOW_IN_SUPPLIER = True
+
+LINKS = {
+    'supplier_permissions_bp.index': '🛡️ إدارة صلاحيات الموظفين'
+}
+
+def register_module(app):
+    from apps.supplier_permissions.routes import supplier_permissions_bp
+    if 'supplier_permissions_bp' not in app.blueprints:
+        app.register_blueprint(supplier_permissions_bp, url_prefix='/supplier/permissions')
+        print("✅ [Registry]: تم تسجيل موديول 'supplier_permissions' بنجاح.")
+    else:
+        print("ℹ️ [Registry]: موديول 'supplier_permissions' مسجل مسبقاً.")
+
+
 SUPPLIER_PERMISSIONS_REGISTRY = {
     'orders': {
         'title': 'إدارة الطلبات والشحن',
