@@ -10,32 +10,33 @@ admin_permissions_bp = Blueprint('admin_permissions', __name__, template_folder=
 @admin_permissions_bp.route('/', methods=['GET'])
 @login_required
 def index():
-    page = request.args.get('page', 1, type=int)
+    page_admin = request.args.get('page_admin', 1, type=int)
+    page_supplier = request.args.get('page_supplier', 1, type=int)
     staff_type = request.args.get('staff_type', 'admin_staff')
     
     user_scope = 'admin' if getattr(current_user, 'is_admin', True) else 'supplier'
 
-    if staff_type == 'admin_staff':
-        pagination = AdminStaff.query.order_by(AdminStaff.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
-        staff_list = pagination.items
-        perm_dict = ADMIN_PERMISSIONS_REGISTRY
-    else:
-        # افتراض وجود نموذج SupplierStaff
-        pagination = SupplierStaff.query.order_by(SupplierStaff.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
-        staff_list = pagination.items
-        perm_dict = SUPPLIER_PERMISSIONS_REGISTRY
+    # جلب الترقيم وقوائم البيانات لكلا الجدولين لضمان ظهورهما في التبويبات معاً
+    admin_pagination = AdminStaff.query.order_by(AdminStaff.created_at.desc()).paginate(page=page_admin, per_page=10, error_out=False)
+    supplier_pagination = SupplierStaff.query.order_by(SupplierStaff.created_at.desc()).paginate(page=page_supplier, per_page=10, error_out=False)
 
     # حساب الأعداد الإجمالية للبطاقات العلوية
     total_admin_staffs = AdminStaff.query.count()
     total_suppliers = Supplier.query.count()
     total_supplier_staffs = SupplierStaff.query.count()
 
+    # صلاحية التحكم وإظهار زر الإضافة
+    can_manage = True  # يمكنك ربطها بصلاحيات المستخدم الحالي حسب الحاجة
+
     return render_template(
         'admin/permissions.html',
         user_scope=user_scope,
-        staff_list=staff_list,
+        can_manage=can_manage,
         staff_type=staff_type,
-        pagination=pagination,
+        admin_staffs=admin_pagination.items,
+        supplier_staffs=supplier_pagination.items,
+        admin_pagination=admin_pagination,
+        supplier_pagination=supplier_pagination,
         admin_permissions_list=ADMIN_PERMISSIONS_REGISTRY,
         supplier_permissions_list=SUPPLIER_PERMISSIONS_REGISTRY,
         suppliers=Supplier.query.all(),
