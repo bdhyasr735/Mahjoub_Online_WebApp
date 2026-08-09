@@ -50,11 +50,10 @@
                 <td class="dir-ltr text-end fw-semibold">{{ getattr(staff, 'phone', '-') }}</td>
                 <td class="dir-ltr text-end text-muted">{{ getattr(staff, 'email', '-') }}</td>
                 <td>
-                    {% if getattr(staff, 'is_active', True) %}
-                        <span class="badge rounded-pill px-3 py-1 text-white" style="background-color: #4A154B;">نشط</span>
-                    {% else %}
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1">معطل</span>
-                    {% endif %}
+                    <!-- تم إضافة id فريد لشارة الحالة ليقوم الجافاسكريبت بتحديثها فوراً دون إعادة تحميل -->
+                    <span id="status-badge-{{ staff_type }}-{{ staff.id }}" class="badge rounded-pill px-3 py-1 {% if getattr(staff, 'is_active', True) %}text-white{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %}" style="{% if getattr(staff, 'is_active', True) %}background-color: #4A154B;{% endif %}">
+                        {{ 'نشط' if getattr(staff, 'is_active', True) else 'معطل' }}
+                    </span>
                 </td>
                 <td>
                     <div class="d-flex flex-wrap gap-1">
@@ -71,7 +70,8 @@
                     <button class="btn btn-sm rounded-circle me-1" style="color: #4A154B; border-color: #4A154B;" data-bs-toggle="modal" data-bs-target="#editModal-{{ staff_type }}-{{ staff.id }}" title="تعديل الأذونات">
                         <i class="fas fa-user-lock"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-warning rounded-circle btn-toggle-status" data-id="{{ staff.id }}" data-type="{{ staff_type }}" title="تبديل الحالة">
+                    <!-- تم إضافة الكلاس toggle-status-btn ليطابق الكود البرمجي في الصفحة الرئيسية -->
+                    <button class="btn btn-sm btn-outline-warning rounded-circle toggle-status-btn" data-id="{{ staff.id }}" data-type="{{ staff_type }}" data-badge-id="status-badge-{{ staff_type }}-{{ staff.id }}" title="تبديل الحالة">
                         <i class="fas fa-power-off"></i>
                     </button>
                     {% endif %}
@@ -121,14 +121,14 @@
         <ul class="pagination justify-content-center mb-0">
             <!-- زر السابق -->
             <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                <a class="page-link rounded-start-pill" href="{{ url_for('admin_permissions.manage_permissions', page=pagination.prev_num, staff_type=staff_type) }}">السابق</a>
+                <a class="page-link rounded-start-pill" href="{{ url_for('admin_permissions.index', page=pagination.prev_num, staff_type=staff_type) }}">السابق</a>
             </li>
 
             <!-- أرقام الصفحات -->
             {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                 {% if page_num %}
                     <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                        <a class="page-link" href="{{ url_for('admin_permissions.manage_permissions', page=page_num, staff_type=staff_type) }}" 
+                        <a class="page-link" href="{{ url_for('admin_permissions.index', page=page_num, staff_type=staff_type) }}" 
                            {% if page_num == pagination.page %}style="background-color: #4A154B; border-color: #4A154B; color: white;"{% endif %}>
                             {{ page_num }}
                         </a>
@@ -140,7 +140,7 @@
 
             <!-- زر التالي -->
             <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                <a class="page-link rounded-end-pill" href="{{ url_for('admin_permissions.manage_permissions', page=pagination.next_num, staff_type=staff_type) }}">التالي</a>
+                <a class="page-link rounded-end-pill" href="{{ url_for('admin_permissions.index', page=pagination.next_num, staff_type=staff_type) }}">التالي</a>
             </li>
         </ul>
     </nav>
