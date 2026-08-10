@@ -316,14 +316,31 @@ def create_app():
                     else:
                         print(f"⚠️ [Registry]: الموديول '{item}' لا يحتوي على register_module")
                     
-                    # 🚨 ✅ الإضافة الحاسمة هنا: التعامل مع get_menu_items()
-                    menu_items = getattr(module, 'get_menu_items', None)
-                    if menu_items:
-                        items_list = menu_items()
+                    # 🔍 الحل الديناميكي الشامل: دعم LINKS (Dict) أو get_menu_items() (List/Dict)
+                    links_data = None
+                    
+                    # 1. فحص إذا كان الموديول يستعمل LINKS مباشرة
+                    if hasattr(module, 'LINKS'):
+                        raw_links = getattr(module, 'LINKS')
+                        if isinstance(raw_links, dict):
+                            links_data = [{'endpoint': ep, 'title': lbl} for ep, lbl in raw_links.items()]
+                        elif isinstance(raw_links, list):
+                            links_data = raw_links
+
+                    # 2. فحص إذا كان الموديول يستعمل دالة get_menu_items()
+                    menu_items_func = getattr(module, 'get_menu_items', None)
+                    if not links_data and menu_items_func:
+                        res = menu_items_func()
+                        if isinstance(res, dict):
+                            links_data = [{'endpoint': ep, 'title': lbl} for ep, lbl in res.items()]
+                        elif isinstance(res, list):
+                            links_data = res
+
+                    if links_data:
                         mod_data = {
                             "display_name": getattr(module, 'MODULE_NAME', item.replace('_', ' ').capitalize()),
                             "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
-                            "links": items_list,
+                            "links": links_data,
                         }
                         if getattr(module, 'SHOW_IN_SUPPLIER', False):
                             SUPPLIER_MODULES[item] = mod_data
