@@ -1,25 +1,20 @@
-"""
-registry.py: سجل وحدة موديول apps/admin_Product
-(www.mahjoub.online)
-"""
+# -*- coding: utf-8 -*-
+# 📂 apps/admin_Product/registry.py
 
-try:
-    from admin_Product import admin_product_bp
-except ImportError:
-    from . import admin_product_bp
-
-# ✅ جعلنا الموديول يشبه بقية الموديولات العاملة
 MODULE_NAME = "إدارة المنتجات"
-MODULE_ICON = "fa-box"
+MODULE_ICON = "bi-box-seam"
+SHOW_IN_ADMIN = True  # ضروري جداً ليظهر في سلايدر الإدارة
 
-# ✅ ربط نقاط النهاية الصحيحة الموجودة في routes.py
 LINKS = {
-    "admin_Product.list_products": "جميع المنتجات",
-    "admin_Product.create_product": "إضافة منتج جديد"
+    'admin_Product.list_products': 'عرض جميع المنتجات',
+    'admin_Product.create_product': 'إضافة منتج جديد'
 }
 
 def register_module(app):
-    """تسجيل موديول admin_Product في تطبيق الـ Flask الرئيسي"""
-    if 'admin_Product' not in app.blueprints:
-        app.register_blueprint(admin_product_bp)
-    return True
+    try:
+        from apps.admin_Product import admin_product_bp
+        if 'admin_Product' not in app.blueprints:
+            app.register_blueprint(admin_product_bp, url_prefix='/admin/products')
+            print("✅ [Registry]: تم تسجيل admin_Product.")
+    except Exception as e:
+        print(f"❌ [Registry]: خطأ في تسجيل admin_Product: {e}")
