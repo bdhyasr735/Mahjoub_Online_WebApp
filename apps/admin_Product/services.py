@@ -12,7 +12,7 @@ class ProductService:
 
     @staticmethod
     def get_products_page(page=1, per_page=10, search=None, status=None, collection=None):
-        """جلب صفحة المنتجات من قمره مع الفلاتر والبحث"""
+        """جلب صفحة المنتجات من قمره مع الفلاتر والبحث وحماية ضد الانقطاع"""
         client = ProductService.get_graphql_client()
         query = """
         query GetProducts($input: FindAllProductsInput!) {
@@ -43,7 +43,7 @@ class ProductService:
             }
         }
         """
-        input_vars = {"page": page, "limit": per_page}
+        input_vars = {"page": int(page), "limit": int(per_page)}
         if search:
             input_vars["search"] = search
         if status and status != 'all':
@@ -51,14 +51,28 @@ class ProductService:
         if collection and collection != 'all':
             input_vars["collection"] = collection
 
-        data = client.execute(query, {"input": input_vars})
-        if data and "findAllProducts" in data:
-            result = data["findAllProducts"]
-            return {
-                'products': result.get('data', []),
-                'pagination': result.get('pagination', {})
+        try:
+            data = client.execute(query, {"input": input_vars}, operation_name="GetProducts")
+            if data and "findAllProducts" in data:
+                result = data["findAllProducts"]
+                return {
+                    'products': result.get('data', []),
+                    'pagination': result.get('pagination', {})
+                }
+        except Exception as e:
+            print(f"⚠️ [ProductService] Error fetching products: {e}")
+
+        # هيكل احتياطي فارغ لمنع انهيار الصفحة في حال تعذر الاتصال
+        return {
+            'products': [],
+            'pagination': {
+                'totalItems': 0,
+                'totalPages': 1,
+                'currentPage': int(page),
+                'limit': int(per_page),
+                'hasNextPage': False
             }
-        return {'products': [], 'pagination': {'totalPages': 1, 'currentPage': 1}}
+        }
 
     @staticmethod
     def get_product_by_id(product_id):
@@ -98,11 +112,15 @@ class ProductService:
             }
         }
         """
-        data = client.execute(query, {"id": product_id})
-        if data and "findProductByQid" in data:
-            result = data["findProductByQid"]
-            if result.get("success"):
-                return result.get("data")
+        try:
+            data = client.execute(query, {"id": product_id}, operation_name="GetProductById")
+            if data and "findProductByQid" in data:
+                result = data["findProductByQid"]
+                if result.get("success"):
+                    return result.get("data")
+        except Exception as e:
+            print(f"⚠️ [ProductService] Error fetching product by ID {product_id}: {e}")
+            
         return None
 
     @staticmethod
