@@ -1,292 +1,316 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}القيادة المركزية | MAHJOUB{% endblock %}</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- إضافة ملفات تنسيق Tom Select للبحث المتقدم -->
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-    
-    <style>
-        :root { 
-            --royal-purple: #1a0b2e; 
-            --deep-black: #08020d; 
-            --mahjoub-gold: #D4AF37; 
-            --sidebar-width: 280px; 
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Cairo', sans-serif !important; background: #f0f2f5; }
-        
-        /* Sidebar */
-        .sidebar {
-            width: var(--sidebar-width);
-            height: 100vh;
-            position: fixed;
-            right: 0;
-            top: 0;
-            background: linear-gradient(180deg, var(--royal-purple) 0%, var(--deep-black) 100%);
-            z-index: 1050;
-            overflow-y: auto;
-            transition: 0.3s;
-            box-shadow: 2px 0 20px rgba(0,0,0,0.2);
-        }
-        .sidebar::-webkit-scrollbar { width: 4px; }
-        .sidebar::-webkit-scrollbar-thumb { background: var(--mahjoub-gold); border-radius: 10px; }
-        
-        .logo-container {
-            padding: 25px 15px;
-            text-align: center;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-        }
-        .sidebar-logo {
-            width: 65px;
-            height: 65px;
-            object-fit: contain;
-            filter: brightness(0) invert(1);
-        }
-        .brand-text {
-            color: var(--mahjoub-gold);
-            font-size: 0.85rem;
-            margin-top: 8px;
-            display: block;
-        }
-        
-        .nav-menu { padding: 15px 12px; }
-        
-        .nav-link-custom {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 15px;
-            color: rgba(255,255,255,0.7);
-            text-decoration: none;
-            border-radius: 10px;
-            transition: 0.3s;
-            cursor: pointer;
-        }
-        .nav-link-custom:hover,
-        .nav-link-custom.active {
-            background: rgba(212, 175, 55, 0.15);
-            color: var(--mahjoub-gold);
-        }
-        .nav-link-custom i { width: 20px; text-align: center; }
-        
-        .dropdown-content {
-            display: none;
-            list-style: none;
-            padding-right: 30px;
-            margin: 5px 0;
-        }
-        .dropdown-content a {
-            display: block;
-            padding: 8px 12px;
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            transition: 0.2s;
-        }
-        .dropdown-content a:hover {
-            color: var(--mahjoub-gold);
-            background: rgba(255,255,255,0.05);
-        }
-        
-        .nav-link-custom .fa-chevron-down {
-            margin-right: auto;
-            transition: 0.3s;
-        }
-        .nav-link-custom .fa-chevron-down.rotated {
-            transform: rotate(180deg);
-        }
-        
-        /* Main Content */
-        .main-wrapper {
-            margin-right: var(--sidebar-width);
-            min-height: 100vh;
-            transition: 0.3s;
-        }
-        
-        .top-navbar {
-            background: #fff;
-            padding: 12px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 1px 10px rgba(0,0,0,0.05);
-            position: sticky;
-            top: 0;
-            z-index: 1040;
-        }
-        
-        .admin-badge {
-            background: linear-gradient(135deg, var(--royal-purple), var(--deep-black));
-            color: var(--mahjoub-gold);
-            padding: 5px 14px;
-            border-radius: 50px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            border: 1px solid rgba(212, 175, 55, 0.2);
-        }
-        
-        @media (max-width: 992px) {
-            .sidebar { right: -280px; }
-            .sidebar.active { right: 0; }
-            .main-wrapper { margin-right: 0; }
-            .top-navbar { padding: 10px 15px; }
-        }
-        
-        @media (max-width: 576px) {
-            .sidebar { width: 260px; }
-            .admin-badge span { display: none; }
-        }
-    </style>
-    
-    {% block extra_css %}{% endblock %}
-</head>
-<body>
-    
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div class="logo-container">
-            <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
-                 class="sidebar-logo" alt="MAHJOUB">
-            <h6 class="text-white mt-2 fw-bold">القيادة المركزية</h6>
-            <span class="brand-text">محجوب أونلاين | سوقك الذكي</span>
-        </div>
-        
-        <nav class="nav-menu">
-            <a href="{{ url_for('admin_dashboard_bp.dashboard') }}" 
-               class="nav-link-custom {{ 'active' if request.endpoint == 'admin_dashboard_bp.dashboard' }}">
-                <i class="fas fa-chart-line"></i> <span>الإحصائيات</span>
-            </a>
-            
-            {% if registered_modules %}
-                {% for mod_name, module in registered_modules.items() %}
-                    <div class="nav-item mt-2">
-                        <div class="nav-link-custom" onclick="toggleSub(this)" style="justify-content: space-between;">
-                            <div>
-                                <i class="{{ module.icon|default('fas fa-folder') }}"></i>
-                                <span>{{ module.display_name }}</span>
-                            </div>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <ul class="dropdown-content">
-                            {% for endpoint, label in module.links.items() %}
-                                <li>
-                                    {% if endpoint %}
-                                        <a href="{{ url_for(endpoint) }}" 
-                                           class="{{ 'active-link' if request.endpoint == endpoint }}">
-                                            <i class="fas fa-angle-left me-2"></i> {{ label }}
-                                        </a>
-                                    {% else %}
-                                        <a href="#" class="text-muted">
-                                            <i class="fas fa-exclamation-triangle me-2"></i> {{ label }}
-                                        </a>
-                                    {% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endfor %}
-            {% endif %}
-            
-            <hr class="text-white my-3 opacity-25">
-            
-            <a href="{{ url_for('auth_portal.logout') }}" class="nav-link-custom text-danger">
-                <i class="fas fa-sign-out-alt"></i> <span>خروج آمن</span>
-            </a>
-        </nav>
-    </aside>
-    
-    <!-- Main Content -->
-    <main class="main-wrapper" id="main">
-        <header class="top-navbar">
-            <button class="btn btn-outline-dark d-lg-none" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="admin-badge">
-                <i class="fas fa-crown me-1"></i>
-                <span>بيئة التحكم السيادية</span>
-            </div>
-        </header>
-        
-        <section class="p-3 p-md-4">
-            {% block content %}{% endblock %}
-        </section>
-    </main>
-    
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+# coding: utf-8
+# 📂 apps/services/orders_queries.graphql
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // حل مشكلة الأرقام العربية
-            const numberInputs = document.querySelectorAll('input[type="number"]');
-            numberInputs.forEach(input => {
-                input.style.unicodeBidi = 'plaintext';
-                input.addEventListener('input', function(e) {
-                    this.value = this.value.replace(/[٠-٩]/g, function(d) {
-                        return d.charCodeAt(0) - 1632;
-                    });
-                });
-            });
-
-            // تفعيل البحث المتقدم (Tom Select)
-            if (typeof TomSelect !== 'undefined') {
-                const supplierSelect = document.getElementById('supplierSelect');
-                if (supplierSelect && !supplierSelect.tomselect) {
-                    new TomSelect(supplierSelect, {
-                        plugins: ['remove_button'],
-                        placeholder: 'ابحث عن المورد هنا...',
-                        searchField: ['text'],
-                        maxOptions: 10
-                    });
+# ============================================================
+# ✅ 1. استعلام جلب كافة الطلبات (FindAllOrders)
+# ============================================================
+query FindAllOrders($input: FindAllOrdersInput) {
+    findAllOrders(input: $input) {
+        data {
+            _id
+            type
+            totalPrice
+            isPaid
+            createdAt
+            status {
+                _id
+                title
+                code
+            }
+            account {
+                account {
+                    fullname
+                    phone
                 }
             }
-        });
-
-        function toggleSub(el) {
-            let drop = el.nextElementSibling;
-            if (!drop) return;
-            let isOpen = drop.style.display === "block";
-            drop.style.display = isOpen ? "none" : "block";
-            let chevron = el.querySelector('.fa-chevron-down');
-            if (chevron) chevron.classList.toggle('rotated');
-        }
-        
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-        }
-        
-        document.addEventListener('click', function(e) {
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.querySelector('.btn-outline-dark');
-            if (window.innerWidth < 992 && sidebar && toggleBtn &&
-                !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-                sidebar.classList.remove('active');
-            }
-        });
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.dropdown-content').forEach(function(drop) {
-                if (drop.querySelector('.active-link')) {
-                    drop.style.display = 'block';
-                    let parent = drop.previousElementSibling;
-                    if (parent) {
-                        let chevron = parent.querySelector('.fa-chevron-down');
-                        if (chevron) chevron.classList.add('rotated');
+            items {
+                productId
+                quantity
+                price
+                productData {
+                    title
+                    slug
+                    image {
+                        _id
+                        fileUrl
                     }
                 }
-            });
-        });
-    </script>
-    
-    {% block extra_js %}{% endblock %}
-</body>
-</html>
+            }
+        }
+        pagination {
+            totalItems
+            totalPages
+            currentPage
+            limit
+            hasNextPage
+        }
+    }
+}
+
+# ============================================================
+# 🔍 2. استعلام تفاصيل طلب محدد شامل لكافة الحقول (FindOrderById)
+# ============================================================
+query FindOrderById($id: ID!) {
+    findOrderById(id: $id) {
+        success
+        message
+        data {
+            _id
+            app
+            type
+            COD
+            freeze
+            isPaid
+            isFastOrder
+            createdAt
+            handel
+            totalPrice
+            totalPriceWithTax
+            priceWithShipping
+            shippingPrice
+            taxAmount
+            taxType
+            taxValue
+            status {
+                _id
+                title
+                code
+            }
+            currency {
+                _id
+                title
+                currencyCode
+                currencySymbol
+            }
+            taxLines {
+                title
+                amountType
+                value
+                amount
+                base
+            }
+            shippingAddress {
+                _id
+                street
+                neighborhood
+                zipCode
+                description
+                device
+                deleted
+                createdAt
+                updatedAt
+                city {
+                    _id
+                    name
+                    description
+                    active
+                    deleted
+                    isSelected
+                    createdAt
+                }
+                country {
+                    _id
+                    name
+                    code
+                    continent
+                    capital
+                    active
+                    deleted
+                    phonekey
+                }
+            }
+            salesLead {
+                _id
+                firstName
+                lastName
+                district
+                street
+                phone1
+                phone2
+                email
+            }
+            account {
+                _id
+                app
+                verified
+                blocked
+                orderCount
+                lastSeen
+                createdAt
+                updatedAt
+                account {
+                    _id
+                    fullname
+                    phone
+                    type
+                    verified
+                    blocked
+                    blockedReason
+                    status
+                    avatarUrl
+                    createdAt
+                    updatedAt
+                }
+            }
+            paymentMethod {
+                _id
+                enable
+                unable
+                action
+                install
+                deleted
+                complete
+                createdAt
+                updatedAt
+                data
+                payment {
+                    _id
+                    key
+                    descreption
+                    installed
+                    enable
+                    deleted
+                    schema
+                    createdAt
+                    updatedAt
+                    icon
+                    iconUrl
+                    needConfig
+                    methods
+                    name
+                    instructions
+                    id
+                }
+            }
+            market {
+                _id
+                app
+                title
+                status
+                countryCodes
+                enableRounding
+                localCurrencies
+                fxMode
+                exchangeRate
+                providerName
+                lastUpdated
+                createdAt
+                updatedAt
+                targetCurrencyCode
+                targetCurrency {
+                    _id
+                    title
+                    currencyCode
+                    currencySymbol
+                }
+                targetCurrencyId {
+                    _id
+                    title
+                    currencyCode
+                    currencySymbol
+                }
+                countryIds {
+                    _id
+                    name
+                    code
+                    continent
+                    capital
+                    active
+                    deleted
+                    phonekey
+                    image {
+                        image
+                        imageUrl
+                    }
+                }
+                history {
+                    rate
+                    updatedAt
+                }
+            }
+            marketSnapshot
+            items {
+                _id
+                orderId
+                productId
+                variantId
+                quantity
+                weight
+                price
+                compareAtPrice
+                totalPrice
+                totalCompareAtPrice
+                totalSavings
+                productData {
+                    title
+                    slug
+                    app
+                    price
+                    image {
+                        _id
+                        fileUrl
+                    }
+                }
+                variantData {
+                    price
+                    compareAtPrice
+                    options {
+                        label
+                        sortOrder
+                        _id
+                        option {
+                            _id
+                            name
+                            type
+                            product
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+# ============================================================
+# 🔄 3. التحويرات (Mutations) المدعومة للطلبات
+# ============================================================
+
+mutation ChangeOrderStatus($input: ChangeOrderStatusInput!) {
+    changeOrderStatus(input: $input) {
+        _id
+        status {
+            _id
+            code
+            title
+        }
+    }
+}
+
+mutation ChangeFinancialStatus($input: ChangeFinancialStatusInput!) {
+    changeFinancialStatus(input: $input) {
+        _id
+        isPaid
+    }
+}
+
+mutation ChangeFulfillmentStatus($input: ChangeFulfillmentStatusInput!) {
+    changeFulfillmentStatus(input: $input) {
+        _id
+        status {
+            _id
+            code
+            title
+        }
+    }
+}
+
+mutation CreateOrder($input: OrderInput!) {
+    createOrder(input: $input) {
+        _id
+        totalPrice
+    }
+}
+
+mutation DeleteOrder($id: ID!) {
+    deleteOrder(id: $id)
+}
