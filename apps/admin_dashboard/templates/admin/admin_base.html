@@ -181,10 +181,16 @@
                         <ul class="dropdown-content">
                             {% for endpoint, label in module.links.items() %}
                                 <li>
-                                    <a href="{{ url_for(endpoint) }}" 
-                                       class="{{ 'active-link' if request.endpoint == endpoint }}">
-                                        <i class="fas fa-angle-left me-2"></i> {{ label }}
-                                    </a>
+                                    {% if endpoint %}
+                                        <a href="{{ url_for(endpoint) }}" 
+                                           class="{{ 'active-link' if request.endpoint == endpoint }}">
+                                            <i class="fas fa-angle-left me-2"></i> {{ label }}
+                                        </a>
+                                    {% else %}
+                                        <a href="#" class="text-muted">
+                                            <i class="fas fa-exclamation-triangle me-2"></i> {{ label }}
+                                        </a>
+                                    {% endif %}
                                 </li>
                             {% endfor %}
                         </ul>
@@ -228,19 +234,13 @@
     <!-- ✅ إضافة مكتبة Tom Select للبحث المتقدم -->
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
-    <!-- ✅ سكربت المعالجة العامة (أرقام إنجليزية + تفعيل البحث في المورد بحماية ضد التكرار) -->
+    <!-- ✅ سكربت المعالجة العامة -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 1. حل مشكلة الأرقام العربية بشكل جذري (لجميع حقول الأرقام في الصفحة)
+            // 1. حل مشكلة الأرقام العربية
             const numberInputs = document.querySelectorAll('input[type="number"]');
             numberInputs.forEach(input => {
                 input.style.unicodeBidi = 'plaintext';
-                let val = input.value;
-                if (val) {
-                    input.value = val.replace(/[٠-٩]/g, function(d) {
-                        return d.charCodeAt(0) - 1632;
-                    });
-                }
                 input.addEventListener('input', function(e) {
                     this.value = this.value.replace(/[٠-٩]/g, function(d) {
                         return d.charCodeAt(0) - 1632;
@@ -248,7 +248,7 @@
                 });
             });
 
-            // 2. تفعيل البحث المتقدم في قائمة "المورد" (Tom Select) - محمي تماماً ضد التهيئة المزدوجة
+            // 2. تفعيل البحث المتقدم (Tom Select)
             if (typeof TomSelect !== 'undefined') {
                 const supplierSelect = document.getElementById('supplierSelect');
                 if (supplierSelect && !supplierSelect.tomselect) {
@@ -256,16 +256,8 @@
                         plugins: ['remove_button'],
                         placeholder: 'ابحث عن المورد هنا...',
                         searchField: ['text'],
-                        maxOptions: 10,
-                        render: {
-                            option: function(data, escape) {
-                                return '<div>' + escape(data.text) + '</div>';
-                            }
-                        }
+                        maxOptions: 10
                     });
-                    console.log('✅ Tom Select (المورد) تم تفعيله بنجاح من admin_base!');
-                } else {
-                    console.log('ℹ️ عنصر المورد غير موجود أو مفعل مسبقاً.');
                 }
             }
         });
@@ -285,7 +277,6 @@
             document.getElementById('sidebar').classList.toggle('active');
         }
         
-        // Close sidebar on outside click (mobile)
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.querySelector('.btn-outline-dark');
@@ -295,7 +286,6 @@
             }
         });
         
-        // Auto-open dropdowns with active links
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.dropdown-content').forEach(function(drop) {
                 if (drop.querySelector('.active-link')) {
