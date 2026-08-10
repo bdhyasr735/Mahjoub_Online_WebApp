@@ -176,7 +176,8 @@
                             <i class="fas fa-chevron-down"></i>
                         </div>
                         <ul class="dropdown-content">
-                            {% for endpoint, label in module.links.items() %}
+                            {% set links_data = module.links.items() if module.links is mapping else module.links %}
+                            {% for endpoint, label in links_data %}
                                 <li>
                                     {% if endpoint and '.' in endpoint %}
                                         <a href="{{ url_for(endpoint) }}" 
