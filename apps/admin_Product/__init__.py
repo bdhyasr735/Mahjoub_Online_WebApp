@@ -14,3 +14,4 @@ admin_product_bp = Blueprint(
 )
 
 from . import routes
+
