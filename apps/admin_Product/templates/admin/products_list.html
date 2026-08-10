@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المنتجات - متجر محجوب أونلاين</title>
+    <!-- Tailwind CSS CDN for Flask Template -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Tajawal', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <!-- Top Admin Navigation Bar -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-500 text-slate-950 font-black px-2.5 py-1 rounded text-lg tracking-wider">
+                    MAHJOUB
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-slate-100">لوحة تحكم المنتجات</h1>
+                    <p class="text-xs text-slate-400">www.mahjoub.online &bull; mudiul admin_Product</p>
+                </div>
+            </div>
+            <a href="{{ url_for('admin_Product.create_product') }}" 
+               class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                إضافة منتج جديد
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="mb-6 p-4 rounded-xl text-sm font-medium border flex justify-between items-center shadow-sm
+                          {% if category == 'success' %} bg-emerald-50 border-emerald-200 text-emerald-800 {% elif category == 'danger' %} bg-rose-50 border-rose-200 text-rose-800 {% else %} bg-sky-50 border-sky-200 text-sky-800 {% endif %}">
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Filter & Search Toolbar -->
+        <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 mb-6">
+            <form method="GET" action="{{ url_for('admin_Product.list_products') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                
+                <!-- Search Box -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">البحث باسم المنتج أو الـ SKU</label>
+                    <div class="relative">
+                        <input type="text" name="search" value="{{ search }}" placeholder="ابحث عن هاتف، ساعة، SKU..." 
+                               class="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" />
+                        <svg class="w-5 h-5 text-slate-400 absolute right-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">الحالة</label>
+                    <select name="status" onchange="this.form.submit()" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>جميع الحالات</option>
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>نشط (Active)</option>
+                        <option value="draft" {% if selected_status == 'draft' %}selected{% endif %}>مسودة (Draft)</option>
+                        <option value="archived" {% if selected_status == 'archived' %}selected{% endif %}>مؤرشف (Archived)</option>
+                    </select>
+                </div>
+
+                <!-- Collection Filter -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">التصنيف / المجموعة</label>
+                    <select name="collection" onchange="this.form.submit()" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="all" {% if selected_collection == 'all' %}selected{% endif %}>جميع التصنيفات</option>
+                        {% for c in collections %}
+                            <option value="{{ c }}" {% if selected_collection == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+            </form>
+        </section>
+
+        <!-- Products Table Container -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div class="flex items-center gap-2">
+                    <h2 class="font-bold text-slate-800">قائمة المنتجات والمتغيرات</h2>
+                    <span class="bg-slate-200 text-slate-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
+                        {{ pagination.total_items }} منتج
+                    </span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-100/70 text-slate-600 font-bold border-b border-slate-200 text-xs uppercase tracking-wider">
+                            <th class="py-3.5 px-6">المنتج</th>
+                            <th class="py-3.5 px-4">الحالة</th>
+                            <th class="py-3.5 px-4">السعر الأساسي</th>
+                            <th class="py-3.5 px-4">المخزون الإجمالي</th>
+                            <th class="py-3.5 px-4">المتغيرات</th>
+                            <th class="py-3.5 px-4">المجموعات</th>
+                            <th class="py-3.5 px-6 text-left">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% if products %}
+                            {% for p in products %}
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-4 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                            {% if p.images and p.images[0].fileUrl %}
+                                                <img src="{{ p.images[0].fileUrl }}" alt="{{ p.title }}" class="w-full h-full object-cover" />
+                                            {% else %}
+                                                <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                </svg>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <a href="{{ url_for('admin_Product.edit_product', product_id=p.id) }}" class="font-bold text-slate-900 hover:text-emerald-600 transition-colors block">
+                                                {{ p.title }}
+                                            </a>
+                                            <span class="text-xs font-mono text-slate-400">SKU: {{ p.sku or 'N/A' }} | /products/{{ p.slug }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-4">
+                                    {% if p.status == 'active' %}
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> نشط
+                                        </span>
+                                    {% elif p.status == 'draft' %}
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> مسودة
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> مؤرشف
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-4 px-4">
+                                    <div class="font-bold text-slate-900">{{ "%.2f"|format(p.price) }} ر.س</div>
+                                    {% if p.compareAtPrice %}
+                                        <div class="text-xs text-slate-400 line-through">{{ "%.2f"|format(p.compareAtPrice) }} ر.س</div>
+                                    {% endif %}
+                                </td>
+                                <td class="py-4 px-4">
+                                    {% if p.quantity > 10 %}
+                                        <span class="font-bold text-slate-700">{{ p.quantity }} قطعة</span>
+                                    {% elif p.quantity > 0 %}
+                                        <span class="font-bold text-amber-600">{{ p.quantity }} (مخزون منخفض)</span>
+                                    {% else %}
+                                        <span class="font-bold text-rose-600">منتهي</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-4 px-4">
+                                    {% if p.dynamic_variants %}
+                                        <span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-md font-bold">
+                                            {{ p.dynamic_variants|length }} متغيرات
+                                        </span>
+                                    {% else %}
+                                        <span class="text-xs text-slate-400">منتج بسيط</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-4 px-4">
+                                    <div class="flex flex-wrap gap-1">
+                                        {% for col in p.collections %}
+                                            <span class="bg-slate-100 text-slate-600 text-[11px] px-2 py-0.5 rounded">{{ col }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td class="py-4 px-6 text-left">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <a href="{{ url_for('admin_Product.edit_product', product_id=p.id) }}" 
+                                           class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all">
+                                            تعديل
+                                        </a>
+                                        <form method="POST" action="{{ url_for('admin_Product.delete_product', product_id=p.id) }}" onsubmit="return confirm('هل أنت تأكد من حذف هذا المنتج؟');" class="inline">
+                                            <button type="submit" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition-all">
+                                                حذف
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="py-12 text-center text-slate-400">
+                                    <p class="font-bold text-base mb-1">لا توجد منتجات مطابقة لخيارات البحث</p>
+                                    <p class="text-xs">جرب تغيير الفلاتر أو أضف منتجاً جديداً</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Footer -->
+            {% if pagination.total_pages > 1 %}
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <span class="text-xs text-slate-500">
+                    عرض الصفحة {{ pagination.page }} من أصل {{ pagination.total_pages }}
+                </span>
+                <div class="flex items-center gap-2">
+                    {% if pagination.has_prev %}
+                        <a href="{{ url_for('admin_Product.list_products', page=pagination.page-1, search=search, status=selected_status, collection=selected_collection) }}" 
+                           class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-50">السابق</a>
+                    {% endif %}
+                    {% if pagination.has_next %}
+                        <a href="{{ url_for('admin_Product.list_products', page=pagination.page+1, search=search, status=selected_status, collection=selected_collection) }}" 
+                           class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-50">التالي</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </section>
+
+    </main>
+</body>
+</html>
