@@ -53,6 +53,7 @@ class ProductService:
 
         try:
             data = client.execute(query, {"input": input_vars}, operation_name="GetProducts")
+            print("🔍 [GraphQL Response Raw]:", data)  # <-- لمراقبة الاستجابة الخام ومعرفة ما إذا كانت المنتجات فارغة من الخادم
             if data and "findAllProducts" in data:
                 result = data["findAllProducts"]
                 return {
