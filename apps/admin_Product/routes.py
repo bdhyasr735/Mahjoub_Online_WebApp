@@ -114,7 +114,6 @@ def edit_product(product_id):
                     "barcode": request.form.get('barcode'),
                     "collections": request.form.getlist('collections'),
                     "tags": [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()],
-                    "images": [{"fileUrl": request.form.get('main_image_url'), "isMain": True}] if request.form.get('main_image_url') else product.get('images', []),
                     "seo": {
                         "title": request.form.get('seo_title'),
                         "description": request.form.get('seo_description'),
