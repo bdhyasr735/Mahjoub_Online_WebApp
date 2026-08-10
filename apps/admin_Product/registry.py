@@ -2,15 +2,14 @@
 # 📂 apps/admin_Product/registry.py
 
 MODULE_NAME = "إدارة المنتجات"
-MODULE_ICON = "bi-box-seam"
+MODULE_ICON = "fas fa-box-seam" # تم تحديث الأيقونة لتكون متوافقة مع FontAwesome
 SHOW_IN_SUPPLIER = False
 
-def get_menu_items():
-    # هذا هو الربط الذي يبحث عنه __init__.py لإظهار النوافذ
-    return [
-        {'title': 'جميع المنتجات', 'endpoint': 'admin_Product.list_products'},
-        {'title': 'إضافة منتج جديد', 'endpoint': 'admin_Product.create_product'},
-    ]
+# الحل الأفضل: استخدام قاموس (Dict) مباشرة لضمان توافقه مع المحرك
+LINKS = {
+    'admin_Product.list_products': 'جميع المنتجات',
+    'admin_Product.create_product': 'إضافة منتج جديد'
+}
 
 def register_module(app):
     from apps.admin_Product.routes import admin_product_bp
