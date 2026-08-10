@@ -1,6 +1,3 @@
-# coding: utf-8
-# 📂 apps/admin_Product/routes.py
-
 """
 routes.py: مسارات الـ Flask للتحكم بالمنتجات، الرفع، التعديل، والـ API الخاصة بموديول admin_Product
 متجر محجوب أونلاين (www.mahjoub.online)
@@ -33,7 +30,7 @@ def list_products():
     return render_template(
         'admin_Product/products_list.html',
         products=result['products'],
-        pagination=result['pagination'],  # <-- تم التصحيح هنا ليمرر بيانات الـ pagination بشكل مباشر للقالب
+        pagination=result,
         search=search,
         selected_status=status,
         selected_collection=collection,
