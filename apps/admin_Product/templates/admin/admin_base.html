@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}لوحة التحكم | متجر محجوب أونلاين{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Tajawal', sans-serif; } </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <!-- Navbar Base -->
+    <header class="bg-[#4A154B] text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-400 text-slate-950 font-black px-3 py-1 rounded-xl text-base tracking-wider shadow-sm">
+                    MAHJOUB
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-white">لوحة تحكم إدارة المتجر</h1>
+                    <p class="text-[11px] text-purple-200">www.mahjoub.online &bull; mudiul admin_Product</p>
+                </div>
+            </div>
+            
+            {% block header_actions %}
+            {% endblock %}
+        </div>
+    </header>
+
+    <!-- Main Content Block -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500 font-medium">
+        حقوق الطبع والنشر &copy; 2026 - متجر محجوب أونلاين. جميع الحقوق محفوظة.
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
