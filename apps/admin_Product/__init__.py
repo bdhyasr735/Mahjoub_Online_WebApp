@@ -1,38 +1,16 @@
-# coding: utf-8
-# 📂 apps/admin_Product/__init__.py
-
 """
-موديول إدارة المنتجات
-يتضمن:
-- عرض المنتجات
-- إضافة/تعديل/حذف
-- مراجعة المنتجات
-- مزامنة مع GraphQL
+admin_Product Blueprint Package
+إدارة المنتجات والمتغيرات لمتجر محجوب أونلاين (www.mahjoub.online)
 """
 
-# استيراد الـ Blueprint من routes
-from .routes import admin_product_bp
+from flask import Blueprint
 
-# استيراد دوال التسجيل من registry
-from .registry import (
-    MODULE_NAME,
-    MODULE_ICON,
-    SHOW_IN_SUPPLIER,
-    LINKS,
-    register_module,
-    get_module_stats,
-    get_module_link,
-    get_dashboard_card
+admin_product_bp = Blueprint(
+    'admin_Product',
+    __name__,
+    template_folder='templates',
+    static_folder='static',
+    url_prefix='/admin/products'
 )
 
-__all__ = [
-    'admin_product_bp',
-    'MODULE_NAME',
-    'MODULE_ICON',
-    'SHOW_IN_SUPPLIER',
-    'LINKS',
-    'register_module',
-    'get_module_stats',
-    'get_module_link',
-    'get_dashboard_card'
-]
+from . import routes
