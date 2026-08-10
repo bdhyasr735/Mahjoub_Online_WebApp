@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 registry.py: سجل وحدة موديول admin_Product لمنصة متجر محجوب أونلاين
 (www.mahjoub.online)
@@ -13,9 +14,9 @@ MODULE_META = {
     'author': 'Mahjoub Online Team',
     'blueprint': admin_product_bp,
     'url_prefix': '/admin/products',
-    'icon': 'box',
+    'icon': 'box-seam',
     'order': 10,
-    'permissions': ['view_products', 'manage_products', 'create_products', 'delete_products']
+    'permissions': ['view_products', 'manage_products', 'create_products']
 }
 
 def register_module(app):
@@ -23,18 +24,19 @@ def register_module(app):
     تسجيل موديول admin_Product في تطبيق الـ Flask الرئيسي
     """
     if 'admin_Product' not in app.blueprints:
-        app.register_blueprint(admin_product_bp)
+        app.register_blueprint(admin_product_bp, url_prefix=MODULE_META['url_prefix'])
     return True
 
 def get_menu_items():
     """
-    عناصر القائمة الجانبية للوحة التحكم Admin Navigation
+    عناصر القائمة الجانبية (Sidebar) لوحة التحكم Admin Navigation
     """
     return [
         {
             'title': 'المنتجات',
             'endpoint': 'admin_Product.list_products',
             'icon': 'box-seam',
+            'order': 10,
             'children': [
                 {'title': 'جميع المنتجات', 'endpoint': 'admin_Product.list_products'},
                 {'title': 'إضافة منتج جديد', 'endpoint': 'admin_Product.create_product'},
