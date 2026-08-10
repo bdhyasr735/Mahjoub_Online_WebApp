@@ -26,7 +26,7 @@ def register_module(app):
     تسجيل موديول admin_Product في تطبيق الـ Flask الرئيسي
     """
     if 'admin_Product' not in app.blueprints:
-        app.register_blueprint(admin_product_bp, url_prefix=MODULE_META['url_prefix'])
+        app.register_blueprint(admin_product_bp)
     return True
 
 def get_menu_items():
