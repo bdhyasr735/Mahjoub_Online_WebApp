@@ -1,17 +1,46 @@
-# -*- coding: utf-8 -*-
-# 📂 apps/admin_Product/registry.py
+"""
+registry.py: سجل وحدة موديول apps/admin_Product لمنصة متجر محجوب أونلاين
+(www.mahjoub.online)
+"""
 
-MODULE_NAME = "إدارة المنتجات"
-MODULE_ICON = "fas fa-box-seam" # تم تحديث الأيقونة لتكون متوافقة مع FontAwesome
-SHOW_IN_SUPPLIER = False
+try:
+    from admin_Product import admin_product_bp
+except ImportError:
+    from . import admin_product_bp
 
-# الحل الأفضل: استخدام قاموس (Dict) مباشرة لضمان توافقه مع المحرك
-LINKS = {
-    'admin_Product.list_products': 'جميع المنتجات',
-    'admin_Product.create_product': 'إضافة منتج جديد'
+MODULE_META = {
+    'id': 'admin_Product',
+    'name': 'إدارة المنتجات المتطورة',
+    'version': '1.0.0',
+    'description': 'وحدة إدارة كافة المنتجات، الأقسام، خيارات متعدد الصور، والـ SEO لمتجر محجوب أونلاين',
+    'author': 'Mahjoub Online Team',
+    'blueprint': admin_product_bp,
+    'url_prefix': '/admin/products',
+    'icon': 'box',
+    'order': 10,
+    'permissions': ['view_products', 'manage_products', 'create_products', 'delete_products']
 }
 
 def register_module(app):
-    from apps.admin_Product.routes import admin_product_bp
+    """
+    تسجيل موديول admin_Product في تطبيق الـ Flask الرئيسي
+    """
     if 'admin_Product' not in app.blueprints:
-        app.register_blueprint(admin_product_bp, url_prefix='/admin/products')
+        app.register_blueprint(admin_product_bp)
+    return True
+
+def get_menu_items():
+    """
+    عناصر القائمة الجانبية للوحة التحكم Admin Navigation
+    """
+    return [
+        {
+            'title': 'المنتجات',
+            'endpoint': 'admin_Product.list_products',
+            'icon': 'box-seam',
+            'children': [
+                {'title': 'جميع المنتجات', 'endpoint': 'admin_Product.list_products'},
+                {'title': 'إضافة منتج جديد', 'endpoint': 'admin_Product.create_product'},
+            ]
+        }
+    ]
