@@ -17,7 +17,6 @@ def list_products():
     )
     collections = ProductService.get_collections()
 
-    # التعديل هنا: إزالة 'admin_Product/' من مسار الملف
     return render_template(
         'products_list.html', 
         products=result.get('products', []),
@@ -33,7 +32,6 @@ def list_products():
 def create_product():
     if request.method == 'POST':
         try:
-            # (نفس الكود الخاص بك هنا - لا يحتاج تغيير)
             data = {
                 "title": request.form.get('title'),
                 "slug": request.form.get('slug') or ProductService.generate_slug(request.form.get('title', '')),
@@ -57,6 +55,7 @@ def create_product():
             if not data["title"]:
                 flash("يرجى إدخال عنوان المنتج الأساسي.", "danger")
                 return redirect(url_for('admin_Product.create_product'))
+            
             ProductService.create_product_data(data)
             flash("تم إضافة المنتج بنجاح!", "success")
             return redirect(url_for('admin_Product.list_products'))
@@ -66,7 +65,6 @@ def create_product():
 
     collections = ProductService.get_collections()
     available_tags = ProductService.get_tags()
-    # التعديل هنا: إزالة 'admin_Product/' من مسار الملف
     return render_template('product_form.html', product=None, collections=collections, tags=available_tags)
 
 @admin_product_bp.route('/<product_id>/edit', methods=['GET', 'POST'])
@@ -78,32 +76,34 @@ def edit_product(product_id):
         return redirect(url_for('admin_Product.list_products'))
 
     if request.method == 'POST':
-        # (نفس الكود الخاص بك هنا - لا يحتاج تغيير)
-        data = {
-            "title": request.form.get('title'),
-            "slug": request.form.get('slug'),
-            "status": request.form.get('status'),
-            "description": request.form.get('description'),
-            "price": float(request.form.get('price', 0)),
-            "compareAtPrice": float(request.form.get('compareAtPrice')) if request.form.get('compareAtPrice') else None,
-            "quantity": int(request.form.get('quantity', 0)),
-            "sku": request.form.get('sku'),
-            "barcode": request.form.get('barcode'),
-            "collections": request.form.getlist('collections'),
-            "tags": [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()],
-            "seo": {
-                "title": request.form.get('seo_title'),
-                "description": request.form.get('seo_description'),
-                "canonicalUrl": request.form.get('seo_canonical')
+        try:
+            data = {
+                "title": request.form.get('title'),
+                "slug": request.form.get('slug'),
+                "status": request.form.get('status'),
+                "description": request.form.get('description'),
+                "price": float(request.form.get('price', 0)),
+                "compareAtPrice": float(request.form.get('compareAtPrice')) if request.form.get('compareAtPrice') else None,
+                "quantity": int(request.form.get('quantity', 0)),
+                "sku": request.form.get('sku'),
+                "barcode": request.form.get('barcode'),
+                "collections": request.form.getlist('collections'),
+                "tags": [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()],
+                "seo": {
+                    "title": request.form.get('seo_title'),
+                    "description": request.form.get('seo_description'),
+                    "canonicalUrl": request.form.get('seo_canonical')
+                }
             }
-        }
-        ProductService.update_product_data(product_id, data)
-        flash("تم تحديث المنتج!", "success")
-        return redirect(url_for('admin_Product.list_products'))
+            ProductService.update_product_data(product_id, data)
+            flash("تم تحديث المنتج بنجاح!", "success")
+            return redirect(url_for('admin_Product.list_products'))
+        except Exception as e:
+            flash(f"حدث خطأ أثناء التحديث: {str(e)}", "danger")
+            return redirect(url_for('admin_Product.edit_product', product_id=product_id))
 
     collections = ProductService.get_collections()
     available_tags = ProductService.get_tags()
-    # التعديل هنا: إزالة 'admin_Product/' من مسار الملف
     return render_template('product_form.html', product=product, collections=collections, tags=available_tags)
 
 @admin_product_bp.route('/<product_id>/status', methods=['GET', 'POST'])
@@ -113,9 +113,13 @@ def toggle_status(product_id):
     if not new_status:
         flash("لم يتم تحديد الحالة.", "warning")
         return redirect(url_for('admin_Product.list_products'))
+    
     success, _ = ProductService.toggle_product_status(product_id, new_status)
     if success:
-        flash("تم تحديث الحالة.", "info")
+        flash("تم تحديث الحالة بنجاح.", "success")
+    else:
+        flash("فشل في تحديث حالة المنتج.", "danger")
+        
     return redirect(url_for('admin_Product.list_products'))
 
 @admin_product_bp.route('/api/generate-slug', methods=['POST'])
