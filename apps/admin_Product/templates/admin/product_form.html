@@ -1,295 +1,138 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if product %}تعديل المنتج: {{ product.title }}{% else %}إضافة منتج جديد{% endif %} - محجوب أونلاين</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Tajawal', sans-serif; } </style>
-</head>
-<body class="bg-slate-50 text-slate-800 min-h-screen">
+{# 📂 apps/admin_Product/templates/admin_Product/product_form.html #}
+{% extends "admin/admin_base.html" %}
 
-    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <a href="{{ url_for('admin_Product.list_products') }}" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                    </svg>
-                </a>
+{% block title %}
+{% if product %}تعديل المنتج: {{ product.title }}{% else %}إضافة منتج جديد{% endif %} - متجر محجوب أونلاين
+{% endblock %}
+
+{% block header_actions %}
+<div class="flex items-center gap-3">
+    <a href="{{ url_for('admin_Product.list_products') }}" class="px-4 py-2 bg-[#3b113c] hover:bg-[#2e0d2f] text-white rounded-xl text-xs font-bold transition-all">إلغاء</a>
+    <button form="productForm" type="submit" class="px-5 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-sm transition-all active:scale-95">
+        حفظ المنتج
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<form id="productForm" method="POST" action="{% if product %}{{ url_for('admin_Product.edit_product', product_id=product.id) }}{% else %}{{ url_for('admin_Product.create_product') }}{% endif %}" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- Main Content Area (2 Columns) -->
+    <div class="lg:col-span-2 space-y-6">
+
+        <!-- 1. البيانات الأساسية -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+            <h2 class="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-[#4A154B]"></span>
+                البيانات الأساسية للمنتج
+            </h2>
+
+            <div class="space-y-4">
                 <div>
-                    <h1 class="text-base font-bold text-slate-100">
-                        {% if product %}تعديل المنتج: {{ product.title }}{% else %}إضافة منتج جديد{% endif %}
-                    </h1>
-                    <p class="text-xs text-slate-400">admin_Product &bull; متجر محجوب أونلاين</p>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">عنوان المنتج (Title) <span class="text-rose-500">*</span></label>
+                    <input type="text" id="product_title" name="title" value="{{ product.title if product else '' }}" required
+                           placeholder="مثال: آيفون 15 برو ماكس 256 جيجابايت"
+                           oninput="updateSlug(this.value)"
+                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#4A154B] focus:outline-none" />
                 </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ url_for('admin_Product.list_products') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-slate-200">إلغاء</a>
-                <button form="productForm" type="submit" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-lg text-sm font-bold shadow-sm">
-                    حفظ المنتج
-                </button>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">الرابط الصديق (Slug)</label>
+                        <input type="text" id="product_slug" name="slug" value="{{ product.slug if product else '' }}"
+                               placeholder="iphone-15-pro-max"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-[#4A154B] focus:outline-none" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">حالة المنتج (Status)</label>
+                        <select name="status" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                            <option value="active" {% if product and product.status == 'active' %}selected{% endif %}>نشط (Active)</option>
+                            <option value="draft" {% if not product or product.status == 'draft' %}selected{% endif %}>مسودة (Draft)</option>
+                            <option value="archived" {% if product and product.status == 'archived' %}selected{% endif %}>مؤرشف (Archived)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">الوصف الكامل والمواصفات (Description)</label>
+                    <textarea name="description" rows="5"
+                              placeholder="اكتب وصفاً مفصلاً للمنتج والمميزات..."
+                              class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#4A154B] focus:outline-none leading-relaxed">{{ product.description if product else '' }}</textarea>
+                </div>
             </div>
         </div>
-    </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 2. التسعير والمخزون -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+            <h2 class="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                التسعير والمخزون (Pricing & Inventory)
+            </h2>
 
-        <form id="productForm" method="POST" action="{% if product %}{{ url_for('admin_Product.edit_product', product_id=product.id) }}{% else %}{{ url_for('admin_Product.create_product') }}{% endif %}" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <!-- Main Content Area (2 Columns) -->
-            <div class="lg:col-span-2 space-y-6">
-
-                <!-- 1. البيانات الأساسية -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h2 class="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        البيانات الأساسية
-                    </h2>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">عنوان المنتج (Title) <span class="text-rose-500">*</span></label>
-                            <input type="text" id="product_title" name="title" value="{{ product.title if product else '' }}" required
-                                   placeholder="مثال: آيفون 15 برو ماكس 256 جيجابايت"
-                                   oninput="updateSlug(this.value)"
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">الرابط الصديق (Slug)</label>
-                                <input type="text" id="product_slug" name="slug" value="{{ product.slug if product else '' }}"
-                                       placeholder="iphone-15-pro-max"
-                                       class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">حالة المنتج (Status)</label>
-                                <select name="status" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                                    <option value="active" {% if product and product.status == 'active' %}selected{% endif %}>نشط (Active)</option>
-                                    <option value="draft" {% if not product or product.status == 'draft' %}selected{% endif %}>مسودة (Draft)</option>
-                                    <option value="archived" {% if product and product.status == 'archived' %}selected{% endif %}>مؤرشف (Archived)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">الوصف الشامل (Description)</label>
-                            <textarea name="description" rows="5" placeholder="اكتب وصفاً جذاباً ومفصلاً للمنتج ومميزاته..."
-                                      class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">{{ product.description if product else '' }}</textarea>
-                        </div>
-                    </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">سعر البيع (SAR) <span class="text-rose-500">*</span></label>
+                    <input type="number" step="0.01" name="price" value="{{ product.price if product else '0.00' }}" required
+                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-[#4A154B] focus:outline-none" />
                 </div>
 
-                <!-- 2. التسعير والمخزون -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h2 class="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                        التسعير والمخزون
-                    </h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">السعر الأساسي (Price) <span class="text-rose-500">*</span></label>
-                            <div class="relative">
-                                <input type="number" step="0.01" name="price" value="{{ product.price if product else '0.00' }}" required
-                                       class="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                                <span class="absolute left-3 top-3 text-xs font-bold text-slate-400">ر.س</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">سعر الشطب/المقارنة (Compare At)</label>
-                            <div class="relative">
-                                <input type="number" step="0.01" name="compareAtPrice" value="{{ product.compareAtPrice if product and product.compareAtPrice else '' }}"
-                                       placeholder="أعلى من الأساسي"
-                                       class="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                                <span class="absolute left-3 top-3 text-xs font-bold text-slate-400">ر.س</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">الكمية الإجمالية (Quantity)</label>
-                            <input type="number" name="quantity" value="{{ product.quantity if product else '0' }}"
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">رمز المخزون (SKU)</label>
-                            <input type="text" name="sku" value="{{ product.sku if product else '' }}" placeholder="IPH-15PM-256"
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">الباركود (Barcode/EAN)</label>
-                            <input type="text" name="barcode" value="{{ product.barcode if product else '' }}" placeholder="6291048201923"
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                        </div>
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">السعر قبل الخصم (Compare-at Price)</label>
+                    <input type="number" step="0.01" name="compareAtPrice" value="{{ product.compareAtPrice if product and product.compareAtPrice else '' }}"
+                           placeholder="مثال: 5299.00"
+                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#4A154B] focus:outline-none" />
                 </div>
 
-                <!-- 3. المتغيرات الديناميكية (Dynamic Variants) -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-                            المتغيرات الديناميكية (Dynamic Variants)
-                        </h2>
-                        <button type="button" onclick="addVariantRow()" class="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-bold transition-all">
-                            + إضافة متغير
-                        </button>
-                    </div>
-
-                    <p class="text-xs text-slate-500 mb-4">أضف خيارات للمنتج مثل الألوان، الأحجام، السعات مع تخصيص سعر وكمية لكل متغير.</p>
-
-                    <div id="variantsContainer" class="space-y-3">
-                        {% if product and product.dynamic_variants %}
-                            {% for v in product.dynamic_variants %}
-                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 md:grid-cols-5 gap-2 items-center variant-row">
-                                <input type="text" name="variant_name[]" value="{{ v.name }}" placeholder="اسم المتغير (مثال: اللون: أحمر)" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold md:col-span-2" />
-                                <input type="number" step="0.01" name="variant_price[]" value="{{ v.price }}" placeholder="السعر" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
-                                <input type="number" name="variant_quantity[]" value="{{ v.quantity }}" placeholder="الكمية" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
-                                <div class="flex items-center justify-between">
-                                    <input type="text" name="variant_sku[]" value="{{ v.sku }}" placeholder="SKU" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono w-full ml-2" />
-                                    <button type="button" onclick="this.closest('.variant-row').remove()" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg">
-                                        &times;
-                                    </button>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <p id="noVariantsMsg" class="text-xs text-slate-400 text-center py-4 border border-dashed border-slate-200 rounded-xl">لا توجد متغيرات مضافة لهذا المنتج بعد.</p>
-                        {% endif %}
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">الكمية المتاحة بالمخزن (Quantity)</label>
+                    <input type="number" name="quantity" value="{{ product.quantity if product else '10' }}"
+                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-[#4A154B] focus:outline-none" />
                 </div>
 
-                <!-- 4. محركات البحث والـ SEO -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h2 class="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                        بيانات محركات البحث (SEO)
-                    </h2>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">عنوان الميتا (Meta Title)</label>
-                            <input type="text" name="seo_title" value="{{ product.seo.title if product and product.seo else '' }}"
-                                   placeholder="عنوان الصفحة في نتائج جوجل"
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">وصف الميتا (Meta Description)</label>
-                            <textarea name="seo_description" rows="2" placeholder="وصف مقتضب يظهر تحت عنوان البحث..."
-                                      class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">{{ product.seo.description if product and product.seo else '' }}</textarea>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">الرابط الرسمي (Canonical URL)</label>
-                            <input type="text" name="seo_canonical" value="{{ product.seo.canonicalUrl if product and product.seo else '' }}"
-                                   placeholder="https://www.mahjoub.online/products/sample"
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                        </div>
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">رمز المخزون (SKU)</label>
+                    <input type="text" name="sku" value="{{ product.sku if product else '' }}" placeholder="PROD-101-SKU"
+                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-[#4A154B] focus:outline-none" />
                 </div>
-
             </div>
+        </div>
 
-            <!-- Sidebar Column (1 Column) -->
-            <div class="space-y-6">
+    </div>
 
-                <!-- الوسائط والصور -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h2 class="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">صورة المنتج الرئيسية</h2>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">رابط الصورة (images.fileUrl)</label>
-                        <input type="url" name="main_image_url" id="main_image_input" 
-                               value="{% if product and product.images %}{{ product.images[0].fileUrl }}{% endif %}"
-                               placeholder="https://images.unsplash.com/..." 
-                               oninput="previewImage(this.value)"
-                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none mb-3" />
-                        
-                        <div id="imagePreviewContainer" class="w-full h-48 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center">
-                            {% if product and product.images and product.images[0].fileUrl %}
-                                <img id="imagePreview" src="{{ product.images[0].fileUrl }}" class="w-full h-full object-cover" />
-                            {% else %}
-                                <span class="text-xs text-slate-400">معاينة الصورة ستظهر هنا</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
+    <!-- Sidebar Info (1 Column) -->
+    <div class="space-y-6">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">صورة المنتج الرئيسية</h3>
+            <input type="url" name="main_image_url" value="{% if product and product.images and product.images[0] %}{{ product.images[0].fileUrl }}{% endif %}"
+                   placeholder="https://images.unsplash.com/photo-..."
+                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#4A154B]" />
+        </div>
 
-                <!-- المجموعات والتصنيفات -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h2 class="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">المجموعات (Collections)</h2>
-                    <div class="space-y-2 max-h-48 overflow-y-auto pl-1">
-                        {% for col in collections %}
-                        <label class="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer text-xs font-medium">
-                            <input type="checkbox" name="collections" value="{{ col }}"
-                                   {% if product and col in product.collections %}checked{% endif %}
-                                   class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500" />
-                            <span>{{ col }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- العلامات (Tags) -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h2 class="text-base font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">العلامات (Tags)</h2>
-                    <input type="text" name="tags" 
-                           value="{% if product and product.tags %}{{ product.tags|join(', ') }}{% endif %}"
-                           placeholder="أدخل العلامات مفصولة بفواصل..." 
-                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-                    <p class="text-[11px] text-slate-400 mt-2">مثال: آيفون, 256GB, تيتانيوم</p>
-                </div>
-
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">التصنيفات والمجموعات</h3>
+            <div class="space-y-2">
+                {% for c in collections %}
+                <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input type="checkbox" name="collections" value="{{ c }}"
+                           {% if product and c in product.collections %}checked{% endif %}
+                           class="w-4 h-4 text-[#4A154B] rounded border-slate-300 focus:ring-[#4A154B]">
+                    <span>{{ c }}</span>
+                </label>
+                {% endfor %}
             </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
 
-        </form>
-
-    </main>
-
-    <script>
-        function updateSlug(val) {
-            const slugInput = document.getElementById('product_slug');
-            if (val && !slugInput.value) {
-                slugInput.value = val.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
-            }
+{% block extra_scripts %}
+<script>
+    function updateSlug(val) {
+        const slugInput = document.getElementById('product_slug');
+        if (slugInput && !slugInput.dataset.userEdited) {
+            slugInput.value = val.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
         }
-
-        function previewImage(url) {
-            const container = document.getElementById('imagePreviewContainer');
-            if (url) {
-                container.innerHTML = `<img src="${url}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x300?text=رابط+غير+صالح'" />`;
-            } else {
-                container.innerHTML = '<span class="text-xs text-slate-400">معاينة الصورة ستظهر هنا</span>';
-            }
-        }
-
-        function addVariantRow() {
-            const container = document.getElementById('variantsContainer');
-            const noMsg = document.getElementById('noVariantsMsg');
-            if (noMsg) noMsg.remove();
-
-            const div = document.createElement('div');
-            div.className = "p-3 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 md:grid-cols-5 gap-2 items-center variant-row";
-            div.innerHTML = `
-                <input type="text" name="variant_name[]" placeholder="اسم المتغير (مثال: اللون: أحمر)" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold md:col-span-2" />
-                <input type="number" step="0.01" name="variant_price[]" placeholder="السعر" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
-                <input type="number" name="variant_quantity[]" placeholder="الكمية" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
-                <div class="flex items-center justify-between">
-                    <input type="text" name="variant_sku[]" placeholder="SKU" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono w-full ml-2" />
-                    <button type="button" onclick="this.closest('.variant-row').remove()" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg">
-                        &times;
-                    </button>
-                </div>
-            `;
-            container.appendChild(div);
-        }
-    </script>
-</body>
-</html>
+    }
+</script>
+{% endblock %}
