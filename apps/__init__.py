@@ -34,7 +34,6 @@ def create_app():
         SESSION_COOKIE_SAMESITE='Lax',
     )
 
-    # ✅ إتاحة دالة getattr في قوالب جينجا لمنع أخطاء العرض نهائياً
     app.jinja_env.globals.update(getattr=getattr)
 
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
@@ -42,7 +41,7 @@ def create_app():
     db.init_app(app)
     
     # ============================================================
-    # ✅ إعادة بناء الجداول تلقائياً وتحديث الأعمدة والزراعة (الحل الجذري)
+    # ✅ إعادة بناء الجداول تلقائياً وتحديث الأعمدة والزراعة
     # ============================================================
     with app.app_context():
         from apps.models.admin_db import AdminUser
@@ -61,13 +60,12 @@ def create_app():
         
         print("🔄 [DB]: جاري إعادة ضبط وبناء الجداول بالهيكلة الكاملة...")
         
-        # ⚠️ تفريغ وحذف جميع الجداول وقيود الارتباط بشكل قسري وآمن
         db.session.execute(db.text('DROP SCHEMA public CASCADE; CREATE SCHEMA public;'))
         db.session.commit()
         db.create_all()
         print("✅ [DB]: تم إعادة إنشاء جميع الجداول بنجاح.")
 
-        # ✅ 1. زراعة المالك (AdminUser)
+        # ✅ 1. زراعة المالك
         try:
             admin = AdminUser(username='ali_mahjoub', role='Owner')
             admin.set_password('123')
@@ -78,7 +76,7 @@ def create_app():
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المالك: {e}")
 
-        # ✅ 2. زراعة موظف إدارة افتراضي (AdminStaff)
+        # ✅ 2. زراعة موظف إدارة
         try:
             staff = AdminStaff(
                 username='admin_staff_test',
@@ -91,12 +89,12 @@ def create_app():
             staff.set_password('123')
             db.session.merge(staff)
             db.session.commit()
-            print("✅ [Seed]: تم زرع موظف الإدارة افتراضياً (admin_staff_test / 123).")
+            print("✅ [Seed]: تم زرع موظف الإدارة افتراضياً.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة موظف الإدارة: {e}")
         
-        # ✅ 3. زراعة مورد تجريبي مع محفظة
+        # ✅ 3. زراعة مورد
         try:
             supplier = Supplier(
                 username='test_supplier',
@@ -116,12 +114,12 @@ def create_app():
             )
             db.session.add(wallet)
             db.session.commit()
-            print("✅ [Seed]: تم زرع مورد تجريبي test_supplier / 123 مع محفظة.")
+            print("✅ [Seed]: تم زرع مورد تجريبي مع محفظة.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المورد التجريبي: {e}")
 
-        # ✅ 4. زراعة موظف مورد افتراضي (SupplierStaff)
+        # ✅ 4. زراعة موظف مورد
         try:
             sup = Supplier.query.filter_by(username='test_supplier').first()
             if sup:
@@ -137,12 +135,12 @@ def create_app():
                 s_staff.set_password('123')
                 db.session.merge(s_staff)
                 db.session.commit()
-                print("✅ [Seed]: تم زرع موظف المورد افتراضياً (supplier_staff_test / 123).")
+                print("✅ [Seed]: تم زرع موظف المورد افتراضياً.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة موظف المورد: {e}")
 
-        # ✅ 5. زراعة منتج تجريبي وربطه بالمورد
+        # ✅ 5. زراعة منتج تجريبي
         try:
             sup = Supplier.query.filter_by(username='test_supplier').first()
             if sup:
@@ -155,7 +153,7 @@ def create_app():
                 )
                 db.session.merge(mapping)
                 db.session.commit()
-                print(f"✅ [Seed]: تم ربط منتج تجريبي (TEST_PROD_001) بالمورد.")
+                print(f"✅ [Seed]: تم ربط منتج تجريبي بالمورد.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المنتج التجريبي: {e}")
@@ -184,7 +182,6 @@ def create_app():
             return db.session.get(SupplierStaff, user_id_int)
         elif user_type == 'supplier': 
             return db.session.get(Supplier, user_id_int)
-            
         return (
             db.session.get(Supplier, user_id_int) or
             db.session.get(SupplierStaff, user_id_int) or
@@ -201,7 +198,6 @@ def create_app():
     @app.before_request
     def protect_routes():
         path = request.path
-        
         exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection']
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
@@ -222,7 +218,6 @@ def create_app():
 
         if path.startswith('/supplier'):
             return redirect(url_for('suppliers_auth.login'))
-        
         if path.startswith('/admin') or path.startswith('/dashboard'):
             admin_login_path = os.environ.get('ADMIN_LOGIN_PATH', '/auth/m7jb_sovereign_hq_v2_99x')
             return redirect(admin_login_path)
@@ -294,7 +289,9 @@ def create_app():
     except ImportError:
         pass
 
-    # البحث عن الموديولات الديناميكية وتسجيلها
+    # ============================================================
+    # ✅ البحث عن الموديولات الديناميكية وتسجيلها (مع الحل الجذري للقوائم)
+    # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin']
     
@@ -319,12 +316,14 @@ def create_app():
                     else:
                         print(f"⚠️ [Registry]: الموديول '{item}' لا يحتوي على register_module")
                     
-                    module_links = getattr(module, 'LINKS', {})
-                    if module_links:
+                    # 🚨 ✅ الإضافة الحاسمة هنا: التعامل مع get_menu_items()
+                    menu_items = getattr(module, 'get_menu_items', None)
+                    if menu_items:
+                        items_list = menu_items()
                         mod_data = {
                             "display_name": getattr(module, 'MODULE_NAME', item.replace('_', ' ').capitalize()),
                             "icon": getattr(module, 'MODULE_ICON', 'fa-folder'),
-                            "links": module_links,
+                            "links": items_list,
                         }
                         if getattr(module, 'SHOW_IN_SUPPLIER', False):
                             SUPPLIER_MODULES[item] = mod_data
