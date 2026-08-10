@@ -14,7 +14,6 @@ class ProductService:
     def get_products_page(page=1, per_page=10, search=None, status=None, collection=None):
         """جلب صفحة المنتجات من قمره مع الفلاتر والبحث"""
         client = ProductService.get_graphql_client()
-        # استعلام مبني على استعلام المنتجات السابق
         query = """
         query GetProducts($input: FindAllProductsInput!) {
             findAllProducts(input: $input) {
@@ -44,7 +43,6 @@ class ProductService:
             }
         }
         """
-        # بناء متغيرات الإدخال
         input_vars = {"page": page, "limit": per_page}
         if search:
             input_vars["search"] = search
@@ -63,9 +61,53 @@ class ProductService:
         return {'products': [], 'pagination': {'totalPages': 1, 'currentPage': 1}}
 
     @staticmethod
+    def get_product_by_id(product_id):
+        """جلب منتج واحد بواسطة الـ ID الخاص به (لمنع انهيار route edit_product)"""
+        client = ProductService.get_graphql_client()
+        query = """
+        query GetProductById($id: ID!) {
+            findProductByQid(qid: $id) {
+                success
+                message
+                data {
+                    _id
+                    title
+                    slug
+                    description
+                    status
+                    pricing {
+                        price
+                        compareAtPrice
+                        originalPrice
+                    }
+                    images {
+                        fileUrl
+                    }
+                    quantity
+                    seo {
+                        title
+                        description
+                        keywords
+                    }
+                    tags
+                    collections {
+                        title
+                        handle
+                    }
+                }
+            }
+        }
+        """
+        data = client.execute(query, {"id": product_id})
+        if data and "findProductByQid" in data:
+            result = data["findProductByQid"]
+            if result.get("success"):
+                return result.get("data")
+        return None
+
+    @staticmethod
     def get_collections():
-        """جلب قائمة التصنيفات (مؤقتة – يمكن تطويرها لاحقاً)"""
-        # يمكنك لاحقاً جلبها من GraphQL، حالياً نعيد قائمة ثابتة للتجربة
+        """جلب قائمة التصنيفات (مؤقتة)"""
         return ["إلكترونيات", "ملابس", "أثاث", "ألعاب"]
 
     @staticmethod
@@ -77,14 +119,11 @@ class ProductService:
     def create_product_data(data):
         """إنشاء منتج جديد باستخدام Mutation"""
         client = ProductService.get_graphql_client()
-        # يمكنك هنا كتابة Mutation `createProduct` الخاص بقمره
-        # حالياً نعيد كائناً وهمياً للتجربة
         return {"id": "new_prod_001", "title": data.get('title')}
 
     @staticmethod
     def update_product_data(product_id, data):
         """تحديث منتج"""
-        # يمكنك هنا كتابة Mutation `updateProduct`
         return {"id": product_id, "title": data.get('title')}
 
     @staticmethod
