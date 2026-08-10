@@ -290,7 +290,7 @@ def create_app():
         pass
 
     # ============================================================
-    # ✅ البحث عن الموديولات الديناميكية وتسجيلها (مع الحل الجذري للقوائم)
+    # ✅ البحث عن الموديولات الديناميكية وتسجيلها تلقائياً
     # ============================================================
     apps_dir = app.root_path
     ignored_dirs = ['__pycache__', 'models', 'extensions', 'static', 'templates', 'migrations', 'utils', 'api', 'data', 'auth_portal', 'suppliers_auth_portal', 'admin']
@@ -316,25 +316,23 @@ def create_app():
                     else:
                         print(f"⚠️ [Registry]: الموديول '{item}' لا يحتوي على register_module")
                     
-                    # 🔍 الحل الديناميكي الشامل: دعم LINKS (Dict) أو get_menu_items() (List/Dict)
+                    # استخراج الروابط سواء كانت قواميس (Dict) أو قوائم (List)
                     links_data = None
                     
-                    # 1. فحص إذا كان الموديول يستعمل LINKS مباشرة
                     if hasattr(module, 'LINKS'):
                         raw_links = getattr(module, 'LINKS')
                         if isinstance(raw_links, dict):
-                            links_data = [{'endpoint': ep, 'title': lbl} for ep, lbl in raw_links.items()]
+                            links_data = {ep: lbl for ep, lbl in raw_links.items()}
                         elif isinstance(raw_links, list):
-                            links_data = raw_links
+                            links_data = {ep: lbl for ep, lbl in raw_links}
 
-                    # 2. فحص إذا كان الموديول يستعمل دالة get_menu_items()
                     menu_items_func = getattr(module, 'get_menu_items', None)
                     if not links_data and menu_items_func:
                         res = menu_items_func()
                         if isinstance(res, dict):
-                            links_data = [{'endpoint': ep, 'title': lbl} for ep, lbl in res.items()]
-                        elif isinstance(res, list):
                             links_data = res
+                        elif isinstance(res, list):
+                            links_data = {ep: lbl for ep, lbl in res}
 
                     if links_data:
                         mod_data = {
