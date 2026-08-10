@@ -33,7 +33,7 @@ def list_products():
     return render_template(
         'admin_Product/products_list.html',
         products=result['products'],
-        pagination=result,
+        pagination=result['pagination'],  # <-- تم التصحيح هنا ليمرر بيانات الـ pagination بشكل مباشر للقالب
         search=search,
         selected_status=status,
         selected_collection=collection,
