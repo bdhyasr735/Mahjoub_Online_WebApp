@@ -1,34 +1,46 @@
-# -*- coding: utf-8 -*-
 """
-registry.py: تسجيل موديول إدارة المنتجات ديناميكياً في لوحة التحكم المركزية
-متجر محجوب أونلاين (www.mahjoub.online)
+registry.py: سجل وحدة موديول apps/admin_Product لمنصة متجر محجوب أونلاين
+(www.mahjoub.online)
 """
 
-from .routes import admin_product_bp
+try:
+    from admin_Product import admin_product_bp
+except ImportError:
+    from . import admin_product_bp
 
-# إعدادات العرض في القائمة الجانبية للإدارة
-MODULE_NAME = "إدارة المنتجات"
-MODULE_ICON = "fas fa-box-open"  # أضفت s لتعمل أيقونات FontAwesome بشكل صحيح
-SHOW_IN_SUPPLIER = False  # يظهر للإدارة فقط
-
-# الروابط التي ستظهر تحت هذا الموديول في القائمة الجانبية
-# التنسيق هو: {"الاسم_البرمجي_للـ_endpoint": "النص_الذي_يظهر_للمستخدم"}
-LINKS = {
-    "admin_Product.list_products": "قائمة المنتجات",
-    "admin_Product.create_product": "إضافة منتج جديد"
+MODULE_META = {
+    'id': 'admin_Product',
+    'name': 'إدارة المنتجات المتطورة',
+    'version': '1.0.0',
+    'description': 'وحدة إدارة كافة المنتجات، الأقسام، خيارات متعدد الصور، والـ SEO لمتجر محجوب أونلاين',
+    'author': 'Mahjoub Online Team',
+    'blueprint': admin_product_bp,
+    'url_prefix': '/admin/products',
+    'icon': 'box',
+    'order': 10,
+    'permissions': ['view_products', 'manage_products', 'create_products', 'delete_products']
 }
 
 def register_module(app):
     """
-    تسجيل الـ Blueprint الخاص بالمنتجات مع تحديد مسار البدء /admin/products
+    تسجيل موديول admin_Product في تطبيق الـ Flask الرئيسي
     """
-    app.register_blueprint(admin_product_bp, url_prefix='/admin/products')
+    if 'admin_Product' not in app.blueprints:
+        app.register_blueprint(admin_product_bp, url_prefix=MODULE_META['url_prefix'])
+    return True
 
-# هذه الدالة اختيارية إذا كان نظامك يقوم بجمع الموديولات تلقائياً عبر استيرادها
-def get_module_config():
-    return {
-        "display_name": MODULE_NAME,
-        "icon": MODULE_ICON,
-        "links": LINKS,
-        "show_in_supplier": SHOW_IN_SUPPLIER
-    }
+def get_menu_items():
+    """
+    عناصر القائمة الجانبية للوحة التحكم Admin Navigation
+    """
+    return [
+        {
+            'title': 'المنتجات',
+            'endpoint': 'admin_Product.list_products',
+            'icon': 'box-seam',
+            'children': [
+                {'title': 'جميع المنتجات', 'endpoint': 'admin_Product.list_products'},
+                {'title': 'إضافة منتج جديد', 'endpoint': 'admin_Product.create_product'},
+            ]
+        }
+    ]
