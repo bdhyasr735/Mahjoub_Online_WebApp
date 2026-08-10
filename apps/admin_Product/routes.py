@@ -18,7 +18,7 @@ def list_products():
     collections = ProductService.get_collections()
 
     return render_template(
-        'products_list.html', 
+        'admin/products_list.html', 
         products=result.get('products', []),
         pagination=result,
         search=search,
@@ -65,7 +65,7 @@ def create_product():
 
     collections = ProductService.get_collections()
     available_tags = ProductService.get_tags()
-    return render_template('product_form.html', product=None, collections=collections, tags=available_tags)
+    return render_template('admin/product_form.html', product=None, collections=collections, tags=available_tags)
 
 @admin_product_bp.route('/<product_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -104,7 +104,7 @@ def edit_product(product_id):
 
     collections = ProductService.get_collections()
     available_tags = ProductService.get_tags()
-    return render_template('product_form.html', product=product, collections=collections, tags=available_tags)
+    return render_template('admin/product_form.html', product=product, collections=collections, tags=available_tags)
 
 @admin_product_bp.route('/<product_id>/status', methods=['GET', 'POST'])
 @login_required
