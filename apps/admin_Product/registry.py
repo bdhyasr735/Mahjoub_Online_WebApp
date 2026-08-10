@@ -1,45 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-registry.py: سجل وحدة موديول admin_Product لمنصة متجر محجوب أونلاين
-(www.mahjoub.online)
+registry.py: تسجيل موديول إدارة المنتجات ديناميكياً في لوحة التحكم المركزية
+متجر محجوب أونلاين (www.mahjoub.online)
 """
 
-from . import admin_product_bp
+from .routes import admin_product_bp
 
-MODULE_META = {
-    'id': 'admin_Product',
-    'name': 'إدارة المنتجات المتطورة',
-    'version': '1.0.0',
-    'description': 'وحدة إدارة كافة المنتجات، الأقسام، خيارات متعدد الصور، والـ SEO لمتجر محجوب أونلاين',
-    'author': 'Mahjoub Online Team',
-    'blueprint': admin_product_bp,
-    'url_prefix': '/admin/products',
-    'icon': 'box-seam',
-    'order': 10,
-    'permissions': ['view_products', 'manage_products', 'create_products']
+# إعدادات العرض في القائمة الجانبية للإدارة
+MODULE_NAME = "إدارة المنتجات"
+MODULE_ICON = "fa-box-open"
+SHOW_IN_SUPPLIER = False  # يظهر للإدارة فقط
+
+# الروابط التي ستظهر تحت هذا الموديول في القائمة الجانبية
+LINKS = {
+    "قائمة المنتجات": "admin_Product.list_products",
+    "إضافة منتج جديد": "admin_Product.create_product"
 }
 
 def register_module(app):
     """
-    تسجيل موديول admin_Product في تطبيق الـ Flask الرئيسي
+    تسجيل الـ Blueprint الخاص بالمنتجات مع تحديد مسار البدء /admin/products
     """
-    if 'admin_Product' not in app.blueprints:
-        app.register_blueprint(admin_product_bp, url_prefix=MODULE_META['url_prefix'])
-    return True
-
-def get_menu_items():
-    """
-    عناصر القائمة الجانبية (Sidebar) لوحة التحكم Admin Navigation
-    """
-    return [
-        {
-            'title': 'المنتجات',
-            'endpoint': 'admin_Product.list_products',
-            'icon': 'box-seam',
-            'order': 10,
-            'children': [
-                {'title': 'جميع المنتجات', 'endpoint': 'admin_Product.list_products'},
-                {'title': 'إضافة منتج جديد', 'endpoint': 'admin_Product.create_product'},
-            ]
-        }
-    ]
+    app.register_blueprint(admin_product_bp, url_prefix='/admin/products')
