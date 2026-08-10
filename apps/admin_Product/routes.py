@@ -1,8 +1,3 @@
-"""
-routes.py: مسارات الـ Flask للتحكم بالمنتجات، الرفع، التعديل، والـ API الخاصة بموديول admin_Product
-متجر محجوب أونلاين (www.mahjoub.online)
-"""
-
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from . import admin_product_bp
 from .services import ProductService
