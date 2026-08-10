@@ -149,8 +149,8 @@
                                 </svg>
                             </a>
                             
-                            <!-- تغيير الحالة بسرعة (تبديل بين نشط ومسودة) -->
-                            <a href="{{ url_for('admin_Product.toggle_status', product_id=p.id, status='active' if p.status != 'active' else 'draft') }}" 
+                            <!-- تغيير الحالة بسرعة -->
+                            <a href="{{ url_for('admin_Product.toggle_status', product_id=p.id, status=('active' if p.status != 'active' else 'draft')) }}" 
                                class="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors" 
                                title="تغيير الحالة">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
