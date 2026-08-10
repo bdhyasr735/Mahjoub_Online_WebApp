@@ -178,13 +178,13 @@
                         <ul class="dropdown-content">
                             {% for endpoint, label in module.links.items() %}
                                 <li>
-                                    {% if endpoint %}
+                                    {% if endpoint and '.' in endpoint %}
                                         <a href="{{ url_for(endpoint) }}" 
                                            class="{{ 'active-link' if request.endpoint == endpoint }}">
                                             <i class="fas fa-angle-left me-2"></i> {{ label }}
                                         </a>
                                     {% else %}
-                                        <a href="#" class="text-muted">
+                                        <a href="#" class="text-muted" title="مسار غير معرّف برمجياً: {{ endpoint }}">
                                             <i class="fas fa-exclamation-triangle me-2"></i> {{ label }}
                                         </a>
                                     {% endif %}
