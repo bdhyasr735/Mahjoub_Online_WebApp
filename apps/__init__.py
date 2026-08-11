@@ -250,7 +250,8 @@ def create_app():
     # ============================================================
     # ✅ المسار الجديد: محطة عبور GraphQL لـ Apollo Sandbox
     # ============================================================
-    @app.route('/admin/graphql', methods=['POST', 'OPTIONS'])
+    # ✅ تم تعديل methods لتشمل GET أيضًا
+    @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
     @csrf.exempt  # ✅ تصحيح 2: إعفاء هذا المسار من حماية CSRF
     def graphql_proxy():
         # الاستجابة لطلب اختبار الاتصال المسبق (Preflight OPTIONS)
