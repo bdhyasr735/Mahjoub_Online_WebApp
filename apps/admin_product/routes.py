@@ -295,7 +295,7 @@ def list_products():
         products=paginated_products,
         total_filtered=total_filtered,
         per_page=per_page,
-        pagination=pagination,                     # <--- المتغير الجديد
+        pagination=pagination,
         total_products=total_products,
         active_products=active_products,
         admin_tracking_count=admin_tracking_count,
