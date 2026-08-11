@@ -3,79 +3,55 @@
 
 import os
 import requests
-from typing import Dict, Any, Optional
+from flask import current_app
 
 class GraphQLClient:
-    """
-    عميل GraphQL للاتصال بـ API الخاص بـ Qumra.
-    يستخدم الاتصال الداخلي في بيئة الإنتاج لتجنب Timeout.
-    """
-    
-    def __init__(self):
-        from config import Config
-        
-        # ✅ الحل الجذري: استخدام 127.0.0.1 بدلاً من 0.0.0.0 للاتصال الداخلي الحقيقي داخل الحاوية
-        if os.environ.get('FLASK_ENV') == 'production':
-            port = os.environ.get('PORT', 10000)
-            self.endpoint = f"http://127.0.0.1:{port}/admin/graphql"
+    def __init__(self, endpoint=None, timeout=15):
+        # 1. القراءة أولاً من المتغير التقديمي أو Config أو البيئة مباشر
+        if endpoint:
+            self.endpoint = endpoint
+        elif current_app and current_app.config.get('QUMRA_API_URL'):
+            self.endpoint = current_app.config.get('QUMRA_API_URL')
         else:
-            # في بيئة التطوير المحلية
-            self.endpoint = "http://127.0.0.1:5000/admin/graphql"
+            self.endpoint = os.environ.get('GRAPHQL_ENDPOINT', 'https://mahjoub.online/admin/graphql')
         
-        # قراءة المفتاح من متغير البيئة، وإذا لم يوجد يقرأ من إعدادات Config (احتياطياً)
-        self.api_key = os.environ.get("QUMRA_API_KEY", Config.QUMRA_API_KEY)
-        
+        self.timeout = timeout
         self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'MahjoubOnline-Server/2.0'
         }
-    
-    def execute(self, query: str, variables: Optional[Dict] = None, operation_name: Optional[str] = None) -> Dict[str, Any]:
-        """
-        تنفيذ استعلام GraphQL وإرجاع النتيجة مع حماية ضد الـ Timeout.
-        """
-        payload = {"query": query}
-        if variables:
-            payload["variables"] = variables
-        if operation_name:
-            payload["operationName"] = operation_name
-        
-        headers = self.headers.copy()
+
+    def execute(self, query, variables=None, operation_name=None):
+        payload = {
+            'query': query,
+            'variables': variables or {},
+            'operationName': operation_name
+        }
         
         print(f"🔍 [GraphQLClient] الاتصال بـ: {self.endpoint}")
         print(f"🔍 [GraphQLClient] العملية: {operation_name}")
-        
+
         try:
-            # تم تمديد الـ timeout إلى 15 ثانية لتجنب الأخطاء
             response = requests.post(
                 self.endpoint,
                 json=payload,
-                headers=headers,
-                timeout=15
+                headers=self.headers,
+                timeout=self.timeout
             )
-            
-            if response.status_code != 200:
-                print(f"⚠️ [GraphQLClient] Status Code: {response.status_code}, Response: {response.text[:200]}")
-                return {"data": {"findAllProducts": {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1}}}}
-                
-            data = response.json()
-            
-            if "errors" in data:
-                print(f"⚠️ [GraphQLClient Errors]: {data['errors']}")
-                return {"data": {"findAllProducts": {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1}}}}
-            
-            return data.get("data", {})
-        
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.Timeout:
+            print(f"❌ [GraphQLClient Error]: انتهت مهلة الاتصال بالخادم ({self.timeout} ثوانٍ)")
+            raise Exception("انتهت مهلة الاتصال بالخادم الرئيسي أثناء المزامنة.")
         except requests.exceptions.RequestException as e:
             print(f"❌ [GraphQLClient Connection Error]: {str(e)}")
-            # إرجاع بيانات فارغة لكي تفتح الواجهة ولا تحدث مشكلة 500 أو Timeout
-            return {"findAllProducts": {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1}}}
-    
-    def test_connection(self) -> bool:
+            raise Exception(f"فشل الاتصال بمركز البيانات: {str(e)}")
+
+    def test_connection(self):
+        test_query = "{ __typename }"
         try:
-            query = """query { __typename }"""
-            result = self.execute(query, operation_name="__typename")
-            return result is not None
-        except Exception as e:
-            print(f"❌ [GraphQLClient]: فشل اختبار الاتصال: {e}")
+            res = self.execute(test_query)
+            return "data" in res
+        except Exception:
             return False
