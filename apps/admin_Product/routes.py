@@ -171,7 +171,6 @@ def generate_slug(text):
     if not text:
         return f"product-{uuid.uuid4().hex[:6]}"
     clean_slug = text.strip().lower().replace(" ", "-").replace("/", "-")
-    # Clean arabic/alphanumeric
     return clean_slug
 
 SUPPLIERS_MAP = {
@@ -508,4 +507,121 @@ def update_product(product_id):
             try:
                 gallery = json.loads(raw_gallery_json)
                 if gallery and len(gallery) > 0:
-              ا
+                    product['images'] = {
+                        "fileUrl": gallery[0],
+                        "gallery": gallery
+                    }
+            except Exception:
+                pass
+
+        raw_collections = data.get('collections')
+        if raw_collections is not None:
+            if isinstance(raw_collections, list):
+                product['collections'] = raw_collections
+            else:
+                product['collections'] = [c.strip() for c in str(raw_collections).split(',') if c.strip()]
+
+        raw_tags = data.get('tags')
+        if raw_tags is not None:
+            if isinstance(raw_tags, list):
+                product['tags'] = raw_tags
+            else:
+                product['tags'] = [t.strip() for t in str(raw_tags).split(',') if t.strip()]
+
+        raw_supplier_id = data.get('supplier_id')
+        if raw_supplier_id is not None:
+            raw_supplier_name = data.get('supplier_name') or data.get('custom_supplier_name')
+            sup_id, sup_name = parse_supplier_info(raw_supplier_id, raw_supplier_name)
+            product['supplier_id'] = sup_id
+            product['supplier_name'] = sup_name
+
+        if 'sku' in data and data.get('sku'):
+            product['sku'] = data.get('sku').strip()
+        if 'currency' in data and data.get('currency'):
+            product['currency'] = data.get('currency').strip()
+        if 'weight_val' in data and data.get('weight_val') != '':
+            product['weight_val'] = float(data.get('weight_val', 0) or 0)
+        if 'weight_unit' in data and data.get('weight_unit'):
+            product['weight_unit'] = data.get('weight_unit').strip()
+        if 'dimensions' in data:
+            product['dimensions'] = data.get('dimensions', '').strip()
+
+        raw_variants_json = data.get('variants_json')
+        if raw_variants_json and isinstance(raw_variants_json, str):
+            try:
+                parsed_variants = json.loads(raw_variants_json)
+                new_variants_list = []
+                for var in parsed_variants:
+                    var_id = var.get('id') or f"var_{uuid.uuid4().hex[:8]}"
+                    new_variants_list.append({
+                        "id": var_id,
+                        "name": str(var.get('name', 'متغير')),
+                        "type": str(var.get('type', 'Standard')),
+                        "price": float(var.get('price', product['price']) or product['price']),
+                        "quantity": int(var.get('quantity', 0) or 0)
+                    })
+                product['variants'] = new_variants_list
+            except Exception as e:
+                print(f"[Variants Update Error] {e}")
+
+        product['updatedAt'] = datetime.utcnow().isoformat() + "Z"
+
+        if request.is_json:
+            return jsonify({
+                "success": True,
+                "message": f"تم تحديث المنتج '{product['title']}' بنجاح.",
+                "product": product
+            }), 200
+
+        flash(f"تم تحديث المنتج '{product['title']}' بنجاح وتطبيق التعديلات في Qumra Cloud Sandbox.", "success")
+        return redirect(url_for('admin_product.list_products'))
+
+    except Exception as e:
+        print(f"[Update Product Error] {e}")
+        if request.is_json:
+            return jsonify({"success": False, "error": str(e)}), 400
+        flash(f"حدث خطأ أثناء تحديث المنتج: {str(e)}", "error")
+        return redirect(url_for('admin_product.edit_product', product_id=product_id))
+
+# -----------------------------------------------------------------------------
+# POST / DELETE: حذف منتج من النظام
+# -----------------------------------------------------------------------------
+@admin_product_bp.route('/<product_id>/delete', methods=['POST', 'DELETE'])
+def delete_product(product_id):
+    """
+    مسار حذف المنتج وإزالته من سجلات Sandbox قمرة كلاود
+    """
+    product = find_product_by_id(product_id)
+    if not product:
+        if request.is_json:
+            return jsonify({"success": False, "error": "المنتج غير موجود"}), 404
+        flash("المنتج المراد حذفه غير موجود.", "error")
+        return redirect(url_for('admin_product.list_products'))
+
+    title = product['title']
+    PRODUCTS_DB[:] = [p for p in PRODUCTS_DB if str(p["id"]) != str(product_id)]
+
+    if request.is_json:
+        return jsonify({
+            "success": True,
+            "deletedProductId": product_id,
+            "message": f"تم حذف المنتج '{title}' بنجاح من النظام."
+        }), 200
+
+    flash(f"تم حذف المنتج '{title}' بنجاح من متجر محجوب أونلاين.", "success")
+    return redirect(url_for('admin_product.list_products'))
+
+# -----------------------------------------------------------------------------
+# API: استعراض المنتجات بصيغة JSON للربط مع GraphQL / الـ Frontend
+# -----------------------------------------------------------------------------
+@admin_product_bp.route('/api/json', methods=['GET'])
+def api_get_products():
+    """
+    نقطة نهاية API لإرجاع جميع المنتجات والمتغيرات بصيغة JSON لاختبار استجابة قمرة كلاود
+    """
+    return jsonify({
+        "store": MODULE_METADATA["store_url"],
+        "sandbox_provider": MODULE_METADATA["backend_provider"],
+        "total": len(PRODUCTS_DB),
+        "products": PRODUCTS_DB
+    }), 200
