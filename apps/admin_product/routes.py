@@ -102,3 +102,13 @@ def delete_product(product_id):
     except Exception as e:
         flash(f"خطأ أثناء الحذف: {str(e)}", "error")
     return redirect(url_for('admin_product.list_products'))
+
+# ============================================================
+# ✅ إضافة مسار مختبر GraphQL (Apollo Sandbox)
+# ============================================================
+@admin_product_bp.route('/graphql-sandbox', methods=['GET'])
+def graphql_sandbox():
+    """
+    صفحة مختبر GraphQL التفاعلي داخل لوحة التحكم
+    """
+    return render_template('admin_product/graphql_sandbox.html')
