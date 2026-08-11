@@ -1,11 +1,23 @@
+# -*- coding: utf-8 -*-
+# 📂 apps/admin_product/registry.py
 """
 متجر محجوب أونلاين (www.mahjoub.online) - Qumra Cloud Sandbox
 Registry file for admin_Product module and components.
 """
 
+MODULE_NAME = "إدارة المنتجات والمتغيرات"
+MODULE_ICON = "bi-box-seam"
+SHOW_IN_ADMIN = True
+
+# الروابط الأساسية للوحدة لتظهر في القوالب
+LINKS = {
+    'admin_product.list_products': 'قائمة المنتجات',
+    'admin_product.new_product': 'إضافة منتج جديد'
+}
+
+# ميتاداتا الوحدة المتقدمة وقدراتها
 MODULE_METADATA = {
     "id": "admin_Product",
-    "name": "إدارة المنتجات والمتغيرات",
     "version": "1.0.0",
     "description": "موديول إدارة المنتجات والمتغيرات الديناميكية لمتجر محجوب أونلاين المرتبط بـ قمرة كلاود (Qumra Cloud)",
     "author": "Mahjoub Online Engineering",
@@ -40,6 +52,15 @@ NAVIGATION = [
         "active": False
     }
 ]
+
+# قاموس صلاحيات المنتجات
+PRODUCT_PERMISSIONS_REGISTRY = {
+    'create_product': 'إنشاء منتج جديد',
+    'edit_product': 'تعديل بيانات المنتج',
+    'delete_product': 'حذف المنتجات',
+    'manage_stock': 'إدارة المخزون والكميات',
+    'view_product_cost': 'عرض تكلفة المنتجات'
+}
 
 # GraphQL Queries & Mutations for Qumra Cloud Sandbox integration
 QUMRA_GRAPHQL_SCHEMAS = {
@@ -141,7 +162,10 @@ def register_module(app):
     """
     دالة تسجيل الموديول والمكونات داخل تطبيق Flask الرئيسي
     """
-    from . import admin_product_bp
-    app.register_blueprint(admin_product_bp)
-    print(f"[admin_Product] ✅ تم تسجيل موديول المنتجات ومتغيراتها لمتجر محجوب أونلاين بنجاح.")
+    from apps.admin_product.routes import admin_product_bp
+    
+    if 'admin_product_bp' not in app.blueprints:
+        app.register_blueprint(admin_product_bp, url_prefix='/admin/products')
+        print(f"[admin_Product] ✅ تم تسجيل موديول المنتجات ومتغيراتها لمتجر محجوب أونلاين بنجاح.")
+    
     return True
