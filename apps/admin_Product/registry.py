@@ -6,10 +6,10 @@ Registry file for admin_Product module and components.
 """
 
 MODULE_NAME = "إدارة المنتجات والمتغيرات"
-MODULE_ICON = "bi-box-seam"
+MODULE_ICON = "fas fa-boxes"
 SHOW_IN_ADMIN = True
 
-# الروابط الأساسية للوحدة لتظهر في القوالب
+# الروابط الأساسية للوحدة لتظهر تلقائياً في القائمة الجانبية الديناميكية
 LINKS = {
     'admin_product.list_products': 'قائمة المنتجات',
     'admin_product.new_product': 'إضافة منتج جديد'
@@ -40,7 +40,7 @@ NAVIGATION = [
         "title": "قائمة المنتجات",
         "endpoint": "admin_product.list_products",
         "url": "/admin/products",
-        "icon": "package-list",
+        "icon": "fas fa-list",
         "active": True
     },
     {
@@ -48,7 +48,7 @@ NAVIGATION = [
         "title": "إضافة منتج جديد",
         "endpoint": "admin_product.new_product",
         "url": "/admin/products/new",
-        "icon": "plus-square",
+        "icon": "fas fa-plus-square",
         "active": False
     }
 ]
