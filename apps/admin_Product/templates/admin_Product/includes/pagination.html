@@ -1,0 +1,68 @@
+<!-- Pagination & Items Per Page Component Container -->
+<div class="bg-white p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-slate-700">
+    
+    <!-- Items Count & Page Info -->
+    <div class="flex items-center gap-2">
+        <span class="text-slate-500 font-medium">عرض البيانات:</span>
+        <span class="bg-purple-100 text-[#4A154B] px-2.5 py-1 rounded-lg border border-purple-200 font-extrabold">
+            {% if total_filtered > 0 %}
+                {{ ((current_page - 1) * per_page) + 1 }} - {{ [current_page * per_page, total_filtered]|min }} من إجمالي {{ total_filtered }} منتج
+            {% else %}
+                0 منتج
+            {% endif %}
+        </span>
+        <span class="text-slate-400 font-normal hidden md:inline">| صفحة {{ current_page }} من {{ total_pages or 1 }}</span>
+    </div>
+
+    <!-- Pagination Controls & Items Per Page Select -->
+    <div class="flex flex-wrap items-center gap-3">
+        
+        <!-- Per Page Dropdown -->
+        <form method="GET" action="/admin/products" class="flex items-center gap-1.5">
+            {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+            {% if current_status != 'ALL' %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+            {% if current_collection != 'ALL' %}<input type="hidden" name="collection" value="{{ current_collection }}">{% endif %}
+            {% if current_supplier != 'ALL' %}<input type="hidden" name="supplier" value="{{ current_supplier }}">{% endif %}
+            <label class="text-slate-500 font-normal">عرض:</label>
+            <select name="per_page" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg px-2 py-1 focus:ring-2 focus:ring-[#4A154B] focus:outline-none font-bold">
+                <option value="5" {% if per_page == 5 %}selected{% endif %}>5</option>
+                <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </form>
+
+        <!-- Navigation Buttons -->
+        {% if total_pages > 1 %}
+        <nav class="inline-flex rounded-xl shadow-xs border border-slate-200 overflow-hidden bg-slate-50">
+            <!-- Previous Page Button -->
+            <a href="/admin/products?page={{ current_page - 1 }}&per_page={{ per_page }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_status != 'ALL' %}&status={{ current_status }}{% endif %}{% if current_collection != 'ALL' %}&collection={{ current_collection }}{% endif %}{% if current_supplier != 'ALL' %}&supplier={{ current_supplier }}{% endif %}"
+               class="px-3 py-1.5 border-l border-slate-200 flex items-center gap-1 transition-all {% if current_page <= 1 %} pointer-events-none opacity-40 text-slate-400 bg-slate-100 {% else %} hover:bg-purple-100 text-[#4A154B] {% endif %}">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                <span>السابق</span>
+            </a>
+
+            <!-- Page Number Links -->
+            {% for pnum in range(1, total_pages + 1) %}
+                {% if pnum == 1 or pnum == total_pages or (pnum >= current_page - 2 and pnum <= current_page + 2) %}
+                    <a href="/admin/products?page={{ pnum }}&per_page={{ per_page }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_status != 'ALL' %}&status={{ current_status }}{% endif %}{% if current_collection != 'ALL' %}&collection={{ current_collection }}{% endif %}{% if current_supplier != 'ALL' %}&supplier={{ current_supplier }}{% endif %}"
+                       class="px-3 py-1.5 border-l border-slate-200 font-extrabold transition-all {% if pnum == current_page %} bg-[#4A154B] text-white {% else %} hover:bg-slate-200 text-slate-700 {% endif %}">
+                       {{ pnum }}
+                    </a>
+                {% elif pnum == current_page - 3 or pnum == current_page + 3 %}
+                    <span class="px-2 py-1.5 border-l border-slate-200 text-slate-400 bg-slate-100">...</span>
+                {% endif %}
+            {% endfor %}
+
+            <!-- Next Page Button -->
+            <a href="/admin/products?page={{ current_page + 1 }}&per_page={{ per_page }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_status != 'ALL' %}&status={{ current_status }}{% endif %}{% if current_collection != 'ALL' %}&collection={{ current_collection }}{% endif %}{% if current_supplier != 'ALL' %}&supplier={{ current_supplier }}{% endif %}"
+               class="px-3 py-1.5 flex items-center gap-1 transition-all {% if current_page >= total_pages %} pointer-events-none opacity-40 text-slate-400 bg-slate-100 {% else %} hover:bg-purple-100 text-[#4A154B] {% endif %}">
+                <span>التالي</span>
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+            </a>
+        </nav>
+        {% endif %}
+
+    </div>
+</div>
