@@ -1,1 +1,89 @@
-تت
+{% extends "admin/admin_base.html" %}
+
+{% block title %}إدارة المنتجات والمتغيرات | محجوب أونلاين{% endblock %}
+
+{% block content %}
+<div class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Sub-header Breadcrumb & Qumra Cloud Connection Banner -->
+    <div class="bg-white border-b border-slate-200 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2 text-sm text-slate-600">
+                <span class="text-[#4A154B] font-bold">لوحة الإدارة</span>
+                <i data-lucide="chevron-left" class="w-4 h-4 text-slate-400"></i>
+                <span class="text-slate-900 font-semibold">إدارة المنتجات والمتغيرات الديناميكية (admin_Product)</span>
+            </div>
+
+            <div class="flex items-center gap-3 text-xs bg-purple-50 border border-purple-200 text-[#4A154B] px-3 py-1.5 rounded-md font-medium">
+                <span class="flex h-2 w-2 relative">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>خادم قمرة كلاود المتصل:</span>
+                <code class="bg-white px-1.5 py-0.5 rounded border border-purple-200 text-slate-700 font-mono">https://api.qumra.cloud/sandbox</code>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Messages Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
+        {% set messages = get_flashed_messages({ with_categories: true }) %}
+        {% if messages and messages.length > 0 %}
+          {% for msg in messages %}
+            {% set category = msg[0] %}
+            {% set message = msg[1] %}
+            <div class="p-4 mb-3 rounded-lg border text-sm font-medium flex items-center justify-between shadow-xs {% if category == 'error' %} bg-rose-50 text-rose-800 border-rose-200 {% else %} bg-emerald-50 text-emerald-800 border-emerald-200 {% endif %}">
+              <div class="flex items-center gap-2">
+                  <i data-lucide="{% if category == 'error' %}alert-triangle{% else %}check-circle-2{% endif %}" class="w-5 h-5"></i>
+                  <span>{{ message }}</span>
+              </div>
+              <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+        <!-- Top Overview Statistics Cards & Search Toolbar -->
+        {% include 'admin_Product/includes/filters_and_cards.html' %}
+
+        <!-- Products Table Data -->
+        {% include 'admin_Product/includes/table_data.html' %}
+
+    </main>
+
+    <!-- Modals -->
+    {% include 'admin_Product/includes/modal_success.html' %}
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        function openProductInspector(productObj) {
+            document.getElementById('inspectorJson').innerText = JSON.stringify({
+                "data": {
+                    "product": productObj
+                },
+                "meta": {
+                    "provider": "Qumra Cloud Sandbox Engine",
+                    "store": "www.mahjoub.online",
+                    "color_identity": "#4A154B"
+                }
+            }, null, 2);
+            document.getElementById('inspectorModal').classList.remove('hidden');
+        }
+
+        function closeProductInspector() {
+            document.getElementById('inspectorModal').classList.add('hidden');
+        }
+
+        function toggleSandboxInspector() {
+            alert("بيئة Qumra Cloud Sandbox تعمل بكفاءة عالية على المنفذ المحلي مع دعم كافة مسارات GraphQL.");
+        }
+    </script>
+</div>
+{% endblock %}
