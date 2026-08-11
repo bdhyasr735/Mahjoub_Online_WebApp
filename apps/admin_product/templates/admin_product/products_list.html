@@ -1,5 +1,4 @@
 {% extends "admin/admin_base.html" %}
-{% load static %}
 
 {% block title %}إدارة المنتجات والمتغيرات | محجوب أونلاين{% endblock %}
 
@@ -58,7 +57,7 @@
     {% include 'admin_product/includes/_modal_sess.html' %}
 
     <script>
-        // Initialize Lucide Icons
+        // Initialize Lucide Icons (مع التأكد من وجود المكتبة)
         document.addEventListener('DOMContentLoaded', function() {
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
