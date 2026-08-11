@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/admin_produc/registry.py
+# 📂 apps/admin_product/registry.py
 """
 متجر محجوب أونلاين (www.mahjoub.online) - Qumra Cloud Sandbox
 Registry file for admin_Product module and components.
@@ -12,7 +12,8 @@ SHOW_IN_ADMIN = True
 # الروابط الأساسية للوحدة لتظهر تلقائياً في القائمة الجانبية الديناميكية
 LINKS = {
     'admin_product.list_products': 'قائمة المنتجات',
-    'admin_product.new_product': 'إضافة منتج جديد'
+    'admin_product.new_product': 'إضافة منتج جديد',
+    'admin_product.graphql_sandbox': '🧪 مختبر GraphQL التفاعلي'   # ✅ تمت الإضافة
 }
 
 # ميتاداتا الوحدة المتقدمة وقدراتها
@@ -24,7 +25,7 @@ MODULE_METADATA = {
     "brand_color": "#4A154B",
     "store_url": "www.mahjoub.online",
     "backend_provider": "Qumra Cloud Sandbox (قمرة كلاود)",
-    "sandbox_graphql_endpoint": "https://api.qumra.cloud/sandbox/graphql",
+    "sandbox_graphql_endpoint": "https://mahjoub.online/admin/graphql",  # ✅ تم التصحيح
     "capabilities": [
         "PRODUCT_MANAGEMENT",
         "DYNAMIC_VARIANTS_ENGINE",
@@ -49,6 +50,15 @@ NAVIGATION = [
         "endpoint": "admin_product.new_product",
         "url": "/admin/products/new",
         "icon": "fas fa-plus-square",
+        "active": False
+    },
+    # ✅ تمت إضافة عنصر الملاحة للمختبر
+    {
+        "id": "graphql_sandbox",
+        "title": "مختبر GraphQL التفاعلي",
+        "endpoint": "admin_product.graphql_sandbox",
+        "url": "/admin/products/graphql-sandbox",
+        "icon": "fas fa-code",
         "active": False
     }
 ]
