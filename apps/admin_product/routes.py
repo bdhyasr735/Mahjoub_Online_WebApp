@@ -30,23 +30,30 @@ def generate_slug(text):
     clean_slug = text.strip().lower().replace(" ", "-").replace("/", "-")
     return clean_slug
 
-SUPPLIERS_MAP = {
-    "1": "مورد العطور الباريسية والعود",
-    "2": "مورد التكنولوجيا والأجهزة الذكية",
-    "3": "مورد الجلديات والإكسسوارات الفاخرة",
-    "4": "مورد الأزياء والموضة العالمية"
-}
+# ✅ دالة جديدة تستخرج الموردين الحقيقيين من المنتجات المسجلة
+def get_suppliers_map():
+    suppliers = {}
+    for p in PRODUCTS_DB:
+        sid = p.get('supplier_id')
+        sname = p.get('supplier_name')
+        if sid is not None and sname:
+            suppliers[str(sid)] = sname
+    return suppliers
 
+# ✅ إزالة SUPPLIERS_MAP الوهمي، وتعتمد الدالة الآن على الموردين الحقيقيين
 def parse_supplier_info(raw_supplier_id, raw_custom_name=None):
     if not raw_supplier_id or str(raw_supplier_id).strip() in ['', '0', 'none', 'null', 'admin', 'None']:
         return None, "تتبع الإدارة العامة"
     
     sup_id_str = str(raw_supplier_id).strip()
-    if sup_id_str in SUPPLIERS_MAP:
+    # جلب الموردين الحقيقيين
+    suppliers_map = get_suppliers_map()
+    
+    if sup_id_str in suppliers_map:
         try:
-            return int(sup_id_str), SUPPLIERS_MAP[sup_id_str]
+            return int(sup_id_str), suppliers_map[sup_id_str]
         except ValueError:
-            return sup_id_str, SUPPLIERS_MAP[sup_id_str]
+            return sup_id_str, suppliers_map[sup_id_str]
     
     if raw_custom_name and str(raw_custom_name).strip():
         try:
@@ -145,6 +152,9 @@ def list_products():
         'next_num': current_page + 1
     }
 
+    # ✅ الحصول على الموردين الحقيقيين ديناميكياً بناءً على المنتجات
+    suppliers_map = get_suppliers_map()
+
     return render_template(
         'admin_product/products_list.html',
         products=paginated_products,
@@ -162,7 +172,7 @@ def list_products():
         current_status=status_filter,
         current_collection=collection_filter,
         current_supplier=supplier_filter,
-        suppliers_map=SUPPLIERS_MAP,
+        suppliers_map=suppliers_map, # ✅ تم استبدالها بالبيانات الحقيقية
         brand_color=MODULE_METADATA["brand_color"],
         store_url=MODULE_METADATA["store_url"],
         sandbox_endpoint=MODULE_METADATA["sandbox_graphql_endpoint"]
