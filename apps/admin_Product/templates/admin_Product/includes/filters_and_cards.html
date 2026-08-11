@@ -87,15 +87,15 @@
             <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
                 <a href="/admin/products?status=ALL{% if search_query %}&q={{ search_query }}{% endif %}{% if current_supplier %}&supplier={{ current_supplier }}{% endif %}"
                    class="px-3 py-1.5 rounded-md text-xs font-bold transition-all {% if current_status == 'ALL' %} bg-[#4A154B] text-white shadow-xs {% else %} text-slate-600 hover:text-slate-900 {% endif %}">
-                   الكل
+                    الكل
                 </a>
                 <a href="/admin/products?status=ACTIVE{% if search_query %}&q={{ search_query }}{% endif %}{% if current_supplier %}&supplier={{ current_supplier }}{% endif %}"
                    class="px-3 py-1.5 rounded-md text-xs font-bold transition-all {% if current_status == 'ACTIVE' %} bg-[#4A154B] text-white shadow-xs {% else %} text-slate-600 hover:text-slate-900 {% endif %}">
-                   نشط
+                    نشط
                 </a>
                 <a href="/admin/products?status=DRAFT{% if search_query %}&q={{ search_query }}{% endif %}{% if current_supplier %}&supplier={{ current_supplier }}{% endif %}"
                    class="px-3 py-1.5 rounded-md text-xs font-bold transition-all {% if current_status == 'DRAFT' %} bg-[#4A154B] text-white shadow-xs {% else %} text-slate-600 hover:text-slate-900 {% endif %}">
-                   مسودة
+                    مسودة
                 </a>
             </div>
 
