@@ -19,7 +19,15 @@
             --mahjoub-gold: #D4AF37; 
             --sidebar-width: 280px; 
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* ✅ 1. تثبيت الصفحة بالكامل ومنع تمرير المتصفح العام */
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        
         body { font-family: 'Cairo', sans-serif !important; background: #f0f2f5; }
         
         /* Sidebar */
@@ -104,13 +112,15 @@
             transform: rotate(180deg);
         }
         
-        /* Main Content */
+        /* ✅ 2. جعل المحتوى الرئيسي هو الذي يقوم بالتمرير */
         .main-wrapper {
             margin-right: var(--sidebar-width);
-            min-height: 100vh;
+            height: 100vh;           /* ملء كامل الشاشة */
+            overflow-y: auto;        /* التمرير هنا فقط */
             transition: 0.3s;
         }
         
+        /* ✅ 3. تثبيت الشريط العلوي (يظهر حتى أثناء التمرير) */
         .top-navbar {
             background: #fff;
             padding: 12px 25px;
@@ -118,7 +128,7 @@
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 1px 10px rgba(0,0,0,0.05);
-            position: sticky;
+            position: sticky;       /* يثبت في الأعلى */
             top: 0;
             z-index: 1040;
         }
