@@ -373,7 +373,7 @@
 
                 </div>
 
-                <!-- Card 3: هيكلة المتغيرات المتقدمة (Nested/Grouped Options & Variants Generator) -->
+                <!-- Card 3: هيكلة المتغيرات المتقدمة -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
                     <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
                     
@@ -387,12 +387,10 @@
                         </div>
 
                         <div class="flex items-center gap-2">
-                            <!-- User Requested Example Generator Button -->
                             <button type="button" onclick="loadUserExamplePreset()" class="bg-purple-100 hover:bg-purple-200 text-[#4A154B] px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-purple-300 transition-all">
                                 <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                                 <span>🎯 تحميل مثال المستخدم (اللون + المقاس)</span>
                             </button>
-                            <!-- Add Custom Manual Variant Button -->
                             <button type="button" onclick="addNewVariantCard()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs transition-all">
                                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                                 <span>+ متغير مفرد</span>
@@ -411,7 +409,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                            <!-- Option 1: e.g., Color -->
+                            <!-- Option 1 -->
                             <div class="bg-white p-3 rounded-lg border border-slate-200">
                                 <label class="block text-[11px] font-bold text-slate-700 mb-1">النوع الأول (مثال: اللون)</label>
                                 <input type="text" id="opt1_name" value="اللون" placeholder="اسم النوع (مثال: اللون)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs font-bold mb-2">
@@ -419,39 +417,36 @@
                                 <input type="text" id="opt1_values" value="أحمر, أخضر" placeholder="مثال: أحمر, أخضر, أزرق" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs">
                             </div>
 
-                            <!-- Option 2: e.g., Size -->
+                            <!-- Option 2 -->
                             <div class="bg-white p-3 rounded-lg border border-slate-200">
                                 <label class="block text-[11px] font-bold text-slate-700 mb-1">النوع الثاني (مثال: المقاس)</label>
                                 <input type="text" id="opt2_name" value="المقاس" placeholder="اسم النوع (مثال: المقاس)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs font-bold mb-2">
                                 <label class="block text-[10px] font-bold text-slate-500 mb-1">قيم هذا النوع (فصل بفاصلة):</label>
-                                <input type="text" id="opt2_values" value="S, M, L" placeholder="مثال: S, M, L, XL" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs">
+                                <input type="text" id="opt2_values" value="صغير, كبير" placeholder="مثال: صغير, وسط, كبير" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs">
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between pt-2 border-t border-slate-200">
-                            <span class="text-[11px] text-slate-600 font-medium">سيقوم النظام بتوليد كافة الاحتمالات والتوافقات (Cartesian Product) تلقائياً</span>
-                            <button type="button" onclick="generateVariantsFromCombinations()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition-all">
-                                <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
-                                <span>توليد جدول المتغيرات التفاعلي</span>
-                            </button>
-                        </div>
+                        <button type="button" onclick="generateVariantsFromMatrix()" class="w-full bg-[#4A154B] hover:bg-[#3b113c] text-white py-2 rounded-lg text-xs font-extrabold shadow-sm flex items-center justify-center gap-2 transition-all">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                            <span>توليد جدول المتغيرات التفاعلي تلقائياً (Cartesian Matrix Engine)</span>
+                        </button>
                     </div>
 
-                    <!-- Dynamic Variants Table Container -->
+                    <!-- Variants Table Container -->
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
                         <table class="w-full text-right text-xs">
-                            <thead class="bg-slate-100 text-slate-700 border-b border-slate-200 font-extrabold">
+                            <thead class="bg-slate-100 text-slate-700 font-extrabold border-b border-slate-200">
                                 <tr>
-                                    <th class="p-3">اسم المتغير / التوافق</th>
-                                    <th class="p-3 w-28">السعر (ر.س)</th>
-                                    <th class="p-3 w-28">سعر التكلفة</th>
-                                    <th class="p-3 w-24">الكمية</th>
-                                    <th class="p-3 w-32">SKU (رمز التخزين)</th>
-                                    <th class="p-3 w-16 text-center">حذف</th>
+                                    <th class="p-3">اسم المتغير / الخيار</th>
+                                    <th class="p-3">السعر (ر.س)</th>
+                                    <th class="p-3">سعر التكلفة</th>
+                                    <th class="p-3">الكمية</th>
+                                    <th class="p-3">SKU / الباركود</th>
+                                    <th class="p-3 text-center">حذف</th>
                                 </tr>
                             </thead>
-                            <tbody id="variantsTableBody" class="divide-y divide-slate-100 bg-white">
-                                <!-- Populated dynamically by JS -->
+                            <tbody id="variants_table_body" class="divide-y divide-slate-100 bg-white">
+                                <!-- Dynamic rows inserted by JavaScript -->
                             </tbody>
                         </table>
                     </div>
@@ -459,78 +454,46 @@
 
             </div>
 
-            <!-- Right Sidebar Panel (1 Column) -->
+            <!-- Right Sidebar Panel: المعرض والتصنيفات -->
             <div class="space-y-6">
 
-                <!-- Card 4: معرض الصور وسحب وإفلات الصور -->
+                <!-- Card 4: صور المعرض (Gallery Management) -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
                     <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
                     <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
                         <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">4</div>
                         <div>
                             <h2 class="text-base font-extrabold text-slate-900">معرض صور المنتج</h2>
-                            <p class="text-xs text-slate-500">رفع الصور أو إضافة روابط الصور للعارض</p>
+                            <p class="text-xs text-slate-500">روابط الصور الإضافية لمتجر محجوب أونلاين</p>
                         </div>
                     </div>
 
-                    <!-- Dropzone Area -->
-                    <div id="dropzone" class="border-2 border-dashed border-slate-300 hover:border-[#4A154B] rounded-xl p-6 text-center bg-slate-50 transition-all cursor-pointer mb-4" onclick="document.getElementById('gallery_file_input').click()">
-                        <input type="file" id="gallery_file_input" multiple accept="image/*" class="hidden" onchange="handleGalleryFiles(this.files)">
-                        <div class="w-10 h-10 rounded-full bg-purple-100 text-[#4A154B] flex items-center justify-center mx-auto mb-2">
-                            <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                    <div class="space-y-3">
+                        <div class="flex gap-2">
+                            <input type="url" id="new_gallery_url" placeholder="https://example.com/image.jpg" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
+                            <button type="button" onclick="addGalleryImage()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white px-3 py-2 rounded-xl text-xs font-bold shrink-0">إضافة</button>
                         </div>
-                        <span class="text-xs font-bold text-slate-800 block mb-1">اسحب الصور إلى هنا أو اضغط للاختيار</span>
-                        <span class="text-[11px] text-slate-400">PNG, JPG, WEBP حتى 10 ميجابايت</span>
-                    </div>
-
-                    <!-- Add Image by URL Input -->
-                    <div class="flex gap-2 mb-4">
-                        <input type="url" id="imageUrlInput" placeholder="أدخل رابط صورة مباشر (https://...)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs">
-                        <button type="button" onclick="addImageByUrl()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white px-3 py-2 rounded-lg text-xs font-bold shrink-0">إضافة</button>
-                    </div>
-
-                    <!-- Gallery Previews Grid -->
-                    <div id="galleryGrid" class="grid grid-cols-3 gap-2.5">
-                        <!-- Populated by JS -->
+                        <div id="gallery_container" class="grid grid-cols-3 gap-2 pt-2">
+                            <!-- Gallery thumbnails -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- Card 5: التصنيفات والوسوم (Collections & Tags) -->
+                <!-- Card 5: التصنيفات والوسوم (Collections) -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
                     <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
                     <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
                         <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">5</div>
                         <div>
-                            <h2 class="text-base font-extrabold text-slate-900">التصنيفات والوسوم</h2>
-                            <p class="text-xs text-slate-500">تصنيف المنتج ضمن أقسام المتجر</p>
+                            <h2 class="text-base font-extrabold text-slate-900">التصنيفات</h2>
+                            <p class="text-xs text-slate-500">الأقسام والفئات التابع لها المنتج</p>
                         </div>
                     </div>
 
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">التصنيفات (Collections)</label>
-                            <div class="flex flex-wrap gap-1.5 mb-2" id="collectionsBadgesContainer">
-                                <!-- Badges -->
-                            </div>
-                            <input type="text" id="collectionInput" onkeydown="handleCollectionKeydown(event)" placeholder="اكتب التصنيف واضغط Enter (مثال: عطور شرقية)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">وسوم البحث (Tags)</label>
-                            <input type="text" name="tags" value="{% if product and product.tags %}{{ product.tags }}{% else %}عطور ملكية, هدايا رجالية, عود فاخر{% endif %}" placeholder="فصل بفاصلة: عود, مسك, هدايا" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
-                        </div>
+                    <div>
+                        <input type="text" id="collections_tags_input" value="عطور, هدايا فاخرة" oninput="updateCollectionsInput(this.value)" placeholder="عطور, هدايا, مباخر" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold">
+                        <p class="text-[11px] text-slate-400 mt-1.5">افصل بين التصنيفات باستخدام الفاصلة (,)</p>
                     </div>
-                </div>
-
-                <!-- Card 6: النشر السريع والحفظ -->
-                <div class="bg-[#4A154B] text-white rounded-2xl shadow-lg p-6 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 left-0 h-1 bg-emerald-400"></div>
-                    <h3 class="font-extrabold text-base mb-2">إتمام العمل في قمرة كلاود</h3>
-                    <p class="text-xs text-purple-200 mb-4">سيتم حفظ المنتج وتوليد كافة المتغيرات الديناميكية وربط المخزون فوراً بقاعدة البيانات.</p>
-                    <button type="button" onclick="submitProductForm()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-95 text-sm">
-                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
-                        <span>{% if is_edit %}حفظ وتحديث المنتج الآن{% else %}نشر المنتج الجديد في المتجر{% endif %}</span>
-                    </button>
                 </div>
 
             </div>
@@ -539,337 +502,201 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
-            Mahjoub Online E-commerce Platform &copy; 2026 &bull; Powered by Qumra Cloud Engine
-        </div>
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-auto">
+        <p>منصة محجوب أونلاين - جميع الحقوق محفوظة © 2026</p>
     </footer>
 
-    <!-- JavaScript Application Logic -->
+    <!-- JavaScript Engine Logic -->
     <script>
-        // Initialize Lucide Icons
-        lucide.createIcons();
-
-        // Global State Arrays
-        let variantsList = [
-            { name: 'أحمر - S', price: 100.00, costPrice: 60.00, quantity: 15, sku: 'MHG-RED-S' },
-            { name: 'أحمر - M', price: 105.00, costPrice: 62.00, quantity: 20, sku: 'MHG-RED-M' },
-            { name: 'أخضر - L', price: 110.00, costPrice: 65.00, quantity: 15, sku: 'MHG-GRN-L' }
-        ];
-
-        let galleryList = [
-            'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=500&auto=format&fit=crop&q=60',
-            'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=500&auto=format&fit=crop&q=60'
-        ];
-
-        let collectionsList = ['عطور', 'هدايا فاخرة'];
-
-        // On DOM Load
-        document.addEventListener('DOMContentLoaded', () => {
-            renderVariantsTable();
-            renderGalleryGrid();
-            renderCollectionsBadges();
+        document.addEventListener("DOMContentLoaded", function() {
+            lucide.createIcons();
             calculateProfitMargin();
-            syncEditorToTextarea();
+            loadUserExamplePreset(); // تحميل المثال التلقائي مباشرة
         });
 
-        // 1. Slug Generator
-        function autoGenerateSlug(titleVal, force = false) {
-            const slugInput = document.getElementById('product_slug');
-            if (!slugInput.value || force) {
-                const slug = titleVal
-                    .trim()
-                    .toLowerCase()
-                    .replace(/[^\w\s-]/g, '')
+        function autoGenerateSlug(val, forced = false) {
+            let slugInput = document.getElementById('product_slug');
+            if (!slugInput.value || forced) {
+                let slug = val.toLowerCase().trim()
+                    .replace(/[^\w\s-أ-ي]/g, '')
                     .replace(/[\s_-]+/g, '-')
                     .replace(/^-+|-+$/g, '');
-                slugInput.value = slug || 'product-' + Math.floor(Math.random() * 10000);
+                slugInput.value = slug || 'product-' + Math.floor(Math.random() * 1000);
             }
         }
 
-        // 2. Rich Text Editor Toolbar Actions & View Mode Toggling
-        function formatDoc(command, value = null) {
-            document.execCommand(command, false, value);
-            document.getElementById('editor').focus();
-            syncEditorToTextarea();
-        }
+        function toggleRteTab(mode) {
+            let editor = document.getElementById('editor');
+            let previewBox = document.getElementById('rtePreviewBox');
+            let btnEdit = document.getElementById('btn_edit_mode');
+            let btnPreview = document.getElementById('btn_preview_mode');
 
-        function promptInsertLink() {
-            const url = prompt('أدخل رابط الويب (URL):', 'https://www.mahjoub.online');
-            if (url) {
-                document.execCommand('createLink', false, url);
-                syncEditorToTextarea();
+            if (mode === 'preview') {
+                editor.classList.add('hidden');
+                previewBox.classList.remove('hidden');
+                document.getElementById('rtePreviewRender').innerHTML = editor.innerHTML;
+                btnPreview.className = "px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs";
+                btnEdit.className = "px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900";
+            } else {
+                editor.classList.remove('hidden');
+                previewBox.classList.add('hidden');
+                btnEdit.className = "px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs";
+                btnPreview.className = "px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900";
             }
         }
 
-        function insertSampleTable() {
-            const tableHTML = `<table class="w-full text-xs my-2 border border-slate-300"><thead><tr class="bg-slate-100"><th>المواصفة</th><th>التفاصيل</th></tr></thead><tbody><tr><td>المادة</td><td>زجاج ملكي عالي النقاء</td></tr><tr><td>السعة</td><td>100 مل</td></tr></tbody></table><p><br></p>`;
-            document.execCommand('insertHTML', false, tableHTML);
+        function formatDoc(cmd, value = null) {
+            document.execCommand(cmd, false, value);
             syncEditorToTextarea();
         }
 
         function syncEditorToTextarea() {
-            const editorHTML = document.getElementById('editor').innerHTML;
-            document.getElementById('product_description').value = editorHTML;
-            document.getElementById('rtePreviewRender').innerHTML = editorHTML;
+            let editor = document.getElementById('editor');
+            document.getElementById('product_description').value = editor.innerHTML;
         }
 
-        function toggleRteTab(mode) {
-            const editor = document.getElementById('editor');
-            const previewBox = document.getElementById('rtePreviewBox');
-            const btnEdit = document.getElementById('btn_edit_mode');
-            const btnPreview = document.getElementById('btn_preview_mode');
-
-            if (mode === 'edit') {
-                editor.classList.remove('hidden');
-                previewBox.classList.add('hidden');
-                btnEdit.className = 'px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs';
-                btnPreview.className = 'px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900';
-            } else {
-                syncEditorToTextarea();
-                editor.classList.add('hidden');
-                previewBox.classList.remove('hidden');
-                btnPreview.className = 'px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs';
-                btnEdit.className = 'px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900';
+        function promptInsertLink() {
+            let url = prompt("أدخل رابط الويب (URL):", "https://");
+            if (url) {
+                formatDoc('createLink', url);
             }
         }
 
-        // 3. Profit Margin Calculator
+        function insertSampleTable() {
+            let tableHTML = `<table class="w-full text-xs my-2 border border-slate-300"><thead><tr class="bg-slate-100"><th>المواصفة الرئيسية</th><th>التفاصيل التقنية</th></tr></thead><tbody><tr><td>المادة المصنعة</td><td>زجاج فاخر مع غطاء خشبي</td></tr><tr><td>الضمان</td><td>سنتان استبدال فوري</td></tr></tbody></table><p><br></p>`;
+            document.execCommand('insertHTML', false, tableHTML);
+            syncEditorToTextarea();
+        }
+
         function calculateProfitMargin() {
-            const price = parseFloat(document.getElementById('base_price').value) || 0;
-            const cost = parseFloat(document.getElementById('cost_price').value) || 0;
-            const qty = parseInt(document.getElementById('base_quantity').value) || 0;
+            let price = parseFloat(document.getElementById('base_price').value) || 0;
+            let cost = parseFloat(document.getElementById('cost_price').value) || 0;
+            let qty = parseInt(document.getElementById('base_quantity').value) || 0;
 
-            const netProfit = price - cost;
-            const margin = price > 0 ? (netProfit / price) * 100 : 0;
-            const totalStockProfit = netProfit * qty;
+            let netProfit = price - cost;
+            let margin = price > 0 ? (netProfit / price) * 100 : 0;
+            let totalProfit = netProfit * qty;
 
-            document.getElementById('net_profit_val').innerText = netProfit.toFixed(2) + ' ر.س';
-            document.getElementById('profit_margin_val').innerText = margin.toFixed(1) + '%';
-            document.getElementById('total_stock_profit_val').innerText = totalStockProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ر.س';
+            document.getElementById('net_profit_val').innerText = netProfit.toFixed(2) + " ر.س";
+            document.getElementById('profit_margin_val').innerText = margin.toFixed(1) + "%";
+            document.getElementById('total_stock_profit_val').innerText = totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2}) + " ر.س";
         }
 
-        // 4. Variants Generator & Table Management
+        let variantsData = [];
+
         function loadUserExamplePreset() {
-            document.getElementById('opt1_name').value = 'اللون';
-            document.getElementById('opt1_values').value = 'أحمر, أخضر';
-            document.getElementById('opt2_name').value = 'المقاس';
-            document.getElementById('opt2_values').value = 'S, M, L';
-            generateVariantsFromCombinations();
+            document.getElementById('opt1_name').value = "اللون";
+            document.getElementById('opt1_values').value = "أحمر, أخضر";
+            document.getElementById('opt2_name').value = "المقاس";
+            document.getElementById('opt2_values').value = "صغير, كبير";
+            generateVariantsFromMatrix();
         }
 
-        function generateVariantsFromCombinations() {
-            const opt1Name = document.getElementById('opt1_name').value.trim() || 'اللون';
-            const opt1Vals = document.getElementById('opt1_values').value.split(',').map(v => v.trim()).filter(Boolean);
-            const opt2Name = document.getElementById('opt2_name').value.trim() || 'المقاس';
-            const opt2Vals = document.getElementById('opt2_values').value.split(',').map(v => v.trim()).filter(Boolean);
+        function generateVariantsFromMatrix() {
+            let opt1Name = document.getElementById('opt1_name').value.trim() || "اللون";
+            let opt1Vals = document.getElementById('opt1_values').value.split(',').map(s => s.trim()).filter(Boolean);
+            let opt2Name = document.getElementById('opt2_name').value.trim() || "المقاس";
+            let opt2Vals = document.getElementById('opt2_values').value.split(',').map(s => s.trim()).filter(Boolean);
 
-            const basePrice = parseFloat(document.getElementById('base_price').value) || 100.00;
-            const baseCost = parseFloat(document.getElementById('cost_price').value) || 60.00;
-            const baseQty = Math.floor((parseInt(document.getElementById('base_quantity').value) || 50) / (opt1Vals.length * opt2Vals.length || 1));
+            let basePrice = document.getElementById('base_price').value || 100;
+            let baseCost = document.getElementById('cost_price').value || 60;
+            let baseQty = Math.floor((parseInt(document.getElementById('base_quantity').value) || 50) / Math.max(1, opt1Vals.length * opt2Vals.length));
 
-            variantsList = [];
+            variantsData = [];
 
-            if (opt1Vals.length === 0 && opt2Vals.length === 0) {
-                alert('الرجاء إدخال قيمة واحدة على الأقل للمتغيرات.');
-                return;
-            }
+            if (opt1Vals.length === 0) opt1Vals = ["قياسي"];
+            if (opt2Vals.length === 0) opt2Vals = ["افتراضي"];
 
-            if (opt1Vals.length > 0 && opt2Vals.length > 0) {
-                opt1Vals.forEach(v1 => {
-                    opt2Vals.forEach(v2 => {
-                        const variantName = `${v1} - ${v2}`;
-                        variantsList.push({
-                            name: variantName,
-                            price: basePrice,
-                            costPrice: baseCost,
-                            quantity: baseQty > 0 ? baseQty : 10,
-                            sku: `MHG-${v1.substring(0,3).toUpperCase()}-${v2.toUpperCase()}`
-                        });
-                    });
-                });
-            } else {
-                const singleVals = opt1Vals.length > 0 ? opt1Vals : opt2Vals;
-                singleVals.forEach(val => {
-                    variantsList.push({
-                        name: val,
+            opt1Vals.forEach(v1 => {
+                opt2Vals.forEach(v2 => {
+                    variantsData.push({
+                        title: `${v1} / ${v2}`,
                         price: basePrice,
                         costPrice: baseCost,
-                        quantity: baseQty > 0 ? baseQty : 10,
-                        sku: `MHG-${val.substring(0,4).toUpperCase()}`
+                        quantity: Math.max(1, baseQty),
+                        sku: `MHJ-${Math.floor(Math.random()*89999 + 10000)}`
                     });
                 });
-            }
+            });
 
+            renderVariantsTable();
+        }
+
+        function renderVariantsTable() {
+            let tbody = document.getElementById('variants_table_body');
+            tbody.innerHTML = "";
+
+            variantsData.forEach((v, index) => {
+                let tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-all";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-800">${v.title}</td>
+                    <td class="p-3"><input type="number" step="0.01" value="${v.price}" onchange="updateVariant(${index}, 'price', this.value)" class="w-24 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-xs font-bold"></td>
+                    <td class="p-3"><input type="number" step="0.01" value="${v.costPrice}" onchange="updateVariant(${index}, 'costPrice', this.value)" class="w-24 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-xs"></td>
+                    <td class="p-3"><input type="number" value="${v.quantity}" onchange="updateVariant(${index}, 'quantity', this.value)" class="w-20 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-xs"></td>
+                    <td class="p-3"><input type="text" value="${v.sku}" onchange="updateVariant(${index}, 'sku', this.value)" class="w-28 px-2 py-1 bg-slate-50 border border-slate-300 rounded text-xs font-mono"></td>
+                    <td class="p-3 text-center"><button type="button" onclick="removeVariant(${index})" class="text-rose-500 hover:text-rose-700 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+            document.getElementById('variants_json').value = JSON.stringify(variantsData);
+        }
+
+        function updateVariant(index, field, value) {
+            variantsData[index][field] = value;
+            document.getElementById('variants_json').value = JSON.stringify(variantsData);
+        }
+
+        function removeVariant(index) {
+            variantsData.splice(index, 1);
             renderVariantsTable();
         }
 
         function addNewVariantCard() {
-            variantsList.push({
-                name: 'متغير جديد',
-                price: parseFloat(document.getElementById('base_price').value) || 100.00,
-                costPrice: parseFloat(document.getElementById('cost_price').value) || 60.00,
+            variantsData.push({
+                title: "خيار جديد مفرد",
+                price: document.getElementById('base_price').value || 100,
+                costPrice: document.getElementById('cost_price').value || 60,
                 quantity: 10,
-                sku: 'MHG-NEW-' + Math.floor(Math.random() * 1000)
+                sku: `MHJ-${Math.floor(Math.random()*89999 + 10000)}`
             });
             renderVariantsTable();
         }
 
-        function removeVariant(index) {
-            variantsList.splice(index, 1);
-            renderVariantsTable();
-        }
-
-        function updateVariantField(index, field, value) {
-            variantsList[index][field] = field === 'name' || field === 'sku' ? value : parseFloat(value) || 0;
-        }
-
-        function renderVariantsTable() {
-            const tbody = document.getElementById('variantsTableBody');
-            tbody.innerHTML = '';
-
-            if (variantsList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">لا توجد متغيرات مضافة حالياً. استخدم المولّد بالأعلى أو أضف متغير مفرد.</td></tr>`;
-                document.getElementById('variants_json').value = '[]';
-                return;
-            }
-
-            variantsList.forEach((v, idx) => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition-colors';
-                tr.innerHTML = `
-                    <td class="p-2.5">
-                        <input type="text" value="${v.name}" oninput="updateVariantField(${idx}, 'name', this.value)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-slate-900">
-                    </td>
-                    <td class="p-2.5">
-                        <input type="number" step="0.01" value="${v.price}" oninput="updateVariantField(${idx}, 'price', this.value)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-slate-900">
-                    </td>
-                    <td class="p-2.5">
-                        <input type="number" step="0.01" value="${v.costPrice}" oninput="updateVariantField(${idx}, 'costPrice', this.value)" class="w-full px-2.5 py-1.5 bg-purple-50 border border-purple-200 rounded text-xs font-bold text-[#4A154B]">
-                    </td>
-                    <td class="p-2.5">
-                        <input type="number" value="${v.quantity}" oninput="updateVariantField(${idx}, 'quantity', this.value)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-slate-900">
-                    </td>
-                    <td class="p-2.5">
-                        <input type="text" value="${v.sku}" oninput="updateVariantField(${idx}, 'sku', this.value)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-mono text-slate-700">
-                    </td>
-                    <td class="p-2.5 text-center">
-                        <button type="button" onclick="removeVariant(${idx})" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded transition-colors" title="حذف المتغير">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            lucide.createIcons();
-            document.getElementById('variants_json').value = JSON.stringify(variantsList);
-        }
-
-        // 5. Gallery Management
-        function handleGalleryFiles(files) {
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    galleryList.push(e.target.result);
-                    renderGalleryGrid();
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function addImageByUrl() {
-            const input = document.getElementById('imageUrlInput');
+        let galleryImages = [];
+        function addGalleryImage() {
+            let input = document.getElementById('new_gallery_url');
             if (input.value.trim()) {
-                galleryList.push(input.value.trim());
-                input.value = '';
-                renderGalleryGrid();
+                galleryImages.push(input.value.trim());
+                input.value = "";
+                renderGallery();
             }
         }
 
-        function removeGalleryImage(index) {
-            galleryList.splice(index, 1);
-            renderGalleryGrid();
-        }
-
-        function renderGalleryGrid() {
-            const grid = document.getElementById('galleryGrid');
-            grid.innerHTML = '';
-
-            galleryList.forEach((imgSrc, idx) => {
-                const div = document.createElement('div');
-                div.className = 'relative group aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100';
+        function renderGallery() {
+            let container = document.getElementById('gallery_container');
+            container.innerHTML = "";
+            galleryImages.forEach((url, idx) => {
+                let div = document.createElement('div');
+                div.className = "relative rounded-lg border border-slate-200 overflow-h-hidden h-20 bg-slate-100 flex items-center justify-center";
                 div.innerHTML = `
-                    <img src="${imgSrc}" class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button type="button" onclick="removeGalleryImage(${idx})" class="w-7 h-7 rounded-full bg-rose-600 text-white flex items-center justify-center shadow">
-                            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
+                    <img src="${url}" class="h-full w-full object-cover">
+                    <button type="button" onclick="galleryImages.splice(${idx},1); renderGallery();" class="absolute top-1 left-1 bg-rose-600 text-white rounded-full p-0.5 shadow-sm hover:bg-rose-700"><i data-lucide="x" class="w-3 h-3"></i></button>
                 `;
-                grid.appendChild(div);
+                container.appendChild(div);
             });
-
             lucide.createIcons();
-            document.getElementById('gallery_json').value = JSON.stringify(galleryList);
+            document.getElementById('gallery_json').value = JSON.stringify(galleryImages);
         }
 
-        // 6. Collections Tags Management
-        function handleCollectionKeydown(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const val = e.target.value.trim();
-                if (val && !collectionsList.includes(val)) {
-                    collectionsList.push(val);
-                    e.target.value = '';
-                    renderCollectionsBadges();
-                }
-            }
+        function updateCollectionsInput(val) {
+            document.getElementById('collections_input').value = val;
         }
 
-        function removeCollection(index) {
-            collectionsList.splice(index, 1);
-            renderCollectionsBadges();
-        }
-
-        function renderCollectionsBadges() {
-            const container = document.getElementById('collectionsBadgesContainer');
-            container.innerHTML = '';
-
-            collectionsList.forEach((col, idx) => {
-                const badge = document.createElement('span');
-                badge.className = 'inline-flex items-center gap-1 bg-purple-100 text-[#4A154B] px-2.5 py-1 rounded-lg text-xs font-bold';
-                badge.innerHTML = `
-                    <span>${col}</span>
-                    <button type="button" onclick="removeCollection(${idx})" class="hover:text-rose-600">&times;</button>
-                `;
-                container.appendChild(badge);
-            });
-
-            document.getElementById('collections_input').value = collectionsList.join(', ');
-        }
-
-        // 7. Form Submission Handler
         function submitProductForm() {
             syncEditorToTextarea();
-            document.getElementById('variants_json').value = JSON.stringify(variantsList);
-            document.getElementById('gallery_json').value = JSON.stringify(galleryList);
-            document.getElementById('collections_input').value = collectionsList.join(', ');
-
-            const title = document.getElementById('product_title').value.trim();
-            const price = document.getElementById('base_price').value;
-
-            if (!title) {
-                alert('الرجاء إدخال عنوان المنتج الأساسي.');
-                document.getElementById('product_title').focus();
-                return;
-            }
-            if (!price) {
-                alert('الرجاء إدخال السعر الأساسي للمنتج.');
-                document.getElementById('base_price').focus();
-                return;
-            }
-
+            document.getElementById('variants_json').value = JSON.stringify(variantsData);
             document.getElementById('productForm').submit();
         }
     </script>
