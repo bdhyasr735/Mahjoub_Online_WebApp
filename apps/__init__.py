@@ -3,7 +3,7 @@
 
 import os
 import importlib
-from flask import Flask, redirect, session, url_for, request, jsonify, render_template
+from flask import Flask, redirect, session, url_for, request, jsonify, render_template, make_response
 from flask_login import current_user
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_talisman import Talisman
@@ -36,8 +36,15 @@ def create_app():
 
     app.jinja_env.globals.update(getattr=getattr)
 
-    # ✅ حل مشكلة CORS للسماح لـ Apollo Sandbox بالاتصال
-    CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
+    # ✅ حل جذري وشامل لـ CORS للسماح لـ Apollo Sandbox والأدوات الخارجية بالاتصال وتمرير الجلسات
+    CORS(app, resources={
+        r"/admin/graphql": {
+            "origins": ["https://studio.apollographql.com", "https://embed.apollographql.com", "http://localhost:5000", "https://mahjoub.online"],
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Apollo-Require-Preflight"],
+            "supports_credentials": True
+        }
+    })
 
     db.init_app(app)
     
@@ -199,7 +206,6 @@ def create_app():
     @app.before_request
     def protect_routes():
         path = request.path
-        # ✅ تصحيح 1: تمت إضافة '/admin/graphql' إلى قائمة الاستثناءات
         exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection', '/admin/graphql']
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
@@ -240,6 +246,7 @@ def create_app():
                 "https://ckeditor.com", 
                 "https://*.ckeditor.com", 
                 "https://mahjoub.online",
+                "https://studio.apollographql.com",
                 "https://cdn.jsdelivr.net", 
                 "https://cdnjs.cloudflare.com"
             ]
@@ -248,36 +255,51 @@ def create_app():
     )
 
     # ============================================================
-    # ✅ المسار الجديد: محطة عبور GraphQL لـ Apollo Sandbox
+    # ✅ المسار الجديد: محطة عبور GraphQL لـ Apollo Sandbox (مضبوط بالكامل)
     # ============================================================
-    # ✅ تم تعديل methods لتشمل GET أيضًا
     @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
-    @csrf.exempt  # ✅ تصحيح 2: إعفاء هذا المسار من حماية CSRF
+    @csrf.exempt  # إعفاء تام من حماية CSRF لطلبات الساندبوكس الخارجية
     def graphql_proxy():
-        # الاستجابة لطلب اختبار الاتصال المسبق (Preflight OPTIONS)
+        # الاستجابة الصحيحة الكاملة لطلبات اختبار الاتصال المسبق Preflight
         if request.method == 'OPTIONS':
-            return '', 200
+            response = make_response('', 200)
+            response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', 'https://studio.apollographql.com')
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Apollo-Require-Preflight'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            return response
 
         try:
-            # استقبال بيانات GraphQL من Apollo Sandbox
-            data = request.get_json()
-            query = data.get('query')
-            variables = data.get('variables')
-            operation_name = data.get('operationName')
+            # معالجة استعلامات GET (غالباً ما يستخدمها Apollo Sandbox لجلب Schema Introspection)
+            if request.method == 'GET':
+                query = request.args.get('query')
+                variables = request.args.get('variables')
+                operation_name = request.args.get('operationName')
+            else:
+                data = request.get_json(silent=True) or {}
+                query = data.get('query')
+                variables = data.get('variables')
+                operation_name = data.get('operationName')
 
-            # استخدام عميل GraphQL الخاص بك لتمرير الطلب إلى Qumra Cloud
+            # استخدام عميل GraphQL لتمرير الطلب للخادم الفعلي
             client = GraphQLClient()
             result = client.execute(query, variables, operation_name)
 
-            # إعادة النتيجة إلى Apollo Sandbox
-            return jsonify(result)
+            response = jsonify(result)
+            response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', 'https://studio.apollographql.com')
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            return response
 
         except Exception as e:
             print(f"❌ [GraphQL Proxy Error]: {str(e)}")
-            return jsonify({
+            response = jsonify({
                 "error": str(e),
                 "message": "فشل تمرير طلب GraphQL إلى الخادم"
-            }), 500
+            })
+            response.status_code = 500
+            response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', 'https://studio.apollographql.com')
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            return response
 
     # ============================================================
     # ✅ مسار اختبار الاتصال بـ GraphQL
@@ -353,9 +375,7 @@ def create_app():
                     else:
                         print(f"⚠️ [Registry]: الموديول '{item}' لا يحتوي على register_module")
                     
-                    # استخراج الروابط سواء كانت قواميس (Dict) أو قوائم (List)
                     links_data = None
-                    
                     if hasattr(module, 'LINKS'):
                         raw_links = getattr(module, 'LINKS')
                         if isinstance(raw_links, dict):
