@@ -1,0 +1,71 @@
+<!-- Modal: إشعار النجاح واستجابات GraphQL (Success Notification & Inspector Modal) -->
+<div id="successModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-center relative animate-in fade-in zoom-in duration-200">
+        <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner border border-emerald-200">
+            <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+        </div>
+        <h3 class="font-extrabold text-slate-900 text-lg mb-1">عملية ناجحة</h3>
+        <p id="successModalText" class="text-xs text-slate-600 leading-relaxed mb-6">تمت العملية بنجاح على خادم قمرة كلاود ومتجر محجوب أونلاين.</p>
+        <button onclick="closeSuccessModal()" class="w-full bg-[#4A154B] hover:bg-[#3b113c] text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition-all">
+            تم، إغلاق النافذة
+        </button>
+    </div>
+</div>
+
+<!-- Product GraphQL Inspection Modal -->
+<div id="inspectorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in duration-200">
+        <button onclick="closeProductInspector()" class="absolute top-4 left-4 text-slate-400 hover:text-slate-600 bg-slate-100 p-1.5 rounded-full">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <div class="flex items-center gap-2 mb-4">
+            <div class="w-8 h-8 rounded-lg bg-[#4A154B] text-white flex items-center justify-center">
+                <i data-lucide="code" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h3 class="font-extrabold text-slate-900 text-base">معاينة استعلام GraphQL Qumra Cloud</h3>
+                <p class="text-xs text-slate-500">سجل استجابة البيانات الخاصة بهذا المنتج من الـ Sandbox</p>
+            </div>
+        </div>
+        
+        <div class="bg-slate-950 text-emerald-400 p-4 rounded-xl font-mono text-xs overflow-x-auto max-h-96 border border-slate-800 leading-relaxed dir-ltr" id="inspectorJson">
+            // Loading product node...
+        </div>
+
+        <div class="mt-5 flex justify-end gap-2">
+            <button onclick="closeProductInspector()" class="bg-[#4A154B] text-white font-bold text-xs px-4 py-2 rounded-lg">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openSuccessModal(msg) {
+        const textElem = document.getElementById('successModalText');
+        if (textElem && msg) textElem.innerText = msg;
+        const modal = document.getElementById('successModal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeSuccessModal() {
+        const modal = document.getElementById('successModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function openProductInspector(productObj) {
+        document.getElementById('inspectorJson').innerText = JSON.stringify({
+            "data": {
+                "product": productObj
+            },
+            "meta": {
+                "provider": "Qumra Cloud Sandbox Engine",
+                "store": "www.mahjoub.online",
+                "color_identity": "#4A154B"
+            }
+        }, null, 2);
+        document.getElementById('inspectorModal').classList.remove('hidden');
+    }
+
+    function closeProductInspector() {
+        document.getElementById('inspectorModal').classList.add('hidden');
+    }
+</script>
