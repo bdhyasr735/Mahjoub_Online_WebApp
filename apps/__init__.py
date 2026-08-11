@@ -36,6 +36,7 @@ def create_app():
 
     app.jinja_env.globals.update(getattr=getattr)
 
+    # ✅ حل مشكلة CORS للسماح لـ Apollo Sandbox بالاتصال
     CORS(app, resources={r"/admin/*": {"origins": ["https://studio.apollographql.com", "http://localhost:5000"]}}, supports_credentials=True)
 
     db.init_app(app)
@@ -245,6 +246,39 @@ def create_app():
         force_https=(os.environ.get('FLASK_ENV') == 'production')
     )
 
+    # ============================================================
+    # ✅ المسار الجديد: محطة عبور GraphQL لـ Apollo Sandbox
+    # ============================================================
+    @app.route('/admin/graphql', methods=['POST', 'OPTIONS'])
+    def graphql_proxy():
+        # الاستجابة لطلب اختبار الاتصال المسبق (Preflight OPTIONS)
+        if request.method == 'OPTIONS':
+            return '', 200
+
+        try:
+            # استقبال بيانات GraphQL من Apollo Sandbox
+            data = request.get_json()
+            query = data.get('query')
+            variables = data.get('variables')
+            operation_name = data.get('operationName')
+
+            # استخدام عميل GraphQL الخاص بك لتمرير الطلب إلى Qumra Cloud
+            client = GraphQLClient()
+            result = client.execute(query, variables, operation_name)
+
+            # إعادة النتيجة إلى Apollo Sandbox
+            return jsonify(result)
+
+        except Exception as e:
+            print(f"❌ [GraphQL Proxy Error]: {str(e)}")
+            return jsonify({
+                "error": str(e),
+                "message": "فشل تمرير طلب GraphQL إلى الخادم"
+            }), 500
+
+    # ============================================================
+    # ✅ مسار اختبار الاتصال بـ GraphQL
+    # ============================================================
     @app.route('/m7jb_test_connection')
     def test_graphql_connection():
         try:
