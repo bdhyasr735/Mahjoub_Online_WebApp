@@ -21,35 +21,38 @@
     #editor table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
     #editor th, #editor td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: right; }
     #editor th { background-color: #f1f5f9; font-weight: 700; }
+    
+    /* تنسيق حاوية الشريط العلوي */
+    .top-header-strip { height: 4px; background-color: #4A154B; }
 </style>
 
-<div class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<div class="bg-light text-dark min-vh-100 d-flex flex-column">
 
     <!-- Header Navigation -->
-    <header class="bg-[#4A154B] text-white shadow-md border-b border-[#3b113c] sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
+    <header class="bg-dark text-white shadow-sm border-bottom border-dark sticky-top" style="background-color: #4A154B !important; border-color: #3b113c !important; z-index: 40;">
+        <div class="container">
+            <div class="d-flex align-items-center justify-content-between py-3">
                 <!-- Brand Title -->
-                <div class="flex items-center space-x-3 space-x-reverse">
-                    <a href="/admin/products" class="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white border border-white/20 transition-all">
-                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                <div class="d-flex align-items-center gap-3">
+                    <a href="/admin/products" class="d-flex align-items-center justify-content-center text-white border border-white border-opacity-25 rounded-3 bg-white bg-opacity-10 text-decoration-none transition-all" style="width: 40px; height: 40px;">
+                        <i data-lucide="arrow-right" style="width: 20px; height: 20px;"></i>
                     </a>
                     <div>
-                        <h1 class="font-extrabold text-lg tracking-wide text-white">
+                        <h1 class="fw-bold text-white mb-0 fs-5">
                             {% if is_edit %}تعديل بيانات المنتج والمتغيرات{% else %}إضافة منتج جديد والمتغيرات الديناميكية{% endif %}
                         </h1>
-                        <p class="text-xs text-purple-200">www.mahjoub.online | Qumra Cloud Sandbox Engine</p>
+                        <p class="small text-purple-200 mb-0 opacity-75">www.mahjoub.online | Qumra Cloud Sandbox Engine</p>
                     </div>
                 </div>
 
                 <!-- Right Action Buttons -->
-                <div class="flex items-center gap-2">
-                    <a href="/admin/products" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 border border-white/10">
-                        <i data-lucide="x" class="w-4 h-4"></i>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/admin/products" class="bg-white bg-opacity-10 text-white text-decoration-none small fw-bold px-3 py-2 rounded-3 border border-white border-opacity-10 transition-all d-flex align-items-center gap-1">
+                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
                         <span>إلغاء العودة</span>
                     </a>
-                    <button type="button" onclick="submitProductForm()" class="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold px-5 py-2 rounded-lg shadow-md flex items-center gap-2 transition-all transform active:scale-95">
-                        <i data-lucide="save" class="w-4 h-4"></i>
+                    <button type="button" onclick="submitProductForm()" class="btn btn-success btn-sm fw-bold px-4 py-2 rounded-3 shadow-sm d-flex align-items-center gap-2 transition-all">
+                        <i data-lucide="save" style="width: 16px; height: 16px;"></i>
                         <span>{% if is_edit %}حفظ التعديلات{% else %}حفظ في قمرة كلاود{% endif %}</span>
                     </button>
                 </div>
@@ -58,78 +61,76 @@
     </header>
 
     <!-- Sub-header Breadcrumb -->
-    <div class="bg-white border-b border-slate-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-2 text-sm text-slate-600">
-            <a href="/admin/products" class="text-[#4A154B] hover:underline font-bold">جدول المنتجات</a>
-            <i data-lucide="chevron-left" class="w-4 h-4 text-slate-400"></i>
-            <span class="text-slate-900 font-semibold">
+    <div class="bg-white border-bottom py-2">
+        <div class="container d-flex align-items-center gap-2 small text-muted">
+            <a href="/admin/products" class="text-decoration-none fw-bold" style="color: #4A154B;">جدول المنتجات</a>
+            <i data-lucide="chevron-left" class="lucide-icon text-muted" style="width: 16px; height: 16px;"></i>
+            <span class="text-dark fw-semibold">
                 {% if is_edit %}{{ product.title }}{% else %}إنشاء نموذج جديد (admin_Product){% endif %}
             </span>
         </div>
     </div>
 
     <!-- Main Form Container -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+    <main class="container py-4 flex-grow-1">
 
-        <form id="productForm" method="POST" action="{% if is_edit %}/admin/products/{{ product.id }}/update{% else %}/admin/products/create{% endif %}" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <form id="productForm" method="POST" action="{% if is_edit %}/admin/products/{{ product.id }}/update{% else %}/admin/products/create{% endif %}" class="row g-4">
             
             <!-- Hidden Serialized Input Fields -->
             <input type="hidden" name="variants_json" id="variants_json" value='[]'>
             <input type="hidden" name="gallery_json" id="gallery_json" value='[]'>
             <input type="hidden" name="collections" id="collections_input" value="{% if product and product.collections %}{{ product.collections|join(', ') }}{% else %}عطور, هدايا فاخرة{% endif %}">
 
-            <!-- Left & Center Primary Form Fields (2 Columns) -->
-            <div class="lg:col-span-2 space-y-6">
+            <!-- Left & Center Primary Form Fields (2 Columns) using Bootstrap Grid -->
+            <div class="col-lg-8 d-flex flex-column gap-4">
 
                 <!-- Card 1: البيانات الأساسية + شريط أدوات الوصف المتقدم -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
-                    <div class="flex items-center gap-2 mb-5 pb-3 border-b border-slate-100">
-                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">1</div>
+                <div class="bg-white border rounded-3 shadow-sm p-4 position-relative overflow-hidden">
+                    <div class="position-absolute top-0 start-0 end-0 top-header-strip"></div>
+                    <div class="d-flex align-items-center gap-2 mb-4 pb-3 border-bottom border-light">
+                        <div class="d-flex align-items-center justify-content-center fw-bold rounded-3 bg-purple-100 text-dark" style="width: 32px; height: 32px; color: #4A154B;">1</div>
                         <div>
-                            <h2 class="text-base font-extrabold text-slate-900">البيانات الأساسية للمنتج</h2>
-                            <p class="text-xs text-slate-500">العنوان، الرابط، حالة العرض، وشريط أدوات تنسيق الوصف الكامل</p>
+                            <h2 class="fs-6 fw-bold text-dark mb-0">البيانات الأساسية للمنتج</h2>
+                            <p class="small text-muted mb-0">العنوان، الرابط، حالة العرض، وشريط أدوات تنسيق الوصف الكامل</p>
                         </div>
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="d-flex flex-column gap-3">
                         <!-- Title Field -->
                         <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
-                                عنوان المنتج الأساسي (title) <span class="text-rose-500">*</span>
+                            <label class="small fw-bold text-secondary mb-1">
+                                عنوان المنتج الأساسي (title) <span class="text-danger">*</span>
                             </label>
                             <input type="text" name="title" id="product_title" required
                                    value="{% if product %}{{ product.title }}{% endif %}"
                                    oninput="autoGenerateSlug(this.value)"
                                    placeholder="مثال: عطر الفخامة الملكي - محجوب أونلاين"
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#4A154B] focus:border-[#4A154B] transition-all">
+                                   class="form-control bg-light border rounded-3 py-2 fw-semibold">
                         </div>
 
                         <!-- Slug & Status Row -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="row g-3">
                             <!-- Slug Field -->
-                            <div class="sm:col-span-2">
-                                <label class="block text-xs font-extrabold text-slate-700 mb-1.5 flex justify-between">
+                            <div class="col-md-8">
+                                <label class="small fw-bold text-secondary mb-1 d-flex justify-content-between">
                                     <span>الرابط الدائم (slug)</span>
-                                    <button type="button" onclick="autoGenerateSlug(document.getElementById('product_title').value, true)" class="text-[#4A154B] hover:underline font-bold text-[11px]">توليد تلقائي</button>
+                                    <button type="button" onclick="autoGenerateSlug(document.getElementById('product_title').value, true)" class="text-decoration-none fw-bold small p-0 border-0 bg-transparent" style="color: #4A154B;">توليد تلقائي</button>
                                 </label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 font-mono text-xs">
-                                        /
-                                    </div>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 font-monospace small text-muted">/</span>
                                     <input type="text" name="slug" id="product_slug" required
                                            value="{% if product %}{{ product.slug }}{% endif %}"
                                            placeholder="royal-luxury-perfume"
-                                           class="w-full pr-7 pl-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4A154B]">
+                                           class="form-control bg-light border-start-0 font-monospace small">
                                 </div>
                             </div>
 
                             <!-- Status Field -->
-                            <div>
-                                <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
+                            <div class="col-md-4">
+                                <label class="small fw-bold text-secondary mb-1">
                                     حالة المنتج (status)
                                 </label>
-                                <select name="status" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                                <select name="status" class="form-select bg-light border rounded-3 py-2 small fw-bold">
                                     <option value="ACTIVE" {% if product and product.status == 'ACTIVE' %}selected{% endif %}>🟢 نشط (ACTIVE)</option>
                                     <option value="DRAFT" {% if product and product.status == 'DRAFT' %}selected{% endif %}>🟡 مسودة (DRAFT)</option>
                                     <option value="ARCHIVED" {% if product and product.status == 'ARCHIVED' %}selected{% endif %}>⚪ مؤرشف (ARCHIVED)</option>
@@ -139,25 +140,25 @@
 
                         <!-- Full Rich Text Editor Description Field with Complete Toolbar -->
                         <div>
-                            <div class="flex items-center justify-between mb-1.5">
-                                <label class="block text-xs font-extrabold text-slate-700">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="small fw-bold text-secondary mb-0">
                                     الوصف التفصيلي للمنتج مع شريط تنسيق محرر النصوص
                                 </label>
                                 <!-- View Mode Toggle -->
-                                <div class="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                                    <button type="button" id="btn_edit_mode" onclick="toggleRteTab('edit')" class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs">المحرر</button>
-                                    <button type="button" id="btn_preview_mode" onclick="toggleRteTab('preview')" class="px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900">المعاينة الحية</button>
+                                <div class="d-flex bg-light p-1 rounded-3 border">
+                                    <button type="button" id="btn_edit_mode" onclick="toggleRteTab('edit')" class="btn btn-sm btn-light fw-bold shadow-sm" style="color: #4A154B;">المحرر</button>
+                                    <button type="button" id="btn_preview_mode" onclick="toggleRteTab('preview')" class="btn btn-sm btn-light text-muted fw-bold">المعاينة الحية</button>
                                 </div>
                             </div>
 
                             <!-- Integrated Rich Text Editor Toolbar -->
-                            <div id="rteContainer" class="border border-slate-300 rounded-xl overflow-hidden bg-slate-50 focus-within:ring-2 focus-within:ring-[#4A154B] transition-all">
+                            <div id="rteContainer" class="border rounded-3 overflow-hidden bg-light transition-all">
                                 
                                 <!-- Toolbar Bar -->
-                                <div class="bg-slate-100 border-b border-slate-200 p-2 flex flex-wrap items-center gap-1.5 text-slate-700 select-none">
+                                <div class="bg-light border-bottom p-2 d-flex flex-wrap align-items-center gap-1 text-secondary user-select-none">
                                     
                                     <!-- Format Dropdown -->
-                                    <select onchange="formatDoc('formatBlock', this.value); this.selectedIndex=0;" class="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-bold text-slate-700 focus:outline-none">
+                                    <select onchange="formatDoc('formatBlock', this.value); this.selectedIndex=0;" class="form-select form-select-sm bg-white border rounded-2 fw-bold text-secondary" style="width: 130px;">
                                         <option value="">نوع الفقرة / العنوان</option>
                                         <option value="P">نص عادي (Paragraph)</option>
                                         <option value="H1">عنوان رئيسي كبير (H1)</option>
@@ -166,89 +167,88 @@
                                         <option value="BLOCKQUOTE">اقتباس مميز (Quote)</option>
                                     </select>
 
-                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+                                    <div class="border-start border-light mx-1" style="height: 18px;"></div>
 
-                                    <!-- Basic Styles: Bold, Italic, Underline, Strike -->
-                                    <button type="button" onclick="formatDoc('bold')" title="عريض (Bold)" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 font-black hover:text-[#4A154B]">
-                                        <i data-lucide="bold" class="w-4 h-4"></i>
+                                    <!-- Basic Styles -->
+                                    <button type="button" onclick="formatDoc('bold')" title="عريض (Bold)" class="btn btn-sm btn-light text-secondary border-0 p-1">
+                                        <i data-lucide="bold" style="width: 16px; height: 16px;"></i>
                                     </button>
-                                    <button type="button" onclick="formatDoc('italic')" title="مائل (Italic)" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 italic hover:text-[#4A154B]">
-                                        <i data-lucide="italic" class="w-4 h-4"></i>
+                                    <button type="button" onclick="formatDoc('italic')" title="مائل (Italic)" class="btn btn-sm btn-light text-secondary border-0 p-1">
+                                        <i data-lucide="italic" style="width: 16px; height: 16px;"></i>
                                     </button>
-                                    <button type="button" onclick="formatDoc('underline')" title="تحت الخط (Underline)" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 underline hover:text-[#4A154B]">
-                                        <i data-lucide="underline" class="w-4 h-4"></i>
+                                    <button type="button" onclick="formatDoc('underline')" title="تحت الخط (Underline)" class="btn btn-sm btn-light text-secondary border-0 p-1">
+                                        <i data-lucide="underline" style="width: 16px; height: 16px;"></i>
                                     </button>
-                                    <button type="button" onclick="formatDoc('strikeThrough')" title="يتوسطه خط (Strikethrough)" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 line-through hover:text-[#4A154B]">
-                                        <i data-lucide="strikethrough" class="w-4 h-4"></i>
+                                    <button type="button" onclick="formatDoc('strikeThrough')" title="يتوسطه خط (Strikethrough)" class="btn btn-sm btn-light text-secondary border-0 p-1">
+                                        <i data-lucide="strikethrough" style="width: 16px; height: 16px;"></i>
                                     </button>
 
-                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+                                    <div class="border-start border-light mx-1" style="height: 18px;"></div>
 
-                                    <!-- Color Presets & Picker -->
-                                    <div class="flex items-center gap-1 bg-white p-0.5 border border-slate-300 rounded">
-                                        <span class="text-[10px] font-bold text-slate-500 px-1">اللون:</span>
-                                        <button type="button" onclick="formatDoc('foreColor', '#4A154B')" class="w-4 h-4 rounded-full bg-[#4A154B] border border-slate-300" title="أرجواني محجوب"></button>
-                                        <button type="button" onclick="formatDoc('foreColor', '#059669')" class="w-4 h-4 rounded-full bg-emerald-600 border border-slate-300" title="أخضر زمردي"></button>
-                                        <button type="button" onclick="formatDoc('foreColor', '#DC2626')" class="w-4 h-4 rounded-full bg-rose-600 border border-slate-300" title="أحمر داكن"></button>
-                                        <button type="button" onclick="formatDoc('foreColor', '#2563EB')" class="w-4 h-4 rounded-full bg-blue-600 border border-slate-300" title="أزرق أكسفورد"></button>
-                                        <button type="button" onclick="formatDoc('foreColor', '#000000')" class="w-4 h-4 rounded-full bg-slate-900 border border-slate-300" title="أسود كلاسيكي"></button>
-                                        <input type="color" onchange="formatDoc('foreColor', this.value)" title="اختر لون مخصص" class="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent">
+                                    <!-- Color Presets -->
+                                    <div class="d-flex align-items-center gap-1 bg-white p-1 border rounded-3">
+                                        <span class="small fw-bold text-muted px-1">اللون:</span>
+                                        <button type="button" onclick="formatDoc('foreColor', '#4A154B')" class="border rounded-circle" style="width: 16px; height: 16px; background-color: #4A154B;"></button>
+                                        <button type="button" onclick="formatDoc('foreColor', '#059669')" class="border rounded-circle" style="width: 16px; height: 16px; background-color: #059669;"></button>
+                                        <button type="button" onclick="formatDoc('foreColor', '#DC2626')" class="border rounded-circle" style="width: 16px; height: 16px; background-color: #DC2626;"></button>
+                                        <button type="button" onclick="formatDoc('foreColor', '#2563EB')" class="border rounded-circle" style="width: 16px; height: 16px; background-color: #2563EB;"></button>
+                                        <button type="button" onclick="formatDoc('foreColor', '#000000')" class="border rounded-circle" style="width: 16px; height: 16px; background-color: #000000;"></button>
+                                        <input type="color" onchange="formatDoc('foreColor', this.value)" title="اختر لون مخصص" class="border-0 bg-transparent p-0 rounded-circle" style="width: 16px; height: 16px; cursor: pointer;">
                                     </div>
 
-                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+                                    <div class="border-start border-light mx-1" style="height: 18px;"></div>
 
                                     <!-- Text Alignment -->
-                                    <button type="button" onclick="formatDoc('justifyRight')" title="محاذاة لليمين" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
-                                        <i data-lucide="align-right" class="w-4 h-4"></i>
+                                    <button type="button" onclick="formatDoc('justifyRight')" title="محاذاة لليمين" class="btn btn-sm btn-light text-secondary border-0 p-1">
+                                        <i data-lucide="align-right" style="width: 16px; height: 16px;"></i>
                                     </button>
-                                    <button type="button" onclick="formatDoc('justifyCenter')" title="محاذاة للوسط" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
-                                        <i data-lucide="align-center" class="w-4 h-4"></i>
+                                    <button type="button" onclick="formatDoc('justifyCenter')" title="محاذاة للوسط" class="btn btn-sm btn-light text-secondary border-0 p-1">
+                                        <i data-lucide="align-center" style="width: 16px; height: 16px;"></i>
                                     </button>
-                                    <button type="button" onclick="formatDoc('justifyLeft')" title="محاذاة لليسار" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
-                                        <i data-lucide="align-left" class="w-4 h-4"></i>
+                                    <button type="button" onclick="formatDoc('justifyLeft')" title="محاذاة لليسار" class="btn btn-sm btn-light text-secondary border-0 p-1">
+                                        <i data-lucide="align-left" style="width: 16px; height: 16px;"></i>
                                     </button>
 
-                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+                                    <div class="border-start border-light mx-1" style="height: 18px;"></div>
 
                                     <!-- Lists -->
-                                    <button type="button" onclick="formatDoc('insertUnorderedList')" title="قائمة نقطية" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
-                                        <i data-lucide="list" class="w-4 h-4"></i>
+                                    <button type="button" onclick="formatDoc('insertUnorderedList')" title="قائمة نقطية" class="btn btn-sm btn-light text-secondary border-0 p-1">
+                                        <i data-lucide="list" style="width: 16px; height: 16px;"></i>
                                     </button>
-                                    <button type="button" onclick="formatDoc('insertOrderedList')" title="قائمة رقمية" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
-                                        <i data-lucide="list-ordered" class="w-4 h-4"></i>
+                                    <button type="button" onclick="formatDoc('insertOrderedList')" title="قائمة رقمية" class="btn btn-sm btn-light text-secondary border-0 p-1">
+                                        <i data-lucide="list-ordered" style="width: 16px; height: 16px;"></i>
                                     </button>
 
-                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+                                    <div class="border-start border-light mx-1" style="height: 18px;"></div>
 
                                     <!-- Insert Link & Preview Tooltip -->
-                                    <button type="button" onclick="promptInsertLink()" title="إدراج ومعاينة رابط" class="p-1.5 bg-purple-100 hover:bg-purple-200 text-[#4A154B] font-bold rounded flex items-center gap-1 text-xs">
-                                        <i data-lucide="link" class="w-3.5 h-3.5"></i>
+                                    <button type="button" onclick="promptInsertLink()" title="إدراج ومعاينة رابط" class="btn btn-sm btn-light fw-bold rounded-3 d-flex align-items-center gap-1 small text-dark" style="background-color: rgba(74, 21, 75, 0.1); color: #4A154B;">
+                                        <i data-lucide="link" style="width: 14px; height: 14px;"></i>
                                         <span>إدراج رابط</span>
                                     </button>
 
-                                    <!-- Insert Table -->
-                                    <button type="button" onclick="insertSampleTable()" title="إدراج جدول مواصفات" class="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded flex items-center gap-1 text-xs">
-                                        <i data-lucide="table" class="w-3.5 h-3.5"></i>
+                                    <button type="button" onclick="insertSampleTable()" title="إدراج جدول مواصفات" class="btn btn-sm btn-light fw-bold rounded-3 d-flex align-items-center gap-1 small text-secondary border">
+                                        <i data-lucide="table" style="width: 14px; height: 14px;"></i>
                                         <span>جدول</span>
                                     </button>
 
                                 </div>
 
                                 <!-- Contenteditable Rich Editor Area -->
-                                <div id="editor" contenteditable="true" oninput="syncEditorToTextarea()" class="p-4 bg-white text-slate-800 text-sm focus:outline-none">
-                                    {% if product and product.description %}{{ product.description|safe }}{% else %}<p>عطر شرقي فاخر بتركيز عالي ونفحات من العود والصندل والمسك، مصمم خصيصاً لعملاء متجر محجوب أونلاين.</p><table class="w-full text-xs my-2 border border-slate-300"><thead><tr class="bg-slate-100"><th>المواصفة</th><th>التفاصيل</th></tr></thead><tbody><tr><td>بلد الصنع</td><td>فرنسا / السعودية</td></tr><tr><td>الضمان</td><td>سنتان على الثبات</td></tr></tbody></table>{% endif %}
+                                <div id="editor" contenteditable="true" oninput="syncEditorToTextarea()" class="p-3 bg-white text-dark small focus-outline-none">
+                                    {% if product and product.description %}{{ product.description|safe }}{% else %}<p>عطر شرقي فاخر بتركيز عالي ونفحات من العود والصندل والمسك، مصمم خصيصاً لعملاء متجر محجوب أونلاين.</p><table class="w-100 small my-2 border border-secondary"><thead><tr class="bg-light"><th>المواصفة</th><th>التفاصيل</th></tr></thead><tbody><tr><td>بلد الصنع</td><td>فرنسا / السعودية</td></tr><tr><td>الضمان</td><td>سنتان على الثبات</td></tr></tbody></table>{% endif %}
                                 </div>
 
                                 <!-- Hidden Textarea synced with editor -->
-                                <textarea name="description" id="product_description" class="hidden">{% if product %}{{ product.description }}{% endif %}</textarea>
+                                <textarea name="description" id="product_description" class="d-none">{% if product %}{{ product.description }}{% endif %}</textarea>
 
                                 <!-- Live HTML Preview Box (Initially Hidden) -->
-                                <div id="rtePreviewBox" class="hidden p-4 bg-purple-50/40 border-t border-purple-200 text-slate-900 text-sm">
-                                    <div class="text-[11px] font-bold text-[#4A154B] mb-2 flex items-center gap-1">
-                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                <div id="rtePreviewBox" class="d-none p-3 border-top" style="background-color: rgba(74, 21, 75, 0.05); border-color: rgba(74, 21, 75, 0.2) !important;">
+                                    <div class="small fw-bold mb-2 d-flex align-items-center gap-1" style="color: #4A154B;">
+                                        <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
                                         <span>المعاينة الحية لصفحة المنتج على متجر محجوب أونلاين:</span>
                                     </div>
-                                    <div id="rtePreviewRender" class="prose prose-purple max-w-none bg-white p-3 rounded-lg border border-slate-200"></div>
+                                    <div id="rtePreviewRender" class="bg-white p-3 border rounded-3"></div>
                                 </div>
 
                             </div>
@@ -257,90 +257,90 @@
                 </div>
 
                 <!-- Card 2: التسعير، سعر التكلفة وحساب هامش الربح -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
-                    <div class="flex items-center gap-2 mb-5 pb-3 border-b border-slate-100">
-                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">2</div>
+                <div class="bg-white border rounded-3 shadow-sm p-4 position-relative overflow-hidden">
+                    <div class="position-absolute top-0 start-0 end-0 top-header-strip"></div>
+                    <div class="d-flex align-items-center gap-2 mb-4 pb-3 border-bottom border-light">
+                        <div class="d-flex align-items-center justify-content-center fw-bold rounded-3 bg-purple-100 text-dark" style="width: 32px; height: 32px; color: #4A154B;">2</div>
                         <div>
-                            <h2 class="text-base font-extrabold text-slate-900">التسعير وسعر التكلفة وإحصائيات الأرباح</h2>
-                            <p class="text-xs text-slate-500">سعر البيع، سعر التكلفة، حساب هامش الربح، والكمية المتوفرة</p>
+                            <h2 class="fs-6 fw-bold text-dark mb-0">التسعير وسعر التكلفة وإحصائيات الأرباح</h2>
+                            <p class="small text-muted mb-0">سعر البيع، سعر التكلفة، حساب هامش الربح، والكمية المتوفرة</p>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                    <div class="row g-3 mb-3">
                         <!-- Base Price -->
-                        <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
-                                السعر الأساسي - ر.س <span class="text-rose-500">*</span>
+                        <div class="col-sm-3">
+                            <label class="small fw-bold text-secondary mb-1">
+                                السعر الأساسي - ر.س <span class="text-danger">*</span>
                             </label>
                             <input type="number" step="0.01" name="price" id="base_price" required
                                    value="{% if product %}{{ product.price }}{% else %}100.00{% endif %}"
                                    oninput="calculateProfitMargin()"
                                    placeholder="0.00"
-                                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-900 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                                   class="form-control bg-light border rounded-3 fw-bold">
                         </div>
 
-                        <!-- Cost Price (سعر التكلفة) -->
-                        <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5 flex items-center gap-1">
-                                <span class="text-[#4A154B]">سعر التكلفة</span> - ر.س
-                                <span class="text-[10px] text-slate-400 font-normal">(اختياري)</span>
+                        <!-- Cost Price -->
+                        <div class="col-sm-3">
+                            <label class="small fw-bold text-secondary mb-1 d-flex align-items-center gap-1">
+                                <span style="color: #4A154B;">سعر التكلفة</span> - ر.س
+                                <span class="small text-muted fw-normal">(اختياري)</span>
                             </label>
                             <input type="number" step="0.01" name="costPrice" id="cost_price"
                                    value="{% if product and product.costPrice %}{{ product.costPrice }}{% elif product and product.cost_price %}{{ product.cost_price }}{% else %}60.00{% endif %}"
                                    oninput="calculateProfitMargin()"
                                    placeholder="0.00"
-                                   class="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-200 rounded-xl text-sm font-extrabold text-[#4A154B] focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                                   class="form-control border rounded-3 fw-bold" style="background-color: rgba(74, 21, 75, 0.05); border-color: rgba(74, 21, 75, 0.3) !important; color: #4A154B;">
                         </div>
 
                         <!-- Compare At Price -->
-                        <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
+                        <div class="col-sm-3">
+                            <label class="small fw-bold text-secondary mb-1">
                                 سعر الشطب/المقارنة
                             </label>
                             <input type="number" step="0.01" name="compareAtPrice" id="compare_at_price"
                                    value="{% if product and product.compareAtPrice %}{{ product.compareAtPrice }}{% endif %}"
                                    placeholder="0.00"
-                                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                                   class="form-control bg-light border rounded-3 fw-bold">
                         </div>
 
                         <!-- Total Quantity -->
-                        <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
-                                الكمية الإجمالية <span class="text-rose-500">*</span>
+                        <div class="col-sm-3">
+                            <label class="small fw-bold text-secondary mb-1">
+                                الكمية الإجمالية <span class="text-danger">*</span>
                             </label>
                             <input type="number" name="quantity" id="base_quantity" required
                                    value="{% if product %}{{ product.quantity }}{% else %}50{% endif %}"
                                    oninput="calculateProfitMargin()"
                                    placeholder="0"
-                                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                                   class="form-control bg-light border rounded-3 fw-bold">
                         </div>
                     </div>
 
                     <!-- Live Profit Calculation Display Banner -->
-                    <div id="profitBanner" class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between text-xs gap-3 shadow-2xs">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-extrabold shadow-2xs">
-                                <i data-lucide="trending-up" class="w-4 h-4"></i>
+                    <div class="bg-success bg-opacity-10 border border-success rounded-3 p-3 d-flex flex-wrap align-items-center justify-content-between gap-2 shadow-sm" style="border-color: rgba(16, 185, 129, 0.3) !important;">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center justify-content-center text-white rounded-3 shadow-sm" style="width: 32px; height: 32px; background-color: #10B981;">
+                                <i data-lucide="trending-up" style="width: 16px; height: 16px;"></i>
                             </div>
                             <div>
-                                <span class="font-extrabold text-emerald-950 block">حساب هامش الأرباح التلقائي:</span>
-                                <span class="text-[11px] text-emerald-800">حساب صافي الربح لكل قطعة ولإجمالي المخزون الحالي</span>
+                                <span class="fw-bold text-success d-block small">حساب هامش الأرباح التلقائي:</span>
+                                <span class="small text-success opacity-75">حساب صافي الربح لكل قطعة ولإجمالي المخزون الحالي</span>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-4">
-                            <div class="text-center bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-2xs">
-                                <span class="text-[10px] text-slate-500 block">الربح الصافي/قطعة</span>
-                                <span id="net_profit_val" class="font-extrabold text-emerald-700 text-sm">40.00 ر.س</span>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="text-center bg-white px-3 py-1 rounded-3 border shadow-sm border-success border-opacity-25">
+                                <span class="small text-muted d-block">الربح الصافي/قطعة</span>
+                                <span id="net_profit_val" class="fw-bold text-success small">40.00 ر.س</span>
                             </div>
-                            <div class="text-center bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-2xs">
-                                <span class="text-[10px] text-slate-500 block">هامش الربح</span>
-                                <span id="profit_margin_val" class="font-extrabold text-emerald-700 text-sm">40.0%</span>
+                            <div class="text-center bg-white px-3 py-1 rounded-3 border shadow-sm border-success border-opacity-25">
+                                <span class="small text-muted d-block">هامش الربح</span>
+                                <span id="profit_margin_val" class="fw-bold text-success small">40.0%</span>
                             </div>
-                            <div class="text-center bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-2xs">
-                                <span class="text-[10px] text-slate-500 block">إجمالي أرباح المخزون</span>
-                                <span id="total_stock_profit_val" class="font-extrabold text-[#4A154B] text-sm">2,000.00 ر.س</span>
+                            <div class="text-center bg-white px-3 py-1 rounded-3 border shadow-sm border-success border-opacity-25">
+                                <span class="small text-muted d-block">إجمالي أرباح المخزون</span>
+                                <span id="total_stock_profit_val" class="fw-bold small" style="color: #4A154B;">2,000.00 ر.س</span>
                             </div>
                         </div>
                     </div>
@@ -348,68 +348,72 @@
                 </div>
 
                 <!-- Card 3: هيكلة المتغيرات المتقدمة -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
+                <div class="bg-white border rounded-3 shadow-sm p-4 position-relative overflow-hidden">
+                    <div class="position-absolute top-0 start-0 end-0 top-header-strip"></div>
                     
-                    <div class="flex flex-wrap items-center justify-between mb-5 pb-3 border-b border-slate-100 gap-2">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">3</div>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-3 border-bottom border-light gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center justify-content-center fw-bold rounded-3 bg-purple-100 text-dark" style="width: 32px; height: 32px; color: #4A154B;">3</div>
                             <div>
-                                <h2 class="text-base font-extrabold text-slate-900">هيكلة وتوليد المتغيرات المتقدمة</h2>
-                                <p class="text-xs text-slate-500">إدخال أنواع المتغيرات (اللون، المقاس...) وتوليد الجدول التفاعلي تلقائياً</p>
+                                <h2 class="fs-6 fw-bold text-dark mb-0">هيكلة وتوليد المتغيرات المتقدمة</h2>
+                                <p class="small text-muted mb-0">إدخال أنواع المتغيرات (اللون، المقاس...) وتوليد الجدول التفاعلي تلقائياً</p>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2">
-                            <button type="button" onclick="loadUserExamplePreset()" class="bg-purple-100 hover:bg-purple-200 text-[#4A154B] px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-purple-300 transition-all">
-                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" onclick="loadUserExamplePreset()" class="btn btn-sm fw-bold rounded-3 d-flex align-items-center gap-1 border" style="background-color: rgba(74, 21, 75, 0.1); border-color: rgba(74, 21, 75, 0.3) !important; color: #4A154B;">
+                                <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
                                 <span>🎯 تحميل مثال المستخدم (اللون + المقاس)</span>
                             </button>
-                            <button type="button" onclick="addNewVariantCard()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs transition-all">
-                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                            <button type="button" onclick="addNewVariantCard()" class="btn btn-sm btn-dark text-white fw-bold rounded-3 d-flex align-items-center gap-1 shadow-sm" style="background-color: #4A154B; border-color: #4A154B;">
+                                <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i>
                                 <span>+ متغير مفرد</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Option Types Combinations Generator Panel -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-5">
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-                                <i data-lucide="sliders" class="w-4 h-4 text-[#4A154B]"></i>
+                    <div class="bg-light border rounded-3 p-3 mb-4">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="small fw-bold text-secondary d-flex align-items-center gap-1">
+                                <i data-lucide="sliders" class="lucide-icon" style="width: 16px; height: 16px; color: #4A154B;"></i>
                                 <span>مُولّد توافقات المتغيرات (Option Types & Values)</span>
                             </span>
-                            <span class="text-[11px] text-slate-500">أدخل قيم الأنواع وفصل بينها بفاصلة</span>
+                            <span class="small text-muted">أدخل قيم الأنواع وفصل بينها بفاصلة</span>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                        <div class="row g-3 mb-3">
                             <!-- Option 1 -->
-                            <div class="bg-white p-3 rounded-lg border border-slate-200">
-                                <label class="block text-[11px] font-bold text-slate-700 mb-1">النوع الأول (مثال: اللون)</label>
-                                <input type="text" id="opt_name_1" value="اللون" placeholder="أحمر, أزرق, أسود" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 mb-2">
-                                <input type="text" id="opt_vals_1" value="أسود ملكي, أبيض عاجي" placeholder="قيمة1, قيمة2" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-700">
+                            <div class="col-sm-6">
+                                <div class="bg-white p-3 rounded-3 border">
+                                    <label class="small fw-bold text-secondary mb-1">النوع الأول (مثال: اللون)</label>
+                                    <input type="text" id="opt_name_1" value="اللون" placeholder="أحمر, أزرق, أسود" class="form-control form-control-sm bg-light border rounded-3 fw-bold mb-2">
+                                    <input type="text" id="opt_vals_1" value="أسود ملكي, أبيض عاجي" placeholder="قيمة1, قيمة2" class="form-control form-control-sm bg-light border rounded-3">
+                                </div>
                             </div>
 
                             <!-- Option 2 -->
-                            <div class="bg-white p-3 rounded-lg border border-slate-200">
-                                <label class="block text-[11px] font-bold text-slate-700 mb-1">النوع الثاني (مثال: المقاس)</label>
-                                <input type="text" id="opt_name_2" value="المقاس" placeholder="صغير, كبير" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 mb-2">
-                                <input type="text" id="opt_vals_2" value="50 مل, 100 مل" placeholder="قيمة1, قيمة2" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-700">
+                            <div class="col-sm-6">
+                                <div class="bg-white p-3 rounded-3 border">
+                                    <label class="small fw-bold text-secondary mb-1">النوع الثاني (مثال: المقاس)</label>
+                                    <input type="text" id="opt_name_2" value="المقاس" placeholder="صغير, كبير" class="form-control form-control-sm bg-light border rounded-3 fw-bold mb-2">
+                                    <input type="text" id="opt_vals_2" value="50 مل, 100 مل" placeholder="قيمة1, قيمة2" class="form-control form-control-sm bg-light border rounded-3">
+                                </div>
                             </div>
                         </div>
 
-                        <div class="flex justify-end">
-                            <button type="button" onclick="generateVariantsMatrix()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition-all">
-                                <i data-lucide="cpu" class="w-4 h-4"></i>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" onclick="generateVariantsMatrix()" class="btn btn-sm btn-dark text-white fw-bold rounded-3 d-flex align-items-center gap-1 shadow-sm" style="background-color: #4A154B; border-color: #4A154B;">
+                                <i data-lucide="cpu" style="width: 16px; height: 16px;"></i>
                                 <span>توليد جدول المتغيرات التفاعلي تلقائياً</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Variants Dynamic Table -->
-                    <div class="overflow-x-auto rounded-xl border border-slate-200">
-                        <table class="w-full text-right text-xs">
-                            <thead class="bg-slate-100 text-slate-700 border-b border-slate-200 font-extrabold">
+                    <div class="table-responsive rounded-3 border">
+                        <table class="table table-hover text-end align-middle small mb-0">
+                            <thead class="bg-light text-secondary border-bottom fw-bold">
                                 <tr>
                                     <th class="p-3">مواصفة المتغير (SKU / Combination)</th>
                                     <th class="p-3">السعر (ر.س)</th>
@@ -418,7 +422,7 @@
                                     <th class="p-3 text-center">إجراء</th>
                                 </tr>
                             </thead>
-                            <tbody id="variantsTableBody" class="divide-y divide-slate-200 bg-white">
+                            <tbody id="variantsTableBody" class="bg-white border-top-0">
                                 <!-- Populated dynamically by JS -->
                             </tbody>
                         </table>
@@ -428,72 +432,70 @@
             </div>
 
             <!-- Right Sidebar: الصور، التصنيفات والوسوم (1 Column) -->
-            <div class="space-y-6">
+            <div class="col-lg-4 d-flex flex-column gap-4">
 
                 <!-- Card 4: معرض الصور (Gallery) -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
-                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">4</div>
+                <div class="bg-white border rounded-3 shadow-sm p-4 position-relative overflow-hidden">
+                    <div class="position-absolute top-0 start-0 end-0 top-header-strip"></div>
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-3 border-bottom border-light">
+                        <div class="d-flex align-items-center justify-content-center fw-bold rounded-3 bg-purple-100 text-dark" style="width: 32px; height: 32px; color: #4A154B;">4</div>
                         <div>
-                            <h2 class="text-base font-extrabold text-slate-900">معرض صور المنتج</h2>
-                            <p class="text-xs text-slate-500">إضافة روابط الصور مع معاينة فورية</p>
+                            <h2 class="fs-6 fw-bold text-dark mb-0">معرض صور المنتج</h2>
+                            <p class="small text-muted mb-0">إضافة روابط الصور مع معاينة فورية</p>
                         </div>
                     </div>
 
                     <!-- Image Input URL -->
-                    <div class="space-y-3 mb-4">
-                        <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1">رابط الصورة (Image URL)</label>
-                            <div class="flex gap-2">
-                                <input type="url" id="new_image_url" placeholder="https://example.com/image.jpg" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
-                                <button type="button" onclick="addImageToGallery()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap shadow-2xs">إضافة</button>
-                            </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary mb-1">رابط الصورة (Image URL)</label>
+                        <div class="input-group">
+                            <input type="url" id="new_image_url" placeholder="https://example.com/image.jpg" class="form-control bg-light border rounded-start-3">
+                            <button type="button" onclick="addImageToGallery()" class="btn btn-dark text-white fw-bold rounded-end-3" style="background-color: #4A154B; border-color: #4A154B;">إضافة</button>
                         </div>
+                    </div>
 
-                        <!-- Gallery Thumbnails Grid -->
-                        <div id="galleryThumbnails" class="grid grid-cols-3 gap-2 pt-2">
-                            <!-- Filled by JS -->
-                        </div>
+                    <!-- Gallery Thumbnails Grid -->
+                    <div id="galleryThumbnails" class="row row-cols-3 g-2">
+                        <!-- Filled by JS -->
                     </div>
                 </div>
 
                 <!-- Card 5: التصنيفات والوسوم -->
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
-                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">5</div>
+                <div class="bg-white border rounded-3 shadow-sm p-4 position-relative overflow-hidden">
+                    <div class="position-absolute top-0 start-0 end-0 top-header-strip"></div>
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-3 border-bottom border-light">
+                        <div class="d-flex align-items-center justify-content-center fw-bold rounded-3 bg-purple-100 text-dark" style="width: 32px; height: 32px; color: #4A154B;">5</div>
                         <div>
-                            <h2 class="text-base font-extrabold text-slate-900">التصنيفات والوسوم</h2>
-                            <p class="text-xs text-slate-500">تصنيف المنتج وعرضه في الأقسام</p>
+                            <h2 class="fs-6 fw-bold text-dark mb-0">التصنيفات والوسوم</h2>
+                            <p class="small text-muted mb-0">تصنيف المنتج وعرضه في الأقسام</p>
                         </div>
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="d-flex flex-column gap-3">
                         <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">التصنيفات (Collections)</label>
-                            <input type="text" id="collections_tags_input" value="عطور, هدايا فاخرة, العناية الملكية" oninput="updateCollectionsString(this.value)" placeholder="عطور, هدايا" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
-                            <span class="text-[11px] text-slate-400 mt-1 block">افصل بين التصنيفات بفاصلة (,)</span>
+                            <label class="small fw-bold text-secondary mb-1">التصنيفات (Collections)</label>
+                            <input type="text" id="collections_tags_input" value="عطور, هدايا فاخرة, العناية الملكية" oninput="updateCollectionsString(this.value)" placeholder="عطور, هدايا" class="form-control bg-light border rounded-3 fw-semibold">
+                            <span class="small text-muted mt-1 d-block">افصل بين التصنيفات بفاصلة (,)</span>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">وسوم البحث (Tags)</label>
-                            <input type="text" name="tags" value="{% if product and product.tags %}{{ product.tags }}{% else %}عود, مسك, عطور شرقية, فاخر{% endif %}" placeholder="عود, مسك, هدايا" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                            <label class="small fw-bold text-secondary mb-1">وسوم البحث (Tags)</label>
+                            <input type="text" name="tags" value="{% if product and product.tags %}{{ product.tags }}{% else %}عود, مسك, عطور شرقية, فاخر{% endif %}" placeholder="عود, مسك, هدايا" class="form-control bg-light border rounded-3 fw-semibold">
                         </div>
                     </div>
                 </div>
 
                 <!-- Card 6: النشر السريع -->
-                <div class="bg-gradient-to-br from-[#4A154B] to-[#3b113c] rounded-2xl text-white p-6 shadow-md">
-                    <h3 class="font-extrabold text-sm mb-2 flex items-center gap-2">
-                        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                <div class="bg-dark text-white p-4 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #4A154B, #3b113c) !important;">
+                    <h3 class="fw-bold small mb-2 d-flex align-items-center gap-2">
+                        <i data-lucide="shield-check" class="lucide-icon" style="width: 16px; height: 16px; color: #34D399;"></i>
                         <span>محجوب أونلاين - محرك قمرة كلاود</span>
                     </h3>
-                    <p class="text-xs text-purple-200 mb-4 leading-relaxed">
+                    <p class="small text-purple-200 mb-3 opacity-75">
                         عند الضغط على حفظ، سيتم اعتماد المتغيرات والتسعير وإحصائيات الأرباح وتحديث قاعدة البيانات الفورية بسلامة تامة.
                     </p>
-                    <button type="button" onclick="submitProductForm()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <button type="button" onclick="submitProductForm()" class="btn btn-success w-100 fw-bold py-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                        <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
                         <span>اعتماد ونشر المنتج الآن</span>
                     </button>
                 </div>
@@ -505,8 +507,8 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 mt-auto py-4 text-center text-xs text-slate-500">
-        <p>جميع الحقوق محفوظة © 2026 <strong>محجوب أونلاين</strong> | نظام إدارة المنتجات المتقدم</p>
+    <footer class="bg-white border-top mt-auto py-3 text-center small text-muted">
+        <p class="mb-0">جميع الحقوق محفوظة © 2026 <strong class="text-dark">محجوب أونلاين</strong> | نظام إدارة المنتجات المتقدم</p>
     </footer>
 
     <!-- JavaScript Engine -->
@@ -564,7 +566,7 @@
         }
 
         function insertSampleTable() {
-            const tableHtml = `<table class="w-full text-xs my-2 border border-slate-300"><thead><tr class="bg-slate-100"><th>المواصفة</th><th>التفاصيل</th></tr></thead><tbody><tr><td>المادة</td><td>زجاج ملكي فاخر</td></tr><tr><td>الضمان</td><td>سنتان شامل</td></tr></tbody></table><p><br></p>`;
+            const tableHtml = `<table class="w-100 small my-2 border border-secondary"><thead><tr class="bg-light"><th>المواصفة</th><th>التفاصيل</th></tr></thead><tbody><tr><td>المادة</td><td>زجاج ملكي فاخر</td></tr><tr><td>الضمان</td><td>سنتان شامل</td></tr></tbody></table><p><br></p>`;
             document.execCommand('insertHTML', false, tableHtml);
             syncEditorToTextarea();
         }
@@ -589,16 +591,18 @@
             const btnPreview = document.getElementById('btn_preview_mode');
 
             if (mode === 'edit') {
-                editor.classList.remove('hidden');
-                previewBox.classList.add('hidden');
-                btnEdit.className = "px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs";
-                btnPreview.className = "px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900";
+                editor.classList.remove('d-none');
+                previewBox.classList.add('d-none');
+                btnEdit.className = "btn btn-sm btn-light fw-bold shadow-sm";
+                btnEdit.style.color = "#4A154B";
+                btnPreview.className = "btn btn-sm btn-light text-muted fw-bold";
             } else {
                 syncEditorToTextarea();
-                editor.classList.add('hidden');
-                previewBox.classList.remove('hidden');
-                btnPreview.className = "px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs";
-                btnEdit.className = "px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900";
+                editor.classList.add('d-none');
+                previewBox.classList.remove('d-none');
+                btnPreview.className = "btn btn-sm btn-light fw-bold shadow-sm";
+                btnPreview.style.color = "#4A154B";
+                btnEdit.className = "btn btn-sm btn-light text-muted fw-bold";
             }
         }
 
@@ -670,23 +674,23 @@
 
             variantsList.forEach((v, idx) => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-all";
+                tr.className = "transition-colors";
                 tr.innerHTML = `
-                    <td class="p-3 font-bold text-slate-800">
-                        <input type="text" value="${v.name}" oninput="variantsList[${idx}].name = this.value" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900">
+                    <td class="p-3 fw-bold text-dark">
+                        <input type="text" value="${v.name}" oninput="variantsList[${idx}].name = this.value" class="form-control form-control-sm bg-light border rounded-3 fw-bold text-dark">
                     </td>
                     <td class="p-3">
-                        <input type="number" step="0.01" value="${v.price}" oninput="variantsList[${idx}].price = parseFloat(this.value)||0" class="w-24 px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900">
+                        <input type="number" step="0.01" value="${v.price}" oninput="variantsList[${idx}].price = parseFloat(this.value)||0" class="form-control form-control-sm bg-light border rounded-3 fw-bold" style="width: 90px;">
                     </td>
                     <td class="p-3">
-                        <input type="number" step="0.01" value="${v.cost}" oninput="variantsList[${idx}].cost = parseFloat(this.value)||0" class="w-24 px-2.5 py-1.5 bg-purple-50/50 border border-purple-200 rounded-lg text-xs font-bold text-[#4A154B]">
+                        <input type="number" step="0.01" value="${v.cost}" oninput="variantsList[${idx}].cost = parseFloat(this.value)||0" class="form-control form-control-sm border rounded-3 fw-bold" style="width: 90px; background-color: rgba(74, 21, 75, 0.05); border-color: rgba(74, 21, 75, 0.3) !important; color: #4A154B;">
                     </td>
                     <td class="p-3">
-                        <input type="number" value="${v.qty}" oninput="variantsList[${idx}].qty = parseInt(this.value)||0" class="w-20 px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900">
+                        <input type="number" value="${v.qty}" oninput="variantsList[${idx}].qty = parseInt(this.value)||0" class="form-control form-control-sm bg-light border rounded-3 fw-bold" style="width: 70px;">
                     </td>
                     <td class="p-3 text-center">
-                        <button type="button" onclick="removeVariant(${idx})" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="حذف المتغير">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <button type="button" onclick="removeVariant(${idx})" class="btn btn-sm btn-link text-danger p-1 text-decoration-none transition-all" title="حذف المتغير">
+                            <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
                         </button>
                     </td>
                 `;
@@ -730,15 +734,16 @@
             container.innerHTML = '';
 
             galleryList.forEach((imgUrl, idx) => {
-                const div = document.createElement('div');
-                div.className = "relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square";
-                div.innerHTML = `
-                    <img src="${imgUrl}" alt="صورة ${idx+1}" class="w-full h-full object-cover">
-                    <button type="button" onclick="removeGalleryImage(${idx})" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shadow-md">
-                        <i data-lucide="x" class="w-3 h-3"></i>
+                const col = document.createElement('div');
+                col.className = "col position-relative rounded-3 overflow-hidden border bg-light";
+                col.style.aspectRatio = "1 / 1";
+                col.innerHTML = `
+                    <img src="${imgUrl}" alt="صورة ${idx+1}" class="w-100 h-100 object-fit-cover">
+                    <button type="button" onclick="removeGalleryImage(${idx})" class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 m-1 p-0 opacity-0 transition-all" style="width: 20px; height: 20px; line-height: 0;">
+                        <i data-lucide="x" style="width: 12px; height: 12px;"></i>
                     </button>
                 `;
-                container.appendChild(div);
+                container.appendChild(col);
             });
             
             if (typeof lucide !== 'undefined') {
