@@ -8,23 +8,23 @@ from typing import Dict, Any, Optional
 class GraphQLClient:
     """
     عميل GraphQL للاتصال بـ API الخاص بـ Qumra.
-    يقرأ النقطة النهائية والتوكن من متغيرات البيئة.
+    يستخدم الاتصال الداخلي في بيئة الإنتاج لتجنب Timeout.
     """
     
     def __init__(self):
-        # ✅ الأولوية القصوى: قراءة الرابط من متغير البيئة الذي حددته في Render
-        self.endpoint = os.environ.get("QUMRA_API_ENDPOINT")
+        from config import Config
         
-        # إذا لم يتم ضبط QUMRA_API_ENDPOINT، نستخدم الاستراتيجية الذكية
-        if not self.endpoint:
-            if os.environ.get('FLASK_ENV') == 'production':
-                # ✅ استخدام المنفذ الداخلي للحاوية (تجنب حل النطاق و Timeout)
-                port = os.environ.get('PORT', 10000)
-                self.endpoint = f"http://0.0.0.0:{port}/admin/graphql"
-            else:
-                self.endpoint = "http://127.0.0.1:5000/admin/graphql"
+        # ✅ الحل الجذري: استخدام الشبكة الداخلية للحاوية في بيئة الإنتاج
+        if os.environ.get('FLASK_ENV') == 'production':
+            port = os.environ.get('PORT', 10000)
+            # الاتصال بـ 0.0.0.0 يعني "اتصل بي أنا مباشرة" بدون خروج للإنترنت
+            self.endpoint = f"http://0.0.0.0:{port}/admin/graphql"
+        else:
+            # في بيئة التطوير المحلية
+            self.endpoint = "http://127.0.0.1:5000/admin/graphql"
         
-        self.api_key = os.environ.get("QUMRA_API_KEY", "internal_token")
+        # قراءة المفتاح من متغير البيئة، وإذا لم يوجد يقرأ من إعدادات Config (احتياطياً)
+        self.api_key = os.environ.get("QUMRA_API_KEY", Config.QUMRA_API_KEY)
         
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -33,7 +33,7 @@ class GraphQLClient:
     
     def execute(self, query: str, variables: Optional[Dict] = None, operation_name: Optional[str] = None) -> Dict[str, Any]:
         """
-        تنفيذ استعلام GraphQL وإرجاع النتيجة.
+        تنفيذ استعلام GraphQL وإرجاع النتيجة مع حماية ضد الـ Timeout.
         """
         payload = {"query": query}
         if variables:
@@ -45,7 +45,6 @@ class GraphQLClient:
         
         print(f"🔍 [GraphQLClient] الاتصال بـ: {self.endpoint}")
         print(f"🔍 [GraphQLClient] العملية: {operation_name}")
-        print(f"🔍 [GraphQLClient] المتغيرات: {variables}")
         
         try:
             # تم تمديد الـ timeout إلى 15 ثانية لتجنب الأخطاء
@@ -70,6 +69,7 @@ class GraphQLClient:
         
         except requests.exceptions.RequestException as e:
             print(f"❌ [GraphQLClient Connection Error]: {str(e)}")
+            # إرجاع بيانات فارغة لكي تفتح الواجهة ولا تحدث مشكلة 500 أو Timeout
             return {"findAllProducts": {"data": [], "pagination": {"totalItems": 0, "totalPages": 1, "currentPage": 1}}}
     
     def test_connection(self) -> bool:
