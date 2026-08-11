@@ -5,7 +5,7 @@ import traceback
 import threading
 from flask import render_template, request, redirect, url_for, flash, session, current_app, jsonify, Blueprint
 from flask_login import login_required
-from sqlalchemy import cast, String
+from sqlalchemy import cast, String, or_
 
 from apps.extensions import db
 from apps.services import services
@@ -38,33 +38,31 @@ STATUS_TITLES_MAP = {
 
 
 def _save_or_update_order_item(order_id, item_data):
+    """دمج بيانات عناصر الطلب دون عمل commit منفصل لتسريع الأداء"""
     product_id = item_data.get('productId')
     if not product_id:
         return
-        
+
     item = OrderItem.query.filter_by(order_id=order_id, product_qid=product_id).first()
     if not item:
         item = OrderItem(order_id=order_id, product_qid=product_id)
 
     item.quantity = item_data.get('quantity', 0)
     item.price = item_data.get('price', 0)
-    
+
     product_data = item_data.get('productData', {})
     item.product_name = product_data.get('title', '')
-    
-    # 🔍 ربط المورد تلقائياً بالبند بناءً على جدول الربط السيادي ProductSupplierMapping
+
+    # 🔍 ربط المورد تلقائياً بالبند بناءً على جدول الربط
     supplier_id = item_data.get('supplier_id') or product_data.get('supplier_id')
     if not supplier_id:
         mapping_match = ProductSupplierMapping.query.filter_by(product_qid=product_id).first()
         if mapping_match:
             supplier_id = mapping_match.supplier_id
-            
-    if supplier_id:
-        item.supplier_id = supplier_id
-    else:
-        item.supplier_id = None
 
-    # التحقق الآمن والجذري لمنع خطأ AttributeError نهائياً
+    item.supplier_id = supplier_id if supplier_id else None
+
+    # التحقق الآمن لمنع خطأ AttributeError
     image_data = product_data.get('image', {})
     if isinstance(image_data, dict):
         item.product_image = image_data.get('fileUrl', '')
@@ -74,10 +72,10 @@ def _save_or_update_order_item(order_id, item_data):
         item.product_image = ''
 
     db.session.merge(item)
-    db.session.commit()
 
 
 def _save_or_update_order(order_data):
+    """حفظ أو تحديث الطلب وعناصره وتنفيذ commit واحد فقط"""
     order_id = order_data.get('_id')
     if not order_id:
         return
@@ -88,30 +86,29 @@ def _save_or_update_order(order_data):
 
     try:
         order.order_number = int(order_id[:8], 16) % 1000000
-    except:
+    except (ValueError, TypeError):
         order.order_number = None
 
     order.order_reference = order_id
-    
+
     account = order_data.get('account')
     if isinstance(account, dict):
         account_data = account.get('account', {})
-        customer_name = account_data.get('fullname', 'زائر')
-        order.customer_name = customer_name
+        order.customer_name = account_data.get('fullname', 'زائر')
         phone = account_data.get('phone')
         if phone:
             order.customer_phone = phone
     else:
         order.customer_name = 'زائر'
-        
+
     shipping = order_data.get('shippingAddress', {})
     address = shipping.get('street') or shipping.get('description')
     if address:
         order.customer_address = address
-        
+
     order.total_price = order_data.get('totalPrice', 0)
-    
-    # تحديث الحالة بوضوح
+
+    # تحديث الحالة
     status_obj = order_data.get('status', {})
     if isinstance(status_obj, dict):
         order.status_code = status_obj.get('code', 'pending')
@@ -120,13 +117,11 @@ def _save_or_update_order(order_data):
         order.status_code = str(status_obj)
         order.status_title = STATUS_TITLES_MAP.get(order.status_code, 'قيد الانتظار')
 
-    # معالجة وتحديث حالة وطريقة الدفع بشكل آمن ومتوافق مع الـ Schema
     order.is_paid = bool(order_data.get('isPaid', False))
-    
+
     if hasattr(order, 'payment_method'):
         order.payment_method = 'يدوي'
 
-    # ربط المورد الأساسي إذا كان موجوداً في بيانات الطلب
     if 'supplier_id' in order_data and order_data.get('supplier_id'):
         order.supplier_id = order_data.get('supplier_id')
     else:
@@ -136,17 +131,17 @@ def _save_or_update_order(order_data):
     updated_at = order_data.get('updatedAt')
     if updated_at:
         order.updated_at = updated_at
-        
+
     items_list = order_data.get('items', [])
     order.items_count = len(items_list)
 
     db.session.merge(order)
-    db.session.commit()
 
+    # معالجة العناصر
     for item_data in items_list:
         _save_or_update_order_item(order_id, item_data)
 
-    order.items_count = len(items_list)
+    # تنفيذ Commit آمن ومجمع مرة واحدة لكل طلب
     db.session.commit()
 
 
@@ -161,7 +156,7 @@ def sync_all_orders_from_graphql(max_pages=None):
         try:
             print(f"⏳ جاري جلب الصفحة رقم {page}...")
             result = services.orders.get_all_orders(page=page, limit=limit)
-            
+
             if not result:
                 print("⛔ [DEBUG] الـ API رجع قيمة فارغة (None أو Empty)!")
                 break
@@ -255,7 +250,7 @@ def manage_admin_orders_view():
                 subquery_with_supplier = db.session.query(OrderItem.order_id).filter(OrderItem.supplier_id != None).distinct()
                 query = query.filter(
                     db.and_(
-                        db.or_(Order.supplier_id == None, Order.supplier_id == ''),
+                        or_(Order.supplier_id == None, Order.supplier_id == ''),
                         ~Order.id.in_(subquery_with_supplier)
                     )
                 )
@@ -264,13 +259,13 @@ def manage_admin_orders_view():
                     s_id_int = int(supplier_filter)
                 except ValueError:
                     s_id_int = None
-                
+
                 s_id_str = str(supplier_filter)
 
                 matching_order_ids = db.session.query(OrderItem.order_id).outerjoin(
                     ProductSupplierMapping, OrderItem.product_qid == ProductSupplierMapping.product_qid
                 ).filter(
-                    db.or_(
+                    or_(
                         OrderItem.supplier_id == s_id_str,
                         *( [OrderItem.supplier_id == s_id_int] if s_id_int is not None else [] ),
                         ProductSupplierMapping.supplier_id == s_id_str,
@@ -279,7 +274,7 @@ def manage_admin_orders_view():
                 ).distinct().subquery()
 
                 query = query.filter(
-                    db.or_(
+                    or_(
                         Order.supplier_id == s_id_str,
                         *( [Order.supplier_id == s_id_int] if s_id_int is not None else [] ),
                         Order.id.in_(db.session.query(matching_order_ids.c.order_id))
@@ -295,53 +290,33 @@ def manage_admin_orders_view():
         if date_to:
             query = query.filter(Order.created_at <= date_to)
 
-        query = query.order_by(Order.created_at.desc())
-
+        # 5. التصفية بواسطة محرك البحث المباشر على SQL (سريع وموفر للذاكرة)
         search = request.args.get('search')
         if search:
-            search_val = search.strip().lower()
-            all_matched_orders = query.all()
-            filtered_orders = []
-            
-            for ord_item in all_matched_orders:
-                c_name = str(ord_item.customer_name or '').lower()
-                c_phone = str(ord_item.customer_phone or '').lower()
-                ord_num = str(ord_item.order_number or '').lower()
-                ord_ref = str(ord_item.order_reference or '').lower()
-                
-                if (search_val in c_name) or \
-                   (search_val in c_phone) or \
-                   (search_val in ord_num) or \
-                   (search_val in ord_ref):
-                    filtered_orders.append(ord_item)
-            
-            total_items = len(filtered_orders)
-            start_idx = (page - 1) * per_page
-            end_idx = start_idx + per_page
-            orders = filtered_orders[start_idx:end_idx]
-            
-            total_pages = (total_items + per_page - 1) // per_page if total_items > 0 else 1
-            pagination_info = {
-                'current_page': page,
-                'total_pages': total_pages,
-                'total_items': total_items,
-                'has_prev': page > 1,
-                'has_next': page < total_pages,
-                'prev_num': page - 1 if page > 1 else None,
-                'next_num': page + 1 if page < total_pages else None,
-            }
-        else:
-            paginated = query.paginate(page=page, per_page=per_page, error_out=False)
-            orders = paginated.items
-            pagination_info = {
-                'current_page': page,
-                'total_pages': paginated.pages,
-                'total_items': paginated.total,
-                'has_prev': paginated.has_prev,
-                'has_next': paginated.has_next,
-                'prev_num': page - 1 if paginated.has_prev else None,
-                'next_num': page + 1 if paginated.has_next else None,
-            }
+            search_pattern = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    Order.customer_name.ilike(search_pattern),
+                    Order.customer_phone.ilike(search_pattern),
+                    cast(Order.order_number, String).ilike(search_pattern),
+                    Order.order_reference.ilike(search_pattern)
+                )
+            )
+
+        query = query.order_by(Order.created_at.desc())
+
+        # الترقيم والتطبيق على مستوى قاعدة البيانات
+        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
+        orders = paginated.items
+        pagination_info = {
+            'current_page': page,
+            'total_pages': paginated.pages,
+            'total_items': paginated.total,
+            'has_prev': paginated.has_prev,
+            'has_next': paginated.has_next,
+            'prev_num': page - 1 if paginated.has_prev else None,
+            'next_num': page + 1 if paginated.has_next else None,
+        }
 
         suppliers = Supplier.query.all()
 
@@ -438,7 +413,7 @@ def print_order_invoice(order_id):
         if not order:
             flash('الطلب غير موجود', 'danger')
             return redirect(url_for('admin_orders_bp.list_admin_orders'))
-        
+
         items = OrderItem.query.filter_by(order_id=order_id).all()
         return render_template('admin/order/print_invoice.html', order=order, items_list=items)
     except Exception as e:
@@ -480,9 +455,26 @@ def update_order_status_inline(order_id):
 
 
 @admin_orders_bp.route('/api/update-order-number', methods=['POST'])
+@login_required
 def api_update_order_number():
+    """مسار تحديث رقم الطلب المكتمل إرجاعه"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         external_order_id = data.get('external_order_id')
-    except Exception:
-        external_order_id = None
+        new_order_number = data.get('order_number')
+
+        if not external_order_id:
+            return jsonify({'success': False, 'message': 'external_order_id مطلوب'}), 400
+
+        order = Order.query.filter_by(order_reference=external_order_id).first()
+        if not order:
+            return jsonify({'success': False, 'message': 'الطلب غير موجود'}), 404
+
+        if new_order_number:
+            order.order_number = new_order_number
+            db.session.commit()
+
+        return jsonify({'success': True, 'message': 'تم تحديث رقم الطلب بنجاح'})
+    except Exception as e:
+        current_app.logger.error(f"خطأ في تحديث رقم الطلب: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': str(e)}), 500
