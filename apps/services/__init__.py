@@ -2,15 +2,12 @@
 # 📂 apps/services/__init__.py
 
 import logging
-from apps.services.graphql_client import GraphQLClient
 
 logger = logging.getLogger(__name__)
 
 class Services:
     def __init__(self):
-        # إنشاء عميل GraphQL موحد للخدمات
-        self.client = GraphQLClient()
-        
+        self._client = None
         self._products = None
         self._collections = None
         self._suppliers = None
@@ -18,7 +15,14 @@ class Services:
         self._users = None
         self._variants = None
         self._audit = None
-    
+
+    @property
+    def client(self):
+        if self._client is None:
+            from apps.services.graphql_client import GraphQLClient
+            self._client = GraphQLClient()
+        return self._client
+
     @property
     def products(self):
         if self._products is None:
@@ -30,7 +34,7 @@ class Services:
                 logger.error(f"❌ [Services] فشل تحميل ProductService: {e}")
                 self._products = None
         return self._products
-    
+
     @property
     def collections(self):
         if self._collections is None:
@@ -41,7 +45,7 @@ class Services:
                 logger.error(f"❌ [Services] فشل تحميل CollectionService: {e}")
                 self._collections = None
         return self._collections
-    
+
     @property
     def suppliers(self):
         if self._suppliers is None:
@@ -52,7 +56,7 @@ class Services:
                 logger.error(f"❌ [Services] فشل تحميل SupplierService: {e}")
                 self._suppliers = None
         return self._suppliers
-    
+
     @property
     def orders(self):
         if self._orders is None:
@@ -64,7 +68,7 @@ class Services:
                 logger.error(f"❌ [Services] فشل تحميل OrderService: {e}")
                 self._orders = None
         return self._orders
-    
+
     @property
     def users(self):
         if self._users is None:
