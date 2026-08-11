@@ -1,171 +1,173 @@
-<!-- Products Table Container Card -->
-<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-    <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-        <div class="flex items-center gap-2">
-            <div class="w-3 h-3 rounded-full bg-[#4A154B]"></div>
-            <h2 class="font-bold text-slate-900 text-base">جدول إدارة المنتجات والمتغيرات المستقلة</h2>
-            <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-mono">{{ products|length }} منتج</span>
+<!-- Products Table Container Card (Bootstrap 5 Version) -->
+<div class="card border shadow-sm rounded-3 mb-4 overflow-hidden">
+    <div class="card-header bg-light bg-opacity-50 border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <div style="width: 12px; height: 12px; background-color: #4A154B; border-radius: 50%;"></div>
+            <h2 class="fw-bold text-dark fs-6 mb-0">جدول إدارة المنتجات والمتغيرات المستقلة</h2>
+            <span class="small bg-secondary bg-opacity-10 text-secondary px-2 py-1 rounded-pill font-monospace">{{ products|length }} منتج</span>
         </div>
-        <span class="text-xs text-slate-500 font-medium hidden sm:inline">متزامن مع Qumra Cloud GraphQL Sandbox API</span>
+        <span class="small text-muted fw-medium d-none d-sm-inline">متزامن مع Qumra Cloud GraphQL Sandbox API</span>
     </div>
 
     {% if products|length == 0 %}
-    <div class="py-16 text-center px-4">
-        <div class="w-16 h-16 bg-purple-50 text-[#4A154B] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-purple-100">
-            <i data-lucide="package-open" class="w-8 h-8"></i>
+    <!-- Empty State -->
+    <div class="p-5 text-center">
+        <div class="d-flex align-items-center justify-content-center mx-auto mb-3 rounded-3" style="width: 64px; height: 64px; background-color: rgba(74, 21, 75, 0.1); color: #4A154B; border: 1px solid rgba(74, 21, 75, 0.2);">
+            <i data-lucide="package-open" style="width: 32px; height: 32px;"></i>
         </div>
-        <h3 class="text-lg font-bold text-slate-800">لا توجد منتجات تطابق البحث</h3>
-        <p class="text-sm text-slate-500 max-w-md mx-auto mt-1 mb-6">لم نتمكن من العثور على أية منتجات تتطابق مع الفلاتر الحالية، يمكنك إضافة منتج جديد أو تغيير كلمة البحث.</p>
-        <a href="/admin/products/new" class="inline-flex items-center gap-2 bg-[#4A154B] hover:bg-[#3b113c] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all">
-            <i data-lucide="plus" class="w-4 h-4"></i>
+        <h4 class="fw-bold text-dark">لا توجد منتجات تطابق البحث</h4>
+        <p class="text-muted small mx-auto mb-4" style="max-width: 450px;">لم نتمكن من العثور على أية منتجات تتطابق مع الفلاتر الحالية، يمكنك إضافة منتج جديد أو تغيير كلمة البحث.</p>
+        <a href="/admin/products/new" class="btn text-white px-4 py-2 rounded-3 fw-bold shadow-sm" style="background-color: #4A154B;">
+            <i data-lucide="plus" style="width: 16px; height: 16px;" class="me-1"></i>
             إضافة أول منتج لمتجر محجوب
         </a>
     </div>
     {% else %}
-    <div class="overflow-x-auto">
-        <table class="w-full text-right border-collapse">
-            <thead>
-                <tr class="bg-slate-100/80 text-slate-600 text-xs font-extrabold uppercase border-b border-slate-200">
-                    <th class="py-3.5 px-4">المنتج والوسائط</th>
-                    <th class="py-3.5 px-4">الحالة</th>
-                    <th class="py-3.5 px-4">تتبع المورد / الإدارة</th>
-                    <th class="py-3.5 px-4">السعر والمقارنة</th>
-                    <th class="py-3.5 px-4">المخزون الإجمالي</th>
-                    <th class="py-3.5 px-4 min-w-[220px]">المتغيرات الديناميكية (Variants)</th>
-                    <th class="py-3.5 px-4">المجموعات والعلامات</th>
-                    <th class="py-3.5 px-4 text-center">الإجراءات</th>
+    <!-- Table -->
+    <div class="table-responsive">
+        <table class="table table-hover text-end align-middle mb-0" dir="rtl">
+            <thead class="bg-light bg-opacity-75 text-muted small fw-bold border-bottom text-uppercase">
+                <tr>
+                    <th class="p-3">المنتج والوسائط</th>
+                    <th class="p-3">الحالة</th>
+                    <th class="p-3">تتبع المورد / الإدارة</th>
+                    <th class="p-3">السعر والمقارنة</th>
+                    <th class="p-3">المخزون الإجمالي</th>
+                    <th class="p-3" style="min-width: 220px;">المتغيرات الديناميكية (Variants)</th>
+                    <th class="p-3">المجموعات والعلامات</th>
+                    <th class="p-3 text-center">الإجراءات</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-200 text-sm">
+            <tbody class="border-top-0">
                 {% for product in products %}
-                <tr class="hover:bg-purple-50/40 transition-colors group">
+                <tr class="transition-colors">
                     
                     <!-- Product Image & Title -->
-                    <td class="py-4 px-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 shadow-2xs relative">
-                                <img src="{{ product.images.fileUrl }}" alt="{{ product.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80'">
+                    <td class="p-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="flex-shrink-0 border rounded-2 overflow-hidden shadow-sm" style="width: 48px; height: 48px;">
+                                <img src="{{ product.images.fileUrl }}" alt="{{ product.title }}" class="w-100 h-100 object-fit-cover transition-transform" onerror="this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80'">
                             </div>
                             <div>
-                                <h4 class="font-bold text-slate-900 group-hover:text-[#4A154B] transition-colors line-clamp-1">
+                                <h6 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 250px;">
                                     {{ product.title }}
-                                </h4>
-                                <div class="flex items-center gap-1 text-xs text-slate-500 font-mono mt-0.5">
-                                    <i data-lucide="link" class="w-3 h-3 text-slate-400"></i>
-                                    <span class="truncate max-w-[180px]">{{ product.slug }}</span>
+                                </h6>
+                                <div class="d-flex align-items-center gap-1 small text-muted font-monospace mt-1">
+                                    <i data-lucide="link" style="width: 12px; height: 12px;"></i>
+                                    <span class="text-truncate" style="max-width: 150px;">{{ product.slug }}</span>
                                 </div>
                             </div>
                         </div>
                     </td>
 
                     <!-- Status Badge -->
-                    <td class="py-4 px-4 whitespace-nowrap">
+                    <td class="p-3 text-nowrap">
                         {% if product.status == 'ACTIVE' %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
+                                <span class="rounded-circle bg-success" style="width: 6px; height: 6px;"></span>
                                 نشط
                             </span>
                         {% elif product.status == 'DRAFT' %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-pill px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
+                                <span class="rounded-circle bg-warning" style="width: 6px; height: 6px;"></span>
                                 مسودة
                             </span>
                         {% else %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700 border border-slate-300">
-                                <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary rounded-pill px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
+                                <span class="rounded-circle bg-secondary" style="width: 6px; height: 6px;"></span>
                                 مؤرشف
                             </span>
                         {% endif %}
                     </td>
 
-                    <!-- Supplier & Admin Tracking Badge -->
-                    <td class="py-4 px-4 whitespace-nowrap">
+                    <!-- Supplier Tracking Badge -->
+                    <td class="p-3 text-nowrap">
                         {% if product.supplier_id %}
-                            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                                <i data-lucide="truck" class="w-3.5 h-3.5 text-blue-600"></i>
+                            <div class="badge bg-primary bg-opacity-10 text-primary border border-primary rounded-2 px-2 py-1 fw-bold d-inline-flex align-items-center gap-1">
+                                <i data-lucide="truck" style="width: 14px; height: 14px;"></i>
                                 <span>{{ product.supplier_name or ('مورد #' ~ product.supplier_id) }}</span>
                             </div>
                         {% else %}
-                            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 text-[#4A154B] border border-purple-200">
-                                <i data-lucide="building-2" class="w-3.5 h-3.5 text-[#4A154B]"></i>
+                            <div class="badge bg-light border rounded-2 px-2 py-1 fw-bold d-inline-flex align-items-center gap-1" style="color: #4A154B; border-color: rgba(74, 21, 75, 0.3) !important; background-color: rgba(74, 21, 75, 0.05);">
+                                <i data-lucide="building-2" style="width: 14px; height: 14px;"></i>
                                 <span>🏢 تتبع الإدارة العامة</span>
                             </div>
                         {% endif %}
                     </td>
 
                     <!-- Pricing -->
-                    <td class="py-4 px-4 whitespace-nowrap">
-                        <div class="font-extrabold text-slate-900 text-base">
-                            {{ product.price | format }} <span class="text-xs text-slate-500 font-normal">ر.س</span>
+                    <td class="p-3 text-nowrap">
+                        <div class="fw-bold text-dark fs-6">
+                            {{ product.price | format }} <span class="small text-muted fw-normal">ر.س</span>
                         </div>
                         {% if product.compareAtPrice and product.compareAtPrice > product.price %}
-                        <div class="text-xs text-rose-500 line-through font-medium">
+                        <div class="small text-danger text-decoration-line-through fw-medium">
                             {{ product.compareAtPrice | format }} ر.س
                         </div>
                         {% endif %}
                     </td>
 
                     <!-- Total Quantity -->
-                    <td class="py-4 px-4 whitespace-nowrap">
-                        <div class="flex items-center gap-1.5">
-                            <span class="font-bold {% if product.quantity <= 10 %} text-rose-600 {% else %} text-slate-800 {% endif %}">
+                    <td class="p-3 text-nowrap">
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="fw-bold {% if product.quantity <= 10 %} text-danger {% else %} text-dark {% endif %}">
                                 {{ product.quantity }} قطعة
                             </span>
                             {% if product.quantity <= 10 %}
-                            <span class="text-[10px] bg-rose-100 text-rose-700 font-bold px-1.5 py-0.5 rounded">منخفض</span>
+                            <span class="badge bg-danger bg-opacity-10 text-danger px-1 py-0.5 rounded small">منخفض</span>
                             {% endif %}
                         </div>
                     </td>
 
                     <!-- Dynamic Variants -->
-                    <td class="py-4 px-4">
+                    <td class="p-3">
                         {% if product.variants and product.variants|length > 0 %}
-                        <div class="flex flex-wrap gap-1.5 max-w-[280px]">
+                        <div class="d-flex flex-wrap gap-1" style="max-width: 280px;">
                             {% for variant in product.variants %}
-                            <div class="inline-flex items-center gap-1 bg-purple-50 border border-purple-200 text-[#4A154B] text-xs px-2 py-0.5 rounded-md font-medium">
-                                <span class="font-bold">{{ variant.name }}</span>
-                                <span class="text-[10px] bg-white text-purple-900 px-1 rounded border border-purple-100">{{ variant.type }}</span>
-                                <span class="text-[10px] text-emerald-700 font-bold">{{ variant.price | format }}ر.س ({{ variant.quantity }})</span>
+                            <div class="badge bg-light border rounded-1 px-2 py-1 fw-medium d-inline-flex align-items-center gap-1" style="color: #4A154B; border-color: rgba(74, 21, 75, 0.3);">
+                                <span class="fw-bold">{{ variant.name }}</span>
+                                <span class="small bg-white border rounded px-1 text-dark" style="border-color: #4A154B !important;">{{ variant.type }}</span>
+                                <span class="small text-success fw-bold">{{ variant.price | format }}ر.س ({{ variant.quantity }})</span>
                             </div>
                             {% endfor %}
                         </div>
                         {% else %}
-                        <span class="text-xs text-slate-400 italic">بدون متغيرات فرعية</span>
+                        <span class="small text-muted fst-italic">بدون متغيرات فرعية</span>
                         {% endif %}
                     </td>
 
                     <!-- Collections & Tags -->
-                    <td class="py-4 px-4">
-                        <div class="flex flex-wrap gap-1 max-w-[180px]">
+                    <td class="p-3">
+                        <div class="d-flex flex-wrap gap-1" style="max-width: 180px;">
                             {% for col in product.collections %}
-                            <span class="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium border border-slate-200">
+                            <span class="badge bg-light text-dark border rounded-1 small fw-medium">
                                 {{ col }}
                             </span>
                             {% endfor %}
                             {% for tag in product.tags %}
-                            <span class="text-[10px] text-[#4A154B] font-mono">#{{ tag }}</span>
+                            <span class="small font-monospace text-truncate" style="max-width: 100px; color: #4A154B;">#{{ tag }}</span>
                             {% endfor %}
                         </div>
                     </td>
 
                     <!-- Action Buttons -->
-                    <td class="py-4 px-4 whitespace-nowrap text-center">
-                        <div class="flex items-center justify-center gap-2">
+                    <td class="p-3 text-center text-nowrap">
+                        <div class="d-flex justify-content-center align-items-center gap-1">
                             <a href="/admin/products/{{ product.id }}/edit" 
-                               class="bg-[#4A154B] hover:bg-[#3b113c] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-2xs transition-all">
-                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                               class="btn btn-sm btn-dark text-white px-2 py-1 rounded-2 fw-bold d-flex align-items-center gap-1" style="background-color: #4A154B; border-color: #4A154B;">
+                                <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
                                 تعديل
                             </a>
 
                             <button onclick='openProductInspector({{ product|tojson }})'
-                                    class="bg-purple-50 hover:bg-purple-100 text-[#4A154B] text-xs font-bold px-2.5 py-1.5 rounded-lg border border-purple-200 transition-all flex items-center gap-1"
+                                    class="btn btn-sm btn-outline-secondary bg-light px-2 py-1 rounded-2 fw-bold d-flex align-items-center gap-1 text-dark"
                                     title="معاينة بيانات GraphQL">
-                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
                             </button>
 
-                            <form method="POST" action="/admin/products/{{ product.id }}/delete" onsubmit="return confirm('هل أنت تأكد من رغبتك في حذف المنتج ({{ product.title }}) بالكامل من Qumra Cloud Sandbox؟');" class="inline">
-                                <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-800 text-xs font-bold p-1.5 rounded-lg border border-rose-200 transition-all" title="حذف المنتج">
-                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <form method="POST" action="/admin/products/{{ product.id }}/delete" onsubmit="return confirm('هل أنت تأكد من رغبتك في حذف المنتج ({{ product.title }}) بالكامل من Qumra Cloud Sandbox؟');" class="d-inline-block m-0">
+                                <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1 rounded-2 border-0 bg-danger bg-opacity-10 text-danger d-flex align-items-center" title="حذف المنتج">
+                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
                                 </button>
                             </form>
                         </div>
@@ -177,35 +179,33 @@
         </table>
     </div>
 
-    <!-- Inline Pagination Component (No Include Needed) -->
-    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-        <div class="text-xs text-slate-500">
-            عرض الصفحة <span class="font-bold text-slate-800">{{ pagination.page if pagination else 1 }}</span> من أصل <span class="font-bold text-slate-800">{{ pagination.pages if pagination else 1 }}</span>
+    <!-- Pagination Component (Bootstrap 5 Inline) -->
+    <div class="card-footer bg-light bg-opacity-50 border-top p-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="small text-muted">
+            عرض الصفحة <span class="fw-bold text-dark">{{ pagination.page if pagination else 1 }}</span> من أصل <span class="fw-bold text-dark">{{ pagination.pages if pagination else 1 }}</span>
         </div>
         
-        <div class="flex items-center gap-1.5">
+        <div class="d-flex gap-1 align-items-center">
             {% if pagination and pagination.has_prev %}
-            <a href="?page={{ pagination.prev_num }}" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-bold transition-all">
+            <a href="?page={{ pagination.prev_num }}" class="btn btn-sm btn-outline-secondary bg-white text-dark fw-bold">
                 السابق
             </a>
             {% else %}
-            <span class="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg text-xs font-medium cursor-not-allowed">
+            <span class="btn btn-sm btn-light text-secondary fw-bold opacity-50" style="cursor: not-allowed;">
                 السابق
             </span>
             {% endif %}
 
             {% if pagination and pagination.has_next %}
-            <a href="?page={{ pagination.next_num }}" class="px-3 py-1.5 bg-[#4A154B] text-white hover:bg-[#3b113c] rounded-lg text-xs font-bold transition-all shadow-2xs">
+            <a href="?page={{ pagination.next_num }}" class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #4A154B; border-color: #4A154B;">
                 التالي
             </a>
             {% else %}
-            <span class="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg text-xs font-medium cursor-not-allowed">
+            <span class="btn btn-sm btn-light text-secondary fw-bold opacity-50" style="cursor: not-allowed;">
                 التالي
             </span>
             {% endif %}
         </div>
     </div>
-
     {% endif %}
-
 </div>
