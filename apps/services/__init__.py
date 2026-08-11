@@ -6,6 +6,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Services:
+    """
+    مُغلّف الخدمات الرئيسي (Services Registry) للمتجر.
+    يستخدم النمط الكسول (Lazy Loading) عبر خصائص @property لمنع حدوث التبعيات الدائرية (Circular Imports)
+    ولضمان تحميل الخدمات والاتصال بـ GraphQLClient فقط عند الحاجة الفعلية.
+    """
+
     def __init__(self):
         self._client = None
         self._products = None
@@ -19,8 +25,12 @@ class Services:
     @property
     def client(self):
         if self._client is None:
-            from apps.services.graphql_client import GraphQLClient
-            self._client = GraphQLClient()
+            try:
+                from apps.services.graphql_client import GraphQLClient
+                self._client = GraphQLClient()
+            except Exception as e:
+                logger.error(f"❌ [Services] فشل تحميل GraphQLClient: {e}")
+                self._client = None
         return self._client
 
     @property
@@ -41,6 +51,7 @@ class Services:
             try:
                 from apps.services.collection_service import CollectionService
                 self._collections = CollectionService(client=self.client)
+                logger.info("✅ [Services] تم تحميل CollectionService بنجاح")
             except Exception as e:
                 logger.error(f"❌ [Services] فشل تحميل CollectionService: {e}")
                 self._collections = None
@@ -52,6 +63,7 @@ class Services:
             try:
                 from apps.services.supplier_service import SupplierService
                 self._suppliers = SupplierService(client=self.client)
+                logger.info("✅ [Services] تم تحميل SupplierService بنجاح")
             except Exception as e:
                 logger.error(f"❌ [Services] فشل تحميل SupplierService: {e}")
                 self._suppliers = None
@@ -75,6 +87,7 @@ class Services:
             try:
                 from apps.services.user_service import UserService
                 self._users = UserService(client=self.client)
+                logger.info("✅ [Services] تم تحميل UserService بنجاح")
             except Exception as e:
                 logger.error(f"❌ [Services] فشل تحميل UserService: {e}")
                 self._users = None
@@ -86,9 +99,29 @@ class Services:
             try:
                 from apps.services.variant_service import VariantService
                 self._variants = VariantService(client=self.client)
+                logger.info("✅ [Services] تم تحميل VariantService بنجاح")
             except Exception as e:
                 logger.error(f"❌ [Services] فشل تحميل VariantService: {e}")
                 self._variants = None
         return self._variants
 
+    @property
+    def audit(self):
+        if self._audit is None:
+            try:
+                from apps.services.audit_service import AuditService
+                self._audit = AuditService(client=self.client)
+                logger.info("✅ [Services] تم تحميل AuditService بنجاح")
+            except Exception as e:
+                logger.error(f"❌ [Services] فشل تحميل AuditService: {e}")
+                self._audit = None
+        return self._audit
+
+
+# إنشاء الكائن الموحد للنظام
 services = Services()
+
+__all__ = [
+    'Services',
+    'services',
+]
