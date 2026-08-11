@@ -14,11 +14,10 @@ class GraphQLClient:
     def __init__(self):
         from config import Config
         
-        # ✅ الحل الجذري: استخدام الشبكة الداخلية للحاوية في بيئة الإنتاج
+        # ✅ الحل الجذري: استخدام 127.0.0.1 بدلاً من 0.0.0.0 للاتصال الداخلي الحقيقي داخل الحاوية
         if os.environ.get('FLASK_ENV') == 'production':
             port = os.environ.get('PORT', 10000)
-            # الاتصال بـ 0.0.0.0 يعني "اتصل بي أنا مباشرة" بدون خروج للإنترنت
-            self.endpoint = f"http://0.0.0.0:{port}/admin/graphql"
+            self.endpoint = f"http://127.0.0.1:{port}/admin/graphql"
         else:
             # في بيئة التطوير المحلية
             self.endpoint = "http://127.0.0.1:5000/admin/graphql"
