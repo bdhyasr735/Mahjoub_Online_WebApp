@@ -38,10 +38,22 @@ def create_app():
 
     # ✅ حل جذري وشامل لـ CORS للسماح لـ Apollo Sandbox والأدوات الخارجية بالاتصال وتمرير الجلسات
     CORS(app, resources={
-        r"/admin/graphql": {
-            "origins": ["https://studio.apollographql.com", "https://embed.apollographql.com", "http://localhost:5000", "https://mahjoub.online"],
+        r"/admin/graphql*": {
+            "origins": [
+                "https://studio.apollographql.com", 
+                "https://embed.apollographql.com", 
+                "https://sandbox.embed.apollographql.com",
+                "http://localhost:5000", 
+                "https://mahjoub.online"
+            ],
             "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Apollo-Require-Preflight"],
+            "allow_headers": [
+                "Content-Type", 
+                "Authorization", 
+                "X-Requested-With", 
+                "Apollo-Require-Preflight",
+                "Accept"
+            ],
             "supports_credentials": True
         }
     })
@@ -247,8 +259,16 @@ def create_app():
                 "https://*.ckeditor.com", 
                 "https://mahjoub.online",
                 "https://studio.apollographql.com",
+                "https://embed.apollographql.com",
+                "https://sandbox.embed.apollographql.com",
                 "https://cdn.jsdelivr.net", 
                 "https://cdnjs.cloudflare.com"
+            ],
+            'frame-ancestors': [
+                "'self'",
+                "https://studio.apollographql.com",
+                "https://embed.apollographql.com",
+                "https://sandbox.embed.apollographql.com"
             ]
         },
         force_https=(os.environ.get('FLASK_ENV') == 'production')
@@ -260,12 +280,14 @@ def create_app():
     @app.route('/admin/graphql', methods=['GET', 'POST', 'OPTIONS'])
     @csrf.exempt  # إعفاء تام من حماية CSRF لطلبات الساندبوكس الخارجية
     def graphql_proxy():
+        origin = request.headers.get('Origin', 'https://studio.apollographql.com')
+
         # الاستجابة الصحيحة الكاملة لطلبات اختبار الاتصال المسبق Preflight
         if request.method == 'OPTIONS':
             response = make_response('', 200)
-            response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', 'https://studio.apollographql.com')
+            response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Credentials'] = 'true'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Apollo-Require-Preflight'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Apollo-Require-Preflight, Accept'
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
             return response
 
@@ -286,7 +308,7 @@ def create_app():
             result = client.execute(query, variables, operation_name)
 
             response = jsonify(result)
-            response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', 'https://studio.apollographql.com')
+            response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Credentials'] = 'true'
             return response
 
@@ -297,7 +319,7 @@ def create_app():
                 "message": "فشل تمرير طلب GraphQL إلى الخادم"
             })
             response.status_code = 500
-            response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', 'https://studio.apollographql.com')
+            response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Credentials'] = 'true'
             return response
 
