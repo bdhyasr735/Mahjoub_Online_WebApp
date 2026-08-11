@@ -281,7 +281,7 @@ def list_products():
             all_collections.add(c)
 
     return render_template(
-        'admin_Product/products_list.html',
+        'admin_product/products_list.html',
         products=paginated_products,
         total_filtered=total_filtered,
         current_page=current_page,
@@ -313,7 +313,7 @@ def new_product():
     واجهة إنشاء منتج جديد وتجهيز المتغيرات الديناميكية
     """
     return render_template(
-        'admin_Product/product_form.html',
+        'admin_product/product_form.html',
         product=None,
         is_edit=False,
         brand_color=MODULE_METADATA["brand_color"],
@@ -335,7 +335,7 @@ def edit_product(product_id):
         return redirect(url_for('admin_product.list_products'))
         
     return render_template(
-        'admin_Product/product_form.html',
+        'admin_product/product_form.html',
         product=product,
         is_edit=True,
         brand_color=MODULE_METADATA["brand_color"],
