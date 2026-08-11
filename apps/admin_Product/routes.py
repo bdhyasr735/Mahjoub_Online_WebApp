@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# 📂 apps/admin_product/routes.py
 """
 متجر محجوب أونلاين (www.mahjoub.online) - Qumra Cloud Sandbox
 Routes handling GET and POST requests for products & dynamic variants.
@@ -8,7 +10,7 @@ import json
 import uuid
 from datetime import datetime
 from . import admin_product_bp
-from .registry import MODULE_METADATA, QUMRA_GRAPHQL_SCHEMAS
+from .registry import MODULE_METADATA, MODULE_NAME, MODULE_ICON, QUMRA_GRAPHQL_SCHEMAS
 
 # قاعدة بيانات مؤقتة متصلة بالـ Sandbox لمتجر محجوب أونلاين
 INITIAL_PRODUCTS = [
@@ -84,7 +86,7 @@ INITIAL_PRODUCTS = [
             ]
         },
         "collections": ["إلكترونيات", "أجهزة ذكية"],
-        "tags": ["ساعة", "ذكي", "سودان_أونلاين", "QumraCloud"],
+        "tags": ["ساعة", "ذكي", "محجوب_أونلاين", "QumraCloud"],
         "variants": [
             {
                 "id": "var_102_1",
@@ -350,7 +352,6 @@ def create_product():
     دالة معالجة POST لإنشاء المنتج وتنسيق بياناته للربط مع قمرة كلاود
     """
     try:
-        # قراءة البيانات الأساسية
         if request.is_json:
             data = request.get_json()
         else:
@@ -378,7 +379,6 @@ def create_product():
         if not gallery:
             gallery = [image_url]
         
-        # تحليل التصنيفات والعلامات
         raw_collections = data.get('collections', '')
         if isinstance(raw_collections, list):
             collections_list = raw_collections
@@ -391,7 +391,6 @@ def create_product():
         else:
             tags_list = [t.strip() for t in raw_tags.split(',') if t.strip()]
 
-        # معالجة المورد وتتبع الإدارة
         raw_supplier_id = data.get('supplier_id')
         raw_supplier_name = data.get('supplier_name') or data.get('custom_supplier_name')
         sup_id, sup_name = parse_supplier_info(raw_supplier_id, raw_supplier_name)
@@ -403,10 +402,8 @@ def create_product():
         weight_unit = data.get('weight_unit', 'kg').strip()
         dimensions = data.get('dimensions', '').strip()
 
-        # استخراج وتنسيق المتغيرات الديناميكية (Dynamic Variants)
         variants = []
         raw_variants_json = data.get('variants_json', '[]')
-        
         if raw_variants_json and isinstance(raw_variants_json, str):
             try:
                 parsed_variants = json.loads(raw_variants_json)
@@ -421,7 +418,6 @@ def create_product():
             except Exception as e:
                 print(f"[Variants Parser Warning] {e}")
 
-        # إنشاء سجل المنتج
         new_prod_id = f"prod_{uuid.uuid4().hex[:8]}"
         new_product_obj = {
             "id": new_prod_id,
@@ -452,7 +448,6 @@ def create_product():
             "updatedAt": datetime.utcnow().isoformat() + "Z"
         }
 
-        # إضافة المنتج لمخزن الـ Sandbox
         PRODUCTS_DB.insert(0, new_product_obj)
 
         if request.is_json:
