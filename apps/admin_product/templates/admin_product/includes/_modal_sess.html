@@ -15,7 +15,7 @@
 <!-- Product GraphQL Inspection Modal -->
 <div id="inspectorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in duration-200">
-        <button onclick="closeProductInspector()" class="absolute top-4 left-4 text-slate-400 hover:text-slate-600 bg-slate-100 p-1.5 rounded-full">
+        <button onclick="closeProductInspector()" class="absolute top-4 left-4 text-slate-400 hover:text-slate-600 bg-slate-100 p-1.5 rounded-full transition-colors">
             <i data-lucide="x" class="w-5 h-5"></i>
         </button>
         <div class="flex items-center gap-2 mb-4">
@@ -28,12 +28,12 @@
             </div>
         </div>
         
-        <div class="bg-slate-950 text-emerald-400 p-4 rounded-xl font-mono text-xs overflow-x-auto max-h-96 border border-slate-800 leading-relaxed dir-ltr" id="inspectorJson">
+        <div class="bg-slate-950 text-emerald-400 p-4 rounded-xl font-mono text-xs overflow-x-auto max-h-96 border border-slate-800 leading-relaxed dir-ltr text-left" id="inspectorJson">
             // Loading product node...
         </div>
 
         <div class="mt-5 flex justify-end gap-2">
-            <button onclick="closeProductInspector()" class="bg-[#4A154B] text-white font-bold text-xs px-4 py-2 rounded-lg">إغلاق</button>
+            <button onclick="closeProductInspector()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white font-bold text-xs px-5 py-2 rounded-xl transition-all shadow-sm">إغلاق</button>
         </div>
     </div>
 </div>
@@ -52,20 +52,25 @@
     }
 
     function openProductInspector(productObj) {
-        document.getElementById('inspectorJson').innerText = JSON.stringify({
-            "data": {
-                "product": productObj
-            },
-            "meta": {
-                "provider": "Qumra Cloud Sandbox Engine",
-                "store": "www.mahjoub.online",
-                "color_identity": "#4A154B"
-            }
-        }, null, 2);
-        document.getElementById('inspectorModal').classList.remove('hidden');
+        const jsonContainer = document.getElementById('inspectorJson');
+        if (jsonContainer) {
+            jsonContainer.innerText = JSON.stringify({
+                "data": {
+                    "product": productObj
+                },
+                "meta": {
+                    "provider": "Qumra Cloud Sandbox Engine",
+                    "store": "www.mahjoub.online",
+                    "color_identity": "#4A154B"
+                }
+            }, null, 2);
+        }
+        const modal = document.getElementById('inspectorModal');
+        if (modal) modal.classList.remove('hidden');
     }
 
     function closeProductInspector() {
-        document.getElementById('inspectorModal').classList.add('hidden');
+        const modal = document.getElementById('inspectorModal');
+        if (modal) modal.classList.add('hidden');
     }
 </script>
