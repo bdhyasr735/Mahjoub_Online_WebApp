@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# 📂 apps/admin_product/registry.py
+# 📂 apps/admin_produc/registry.py
 """
 متجر محجوب أونلاين (www.mahjoub.online) - Qumra Cloud Sandbox
 Registry file for admin_Product module and components.
