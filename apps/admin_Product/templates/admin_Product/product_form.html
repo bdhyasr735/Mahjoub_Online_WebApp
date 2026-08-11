@@ -1,1 +1,878 @@
-تا
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{% if is_edit %}تعديل المنتج: {{ product.title }}{% else %}رفع منتج جديد والمتغيرات{% endif %} | محجوب أونلاين{% endblock %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        qumraPurple: '#4A154B',
+                        qumraPurpleHover: '#3b113c',
+                        qumraPurpleLight: '#f6eff7',
+                        qumraPurpleBorder: '#d2b3d6',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+        .mahjoub-scope {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* Rich Text Editor Styling */
+        .mahjoub-scope #editor {
+            min-height: 140px;
+            outline: none;
+        }
+        .mahjoub-scope #editor h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; color: #1e293b; }
+        .mahjoub-scope #editor h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #334155; }
+        .mahjoub-scope #editor h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; color: #475569; }
+        .mahjoub-scope #editor p { margin-bottom: 0.5rem; line-height: 1.6; }
+        .mahjoub-scope #editor ul { list-style-type: disc; padding-right: 1.25rem; margin-bottom: 0.5rem; }
+        .mahjoub-scope #editor ol { list-style-type: decimal; padding-right: 1.25rem; margin-bottom: 0.5rem; }
+        .mahjoub-scope #editor blockquote { border-right: 4px solid #4A154B; padding-right: 0.75rem; color: #475569; font-style: italic; background: #f6eff7; padding-top: 0.25rem; padding-bottom: 0.25rem; margin-bottom: 0.5rem; }
+        .mahjoub-scope #editor table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
+        .mahjoub-scope #editor th, .mahjoub-scope #editor td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: right; }
+        .mahjoub-scope #editor th { background-color: #f1f5f9; font-weight: 700; }
+    </style>
+</head>
+<body class="mahjoub-scope text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-[#4A154B] text-white shadow-md border-b border-[#3b113c] sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Title -->
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <a href="/admin/products" class="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white border border-white/20 transition-all">
+                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </a>
+                    <div>
+                        <h1 class="font-extrabold text-lg tracking-wide text-white">
+                            {% if is_edit %}تعديل بيانات المنتج والمتغيرات{% else %}إضافة منتج جديد والمتغيرات الديناميكية{% endif %}
+                        </h1>
+                        <p class="text-xs text-purple-200">www.mahjoub.online | Qumra Cloud Sandbox Engine</p>
+                    </div>
+                </div>
+
+                <!-- Right Action Buttons -->
+                <div class="flex items-center gap-2">
+                    <a href="/admin/products" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 border border-white/10">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                        <span>إلغاء العودة</span>
+                    </a>
+                    <button type="button" onclick="submitProductForm()" class="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold px-5 py-2 rounded-lg shadow-md flex items-center gap-2 transition-all transform active:scale-95">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>{% if is_edit %}حفظ التعديلات{% else %}حفظ في قمرة كلاود{% endif %}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sub-header Breadcrumb -->
+    <div class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-2 text-sm text-slate-600">
+            <a href="/admin/products" class="text-[#4A154B] hover:underline font-bold">جدول المنتجات</a>
+            <i data-lucide="chevron-left" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-slate-900 font-semibold">
+                {% if is_edit %}{{ product.title }}{% else %}إنشاء نموذج جديد (admin_Product){% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Main Form Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <form id="productForm" method="POST" action="{% if is_edit %}/admin/products/{{ product.id }}/update{% else %}/admin/products/create{% endif %}" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Hidden Serialized Input Fields -->
+            <input type="hidden" name="variants_json" id="variants_json" value='[]'>
+            <input type="hidden" name="gallery_json" id="gallery_json" value='[]'>
+            <input type="hidden" name="collections" id="collections_input" value="{% if product and product.collections %}{{ product.collections|join(', ') }}{% else %}عطور, هدايا فاخرة{% endif %}">
+
+            <!-- Left & Center Primary Form Fields (2 Columns) -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- Card 1: البيانات الأساسية + شريط أدوات الوصف المتقدم -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
+                    <div class="flex items-center gap-2 mb-5 pb-3 border-b border-slate-100">
+                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">1</div>
+                        <div>
+                            <h2 class="text-base font-extrabold text-slate-900">البيانات الأساسية للمنتج</h2>
+                            <p class="text-xs text-slate-500">العنوان، الرابط، حالة العرض، وشريط أدوات تنسيق الوصف الكامل</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Title Field -->
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
+                                عنوان المنتج الأساسي (title) <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="title" id="product_title" required
+                                   value="{% if product %}{{ product.title }}{% endif %}"
+                                   oninput="autoGenerateSlug(this.value)"
+                                   placeholder="مثال: عطر الفخامة الملكي - محجوب أونلاين"
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#4A154B] focus:border-[#4A154B] transition-all">
+                        </div>
+
+                        <!-- Slug & Status Row -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <!-- Slug Field -->
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-extrabold text-slate-700 mb-1.5 flex justify-between">
+                                    <span>الرابط الدائم (slug)</span>
+                                    <button type="button" onclick="autoGenerateSlug(document.getElementById('product_title').value, true)" class="text-[#4A154B] hover:underline font-bold text-[11px]">توليد تلقائي</button>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 font-mono text-xs">
+                                        /
+                                    </div>
+                                    <input type="text" name="slug" id="product_slug" required
+                                           value="{% if product %}{{ product.slug }}{% endif %}"
+                                           placeholder="royal-luxury-perfume"
+                                           class="w-full pr-7 pl-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#4A154B]">
+                                </div>
+                            </div>
+
+                            <!-- Status Field -->
+                            <div>
+                                <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
+                                    حالة المنتج (status)
+                                </label>
+                                <select name="status" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                                    <option value="ACTIVE" {% if product and product.status == 'ACTIVE' %}selected{% endif %}>🟢 نشط (ACTIVE)</option>
+                                    <option value="DRAFT" {% if product and product.status == 'DRAFT' %}selected{% endif %}>🟡 مسودة (DRAFT)</option>
+                                    <option value="ARCHIVED" {% if product and product.status == 'ARCHIVED' %}selected{% endif %}>⚪ مؤرشف (ARCHIVED)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Full Rich Text Editor Description Field with Complete Toolbar -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-xs font-extrabold text-slate-700">
+                                    الوصف التفصيلي للمنتج مع شريط تنسيق محرر النصوص
+                                </label>
+                                <!-- View Mode Toggle -->
+                                <div class="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                                    <button type="button" id="btn_edit_mode" onclick="toggleRteTab('edit')" class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs">المحرر</button>
+                                    <button type="button" id="btn_preview_mode" onclick="toggleRteTab('preview')" class="px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900">المعاينة الحية</button>
+                                </div>
+                            </div>
+
+                            <!-- Integrated Rich Text Editor Toolbar -->
+                            <div id="rteContainer" class="border border-slate-300 rounded-xl overflow-hidden bg-slate-50 focus-within:ring-2 focus-within:ring-[#4A154B] transition-all">
+                                
+                                <!-- Toolbar Bar -->
+                                <div class="bg-slate-100 border-b border-slate-200 p-2 flex flex-wrap items-center gap-1.5 text-slate-700 select-none">
+                                    
+                                    <!-- Format Dropdown -->
+                                    <select onchange="formatDoc('formatBlock', this.value); this.selectedIndex=0;" class="px-2 py-1 bg-white border border-slate-300 rounded text-xs font-bold text-slate-700 focus:outline-none">
+                                        <option value="">نوع الفقرة / العنوان</option>
+                                        <option value="P">نص عادي (Paragraph)</option>
+                                        <option value="H1">عنوان رئيسي كبير (H1)</option>
+                                        <option value="H2">عنوان فرعي (H2)</option>
+                                        <option value="H3">عنوان قسم (H3)</option>
+                                        <option value="BLOCKQUOTE">اقتباس مميز (Quote)</option>
+                                    </select>
+
+                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+
+                                    <!-- Basic Styles: Bold, Italic, Underline, Strike -->
+                                    <button type="button" onclick="formatDoc('bold')" title="عريض (Bold)" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 font-black hover:text-[#4A154B]">
+                                        <i data-lucide="bold" class="w-4 h-4"></i>
+                                    </button>
+                                    <button type="button" onclick="formatDoc('italic')" title="مائل (Italic)" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 italic hover:text-[#4A154B]">
+                                        <i data-lucide="italic" class="w-4 h-4"></i>
+                                    </button>
+                                    <button type="button" onclick="formatDoc('underline')" title="تحت الخط (Underline)" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 underline hover:text-[#4A154B]">
+                                        <i data-lucide="underline" class="w-4 h-4"></i>
+                                    </button>
+                                    <button type="button" onclick="formatDoc('strikeThrough')" title="يتوسطه خط (Strikethrough)" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 line-through hover:text-[#4A154B]">
+                                        <i data-lucide="strikethrough" class="w-4 h-4"></i>
+                                    </button>
+
+                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+
+                                    <!-- Color Presets & Picker -->
+                                    <div class="flex items-center gap-1 bg-white p-0.5 border border-slate-300 rounded">
+                                        <span class="text-[10px] font-bold text-slate-500 px-1">اللون:</span>
+                                        <button type="button" onclick="formatDoc('foreColor', '#4A154B')" class="w-4 h-4 rounded-full bg-[#4A154B] border border-slate-300" title="أرجواني محجوب"></button>
+                                        <button type="button" onclick="formatDoc('foreColor', '#059669')" class="w-4 h-4 rounded-full bg-emerald-600 border border-slate-300" title="أخضر زمردي"></button>
+                                        <button type="button" onclick="formatDoc('foreColor', '#DC2626')" class="w-4 h-4 rounded-full bg-rose-600 border border-slate-300" title="أحمر داكن"></button>
+                                        <button type="button" onclick="formatDoc('foreColor', '#2563EB')" class="w-4 h-4 rounded-full bg-blue-600 border border-slate-300" title="أزرق أكسفورد"></button>
+                                        <button type="button" onclick="formatDoc('foreColor', '#000000')" class="w-4 h-4 rounded-full bg-slate-900 border border-slate-300" title="أسود كلاسيكي"></button>
+                                        <input type="color" onchange="formatDoc('foreColor', this.value)" title="اختر لون مخصص" class="w-4 h-4 rounded cursor-pointer border-0 p-0 bg-transparent">
+                                    </div>
+
+                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+
+                                    <!-- Text Alignment -->
+                                    <button type="button" onclick="formatDoc('justifyRight')" title="محاذاة لليمين" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
+                                        <i data-lucide="align-right" class="w-4 h-4"></i>
+                                    </button>
+                                    <button type="button" onclick="formatDoc('justifyCenter')" title="محاذاة للوسط" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
+                                        <i data-lucide="align-center" class="w-4 h-4"></i>
+                                    </button>
+                                    <button type="button" onclick="formatDoc('justifyLeft')" title="محاذاة لليسار" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
+                                        <i data-lucide="align-left" class="w-4 h-4"></i>
+                                    </button>
+
+                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+
+                                    <!-- Lists -->
+                                    <button type="button" onclick="formatDoc('insertUnorderedList')" title="قائمة نقطية" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
+                                        <i data-lucide="list" class="w-4 h-4"></i>
+                                    </button>
+                                    <button type="button" onclick="formatDoc('insertOrderedList')" title="قائمة رقمية" class="p-1.5 hover:bg-slate-200 rounded text-slate-700">
+                                        <i data-lucide="list-ordered" class="w-4 h-4"></i>
+                                    </button>
+
+                                    <div class="h-4 w-px bg-slate-300 mx-0.5"></div>
+
+                                    <!-- Insert Link & Preview Tooltip -->
+                                    <button type="button" onclick="promptInsertLink()" title="إدراج ومعاينة رابط" class="p-1.5 bg-purple-100 hover:bg-purple-200 text-[#4A154B] font-bold rounded flex items-center gap-1 text-xs">
+                                        <i data-lucide="link" class="w-3.5 h-3.5"></i>
+                                        <span>إدراج رابط</span>
+                                    </button>
+
+                                    <!-- Insert Table -->
+                                    <button type="button" onclick="insertSampleTable()" title="إدراج جدول مواصفات" class="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded flex items-center gap-1 text-xs">
+                                        <i data-lucide="table" class="w-3.5 h-3.5"></i>
+                                        <span>جدول</span>
+                                    </button>
+
+                                </div>
+
+                                <!-- Contenteditable Rich Editor Area -->
+                                <div id="editor" contenteditable="true" oninput="syncEditorToTextarea()" class="p-4 bg-white text-slate-800 text-sm focus:outline-none">
+                                    {% if product and product.description %}{{ product.description|safe }}{% else %}<p>عطر شرقي فاخر بتركيز عالي ونفحات من العود والصندل والمسك، مصمم خصيصاً لعملاء متجر محجوب أونلاين.</p><table class="w-full text-xs my-2 border border-slate-300"><thead><tr class="bg-slate-100"><th>المواصفة</th><th>التفاصيل</th></tr></thead><tbody><tr><td>بلد الصنع</td><td>فرنسا / السعودية</td></tr><tr><td>الضمان</td><td>سنتان على الثبات</td></tr></tbody></table>{% endif %}
+                                </div>
+
+                                <!-- Hidden Textarea synced with editor -->
+                                <textarea name="description" id="product_description" class="hidden">{% if product %}{{ product.description }}{% endif %}</textarea>
+
+                                <!-- Live HTML Preview Box (Initially Hidden) -->
+                                <div id="rtePreviewBox" class="hidden p-4 bg-purple-50/40 border-t border-purple-200 text-slate-900 text-sm">
+                                    <div class="text-[11px] font-bold text-[#4A154B] mb-2 flex items-center gap-1">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                        <span>المعاينة الحية لصفحة المنتج على متجر محجوب أونلاين:</span>
+                                    </div>
+                                    <div id="rtePreviewRender" class="prose prose-purple max-w-none bg-white p-3 rounded-lg border border-slate-200"></div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: التسعير، سعر التكلفة وحساب هامش الربح -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
+                    <div class="flex items-center gap-2 mb-5 pb-3 border-b border-slate-100">
+                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">2</div>
+                        <div>
+                            <h2 class="text-base font-extrabold text-slate-900">التسعير وسعر التكلفة وإحصائيات الأرباح</h2>
+                            <p class="text-xs text-slate-500">سعر البيع، سعر التكلفة، حساب هامش الربح، والكمية المتوفرة</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                        <!-- Base Price -->
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
+                                السعر الأساسي - ر.س <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="number" step="0.01" name="price" id="base_price" required
+                                   value="{% if product %}{{ product.price }}{% else %}100.00{% endif %}"
+                                   oninput="calculateProfitMargin()"
+                                   placeholder="0.00"
+                                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-900 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                        </div>
+
+                        <!-- Cost Price (سعر التكلفة) -->
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5 flex items-center gap-1">
+                                <span class="text-[#4A154B]">سعر التكلفة</span> - ر.س
+                                <span class="text-[10px] text-slate-400 font-normal">(اختياري)</span>
+                            </label>
+                            <input type="number" step="0.01" name="costPrice" id="cost_price"
+                                   value="{% if product and product.costPrice %}{{ product.costPrice }}{% elif product and product.cost_price %}{{ product.cost_price }}{% else %}60.00{% endif %}"
+                                   oninput="calculateProfitMargin()"
+                                   placeholder="0.00"
+                                   class="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-200 rounded-xl text-sm font-extrabold text-[#4A154B] focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                        </div>
+
+                        <!-- Compare At Price -->
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
+                                سعر الشطب/المقارنة
+                            </label>
+                            <input type="number" step="0.01" name="compareAtPrice" id="compare_at_price"
+                                   value="{% if product and product.compareAtPrice %}{{ product.compareAtPrice }}{% endif %}"
+                                   placeholder="0.00"
+                                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                        </div>
+
+                        <!-- Total Quantity -->
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">
+                                الكمية الإجمالية <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="number" name="quantity" id="base_quantity" required
+                                   value="{% if product %}{{ product.quantity }}{% else %}50{% endif %}"
+                                   oninput="calculateProfitMargin()"
+                                   placeholder="0"
+                                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-[#4A154B] focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Live Profit Calculation Display Banner -->
+                    <div id="profitBanner" class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between text-xs gap-3 shadow-2xs">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-extrabold shadow-2xs">
+                                <i data-lucide="trending-up" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <span class="font-extrabold text-emerald-950 block">حساب هامش الأرباح التلقائي:</span>
+                                <span class="text-[11px] text-emerald-800">حساب صافي الربح لكل قطعة ولإجمالي المخزون الحالي</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <div class="text-center bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-2xs">
+                                <span class="text-[10px] text-slate-500 block">الربح الصافي/قطعة</span>
+                                <span id="net_profit_val" class="font-extrabold text-emerald-700 text-sm">40.00 ر.س</span>
+                            </div>
+                            <div class="text-center bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-2xs">
+                                <span class="text-[10px] text-slate-500 block">هامش الربح</span>
+                                <span id="profit_margin_val" class="font-extrabold text-emerald-700 text-sm">40.0%</span>
+                            </div>
+                            <div class="text-center bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-2xs">
+                                <span class="text-[10px] text-slate-500 block">إجمالي أرباح المخزون</span>
+                                <span id="total_stock_profit_val" class="font-extrabold text-[#4A154B] text-sm">2,000.00 ر.س</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Card 3: هيكلة المتغيرات المتقدمة (Nested/Grouped Options & Variants Generator) -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
+                    
+                    <div class="flex flex-wrap items-center justify-between mb-5 pb-3 border-b border-slate-100 gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">3</div>
+                            <div>
+                                <h2 class="text-base font-extrabold text-slate-900">هيكلة وتوليد المتغيرات المتقدمة</h2>
+                                <p class="text-xs text-slate-500">إدخال أنواع المتغيرات (اللون، المقاس...) وتوليد الجدول التفاعلي تلقائياً</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <!-- User Requested Example Generator Button -->
+                            <button type="button" onclick="loadUserExamplePreset()" class="bg-purple-100 hover:bg-purple-200 text-[#4A154B] px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-purple-300 transition-all">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                <span>🎯 تحميل مثال المستخدم (اللون + المقاس)</span>
+                            </button>
+                            <!-- Add Custom Manual Variant Button -->
+                            <button type="button" onclick="addNewVariantCard()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 shadow-2xs transition-all">
+                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                <span>+ متغير مفرد</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Option Types Combinations Generator Panel -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                                <i data-lucide="sliders" class="w-4 h-4 text-[#4A154B]"></i>
+                                <span>مُولّد توافقات المتغيرات (Option Types & Values)</span>
+                            </span>
+                            <span class="text-[11px] text-slate-500">أدخل قيم الأنواع وفصل بينها بفاصلة</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                            <!-- Option 1: e.g., Color -->
+                            <div class="bg-white p-3 rounded-lg border border-slate-200">
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">النوع الأول (مثال: اللون)</label>
+                                <input type="text" id="opt1_name" value="اللون" placeholder="اسم النوع (مثال: اللون)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs font-bold mb-2">
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">قيم هذا النوع (فصل بفاصلة):</label>
+                                <input type="text" id="opt1_values" value="أحمر, أخضر" placeholder="مثال: أحمر, أخضر, أزرق" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs">
+                            </div>
+
+                            <!-- Option 2: e.g., Size -->
+                            <div class="bg-white p-3 rounded-lg border border-slate-200">
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">النوع الثاني (مثال: المقاس)</label>
+                                <input type="text" id="opt2_name" value="المقاس" placeholder="اسم النوع (مثال: المقاس)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs font-bold mb-2">
+                                <label class="block text-[10px] font-bold text-slate-500 mb-1">قيم هذا النوع (فصل بفاصلة):</label>
+                                <input type="text" id="opt2_values" value="S, M, L" placeholder="مثال: S, M, L, XL" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+                            <span class="text-[11px] text-slate-600 font-medium">سيقوم النظام بتوليد كافة الاحتمالات والتوافقات (Cartesian Product) تلقائياً</span>
+                            <button type="button" onclick="generateVariantsFromCombinations()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition-all">
+                                <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                                <span>توليد جدول المتغيرات التفاعلي</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Variants Table Container -->
+                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                        <table class="w-full text-right text-xs">
+                            <thead class="bg-slate-100 text-slate-700 border-b border-slate-200 font-extrabold">
+                                <tr>
+                                    <th class="p-3">اسم المتغير / التوافق</th>
+                                    <th class="p-3 w-28">السعر (ر.س)</th>
+                                    <th class="p-3 w-28">سعر التكلفة</th>
+                                    <th class="p-3 w-24">الكمية</th>
+                                    <th class="p-3 w-32">SKU (رمز التخزين)</th>
+                                    <th class="p-3 w-16 text-center">حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="variantsTableBody" class="divide-y divide-slate-100 bg-white">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Sidebar Panel (1 Column) -->
+            <div class="space-y-6">
+
+                <!-- Card 4: معرض الصور وسحب وإفلات الصور -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
+                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">4</div>
+                        <div>
+                            <h2 class="text-base font-extrabold text-slate-900">معرض صور المنتج</h2>
+                            <p class="text-xs text-slate-500">رفع الصور أو إضافة روابط الصور للعارض</p>
+                        </div>
+                    </div>
+
+                    <!-- Dropzone Area -->
+                    <div id="dropzone" class="border-2 border-dashed border-slate-300 hover:border-[#4A154B] rounded-xl p-6 text-center bg-slate-50 transition-all cursor-pointer mb-4" onclick="document.getElementById('gallery_file_input').click()">
+                        <input type="file" id="gallery_file_input" multiple accept="image/*" class="hidden" onchange="handleGalleryFiles(this.files)">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 text-[#4A154B] flex items-center justify-center mx-auto mb-2">
+                            <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-800 block mb-1">اسحب الصور إلى هنا أو اضغط للاختيار</span>
+                        <span class="text-[11px] text-slate-400">PNG, JPG, WEBP حتى 10 ميجابايت</span>
+                    </div>
+
+                    <!-- Add Image by URL Input -->
+                    <div class="flex gap-2 mb-4">
+                        <input type="url" id="imageUrlInput" placeholder="أدخل رابط صورة مباشر (https://...)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs">
+                        <button type="button" onclick="addImageByUrl()" class="bg-[#4A154B] hover:bg-[#3b113c] text-white px-3 py-2 rounded-lg text-xs font-bold shrink-0">إضافة</button>
+                    </div>
+
+                    <!-- Gallery Previews Grid -->
+                    <div id="galleryGrid" class="grid grid-cols-3 gap-2.5">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Card 5: التصنيفات والوسوم (Collections & Tags) -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 left-0 h-1 bg-[#4A154B]"></div>
+                    <div class="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-[#4A154B] flex items-center justify-center font-bold">5</div>
+                        <div>
+                            <h2 class="text-base font-extrabold text-slate-900">التصنيفات والوسوم</h2>
+                            <p class="text-xs text-slate-500">تصنيف المنتج ضمن أقسام المتجر</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">التصنيفات (Collections)</label>
+                            <div class="flex flex-wrap gap-1.5 mb-2" id="collectionsBadgesContainer">
+                                <!-- Badges -->
+                            </div>
+                            <input type="text" id="collectionInput" onkeydown="handleCollectionKeydown(event)" placeholder="اكتب التصنيف واضغط Enter (مثال: عطور شرقية)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1.5">وسوم البحث (Tags)</label>
+                            <input type="text" name="tags" value="{% if product and product.tags %}{{ product.tags }}{% else %}عطور ملكية, هدايا رجالية, عود فاخر{% endif %}" placeholder="فصل بفاصلة: عود, مسك, هدايا" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 6: النشر السريع والحفظ -->
+                <div class="bg-[#4A154B] text-white rounded-2xl shadow-lg p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 left-0 h-1 bg-emerald-400"></div>
+                    <h3 class="font-extrabold text-base mb-2">إتمام العمل في قمرة كلاود</h3>
+                    <p class="text-xs text-purple-200 mb-4">سيتم حفظ المنتج وتوليد كافة المتغيرات الديناميكية وربط المخزون فوراً بقاعدة البيانات.</p>
+                    <button type="button" onclick="submitProductForm()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-95 text-sm">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        <span>{% if is_edit %}حفظ وتحديث المنتج الآن{% else %}نشر المنتج الجديد في المتجر{% endif %}</span>
+                    </button>
+                </div>
+
+            </div>
+
+        </form>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            Mahjoub Online E-commerce Platform &copy; 2026 &bull; Powered by Qumra Cloud Engine
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Global State Arrays
+        let variantsList = [
+            { name: 'أحمر - S', price: 100.00, costPrice: 60.00, quantity: 15, sku: 'MHG-RED-S' },
+            { name: 'أحمر - M', price: 105.00, costPrice: 62.00, quantity: 20, sku: 'MHG-RED-M' },
+            { name: 'أخضر - L', price: 110.00, costPrice: 65.00, quantity: 15, sku: 'MHG-GRN-L' }
+        ];
+
+        let galleryList = [
+            'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=500&auto=format&fit=crop&q=60',
+            'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=500&auto=format&fit=crop&q=60'
+        ];
+
+        let collectionsList = ['عطور', 'هدايا فاخرة'];
+
+        // On DOM Load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderVariantsTable();
+            renderGalleryGrid();
+            renderCollectionsBadges();
+            calculateProfitMargin();
+            syncEditorToTextarea();
+        });
+
+        // 1. Slug Generator
+        function autoGenerateSlug(titleVal, force = false) {
+            const slugInput = document.getElementById('product_slug');
+            if (!slugInput.value || force) {
+                const slug = titleVal
+                    .trim()
+                    .toLowerCase()
+                    .replace(/[^\w\s-]/g, '')
+                    .replace(/[\s_-]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                slugInput.value = slug || 'product-' + Math.floor(Math.random() * 10000);
+            }
+        }
+
+        // 2. Rich Text Editor Toolbar Actions & View Mode Toggling
+        function formatDoc(command, value = null) {
+            document.execCommand(command, false, value);
+            document.getElementById('editor').focus();
+            syncEditorToTextarea();
+        }
+
+        function promptInsertLink() {
+            const url = prompt('أدخل رابط الويب (URL):', 'https://www.mahjoub.online');
+            if (url) {
+                document.execCommand('createLink', false, url);
+                syncEditorToTextarea();
+            }
+        }
+
+        function insertSampleTable() {
+            const tableHTML = `<table class="w-full text-xs my-2 border border-slate-300"><thead><tr class="bg-slate-100"><th>المواصفة</th><th>التفاصيل</th></tr></thead><tbody><tr><td>المادة</td><td>زجاج ملكي عالي النقاء</td></tr><tr><td>السعة</td><td>100 مل</td></tr></tbody></table><p><br></p>`;
+            document.execCommand('insertHTML', false, tableHTML);
+            syncEditorToTextarea();
+        }
+
+        function syncEditorToTextarea() {
+            const editorHTML = document.getElementById('editor').innerHTML;
+            document.getElementById('product_description').value = editorHTML;
+            document.getElementById('rtePreviewRender').innerHTML = editorHTML;
+        }
+
+        function toggleRteTab(mode) {
+            const editor = document.getElementById('editor');
+            const previewBox = document.getElementById('rtePreviewBox');
+            const btnEdit = document.getElementById('btn_edit_mode');
+            const btnPreview = document.getElementById('btn_preview_mode');
+
+            if (mode === 'edit') {
+                editor.classList.remove('hidden');
+                previewBox.classList.add('hidden');
+                btnEdit.className = 'px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs';
+                btnPreview.className = 'px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900';
+            } else {
+                syncEditorToTextarea();
+                editor.classList.add('hidden');
+                previewBox.classList.remove('hidden');
+                btnPreview.className = 'px-2.5 py-1 text-[11px] font-bold rounded-md bg-white text-[#4A154B] shadow-2xs';
+                btnEdit.className = 'px-2.5 py-1 text-[11px] font-bold rounded-md text-slate-600 hover:text-slate-900';
+            }
+        }
+
+        // 3. Profit Margin Calculator
+        function calculateProfitMargin() {
+            const price = parseFloat(document.getElementById('base_price').value) || 0;
+            const cost = parseFloat(document.getElementById('cost_price').value) || 0;
+            const qty = parseInt(document.getElementById('base_quantity').value) || 0;
+
+            const netProfit = price - cost;
+            const margin = price > 0 ? (netProfit / price) * 100 : 0;
+            const totalStockProfit = netProfit * qty;
+
+            document.getElementById('net_profit_val').innerText = netProfit.toFixed(2) + ' ر.س';
+            document.getElementById('profit_margin_val').innerText = margin.toFixed(1) + '%';
+            document.getElementById('total_stock_profit_val').innerText = totalStockProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ر.س';
+        }
+
+        // 4. Variants Generator & Table Management
+        function loadUserExamplePreset() {
+            document.getElementById('opt1_name').value = 'اللون';
+            document.getElementById('opt1_values').value = 'أحمر, أخضر';
+            document.getElementById('opt2_name').value = 'المقاس';
+            document.getElementById('opt2_values').value = 'S, M, L';
+            generateVariantsFromCombinations();
+        }
+
+        function generateVariantsFromCombinations() {
+            const opt1Name = document.getElementById('opt1_name').value.trim() || 'اللون';
+            const opt1Vals = document.getElementById('opt1_values').value.split(',').map(v => v.trim()).filter(Boolean);
+            const opt2Name = document.getElementById('opt2_name').value.trim() || 'المقاس';
+            const opt2Vals = document.getElementById('opt2_values').value.split(',').map(v => v.trim()).filter(Boolean);
+
+            const basePrice = parseFloat(document.getElementById('base_price').value) || 100.00;
+            const baseCost = parseFloat(document.getElementById('cost_price').value) || 60.00;
+            const baseQty = Math.floor((parseInt(document.getElementById('base_quantity').value) || 50) / (opt1Vals.length * opt2Vals.length || 1));
+
+            variantsList = [];
+
+            if (opt1Vals.length === 0 && opt2Vals.length === 0) {
+                alert('الرجاء إدخال قيمة واحدة على الأقل للمتغيرات.');
+                return;
+            }
+
+            if (opt1Vals.length > 0 && opt2Vals.length > 0) {
+                opt1Vals.forEach(v1 => {
+                    opt2Vals.forEach(v2 => {
+                        const variantName = `${v1} - ${v2}`;
+                        variantsList.push({
+                            name: variantName,
+                            price: basePrice,
+                            costPrice: baseCost,
+                            quantity: baseQty > 0 ? baseQty : 10,
+                            sku: `MHG-${v1.substring(0,3).toUpperCase()}-${v2.toUpperCase()}`
+                        });
+                    });
+                });
+            } else {
+                const singleVals = opt1Vals.length > 0 ? opt1Vals : opt2Vals;
+                singleVals.forEach(val => {
+                    variantsList.push({
+                        name: val,
+                        price: basePrice,
+                        costPrice: baseCost,
+                        quantity: baseQty > 0 ? baseQty : 10,
+                        sku: `MHG-${val.substring(0,4).toUpperCase()}`
+                    });
+                });
+            }
+
+            renderVariantsTable();
+        }
+
+        function addNewVariantCard() {
+            variantsList.push({
+                name: 'متغير جديد',
+                price: parseFloat(document.getElementById('base_price').value) || 100.00,
+                costPrice: parseFloat(document.getElementById('cost_price').value) || 60.00,
+                quantity: 10,
+                sku: 'MHG-NEW-' + Math.floor(Math.random() * 1000)
+            });
+            renderVariantsTable();
+        }
+
+        function removeVariant(index) {
+            variantsList.splice(index, 1);
+            renderVariantsTable();
+        }
+
+        function updateVariantField(index, field, value) {
+            variantsList[index][field] = field === 'name' || field === 'sku' ? value : parseFloat(value) || 0;
+        }
+
+        function renderVariantsTable() {
+            const tbody = document.getElementById('variantsTableBody');
+            tbody.innerHTML = '';
+
+            if (variantsList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">لا توجد متغيرات مضافة حالياً. استخدم المولّد بالأعلى أو أضف متغير مفرد.</td></tr>`;
+                document.getElementById('variants_json').value = '[]';
+                return;
+            }
+
+            variantsList.forEach((v, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-2.5">
+                        <input type="text" value="${v.name}" oninput="updateVariantField(${idx}, 'name', this.value)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-slate-900">
+                    </td>
+                    <td class="p-2.5">
+                        <input type="number" step="0.01" value="${v.price}" oninput="updateVariantField(${idx}, 'price', this.value)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-slate-900">
+                    </td>
+                    <td class="p-2.5">
+                        <input type="number" step="0.01" value="${v.costPrice}" oninput="updateVariantField(${idx}, 'costPrice', this.value)" class="w-full px-2.5 py-1.5 bg-purple-50 border border-purple-200 rounded text-xs font-bold text-[#4A154B]">
+                    </td>
+                    <td class="p-2.5">
+                        <input type="number" value="${v.quantity}" oninput="updateVariantField(${idx}, 'quantity', this.value)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-slate-900">
+                    </td>
+                    <td class="p-2.5">
+                        <input type="text" value="${v.sku}" oninput="updateVariantField(${idx}, 'sku', this.value)" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs font-mono text-slate-700">
+                    </td>
+                    <td class="p-2.5 text-center">
+                        <button type="button" onclick="removeVariant(${idx})" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded transition-colors" title="حذف المتغير">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+            document.getElementById('variants_json').value = JSON.stringify(variantsList);
+        }
+
+        // 5. Gallery Management
+        function handleGalleryFiles(files) {
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    galleryList.push(e.target.result);
+                    renderGalleryGrid();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function addImageByUrl() {
+            const input = document.getElementById('imageUrlInput');
+            if (input.value.trim()) {
+                galleryList.push(input.value.trim());
+                input.value = '';
+                renderGalleryGrid();
+            }
+        }
+
+        function removeGalleryImage(index) {
+            galleryList.splice(index, 1);
+            renderGalleryGrid();
+        }
+
+        function renderGalleryGrid() {
+            const grid = document.getElementById('galleryGrid');
+            grid.innerHTML = '';
+
+            galleryList.forEach((imgSrc, idx) => {
+                const div = document.createElement('div');
+                div.className = 'relative group aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100';
+                div.innerHTML = `
+                    <img src="${imgSrc}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button type="button" onclick="removeGalleryImage(${idx})" class="w-7 h-7 rounded-full bg-rose-600 text-white flex items-center justify-center shadow">
+                            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(div);
+            });
+
+            lucide.createIcons();
+            document.getElementById('gallery_json').value = JSON.stringify(galleryList);
+        }
+
+        // 6. Collections Tags Management
+        function handleCollectionKeydown(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = e.target.value.trim();
+                if (val && !collectionsList.includes(val)) {
+                    collectionsList.push(val);
+                    e.target.value = '';
+                    renderCollectionsBadges();
+                }
+            }
+        }
+
+        function removeCollection(index) {
+            collectionsList.splice(index, 1);
+            renderCollectionsBadges();
+        }
+
+        function renderCollectionsBadges() {
+            const container = document.getElementById('collectionsBadgesContainer');
+            container.innerHTML = '';
+
+            collectionsList.forEach((col, idx) => {
+                const badge = document.createElement('span');
+                badge.className = 'inline-flex items-center gap-1 bg-purple-100 text-[#4A154B] px-2.5 py-1 rounded-lg text-xs font-bold';
+                badge.innerHTML = `
+                    <span>${col}</span>
+                    <button type="button" onclick="removeCollection(${idx})" class="hover:text-rose-600">&times;</button>
+                `;
+                container.appendChild(badge);
+            });
+
+            document.getElementById('collections_input').value = collectionsList.join(', ');
+        }
+
+        // 7. Form Submission Handler
+        function submitProductForm() {
+            syncEditorToTextarea();
+            document.getElementById('variants_json').value = JSON.stringify(variantsList);
+            document.getElementById('gallery_json').value = JSON.stringify(galleryList);
+            document.getElementById('collections_input').value = collectionsList.join(', ');
+
+            const title = document.getElementById('product_title').value.trim();
+            const price = document.getElementById('base_price').value;
+
+            if (!title) {
+                alert('الرجاء إدخال عنوان المنتج الأساسي.');
+                document.getElementById('product_title').focus();
+                return;
+            }
+            if (!price) {
+                alert('الرجاء إدخال السعر الأساسي للمنتج.');
+                document.getElementById('base_price').focus();
+                return;
+            }
+
+            document.getElementById('productForm').submit();
+        }
+    </script>
+</body>
+</html>
+{% endblock %}
