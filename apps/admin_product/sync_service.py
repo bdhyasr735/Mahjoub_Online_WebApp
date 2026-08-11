@@ -23,6 +23,8 @@ class SyncService:
         products = []
         if raw_data and isinstance(raw_data, dict):
             products = raw_data.get('data', [])
+        elif isinstance(raw_data, list):
+            products = raw_data
         
         # 2. تطبيق الفلاتر
         filtered_products = []
