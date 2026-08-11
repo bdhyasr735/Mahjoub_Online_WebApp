@@ -280,13 +280,22 @@ def list_products():
         for c in p.get('collections', []):
             all_collections.add(c)
 
+    # إنشاء كائن pagination متوافق مع القوالب
+    pagination = {
+        'page': current_page,
+        'pages': total_pages,
+        'has_prev': current_page > 1,
+        'has_next': current_page < total_pages,
+        'prev_num': current_page - 1,
+        'next_num': current_page + 1
+    }
+
     return render_template(
         'admin_product/products_list.html',
         products=paginated_products,
         total_filtered=total_filtered,
-        current_page=current_page,
         per_page=per_page,
-        total_pages=total_pages,
+        pagination=pagination,                     # <--- المتغير الجديد
         total_products=total_products,
         active_products=active_products,
         admin_tracking_count=admin_tracking_count,
