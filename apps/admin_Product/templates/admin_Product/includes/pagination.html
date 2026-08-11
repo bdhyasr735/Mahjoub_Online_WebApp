@@ -48,7 +48,7 @@
                 {% if pnum == 1 or pnum == total_pages or (pnum >= current_page - 2 and pnum <= current_page + 2) %}
                     <a href="/admin/products?page={{ pnum }}&per_page={{ per_page }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_status != 'ALL' %}&status={{ current_status }}{% endif %}{% if current_collection != 'ALL' %}&collection={{ current_collection }}{% endif %}{% if current_supplier != 'ALL' %}&supplier={{ current_supplier }}{% endif %}"
                        class="px-3 py-1.5 border-l border-slate-200 font-extrabold transition-all {% if pnum == current_page %} bg-[#4A154B] text-white {% else %} hover:bg-slate-200 text-slate-700 {% endif %}">
-                       {{ pnum }}
+                        {{ pnum }}
                     </a>
                 {% elif pnum == current_page - 3 or pnum == current_page + 3 %}
                     <span class="px-2 py-1.5 border-l border-slate-200 text-slate-400 bg-slate-100">...</span>
