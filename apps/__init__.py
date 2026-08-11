@@ -199,7 +199,8 @@ def create_app():
     @app.before_request
     def protect_routes():
         path = request.path
-        exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection']
+        # ✅ تصحيح 1: تمت إضافة '/admin/graphql' إلى قائمة الاستثناءات
+        exempt_prefixes = ['/static', '/auth', '/supplier/login', '/supplier/register', '/graphql', '/favicon.ico', '/m7jb_test_connection', '/admin/graphql']
         if path == '/' or any(path.startswith(p) for p in exempt_prefixes):
             return
 
@@ -250,6 +251,7 @@ def create_app():
     # ✅ المسار الجديد: محطة عبور GraphQL لـ Apollo Sandbox
     # ============================================================
     @app.route('/admin/graphql', methods=['POST', 'OPTIONS'])
+    @csrf.exempt  # ✅ تصحيح 2: إعفاء هذا المسار من حماية CSRF
     def graphql_proxy():
         # الاستجابة لطلب اختبار الاتصال المسبق (Preflight OPTIONS)
         if request.method == 'OPTIONS':
