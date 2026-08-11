@@ -145,4 +145,3 @@ def register_module(app):
     app.register_blueprint(admin_product_bp)
     print(f"[admin_Product] ✅ تم تسجيل موديول المنتجات ومتغيراتها لمتجر محجوب أونلاين بنجاح.")
     return True
-ن
