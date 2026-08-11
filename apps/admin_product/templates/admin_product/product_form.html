@@ -1,55 +1,29 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}{% if is_edit %}تعديل المنتج: {{ product.title }}{% else %}رفع منتج جديد والمتغيرات{% endif %} | محجوب أونلاين{% endblock %}
+{% block title %}
+    {% if is_edit %}تعديل المنتج: {{ product.title }}{% else %}رفع منتج جديد والمتغيرات{% endif %} | محجوب أونلاين
+{% endblock %}
 
 {% block content %}
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        qumraPurple: '#4A154B',
-                        qumraPurpleHover: '#3b113c',
-                        qumraPurpleLight: '#f6eff7',
-                        qumraPurpleBorder: '#d2b3d6',
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
-        .mahjoub-scope {
-            font-family: 'Tajawal', sans-serif;
-            background-color: #f8fafc;
-        }
-        /* Rich Text Editor Styling */
-        .mahjoub-scope #editor {
-            min-height: 140px;
-            outline: none;
-        }
-        .mahjoub-scope #editor h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; color: #1e293b; }
-        .mahjoub-scope #editor h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #334155; }
-        .mahjoub-scope #editor h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; color: #475569; }
-        .mahjoub-scope #editor p { margin-bottom: 0.5rem; line-height: 1.6; }
-        .mahjoub-scope #editor ul { list-style-type: disc; padding-right: 1.25rem; margin-bottom: 0.5rem; }
-        .mahjoub-scope #editor ol { list-style-type: decimal; padding-right: 1.25rem; margin-bottom: 0.5rem; }
-        .mahjoub-scope #editor blockquote { border-right: 4px solid #4A154B; padding-right: 0.75rem; color: #475569; font-style: italic; background: #f6eff7; padding-top: 0.25rem; padding-bottom: 0.25rem; margin-bottom: 0.5rem; }
-        .mahjoub-scope #editor table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
-        .mahjoub-scope #editor th, .mahjoub-scope #editor td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: right; }
-        .mahjoub-scope #editor th { background-color: #f1f5f9; font-weight: 700; }
-    </style>
-</head>
-<body class="mahjoub-scope text-slate-800 min-h-screen flex flex-col">
+<style>
+    /* أنماط خاصة بمحرر النصوص الغني - تبقى داخل الصفحة فقط */
+    #editor {
+        min-height: 140px;
+        outline: none;
+    }
+    #editor h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; color: #1e293b; }
+    #editor h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #334155; }
+    #editor h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; color: #475569; }
+    #editor p { margin-bottom: 0.5rem; line-height: 1.6; }
+    #editor ul { list-style-type: disc; padding-right: 1.25rem; margin-bottom: 0.5rem; }
+    #editor ol { list-style-type: decimal; padding-right: 1.25rem; margin-bottom: 0.5rem; }
+    #editor blockquote { border-right: 4px solid #4A154B; padding-right: 0.75rem; color: #475569; font-style: italic; background: #f6eff7; padding-top: 0.25rem; padding-bottom: 0.25rem; margin-bottom: 0.5rem; }
+    #editor table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
+    #editor th, #editor td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: right; }
+    #editor th { background-color: #f1f5f9; font-weight: 700; }
+</style>
+
+<div class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
     <!-- Header Navigation -->
     <header class="bg-[#4A154B] text-white shadow-md border-b border-[#3b113c] sticky top-0 z-40">
@@ -537,8 +511,18 @@
 
     <!-- JavaScript Engine -->
     <script>
-        // Initialize Lucide Icons
-        lucide.createIcons();
+        // Wait for DOM to be ready to initialize icons inside this content
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            
+            // Initial render
+            renderVariantsTable();
+            renderGalleryThumbnails();
+            calculateProfitMargin();
+            syncEditorToTextarea();
+        });
 
         // Global State Arrays
         let variantsList = [
@@ -550,14 +534,6 @@
             "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=400",
             "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400"
         ];
-
-        // On Page Load Initialization
-        window.addEventListener('DOMContentLoaded', () => {
-            renderVariantsTable();
-            renderGalleryThumbnails();
-            calculateProfitMargin();
-            syncEditorToTextarea();
-        });
 
         // Auto Generate Slug
         function autoGenerateSlug(titleVal, force = false) {
@@ -596,12 +572,13 @@
         function syncEditorToTextarea() {
             const editor = document.getElementById('editor');
             const textarea = document.getElementById('product_description');
-            textarea.value = editor.innerHTML;
-
-            // Update live preview if active
-            const previewRender = document.getElementById('rtePreviewRender');
-            if (previewRender) {
-                previewRender.innerHTML = editor.innerHTML;
+            if (editor && textarea) {
+                textarea.value = editor.innerHTML;
+                // Update live preview if active
+                const previewRender = document.getElementById('rtePreviewRender');
+                if (previewRender) {
+                    previewRender.innerHTML = editor.innerHTML;
+                }
             }
         }
 
@@ -688,6 +665,7 @@
 
         function renderVariantsTable() {
             const tbody = document.getElementById('variantsTableBody');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
             variantsList.forEach((v, idx) => {
@@ -714,7 +692,10 @@
                 `;
                 tbody.appendChild(tr);
             });
-            lucide.createIcons();
+            
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         }
 
         function addNewVariantCard() {
@@ -745,6 +726,7 @@
 
         function renderGalleryThumbnails() {
             const container = document.getElementById('galleryThumbnails');
+            if (!container) return;
             container.innerHTML = '';
 
             galleryList.forEach((imgUrl, idx) => {
@@ -758,7 +740,10 @@
                 `;
                 container.appendChild(div);
             });
-            lucide.createIcons();
+            
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         }
 
         function updateCollectionsString(val) {
@@ -770,11 +755,8 @@
             syncEditorToTextarea();
             document.getElementById('variants_json').value = JSON.stringify(variantsList);
             document.getElementById('gallery_json').value = JSON.stringify(galleryList);
-
-            // Submit form
             document.getElementById('productForm').submit();
         }
     </script>
-</body>
-</html>
+</div>
 {% endblock %}
