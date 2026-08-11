@@ -79,7 +79,7 @@
             <!-- Hidden Serialized Input Fields -->
             <input type="hidden" name="variants_json" id="variants_json" value='[]'>
             <input type="hidden" name="gallery_json" id="gallery_json" value='[]'>
-            <input type="hidden" name="collections" id="collections_input" value="{% if product and product.collections %}{{ product.collections|join(', ') }}{% else %}عطور, هدايا فاخرة{% endif %}">
+            <input type="hidden" name="collections" id="collections_input" value="">
 
             <!-- Left & Center Primary Form Fields (2 Columns) using Bootstrap Grid -->
             <div class="col-lg-8 d-flex flex-column gap-4">
@@ -235,8 +235,9 @@
                                 </div>
 
                                 <!-- Contenteditable Rich Editor Area -->
+                                <!-- ✅ تم حذف البيانات الوهمية من هنا -->
                                 <div id="editor" contenteditable="true" oninput="syncEditorToTextarea()" class="p-3 bg-white text-dark small focus-outline-none">
-                                    {% if product and product.description %}{{ product.description|safe }}{% else %}<p>عطر شرقي فاخر بتركيز عالي ونفحات من العود والصندل والمسك، مصمم خصيصاً لعملاء متجر محجوب أونلاين.</p><table class="w-100 small my-2 border border-secondary"><thead><tr class="bg-light"><th>المواصفة</th><th>التفاصيل</th></tr></thead><tbody><tr><td>بلد الصنع</td><td>فرنسا / السعودية</td></tr><tr><td>الضمان</td><td>سنتان على الثبات</td></tr></tbody></table>{% endif %}
+                                    {% if product and product.description %}{{ product.description|safe }}{% else %}<p>أدخل وصف المنتج هنا...</p>{% endif %}
                                 </div>
 
                                 <!-- Hidden Textarea synced with editor -->
@@ -273,8 +274,9 @@
                             <label class="small fw-bold text-secondary mb-1">
                                 السعر الأساسي - ر.س <span class="text-danger">*</span>
                             </label>
+                            <!-- ✅ تم حذف 100.00 الافتراضي -->
                             <input type="number" step="0.01" name="price" id="base_price" required
-                                   value="{% if product %}{{ product.price }}{% else %}100.00{% endif %}"
+                                   value="{% if product %}{{ product.price }}{% endif %}"
                                    oninput="calculateProfitMargin()"
                                    placeholder="0.00"
                                    class="form-control bg-light border rounded-3 fw-bold">
@@ -286,8 +288,9 @@
                                 <span style="color: #4A154B;">سعر التكلفة</span> - ر.س
                                 <span class="small text-muted fw-normal">(اختياري)</span>
                             </label>
+                            <!-- ✅ تم حذف 60.00 الافتراضي -->
                             <input type="number" step="0.01" name="costPrice" id="cost_price"
-                                   value="{% if product and product.costPrice %}{{ product.costPrice }}{% elif product and product.cost_price %}{{ product.cost_price }}{% else %}60.00{% endif %}"
+                                   value="{% if product and product.costPrice %}{{ product.costPrice }}{% elif product and product.cost_price %}{{ product.cost_price }}{% endif %}"
                                    oninput="calculateProfitMargin()"
                                    placeholder="0.00"
                                    class="form-control border rounded-3 fw-bold" style="background-color: rgba(74, 21, 75, 0.05); border-color: rgba(74, 21, 75, 0.3) !important; color: #4A154B;">
@@ -309,8 +312,9 @@
                             <label class="small fw-bold text-secondary mb-1">
                                 الكمية الإجمالية <span class="text-danger">*</span>
                             </label>
+                            <!-- ✅ تم حذف 50 الافتراضي -->
                             <input type="number" name="quantity" id="base_quantity" required
-                                   value="{% if product %}{{ product.quantity }}{% else %}50{% endif %}"
+                                   value="{% if product %}{{ product.quantity }}{% endif %}"
                                    oninput="calculateProfitMargin()"
                                    placeholder="0"
                                    class="form-control bg-light border rounded-3 fw-bold">
@@ -332,15 +336,15 @@
                         <div class="d-flex align-items-center gap-3">
                             <div class="text-center bg-white px-3 py-1 rounded-3 border shadow-sm border-success border-opacity-25">
                                 <span class="small text-muted d-block">الربح الصافي/قطعة</span>
-                                <span id="net_profit_val" class="fw-bold text-success small">40.00 ر.س</span>
+                                <span id="net_profit_val" class="fw-bold text-success small">0.00 ر.س</span>
                             </div>
                             <div class="text-center bg-white px-3 py-1 rounded-3 border shadow-sm border-success border-opacity-25">
                                 <span class="small text-muted d-block">هامش الربح</span>
-                                <span id="profit_margin_val" class="fw-bold text-success small">40.0%</span>
+                                <span id="profit_margin_val" class="fw-bold text-success small">0.0%</span>
                             </div>
                             <div class="text-center bg-white px-3 py-1 rounded-3 border shadow-sm border-success border-opacity-25">
                                 <span class="small text-muted d-block">إجمالي أرباح المخزون</span>
-                                <span id="total_stock_profit_val" class="fw-bold small" style="color: #4A154B;">2,000.00 ر.س</span>
+                                <span id="total_stock_profit_val" class="fw-bold small" style="color: #4A154B;">0.00 ر.س</span>
                             </div>
                         </div>
                     </div>
@@ -387,8 +391,9 @@
                             <div class="col-sm-6">
                                 <div class="bg-white p-3 rounded-3 border">
                                     <label class="small fw-bold text-secondary mb-1">النوع الأول (مثال: اللون)</label>
-                                    <input type="text" id="opt_name_1" value="اللون" placeholder="أحمر, أزرق, أسود" class="form-control form-control-sm bg-light border rounded-3 fw-bold mb-2">
-                                    <input type="text" id="opt_vals_1" value="أسود ملكي, أبيض عاجي" placeholder="قيمة1, قيمة2" class="form-control form-control-sm bg-light border rounded-3">
+                                    <!-- ✅ تم حذف القيم الافتراضية -->
+                                    <input type="text" id="opt_name_1" value="" placeholder="اكتب اسم النوع (مثال: اللون)" class="form-control form-control-sm bg-light border rounded-3 fw-bold mb-2">
+                                    <input type="text" id="opt_vals_1" value="" placeholder="أحمر, أزرق, أسود" class="form-control form-control-sm bg-light border rounded-3">
                                 </div>
                             </div>
 
@@ -396,8 +401,9 @@
                             <div class="col-sm-6">
                                 <div class="bg-white p-3 rounded-3 border">
                                     <label class="small fw-bold text-secondary mb-1">النوع الثاني (مثال: المقاس)</label>
-                                    <input type="text" id="opt_name_2" value="المقاس" placeholder="صغير, كبير" class="form-control form-control-sm bg-light border rounded-3 fw-bold mb-2">
-                                    <input type="text" id="opt_vals_2" value="50 مل, 100 مل" placeholder="قيمة1, قيمة2" class="form-control form-control-sm bg-light border rounded-3">
+                                    <!-- ✅ تم حذف القيم الافتراضية -->
+                                    <input type="text" id="opt_name_2" value="" placeholder="اكتب اسم النوع (مثال: المقاس)" class="form-control form-control-sm bg-light border rounded-3 fw-bold mb-2">
+                                    <input type="text" id="opt_vals_2" value="" placeholder="صغير, كبير" class="form-control form-control-sm bg-light border rounded-3">
                                 </div>
                             </div>
                         </div>
@@ -474,13 +480,15 @@
                     <div class="d-flex flex-column gap-3">
                         <div>
                             <label class="small fw-bold text-secondary mb-1">التصنيفات (Collections)</label>
-                            <input type="text" id="collections_tags_input" value="عطور, هدايا فاخرة, العناية الملكية" oninput="updateCollectionsString(this.value)" placeholder="عطور, هدايا" class="form-control bg-light border rounded-3 fw-semibold">
+                            <!-- ✅ تم حذف البيانات الوهمية -->
+                            <input type="text" id="collections_tags_input" value="" oninput="updateCollectionsString(this.value)" placeholder="عطور, هدايا" class="form-control bg-light border rounded-3 fw-semibold">
                             <span class="small text-muted mt-1 d-block">افصل بين التصنيفات بفاصلة (,)</span>
                         </div>
 
                         <div>
                             <label class="small fw-bold text-secondary mb-1">وسوم البحث (Tags)</label>
-                            <input type="text" name="tags" value="{% if product and product.tags %}{{ product.tags }}{% else %}عود, مسك, عطور شرقية, فاخر{% endif %}" placeholder="عود, مسك, هدايا" class="form-control bg-light border rounded-3 fw-semibold">
+                            <!-- ✅ تم حذف البيانات الوهمية -->
+                            <input type="text" name="tags" value="{% if product and product.tags %}{{ product.tags }}{% endif %}" placeholder="عود, مسك, هدايا" class="form-control bg-light border rounded-3 fw-semibold">
                         </div>
                     </div>
                 </div>
@@ -526,16 +534,11 @@
             syncEditorToTextarea();
         });
 
-        // Global State Arrays
-        let variantsList = [
-            { name: "أسود ملكي / 50 مل", price: 100, cost: 60, qty: 25 },
-            { name: "أبيض عاجي / 100 مل", price: 120, cost: 70, qty: 25 }
-        ];
+        // ✅ تم حذف المتغيرات الوهمية. القائمة تبدأ فارغة تماماً!
+        let variantsList = [];
 
-        let galleryList = [
-            "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=400",
-            "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400"
-        ];
+        // ✅ تم حذف صور المعرض الوهمية. القائمة تبدأ فارغة تماماً!
+        let galleryList = [];
 
         // Auto Generate Slug
         function autoGenerateSlug(titleVal, force = false) {
@@ -626,9 +629,9 @@
             const opt1Vals = document.getElementById('opt_vals_1').value.split(',').map(s => s.trim()).filter(Boolean);
             const opt2Vals = document.getElementById('opt_vals_2').value.split(',').map(s => s.trim()).filter(Boolean);
             
-            const basePrice = parseFloat(document.getElementById('base_price').value) || 100;
-            const baseCost = parseFloat(document.getElementById('cost_price').value) || 60;
-            const defaultQty = 25;
+            const basePrice = parseFloat(document.getElementById('base_price').value) || 0;
+            const baseCost = parseFloat(document.getElementById('cost_price').value) || 0;
+            const defaultQty = 0;
 
             variantsList = [];
 
@@ -660,6 +663,7 @@
         }
 
         function loadUserExamplePreset() {
+            // ✅ مثال توضيحي للمساعدة فقط
             document.getElementById('opt_name_1').value = "اللون";
             document.getElementById('opt_vals_1').value = "أسود ملكي, أبيض عاجي";
             document.getElementById('opt_name_2').value = "المقاس";
@@ -703,7 +707,7 @@
         }
 
         function addNewVariantCard() {
-            variantsList.push({ name: "متغير جديد", price: 100, cost: 60, qty: 10 });
+            variantsList.push({ name: "متغير جديد", price: 0, cost: 0, qty: 0 });
             renderVariantsTable();
         }
 
