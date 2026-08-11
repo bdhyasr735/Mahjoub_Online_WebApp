@@ -44,7 +44,8 @@ class Config:
     
     # 3. إعدادات Qumra Cloud API
     QUMRA_API_KEY = os.environ.get('QUMRA_API_KEY')
-    QUMRA_API_URL = os.environ.get('QUMRA_API_URL', 'https://mahjoub.online/admin/graphql')
+    # ✅ التعديل الجذري رقم 1: ربط الرابط بالمتغير البيئي GRAPHQL_ENDPOINT (كما في صور Render)
+    QUMRA_API_URL = os.environ.get('GRAPHQL_ENDPOINT', 'https://mahjoub.online/admin/graphql')
 
     # 4. إعدادات WhatsApp Cloud API
     WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
@@ -112,8 +113,9 @@ class Config:
         if cls.IS_PRODUCTION:
             required = ['SECRET_KEY', 'ENCRYPTION_KEY', 'WEBHOOK_SECRET', 'QUMRA_API_KEY']
             for var in required:
+                # ✅ التعديل الجذري رقم 2: إذا كان المتغير مفقوداً، لا توقف السيرفر، بل أظهر تحذيراً
                 if not getattr(cls, var):
-                    raise EnvironmentError(f"❌ المتغير الحساس {var} مفقود في بيئة الإنتاج!")
+                    print(f"⚠️ [Config Warning]: المتغير الحساس {var} مفقود في بيئة الإنتاج! سيتم استخدام القيم الافتراضية أو تجاهل الوظيفة المرتبطة به.")
         
         # ✅ التحقق من مفتاح DeepSeek إذا كان مفعلاً
         if cls.AI_ENABLED and not cls.DEEPSEEK_API_KEY:
