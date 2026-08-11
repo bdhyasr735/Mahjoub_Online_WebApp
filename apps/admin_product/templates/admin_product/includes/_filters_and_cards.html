@@ -85,15 +85,20 @@
         <!-- Filters Group (Flex Layout) -->
         <div class="col-md-6 col-lg-7 d-flex flex-wrap align-items-center gap-2 justify-content-md-end">
             
-            <!-- Supplier Filter -->
+            <!-- Supplier Filter (✅ ديناميكي ويعتمد على الموردين الحقيقين في قاعدة البيانات) -->
             <select name="supplier" onchange="this.form.submit()" class="form-select form-select-sm w-auto" style="min-width: 140px; background-color: #f8f9fa; border-color: #ced4da;">
                 <option value="ALL" {% if current_supplier == 'ALL' or not current_supplier %}selected{% endif %}>🏢🚚 جميع التبعيات</option>
                 <option value="ADMIN" {% if current_supplier == 'ADMIN' %}selected{% endif %}>🏢 الإدارة العامة</option>
                 <option value="SUPPLIERS" {% if current_supplier == 'SUPPLIERS' %}selected{% endif %}>🚚 الموردين فقط</option>
-                <option value="1" {% if current_supplier == '1' %}selected{% endif %}>🚚 مورد 1: عطور باريس</option>
-                <option value="2" {% if current_supplier == '2' %}selected{% endif %}>🚚 مورد 2: التكنولوجيا</option>
-                <option value="3" {% if current_supplier == '3' %}selected{% endif %}>🚚 مورد 3: الجلديات</option>
-                <option value="4" {% if current_supplier == '4' %}selected{% endif %}>🚚 مورد 4: الأزياء</option>
+                
+                <!-- ✅ تم استبدال القيم الثابتة بحلقة تكرار ديناميكية -->
+                {% if suppliers_map %}
+                    {% for sup_id, sup_name in suppliers_map.items() %}
+                        <option value="{{ sup_id }}" {% if current_supplier|string == sup_id|string %}selected{% endif %}>
+                            🚚 {{ sup_name }}
+                        </option>
+                    {% endfor %}
+                {% endif %}
             </select>
 
             <!-- Status Filter Buttons -->
@@ -115,7 +120,7 @@
                 </a>
             </div>
 
-            <!-- Collections Filter -->
+            <!-- Collections Filter (✅ يعمل كما هو مطلوب وبشكل ديناميكي) -->
             {% if collections %}
             <select name="collection" onchange="this.form.submit()" class="form-select form-select-sm w-auto text-muted" style="min-width: 130px;">
                 <option value="ALL" {% if current_collection == 'ALL' %}selected{% endif %}>جميع المجموعات</option>
