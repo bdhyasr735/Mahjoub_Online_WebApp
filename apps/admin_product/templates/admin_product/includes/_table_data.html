@@ -177,8 +177,34 @@
         </table>
     </div>
 
-    <!-- Include Pagination Component (Corrected) -->
-    {% include 'admin_product/includes/_pagination.html' %}
+    <!-- Inline Pagination Component (No Include Needed) -->
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <div class="text-xs text-slate-500">
+            عرض الصفحة <span class="font-bold text-slate-800">{{ pagination.page if pagination else 1 }}</span> من أصل <span class="font-bold text-slate-800">{{ pagination.pages if pagination else 1 }}</span>
+        </div>
+        
+        <div class="flex items-center gap-1.5">
+            {% if pagination and pagination.has_prev %}
+            <a href="?page={{ pagination.prev_num }}" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-bold transition-all">
+                السابق
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg text-xs font-medium cursor-not-allowed">
+                السابق
+            </span>
+            {% endif %}
+
+            {% if pagination and pagination.has_next %}
+            <a href="?page={{ pagination.next_num }}" class="px-3 py-1.5 bg-[#4A154B] text-white hover:bg-[#3b113c] rounded-lg text-xs font-bold transition-all shadow-2xs">
+                التالي
+            </a>
+            {% else %}
+            <span class="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg text-xs font-medium cursor-not-allowed">
+                التالي
+            </span>
+            {% endif %}
+        </div>
+    </div>
 
     {% endif %}
 
