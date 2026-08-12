@@ -12,10 +12,31 @@ wallet_bp = Blueprint(
     static_folder='static'
 )
 
+class CustomPagination:
+    """فئة محاكاة لكائنات الترقيم لتدعم القالب بشكل كامل"""
+    def __init__(self, items, page, per_page, total):
+        self.items = items
+        self.page = page
+        self.per_page = per_page
+        self.total = total
+        self.pages = max(1, (total + per_page - 1) // per_page)
+        self.has_prev = self.page > 1
+        self.has_next = self.page < self.pages
+        self.prev_num = self.page - 1 if self.has_prev else None
+        self.next_num = self.page + 1 if self.has_next else None
+
+    def iter_pages(self, left_edge=1, right_edge=1, left_current=2, right_current=2):
+        last = 0
+        for num in range(1, self.pages + 1):
+            if num <= left_edge or \
+               (num > self.page - left_current - 1 and num < self.page + right_current) or \
+               num > self.pages - right_edge:
+                if last + 1 != num:
+                    yield None
+                yield num
+                last = num
+
 def apply_wallet_filters_logic(transactions, args):
-    """
-    دمج منطق الفلترة والتصفية مباشرة داخل routes.py بدلاً من ملفات خارجية
-    """
     search_query = args.get('search', '').strip().lower()
     trx_type = args.get('type', 'all')
     status = args.get('status', 'all')
@@ -24,39 +45,26 @@ def apply_wallet_filters_logic(transactions, args):
 
     filtered = []
     for trx in transactions:
-        # 1. فلتر نوع العملية
         if trx_type != 'all' and trx.get('trx_type') != trx_type:
             continue
-
-        # 2. فلتر حالة العملية
         if status != 'all' and trx.get('status') != status:
             continue
-
-        # 3. فلتر البحث (رقم المرجع والبيان)
         if search_query:
             ref = str(trx.get('reference_code', '')).lower()
             desc = str(trx.get('description', '')).lower()
             prod = str(trx.get('product_name', '')).lower()
             if search_query not in ref and search_query not in desc and search_query not in prod:
                 continue
-
-        # 4. فلتر النطاق الزمني
         if start_date and trx.get('created_at', '') < start_date:
             continue
         if end_date and trx.get('created_at', '') > end_date:
             continue
-
         filtered.append(trx)
-
     return filtered
 
 
 @wallet_bp.route('/wallet', methods=['GET'])
 def wallet():
-    """
-    نافذة المحفظة (كشف الحساب العام):
-    مخصصة لعرض الأرصدة الإجمالية وجدولة الحركات المالية مع الترقيم per_page=10
-    """
     page = request.args.get('page', 1, type=int)
     PER_PAGE = 10
 
@@ -105,23 +113,13 @@ def wallet():
     ]
 
     filtered_list = apply_wallet_filters_logic(mock_transactions, request.args)
-
     total_items = len(filtered_list)
-    total_pages = max(1, (total_items + PER_PAGE - 1) // PER_PAGE)
-    current_page = max(1, min(page, total_pages))
-
+    current_page = max(1, min(page, max(1, (total_items + PER_PAGE - 1) // PER_PAGE)))
     start_idx = (current_page - 1) * PER_PAGE
     paginated_items = filtered_list[start_idx:start_idx + PER_PAGE]
 
-    pagination = {
-        'items': paginated_items,
-        'page': current_page,
-        'total_pages': total_pages,
-        'total_items': total_items,
-        'has_prev': current_page > 1,
-        'has_next': current_page < total_pages,
-        'per_page': PER_PAGE
-    }
+    # استخدام الفئة الجديدة بدلاً من القاموس لتجنب أخطاء القالب
+    pagination = CustomPagination(paginated_items, current_page, PER_PAGE, total_items)
 
     return render_template(
         'supplier_wallet/wallet.html',
@@ -132,10 +130,6 @@ def wallet():
 
 @wallet_bp.route('/withdraw', methods=['GET', 'POST'])
 def withdraw():
-    """
-    نافذة طلب السحب المستقلة:
-    مخصصة كلياً لتقديم ومتابعة طلبات سحب الأرباح والمدفوعات الخاصة بالمورد.
-    """
     summary = {
         'available_balance': 35200.00,
         'min_withdraw_amount': 500.00,
@@ -185,21 +179,11 @@ def withdraw():
     ]
 
     total_items = len(mock_withdrawals)
-    total_pages = max(1, (total_items + PER_PAGE - 1) // PER_PAGE)
-    current_page = max(1, min(page, total_pages))
-
+    current_page = max(1, min(page, max(1, (total_items + PER_PAGE - 1) // PER_PAGE)))
     start_idx = (current_page - 1) * PER_PAGE
     paginated_withdrawals = mock_withdrawals[start_idx:start_idx + PER_PAGE]
 
-    pagination = {
-        'items': paginated_withdrawals,
-        'page': current_page,
-        'total_pages': total_pages,
-        'total_items': total_items,
-        'has_prev': current_page > 1,
-        'has_next': current_page < total_pages,
-        'per_page': PER_PAGE
-    }
+    pagination = CustomPagination(paginated_withdrawals, current_page, PER_PAGE, total_items)
 
     return render_template(
         'supplier_wallet/withdraw.html',
