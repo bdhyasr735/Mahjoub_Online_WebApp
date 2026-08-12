@@ -1,48 +1,211 @@
-{% extends "suppliers/base.html" %}
+{% extends "base.html" %}
 
-{% block title %}Mahjoub Online - كشف حساب المحفظة العام{% endblock %}
+{% block title %}كشف الحساب العام | محفظة المورد{% endblock %}
 
 {% block content %}
-<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    
-    <!-- Header Banner -->
-    <div class="bg-white p-6 sm:p-8 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+<div class="container-fluid py-2">
+    <!-- عنوان الصفحة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
-                <span class="w-10 h-10 rounded-xl bg-purple-50 text-[#1f0b38] flex items-center justify-center text-lg">
-                    <i class="fas fa-chart-pie"></i>
-                </span>
-                كشف حساب المحفظة العام
-            </h1>
-            <p class="text-gray-500 mt-2 max-w-xl text-sm leading-relaxed">
-                مخصصة لعرض الأرصدة الإجمالية وجدولة الحركات المالية مع الترقيم (10 حركات في كل صفحة) لتخفيف الضغط وسرعة العرض.
-            </p>
+            <h2 class="fw-extrabold text-dark mb-1">💰 كشف الحساب العام وحركات المحفظة</h2>
+            <p class="text-muted text-sm m-0">متابعة تفصيلية لكافة العمليات المالية، الأرباح، والخصومات الخاصة بحسابك.</p>
         </div>
-        
-        <a href="{{ url_for('wallet.withdraw') }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1f0b38] hover:bg-[#2c104f] text-white font-bold text-xs shadow-lg shadow-[#1f0b38]/20 transition-all shrink-0">
-            <i class="fas fa-hand-holding-usd"></i> الانتقال لصفحة طلب السحب المستقلة
-        </a>
     </div>
 
-    <!-- KPI Summary Cards -->
-    <div class="transition-all">
-        {% include "supplier_wallet/components/kpi_cards.html" %}
+    <!-- بطاقات الملخص المالي -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-primary">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 p-3 bg-primary bg-opacity-10 text-primary ms-3">
+                        <i class="fas fa-wallet fa-2x"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted d-block text-xs fw-bold">إجمالي الرصيد</span>
+                        <h3 class="fw-bold text-dark m-0">{{ "%.2f"|format(summary.total_balance) }} <small class="text-xs text-muted">{{ summary.currency }}</small></h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-success">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 p-3 bg-success bg-opacity-10 text-success ms-3">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted d-block text-xs fw-bold">الرصيد المتاح للسحب</span>
+                        <h3 class="fw-bold text-success m-0">{{ "%.2f"|format(summary.available_balance) }} <small class="text-xs text-muted">{{ summary.currency }}</small></h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-warning">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 p-3 bg-warning bg-opacity-10 text-warning ms-3">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted d-block text-xs fw-bold">أرصدة معلقة</span>
+                        <h3 class="fw-bold text-warning m-0">{{ "%.2f"|format(summary.pending_balance) }} <small class="text-xs text-muted">{{ summary.currency }}</small></h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-info">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-3 p-3 bg-info bg-opacity-10 text-info ms-3">
+                        <i class="fas fa-arrow-alt-circle-down fa-2x"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted d-block text-xs fw-bold">إجمالي المسحوبات</span>
+                        <h3 class="fw-bold text-dark m-0">{{ "%.2f"|format(summary.total_withdrawn) }} <small class="text-xs text-muted">{{ summary.currency }}</small></h3>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Filter Bar Component -->
-    <div class="transition-all">
-        {% include "supplier_wallet/components/filters.html" %}
+    <!-- نموذج الفلترة والبحث -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <form method="GET" action="{{ url_for('wallet.wallet') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label text-xs fw-bold text-muted">بحث (رقم المرجع / الوصف)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" name="search" class="form-control border-start-0 bg-light" value="{{ request.args.get('search', '') }}" placeholder="ابحث برقم المعاملة...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-xs fw-bold text-muted">نوع المعاملة</label>
+                    <select name="type" class="form-select bg-light">
+                        <option value="all" {% if request.args.get('type', 'all') == 'all' %}selected{% endif %}>جميع الأنواع</option>
+                        <option value="credit" {% if request.args.get('type') == 'credit' %}selected{% endif %}>إيداع / أرباح (Credit)</option>
+                        <option value="debit" {% if request.args.get('type') == 'debit' %}selected{% endif %}>خصم / سحب (Debit)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-xs fw-bold text-muted">الحالة</label>
+                    <select name="status" class="form-select bg-light">
+                        <option value="all" {% if request.args.get('status', 'all') == 'all' %}selected{% endif %}>جميع الحالات</option>
+                        <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>مكتملة</option>
+                        <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>قيد المعالجة</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-xs fw-bold text-muted">من تاريخ</label>
+                    <input type="date" name="start_date" class="form-control bg-light" value="{{ request.args.get('start_date', '') }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-dark flex-grow-1 fw-bold rounded-3">
+                        <i class="fas fa-filter me-1"></i> تصفية النتائج
+                    </button>
+                    <a href="{{ url_for('wallet.wallet') }}" class="btn btn-outline-secondary rounded-3" title="إعادة ضبط">
+                        <i class="fas fa-redo"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- Transactions Table Component -->
-    <div class="transition-all">
-        {% include "supplier_wallet/components/tables.html" %}
-    </div>
+    <!-- جدول الحركات -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 px-4 border-0 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0 text-dark"><i class="fas fa-list-ul me-2 text-primary"></i>سجل المعاملات المالية</h5>
+            <span class="badge bg-light text-dark fw-bold px-3 py-2 rounded-pill">إجمالي النتائج: {{ pagination.total }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light text-secondary text-xs uppercase">
+                    <tr>
+                        <th class="py-3 px-4">رقم المرجع</th>
+                        <th class="py-3">التاريخ والوقت</th>
+                        <th class="py-3">نوع الحركة</th>
+                        <th class="py-3">تفاصيل المعاملة والمنتج</th>
+                        <th class="py-3">المبلغ</th>
+                        <th class="py-3 px-4 text-center">الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if pagination.items %}
+                        {% for trx in pagination.items %}
+                        <tr>
+                            <td class="px-4 fw-bold text-primary font-monospace">{{ trx.reference_code }}</td>
+                            <td class="text-muted text-sm">{{ trx.created_at }}</td>
+                            <td>
+                                {% if trx.trx_type == 'credit' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 rounded-pill"><i class="fas fa-arrow-down me-1"></i>إيداع / أرباح</span>
+                                {% else %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 rounded-pill"><i class="fas fa-arrow-up me-1"></i>خصم / سحب</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark">{{ trx.description }}</div>
+                                {% if trx.product_name %}
+                                    <small class="text-muted"><i class="fas fa-box-open me-1"></i>{{ trx.product_name }} (الكمية: {{ trx.quantity }} | السعر: {{ trx.unit_price }} {{ summary.currency }})</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="fw-extrabold {% if trx.trx_type == 'credit' %}text-success{% else %}text-danger{% endif %}">
+                                    {% if trx.trx_type == 'credit' %}+{% else %}-{% endif %}{{ "%.2f"|format(trx.amount) }} {{ summary.currency }}
+                                </span>
+                            </td>
+                            <td class="px-4 text-center">
+                                {% if trx.status == 'completed' %}
+                                    <span class="badge bg-success text-white px-3 py-1 rounded-pill">مكتملة</span>
+                                {% elif trx.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark px-3 py-1 rounded-pill">قيد المعالجة</span>
+                                {% else %}
+                                    <span class="badge bg-secondary text-white px-3 py-1 rounded-pill">{{ trx.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="text-muted py-4">
+                                    <i class="fas fa-folder-open fa-3x mb-3 text-black-50"></i>
+                                    <p class="fw-bold m-0">لا توجد حركات مالية مطابقة للبحث الحالي.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
 
-    <!-- Pagination Component -->
-    <div class="transition-all">
-        {% include "supplier_wallet/components/pagination.html" %}
+        <!-- الترقيم (Pagination) -->
+        {% if pagination.pages > 1 %}
+        <div class="card-footer bg-white py-3 px-4 border-0 d-flex justify-content-center">
+            <nav aria-label="Page navigation">
+                <ul class="pagination mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link rounded-start-3" href="{{ url_for('wallet.wallet', page=pagination.prev_num, **request.args) }}" aria-label="السابق">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('wallet.wallet', page=page_num, **request.args) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link rounded-end-3" href="{{ url_for('wallet.wallet', page=pagination.next_num, **request.args) }}" aria-label="التالي">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
-
 </div>
 {% endblock %}
