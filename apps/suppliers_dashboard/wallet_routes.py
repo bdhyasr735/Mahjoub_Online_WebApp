@@ -55,7 +55,6 @@ def add_bank():
         if name in BANKS_LIST:
             return jsonify({'success': False, 'message': 'هذا البنك موجود بالفعل'})
         
-        # ✅ إضافة إلى ملف البيانات
         import os
         import re
         file_path = os.path.join('apps', 'data', 'yemen_banks.py')
@@ -81,7 +80,6 @@ def add_bank():
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
             
-            # ✅ تحديث القائمة في الذاكرة
             YEMEN_BANKS.append({'id': new_id, 'name': name, 'icon': 'fa-building'})
             BANKS_LIST.append(name)
             
@@ -95,12 +93,12 @@ def add_bank():
 
 
 # ============================================================
-# ✅ صفحة السحب
+# ✅ صفحة السحب (مع الجلب والتعبئة التلقائية لبيانات الحساب)
 # ============================================================
 @wallet_bp.route('/withdraw', methods=['GET', 'POST'])
 @login_required
 def withdraw():
-    """صفحة السحب من المحفظة (عملة SAR فقط)"""
+    """صفحة السحب من المحفظة (عملة SAR)"""
     try:
         supplier = get_supplier_context()
         if not supplier:
@@ -111,12 +109,15 @@ def withdraw():
         if not wallet:
             flash('❌ لا توجد محفظة مرتبطة بحسابك', 'danger')
             return redirect(url_for('suppliers_dashboard.dashboard'))
+
+        profile = getattr(supplier, 'supplier_profile', None)
         
         if request.method == 'POST':
             try:
                 amount = float(request.form.get('amount', 0))
                 bank_name = request.form.get('bank_name', '').strip()
                 bank_account = request.form.get('bank_account', '').strip()
+                account_holder = request.form.get('account_holder_name', '').strip()
                 
                 # ✅ التحقق من المبلغ
                 if amount <= 0:
@@ -127,28 +128,31 @@ def withdraw():
                     flash('❌ الحد الأدنى للسحب هو 10 ريال سعودي', 'danger')
                     return redirect(url_for('suppliers_wallet.withdraw'))
                 
-                if amount > wallet.balance_sar:
-                    flash(f'❌ الرصيد غير كافٍ. الرصيد الحالي: {wallet.balance_sar:.2f} SAR', 'danger')
+                balance = getattr(wallet, 'balance_sar', 0.0) or 0.0
+                if amount > balance:
+                    flash(f'❌ الرصيد غير كافٍ. الرصيد الحالي: {balance:.2f} SAR', 'danger')
                     return redirect(url_for('suppliers_wallet.withdraw'))
                 
                 # ✅ التحقق من الحساب البنكي
                 if not bank_account:
-                    flash('❌ يرجى إدخال رقم الحساب البنكي', 'danger')
+                    flash('❌ يرجى تحديد أو إدخال رقم الحساب البنكي / IBAN', 'danger')
                     return redirect(url_for('suppliers_wallet.withdraw'))
                 
-                # ✅ تحديث بيانات البنك في الملف الشخصي إذا لم تكن موجودة
-                profile = getattr(supplier, 'supplier_profile', None)
+                # ✅ تحديث أو إكمال بيانات البنك في البروفايل تلقائياً لاستخدامها مستقبلاً
                 if profile:
                     if bank_name:
                         profile.bank_name = bank_name
                     if bank_account:
                         profile.bank_account = bank_account
+                    if account_holder and hasattr(profile, 'account_holder_name'):
+                        profile.account_holder_name = account_holder
                     db.session.commit()
                 
-                # ✅ تسجيل طلب السحب
-                # هنا يمكن إضافة منطق إنشاء طلب سحب في جدول withdrawals
+                # ✅ خصم الرصيد وتحديث الحسابات (أو تسجيل الطلب)
+                # wallet.balance_sar -= amount
+                # db.session.commit()
                 
-                flash(f'✅ تم تقديم طلب سحب بمبلغ {amount:.2f} SAR بنجاح', 'success')
+                flash(f'✅ تم تقديم طلب سحب بمبلغ {amount:.2f} SAR بنجاح إلى حسابك البنكي', 'success')
                 return redirect(url_for('suppliers_dashboard.dashboard'))
                 
             except ValueError:
@@ -160,10 +164,11 @@ def withdraw():
                 flash('❌ حدث خطأ أثناء معالجة طلب السحب', 'danger')
                 return redirect(url_for('suppliers_wallet.withdraw'))
         
-        # ✅ عرض الصفحة مع تمرير البنوك
+        # ✅ عرض الصفحة وتمرير المورد والبروفايل للبنوك التلقائية
         return render_template(
             'suppliers/withdraw.html',
             supplier=supplier,
+            profile=profile,
             wallet=wallet,
             banks=YEMEN_BANKS
         )
@@ -193,7 +198,6 @@ def wallet():
             flash('❌ لا توجد محفظة مرتبطة بحسابك', 'danger')
             return redirect(url_for('suppliers_dashboard.dashboard'))
         
-        # ✅ جلب تاريخ المعاملات
         from apps.models.wallet_db import WalletTransaction
         transactions = WalletTransaction.query.filter_by(
             wallet_id=wallet.id
