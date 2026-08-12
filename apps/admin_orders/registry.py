@@ -10,7 +10,8 @@ LINKS = {
 }
 
 def register_module(app):
-    from apps.admin_orders import admin_orders_bp
+    # ✅ الاستيراد المباشر من ملف المسارات لتفادي ImportError
+    from apps.admin_orders.routes.orders import admin_orders_bp
     app.register_blueprint(admin_orders_bp)
     
     # ✅ تسجيل مسارات وعناصر التحكم الخاصة بالمنتجات والموردين (items_bp)
