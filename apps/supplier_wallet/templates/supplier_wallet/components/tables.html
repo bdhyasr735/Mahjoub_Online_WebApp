@@ -17,8 +17,8 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-                {% if pagination and pagination.items %}
-                    {% for trx in pagination.items %}
+                {% if pagination and pagination['items'] %}
+                    {% for trx in pagination['items'] %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-mono font-bold">{{ trx.reference_code }}</td>
                         <td class="px-4 py-3 text-gray-500">{{ trx.created_at }}</td>
