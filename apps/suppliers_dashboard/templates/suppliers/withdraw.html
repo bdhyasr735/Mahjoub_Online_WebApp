@@ -67,7 +67,7 @@
         box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
     }
 
-    /* إجبار إظهار الأرقام الإنجليزية (ASCII 0-9) ومنع استبدال الخطوط المحلية */
+    /* إجبار إظهار الأرقام الإنجليزية (ASCII 0-9) */
     .input-en-num {
         direction: ltr !important;
         text-align: right !important;
@@ -103,7 +103,7 @@
     }
 </style>
 
-{# تجهيز المتغيرات التوافقية بين الموجهات وسياق Jinja الموحد #}
+{# تجهيز المتغيرات التوافقية #}
 {% set active_supplier = supplier or current_supplier %}
 {% set active_wallet = wallet or supplier_wallet %}
 {% set active_owner_name = owner_full_name or (active_supplier.trade_name if active_supplier else '') %}
@@ -135,7 +135,7 @@
     {% endwith %}
 
     <div class="row g-4">
-        <!-- قسم ملخص المحفظة (العمود الأيسر) -->
+        <!-- قسم ملخص المحفظة -->
         <div class="col-12 col-lg-4">
             <div class="balance-banner h-100 d-flex flex-column justify-content-between">
                 <div>
@@ -161,17 +161,18 @@
             </div>
         </div>
 
-        <!-- نموذج طلب السحب (العمود الأيمن) -->
+        <!-- نموذج طلب السحب -->
         <div class="col-12 col-lg-8">
             <div class="form-card">
                 <form action="{{ safe_url_for('suppliers_wallet.withdraw') if safe_url_for is defined else url_for('suppliers_wallet.withdraw') }}" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ generate_csrf() if generate_csrf else '' }}">
+                    
+                    <!-- حقل رمز CSRF بحماية شاملة لكل حالات Flask/WTForms -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else (generate_csrf() if generate_csrf is defined else '') }}">
 
                     <!-- تحديد المبلغ -->
                     <div class="mb-4">
                         <label class="form-label fw-bold text-dark small mb-1">المبلغ المطلوب (SAR)</label>
                         <div class="input-group mb-2">
-                            <!-- تم تغيير type إِلى text مع inputmode="decimal" للتحكم ومنع المتصفح من فرض تحويل الأرقام محلياً -->
                             <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*"
                                    id="amountInput" name="amount" class="form-control form-control-custom input-en-num" 
                                    placeholder="0.00" dir="ltr" lang="en" autocomplete="off" required>
@@ -191,7 +192,7 @@
                         <div class="form-text text-muted small mt-1">الحد الأدنى للسحب هو 10 ريال سعودي</div>
                     </div>
 
-                    <!-- جهة التحويل (بيانات الحساب المالي) -->
+                    <!-- جهة التحويل -->
                     <div class="mb-4">
                         <label class="form-label fw-bold text-dark small mb-2">جهة التحويل (بيانات المستلم)</label>
                         
@@ -272,13 +273,10 @@
     document.addEventListener('DOMContentLoaded', function() {
         var input = document.getElementById('amountInput');
         if (input) {
-            // معالجة كتابة أو لصق أي أرقام تحويلها دائماً فوراً إلى ASCII 0-9
             input.addEventListener('input', function(e) {
                 var clean = parseToStandardEnglishNumbers(e.target.value);
-                // السلاح لمنع إدخال غير الأرقام والنقطة العشرية
                 clean = clean.replace(/[^0-9.]/g, '');
                 
-                // منع تكرار النقطة العشرية
                 var parts = clean.split('.');
                 if (parts.length > 2) {
                     clean = parts[0] + '.' + parts.slice(1).join('');
