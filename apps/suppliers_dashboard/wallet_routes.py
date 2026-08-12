@@ -19,14 +19,6 @@ wallet_bp = Blueprint(
 )
 
 
-def get_tx_type_field_name():
-    """دالة مساعدة لمعرفة اسم حقل نوع الحركة المعرف في موديل WalletTransaction"""
-    for attr in ['type', 'tx_type', 'transaction_type', 'category']:
-        if hasattr(WalletTransaction, attr):
-            return attr
-    return 'type'
-
-
 def get_supplier_context():
     """دالة مساعدة لجلب المورد والمحفظة بأمان"""
     try:
@@ -135,7 +127,7 @@ def withdraw():
                     getattr(supplier, 'name', '')
                 )
                 
-                # Validation: التحقق من المبلغ
+                # التحقق من المبلغ
                 if amount <= 0:
                     flash('❌ المبلغ يجب أن يكون أكبر من صفر', 'danger')
                     return redirect(url_for('suppliers_wallet.withdraw'))
@@ -158,28 +150,28 @@ def withdraw():
                     if request.form.get('account_holder_name') and hasattr(profile, 'account_holder_name'):
                         profile.account_holder_name = account_holder
 
-                # خصم المبلغ وتحديث المحفظة
-                wallet.balance_sar = balance - amount
+                # تحديث إجمالي المسحوبات للمحفظة
                 if hasattr(wallet, 'total_withdrawn'):
                     wallet.total_withdrawn = float(getattr(wallet, 'total_withdrawn', 0.0) or 0.0) + amount
 
-                # تجهيز الحقول بديناميكية لمنع خطأ اسم خاصية نوع الحركة
-                tx_field = get_tx_type_field_name()
-                tx_data = {
-                    'wallet_id': wallet.id,
-                    'amount': amount,
-                    'status': 'pending',
-                    'description': f"طلب سحب أرباح - البنك: {bank_name or 'غير محدد'} | الحساب: {bank_account or 'غير محدد'} | المستفيد: {account_holder}"
-                }
-                tx_data[tx_field] = 'withdrawal'
-
-                # إنشاء حركة مالية جديدة معلقة
-                transaction = WalletTransaction(**tx_data)
+                # إنشاء حركة مالية جديدة متوافقة دقيقاً مع WalletTransaction
+                # ملاحظة: يتم احتساب balance_before و balance_after وتحديث balance_sar آلياً عبر Event Listener
+                transaction = WalletTransaction(
+                    wallet_id=wallet.id,
+                    owner_type='supplier',
+                    owner_id=supplier.id,
+                    trans_type='withdrawal',
+                    source_type='manual',
+                    amount=amount,
+                    currency='SAR',
+                    description=f"طلب سحب أرباح - البنك: {bank_name or 'غير محدد'} | الحساب: {bank_account or 'غير محدد'} | المستفيد: {account_holder}",
+                    created_by=current_user.id
+                )
                 
                 db.session.add(transaction)
                 db.session.commit()
                 
-                flash(f'✅ تم تقديم طلب سحب بمبلغ {amount:,.2f} SAR بنجاح برقم حركة #{transaction.id}', 'success')
+                flash(f'✅ تم تقديم طلب سحب بمبلغ {amount:,.2f} SAR بنجاح برقم سند #{transaction.voucher_number or transaction.id}', 'success')
                 return redirect(url_for('suppliers_wallet.wallet'))
                 
             except ValueError:
@@ -191,17 +183,13 @@ def withdraw():
                 flash('❌ حدث خطأ أثناء معالجة طلب السحب، يرجى المحاولة لاحقاً', 'danger')
                 return redirect(url_for('suppliers_wallet.withdraw'))
         
-        # حساب إجمالي طلبات السحب المعلقة للعرض في الواجهة بأمان
+        # حساب إجمالي طلبات السحب لعرضها في الواجهة
         total_pending_payouts = 0.0
         try:
-            tx_field = get_tx_type_field_name()
-            filter_kwargs = {
-                'wallet_id': wallet.id,
-                'status': 'pending'
-            }
-            filter_kwargs[tx_field] = 'withdrawal'
-
-            pending_txs = WalletTransaction.query.filter_by(**filter_kwargs).all()
+            pending_txs = WalletTransaction.query.filter_by(
+                wallet_id=wallet.id,
+                trans_type='withdrawal'
+            ).all()
             total_pending_payouts = sum(float(tx.amount or 0.0) for tx in pending_txs)
         except Exception as e:
             print(f"⚠️ تعذر حساب طلبات السحب المعلقة: {e}")
