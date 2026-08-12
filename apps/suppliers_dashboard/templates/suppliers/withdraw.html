@@ -1,402 +1,226 @@
 {% extends 'suppliers/base.html' %}
 
-{% block title %}طلب سحب | {{ supplier.trade_name if supplier else 'غير متاح' }}{% endblock %}
+{% block title %}طلب سحب الأرباح{% endblock %}
 
 {% block content %}
 <style>
-    .withdraw-card {
-        border-radius: 20px;
-        border: 1px solid rgba(212, 175, 55, 0.15);
-        overflow: hidden;
-        transition: var(--transition);
+    .withdraw-container {
+        max-width: 1000px;
+        margin: 0 auto;
     }
-    .withdraw-card:hover {
-        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-    }
-    .withdraw-header {
-        background: linear-gradient(135deg, var(--royal-purple) 0%, #36175e 100%);
-        color: white;
-        padding: 20px 25px;
-        border-bottom: 3px solid var(--mahjoub-gold);
-    }
-    .withdraw-header h5 {
-        margin: 0;
-        font-weight: 700;
-    }
-    .withdraw-header i {
-        color: var(--mahjoub-gold);
-        margin-left: 10px;
-    }
-    .balance-display {
-        background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5c 100%);
+    
+    .balance-banner {
+        background: linear-gradient(135deg, var(--royal-purple, #1a0b2e) 0%, #36175e 100%);
         border-radius: 16px;
-        padding: 25px;
-        text-align: center;
         color: white;
+        padding: 24px;
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        box-shadow: 0 10px 25px rgba(26, 11, 46, 0.15);
     }
-    .balance-display .amount {
-        font-size: 2.8rem;
+    
+    .balance-amount {
+        font-size: 2.2rem;
         font-weight: 800;
-        color: var(--mahjoub-gold);
+        color: var(--mahjoub-gold, #d4af37);
     }
-    .balance-display .label {
-        font-size: 0.9rem;
-        color: rgba(255,255,255,0.7);
+
+    .form-card {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #f0ecf3;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        padding: 28px;
     }
-    .form-control:focus {
-        border-color: var(--mahjoub-gold);
-        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
-    }
-    .btn-gold {
-        background: var(--mahjoub-gold);
-        color: var(--royal-purple);
-        font-weight: 700;
-        padding: 12px 30px;
-        border: none;
-        border-radius: 50px;
-        transition: var(--transition);
-        width: 100%;
-    }
-    .btn-gold:hover {
-        background: #c4a035;
-        color: var(--royal-purple);
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
-    }
-    .btn-gold:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-    .btn-outline-gold {
-        background: transparent;
-        color: var(--royal-purple);
-        border: 2px solid var(--mahjoub-gold);
-        font-weight: 700;
-        padding: 10px 25px;
-        border-radius: 50px;
-        transition: var(--transition);
-    }
-    .btn-outline-gold:hover {
-        background: var(--mahjoub-gold);
-        color: var(--royal-purple);
-    }
-    .info-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 12px 0;
-        border-bottom: 1px solid #f0ecf3;
-    }
-    .info-row:last-child {
-        border-bottom: none;
-    }
-    .info-row .label {
-        color: #6c757d;
-        font-size: 0.9rem;
-    }
-    .info-row .value {
-        font-weight: 600;
-        color: var(--royal-purple);
-    }
-    .quick-amounts {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-    .quick-amounts .btn-quick {
-        flex: 1;
-        min-width: 60px;
-        padding: 8px 12px;
+
+    .quick-amount-btn {
+        background: #faf8fc;
+        border: 1px solid #e2d9eb;
+        color: var(--royal-purple, #1a0b2e);
         border-radius: 10px;
-        border: 2px solid #e9ecef;
-        background: white;
-        color: var(--royal-purple);
+        padding: 8px 14px;
         font-weight: 600;
-        transition: var(--transition);
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
         cursor: pointer;
     }
-    .quick-amounts .btn-quick:hover {
-        border-color: var(--mahjoub-gold);
-        background: rgba(212, 175, 55, 0.05);
+    
+    .quick-amount-btn:hover {
+        background: var(--royal-purple, #1a0b2e);
+        color: white;
+        border-color: var(--royal-purple, #1a0b2e);
     }
-    .quick-amounts .btn-quick.active {
-        border-color: var(--mahjoub-gold);
-        background: var(--mahjoub-gold);
-        color: var(--royal-purple);
-    }
-    .fee-note {
-        background: #f8f9fa;
+
+    .form-control-custom {
+        border: 2px solid #f0ecf3;
         border-radius: 12px;
-        padding: 15px 20px;
-        border-right: 4px solid var(--mahjoub-gold);
-        font-size: 0.9rem;
-        color: #6c757d;
+        padding: 12px 16px;
+        font-size: 1rem;
+        background: #faf8fc;
+        transition: all 0.2s;
+    }
+
+    .form-control-custom:focus {
+        border-color: var(--mahjoub-gold, #d4af37);
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+    }
+
+    .btn-submit-withdraw {
+        background: linear-gradient(135deg, var(--mahjoub-gold, #d4af37) 0%, #c4a035 100%);
+        color: var(--royal-purple, #1a0b2e);
+        font-weight: 800;
+        border: none;
+        border-radius: 12px;
+        padding: 14px 28px;
+        font-size: 1.05rem;
+        width: 100%;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    }
+
+    .btn-submit-withdraw:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+    }
+
+    .btn-submit-withdraw:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        box-shadow: none;
     }
 </style>
 
-<div class="container-fluid py-4">
-
-    <!-- رأس الصفحة -->
-    <div class="d-flex align-items-center mb-4">
-        <div class="bg-white p-3 rounded-circle shadow-sm me-3" style="border: 2px solid var(--mahjoub-gold);">
-            <i class="fas fa-hand-holding-usd fa-2x" style="color: var(--royal-purple);"></i>
-        </div>
+<div class="container-fluid py-4 withdraw-container">
+    
+    <!-- العنوان الرئيسي -->
+    <div class="mb-4 d-flex align-items-center justify-content-between">
         <div>
-            <h3 class="fw-bold text-dark mb-0">طلب سحب</h3>
-            <p class="text-muted mb-0">سحب الأرباح من محفظتك إلى حسابك البنكي</p>
+            <h4 class="fw-bold text-dark mb-1"><i class="fas fa-hand-holding-usd me-2" style="color: var(--mahjoub-gold, #d4af37);"></i> طلب سحب أرباح</h4>
+            <p class="text-muted small mb-0">تحويل سريع وآمن إلى حسابك البنكي المسجل</p>
         </div>
     </div>
 
+    <!-- التنبيهات والرسائل -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
     <div class="row g-4">
-
-        <!-- ✅ نموذج طلب السحب -->
-        <div class="col-lg-7">
-            <div class="card withdraw-card">
-                <div class="withdraw-header">
-                    <h5><i class="fas fa-pen"></i> بيانات طلب السحب</h5>
+        <!-- قسم ملخص المحفظة (العمود الأيسر) -->
+        <div class="col-12 col-lg-4">
+            <div class="balance-banner h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <span class="badge bg-white text-dark mb-3 px-3 py-2 rounded-pill fw-bold" style="font-size: 0.75rem;">
+                        كود المحفظة: {{ wallet.wallet_code if wallet else '---' }}
+                    </span>
+                    <div class="text-white-50 small fw-bold mb-1">الرصيد المتاح للسحب</div>
+                    <div class="balance-amount mb-3">
+                        {{ "{:,.2f}".format(wallet.balance_sar|float) if wallet else '0.00' }} <span style="font-size: 1rem;">SAR</span>
+                    </div>
                 </div>
-                <div class="card-body p-4">
 
-                    <form method="POST" action="{{ url_for('suppliers_wallet.withdraw') }}" id="withdrawForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
-
-                        <!-- ✅ المبلغ -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">
-                                <i class="fas fa-money-bill-wave text-muted me-1"></i> المبلغ المطلوب (SAR)
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light">SAR</span>
-                                <input type="number" step="0.01" min="1" 
-                                       name="amount" id="amountInput"
-                                       class="form-control form-control-lg" 
-                                       placeholder="0.00"
-                                       required>
-                            </div>
-                            <small class="text-muted">الحد الأدنى للسحب: 10 ريال سعودي</small>
-                        </div>
-
-                        <!-- ✅ أزرار سريعة -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-dark small">مبالغ سريعة</label>
-                            <div class="quick-amounts" id="quickAmounts">
-                                <button type="button" class="btn-quick" data-amount="50">50</button>
-                                <button type="button" class="btn-quick" data-amount="100">100</button>
-                                <button type="button" class="btn-quick" data-amount="500">500</button>
-                                <button type="button" class="btn-quick" data-amount="1000">1000</button>
-                                <button type="button" class="btn-quick" data-amount="all">الكل</button>
-                            </div>
-                        </div>
-
-                        <!-- ✅ الحساب البنكي -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">
-                                <i class="fas fa-university text-muted me-1"></i> الحساب البنكي
-                            </label>
-                            <input type="text" name="bank_account" 
-                                   value="{{ supplier.supplier_profile.bank_account if supplier.supplier_profile and supplier.supplier_profile.bank_account else '' }}"
-                                   class="form-control" 
-                                   placeholder="رقم الحساب البنكي IBAN"
-                                   required>
-                            <small class="text-muted">أدخل رقم IBAN أو رقم الحساب البنكي</small>
-                        </div>
-
-                        <!-- ✅ اسم البنك -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-dark">
-                                <i class="fas fa-building text-muted me-1"></i> اسم البنك
-                            </label>
-                            <input type="text" name="bank_name" 
-                                   value="{{ supplier.supplier_profile.bank_name if supplier.supplier_profile and supplier.supplier_profile.bank_name else '' }}"
-                                   class="form-control" 
-                                   placeholder="مثال: بنك الرياض">
-                        </div>
-
-                        <!-- ✅ ملاحظات إضافية -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-dark">
-                                <i class="fas fa-comment text-muted me-1"></i> ملاحظات (اختياري)
-                            </label>
-                            <textarea name="notes" class="form-control" rows="2" 
-                                      placeholder="أي ملاحظات إضافية حول طلب السحب"></textarea>
-                        </div>
-
-                        <!-- ✅ رسالة الخطأ -->
-                        <div id="errorMessage" class="alert alert-danger d-none">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            <span id="errorText"></span>
-                        </div>
-
-                        <!-- ✅ زر السحب -->
-                        <button type="submit" class="btn btn-gold" id="submitBtn">
-                            <i class="fas fa-paper-plane me-2"></i> تقديم طلب السحب
-                        </button>
-
-                    </form>
+                <div class="pt-3 border-top border-light border-opacity-25 mt-3">
+                    <div class="d-flex justify-content-between text-white-50 small mb-2">
+                        <span>رصيد معلق:</span>
+                        <strong class="text-white">{{ "{:,.2f}".format(wallet.balance_pending|float) if (wallet and wallet.balance_pending) else '0.00' }} SAR</strong>
+                    </div>
+                    <div class="d-flex justify-content-between text-white-50 small">
+                        <span>إجمالي المسحوبات:</span>
+                        <strong class="text-white">{{ "{:,.2f}".format(wallet.total_withdrawn|float) if (wallet and wallet.total_withdrawn) else '0.00' }} SAR</strong>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ✅ المعلومات الجانبية -->
-        <div class="col-lg-5">
+        <!-- نموذج طلب السحب (العمود الأيمن) -->
+        <div class="col-12 col-lg-8">
+            <div class="form-card">
+                <form action="{{ url_for('suppliers_wallet.withdraw') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
 
-            <!-- ✅ بطاقة الرصيد -->
-            <div class="card withdraw-card">
-                <div class="withdraw-header" style="background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5c 100%);">
-                    <h5><i class="fas fa-wallet"></i> رصيد المحفظة</h5>
-                </div>
-                <div class="card-body p-4">
-                    <div class="balance-display">
-                        <div class="label">الرصيد المتاح للسحب</div>
-                        <div class="amount">
-                            {{ "{:,.2f}".format(wallet.balance_sar|float) if wallet and wallet.balance_sar else '0.00' }}
+                    <!-- تحديد المبلغ -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark small mb-1">المبلغ المطلوب (SAR)</label>
+                        <div class="input-group mb-2">
+                            <input type="number" step="0.01" min="10" max="{{ wallet.balance_sar if wallet else 0 }}" 
+                                   id="amountInput" name="amount" class="form-control form-control-custom" 
+                                   placeholder="0.00" required>
+                            <span class="input-group-text bg-white border-0 fw-bold text-muted">SAR</span>
                         </div>
-                        <div class="label">ريال سعودي (SAR)</div>
+                        
+                        <!-- خيارات اختيار سريع -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                            <span class="text-muted small me-1">اختيار سريع:</span>
+                            <button type="button" class="quick-amount-btn" onclick="setAmount(50)">50</button>
+                            <button type="button" class="quick-amount-btn" onclick="setAmount(100)">100</button>
+                            <button type="button" class="quick-amount-btn" onclick="setAmount(500)">500</button>
+                            <button type="button" class="quick-amount-btn" onclick="setAmount(1000)">1000</button>
+                            <button type="button" class="quick-amount-btn fw-bold" style="color: var(--mahjoub-gold, #d4af37); background: #1a0b2e;" 
+                                    onclick="setAmount({{ wallet.balance_sar if wallet else 0 }})">الكل</button>
+                        </div>
+                        <div class="form-text text-muted small mt-1">الحد الأدنى للسحب هو 10 ريال سعودي</div>
                     </div>
 
-                    <div class="mt-3">
-                        <div class="info-row">
-                            <span class="label">💳 كود المحفظة</span>
-                            <span class="value font-monospace">{{ wallet.wallet_code if wallet else '---' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">⏳ رصيد معلق</span>
-                            <span class="value">{{ "{:,.2f}".format(wallet.balance_pending|float) if wallet and wallet.balance_pending else '0.00' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">📊 إجمالي المسحوبات</span>
-                            <span class="value">{{ "{:,.2f}".format(wallet.total_withdrawn|float) if wallet and wallet.total_withdrawn else '0.00' }}</span>
-                        </div>
+                    <!-- جهة التحويل (بيانات الحساب البنكي التلقائية) -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark small mb-2">جهة التحويل (الحساب البنكي المعتمد)</label>
+                        
+                        {% if supplier and supplier.iban %}
+                            <div class="p-3 bg-light border rounded-3 d-flex flex-column gap-2">
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+                                    <div>
+                                        <span class="text-muted small d-block">اسم صاحب الحساب</span>
+                                        <strong class="text-dark">{{ supplier.account_holder_name if supplier.account_holder_name else supplier.name }}</strong>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="text-muted small d-block">اسم البنك</span>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary fw-bold">
+                                            <i class="fas fa-university me-1"></i> {{ supplier.bank_name if supplier.bank_name else 'الحساب البنكي' }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center pt-1">
+                                    <div>
+                                        <span class="text-muted small d-block">رقم الحساب / IBAN</span>
+                                        <span class="fw-bold text-dark dir-ltr text-start font-monospace">{{ supplier.iban }}</span>
+                                    </div>
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-2 py-1 small">
+                                        <i class="fas fa-check-circle me-1"></i> جاهز للتحويل
+                                    </span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning d-flex align-items-center gap-3 mb-0 rounded-3" role="alert">
+                                <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                                <div>
+                                    <strong>لم تقم بتسجيل حساب بنكي بعد!</strong><br>
+                                    <span class="small">يرجى إضافة بيانات الحساب البنكي في ملفك الشحصي لتفعيل سحب الأرباح.</span>
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
-                </div>
+
+                    <!-- زر التأكيد -->
+                    <button type="submit" class="btn-submit-withdraw" {% if not supplier or not supplier.iban %}disabled{% endif %}>
+                        <i class="fas fa-paper-plane me-2"></i> تأكيد إرسال طلب السحب
+                    </button>
+                </form>
             </div>
-
-            <!-- ✅ معلومات السحب -->
-            <div class="card withdraw-card mt-3">
-                <div class="withdraw-header" style="background: linear-gradient(135deg, #1a472a 0%, #2d6a4f 100%);">
-                    <h5><i class="fas fa-info-circle"></i> معلومات السحب</h5>
-                </div>
-                <div class="card-body p-4">
-
-                    <div class="fee-note">
-                        <i class="fas fa-clock me-2"></i>
-                        <strong>مدة المعالجة:</strong> 1-3 أيام عمل
-                    </div>
-
-                    <div class="fee-note mt-2">
-                        <i class="fas fa-check-circle me-2" style="color: #28a745;"></i>
-                        <strong>الحد الأدنى:</strong> 10 ريال سعودي
-                    </div>
-
-                    <div class="fee-note mt-2">
-                        <i class="fas fa-exclamation-triangle me-2" style="color: #ffc107;"></i>
-                        <strong>تنبيه:</strong> تأكد من صحة بيانات الحساب البنكي
-                    </div>
-
-                    <hr>
-
-                    <div class="d-flex gap-2">
-                        <a href="{{ url_for('suppliers_dashboard.dashboard') }}" class="btn btn-outline-gold w-100">
-                            <i class="fas fa-arrow-right me-1"></i> رجوع
-                        </a>
-                    </div>
-
-                </div>
-            </div>
-
         </div>
-
     </div>
 </div>
 
-<!-- ✅ JavaScript -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        
-        const form = document.getElementById('withdrawForm');
-        const amountInput = document.getElementById('amountInput');
-        const quickBtns = document.querySelectorAll('.btn-quick');
-        const submitBtn = document.getElementById('submitBtn');
-        const errorDiv = document.getElementById('errorMessage');
-        const errorText = document.getElementById('errorText');
-        
-        const maxBalance = {{ wallet.balance_sar|float if wallet and wallet.balance_sar else 0 }};
-        
-        // ✅ تحديث المبلغ عند النقر على الأزرار السريعة
-        quickBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                quickBtns.forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                
-                const amount = this.dataset.amount;
-                if (amount === 'all') {
-                    amountInput.value = maxBalance.toFixed(2);
-                } else {
-                    amountInput.value = parseFloat(amount).toFixed(2);
-                }
-                
-                validateAmount();
-            });
-        });
-        
-        // ✅ التحقق من المبلغ عند الكتابة
-        amountInput.addEventListener('input', function() {
-            validateAmount();
-        });
-        
-        // ✅ دالة التحقق من المبلغ
-        function validateAmount() {
-            const amount = parseFloat(amountInput.value);
-            const minAmount = 10;
-            
-            errorDiv.classList.add('d-none');
-            
-            if (isNaN(amount) || amount <= 0) {
-                errorText.textContent = 'يرجى إدخال مبلغ صحيح';
-                errorDiv.classList.remove('d-none');
-                submitBtn.disabled = true;
-                return false;
-            }
-            
-            if (amount < minAmount) {
-                errorText.textContent = `الحد الأدنى للسحب هو ${minAmount} ريال سعودي`;
-                errorDiv.classList.remove('d-none');
-                submitBtn.disabled = true;
-                return false;
-            }
-            
-            if (amount > maxBalance) {
-                errorText.textContent = `المبلغ المطلوب (${amount.toFixed(2)}) يتجاوز الرصيد المتاح (${maxBalance.toFixed(2)})`;
-                errorDiv.classList.remove('d-none');
-                submitBtn.disabled = true;
-                return false;
-            }
-            
-            submitBtn.disabled = false;
-            return true;
-        }
-        
-        // ✅ التحقق عند إرسال النموذج
-        form.addEventListener('submit', function(e) {
-            if (!validateAmount()) {
-                e.preventDefault();
-                return;
-            }
-            
-            const amount = parseFloat(amountInput.value);
-            if (!confirm(`⚠️ هل أنت متأكد من رغبتك في سحب مبلغ ${amount.toFixed(2)} ريال سعودي؟`)) {
-                e.preventDefault();
-                return;
-            }
-            
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري المعالجة...';
-        });
-        
-        // ✅ التحقق المبدئي
-        validateAmount();
-        
-    });
+    function setAmount(val) {
+        document.getElementById('amountInput').value = val;
+    }
 </script>
-
 {% endblock %}
