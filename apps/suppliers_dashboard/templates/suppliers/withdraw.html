@@ -22,7 +22,7 @@
         font-size: 2.2rem;
         font-weight: 800;
         color: var(--mahjoub-gold, #d4af37);
-        font-family: Arial, sans-serif;
+        font-family: Arial, Helvetica, sans-serif !important;
     }
 
     .form-card {
@@ -43,7 +43,7 @@
         font-size: 0.85rem;
         transition: all 0.2s ease;
         cursor: pointer;
-        font-family: Arial, sans-serif;
+        font-family: Arial, Helvetica, sans-serif !important;
     }
     
     .quick-amount-btn:hover {
@@ -67,25 +67,15 @@
         box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
     }
 
-    /* إخفاء أسهم حقل الأرقام */
-    input[type=number]::-webkit-inner-spin-button, 
-    input[type=number]::-webkit-outer-spin-button { 
-        -webkit-appearance: none; 
-        margin: 0; 
-    }
-    input[type=number] {
-        -moz-appearance: textfield;
-    }
-
-    /* إجبار إظهار الأرقام الإنجليزية القياسية (ASCII) */
+    /* إجبار إظهار الأرقام الإنجليزية (ASCII 0-9) ومنع استبدال الخطوط المحلية */
     .input-en-num {
         direction: ltr !important;
         text-align: right !important;
-        font-family: Arial, 'Helvetica Neue', sans-serif !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
         font-variant-numeric: lining-nums tabular-nums !important;
-        -moz-font-feature-settings: "lnum" 1, "tnum" 1 !important;
-        -webkit-font-feature-settings: "lnum" 1, "tnum" 1 !important;
-        font-feature-settings: "lnum" 1, "tnum" 1 !important;
+        -moz-font-feature-settings: "lnum" 1, "tnum" 1, "locl" 0 !important;
+        -webkit-font-feature-settings: "lnum" 1, "tnum" 1, "locl" 0 !important;
+        font-feature-settings: "lnum" 1, "tnum" 1, "locl" 0 !important;
     }
 
     .btn-submit-withdraw {
@@ -181,9 +171,10 @@
                     <div class="mb-4">
                         <label class="form-label fw-bold text-dark small mb-1">المبلغ المطلوب (SAR)</label>
                         <div class="input-group mb-2">
-                            <input type="number" step="0.01" min="10" max="{{ active_wallet.balance_sar if active_wallet else 0 }}" 
+                            <!-- تم تغيير type إِلى text مع inputmode="decimal" للتحكم ومنع المتصفح من فرض تحويل الأرقام محلياً -->
+                            <input type="text" inputmode="decimal" pattern="[0-9]*[.]?[0-9]*"
                                    id="amountInput" name="amount" class="form-control form-control-custom input-en-num" 
-                                   placeholder="0.00" dir="ltr" lang="en" required>
+                                   placeholder="0.00" dir="ltr" lang="en" autocomplete="off" required>
                             <span class="input-group-text bg-white border-0 fw-bold text-muted">SAR</span>
                         </div>
                         
@@ -255,31 +246,46 @@
 </div>
 
 <script>
+    function parseToStandardEnglishNumbers(str) {
+        if (!str && str !== 0) return '';
+        var strVal = String(str);
+        var arabicNumbers = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
+        for (var i = 0; i < 10; i++) {
+            strVal = strVal.replace(arabicNumbers[i], i);
+        }
+        return strVal;
+    }
+
     function setAmount(val) {
         var input = document.getElementById('amountInput');
         if (!input) return;
         
-        var num = parseFloat(val);
+        var cleanVal = parseToStandardEnglishNumbers(val);
+        var num = parseFloat(cleanVal);
         if (isNaN(num) || num < 0) {
             num = 0;
         }
         
-        // استخدام toFixed(2) لضمان كتابة أرقام ASCII إنجليزية (0-9)
         input.value = num.toFixed(2);
     }
 
-    // تحويل الأرقام العربية المكتوبة يدوياً إلى أرقام إنجليزية فوراً
     document.addEventListener('DOMContentLoaded', function() {
         var input = document.getElementById('amountInput');
         if (input) {
+            // معالجة كتابة أو لصق أي أرقام تحويلها دائماً فوراً إلى ASCII 0-9
             input.addEventListener('input', function(e) {
-                var arabicNumbers = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];
-                var val = e.target.value;
-                for (var i = 0; i < 10; i++) {
-                    val = val.replace(arabicNumbers[i], i);
+                var clean = parseToStandardEnglishNumbers(e.target.value);
+                // السلاح لمنع إدخال غير الأرقام والنقطة العشرية
+                clean = clean.replace(/[^0-9.]/g, '');
+                
+                // منع تكرار النقطة العشرية
+                var parts = clean.split('.');
+                if (parts.length > 2) {
+                    clean = parts[0] + '.' + parts.slice(1).join('');
                 }
-                if (e.target.value !== val) {
-                    e.target.value = val;
+                
+                if (e.target.value !== clean) {
+                    e.target.value = clean;
                 }
             });
         }
