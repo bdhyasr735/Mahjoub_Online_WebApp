@@ -78,7 +78,11 @@
     .input-en-num {
         direction: ltr !important;
         text-align: right !important;
-        font-family: Arial, sans-serif !important;
+        font-family: Arial, 'Helvetica Neue', sans-serif !important;
+        font-variant-numeric: lining-nums !important;
+        -moz-font-feature-settings: "lnum" 1 !important;
+        -webkit-font-feature-settings: "lnum" 1 !important;
+        font-feature-settings: "lnum" 1 !important;
     }
 
     .btn-submit-withdraw {
@@ -176,7 +180,7 @@
                         <div class="input-group mb-2">
                             <input type="number" step="0.01" min="10" max="{{ active_wallet.balance_sar if active_wallet else 0 }}" 
                                    id="amountInput" name="amount" class="form-control form-control-custom input-en-num" 
-                                   placeholder="0.00" dir="ltr" required>
+                                   placeholder="0.00" dir="ltr" lang="en" required>
                             <span class="input-group-text bg-white border-0 fw-bold text-muted">SAR</span>
                         </div>
                         
