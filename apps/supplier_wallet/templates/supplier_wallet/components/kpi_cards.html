@@ -1,0 +1,50 @@
+<!-- KPI Cards Component -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <!-- Card 1: إجمالي المبيعات -->
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-xs font-semibold text-gray-600">إجمالي المبيعات</span>
+            <span class="text-green-500"><i class="fas fa-chart-line"></i></span>
+        </div>
+        <div>
+            <h2 class="text-xl font-bold text-gray-800">{{ total_sales }} ج.م</h2>
+            <p class="text-[10px] text-gray-400 mt-1">المبالغ المحولة سابقاً</p>
+        </div>
+    </div>
+
+    <!-- Card 2: المعاملات المعلقة -->
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-xs font-semibold text-gray-600">المعاملات المعلقة</span>
+            <span class="text-orange-400"><i class="fas fa-clock"></i></span>
+        </div>
+        <div>
+            <h2 class="text-xl font-bold text-gray-800">{{ pending_amount }} ج.م</h2>
+            <p class="text-[10px] text-gray-400 mt-1">قيد المعالجة والتسوية</p>
+        </div>
+    </div>
+
+    <!-- Card 3: الرصيد المتاح للسحب (مميز) -->
+    <div class="bg-[#4A154B] p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between text-white">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-xs font-semibold text-white/90">الرصيد المتاح للسحب</span>
+            <span class="text-white/90"><i class="fas fa-wallet"></i></span>
+        </div>
+        <div>
+            <h2 class="text-xl font-bold">{{ available_balance }} ج.م</h2>
+            <p class="text-[10px] text-white/70 mt-1">جاهز للتحويل الفوري</p>
+        </div>
+    </div>
+
+    <!-- Card 4: إجمالي الرصيد -->
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-xs font-semibold text-gray-600">إجمالي الرصيد</span>
+            <span class="text-gray-400"><i class="fas fa-balance-scale"></i></span>
+        </div>
+        <div>
+            <h2 class="text-xl font-bold text-gray-800">{{ total_balance }} ج.م</h2>
+            <p class="text-[10px] text-gray-400 mt-1">الرصيد الإجمالي التراكمي</p>
+        </div>
+    </div>
+</div>
