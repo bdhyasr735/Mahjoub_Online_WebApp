@@ -117,7 +117,13 @@ def withdraw():
                 amount = float(request.form.get('amount', 0))
                 bank_name = request.form.get('bank_name', '').strip()
                 bank_account = request.form.get('bank_account', '').strip()
-                account_holder = request.form.get('account_holder_name', '').strip()
+                
+                # جلب اسم الحساب البنكي أو الاسم الكامل للمالك تلقائياً
+                account_holder = (
+                    request.form.get('account_holder_name', '').strip() or 
+                    getattr(supplier, 'account_holder_name', None) or 
+                    getattr(supplier, 'name', '')
+                )
                 
                 # ✅ التحقق من المبلغ
                 if amount <= 0:
@@ -133,10 +139,8 @@ def withdraw():
                     flash(f'❌ الرصيد غير كافٍ. الرصيد الحالي: {balance:.2f} SAR', 'danger')
                     return redirect(url_for('suppliers_wallet.withdraw'))
                 
-                # ✅ التحقق من الحساب البنكي
-                if not bank_account:
-                    flash('❌ يرجى تحديد أو إدخال رقم الحساب البنكي / IBAN', 'danger')
-                    return redirect(url_for('suppliers_wallet.withdraw'))
+                # ✅ ملاحظة: رقم الحساب البنكي (bank_account) اختياري،
+                # وفي حال عدم وجوده يتم اعتماد الاسم الكامل للمالك (account_holder) كمعرف للتحويل.
                 
                 # ✅ تحديث أو إكمال بيانات البنك في البروفايل تلقائياً لاستخدامها مستقبلاً
                 if profile:
@@ -152,7 +156,7 @@ def withdraw():
                 # wallet.balance_sar -= amount
                 # db.session.commit()
                 
-                flash(f'✅ تم تقديم طلب سحب بمبلغ {amount:.2f} SAR بنجاح إلى حسابك البنكي', 'success')
+                flash(f'✅ تم تقديم طلب سحب بمبلغ {amount:.2f} SAR بنجاح باسم ({account_holder})', 'success')
                 return redirect(url_for('suppliers_dashboard.dashboard'))
                 
             except ValueError:
