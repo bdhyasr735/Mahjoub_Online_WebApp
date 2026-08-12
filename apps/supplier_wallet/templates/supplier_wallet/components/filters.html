@@ -1,0 +1,127 @@
+
+# -*- coding: utf-8 -*-
+"""
+مكونات الفلاتر الخاصة بمحفظة المورد (Filters Component)
+تحتوي على منطق معالجة الفلاتر، وتصفية حركات المحفظة والتاريخ والحالات.
+Mahjoub Online WebApp - supplier_wallet/components/filters.py
+"""
+
+from datetime import datetime, timedelta
+
+class WalletFilterComponent:
+    """
+    كلاس إدارة وتمرير الفلاتر الخاصة بحركات المحفظة وطلبات السحب
+    """
+
+    @staticmethod
+    def parse_date(date_str):
+        """تحويل نص التاريخ إلى كائن datetime"""
+        if not date_str:
+            return None
+        try:
+            return datetime.strptime(date_str.strip(), '%Y-%m-%d')
+        except ValueError:
+            return None
+
+    @classmethod
+    def apply_transaction_filters(cls, query, args, model):
+        """
+        تطبيق فلاتر التصفية على كويري حركات المحفظة (WalletTransaction)
+        :param query: كويري SQLAlchemy الأساسي
+        :param args: عناصر request.args القادمة من الواجهة
+        :param model: كلاس موديل WalletTransaction
+        :return: الكويري بعد تصفية البيانات + قاموس يحتوي القيم المحددة
+        """
+        start_date_str = args.get('start_date', '').strip()
+        end_date_str = args.get('end_date', '').strip()
+        trx_type = args.get('type', 'all').strip()
+        status = args.get('status', 'all').strip()
+        search = args.get('search', '').strip()
+
+        # 1. تصفية نطاق التاريخ (Start Date & End Date)
+        start_date = cls.parse_date(start_date_str)
+        end_date = cls.parse_date(end_date_str)
+
+        if start_date:
+            query = query.filter(model.created_at >= start_date)
+        if end_date:
+            # إضافة نهاية اليوم 23:59:59 لتشمل تاريخ النهاية بالكامل
+            end_date_full = end_date.replace(hour=23, minute=59, second=59)
+            query = query.filter(model.created_at <= end_date_full)
+
+        # 2. تصفية نوع الحركة (دائن / مدين / الكل)
+        if trx_type and trx_type != 'all':
+            query = query.filter(model.trx_type == trx_type)
+
+        # 3. تصفية حالة الحركة (مكتملة / قيد المعالجة / ملغاة)
+        if status and status != 'all':
+            query = query.filter(model.status == status)
+
+        # 4. البحث برقم المرجع أو البيان
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                (model.reference_code.like(search_pattern)) | 
+                (model.description.like(search_pattern))
+            )
+
+        applied_filters = {
+            'start_date': start_date_str,
+            'end_date': end_date_str,
+            'type': trx_type,
+            'status': status,
+            'search': search
+        }
+
+        return query, applied_filters
+
+    @classmethod
+    def apply_withdrawal_filters(cls, query, args, model):
+        """
+        تطبيق فلاتر التصفية على كويري طلبات السحب (WithdrawalRequest)
+        :param query: كويري SQLAlchemy لطلبات السحب
+        :param args: عناصر request.args
+        :param model: كلاس موديل WithdrawalRequest
+        """
+        status = args.get('status', 'all').strip()
+        start_date_str = args.get('start_date', '').strip()
+        end_date_str = args.get('end_date', '').strip()
+
+        start_date = cls.parse_date(start_date_str)
+        end_date = cls.parse_date(end_date_str)
+
+        if start_date:
+            query = query.filter(model.created_at >= start_date)
+        if end_date:
+            end_date_full = end_date.replace(hour=23, minute=59, second=59)
+            query = query.filter(model.created_at <= end_date_full)
+
+        if status and status != 'all':
+            query = query.filter(model.status == status)
+
+        applied_filters = {
+            'status': status,
+            'start_date': start_date_str,
+            'end_date': end_date_str
+        }
+
+        return query, applied_filters
+
+    @staticmethod
+    def get_status_options():
+        """خيارات حالة الحركة المتاحة للفلاتر"""
+        return [
+            {'value': 'all', 'label': 'جميع الحالات'},
+            {'value': 'completed', 'label': 'مكتملة'},
+            {'value': 'pending', 'label': 'قيد المعالجة'},
+            {'value': 'cancelled', 'label': 'ملغاة'}
+        ]
+
+    @staticmethod
+    def get_type_options():
+        """خيارات نوع الحركة"""
+        return [
+            {'value': 'all', 'label': 'جميع الحركات'},
+            {'value': 'credit', 'label': 'إيداع / مستحقات (+)'},
+            {'value': 'debit', 'label': 'خصم / سحب (-)'}
+        ]
