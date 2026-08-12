@@ -1,4 +1,3 @@
-# coding: utf-8
 # 📂 apps/admin_orders/registry.py
 
 MODULE_NAME = 'إدارة الطلبات'
@@ -10,22 +9,15 @@ LINKS = {
 }
 
 def register_module(app):
-    # ✅ الاستيراد المباشر من ملف المسارات لتفادي ImportError
+    # 1. تسجيل موديول الطلبات الرئيسي أولاً
     from apps.admin_orders.routes.orders import admin_orders_bp
     app.register_blueprint(admin_orders_bp)
-    
-    # ✅ تسجيل مسارات وعناصر التحكم الخاصة بالمنتجات والموردين (items_bp)
+    print("✅ [Module]: تم تسجيل admin_orders_bp بنجاح.")
+
+    # 2. محاولة تسجيل items_bp بشكل منفصل دون إيقاف الموديول
     try:
         from apps.admin_orders.routes.items_controller import items_bp
         app.register_blueprint(items_bp)
         print("✅ [Module]: تم تسجيل items_bp بنجاح.")
     except Exception as e:
-        print(f"⚠️ [Module]: لم يتم تسجيل items_bp: {e}")
-
-    print("✅ [Module]: تم تفعيل موديول إدارة الطلبات بنجاح.")
-    
-    # 🔍 التحقق من تسجيل الـ endpoints
-    print("🧾 [DEBUG] Admin Orders Endpoints:")
-    for rule in app.url_map.iter_rules():
-        if 'admin_orders' in rule.endpoint or 'items_bp' in rule.endpoint:
-            print(f"   - {rule.endpoint} -> {rule.rule}")
+        print(f"⚠️ [Module]: تعذر تسجيل items_bp: {e}")
