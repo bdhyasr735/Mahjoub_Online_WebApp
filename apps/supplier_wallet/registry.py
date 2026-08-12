@@ -7,7 +7,7 @@ Mahjoub Online - Supplier Wallet Registry
 """
 
 MODULE_NAME = "محفظة المورد"
-MODULE_ICON = "bi-wallet2"
+MODULE_ICON = "fas fa-wallet"  # تم التحديث ليتوافق مع أيقونات FontAwesome الموحدة في اللوحة
 SHOW_IN_SUPPLIER = True
 
 LINKS = {
@@ -28,6 +28,6 @@ def register_module(app):
     @app.context_processor
     def inject_supplier_wallet_meta():
         return dict(
-            SUPPLIER_WALLET_THEME_COLOR='#4A154B',
+            SUPPLIER_WALLET_THEME_COLOR='#1f0b38',  # تحديث لون الهوية البصرية الموحد (Royal Purple)
             DEFAULT_PER_PAGE=10
         )
