@@ -4,11 +4,17 @@ Mahjoub Online - Supplier Wallet Routes
 """
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 
-wallet_bp = Blueprint('wallet', __name__)
+# توحيد اسم الـ Blueprint مع نظام التسجيل Registry
+wallet_bp = Blueprint(
+    'supplier_wallet', 
+    __name__,
+    template_folder='templates',
+    static_folder='static'
+)
 
 def apply_wallet_filters_logic(transactions, args):
     """
-    دمج منطق الفلترة والتصفية مباشرة داخل routes.py بدلاً من ملفات خارجية
+    دمج منطق الفلترة والتصفية مباشرة داخل routes.py
     """
     search_query = args.get('search', '').strip().lower()
     trx_type = args.get('type', 'all')
@@ -18,15 +24,12 @@ def apply_wallet_filters_logic(transactions, args):
 
     filtered = []
     for trx in transactions:
-        # 1. فلتر نوع العملية
         if trx_type != 'all' and trx.get('trx_type') != trx_type:
             continue
 
-        # 2. فلتر حالة العملية
         if status != 'all' and trx.get('status') != status:
             continue
 
-        # 3. فلتر البحث (رقم المرجع والبيان)
         if search_query:
             ref = str(trx.get('reference_code', '')).lower()
             desc = str(trx.get('description', '')).lower()
@@ -34,7 +37,6 @@ def apply_wallet_filters_logic(transactions, args):
             if search_query not in ref and search_query not in desc and search_query not in prod:
                 continue
 
-        # 4. فلتر النطاق الزمني
         if start_date and trx.get('created_at', '') < start_date:
             continue
         if end_date and trx.get('created_at', '') > end_date:
@@ -45,6 +47,7 @@ def apply_wallet_filters_logic(transactions, args):
     return filtered
 
 
+@wallet_bp.route('/', methods=['GET'])
 @wallet_bp.route('/wallet', methods=['GET'])
 def wallet():
     """
@@ -139,7 +142,6 @@ def withdraw():
     if request.method == 'POST':
         try:
             amount = float(request.form.get('amount', 0))
-            method = request.form.get('method', 'bank_transfer')
             account_details = request.form.get('account_details', '')
 
             if amount < summary['min_withdraw_amount']:
@@ -150,7 +152,7 @@ def withdraw():
                 flash("يرجى إدخال تفاصيل الحساب أو رقم المحفظة بشكل صحيح.", "danger")
             else:
                 flash("تم تقديم طلب السحب بنجاح وهو قيد المعالجة والتسوية.", "success")
-                return redirect(url_for('wallet.withdraw'))
+                return redirect(url_for('supplier_wallet.withdraw'))
         except ValueError:
             flash("يرجى إدخال قيمة مالية صحيحة.", "danger")
 
