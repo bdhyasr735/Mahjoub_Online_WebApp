@@ -1,10 +1,16 @@
+# -*- coding: utf-8 -*-
 """
 Mahjoub Online - Supplier Wallet Routes
 تتضمن كافة المنطق للفلترة ومعالجة حركات الحساب وطلبات السحب مباشرة
 """
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 
-wallet_bp = Blueprint('wallet', __name__)
+wallet_bp = Blueprint(
+    'wallet', 
+    __name__, 
+    template_folder='templates', 
+    static_folder='static'
+)
 
 def apply_wallet_filters_logic(transactions, args):
     """
