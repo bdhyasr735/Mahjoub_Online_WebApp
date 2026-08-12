@@ -8,19 +8,18 @@ SHOW_IN_SUPPLIER = True
 LINKS = {
     'suppliers_dashboard.dashboard': '📊 لوحة التحكم',
     'suppliers_wallet.wallet': '💰 المحفظة',
-    'suppliers_wallet.withdraw': '💳 سحب الرصيد',
 }
 
 
 def register_module(app):
     """تسجيل جميع Blueprints الخاصة بلوحة تحكم الموردين"""
     try:
-        # ✅ استيراد الـ Blueprints المتاحة فقط
+        # ✅ استيراد الـ Blueprints المتاحة
         from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
         
-        # ⚠️ استيراد اختياري للمحفظة إذا كانت موجودة في نفس الموديول
+        # ✅ استيراد المحفظة من المسار الجديد المعتمد داخل مجلد routes
         try:
-            from apps.suppliers_dashboard.wallet_routes import wallet_bp
+            from apps.suppliers_dashboard.routes.wallet_routes import wallet_bp
         except ImportError:
             wallet_bp = None
 
