@@ -3,32 +3,46 @@
 {% block title %}Mahjoub Online - كشف حساب المحفظة العام{% endblock %}
 
 {% block content %}
-<div class="space-y-6 max-w-7xl mx-auto">
+<div class="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
     <!-- Header Banner -->
-    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="bg-white p-6 sm:p-8 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-            <h1 class="text-xl font-bold text-gray-800 tracking-tight flex items-center gap-2">
-                كشف حساب المحفظة العام (/wallet)
+            <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+                <span class="w-10 h-10 rounded-xl bg-purple-50 text-[#1f0b38] flex items-center justify-center text-lg">
+                    <i class="fas fa-chart-pie"></i>
+                </span>
+                كشف حساب المحفظة العام
             </h1>
-            <p class="text-sm text-gray-500 mt-1">
+            <p class="text-gray-500 mt-2 max-w-xl text-sm leading-relaxed">
                 مخصصة لعرض الأرصدة الإجمالية وجدولة الحركات المالية مع الترقيم (10 حركات في كل صفحة) لتخفيف الضغط وسرعة العرض.
             </p>
         </div>
-        <a href="{{ url_for('wallet.withdraw') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-[#4A154B] text-white font-medium text-xs shadow-xs hover:bg-[#3d113e]">
-            الانتقال لصفحة طلب السحب المستقلة
+        
+        <a href="{{ url_for('wallet.withdraw') }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#1f0b38] hover:bg-[#2c104f] text-white font-bold text-xs shadow-lg shadow-[#1f0b38]/20 transition-all shrink-0">
+            <i class="fas fa-hand-holding-usd"></i> الانتقال لصفحة طلب السحب المستقلة
         </a>
     </div>
 
     <!-- KPI Summary Cards -->
-    {% include "supplier_wallet/components/kpi_cards.html" %}
+    <div class="transition-all">
+        {% include "supplier_wallet/components/kpi_cards.html" %}
+    </div>
 
     <!-- Filter Bar Component -->
-    {% include "supplier_wallet/components/filters.html" %}
+    <div class="transition-all">
+        {% include "supplier_wallet/components/filters.html" %}
+    </div>
 
     <!-- Transactions Table Component -->
-    {% include "supplier_wallet/components/tables.html" %}
+    <div class="transition-all">
+        {% include "supplier_wallet/components/tables.html" %}
+    </div>
 
     <!-- Pagination Component -->
-    {% include "supplier_wallet/components/pagination.html" %}
+    <div class="transition-all">
+        {% include "supplier_wallet/components/pagination.html" %}
+    </div>
+
 </div>
 {% endblock %}
