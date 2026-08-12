@@ -2,16 +2,16 @@
 """
 مسارات محفظة المورد (Wallet Routes)
 الفصل التام بين مسار المحفظة (/wallet) لكشف الحساب العام، ومسار السحب (/withdraw) لطلبات السحب.
-Mahjoub Online WebApp - supplier_wallet/routes/wallet_routes.py
+Mahjoub Online WebApp - supplier_wallet/routes.py
 """
 
 import uuid
 from datetime import datetime
 from flask import render_template, request, redirect, url_for, flash, jsonify, current_app
 
-from ..registry import wallet_bp
-from ..components.filters import WalletFilterComponent
-from ..components.tables import WalletTableComponent
+from .registry import wallet_bp
+from .components.filters import WalletFilterComponent
+from .components.tables import WalletTableComponent
 
 # ملاحظة: استيراد الموديلات وقاعدة البيانات من الموديول أو التطبيق الرئيسي
 # from apps.supplier_wallet.models import SupplierWallet, WalletTransaction, WithdrawalRequest
