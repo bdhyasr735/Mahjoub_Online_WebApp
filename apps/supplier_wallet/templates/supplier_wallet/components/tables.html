@@ -1,0 +1,129 @@
+# -*- coding: utf-8 -*-
+"""
+مكونات الجداول الخاصة بمحفظة المورد (Tables Component)
+تحتوي على تنسيق صفوف الجدول، الشارات (Badges)، القيم المالية، وحالات العرض.
+Mahjoub Online WebApp - supplier_wallet/components/tables.py
+"""
+
+from datetime import datetime
+
+class WalletTableComponent:
+    """
+    كلاس إدارة تنسيق وتجهيز جداول كشف الحساب وطلبات السحب
+    """
+
+    # خريطة شارات حالة الحركة في الجدول
+    TRANSACTION_STATUS_MAP = {
+        'completed': {
+            'label': 'مكتملة',
+            'badge_class': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+            'icon': 'check-circle'
+        },
+        'pending': {
+            'label': 'قيد المعالجة',
+            'badge_class': 'bg-amber-50 text-amber-700 border border-amber-200',
+            'icon': 'clock'
+        },
+        'cancelled': {
+            'label': 'ملغاة',
+            'badge_class': 'bg-rose-50 text-rose-700 border border-rose-200',
+            'icon': 'x-circle'
+        }
+    }
+
+    # خريطة شارات طلبات السحب
+    WITHDRAWAL_STATUS_MAP = {
+        'pending': {
+            'label': 'قيد الانتظار',
+            'badge_class': 'bg-amber-50 text-amber-700 border border-amber-200',
+            'icon': 'hourglass'
+        },
+        'approved': {
+            'label': 'تم التحويل',
+            'badge_class': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+            'icon': 'check-check'
+        },
+        'rejected': {
+            'label': 'مرفوض',
+            'badge_class': 'bg-rose-50 text-rose-700 border border-rose-200',
+            'icon': 'x-square'
+        },
+        'cancelled': {
+            'label': 'ملغى من المورد',
+            'badge_class': 'bg-slate-100 text-slate-600 border border-slate-200',
+            'icon': 'ban'
+        }
+    }
+
+    # خريطة طرق السحب
+    PAYMENT_METHOD_MAP = {
+        'bank_transfer': 'تحويل بنكي مباشر',
+        'vodafone_cash': 'فودافون كاش',
+        'instapay': 'إنستا باي (InstaPay)',
+        'stc_pay': 'STC Pay'
+    }
+
+    @classmethod
+    def format_transaction_row(cls, trx):
+        """
+        تنسيق صف حركة واحدة لإرسال بيانات جاهزة للرندر
+        """
+        status_info = cls.TRANSACTION_STATUS_MAP.get(
+            trx.status, 
+            {'label': trx.status, 'badge_class': 'bg-slate-100 text-slate-700', 'icon': 'info'}
+        )
+
+        is_credit = (trx.trx_type == 'credit')
+        amount_prefix = '+' if is_credit else '-'
+        amount_color_class = 'text-emerald-600 font-bold' if is_credit else 'text-rose-600 font-bold'
+        type_label = 'إيداع أرباح' if is_credit else 'سحب / خصم'
+
+        created_at_formatted = trx.created_at.strftime('%Y-%m-%d %H:%M') if isinstance(trx.created_at, datetime) else str(trx.created_at)
+
+        return {
+            'id': trx.id,
+            'reference_code': trx.reference_code,
+            'type_label': type_label,
+            'trx_type': trx.trx_type,
+            'amount_display': f"{amount_prefix} {trx.amount:,.2f} ج.م",
+            'amount_color_class': amount_color_class,
+            'description': trx.description,
+            'status_label': status_info['label'],
+            'badge_class': status_info['badge_class'],
+            'created_at': created_at_formatted
+        }
+
+    @classmethod
+    def format_withdrawal_row(cls, req):
+        """
+        تنسيق صف طلب سحب رصيد
+        """
+        status_info = cls.WITHDRAWAL_STATUS_MAP.get(
+            req.status, 
+            {'label': req.status, 'badge_class': 'bg-slate-100 text-slate-700', 'icon': 'info'}
+        )
+
+        method_label = cls.PAYMENT_METHOD_MAP.get(req.method, req.method)
+        created_at_formatted = req.created_at.strftime('%Y-%m-%d %H:%M') if isinstance(req.created_at, datetime) else str(req.created_at)
+
+        return {
+            'id': req.id,
+            'request_code': req.request_code,
+            'amount_display': f"{req.amount:,.2f} ج.م",
+            'method_label': method_label,
+            'account_details': req.account_details,
+            'notes': req.notes or '—',
+            'status_label': status_info['label'],
+            'badge_class': status_info['badge_class'],
+            'created_at': created_at_formatted
+        }
+
+    @classmethod
+    def format_transactions_list(cls, transactions):
+        """تنسيق قائمة كاملة من حركات المحفظة"""
+        return [cls.format_transaction_row(t) for t in transactions]
+
+    @classmethod
+    def format_withdrawals_list(cls, withdrawals):
+        """تنسيق قائمة كاملة من طلبات السحب"""
+        return [cls.format_withdrawal_row(w) for w in withdrawals]
