@@ -15,7 +15,7 @@
     .btn-withdraw { background-color: var(--mahjoub-gold); color: var(--royal-purple); border: none; padding: 5px 15px; border-radius: 50px; font-weight: bold; font-size: 0.85rem; transition: var(--transition); }
     .btn-withdraw:hover { background-color: #fff; color: var(--royal-purple); }
     
-    /* ✅ مساعد DeepSeek - تصميم احترافي مع زر */
+    /* مساعد DeepSeek - تصميم احترافي مع زر */
     .ai-chat-container {
         border-radius: 20px;
         border: 1px solid rgba(212, 175, 55, 0.15);
@@ -28,7 +28,7 @@
         box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     }
     
-    /* ✅ زر فتح وإغلاق المساعد */
+    /* زر فتح وإغلاق المساعد */
     .ai-toggle-btn {
         background: linear-gradient(135deg, var(--royal-purple) 0%, #36175e 100%);
         color: white;
@@ -67,7 +67,7 @@
         transform: rotate(180deg);
     }
     
-    /* ✅ محتوى المساعد (يظهر ويختفي) */
+    /* محتوى المساعد (يظهر ويختفي) */
     .ai-content {
         max-height: 0;
         opacity: 0;
@@ -276,7 +276,7 @@
 {% set wallet = supplier.wallet if (supplier and supplier.wallet) else None %}
 
 <div class="container-fluid py-4">
-    <!-- ✅ قسم الترحيب -->
+    <!-- قسم الترحيب -->
     <div class="mb-5 d-flex align-items-center justify-content-between flex-wrap" style="gap: 15px;">
         <div class="d-flex align-items-center">
             <div class="bg-white p-3 rounded-circle shadow-sm me-3" style="border: 2px solid var(--mahjoub-gold);">
@@ -290,7 +290,7 @@
     </div>
 
     <div class="row g-4 mb-5">
-        <!-- ✅ بطاقة المحفظة -->
+        <!-- بطاقة المحفظة -->
         <div class="col-12 col-xl-6">
             <div class="card dynamic-card gradient-wallet p-4 h-100 shadow">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -323,7 +323,7 @@
             </div>
         </div>
 
-        <!-- ✅ بطاقة الطلبات قيد التنفيذ -->
+        <!-- بطاقة الطلبات قيد التنفيذ -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card dynamic-card white-glass-card p-4 shadow-sm h-100 d-flex flex-column justify-content-center">
                 <div class="stat-card-icon mb-3"><i class="fas fa-box-open fa-2x"></i></div>
@@ -332,7 +332,7 @@
             </div>
         </div>
 
-        <!-- ✅ بطاقة إجمالي المبيعات -->
+        <!-- بطاقة إجمالي المبيعات -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card dynamic-card white-glass-card p-4 shadow-sm h-100 d-flex flex-column justify-content-center">
                 <div class="stat-card-icon mb-3 text-success"><i class="fas fa-chart-line fa-2x"></i></div>
@@ -344,12 +344,10 @@
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- ✅ مساعد DeepSeek الذكي - مع زر فتح وإغلاق -->
-    <!-- ============================================================ -->
+    <!-- مساعد DeepSeek الذكي - مع زر فتح وإغلاق -->
     <div class="ai-chat-container mb-4">
         
-        <!-- ✅ زر فتح وإغلاق المساعد -->
+        <!-- زر فتح وإغلاق المساعد -->
         <button class="ai-toggle-btn" onclick="toggleAI()" id="aiToggleBtn">
             <i class="fas fa-robot"></i>
             مساعدك الذكي
@@ -357,7 +355,7 @@
             <span class="icon-arrow" id="aiArrowIcon">▼</span>
         </button>
         
-        <!-- ✅ محتوى المساعد (يظهر ويختفي) -->
+        <!-- محتوى المساعد (يظهر ويختفي) -->
         <div class="ai-content" id="aiContent">
             <div class="ai-header">
                 <h5>
@@ -379,7 +377,7 @@
                 </div>
             </div>
             
-            <!-- ✅ اقتراحات سريعة -->
+            <!-- اقتراحات سريعة -->
             <div class="ai-suggestions">
                 <button class="suggestion-btn" onclick="askSuggestion('كيف أحسن مبيعاتي؟')">📈 تحسين المبيعات</button>
                 <button class="suggestion-btn" onclick="askSuggestion('نصائح لتسويق منتجاتي')">📢 التسويق</button>
@@ -397,7 +395,7 @@
         </div>
     </div>
 
-    <!-- ✅ إشعار إذا لم توجد محفظة -->
+    <!-- إشعار إذا لم توجد محفظة -->
     {% if not wallet %}
     <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 16px; border-right: 4px solid #ffc107;">
         <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
@@ -408,11 +406,8 @@
 
 </div>
 
-<!-- ✅ JavaScript للمساعد الذكي -->
+<!-- JavaScript للمساعد الذكي -->
 <script>
-    // ============================================================
-    // ✅ فتح وإغلاق المساعد
-    // ============================================================
     let aiOpen = false;
     
     function toggleAI() {
@@ -430,10 +425,6 @@
             arrow.textContent = '▼';
         }
     }
-    
-    // ============================================================
-    // ✅ مساعد DeepSeek الذكي
-    // ============================================================
     
     function showTypingIndicator() {
         const messages = document.getElementById('aiMessages');
@@ -491,7 +482,6 @@
         
         if (!question) return;
         
-        // ✅ فتح المساعد تلقائياً إذا كان مغلقاً
         if (!aiOpen) {
             toggleAI();
         }
@@ -503,7 +493,6 @@
         
         showTypingIndicator();
         
-        // ✅ المسار الصحيح مع /supplier/
         fetch('/supplier/api/ask-ai', {
             method: 'POST',
             headers: {
