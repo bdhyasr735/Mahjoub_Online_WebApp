@@ -1,46 +1,39 @@
 {% extends "suppliers/base.html" %}
 
-{% block title %}نافذة طلب السحب - محجوب{% endblock %}
+{% block title %}Mahjoub Online - نافذة طلب السحب المستقلة{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-3">
-    <!-- Header Card -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-4">
-            <a href="{{ url_for('wallet.wallet') }}" class="text-decoration-none text-muted mb-2 d-block" style="font-size: 0.85rem;">
-                <i class="fas fa-arrow-right ms-1"></i> العودة لكشف الحساب العام
+<div class="space-y-6 max-w-7xl mx-auto">
+    <!-- Header Banner -->
+    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <a href="{{ url_for('wallet.wallet') }}" class="text-xs font-semibold text-[#4A154B] hover:underline block mb-1">
+                &rarr; العودة لكشف الحساب العام (/wallet)
             </a>
-            <h4 class="fw-bold mb-1" style="color: var(--royal-purple);">نافذة طلب السحب المستقلة</h4>
-            <p class="text-muted mb-0" style="font-size: 0.9rem;">
-                صفحة مخصصة لتقديم ومتابعة طلبات سحب الأرباح والمدفوعات الخاصة بالمورد.
+            <h1 class="text-xl font-bold text-gray-800 tracking-tight">
+                نافذة طلب السحب المستقلة (/withdraw)
+            </h1>
+            <p class="text-sm text-gray-500 mt-1">
+                صفحة مستقلة تماماً مخصصة لتقديم ومتابعة طلبات سحب الأرباح والمدفوعات الخاصة بالمورد.
             </p>
         </div>
     </div>
 
-    <!-- Form Section -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white border-0 py-3">
-            <h5 class="mb-0 fw-bold" style="color: var(--royal-purple-light);">تقديم طلب جديد</h5>
-        </div>
-        <div class="card-body p-4">
-            <form action="{{ url_for('wallet.withdraw') }}" method="POST">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold" style="font-size: 0.85rem; color: #333;">المبلغ المطلوب (ج.م)</label>
-                        <input type="number" name="amount" min="500" required class="form-control form-control-sm" placeholder="500.00">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-bold" style="font-size: 0.85rem; color: #333;">تفاصيل الحساب / المحفظة</label>
-                        <textarea name="account_details" required class="form-control form-control-sm" rows="3" placeholder="أدخل رقم الحساب، اسم المحفظة، أو تفاصيل التحويل..."></textarea>
-                    </div>
-                    <div class="col-12 mt-4">
-                        <button type="submit" class="btn text-white px-4 py-2" style="background-color: var(--royal-purple); border-radius: var(--radius); font-weight: 600;">
-                            <i class="fas fa-paper-plane ms-2"></i> تقديم طلب السحب
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
+    <!-- Form & History Table -->
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <form action="{{ url_for('wallet.withdraw') }}" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">المبلغ المطلوب (ج.م)</label>
+                <input type="number" name="amount" min="500" required class="w-full px-3 py-2 text-xs rounded border border-gray-300" placeholder="500.00">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">تفاصيل الحساب / المحفظة</label>
+                <textarea name="account_details" required class="w-full px-3 py-2 text-xs rounded border border-gray-300" placeholder="رقم الحساب أو المحفظة..."></textarea>
+            </div>
+            <button type="submit" class="px-5 py-2 rounded-md bg-[#4A154B] text-white text-xs font-bold">
+                تقديم طلب السحب
+            </button>
+        </form>
     </div>
 </div>
 {% endblock %}
