@@ -75,7 +75,6 @@
         -moz-appearance: textfield;
     }
 
-    /* إجبار ظهور الأرقام بالإنجليزية مع محاذاة النص لليمين */
     .input-en-num {
         direction: ltr !important;
         text-align: right !important;
@@ -107,13 +106,22 @@
     }
 </style>
 
+{# تجهيز المتغيرات التوافقية بين الموجهات وسياق Jinja الموحد #}
+{% set active_supplier = supplier or current_supplier %}
+{% set active_wallet = wallet or supplier_wallet %}
+{% set active_owner_name = owner_full_name or (active_supplier.trade_name if active_supplier else '') %}
+{% set active_bank = supplier_bank_name or (active_supplier.supplier_profile.bank_name if active_supplier and active_supplier.supplier_profile else '') %}
+{% set active_account = supplier_bank_account or (active_supplier.supplier_profile.bank_account if active_supplier and active_supplier.supplier_profile else '') %}
+
 <div class="container-fluid py-4 withdraw-container">
     
     <!-- العنوان الرئيسي -->
     <div class="mb-4 d-flex align-items-center justify-content-between">
         <div>
-            <h4 class="fw-bold text-dark mb-1"><i class="fas fa-hand-holding-usd me-2" style="color: var(--mahjoub-gold, #d4af37);"></i> طلب سحب أرباح</h4>
-            <p class="text-muted small mb-0">تحويل سريع وآمن إلى حسابك البنكي المسجل</p>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fas fa-hand-holding-usd me-2" style="color: var(--mahjoub-gold, #d4af37);"></i> طلب سحب أرباح
+            </h4>
+            <p class="text-muted small mb-0">تحويل سريع وآمن إلى حسابك البنكي / المالي المسجل</p>
         </div>
     </div>
 
@@ -135,22 +143,22 @@
             <div class="balance-banner h-100 d-flex flex-column justify-content-between">
                 <div>
                     <span class="badge bg-white text-dark mb-3 px-3 py-2 rounded-pill fw-bold" style="font-size: 0.75rem;">
-                        كود المحفظة: {{ wallet.wallet_code if wallet else '---' }}
+                        كود المحفظة: {{ active_wallet.wallet_code if active_wallet else '---' }}
                     </span>
                     <div class="text-white-50 small fw-bold mb-1">الرصيد المتاح للسحب</div>
                     <div class="balance-amount mb-3">
-                        {{ "{:,.2f}".format(wallet.balance_sar|float) if wallet else '0.00' }} <span style="font-size: 1rem;">SAR</span>
+                        {{ "{:,.2f}".format(active_wallet.balance_sar|float) if active_wallet else '0.00' }} <span style="font-size: 1rem;">SAR</span>
                     </div>
                 </div>
 
                 <div class="pt-3 border-top border-light border-opacity-25 mt-3">
                     <div class="d-flex justify-content-between text-white-50 small mb-2">
-                        <span>رصيد معلق:</span>
-                        <strong class="text-white">{{ "{:,.2f}".format(wallet.balance_pending|float) if (wallet and wallet.balance_pending) else '0.00' }} SAR</strong>
+                        <span>إجمالي المستحقات المعلقة:</span>
+                        <strong class="text-white">{{ "{:,.2f}".format(total_pending_payouts|float) if total_pending_payouts is defined else '0.00' }} SAR</strong>
                     </div>
                     <div class="d-flex justify-content-between text-white-50 small">
                         <span>إجمالي المسحوبات:</span>
-                        <strong class="text-white">{{ "{:,.2f}".format(wallet.total_withdrawn|float) if (wallet and wallet.total_withdrawn) else '0.00' }} SAR</strong>
+                        <strong class="text-white">{{ "{:,.2f}".format(active_wallet.total_withdrawn|float) if (active_wallet and active_wallet.total_withdrawn) else '0.00' }} SAR</strong>
                     </div>
                 </div>
             </div>
@@ -159,14 +167,14 @@
         <!-- نموذج طلب السحب (العمود الأيمن) -->
         <div class="col-12 col-lg-8">
             <div class="form-card">
-                <form action="{{ url_for('suppliers_wallet.withdraw') }}" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                <form action="{{ safe_url_for('suppliers_wallet.withdraw') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ generate_csrf() if generate_csrf else '' }}">
 
                     <!-- تحديد المبلغ -->
                     <div class="mb-4">
                         <label class="form-label fw-bold text-dark small mb-1">المبلغ المطلوب (SAR)</label>
                         <div class="input-group mb-2">
-                            <input type="number" step="0.01" min="10" max="{{ wallet.balance_sar if wallet else 0 }}" 
+                            <input type="number" step="0.01" min="10" max="{{ active_wallet.balance_sar if active_wallet else 0 }}" 
                                    id="amountInput" name="amount" class="form-control form-control-custom input-en-num" 
                                    placeholder="0.00" dir="ltr" required>
                             <span class="input-group-text bg-white border-0 fw-bold text-muted">SAR</span>
@@ -180,7 +188,7 @@
                             <button type="button" class="quick-amount-btn" onclick="setAmount(500)">500</button>
                             <button type="button" class="quick-amount-btn" onclick="setAmount(1000)">1000</button>
                             <button type="button" class="quick-amount-btn fw-bold" style="color: var(--mahjoub-gold, #d4af37); background: #1a0b2e;" 
-                                    onclick="setAmount({{ wallet.balance_sar if wallet else 0 }})">الكل</button>
+                                    onclick="setAmount({{ active_wallet.balance_sar if active_wallet else 0 }})">الكل</button>
                         </div>
                         <div class="form-text text-muted small mt-1">الحد الأدنى للسحب هو 10 ريال سعودي</div>
                     </div>
@@ -189,26 +197,26 @@
                     <div class="mb-4">
                         <label class="form-label fw-bold text-dark small mb-2">جهة التحويل (بيانات المستلم)</label>
                         
-                        {% if supplier %}
+                        {% if active_supplier %}
                             <div class="p-3 bg-light border rounded-3 d-flex flex-column gap-2">
                                 <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
                                     <div>
                                         <span class="text-muted small d-block">الاسم الكامل للمالك</span>
-                                        <strong class="text-dark">{{ supplier.account_holder_name if supplier.account_holder_name else supplier.name }}</strong>
+                                        <strong class="text-dark">{{ active_owner_name if active_owner_name else 'غير محدد' }}</strong>
                                     </div>
                                     <div class="text-end">
-                                        <span class="text-muted small d-block">اسم البنك</span>
+                                        <span class="text-muted small d-block">اسم البنك / جهة الصرف</span>
                                         <span class="badge bg-primary bg-opacity-10 text-primary fw-bold">
-                                            <i class="fas fa-university me-1"></i> {{ supplier.bank_name if supplier.bank_name else 'غير محدد' }}
+                                            <i class="fas fa-university me-1"></i> {{ active_bank if active_bank else 'غير محدد' }}
                                         </span>
                                     </div>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center pt-1">
                                     <div>
-                                        <span class="text-muted small d-block">رقم الحساب / IBAN <small class="text-muted">(اختياري)</small></span>
-                                        {% if supplier.iban %}
-                                            <span class="fw-bold text-dark dir-ltr text-start font-monospace">{{ supplier.iban }}</span>
+                                        <span class="text-muted small d-block">رقم الحساب / IBAN</span>
+                                        {% if active_account %}
+                                            <span class="fw-bold text-dark dir-ltr text-start font-monospace">{{ active_account }}</span>
                                         {% else %}
                                             <span class="text-muted small">غير مدخل</span>
                                         {% endif %}
@@ -230,7 +238,7 @@
                     </div>
 
                     <!-- زر التأكيد -->
-                    <button type="submit" class="btn-submit-withdraw" {% if not supplier %}disabled{% endif %}>
+                    <button type="submit" class="btn-submit-withdraw" {% if not active_supplier or not active_wallet or active_wallet.balance_sar < 10 %}disabled{% endif %}>
                         <i class="fas fa-paper-plane me-2"></i> تأكيد إرسال طلب السحب
                     </button>
                 </form>
@@ -241,7 +249,7 @@
 
 <script>
     function setAmount(val) {
-        document.getElementById('amountInput').value = val;
+        document.getElementById('amountInput').value = parseFloat(val).toFixed(2);
     }
 </script>
 {% endblock %}
