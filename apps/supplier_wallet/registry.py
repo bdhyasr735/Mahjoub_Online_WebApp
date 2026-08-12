@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from .routes import supplier_wallet_bp
+from .routes import wallet_bp
 
 def register_module(app):
     """تسجيل موديول محفظة المورد في تطبيق Flask الرئيسي"""
-    app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier')
+    app.register_blueprint(wallet_bp, url_prefix='/supplier')
     
     @app.context_processor
     def inject_supplier_wallet_meta():
