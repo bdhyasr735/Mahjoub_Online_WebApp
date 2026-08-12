@@ -185,29 +185,33 @@
                         <div class="form-text text-muted small mt-1">الحد الأدنى للسحب هو 10 ريال سعودي</div>
                     </div>
 
-                    <!-- جهة التحويل (بيانات الحساب البنكي التلقائية) -->
+                    <!-- جهة التحويل (بيانات الحساب المالي) -->
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-dark small mb-2">جهة التحويل (الحساب البنكي المعتمد)</label>
+                        <label class="form-label fw-bold text-dark small mb-2">جهة التحويل (بيانات المستلم)</label>
                         
-                        {% if supplier and supplier.iban %}
+                        {% if supplier %}
                             <div class="p-3 bg-light border rounded-3 d-flex flex-column gap-2">
                                 <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
                                     <div>
-                                        <span class="text-muted small d-block">اسم صاحب الحساب</span>
+                                        <span class="text-muted small d-block">الاسم الكامل للمالك</span>
                                         <strong class="text-dark">{{ supplier.account_holder_name if supplier.account_holder_name else supplier.name }}</strong>
                                     </div>
                                     <div class="text-end">
                                         <span class="text-muted small d-block">اسم البنك</span>
                                         <span class="badge bg-primary bg-opacity-10 text-primary fw-bold">
-                                            <i class="fas fa-university me-1"></i> {{ supplier.bank_name if supplier.bank_name else 'الحساب البنكي' }}
+                                            <i class="fas fa-university me-1"></i> {{ supplier.bank_name if supplier.bank_name else 'غير محدد' }}
                                         </span>
                                     </div>
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center pt-1">
                                     <div>
-                                        <span class="text-muted small d-block">رقم الحساب / IBAN</span>
-                                        <span class="fw-bold text-dark dir-ltr text-start font-monospace">{{ supplier.iban }}</span>
+                                        <span class="text-muted small d-block">رقم الحساب / IBAN <small class="text-muted">(اختياري)</small></span>
+                                        {% if supplier.iban %}
+                                            <span class="fw-bold text-dark dir-ltr text-start font-monospace">{{ supplier.iban }}</span>
+                                        {% else %}
+                                            <span class="text-muted small">غير مدخل</span>
+                                        {% endif %}
                                     </div>
                                     <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-2 py-1 small">
                                         <i class="fas fa-check-circle me-1"></i> جاهز للتحويل
@@ -218,15 +222,15 @@
                             <div class="alert alert-warning d-flex align-items-center gap-3 mb-0 rounded-3" role="alert">
                                 <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
                                 <div>
-                                    <strong>لم تقم بتسجيل حساب بنكي بعد!</strong><br>
-                                    <span class="small">يرجى إضافة بيانات الحساب البنكي في ملفك الشخصي لتفعيل سحب الأرباح.</span>
+                                    <strong>لم يتم العثور على بيانات المالك!</strong><br>
+                                    <span class="small">يرجى تسجيل الدخول والتحقق من بيانات حسابك.</span>
                                 </div>
                             </div>
                         {% endif %}
                     </div>
 
                     <!-- زر التأكيد -->
-                    <button type="submit" class="btn-submit-withdraw" {% if not supplier or not supplier.iban %}disabled{% endif %}>
+                    <button type="submit" class="btn-submit-withdraw" {% if not supplier %}disabled{% endif %}>
                         <i class="fas fa-paper-plane me-2"></i> تأكيد إرسال طلب السحب
                     </button>
                 </form>
