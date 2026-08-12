@@ -24,8 +24,8 @@ def register_module(app):
     دالة تسجيل الموديول في تطبيق Flask الرئيسي.
     تستورد المسارات وتمرر الـ Blueprint للتطبيق.
     """
-    # استيراد المسارات لربطها بـ Blueprint عند التسجيل
-    from .routes import wallet_routes
+    # التصحيح هنا: استيراد الموديول مباشرة لتنفيذ الـ Routes وتفعيلها
+    from . import routes
 
     # تسجيل الـ Blueprint بداخل تطبيق Flask
     app.register_blueprint(wallet_bp)
