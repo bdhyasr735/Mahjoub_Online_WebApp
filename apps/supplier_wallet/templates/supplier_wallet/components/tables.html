@@ -1,36 +1,36 @@
 <!-- Transactions Table Component (apps/supplier_wallet/templates/supplier_wallet/components/tables.html) -->
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-    <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-        <h2 class="text-sm font-semibold text-gray-800">جدول الحركة المالية للمورد (10 حركات بالصفحة)</h2>
-        <span class="text-xs text-gray-500">خاصية الترقيم per_page=10</span>
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between border-bottom">
+        <h5 class="mb-0 fw-bold" style="color: var(--royal-purple-light);">جدول الحركة المالية للمورد (10 حركات بالصفحة)</h5>
+        <span class="text-muted" style="font-size: 0.8rem;">خاصية الترقيم per_page=10</span>
     </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-right text-xs">
-            <thead class="bg-gray-50 text-gray-600 border-b border-gray-200">
+    <div class="table-responsive mb-0">
+        <table class="table table-hover align-middle mb-0 text-end" style="font-size: 0.88rem;">
+            <thead class="table-light text-secondary">
                 <tr>
-                    <th class="px-4 py-3">رقم الحركة</th>
-                    <th class="px-4 py-3">التاريخ</th>
-                    <th class="px-4 py-3">نوع العملية</th>
-                    <th class="px-4 py-3">البيان</th>
-                    <th class="px-4 py-3">المبلغ</th>
-                    <th class="px-4 py-3 text-center">الحالة</th>
+                    <th class="py-3 px-3">رقم الحركة</th>
+                    <th class="py-3 px-3">التاريخ</th>
+                    <th class="py-3 px-3">نوع العملية</th>
+                    <th class="py-3 px-3">البيان</th>
+                    <th class="py-3 px-3">المبلغ</th>
+                    <th class="py-3 px-3 text-center">الحالة</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody>
                 {% if pagination and pagination['items'] %}
                     {% for trx in pagination['items'] %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 font-mono font-bold">{{ trx.reference_code }}</td>
-                        <td class="px-4 py-3 text-gray-500">{{ trx.created_at }}</td>
-                        <td class="px-4 py-3">{{ trx.trx_type }}</td>
-                        <td class="px-4 py-3">{{ trx.description }}</td>
-                        <td class="px-4 py-3 font-bold">{{ trx.amount }} ج.م</td>
-                        <td class="px-4 py-3 text-center">{{ trx.status }}</td>
+                    <tr>
+                        <td class="py-3 px-3 font-monospace fw-bold">{{ trx.reference_code }}</td>
+                        <td class="py-3 px-3 text-muted">{{ trx.created_at }}</td>
+                        <td class="py-3 px-3">{{ trx.trx_type }}</td>
+                        <td class="py-3 px-3">{{ trx.description }}</td>
+                        <td class="py-3 px-3 fw-bold">{{ trx.amount }} ج.م</td>
+                        <td class="py-3 px-3 text-center">{{ trx.status }}</td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" class="p-6 text-center text-gray-400">لا توجد حركات مالية مسجلة حالياً.</td>
+                        <td colspan="6" class="text-center py-5 text-muted">لا توجد حركات مالية مسجلة حالياً.</td>
                     </tr>
                 {% endif %}
             </tbody>
