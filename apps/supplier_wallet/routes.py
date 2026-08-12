@@ -112,7 +112,7 @@ def wallet_statement():
     }
 
     return render_template(
-        'supplier_wallet/supplier_wallet.html',
+        'supplier_wallet/wallet.html',  # تم التصحيح ليطابق اسم الملف wallet.html
         summary=summary,
         pagination=pagination,
         transactions=formatted_rows,
