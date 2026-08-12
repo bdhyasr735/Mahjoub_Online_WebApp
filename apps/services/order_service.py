@@ -1,5 +1,10 @@
 import os
-from graphql_client import GraphQLClient
+
+# 1. إصلاح الاستيراد للعمل داخل حزمة Flask/Render وفي التشغيل المباشر
+try:
+  from .graphql_client import GraphQLClient
+except ImportError:
+  from graphql_client import GraphQLClient
 
 
 class OrderService:
@@ -8,7 +13,7 @@ class OrderService:
     self.client = client or GraphQLClient()
 
   def fetch_orders(self, limit: int = 10, page: int = 1):
-    """جلب قائمة الطلبات من متجر قمرة"""
+    """جلب قائمة الطلبات من API قمرة"""
     query = """
         query FindAllOrders($limit: Int, $page: Int) {
           findAllOrders(limit: $limit, page: $page) {
@@ -24,10 +29,16 @@ class OrderService:
         """
     variables = {"limit": limit, "page": page}
     data = self.client.execute(query, variables)
-    return data.get("findAllOrders", {}).get("data", [])
+    if data and "findAllOrders" in data:
+      return data["findAllOrders"].get("data", [])
+    return []
+
+  # 2. إضافة الدالة التي يستدعيها ملف orders.py بنفس الاسم والبارامترات
+  def get_all_orders(self, page: int = 1, limit: int = 10):
+    return self.fetch_orders(limit=limit, page=page)
 
   def update_order_status(self, order_id: str, status: str):
-    """تحديث حالة طلب معين في قمرة"""
+    """تحديث حالة الطلب"""
     mutation = """
         mutation UpdateOrderStatus($input: UpdateOrderStatusInput!) {
           updateOrderStatus(input: $input) {
@@ -38,26 +49,3 @@ class OrderService:
         """
     variables = {"input": {"orderId": order_id, "status": status}}
     return self.client.execute(mutation, variables)
-
-  def sync_orders(self):
-    """دالة المزامنة الرئيسية لربط البيانات وقراءتها"""
-    print("بدء عملية مزامنة الطلبات...")
-    orders = self.fetch_orders(limit=20, page=1)
-
-    print(f"تم جلب {len(orders)} طلب من المتجر.")
-
-    for order in orders:
-      order_id = order.get("id")
-      status = order.get("orderStatus")
-      total = order.get("totalPrice")
-
-      # أضف هنا منطق الإدراج أو التحديث الخاص بقاعدة بياناتك
-      print(f"مزامنة الطلب [{order_id}] - الحالة: {status} - الإجمالي: {total}")
-
-    print("تمت عملية المزامنة بنجاح.")
-
-
-if __name__ == "__main__":
-  # تجربة تشغيل المزامنة مباشرة
-  service = OrderService()
-  service.sync_orders()
