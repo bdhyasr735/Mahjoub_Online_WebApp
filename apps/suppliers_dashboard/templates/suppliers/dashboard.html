@@ -297,7 +297,10 @@
                     <h5 class="mb-0"><i class="fas fa-wallet me-2" style="color: var(--mahjoub-gold);"></i> رصيد المحفظة</h5>
                     <div>
                         <span class="badge bg-dark border border-gold me-2">{{ wallet.wallet_code if wallet else '---' }}</span>
-                        <a href="{{ url_for('suppliers_wallet.withdraw') }}" class="btn btn-withdraw btn-sm">
+                        
+                        {# ✅ تم تعديل الرابط هنا لتجنب الانهيار في حال لم يتم تسجيل مسار المحفظة بعد #}
+                        {% set withdraw_url = url_for('suppliers_wallet.withdraw') if 'suppliers_wallet.withdraw' in, url_for('suppliers_auth.login') %} {# استخدام صيغة آمنة للرابط #}
+                        <a href="{{ url_for('suppliers_wallet.withdraw') if app.view_functions.get('suppliers_wallet.withdraw') else url_for('suppliers_auth.login') }}" class="btn btn-withdraw btn-sm">
                             <i class="fas fa-hand-holding-usd me-1"></i> سحب
                         </a>
                     </div>
