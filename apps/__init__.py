@@ -1,6 +1,3 @@
-# coding: utf-8
-# 📂 apps/__init__.py
-
 import os
 import importlib
 from flask import Flask, redirect, session, url_for, request, jsonify, render_template, make_response
@@ -91,7 +88,7 @@ def create_app():
             admin.set_password('123')
             db.session.merge(admin)
             db.session.commit()
-            print("✅ [Seed]: تم زرع المالك علي محجوب بنجاح.")
+            print("✅ [Seed]: تم زرع المالك بنجاح.")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ [Seed]: خطأ في زراعة المالك: {e}")
@@ -437,6 +434,9 @@ def create_app():
     for bp_name in app.blueprints:
         print(f"  - {bp_name}")
 
+    # ============================================================
+    # ✅ حقن المتغيرات الموحدة وحسابات المورد المالي والشخصي في Jinja Context
+    # ============================================================
     @app.context_processor
     def inject_vars():
         def safe_url_for(endpoint, **values):
@@ -445,11 +445,59 @@ def create_app():
             except Exception:
                 return '#'
         
+        # السياق الافتراضي للمورد والمالية
+        supplier_context = {
+            'current_supplier': None,
+            'owner_full_name': '',
+            'supplier_bank_name': '',
+            'supplier_bank_account': '',
+            'supplier_wallet': None,
+            'pending_financials_count': 0,
+            'total_pending_payouts': 0.00
+        }
+
+        if current_user.is_authenticated:
+            try:
+                user_type = session.get('user_type')
+                if user_type in ['supplier', 'staff']:
+                    supplier_id = getattr(current_user, 'supplier_id', None) if user_type == 'staff' else getattr(current_user, 'id', None)
+                    
+                    if supplier_id:
+                        from apps.models.supplier_db import Supplier
+                        from apps.models.financials_db import OrderFinancial
+                        
+                        supplier = db.session.get(Supplier, supplier_id)
+                        if supplier:
+                            profile = supplier.supplier_profile
+                            pending_financials = OrderFinancial.query.filter_by(
+                                supplier_id=supplier.id, 
+                                settlement_status='pending'
+                            ).all()
+
+                            supplier_context = {
+                                'current_supplier': supplier,
+                                'owner_full_name': (
+                                    supplier.owner_name or 
+                                    supplier.store_name or 
+                                    supplier.trade_name or 
+                                    supplier.username or 
+                                    ''
+                                ),
+                                'supplier_bank_name': (profile.bank_name or profile.company_name) if profile else '',
+                                'supplier_bank_account': profile.bank_account if profile else '',
+                                'supplier_wallet': supplier.wallet,
+                                'pending_financials_count': len(pending_financials),
+                                'total_pending_payouts': sum([f.supplier_payout for f in pending_financials])
+                            }
+            except Exception as e:
+                app.logger.error(f"❌ [Context Error]: خطأ في استخراج سياق المورد: {e}")
+
         return dict(
             csrf_token=generate_csrf,
             registered_modules=ADMIN_MODULES,
             supplier_modules=SUPPLIER_MODULES,
-            safe_url_for=safe_url_for
+            safe_url_for=safe_url_for,
+            **supplier_context
         )
 
     @app.errorhandler(500)
