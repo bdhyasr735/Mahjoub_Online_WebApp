@@ -42,7 +42,6 @@ def test_login():
     username = request.form.get('username')
     password = request.form.get('password')
     
-    # البحث عن المستخدم
     user = Supplier.query.filter_by(username=username).first()
     
     if not user:
@@ -58,7 +57,6 @@ def test_login():
         </div>
         """
     
-    # التحقق من كلمة المرور
     try:
         if user.check_password(password):
             return f"""
@@ -93,7 +91,7 @@ def test_login():
 
 
 # ============================================================
-# 🟣 مسار تسجيل الدخول الأساسي
+# 🟣 مسار تسجيل الدخول الأساسي (مصحح لتجنب إعادة التوجيه الحلقي)
 # ============================================================
 @suppliers_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -115,7 +113,9 @@ def login():
         if block_until and datetime.now() < datetime.fromisoformat(block_until):
             remaining = int((datetime.fromisoformat(block_until) - datetime.now()).total_seconds() / 60) + 1
             msg = f"لا يمكنك المحاولة حالياً. يرجى الانتظار {remaining} دقيقة."
-            return jsonify({"status": "error", "message": msg}), 429 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
+            if request.is_json:
+                return jsonify({"status": "error", "message": msg}), 429
+            return render_template('suppliers_auth_portal/login.html', error=msg)
 
         # 2. البحث الشامل في الجدولين
         target_user = Supplier.query.filter(or_(Supplier.search_phone == username, Supplier.username == username)).first()
@@ -128,7 +128,9 @@ def login():
         # 3. التحقق من وجود المستخدم
         if not target_user:
             msg = "المستخدم غير مسجل في المنصة اللامركزية"
-            return jsonify({"status": "error", "message": msg}), 404 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
+            if request.is_json:
+                return jsonify({"status": "error", "message": msg}), 404
+            return render_template('suppliers_auth_portal/login.html', error=msg)
 
         # 4. التحقق من كلمة المرور
         if not target_user.check_password(password.strip()):
@@ -139,14 +141,18 @@ def login():
                 session['block_until'] = (datetime.now() + timedelta(minutes=wait_minutes)).isoformat()
             
             msg = "كلمة المرور غير صحيحة"
-            return jsonify({"status": "error", "message": msg}), 401 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
+            if request.is_json:
+                return jsonify({"status": "error", "message": msg}), 401
+            return render_template('suppliers_auth_portal/login.html', error=msg)
 
         # 5. التحقق من التفعيل
         if hasattr(target_user, 'is_active') and not target_user.is_active:
             msg = "الحساب غير مفعل حالياً."
-            return jsonify({"status": "error", "message": msg}), 403 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
+            if request.is_json:
+                return jsonify({"status": "error", "message": msg}), 403
+            return render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 6. تثبيت الجلسة وتسجيل الدخول
+        # 6. تثبيت الجلسة وتسجيل الدخول بنجاح
         session.permanent = True
         session['user_type'] = found_as
         
@@ -157,12 +163,19 @@ def login():
         login_user(target_user, remember=True)
         
         redirect_url = url_for('suppliers_dashboard.dashboard')
-        return jsonify({"status": "success", "redirect": redirect_url}) if request.is_json else redirect(redirect_url)
+        
+        # إذا كان الطلب AJAX/JSON نرجع رابط التحويل، وإلا نعمل Redirect مباشر للمتصفح
+        if request.is_json:
+            return jsonify({"status": "success", "redirect": redirect_url})
+            
+        return redirect(redirect_url)
 
     except Exception as e:
         print(f"❌ [Login Error]: {str(e)}")
         msg = "حدث خطأ تقني في النظام"
-        return jsonify({"status": "error", "message": msg}), 500 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
+        if request.is_json:
+            return jsonify({"status": "error", "message": msg}), 500
+        return render_template('suppliers_auth_portal/login.html', error=msg)
 
 
 # ============================================================
