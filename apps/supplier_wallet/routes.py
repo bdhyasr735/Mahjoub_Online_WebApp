@@ -68,57 +68,23 @@ def wallet():
     page = request.args.get('page', 1, type=int)
     PER_PAGE = 10
 
+    # ربط ملخص الحساب من قاعدة البيانات الفعلية (Models)
     summary = {
-        'total_balance': 48500.00,
-        'available_balance': 35200.00,
-        'pending_balance': 8300.00,
-        'total_withdrawn': 24000.00,
-        'currency': 'ج.م'
+        'total_balance': 0.00,
+        'available_balance': 0.00,
+        'pending_balance': 0.00,
+        'total_withdrawn': 0.00,
+        'currency': 'ر.ي'
     }
 
-    mock_transactions = [
-        {
-            'id': 1,
-            'reference_code': 'TRX-98412',
-            'created_at': '2026-08-10 14:20',
-            'trx_type': 'credit',
-            'description': 'أرباح مبيعات طلبية #ORD-7712',
-            'amount': 4500.00,
-            'status': 'completed',
-            'product_name': 'طقم أدوات صحية فاخر',
-            'quantity': 3,
-            'unit_price': 1500.00
-        },
-        {
-            'id': 2,
-            'reference_code': 'TRX-98413',
-            'created_at': '2026-08-09 11:15',
-            'trx_type': 'debit',
-            'description': 'طلب سحب رصيد إلى فودافون كاش #WDR-104',
-            'amount': 2500.00,
-            'status': 'completed'
-        },
-        {
-            'id': 3,
-            'reference_code': 'TRX-98414',
-            'created_at': '2026-08-08 09:45',
-            'trx_type': 'credit',
-            'description': 'أرباح توريد خلاطات مياه #ORD-7688',
-            'amount': 8300.00,
-            'status': 'pending',
-            'product_name': 'خلاط مياه إيطالي',
-            'quantity': 5,
-            'unit_price': 1660.00
-        }
-    ]
+    transactions = [] # يتم جلب المعاملات الحقيقية من قاعدة البيانات هنا
 
-    filtered_list = apply_wallet_filters_logic(mock_transactions, request.args)
+    filtered_list = apply_wallet_filters_logic(transactions, request.args)
     total_items = len(filtered_list)
     current_page = max(1, min(page, max(1, (total_items + PER_PAGE - 1) // PER_PAGE)))
     start_idx = (current_page - 1) * PER_PAGE
     paginated_items = filtered_list[start_idx:start_idx + PER_PAGE]
 
-    # استخدام الفئة الجديدة بدلاً من القاموس لتجنب أخطاء القالب
     pagination = CustomPagination(paginated_items, current_page, PER_PAGE, total_items)
 
     return render_template(
@@ -130,10 +96,11 @@ def wallet():
 
 @wallet_bp.route('/withdraw', methods=['GET', 'POST'])
 def withdraw():
+    # جلب رصيد المورد الحقيقي والحد الأدنى المسموح به من قاعدة البيانات أو الإعدادات
     summary = {
-        'available_balance': 35200.00,
-        'min_withdraw_amount': 500.00,
-        'currency': 'ج.م'
+        'available_balance': 0.00,
+        'min_withdraw_amount': 0.00,
+        'currency': 'ر.ي'
     }
 
     if request.method == 'POST':
@@ -143,12 +110,13 @@ def withdraw():
             account_details = request.form.get('account_details', '')
 
             if amount < summary['min_withdraw_amount']:
-                flash(f"الحد الأدنى للسحب هو {summary['min_withdraw_amount']} ج.م", "danger")
+                flash(f"الحد الأدنى للسحب هو {summary['min_withdraw_amount']} {summary['currency']}", "danger")
             elif amount > summary['available_balance']:
                 flash("المبلغ المطلوب يتجاوز الرصيد المتاح للسحب!", "danger")
             elif not account_details.strip():
                 flash("يرجى إدخال تفاصيل الحساب أو رقم المحفظة بشكل صحيح.", "danger")
             else:
+                # كتابة منطق حفظ طلب السحب الحقيقي في قاعدة البيانات هنا
                 flash("تم تقديم طلب السحب بنجاح وهو قيد المعالجة والتسوية.", "success")
                 return redirect(url_for('wallet.withdraw'))
         except ValueError:
@@ -157,31 +125,12 @@ def withdraw():
     page = request.args.get('page', 1, type=int)
     PER_PAGE = 10
 
-    mock_withdrawals = [
-        {
-            'id': 101,
-            'reference_code': 'WDR-104',
-            'created_at': '2026-08-09 11:15',
-            'amount': 2500.00,
-            'method': 'vodafone_cash',
-            'account_details': '01012345678',
-            'status': 'approved'
-        },
-        {
-            'id': 102,
-            'reference_code': 'WDR-105',
-            'created_at': '2026-08-11 16:30',
-            'amount': 5000.00,
-            'method': 'bank_transfer',
-            'account_details': 'البنك الأهلي - IBAN EG0123456789',
-            'status': 'pending'
-        }
-    ]
+    withdrawals = [] # يتم جلب طلبات السحب الحقيقية من قاعدة البيانات هنا
 
-    total_items = len(mock_withdrawals)
+    total_items = len(withdrawals)
     current_page = max(1, min(page, max(1, (total_items + PER_PAGE - 1) // PER_PAGE)))
     start_idx = (current_page - 1) * PER_PAGE
-    paginated_withdrawals = mock_withdrawals[start_idx:start_idx + PER_PAGE]
+    paginated_withdrawals = withdrawals[start_idx:start_idx + PER_PAGE]
 
     pagination = CustomPagination(paginated_withdrawals, current_page, PER_PAGE, total_items)
 
