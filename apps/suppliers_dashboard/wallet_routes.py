@@ -182,7 +182,7 @@ def withdraw():
                 flash('❌ حدث خطأ أثناء معالجة طلب السحب، يرجى المحاولة لاحقاً', 'danger')
                 return redirect(url_for('suppliers_wallet.withdraw'))
         
-        # حساب إجمالي طلبات السحب المعلقة للعرض في الصفحة
+        # حساب إجمالي طلبات السحب المعلقة لعرضها في الصفحة
         total_pending_payouts = 0.0
         try:
             pending_txs = WalletTransaction.query.filter_by(
