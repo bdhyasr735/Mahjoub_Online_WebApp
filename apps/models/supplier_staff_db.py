@@ -1,96 +1,27 @@
 # coding: utf-8
-# 📂 apps/models/supplier_profile_db.py
+# 📂 apps/models/supplier_staff_db.py
 
 import os
+from datetime import datetime
 from cryptography.fernet import Fernet
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 from apps.extensions import db
 
 
-# ============================================================
-# ✅ جداول التصنيف (Lookup Tables) – غير مشفرة، مفهرسة
-# ============================================================
+class SupplierStaff(db.Model, UserMixin):
+    """نموذج موظفي الموردين - يدعم التشفير والعلاقات"""
+    __tablename__ = 'supplier_staff'
 
-class Category(db.Model):
-    __tablename__ = 'categories'
-
+    # [فهرسة متقدمة]: لضمان سرعة الاستعلامات والبحث
     __table_args__ = (
-        db.Index('idx_cat_name', 'name'),
-        db.Index('idx_cat_icon', 'icon'),
-        {'extend_existing': True}
-    )
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    icon = db.Column(db.String(50), nullable=True)
-
-    profiles = db.relationship('SupplierProfile', back_populates='category_rel', lazy='dynamic')
-
-    def __repr__(self):
-        return f'<Category {self.name}>'
-
-
-class Bank(db.Model):
-    __tablename__ = 'banks'
-
-    __table_args__ = (
-        db.Index('idx_bank_name', 'name'),
-        db.Index('idx_bank_icon', 'icon'),
-        {'extend_existing': True}
-    )
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    icon = db.Column(db.String(50), nullable=True)
-
-    profiles = db.relationship('SupplierProfile', back_populates='bank_rel', lazy='dynamic')
-
-    def __repr__(self):
-        return f'<Bank {self.name}>'
-
-
-class FinancialCompany(db.Model):
-    __tablename__ = 'financial_companies'
-
-    __table_args__ = (
-        db.Index('idx_comp_name', 'name'),
-        db.Index('idx_comp_type', 'type'),
-        {'extend_existing': True}
-    )
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    type = db.Column(db.String(50), nullable=True)
-
-    profiles = db.relationship('SupplierProfile', back_populates='company_rel', lazy='dynamic')
-
-    def __repr__(self):
-        return f'<FinancialCompany {self.name}>'
-
-
-# ============================================================
-# ✅ نموذج الملف الشخصي للمورد (SupplierProfile)
-#    – مشفر بالكامل للبيانات الحساسة
-#    – مفهرس لجميع الحقول المستخدمة في البحث
-# ============================================================
-
-class SupplierProfile(db.Model):
-    __tablename__ = 'supplier_profiles'
-
-    # [فهرسة متقدمة]: لضمان سرعة الاستعلامات
-    __table_args__ = (
-        db.Index('idx_prof_supplier_id', 'supplier_id'),
-        db.Index('idx_prof_trade_name', 'trade_name'),
-        db.Index('idx_prof_gov', 'governorate'),
-        db.Index('idx_prof_city', 'city'),
-        db.Index('idx_prof_category_id', 'category_id'),
-        db.Index('idx_prof_bank_id', 'bank_id'),
-        db.Index('idx_prof_company_id', 'financial_company_id'),
-        db.Index('idx_prof_created', 'created_at'),
-        # فهارس على الحقول المشفرة (للبحث السريع باستخدام التشفير)
-        db.Index('idx_prof_email_enc', '_email_enc'),
-        db.Index('idx_prof_bank_account_enc', '_bank_account_enc'),
-        db.Index('idx_prof_id_number_enc', '_id_number_enc'),
-        db.Index('idx_prof_commercial_reg_enc', '_commercial_reg_enc'),
+        db.Index('idx_staff_supplier_id', 'supplier_id'),
+        db.Index('idx_staff_username', 'username'),
+        db.Index('idx_staff_email_enc', '_email_enc'),
+        db.Index('idx_staff_phone_enc', '_phone_enc'),
+        db.Index('idx_staff_role', 'role'),
+        db.Index('idx_staff_status', 'status'),
+        db.Index('idx_staff_created', 'created_at'),
         {'extend_existing': True}
     )
 
@@ -99,29 +30,24 @@ class SupplierProfile(db.Model):
     # ============================================================
 
     id = db.Column(db.Integer, primary_key=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False, unique=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
 
-    # ✅ حقول غير مشفرة (للسرعة والبحث)
-    trade_name = db.Column(db.String(150))
-    governorate = db.Column(db.String(100), nullable=True)
-    city = db.Column(db.String(100), nullable=True)
+    # ✅ حقل غير مشفر (للسرعة والبحث)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    role = db.Column(db.String(50), default='staff')  # admin, manager, staff, viewer
+    status = db.Column(db.String(20), default='active')  # active, inactive, suspended
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
 
-    # ✅ المفاتيح الخارجية للجداول الجديدة (غير مشفرة)
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
-    bank_id = db.Column(db.Integer, db.ForeignKey('banks.id'), nullable=True)
-    financial_company_id = db.Column(db.Integer, db.ForeignKey('financial_companies.id'), nullable=True)
-
-    # ============================================================
     # ✅ الحقول المشفرة (جميع البيانات الحساسة)
-    # ============================================================
-
+    _full_name_enc = db.Column(db.String(255), nullable=True)
     _email_enc = db.Column(db.String(255), nullable=True)
+    _phone_enc = db.Column(db.String(255), nullable=True)
+    _position_enc = db.Column(db.String(255), nullable=True)  # المسمى الوظيفي
     _address_enc = db.Column(db.String(500), nullable=True)
-    _description_enc = db.Column(db.Text, nullable=True)
-    _bank_account_enc = db.Column(db.String(255), nullable=True)
-    _id_number_enc = db.Column(db.String(255), nullable=True)
-    _commercial_reg_enc = db.Column(db.String(255), nullable=True)
+
+    # ✅ كلمة المرور (غير مشفرة بـ Fernet، بل باستخدام werkzeug)
+    password_hash = db.Column(db.String(255), nullable=True)
 
     # ============================================================
     # ✅ العلاقات
@@ -129,43 +55,9 @@ class SupplierProfile(db.Model):
 
     supplier = db.relationship(
         'Supplier',
-        back_populates='supplier_profile',
+        back_populates='staff_members',
         lazy='joined'
     )
-
-    category_rel = db.relationship(
-        'Category',
-        back_populates='profiles',
-        lazy='joined'
-    )
-
-    bank_rel = db.relationship(
-        'Bank',
-        back_populates='profiles',
-        lazy='joined'
-    )
-
-    company_rel = db.relationship(
-        'FinancialCompany',
-        back_populates='profiles',
-        lazy='joined'
-    )
-
-    # ============================================================
-    # ✅ خصائص مساعدة للحصول على الأسماء (بدون فك تشفير)
-    # ============================================================
-
-    @property
-    def category_name(self):
-        return self.category_rel.name if self.category_rel else None
-
-    @property
-    def bank_name(self):
-        return self.bank_rel.name if self.bank_rel else None
-
-    @property
-    def company_name(self):
-        return self.company_rel.name if self.company_rel else None
 
     # ============================================================
     # ✅ نظام التشفير السيادي (Fernet)
@@ -197,12 +89,36 @@ class SupplierProfile(db.Model):
     # ============================================================
 
     @property
+    def full_name(self):
+        return self._decrypt(self._full_name_enc)
+
+    @full_name.setter
+    def full_name(self, value):
+        self._full_name_enc = self._encrypt(value)
+
+    @property
     def email(self):
         return self._decrypt(self._email_enc)
 
     @email.setter
     def email(self, value):
         self._email_enc = self._encrypt(value)
+
+    @property
+    def phone(self):
+        return self._decrypt(self._phone_enc)
+
+    @phone.setter
+    def phone(self, value):
+        self._phone_enc = self._encrypt(value)
+
+    @property
+    def position(self):
+        return self._decrypt(self._position_enc)
+
+    @position.setter
+    def position(self, value):
+        self._position_enc = self._encrypt(value)
 
     @property
     def address(self):
@@ -212,57 +128,35 @@ class SupplierProfile(db.Model):
     def address(self, value):
         self._address_enc = self._encrypt(value)
 
-    @property
-    def description(self):
-        return self._decrypt(self._description_enc)
+    # ============================================================
+    # ✅ نظام كلمة المرور (باستخدام werkzeug)
+    # ============================================================
 
-    @description.setter
-    def description(self, value):
-        self._description_enc = self._encrypt(value)
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
-    @property
-    def bank_account(self):
-        return self._decrypt(self._bank_account_enc)
-
-    @bank_account.setter
-    def bank_account(self, value):
-        self._bank_account_enc = self._encrypt(value)
-
-    @property
-    def id_number(self):
-        return self._decrypt(self._id_number_enc)
-
-    @id_number.setter
-    def id_number(self, value):
-        self._id_number_enc = self._encrypt(value)
-
-    @property
-    def commercial_reg(self):
-        return self._decrypt(self._commercial_reg_enc)
-
-    @commercial_reg.setter
-    def commercial_reg(self, value):
-        self._commercial_reg_enc = self._encrypt(value)
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
     # ============================================================
     # ✅ دوال مساعدة
     # ============================================================
 
     def to_dict(self):
-        """تحويل الملف الشخصي إلى قاموس آمن (بدون كشف البيانات المشفرة)"""
+        """تحويل الموظف إلى قاموس آمن (بدون كشف البيانات المشفرة)"""
         return {
             'id': self.id,
             'supplier_id': self.supplier_id,
-            'trade_name': self.trade_name,
-            'governorate': self.governorate,
-            'city': self.city,
-            'category': self.category_name,
-            'bank': self.bank_name,
-            'financial_company': self.company_name,
+            'username': self.username,
+            'full_name': self.full_name,
             'email': self.email,
-            'phone': self.supplier.phone if self.supplier else None,
+            'phone': self.phone,
+            'position': self.position,
+            'role': self.role,
+            'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
         }
 
     def __repr__(self):
-        return f'<SupplierProfile {self.trade_name} | {self.governorate} | {self.city}>'
+        return f'<SupplierStaff {self.id}: {self.username} | {self.role} | {self.status}>'
