@@ -1,8 +1,7 @@
-# coding: utf-8
-# 📂 apps/supplier_wallet/__init__.py
+"""
+Mahjoub Online WebApp - Supplier Wallet Module
+Package initialization for apps/supplier_wallet
+"""
+from .registry import supplier_wallet_bp, register_module
 
-"""
-ملف تعريف موديول محفظة المورد كـ Package.
-يُترك فارغاً لمنع أي تداخل في الاستيرادات (Circular Imports).
-عملية تسجيل البلوبرينت تتم حصرياً عبر ملف 'registry.py'.
-"""
+__all__ = ['supplier_wallet_bp', 'register_module']
