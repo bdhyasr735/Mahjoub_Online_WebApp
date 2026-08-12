@@ -1,21 +1,85 @@
-from flask import Blueprint
+# coding: utf-8
+# 📂 apps/supplier_wallet/registry.py
 
-supplier_wallet_bp = Blueprint(
-    'supplier_wallet',
-    __name__,
-    url_prefix='/supplier',
-    template_folder='templates',
-    static_folder='static'
-)
+import logging
+from flask import url_for, session
+
+logger = logging.getLogger(__name__)
+
+MODULE_NAME = "محفظة المورد"
+MODULE_ICON = "fa-wallet"
+SHOW_IN_SUPPLIER = True
+
+LINKS = {
+    "supplier_wallet.wallet": "💳 كشف الحساب",
+    "supplier_wallet.withdrawal_request": "💸 طلب سحب"
+}
 
 def register_module(app):
-    """تسجيل موديول محفظة المورد في تطبيق Flask الرئيسي"""
-    from .routes import wallet_bp
-    app.register_blueprint(supplier_wallet_bp)
-    
-    @app.context_processor
-    def inject_supplier_wallet_meta():
-        return dict(
-            SUPPLIER_WALLET_THEME_COLOR='#4A154B',
-            DEFAULT_PER_PAGE=10
-        )
+    try:
+        from apps.supplier_wallet.routes import wallet_bp
+        
+        # تسجيل الـ Blueprint الصحيح القادم من routes.py
+        if 'supplier_wallet' not in app.blueprints:
+            app.register_blueprint(wallet_bp, url_prefix='/supplier/wallet')
+            print("✅ [Registry Wallet]: تم تسجيل موديول محفظة الموردين بنجاح.")
+        else:
+            print("ℹ️ [Registry Wallet]: موديول المحفظة مسجل مسبقاً.")
+
+        @app.context_processor
+        def inject_supplier_wallet_meta():
+            return dict(
+                SUPPLIER_WALLET_THEME_COLOR='#4A154B',
+                DEFAULT_PER_PAGE=10
+            )
+
+    except ImportError as e:
+        print(f"❌ [Registry Wallet]: خطأ في استيراد routes: {e}")
+    except Exception as e:
+        print(f"❌ [Registry Wallet]: خطأ أثناء تسجيل supplier_wallet: {e}")
+    return app
+
+def get_module_stats():
+    try:
+        # يمكن ربطه بقاعدة البيانات لاحقاً لجلب الرصيد الحقيقي
+        supplier_id = session.get('user_id') or session.get('supplier_id')
+        
+        return {
+            'total_balance': '48,500.00',
+            'available_balance': '35,200.00',
+            'pending_balance': '8,300.00',
+            'has_wallet': True
+        }
+    except Exception as e:
+        print(f"❌ [Registry Wallet Stats Error]: {e}")
+        return {'total_balance': '0.00', 'available_balance': '0.00', 'pending_balance': '0.00', 'has_wallet': False}
+
+def get_module_link():
+    try:
+        return url_for('supplier_wallet.wallet')
+    except Exception as e:
+        print(f"❌ [Registry Wallet Link Error]: {e}")
+        return '/supplier/wallet'
+
+def get_dashboard_card():
+    stats = get_module_stats()
+    return {
+        'title': MODULE_NAME,
+        'icon': MODULE_ICON,
+        'link': get_module_link(),
+        'stats': stats,
+        'color': 'purple',
+        'badge': stats.get('available_balance', '0'),
+        'subtitle': f"المتاح: {stats.get('available_balance', '0')} ر.ي"
+    }
+
+__all__ = [
+    'MODULE_NAME', 
+    'MODULE_ICON', 
+    'SHOW_IN_SUPPLIER', 
+    'LINKS', 
+    'register_module', 
+    'get_module_stats', 
+    'get_module_link', 
+    'get_dashboard_card'
+]
