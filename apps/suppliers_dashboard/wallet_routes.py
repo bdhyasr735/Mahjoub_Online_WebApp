@@ -19,6 +19,14 @@ wallet_bp = Blueprint(
 )
 
 
+def get_tx_type_field_name():
+    """دالة مساعدة لمعرفة اسم حقل نوع الحركة المعرف في موديل WalletTransaction"""
+    for attr in ['type', 'tx_type', 'transaction_type', 'category']:
+        if hasattr(WalletTransaction, attr):
+            return attr
+    return 'type'
+
+
 def get_supplier_context():
     """دالة مساعدة لجلب المورد والمحفظة بأمان"""
     try:
@@ -155,14 +163,18 @@ def withdraw():
                 if hasattr(wallet, 'total_withdrawn'):
                     wallet.total_withdrawn = float(getattr(wallet, 'total_withdrawn', 0.0) or 0.0) + amount
 
+                # تجهيز الحقول بديناميكية لمنع خطأ اسم خاصية نوع الحركة
+                tx_field = get_tx_type_field_name()
+                tx_data = {
+                    'wallet_id': wallet.id,
+                    'amount': amount,
+                    'status': 'pending',
+                    'description': f"طلب سحب أرباح - البنك: {bank_name or 'غير محدد'} | الحساب: {bank_account or 'غير محدد'} | المستفيد: {account_holder}"
+                }
+                tx_data[tx_field] = 'withdrawal'
+
                 # إنشاء حركة مالية جديدة معلقة
-                transaction = WalletTransaction(
-                    wallet_id=wallet.id,
-                    amount=amount,
-                    transaction_type='withdrawal',
-                    status='pending',
-                    description=f"طلب سحب أرباح - البنك: {bank_name or 'غير محدد'} | الحساب: {bank_account or 'غير محدد'} | المستفيد: {account_holder}"
-                )
+                transaction = WalletTransaction(**tx_data)
                 
                 db.session.add(transaction)
                 db.session.commit()
@@ -179,14 +191,17 @@ def withdraw():
                 flash('❌ حدث خطأ أثناء معالجة طلب السحب، يرجى المحاولة لاحقاً', 'danger')
                 return redirect(url_for('suppliers_wallet.withdraw'))
         
-        # حساب إجمالي طلبات السحب المعلقة للعرض في الواجهة
+        # حساب إجمالي طلبات السحب المعلقة للعرض في الواجهة بأمان
         total_pending_payouts = 0.0
         try:
-            pending_txs = WalletTransaction.query.filter_by(
-                wallet_id=wallet.id, 
-                transaction_type='withdrawal', 
-                status='pending'
-            ).all()
+            tx_field = get_tx_type_field_name()
+            filter_kwargs = {
+                'wallet_id': wallet.id,
+                'status': 'pending'
+            }
+            filter_kwargs[tx_field] = 'withdrawal'
+
+            pending_txs = WalletTransaction.query.filter_by(**filter_kwargs).all()
             total_pending_payouts = sum(float(tx.amount or 0.0) for tx in pending_txs)
         except Exception as e:
             print(f"⚠️ تعذر حساب طلبات السحب المعلقة: {e}")
