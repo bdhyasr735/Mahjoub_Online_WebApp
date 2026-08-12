@@ -24,7 +24,7 @@
         * { box-sizing: border-box; }
         body { font-family: 'Cairo', sans-serif; background: var(--flat-bg); color: #333; margin: 0; overflow-x: hidden; min-height: 100vh; }
         
-        /* ===== القائمة الجانبية (بنفسجي ملكي غامق يميل للأسود في الأطراف) ===== */
+        /* ===== القائمة الجانبية ===== */
         .sidebar {
             width: var(--sidebar-width);
             background: linear-gradient(135deg, var(--deep-black) 0%, var(--royal-purple-dark) 40%, var(--royal-purple) 100%);
@@ -43,7 +43,7 @@
         .sidebar::-webkit-scrollbar { width: 5px; }
         .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
         
-        /* ===== الشعار (أبيض بالكامل) ===== */
+        /* ===== الشعار ===== */
         .logo-container {
             padding: 28px 20px 22px;
             text-align: center;
@@ -73,7 +73,7 @@
             font-weight: 500;
         }
         
-        /* ===== الروابط والقوائم المنسدلة ===== */
+        /* ===== الروابط والقوائم ===== */
         .nav-menu { padding: 18px 14px; }
         .nav-link {
             display: flex;
@@ -104,9 +104,7 @@
         }
         .nav-link.active i { color: var(--mahjoub-gold); }
 
-        .nav-link.dropdown-toggle::after {
-            display: none !important;
-        }
+        .nav-link.dropdown-toggle::after { display: none !important; }
         .dropdown-arrow {
             margin-right: auto;
             margin-left: 0;
@@ -281,7 +279,7 @@
 </head>
 <body>
 
-    <!-- ===== القائمة الجانبية ===== -->
+    <!-- القائمة الجانبية -->
     <aside class="sidebar" id="sidebar">
         <div class="logo-container">
             <img src="https://cdn.qumra.cloud/media/67f7f6d5f0b82f44a47bf845/1770229315912-117966978.webp" 
@@ -297,27 +295,27 @@
                 <i class="fas fa-chart-pie"></i> <span>الرئيسية</span>
             </a>
             
-            <!-- عرض الموديولات المسجلة ديناميكياً (تلقائياً للمنتجات والمحفظة وغيرها) -->
+            <!-- عرض الموديولات المسجلة ديناميكياً مع تصحيح نطاق المتغيرات باستخدام Namespace -->
             {% if supplier_modules %}
                 {% for key, module in supplier_modules.items() %}
                     {% if key != 'suppliers_dashboard' and module.links is mapping %}
                         {% if module.links|length > 1 %}
-                            {% set is_active_module = false %}
+                            {% set ns = namespace(is_active_module=false) %}
                             {% for endpoint, link_title in module.links.items() %}
-                                {% if request.endpoint == endpoint %}{% set is_active_module = true %}{% endif %}
+                                {% if request.endpoint == endpoint %}{% set ns.is_active_module = true %}{% endif %}
                             {% endfor %}
                             
-                            <a class="nav-link dropdown-toggle {% if is_active_module %}active{% endif %}" 
+                            <a class="nav-link dropdown-toggle {% if ns.is_active_module %}active{% endif %}" 
                                data-bs-toggle="collapse" 
                                href="#menu-{{ key }}" 
                                role="button" 
-                               aria-expanded="{% if is_active_module %}true{% else %}false{% endif %}" 
+                               aria-expanded="{% if ns.is_active_module %}true{% else %}false{% endif %}" 
                                aria-controls="menu-{{ key }}">
                                 <i class="{{ module.icon|default('fas fa-folder') }}"></i> 
                                 <span>{{ module.title|default(key) }}</span>
                                 <i class="fas fa-chevron-left dropdown-arrow"></i>
                             </a>
-                            <div class="collapse {% if is_active_module %}show{% endif %}" id="menu-{{ key }}">
+                            <div class="collapse {% if ns.is_active_module %}show{% endif %}" id="menu-{{ key }}">
                                 <ul class="submenu">
                                     {% for endpoint, link_title in module.links.items() %}
                                         {% set url = safe_url_for(endpoint) %}
@@ -354,7 +352,7 @@
         </nav>
     </aside>
 
-    <!-- ===== المحتوى الرئيسي ===== -->
+    <!-- المحتوى الرئيسي -->
     <main class="main-wrapper" id="main">
         <header class="top-navbar">
             <div class="navbar-left">
