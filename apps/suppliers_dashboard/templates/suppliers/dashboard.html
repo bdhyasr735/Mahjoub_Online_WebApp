@@ -316,8 +316,8 @@
             </div>
         </div>
         
-        <!-- ✅ زر الإعدادات - تم إضافته هنا -->
-        <a href="{{ url_for('suppliers_settings.settings') }}" class="btn-settings-custom">
+        <!-- ✅ زر الإعدادات المحدث -->
+        <a href="{{ url_for('suppliers_settings_bp.settings') if 'suppliers_settings_bp.settings' in [] else url_for('suppliers_settings_bp.index') if 'suppliers_settings_bp.index' in [] else url_for('suppliers_settings_bp.settings') }}" class="btn-settings-custom">
             <i class="fas fa-cog fa-spin-hover"></i>
             ⚙️ الإعدادات
             <span style="background: var(--mahjoub-gold); color: var(--royal-purple); padding: 2px 10px; border-radius: 20px; font-size: 0.6rem; font-weight: 700;">تعديل</span>
