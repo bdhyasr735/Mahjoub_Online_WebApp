@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/suppliers_dashboard/dashboard_routes.py
 
-from flask import Blueprint, render_template, session, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, session, redirect, url_for, flash, jsonify, request
 from flask_login import login_required, current_user
 from sqlalchemy import func, extract
 from datetime import datetime, timedelta
@@ -235,7 +235,6 @@ def dashboard():
         error_details = traceback.format_exc()
         print(f"❌ خطأ في dashboard: {error_details}")
         flash('❌ حدث خطأ تقني في عرض لوحة التحكم', 'danger')
-        # العودة إلى صفحة تسجيل الدخول بدلاً من إعادة التوجيه لنفس الصفحة
         return redirect(url_for('suppliers_auth.login'))
 
 
@@ -280,3 +279,35 @@ def api_dashboard_stats():
     except Exception as e:
         print(f"❌ خطأ في api_dashboard_stats: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================
+# ✅ API المساعد الذكي (AI Assistant)
+# ============================================================
+
+@suppliers_dashboard_bp.route('/api/ask-ai', methods=['POST'])
+@login_required
+def api_ask_ai():
+    """معالجة استفسارات المورد عبر المساعد الذكي"""
+    try:
+        supplier = get_supplier_context()
+        if not supplier:
+            return jsonify({'success': False, 'error': 'غير مسموح'}), 403
+
+        data = request.get_json() or {}
+        question = data.get('question', '').strip()
+
+        if not question:
+            return jsonify({'success': False, 'answer': 'يرجى كتابة سؤال صحيح.'}), 400
+
+        # الرد التفاعلي المبني على سياق متجر المورد
+        answer_text = f"أهلاً بك يا أخي الكريم في متجر **{supplier.trade_name}**.\nلقد تلقيت استفسارك حول: ({question}).\nمتجرك يعمل بكفاءة ونحن مستعدون دائماً لدعمك في إدارة منتجاتك ومبيعاتك."
+
+        return jsonify({
+            'success': True,
+            'answer': answer_text
+        })
+
+    except Exception as e:
+        print(f"❌ خطأ في api_ask_ai: {e}")
+        return jsonify({'success': False, 'answer': '⚠️ حدث خطأ تقني أثناء معالجة السؤال.'}), 500
