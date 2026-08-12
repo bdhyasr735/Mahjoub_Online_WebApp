@@ -101,9 +101,14 @@ def login():
         return render_template('suppliers_auth_portal/login.html')
 
     try:
-        # قراءة البيانات
-        username = request.form.get('username', '').strip() if not request.is_json else request.get_json().get('username', '').strip()
-        password = request.form.get('password', '') if not request.is_json else request.get_json().get('password', '')
+        # قراءة البيانات سواء كانت JSON أو Form Data
+        if request.is_json:
+            json_data = request.get_json() or {}
+            username = json_data.get('username', '').strip()
+            password = json_data.get('password', '')
+        else:
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
 
         # 1. التحقق من الحظر
         block_until = session.get('block_until')
@@ -141,8 +146,14 @@ def login():
             msg = "الحساب غير مفعل حالياً."
             return jsonify({"status": "error", "message": msg}), 403 if request.is_json else render_template('suppliers_auth_portal/login.html', error=msg)
 
-        # 6. تسجيل الدخول
+        # 6. تثبيت الجلسة وتسجيل الدخول
+        session.permanent = True
         session['user_type'] = found_as
+        
+        # تفريغ عداد محاولات الدخول الفاشلة
+        session.pop('login_attempts', None)
+        session.pop('block_until', None)
+
         login_user(target_user, remember=True)
         
         redirect_url = url_for('suppliers_dashboard.dashboard')
