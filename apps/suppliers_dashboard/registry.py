@@ -9,42 +9,36 @@ LINKS = {
     'suppliers_dashboard.dashboard': '📊 لوحة التحكم',
     'suppliers_wallet.wallet': '💰 المحفظة',
     'suppliers_wallet.withdraw': '💳 سحب الرصيد',
-    # ❌ تم إزالة 'suppliers_settings.settings': '⚙️ إعدادات المتجر'
 }
 
 
 def register_module(app):
     """تسجيل جميع Blueprints الخاصة بلوحة تحكم الموردين"""
     try:
-        # ✅ استيراد الـ Blueprints
+        # ✅ استيراد الـ Blueprints المتاحة فقط
         from apps.suppliers_dashboard.dashboard_routes import suppliers_dashboard_bp
-        from apps.suppliers_dashboard.settings_routes import settings_bp
-        from apps.suppliers_dashboard.wallet_routes import wallet_bp
         
-        # ✅ تسجيل Blueprint لوحة التحكم
+        # ⚠️ استيراد اختياري للمحفظة إذا كانت موجودة في نفس الموديول
+        try:
+            from apps.suppliers_dashboard.wallet_routes import wallet_bp
+        except ImportError:
+            wallet_bp = None
+
+        # ✅ تسجيل Blueprint لوحة التحكم الرئيسية
         if 'suppliers_dashboard' not in app.blueprints:
             app.register_blueprint(suppliers_dashboard_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'suppliers_dashboard'")
         else:
             print("ℹ️ [Registry]: 'suppliers_dashboard' مسجل مسبقاً")
-        
-        # ✅ تسجيل Blueprint الإعدادات (يظل مسجلاً للوصول المباشر)
-        if 'suppliers_settings' not in app.blueprints:
-            app.register_blueprint(settings_bp, url_prefix='/supplier')
-            print("✅ [Registry]: تم تسجيل 'suppliers_settings'")
-        else:
-            print("ℹ️ [Registry]: 'suppliers_settings' مسجل مسبقاً")
-        
-        # ✅ تسجيل Blueprint المحفظة
-        if 'suppliers_wallet' not in app.blueprints:
+
+        # ✅ تسجيل Blueprint المحفظة (إن وجد)
+        if wallet_bp and 'suppliers_wallet' not in app.blueprints:
             app.register_blueprint(wallet_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'suppliers_wallet'")
-        else:
-            print("ℹ️ [Registry]: 'suppliers_wallet' مسجل مسبقاً")
-            
+
     except ImportError as e:
         print(f"❌ [Registry]: خطأ في استيراد Blueprint: {e}")
     except Exception as e:
         print(f"❌ [Registry]: خطأ في تسجيل suppliers_dashboard: {e}")
-    
+
     return app
