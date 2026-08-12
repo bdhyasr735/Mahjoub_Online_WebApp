@@ -26,16 +26,16 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold mb-1"><i class="fas fa-hand-holding-usd me-2 text-primary"></i>تقديم طلب سحب رصيد</h4>
-            <p class="text-muted small mb-0">يمكنك تحويل مستحقاتك المتاحة في المحفظة إلى حسابك البنكي أو المحلي المعين.</p>
+            <p class="text-muted small mb-0">تحويل أرباحك المتاحة إلى حسابك البنكي أو المحلي المعتمد بالريال السعودي.</p>
         </div>
         <div>
-            <a href="{{ url_for('supplier_wallet.my_wallet') if 'supplier_wallet.my_wallet' in url_map else url_for('suppliers_dashboard.dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <a href="{{ url_for('suppliers_wallet.wallet') if 'suppliers_wallet.wallet' in url_map else url_for('suppliers_dashboard.dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                 <i class="fas fa-wallet me-1"></i> العودة للمحفظة
             </a>
         </div>
     </div>
 
-    <!-- بطاقات ملخص الأرصدة المتاحة (بالريال السعودي) -->
+    <!-- بطاقات ملخص الأرصدة (الريال السعودي) -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-3 bg-gradient p-3" style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: #fff;">
@@ -55,8 +55,8 @@
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="d-block small text-muted">الرصيد المعلق</span>
-                        <h4 class="fw-bold mb-0 text-secondary">{{ "%.2f"|format(wallet.balance_pending|default(0.0)) }} <small class="fs-6">ر.س</small></h4>
+                        <span class="d-block small text-muted">إجمالي الطلبات المعلقة</span>
+                        <h4 class="fw-bold mb-0 text-secondary">{{ "%.2f"|format(total_pending_payouts|default(0.0)) }} <small class="fs-6">ر.س</small></h4>
                     </div>
                     <div class="bg-light p-3 rounded-circle text-muted">
                         <i class="fas fa-clock fa-xl"></i>
@@ -88,7 +88,7 @@
                     <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-paper-plane me-2 text-primary"></i>بيانات طلب التحويل</h5>
                 </div>
                 <div class="card-body p-4">
-                    <form action="{{ url_for('suppliers_dashboard.withdraw') if 'suppliers_dashboard.withdraw' in url_map else request.path }}" method="POST" id="withdrawForm">
+                    <form action="{{ url_for('suppliers_wallet.withdraw') if 'suppliers_wallet.withdraw' in url_map else request.path }}" method="POST" id="withdrawForm">
                         {% if csrf_token is defined %}
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         {% endif %}
@@ -108,26 +108,39 @@
                             <label for="amount" class="form-label fw-semibold">المبلغ المطلوب سحبه <span class="text-danger">*</span></label>
                             <div class="input-group input-group-lg">
                                 <input type="number" step="0.01" min="10" max="{{ wallet.balance_sar|default(0.0) }}" class="form-control" id="amount" name="amount" placeholder="0.00" required>
-                                <span class="input-group-text bg-light fw-bold" id="currencyLabel">ر.س</span>
+                                <span class="input-group-text bg-light fw-bold">ر.س</span>
                             </div>
-                            <div class="form-text text-muted small mt-1">الحد أدنى لطلب السحب هو 10.00 ر.س (المتاح حالياً: {{ "%.2f"|format(wallet.balance_sar|default(0.0)) }} ر.س)</div>
+                            <div class="form-text text-muted small mt-1">الحد الأدنى لطلب السحب: 10.00 ر.س | المتاح حالياً: {{ "%.2f"|format(wallet.balance_sar|default(0.0)) }} ر.س</div>
                         </div>
 
-                        <!-- تفاصيل الحساب البنكي / وسيلة الاستلام -->
+                        <!-- اختيار البنك / الجهة -->
                         <div class="mb-3">
-                            <label for="bank_details" class="form-label fw-semibold">تفاصيل الحساب / محفظة الاستلام <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="bank_details" name="bank_details" rows="3" placeholder="أدخل اسم البنك/الصراف، رقم الحساب أو الآيبان (IBAN)، واسم المستفيد الثلاثي..." required>{{ wallet.bank_details if wallet.bank_details else '' }}</textarea>
-                            <div class="form-text small text-muted">سيتم اعتماد هذه البيانات لإجراء التحويل المالي إليها.</div>
+                            <label for="bank_name" class="form-label fw-semibold">اسم البنك / المصرف / شبكة التحويل <span class="text-danger">*</span></label>
+                            <select class="form-select" id="bank_name" name="bank_name" required>
+                                <option value="" disabled {{ 'selected' if not profile or not profile.bank_name }}>اختر البنك أو وسيلة التحويل...</option>
+                                {% if banks %}
+                                    {% for bank in banks %}
+                                        <option value="{{ bank.name }}" {{ 'selected' if profile and profile.bank_name == bank.name }}>{{ bank.name }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                                <option value="أخرى" {{ 'selected' if profile and profile.bank_name and profile.bank_name not in (banks|map(attribute='name')|list if banks else []) }}>بنك آخر / محفظة إلكترونية أخرى</option>
+                            </select>
                         </div>
 
-                        <!-- ملاحظات إضافية -->
-                        <div class="mb-4">
-                            <label for="notes" class="form-label fw-semibold">ملاحظات إضافية (اختياري)</label>
-                            <input type="text" class="form-control" id="notes" name="notes" placeholder="أي تعليمات خاصة بشأن عملية التحويل">
+                        <!-- رقم الحساب / الآيبان -->
+                        <div class="mb-3">
+                            <label for="bank_account" class="form-label fw-semibold">رقم الحساب / الآيبان (IBAN) / رقم المحفظة <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="bank_account" name="bank_account" value="{{ profile.bank_account if profile and profile.bank_account else '' }}" placeholder="أدخل رقم الحساب أو IBAN" required>
+                        </div>
+
+                        <!-- اسم المستفيد -->
+                        <div class="mb-3">
+                            <label for="account_holder_name" class="form-label fw-semibold">اسم المستفيد الكامل (كما هو في البنك) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="account_holder_name" name="account_holder_name" value="{{ profile.account_holder_name if profile and hasattr(profile, 'account_holder_name') and profile.account_holder_name else (supplier.trade_name or supplier.name or '') }}" placeholder="أدخل اسم صاحب الحساب الثلاثي أو الرباعي" required>
                         </div>
 
                         <!-- زر الإرسال -->
-                        <div class="d-grid">
+                        <div class="d-grid mt-4">
                             <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold" id="submitBtn">
                                 <i class="fas fa-check-circle me-1"></i> تأكيد وإرسال طلب السحب
                             </button>
@@ -144,8 +157,8 @@
                     <h6 class="fw-bold text-dark mb-3"><i class="fas fa-info-circle text-info me-2"></i>شروط وإرشادات عمليات السحب</h6>
                     <ul class="list-unstyled small text-secondary mb-0">
                         <li class="mb-2"><i class="fas fa-check text-success me-2"></i>تتم معالجة طلبات السحب خلال **24 إلى 48 ساعة عمل**.</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>تأكد من مطابقة اسم صاحب الحساب البنكي مع البيانات المسجلة في المتجر.</li>
-                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>يتم نقل المبلغ فور تقديم الطلب إلى **الرصيد المعلق** لحين اكتمال التحويل.</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>تأكد من مطابقة اسم صاحب الحساب البنكي مع بيانات التجارة المسجلة.</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>جميع العمليات المالية مقومة ومحسوبة بـ **الريال السعودي (SAR)**.</li>
                         <li class="mb-0"><i class="fas fa-check text-success me-2"></i>في حال إرجاع الطلب أو رفضه، يعاد المبلغ فوراً إلى رصيدك المتاح.</li>
                     </ul>
                 </div>
@@ -156,7 +169,7 @@
                     <i class="fas fa-shield-alt fa-2x text-warning me-3"></i>
                     <div>
                         <h6 class="fw-bold mb-1">أمان المعاملات المالية</h6>
-                        <p class="small text-muted mb-0">جميع البيانات الحساسة والحسابات البنكية مشفرة بالكامل عبر نظام تشفير القياسي لحماية أرباحك.</p>
+                        <p class="small text-muted mb-0">جميع البيانات الحساسة والحسابات البنكية مشفرة بالكامل لحماية أرباحك ومستحقاتك.</p>
                     </div>
                 </div>
             </div>
@@ -185,7 +198,7 @@
                         <tbody>
                             {% for req in withdrawal_requests or pending_transactions %}
                             <tr>
-                                <td class="fw-bold text-primary">{{ req.voucher_number or req.reference_number or '#MJ-SETTLEMENT' }}</td>
+                                <td class="fw-bold text-primary">{{ req.voucher_number or req.reference_number or ('#MJ-' ~ req.id) }}</td>
                                 <td class="small text-muted">{{ req.created_at.strftime('%Y-%m-%d %H:%M') if req.created_at else '-' }}</td>
                                 <td class="fw-bold">{{ "%.2f"|format(req.amount) }}</td>
                                 <td class="small"><span class="badge bg-light text-dark border">SAR</span></td>
@@ -210,7 +223,7 @@
 
 </div>
 
-<!-- JavaScript للتحقق الديناميكي (بالريال السعودي فقط) -->
+<!-- JavaScript للتحقق عند إرسال النموذج -->
 <script>
     const maxAvailableBalance = parseFloat("{{ wallet.balance_sar|default(0.0) }}");
 
