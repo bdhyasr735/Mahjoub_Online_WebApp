@@ -4,6 +4,9 @@
 import logging
 from flask import url_for, session
 
+# استيراد الـ Blueprint من routes وتصديره بالاسم المتوقع لدى Registry Loader
+from apps.supplier_wallet.routes import wallet_bp as supplier_wallet_bp
+
 logger = logging.getLogger(__name__)
 
 MODULE_NAME = "محفظة المورد"
@@ -17,11 +20,8 @@ LINKS = {
 
 def register_module(app):
     try:
-        from apps.supplier_wallet.routes import wallet_bp
-        
-        # تسجيل الـ Blueprint الصحيح القادم من routes.py
         if 'supplier_wallet' not in app.blueprints:
-            app.register_blueprint(wallet_bp, url_prefix='/supplier/wallet')
+            app.register_blueprint(supplier_wallet_bp, url_prefix='/supplier/wallet')
             print("✅ [Registry Wallet]: تم تسجيل موديول محفظة الموردين بنجاح.")
         else:
             print("ℹ️ [Registry Wallet]: موديول المحفظة مسجل مسبقاً.")
@@ -33,15 +33,12 @@ def register_module(app):
                 DEFAULT_PER_PAGE=10
             )
 
-    except ImportError as e:
-        print(f"❌ [Registry Wallet]: خطأ في استيراد routes: {e}")
     except Exception as e:
         print(f"❌ [Registry Wallet]: خطأ أثناء تسجيل supplier_wallet: {e}")
     return app
 
 def get_module_stats():
     try:
-        # يمكن ربطه بقاعدة البيانات لاحقاً لجلب الرصيد الحقيقي
         supplier_id = session.get('user_id') or session.get('supplier_id')
         
         return {
@@ -74,6 +71,7 @@ def get_dashboard_card():
     }
 
 __all__ = [
+    'supplier_wallet_bp',
     'MODULE_NAME', 
     'MODULE_ICON', 
     'SHOW_IN_SUPPLIER', 
