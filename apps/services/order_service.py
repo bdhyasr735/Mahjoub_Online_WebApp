@@ -1,197 +1,63 @@
-# coding: utf-8
-# 📂 apps/services/order_service.py
+import os
+from graphql_client import GraphQLClient
 
-from apps.services.graphql_client import GraphQLClient
 
 class OrderService:
-    def __init__(self, client=None):
-        self.client = client if client else GraphQLClient()
 
-    def get_all_orders(self, page: int = 1, limit: int = 50, search: str = None, 
-                       status: str = None, supplier_id: str = None, 
-                       is_paid: bool = None, date_from: str = None, date_to: str = None):
-        # ✅ استعلام نظيف وآمن يدعم الفلاتر الكاملة
-        query = """
-        query FindAllOrdersBasic($input: FindAllOrdersInput!) {
-            findAllOrders(input: $input) {
-                data {
-                    _id
-                    type
-                    totalPrice
-                    isPaid
-                    createdAt
-                    status {
-                        code
-                        title
-                    }
-                    account {
-                        account {
-                            fullname
-                            phone
-                        }
-                    }
-                    items {
-                        productId
-                        quantity
-                        price
-                        productData {
-                            title
-                            price
-                            image {
-                                fileUrl
-                            }
-                        }
-                    }
-                }
-                pagination {
-                    totalItems
-                    totalPages
-                    currentPage
-                    limit
-                    hasNextPage
-                }
+  def __init__(self, client: GraphQLClient = None):
+    self.client = client or GraphQLClient()
+
+  def fetch_orders(self, limit: int = 10, page: int = 1):
+    """جلب قائمة الطلبات من متجر قمرة"""
+    query = """
+        query FindAllOrders($limit: Int, $page: Int) {
+          findAllOrders(limit: $limit, page: $page) {
+            data {
+              id
+              orderKey
+              totalPrice
+              orderStatus
+              createdAt
             }
+          }
         }
         """
-        try:
-            # تجهيز مدخلات البحث والفلاتر لتتوافق مع الـ Schema
-            filter_input = {
-                "page": page,
-                "limit": limit
-            }
-            
-            if search and search.strip():
-                filter_input["search"] = search.strip()
-            
-            if status and status.strip():
-                filter_input["status"] = status.strip()
-                
-            # إضافة فلتر حالة الدفع
-            if is_paid is not None:
-                filter_input["isPaid"] = is_paid
-                
-            if supplier_id:
-                if supplier_id == "none":
-                    # تصفية المنتجات بدون مورد (منتجات المتجر الخاصة)
-                    filter_input["supplier"] = None
-                else:
-                    filter_input["supplier"] = supplier_id
-                    
-            if date_from and date_from.strip():
-                filter_input["dateFrom"] = date_from.strip()
-                
-            if date_to and date_to.strip():
-                filter_input["dateTo"] = date_to.strip()
+    variables = {"limit": limit, "page": page}
+    data = self.client.execute(query, variables)
+    return data.get("findAllOrders", {}).get("data", [])
 
-            data = self.client.execute(query, {"input": filter_input})
-            if data and isinstance(data, dict) and "findAllOrders" in data:
-                return data["findAllOrders"]
-            return {"data": [], "pagination": {"totalItems": 0, "hasNextPage": False}}
-        except Exception as e:
-            print(f"❌ [OrderService] خطأ في get_all_orders: {e}")
-            return {"data": [], "pagination": {"totalItems": 0, "hasNextPage": False}}
-
-    def get_order_by_id(self, order_id: str):
-        # ✅ استعلام نظيف وآمن للطلب الفردي
-        query = """
-        query FindOrderByIdBasic($id: ID!) {
-            findOrderById(id: $id) {
-                data {
-                    _id
-                    type
-                    totalPrice
-                    isPaid
-                    createdAt
-                    status {
-                        code
-                        title
-                    }
-                    account {
-                        account {
-                            fullname
-                            phone
-                        }
-                    }
-                    items {
-                        productId
-                        quantity
-                        price
-                        productData {
-                            title
-                            price
-                            image {
-                                fileUrl
-                            }
-                        }
-                    }
-                }
-                success
-                message
-            }
+  def update_order_status(self, order_id: str, status: str):
+    """تحديث حالة طلب معين في قمرة"""
+    mutation = """
+        mutation UpdateOrderStatus($input: UpdateOrderStatusInput!) {
+          updateOrderStatus(input: $input) {
+            success
+            message
+          }
         }
         """
-        try:
-            data = self.client.execute(query, {"id": order_id})
-            if data and "findOrderById" in data:
-                return data["findOrderById"].get("data")
-            return None
-        except Exception as e:
-            print(f"❌ [OrderService] خطأ في get_order_by_id: {e}")
-            return None
+    variables = {"input": {"orderId": order_id, "status": status}}
+    return self.client.execute(mutation, variables)
 
-    # ============================================================
-    # 🚀 دالة تحديث الحالة في قمره (النسخة النهائية والمُصححة)
-    # ============================================================
-    def update_order_status_in_qumra(self, order_id: str, status_code: str) -> bool:
-        """
-        إرسال طلب تحديث الحالة إلى قمره عبر Mutation.
-        """
-        # ✅ خريطة تحويل حالات محجوب إلى معرفات الحالة (_id) في قمره (معتمدة رسمياً من الساندبوكس)
-        qumra_status_id_map = {
-            'pending': '68651b7d99fc8f5413cf6fe0',    # pending
-            'processing': '68651b7d99fc8f5413cf6fe1', # preparing
-            'shipped': '68651b7d99fc8f5413cf6fe2',    # shipped
-            'delivered': '68651b7d99fc8f5413cf6fe3',  # delivered
-            'completed': '68651b7d99fc8f5413cf6fe9',  # complete
-            'cancelled': '68651b7d99fc8f5413cf6fe4',  # cancelled
-            'refunded': '68651b7d99fc8f5413cf6fe8'    # returned
-        }
-        
-        # الحصول على معرف الحالة الصحيح من القائمة
-        target_status_id = qumra_status_id_map.get(status_code, '68651b7d99fc8f5413cf6fe0') # افتراضي: pending ID
-        
-        mutation = """
-        mutation ChangeOrderStatus($changeOrderStatusInput2: ChangeOrderStatusInput!) {
-            changeOrderStatus(input: $changeOrderStatusInput2) {
-                success
-                message
-            }
-        }
-        """
-        try:
-            # ✅ التصحيح النهائي: استخدام "_id" بدلاً من "id" لتتوافق مع متطلبات الـ Schema
-            input_data = {
-                "_id": order_id,            # معرف الطلب (_id بدلاً من id)
-                "status": target_status_id  # معرف الحالة
-            }
-            
-            print(f"🚀 [DEBUG] إرسال الطلب إلى قمره: {input_data}")
-            
-            data = self.client.execute(mutation, {"changeOrderStatusInput2": input_data})
-            
-            if data and "changeOrderStatus" in data:
-                return data["changeOrderStatus"].get("success", False)
-            return False
-        except Exception as e:
-            print(f"❌ [OrderService] فشل تحديث الحالة في قمره: {e}")
-            return False
+  def sync_orders(self):
+    """دالة المزامنة الرئيسية لربط البيانات وقراءتها"""
+    print("بدء عملية مزامنة الطلبات...")
+    orders = self.fetch_orders(limit=20, page=1)
+
+    print(f"تم جلب {len(orders)} طلب من المتجر.")
+
+    for order in orders:
+      order_id = order.get("id")
+      status = order.get("orderStatus")
+      total = order.get("totalPrice")
+
+      # أضف هنا منطق الإدراج أو التحديث الخاص بقاعدة بياناتك
+      print(f"مزامنة الطلب [{order_id}] - الحالة: {status} - الإجمالي: {total}")
+
+    print("تمت عملية المزامنة بنجاح.")
 
 
-# ============================================================
-orders_service = OrderService()
-
-def get_all_orders(page=1, limit=50, search=None, status=None, supplier_id=None, is_paid=None, date_from=None, date_to=None):
-    return orders_service.get_all_orders(page, limit, search, status, supplier_id, is_paid, date_from, date_to)
-
-def get_order_by_id(order_id):
-    return orders_service.get_order_by_id(order_id)
+if __name__ == "__main__":
+  # تجربة تشغيل المزامنة مباشرة
+  service = OrderService()
+  service.sync_orders()
