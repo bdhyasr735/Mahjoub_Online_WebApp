@@ -1,7 +1,7 @@
 # coding: utf-8
 # 📂 apps/suppliers_dashboard/dashboard_routes.py
 
-from flask import Blueprint, render_template, session, redirect, url_for, flash
+from flask import Blueprint, render_template, session, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import func, extract
 from datetime import datetime, timedelta
@@ -90,14 +90,15 @@ def dashboard():
         ).count()
 
         # ✅ ============================================================
-        # ✅ 2. إجمالي المبيعات (من الطلبات المكتملة فقط)
+        # ✅ 2. إجمالي المبيعات (من عناصر الطلبات المكتملة)
         # ✅ ============================================================
         total_sales = db.session.query(
-            func.sum(Order.total_amount)
-        ).filter(
-            Order.supplier_id == supplier.id,
-            Order.status == 'completed'
-        ).scalar() or 0.0
+            func.sum(OrderItem.price * OrderItem.quantity)
+        ).join(Order, Order.id == OrderItem.order_id)\
+         .filter(
+             Order.supplier_id == supplier.id,
+             Order.status == 'completed'
+         ).scalar() or 0.0
 
         # ✅ ============================================================
         # ✅ 3. مبيعات اليوم والأمس والأسبوع
@@ -107,28 +108,31 @@ def dashboard():
         week_ago = today - timedelta(days=7)
 
         sales_today = db.session.query(
-            func.sum(Order.total_amount)
-        ).filter(
-            Order.supplier_id == supplier.id,
-            Order.status == 'completed',
-            func.date(Order.created_at) == today
-        ).scalar() or 0.0
+            func.sum(OrderItem.price * OrderItem.quantity)
+        ).join(Order, Order.id == OrderItem.order_id)\
+         .filter(
+             Order.supplier_id == supplier.id,
+             Order.status == 'completed',
+             func.date(Order.created_at) == today
+         ).scalar() or 0.0
 
         sales_yesterday = db.session.query(
-            func.sum(Order.total_amount)
-        ).filter(
-            Order.supplier_id == supplier.id,
-            Order.status == 'completed',
-            func.date(Order.created_at) == yesterday
-        ).scalar() or 0.0
+            func.sum(OrderItem.price * OrderItem.quantity)
+        ).join(Order, Order.id == OrderItem.order_id)\
+         .filter(
+             Order.supplier_id == supplier.id,
+             Order.status == 'completed',
+             func.date(Order.created_at) == yesterday
+         ).scalar() or 0.0
 
         sales_week = db.session.query(
-            func.sum(Order.total_amount)
-        ).filter(
-            Order.supplier_id == supplier.id,
-            Order.status == 'completed',
-            func.date(Order.created_at) >= week_ago
-        ).scalar() or 0.0
+            func.sum(OrderItem.price * OrderItem.quantity)
+        ).join(Order, Order.id == OrderItem.order_id)\
+         .filter(
+             Order.supplier_id == supplier.id,
+             Order.status == 'completed',
+             func.date(Order.created_at) >= week_ago
+         ).scalar() or 0.0
 
         # ✅ حساب نسبة التغيير اليومي
         sales_change_percent = 0
@@ -160,17 +164,18 @@ def dashboard():
 
         monthly_sales = db.session.query(
             func.extract('day', Order.created_at).label('day'),
-            func.sum(Order.total_amount).label('total')
-        ).filter(
-            Order.supplier_id == supplier.id,
-            Order.status == 'completed',
-            extract('month', Order.created_at) == current_month,
-            extract('year', Order.created_at) == current_year
-        ).group_by(
-            func.extract('day', Order.created_at)
-        ).order_by(
-            func.extract('day', Order.created_at)
-        ).all()
+            func.sum(OrderItem.price * OrderItem.quantity).label('total')
+        ).join(Order, Order.id == OrderItem.order_id)\
+         .filter(
+             Order.supplier_id == supplier.id,
+             Order.status == 'completed',
+             extract('month', Order.created_at) == current_month,
+             extract('year', Order.created_at) == current_year
+         ).group_by(
+             func.extract('day', Order.created_at)
+         ).order_by(
+             func.extract('day', Order.created_at)
+         ).all()
 
         # ✅ تحويل إلى قوائم للرسم البياني
         chart_days = [str(record.day) for record in monthly_sales]
@@ -223,9 +228,6 @@ def dashboard():
                 'message': 'يرجى شحن المحفظة لتجنب توقف الخدمات',
                 'link': url_for('suppliers_wallet.deposit')
             })
-
-        # تنبيه: منتجات منخفضة (إذا كان لديك نظام مخزون)
-        # يمكن إضافته لاحقاً
 
         # ✅ ============================================================
         # ✅ 10. عرض القالب
@@ -287,11 +289,12 @@ def api_dashboard_stats():
         ).count()
 
         total_sales = db.session.query(
-            func.sum(Order.total_amount)
-        ).filter(
-            Order.supplier_id == supplier.id,
-            Order.status == 'completed'
-        ).scalar() or 0.0
+            func.sum(OrderItem.price * OrderItem.quantity)
+        ).join(Order, Order.id == OrderItem.order_id)\
+         .filter(
+             Order.supplier_id == supplier.id,
+             Order.status == 'completed'
+         ).scalar() or 0.0
 
         wallet = SupplierWallet.query.filter_by(supplier_id=supplier.id).first()
 
