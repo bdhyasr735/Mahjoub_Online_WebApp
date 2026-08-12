@@ -9,7 +9,7 @@ LINKS = {
     'suppliers_dashboard.dashboard': '📊 لوحة التحكم',
     'suppliers_wallet.wallet': '💰 المحفظة',
     'suppliers_wallet.withdraw': '💳 سحب الرصيد',
-    'suppliers_settings.settings': '⚙️ إعدادات المتجر'
+    # ❌ تم إزالة 'suppliers_settings.settings': '⚙️ إعدادات المتجر'
 }
 
 
@@ -28,7 +28,7 @@ def register_module(app):
         else:
             print("ℹ️ [Registry]: 'suppliers_dashboard' مسجل مسبقاً")
         
-        # ✅ تسجيل Blueprint الإعدادات
+        # ✅ تسجيل Blueprint الإعدادات (يظل مسجلاً للوصول المباشر)
         if 'suppliers_settings' not in app.blueprints:
             app.register_blueprint(settings_bp, url_prefix='/supplier')
             print("✅ [Registry]: تم تسجيل 'suppliers_settings'")
