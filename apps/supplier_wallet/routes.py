@@ -12,10 +12,11 @@ from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
 
-# محاولة استيراد جدول ملف المورد أو بيانات البروفايل إن وجد
+# محاولة استيراد نموذج المورد الأساسي (Supplier) ونموذج الملف الشخصي (SupplierProfile)
 try:
-    from apps.models.supplier_db import SupplierProfile
+    from apps.models.supplier_db import Supplier, SupplierProfile
 except ImportError:
+    Supplier = None
     SupplierProfile = None
 
 # توحيد اسم الـ Blueprint وتحديد مسار الملفات الثابتة
@@ -57,15 +58,24 @@ def get_current_supplier_id():
     return getattr(current_user, 'supplier_id', getattr(current_user, 'id', None))
 
 def get_or_create_supplier_wallet(supplier_id):
-    """جلب محفظة المورد أو إنشائها تلقائياً في حال عدم وجودها"""
+    """جلب محفظة المورد أو إنشائها تلقائياً مع ربطها بكود المورد الفريد"""
     if not supplier_id:
         return None
     wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     if not wallet:
         try:
+            sup_code = None
+            if Supplier:
+                supplier_obj = Supplier.query.get(supplier_id)
+                if supplier_obj:
+                    sup_code = getattr(supplier_obj, 'supplier_code', None)
+            
+            if not sup_code:
+                sup_code = f"MAH-SUP963{supplier_id}"
+
             wallet = SupplierWallet(
                 supplier_id=supplier_id,
-                wallet_code=f"MAH-WEL{uuid.uuid4().hex[:6].upper()}{supplier_id}",
+                wallet_code=f"WEL-{sup_code}",
                 balance_sar=0.00
             )
             db.session.add(wallet)
@@ -76,20 +86,27 @@ def get_or_create_supplier_wallet(supplier_id):
     return wallet
 
 def get_registered_supplier_payout_info(supplier_id):
-    """جلب بيانات المالك وتفاصيل الحساب المسجلة مسبقاً في قاعدة البيانات تلقائياً دون إدخال بشري"""
+    """جلب اسم المالك وتفاصيل الحساب مباشرة من جدول المورد الأساسي (Supplier) وبروفايله المسجل"""
     owner_name = ""
     account_details = ""
     
-    # 1. البحث في جدول بروفايل المورد إن وجد
-    if SupplierProfile and supplier_id:
+    # 1. البحث مباشرة في نموذج المورد الأساسي (Supplier) أولاً لضمان دقة اسم المالك والكود
+    if Supplier and supplier_id:
+        supplier_obj = Supplier.query.get(supplier_id)
+        if supplier_obj:
+            owner_name = getattr(supplier_obj, 'owner_name', None) or getattr(supplier_obj, 'trade_name', None) or ''
+
+    # 2. البحث في جدول بروفايل المورد (SupplierProfile) لجلب تفاصيل الحساب البنكي أو الصرافة
+    if SupplierProfile and supplier_id and not account_details:
         profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first() or SupplierProfile.query.filter_by(id=supplier_id).first()
         if profile:
-            owner_name = getattr(profile, 'owner_name', None) or getattr(profile, 'name', None) or getattr(profile, 'full_name', '')
+            if not owner_name:
+                owner_name = getattr(profile, 'owner_name', None) or getattr(profile, 'name', None) or getattr(profile, 'full_name', '')
             account_details = getattr(profile, 'bank_details', None) or getattr(profile, 'account_details', None) or getattr(profile, 'payout_info', '')
 
-    # 2. الاستناد إلى بيانات الحساب الحالي إذا لم تُوجَد في البروفايل
+    # 3. الاعتماد على بيانات الحساب الحالي إذا لم تُوجَد مسبقاً
     if not owner_name and current_user.is_authenticated:
-        owner_name = getattr(current_user, 'full_name', None) or getattr(current_user, 'name', None) or getattr(current_user, 'username', '')
+        owner_name = getattr(current_user, 'owner_name', None) or getattr(current_user, 'full_name', None) or getattr(current_user, 'name', '') or getattr(current_user, 'username', '')
 
     if not account_details and current_user.is_authenticated:
         account_details = getattr(current_user, 'bank_details', None) or getattr(current_user, 'account_details', '')
