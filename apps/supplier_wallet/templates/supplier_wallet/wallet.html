@@ -1,4 +1,9 @@
+{# 📂 apps/supplier_wallet/templates/supplier_wallet/wallet.html #}
 {% extends "suppliers/base.html" %}
+
+{% from "supplier_wallet/components/kpi_cards.html" import render_kpi_cards %}
+{% from "supplier_wallet/components/tables.html" import render_wallet_table %}
+{% from "supplier_wallet/components/pagination.html" import render_pagination %}
 
 {% block title %}Mahjoub Online - كشف حساب المحفظة العام{% endblock %}
 
@@ -22,131 +27,40 @@
     <!-- Page Banner -->
     <div class="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div class="space-y-2 relative z-10">
-            <h1 class="text-2xl font-black text-gray-900 tracking-tight">كشف حساب المحفظة</h1>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-[#4A154B]"></span>
+                <h1 class="text-2xl font-black text-gray-900 tracking-tight">كشف حساب المحفظة</h1>
+            </div>
             <p class="text-xs text-gray-500 max-w-2xl leading-relaxed">متابعة تفصيلية لكافة العمليات المالية، المبيعات، والإيداعات، وعمليات السحب الخاصة بحسابك في المنصة.</p>
         </div>
-        <div class="flex items-center gap-3 shrink-0">
-            <a href="{{ url_for('supplier_wallet.export_wallet_pdf') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs transition-all">تصدير PDF</a>
-            <a href="{{ url_for('supplier_wallet.withdraw') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#4A154B] hover:bg-[#3B113F] text-white font-black text-xs shadow-md">طلب سحب أرباح جديد</a>
+        <div class="flex items-center gap-3 shrink-0 relative z-10">
+            <a href="{{ url_for('supplier_wallet.export_wallet_pdf') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs transition-all shadow-xs">
+                <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>تصدير PDF</span>
+            </a>
+            <a href="{{ url_for('supplier_wallet.withdraw') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#4A154B] hover:bg-[#3B113F] text-white font-black text-xs shadow-md transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                <span>طلب سحب أرباح جديد</span>
+            </a>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs">
-            <span class="text-xs text-gray-500 font-medium">إجمالي الرصيد الكلي</span>
-            <div class="text-xl font-black text-gray-900">{{ "{:,.2f}".format(summary.balance_sar) }} <span class="text-xs">{{ summary.currency }}</span></div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs bg-purple-50/30">
-            <span class="text-xs text-gray-500 font-medium">الرصيد المتاح</span>
-            <div class="text-xl font-black text-[#4A154B]">{{ "{:,.2f}".format(summary.balance_sar) }} <span class="text-xs">{{ summary.currency }}</span></div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs">
-            <span class="text-xs text-gray-500 font-medium">قيد المعالجة (معلقة)</span>
-            <div class="text-xl font-black text-amber-600">{{ "{:,.2f}".format(summary.balance_pending) }} <span class="text-xs">{{ summary.currency }}</span></div>
-        </div>
-        <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs">
-            <span class="text-xs text-gray-500 font-medium">إجمالي المسحوبات</span>
-            <div class="text-xl font-black text-gray-800">{{ "{:,.2f}".format(summary.total_withdrawn) }} <span class="text-xs">{{ summary.currency }}</span></div>
-        </div>
-    </div>
+    <!-- 1. Summary KPI Cards Component -->
+    {{ render_kpi_cards(summary) }}
 
-    <!-- Filters -->
-    <div class="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-xs">
-        <form method="GET" action="{{ url_for('supplier_wallet.wallet_dashboard') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">بحث بالمرجع أو الوصف</label>
-                <input type="text" name="q" value="{{ search_query }}" class="w-full px-4 py-2.5 text-xs rounded-xl border border-gray-200 bg-gray-50">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">نوع الحركة</label>
-                <select name="type" class="w-full px-4 py-2.5 text-xs rounded-xl border border-gray-200 bg-gray-50">
-                    <option value="all">جميع الحركات</option>
-                    <option value="credit" {% if active_type == 'credit' %}selected{% endif %}>إيداع / إيراد مبيعات</option>
-                    <option value="withdrawal" {% if active_type == 'withdrawal' %}selected{% endif %}>عملية سحب</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-700 mb-1">حالة الحركة</label>
-                <select name="status" class="w-full px-4 py-2.5 text-xs rounded-xl border border-gray-200 bg-gray-50">
-                    <option value="all">جميع الحالات</option>
-                    <option value="completed" {% if active_status == 'completed' %}selected{% endif %}>مكتمل</option>
-                    <option value="pending" {% if active_status == 'pending' %}selected{% endif %}>قيد المراجعة</option>
-                </select>
-            </div>
-            <div class="flex gap-2">
-                <button type="submit" class="flex-1 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs">تصفية</button>
-                <a href="{{ url_for('supplier_wallet.wallet_dashboard') }}" class="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-bold text-xs text-center flex items-center justify-center">إعادة ضبط</a>
-            </div>
-        </form>
-    </div>
+    <!-- 2. Filters Component -->
+    {% set action_url = url_for('supplier_wallet.wallet_dashboard') %}
+    {% set filter_title = 'تصفية حركات الحساب' %}
+    {% set show_type = true %}
+    {% set show_status = true %}
+    {% set show_dates = true %}
+    {% include "supplier_wallet/components/filters.html" %}
 
-    <!-- Table -->
-    <div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="text-sm font-black text-gray-900">سجل حركات الحساب</h3>
-            <span class="text-xs text-gray-500">إجمالي النتائج: <strong class="text-gray-900">{{ pagination.total }}</strong></span>
-        </div>
-        <table class="w-full text-right">
-            <thead class="bg-gray-50 text-gray-500 text-[11px] font-bold">
-                <tr>
-                    <th class="py-3 px-4">رقم المرجع</th>
-                    <th class="py-3 px-4">التفاصيل</th>
-                    <th class="py-3 px-4">المبلغ</th>
-                    <th class="py-3 px-4">الحالة</th>
-                    <th class="py-3 px-4">التاريخ</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 text-xs text-gray-700">
-                {% for tx in transactions %}
-                <tr>
-                    <td class="py-3.5 px-4 font-mono font-bold text-gray-900">{{ tx.reference_number }}</td>
-                    <td class="py-3.5 px-4">{{ tx.description }}</td>
-                    <td class="py-3.5 px-4 font-bold {% if tx.amount < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">{{ "{:,.2f}".format(tx.amount) }}</td>
-                    <td class="py-3.5 px-4">
-                        {% set status_map = {
-                            'completed': 'bg-emerald-50 text-emerald-700',
-                            'pending': 'bg-amber-50 text-amber-700',
-                            'cancelled': 'bg-red-50 text-red-700'
-                        } %}
-                        {% set status_text = {
-                            'completed': 'مكتمل',
-                            'pending': 'قيد المراجعة',
-                            'cancelled': 'ملغي'
-                        } %}
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold {{ status_map.get(tx.status, 'bg-gray-100 text-gray-600') }}">
-                            {{ status_text.get(tx.status, tx.status) }}
-                        </span>
-                    </td>
-                    <td class="py-3.5 px-4 text-gray-500">{{ tx.created_at.strftime('%Y-%m-%d') }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" class="py-16 text-center text-gray-400">
-                        <div class="flex flex-col items-center gap-2">
-                            <svg class="w-8 h-8 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                            <span class="text-xs">لا توجد حركات مسجلة حالياً في المحفظة.</span>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- 3. Transactions Table Component -->
+    {{ render_wallet_table(transactions, currency=summary.currency|default('SAR')) }}
 
-        <!-- Pagination -->
-        {% if pagination.pages > 1 %}
-        <div class="p-4 border-t border-gray-100 flex items-center justify-between text-xs">
-            <span class="text-gray-500">صفحة {{ pagination.page }} من {{ pagination.pages }}</span>
-            <div class="flex gap-2">
-                {% if pagination.has_prev %}
-                <a href="{{ url_for('supplier_wallet.wallet_dashboard', page=pagination.prev_num, status=active_status, type=active_type, q=search_query) }}" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200">السابق</a>
-                {% endif %}
-                {% if pagination.has_next %}
-                <a href="{{ url_for('supplier_wallet.wallet_dashboard', page=pagination.next_num, status=active_status, type=active_type, q=search_query) }}" class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200">التالي</a>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
+    <!-- 4. Pagination Component -->
+    {{ render_pagination(pagination, endpoint='supplier_wallet.wallet_dashboard') }}
+
 </div>
 {% endblock %}
