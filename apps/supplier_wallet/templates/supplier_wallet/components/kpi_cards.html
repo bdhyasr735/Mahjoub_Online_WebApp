@@ -11,7 +11,7 @@
         </div>
         <div class="space-y-1">
             <div class="text-2xl font-black text-gray-900 tracking-tight">
-                {{ "{:,.2f}".format(wallet.total_balance|default(0.0)) }} <span class="text-xs font-normal text-gray-500">ج.م</span>
+                {{ "{:,.2f}".format(wallet.total_balance|default(0.0)) }} <span class="text-xs font-normal text-gray-500">{{ wallet.currency|default('ر.س') }}</span>
             </div>
             <p class="text-[11px] text-gray-400">الرصيد الإجمالي التراكمي</p>
         </div>
@@ -28,7 +28,7 @@
         </div>
         <div class="space-y-1 relative z-10">
             <div class="text-2xl font-black text-white tracking-tight">
-                {{ "{:,.2f}".format(wallet.available_balance|default(0.0)) }} <span class="text-xs font-normal text-purple-200">ج.م</span>
+                {{ "{:,.2f}".format(wallet.available_balance|default(0.0)) }} <span class="text-xs font-normal text-purple-200">{{ wallet.currency|default('ر.س') }}</span>
             </div>
             <p class="text-[11px] text-purple-200/80">جاهز للتحويل الفوري</p>
         </div>
@@ -44,7 +44,7 @@
         </div>
         <div class="space-y-1">
             <div class="text-2xl font-black text-amber-600 tracking-tight">
-                {{ "{:,.2f}".format(wallet.pending_balance|default(0.0)) }} <span class="text-xs font-normal text-gray-500">ج.م</span>
+                {{ "{:,.2f}".format(wallet.pending_balance|default(0.0)) }} <span class="text-xs font-normal text-gray-500">{{ wallet.currency|default('ر.س') }}</span>
             </div>
             <p class="text-[11px] text-gray-400">قيد المعالجة والتسوية</p>
         </div>
@@ -60,7 +60,7 @@
         </div>
         <div class="space-y-1">
             <div class="text-2xl font-black text-gray-900 tracking-tight">
-                {{ "{:,.2f}".format(wallet.total_withdrawn|default(0.0)) }} <span class="text-xs font-normal text-gray-500">ج.م</span>
+                {{ "{:,.2f}".format(wallet.total_withdrawn|default(0.0)) }} <span class="text-xs font-normal text-gray-500">{{ wallet.currency|default('ر.س') }}</span>
             </div>
             <p class="text-[11px] text-gray-400">المبالغ المحولة سابقاً</p>
         </div>
