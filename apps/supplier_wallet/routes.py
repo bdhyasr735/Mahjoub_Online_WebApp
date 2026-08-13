@@ -26,6 +26,14 @@ def get_trx_type_attr():
         return WalletTransaction.trx_type
     return None
 
+def get_status_attr():
+    """التحقق الديناميكي من اسم حقل الحالة في النموذج"""
+    if hasattr(WalletTransaction, 'status'):
+        return WalletTransaction.status
+    elif hasattr(WalletTransaction, 'state'):
+        return WalletTransaction.state
+    return None
+
 def get_current_supplier_id():
     """استخراج رقم المورد الحالي سواء كان هو التاجر أو موظف لدى المورد"""
     if not current_user.is_authenticated:
@@ -64,33 +72,37 @@ def wallet():
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     trx_type_col = get_trx_type_attr()
+    status_col = get_status_attr()
 
     if wallet_obj:
         wallet_id = wallet_obj.id
         
         # 1. إجمالي الإيداعات / المبيعات المكتملة
         q_completed = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
-            WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.status == 'completed'
+            WalletTransaction.wallet_id == wallet_id
         )
+        if status_col is not None:
+            q_completed = q_completed.filter(status_col == 'completed')
         if trx_type_col is not None:
             q_completed = q_completed.filter(trx_type_col == 'credit')
         completed_credits = q_completed.scalar() or 0.00
 
         # 2. الإيداعات قيد الانتظار
         q_pending = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
-            WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.status == 'pending'
+            WalletTransaction.wallet_id == wallet_id
         )
+        if status_col is not None:
+            q_pending = q_pending.filter(status_col == 'pending')
         if trx_type_col is not None:
             q_pending = q_pending.filter(trx_type_col == 'credit')
         pending_credits = q_pending.scalar() or 0.00
 
         # 3. إجمالي السحوبات (يشمل الطلبات المكتملة والمعلقة لحجز الرصيد)
         q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
-            WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.status.in_(['completed', 'pending'])
+            WalletTransaction.wallet_id == wallet_id
         )
+        if status_col is not None:
+            q_withdrawn = q_withdrawn.filter(status_col.in_(['completed', 'pending']))
         if trx_type_col is not None:
             q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
         total_withdrawn = q_withdrawn.scalar() or 0.00
@@ -135,29 +147,33 @@ def wallet():
 
     # 2. فلتر الحالة (Status)
     status = request.args.get('status', 'all')
-    if status != 'all':
-        query = query.filter(WalletTransaction.status == status)
+    if status != 'all' and status_col is not None:
+        query = query.filter(status_col == status)
 
     # 3. فلتر البحث المباشر (Search)
     search_query = request.args.get('search', '').strip()
     if search_query:
-        query = query.filter(
-            (WalletTransaction.reference_code.ilike(f"%{search_query}%")) |
-            (WalletTransaction.description.ilike(f"%{search_query}%"))
-        )
+        search_filters = []
+        if hasattr(WalletTransaction, 'reference_code'):
+            search_filters.append(WalletTransaction.reference_code.ilike(f"%{search_query}%"))
+        if hasattr(WalletTransaction, 'description'):
+            search_filters.append(WalletTransaction.description.ilike(f"%{search_query}%"))
+        if search_filters:
+            from sqlalchemy import or_
+            query = query.filter(or_(*search_filters))
 
     # 4. فلاتر التواريخ
     from_date_str = request.args.get('from_date', '').strip()
     to_date_str = request.args.get('to_date', '').strip()
 
-    if from_date_str:
+    if from_date_str and hasattr(WalletTransaction, 'created_at'):
         try:
             from_date = datetime.strptime(from_date_str, '%Y-%m-%d')
             query = query.filter(WalletTransaction.created_at >= from_date)
         except ValueError:
             pass
 
-    if to_date_str:
+    if to_date_str and hasattr(WalletTransaction, 'created_at'):
         try:
             to_date = datetime.strptime(to_date_str, '%Y-%m-%d')
             to_date_end = to_date.replace(hour=23, minute=59, second=59)
@@ -165,7 +181,11 @@ def wallet():
         except ValueError:
             pass
 
-    query = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc())
+    if hasattr(WalletTransaction, 'created_at'):
+        query = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc())
+    else:
+        query = query.order_by(WalletTransaction.id.desc())
+
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
 
     pagination = {
@@ -193,14 +213,16 @@ def withdraw():
     supplier_id = get_current_supplier_id()
     wallet_obj = get_or_create_supplier_wallet(supplier_id)
     trx_type_col = get_trx_type_attr()
+    status_col = get_status_attr()
 
     if wallet_obj:
         wallet_id = wallet_obj.id
 
         q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
-            WalletTransaction.wallet_id == wallet_id,
-            WalletTransaction.status.in_(['completed', 'pending'])
+            WalletTransaction.wallet_id == wallet_id
         )
+        if status_col is not None:
+            q_withdrawn = q_withdrawn.filter(status_col.in_(['completed', 'pending']))
         if trx_type_col is not None:
             q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
         total_withdrawn = q_withdrawn.scalar() or 0.00
@@ -244,11 +266,13 @@ def withdraw():
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
                     'amount': amount,
-                    'status': 'pending',
                     'reference_code': ref_code,
                     'description': f"طلب سحب أرباح عبر {payout_label} ({account_details[:30]}...)",
                     'created_at': datetime.utcnow()
                 }
+
+                if status_col is not None and hasattr(WalletTransaction, 'status'):
+                    tx_kwargs['status'] = 'pending'
 
                 # إضافة الحقول الاختيارية حسب متطلبات النموذج
                 if hasattr(WalletTransaction, 'payout_method'):
@@ -286,10 +310,14 @@ def withdraw():
     else:
         query = query.filter_by(id=-1)
 
-    if status_filter != 'all':
-        query = query.filter(WalletTransaction.status == status_filter)
+    if status_filter != 'all' and status_col is not None:
+        query = query.filter(status_col == status_filter)
 
-    query = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc())
+    if hasattr(WalletTransaction, 'created_at'):
+        query = query.order_by(WalletTransaction.created_at.desc(), WalletTransaction.id.desc())
+    else:
+        query = query.order_by(WalletTransaction.id.desc())
+
     pagination_obj = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
 
     pagination = {
