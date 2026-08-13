@@ -1,14 +1,19 @@
 <!-- Transactions Table Component (tables.html) -->
 <div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden flex flex-col">
+    <!-- Table Header -->
     <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
         <h2 class="text-xs font-extrabold text-gray-800 flex items-center gap-2">
+            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            </svg>
             <span>جدول المعاملات المالية الحالية</span>
         </h2>
         <span class="text-[11px] text-gray-400 bg-white px-2.5 py-1 rounded-lg border border-gray-200 font-mono">
-            per_page=10
+            per_page={{ pagination.per_page|default(10) }}
         </span>
     </div>
     
+    <!-- Table Body -->
     <div class="overflow-x-auto">
         <table class="w-full text-right text-xs">
             <thead class="bg-gray-50/80 text-gray-500 border-b border-gray-200 font-bold">
@@ -26,30 +31,49 @@
                 {% if items_list %}
                     {% for trx in items_list %}
                     <tr class="hover:bg-purple-50/30 transition-colors">
-                        <td class="px-5 py-4 font-mono font-bold text-slate-800">
-                            {{ trx.reference_code|default(trx.reference) }}
+                        <!-- Reference Code -->
+                        <td class="px-5 py-4 font-mono font-bold text-slate-800 dir-ltr text-right">
+                            {{ trx.reference_code|default(trx.reference|default('#' ~ trx.id)) }}
                         </td>
-                        <td class="px-5 py-4 text-slate-500 text-[11px]">
-                            {{ trx.created_at|default(trx.date) }}
-                        </td>
-                        <td class="px-5 py-4 font-medium">
-                            {% if trx.trx_type == 'credit' or trx.type == 'credit' %}
-                                <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">إيداع مبيعات</span>
+
+                        <!-- Date & Time -->
+                        <td class="px-5 py-4 text-slate-500 text-[11px] dir-ltr text-right">
+                            {% if trx.created_at and trx.created_at.strftime is defined %}
+                                {{ trx.created_at.strftime('%Y-%m-%d %H:%M') }}
                             {% else %}
-                                <span class="text-rose-700 bg-rose-50 px-2 py-0.5 rounded font-bold">سحب تحويل</span>
+                                {{ trx.created_at|default(trx.date|default('-')) }}
                             {% endif %}
                         </td>
-                        <td class="px-5 py-4 text-slate-600 font-medium">
-                            {{ trx.description }}
+
+                        <!-- Transaction Type -->
+                        <td class="px-5 py-4 font-medium">
+                            {% set current_trx_type = trx.trx_type|default(trx.transaction_type|default(trx.type)) %}
+                            {% if current_trx_type in ['credit', 'deposit'] %}
+                                <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold inline-block">إيداع مبيعات</span>
+                            {% else %}
+                                <span class="text-rose-700 bg-rose-50 px-2 py-0.5 rounded font-bold inline-block">سحب / تحويل</span>
+                            {% endif %}
                         </td>
+
+                        <!-- Description -->
+                        <td class="px-5 py-4 text-slate-600 font-medium max-w-xs truncate" title="{{ trx.description }}">
+                            {{ trx.description|default('لا يوجد بيان', true) }}
+                        </td>
+
+                        <!-- Amount & Dynamic Currency -->
                         <td class="px-5 py-4 font-mono font-bold text-slate-900 text-sm">
-                            {{ "{:,.2f}".format(trx.amount) }} <span class="text-[10px] text-gray-400">ج.م</span>
+                            {{ "{:,.2f}".format(trx.amount|float) if trx.amount is not none else "0.00" }} 
+                            <span class="text-[10px] text-gray-400 font-sans">
+                                {{ wallet.currency|default(summary.currency|default('ر.س')) }}
+                            </span>
                         </td>
+
+                        <!-- Status Badge -->
                         <td class="px-5 py-4 text-center">
                             {% if trx.status in ['completed', 'approved'] %}
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                    تم الموافقة والتحويل
+                                    مكتمل / تم التحويل
                                 </span>
                             {% elif trx.status == 'pending' %}
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
@@ -59,7 +83,7 @@
                             {% else %}
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                     <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                    مرفوض
+                                    مرفوض / ملغى
                                 </span>
                             {% endif %}
                         </td>
@@ -67,9 +91,11 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" class="p-10 text-center text-gray-400">
+                        <td colspan="6" class="p-10 text-center text-gray-400 bg-gray-50/30">
                             <div class="flex flex-col items-center justify-center space-y-2">
-                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                </svg>
                                 <span>لا توجد حركات مالية مسجلة حالياً وفق معايير البحث.</span>
                             </div>
                         </td>
