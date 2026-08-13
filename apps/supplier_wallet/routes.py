@@ -314,8 +314,11 @@ def withdraw():
                 
                 details_text = f" - التفاصيل: {account_details}" if account_details else " - (معتمد من السجل الأساسي)"
                 
+                # --- التعديل الجوهري: إضافة owner_id و owner_type لتجنب خطأ NotNullViolation ---
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
+                    'owner_id': supplier_id,      # تمت إضافة الحقل الإلزامي
+                    'owner_type': 'supplier',    # تمت إضافة النوع
                     'amount': amount,
                     'reference_number': ref_code, 
                     'description': f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}",
