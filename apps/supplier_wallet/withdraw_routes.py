@@ -1,6 +1,7 @@
 # coding: utf-8
 # 📂 apps/supplier_wallet/withdraw_routes.py
 
+import uuid
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for
@@ -42,19 +43,27 @@ def withdraw():
             amount = Decimal(str(raw_amount))
             method = request.form.get('method', 'bank')
 
+            # --- منطق التحقق والشروط ---
             if not wallet_obj:
                 flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
+            elif avail_bal <= Decimal('0.00'):
+                flash("رصيدك غير كافٍ، لا يوجد رصيد متاح للسحب حالياً.", "danger")
+            elif amount > avail_bal:
+                flash("رصيدك غير كافٍ لتغطية المبلغ المطلوب!", "danger")
             elif amount < min_withdraw:
                 flash(f"الحد الأدنى للسحب هو {float(min_withdraw):,.2f} {curr}", "danger")
-            elif amount > avail_bal:
-                flash("المبلغ المطلوب يتجاوز الرصيد المتاح حالياً للسحب!", "danger")
-            elif not registered_owner:
-                flash("اسم المالك غير مسجل في قاعدة البيانات.", "danger")
             else:
+                # في حال عدم وجود اسم مالك مسجل، نستخدم اسم افتراضي لتفادي فشل الحفظ
+                owner_name = registered_owner or f"مورد رقم #{supplier_id}"
+                
+                # توليد رقم مرجعي فريد لمنع خطأ الحفظ في قاعدة البيانات
+                ref_num = f"WD-{uuid.uuid4().hex[:8].upper()}"
+
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 details_text = f" - التفاصيل: {registered_details}" if registered_details else ""
                 
                 new_tx = WalletTransaction(
+                    reference_number=ref_num,
                     wallet_id=wallet_obj.id,
                     owner_id=supplier_id,     
                     owner_type='supplier',   
@@ -62,7 +71,7 @@ def withdraw():
                     status='pending',
                     amount=amount,
                     currency=curr,
-                    description=f"طلب سحب عبر {payout_label} | المالك: {registered_owner}{details_text}",
+                    description=f"طلب سحب عبر {payout_label} | المالك: {owner_name}{details_text}",
                     payout_method=payout_label,
                     account_details=registered_details or 'مسجل بالنظام',
                     created_by=supplier_id
@@ -78,7 +87,7 @@ def withdraw():
             flash("يرجى إدخال مبلغ مالي صحيح.", "danger")
         except Exception as e:
             db.session.rollback()
-            flash(f"حدث خطأ غير متوقع: {str(e)}", "danger")
+            flash(f"حدث خطأ غير متوقع أثناء حفظ الطلب: {str(e)}", "danger")
 
     status_filter = request.args.get('status', 'all')
     page = request.args.get('page', 1, type=int)
@@ -90,7 +99,6 @@ def withdraw():
     if status_filter != 'all':
         query = query.filter(WalletTransaction.status == status_filter)
 
-    # الاستفادة القصوى من الفهرس المركب (created_at, id) للأداء السريع
     pagination_obj = query.order_by(
         WalletTransaction.created_at.desc(), 
         WalletTransaction.id.desc()
