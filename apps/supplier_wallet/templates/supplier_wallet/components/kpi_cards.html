@@ -1,8 +1,18 @@
-{% macro render_kpi_cards(data) %}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+{# 📂 apps/supplier_wallet/templates/supplier_wallet/components/kpi_cards.html #}
+
+{% macro render_kpi_cards(data=none) %}
+    {# التوافق مع المتغيرات الممررة من الباك إند #}
+    {% set kpi = data or summary or {} %}
+    {% set currency = kpi.currency|default('SAR') %}
+    {% set avail_bal = kpi.available_balance|default(kpi.balance_sar|default(0.0)) %}
+    {% set pend_bal = kpi.pending_balance|default(kpi.balance_pending|default(0.0)) %}
+    {% set total_bal = kpi.total_balance|default(avail_bal + pend_bal) %}
+    {% set total_with = kpi.total_withdrawn|default(0.0) %}
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
     <!-- Card 1: Total Balance -->
-    <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm relative overflow-hidden transition-all hover:shadow-md">
+    <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs relative overflow-hidden transition-all hover:shadow-md">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-bold text-gray-500">إجمالي الرصيد</span>
             <div class="p-2.5 bg-purple-50 text-[#4A154B] rounded-xl">
@@ -10,32 +20,32 @@
             </div>
         </div>
         <div class="space-y-1">
-            <div class="text-xl font-black text-gray-900 tracking-tight">
-                {{ "{:,.2f}".format(data.total_balance|default(0.0)) }} <span class="text-xs font-normal text-gray-500">SAR</span>
+            <div class="text-xl font-black text-gray-900 tracking-tight" dir="ltr">
+                {{ "{:,.2f}".format(total_bal) }} <span class="text-xs font-bold text-gray-400">{{ currency }}</span>
             </div>
-            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">الرصيد التراكمي</p>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">الرصيد التراكمي الشامل</p>
         </div>
     </div>
 
-    <!-- Card 2: Available Balance (Dark Purple) -->
-    <div class="bg-[#3B113F] text-white p-5 rounded-2xl shadow-lg shadow-[#3B113F]/20 relative overflow-hidden">
+    <!-- Card 2: Available Balance (Brand Dark Purple) -->
+    <div class="bg-[#3B113F] text-white p-5 rounded-2xl shadow-lg shadow-[#3B113F]/20 relative overflow-hidden transition-all hover:scale-[1.01]">
         <div class="absolute -left-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
         <div class="flex items-center justify-between mb-3 relative z-10">
-            <span class="text-xs font-bold text-purple-200">الرصيد المتاح</span>
+            <span class="text-xs font-bold text-purple-200">الرصيد المتاح للسحب</span>
             <div class="p-2.5 bg-white/10 text-emerald-400 rounded-xl backdrop-blur-md">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
         </div>
         <div class="space-y-1 relative z-10">
-            <div class="text-xl font-black text-white tracking-tight">
-                {{ "{:,.2f}".format(data.available_balance|default(0.0)) }} <span class="text-xs font-normal text-purple-200">SAR</span>
+            <div class="text-xl font-black text-white tracking-tight" dir="ltr">
+                {{ "{:,.2f}".format(avail_bal) }} <span class="text-xs font-bold text-purple-200">{{ currency }}</span>
             </div>
             <p class="text-[10px] text-purple-200/80 font-bold uppercase tracking-wide">جاهز للتحويل الفوري</p>
         </div>
     </div>
 
     <!-- Card 3: Pending Balance -->
-    <div class="bg-white p-5 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden border-r-4 border-r-amber-400">
+    <div class="bg-white p-5 rounded-2xl border border-amber-100 shadow-xs relative overflow-hidden border-r-4 border-r-amber-400 transition-all hover:shadow-md">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-bold text-gray-500">المعاملات المعلقة</span>
             <div class="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
@@ -43,15 +53,15 @@
             </div>
         </div>
         <div class="space-y-1">
-            <div class="text-xl font-black text-amber-600 tracking-tight">
-                {{ "{:,.2f}".format(data.pending_balance|default(0.0)) }} <span class="text-xs font-normal text-gray-500">SAR</span>
+            <div class="text-xl font-black text-amber-600 tracking-tight" dir="ltr">
+                {{ "{:,.2f}".format(pend_bal) }} <span class="text-xs font-bold text-gray-400">{{ currency }}</span>
             </div>
-            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">قيد المعالجة</p>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">قيد المعالجة والتدقيق</p>
         </div>
     </div>
 
     <!-- Card 4: Total Withdrawals -->
-    <div class="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden border-r-4 border-r-emerald-400">
+    <div class="bg-white p-5 rounded-2xl border border-emerald-100 shadow-xs relative overflow-hidden border-r-4 border-r-emerald-400 transition-all hover:shadow-md">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-bold text-gray-500">إجمالي المسحوبات</span>
             <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
@@ -59,11 +69,16 @@
             </div>
         </div>
         <div class="space-y-1">
-            <div class="text-xl font-black text-gray-900 tracking-tight">
-                {{ "{:,.2f}".format(data.total_withdrawn|default(0.0)) }} <span class="text-xs font-normal text-gray-500">SAR</span>
+            <div class="text-xl font-black text-gray-900 tracking-tight" dir="ltr">
+                {{ "{:,.2f}".format(total_with) }} <span class="text-xs font-bold text-gray-400">{{ currency }}</span>
             </div>
-            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">المبالغ المحولة</p>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">المبالغ المحولة بنجاح</p>
         </div>
     </div>
 </div>
 {% endmacro %}
+
+{# تنفيذ تلقائي عند التضمين المباشر عبر {% include %} #}
+{% if summary is defined or data is defined %}
+    {{ render_kpi_cards(data|default(summary)) }}
+{% endif %}
