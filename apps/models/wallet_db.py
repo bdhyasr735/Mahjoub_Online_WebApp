@@ -119,8 +119,8 @@ class WalletTransaction(db.Model):
     owner_type = db.Column(db.String(20), default='supplier')
     owner_id = db.Column(db.Integer, nullable=False)
 
-    trans_type = db.Column(db.String(30), nullable=False)  # credit, debit, withdrawal, etc.
-    status = db.Column(db.String(30), default='completed', index=True) # completed, pending, cancelled
+    trans_type = db.Column(db.String(30), nullable=False)  # credit, debit, withdrawal, refund, etc.
+    status = db.Column(db.String(30), default='completed', index=True) # completed, pending, cancelled, refund
     source_type = db.Column(db.String(20), default='manual')
     
     amount = db.Column(db.Numeric(18, 2), nullable=False)
