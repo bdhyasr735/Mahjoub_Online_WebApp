@@ -65,6 +65,9 @@
         </h2>
 
         <form method="POST" action="{{ url_for('supplier_wallet.withdraw') }}" class="space-y-4">
+            <!-- حماية الـ CSRF (إلزامية لمنع خطأ 400 Bad Request) -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 
                 <!-- المبلغ المطلوب سحبه -->
@@ -79,6 +82,8 @@
                                max="{{ summary.available_balance }}"
                                placeholder="0.00" 
                                dir="ltr"
+                               lang="en"
+                               inputmode="decimal"
                                class="w-full px-4 py-3 text-xs rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-[#4A154B] focus:ring-1 focus:ring-[#4A154B] transition-all font-bold text-gray-800 pl-16 text-right">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500" dir="ltr">SAR</span>
                     </div>
@@ -141,7 +146,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="p-6 border-b border-gray-100 flex justify-between items-center">
             <h2 class="text-sm font-black text-gray-800">سجل عمليات وطلبات السحب السابقة</h2>
-            <span class="text-xs text-gray-400" dir="ltr">إجمالي الطلبات: {{ pagination.total_items }}</span>
+            <span class="text-xs text-gray-400" dir="ltr">إجمالي الطلبات: {{ pagination.total_items if pagination and pagination.total_items is defined else (withdrawals|length) }}</span>
         </div>
 
         <div class="overflow-x-auto">
