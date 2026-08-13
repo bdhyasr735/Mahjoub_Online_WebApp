@@ -4,6 +4,12 @@
 {% set has_prev = pagination.has_prev if pagination.has_prev is defined else pagination['has_prev'] %}
 {% set has_next = pagination.has_next if pagination.has_next is defined else pagination['has_next'] %}
 
+{% set current_search = request.args.get('search', '') %}
+{% set current_type = request.args.get('type', 'all') %}
+{% set current_status = request.args.get('status', 'all') %}
+{% set current_from = request.args.get('from_date', '') %}
+{% set current_to = request.args.get('to_date', '') %}
+
 {% if pagination and total_pages > 1 %}
 <div class="bg-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between border border-gray-200/80 rounded-2xl shadow-xs gap-4">
     <div class="text-xs text-gray-500 font-medium">
@@ -13,7 +19,7 @@
     <div class="flex items-center gap-1.5 dir-rtl">
         <!-- السابق -->
         {% if has_prev %}
-        <a href="{{ url_for('supplier_wallet.wallet', page=page-1, search=request.args.get('search',''), type=request.args.get('type','all')) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
+        <a href="{{ url_for('supplier_wallet.wallet', page=page-1, search=current_search, type=current_type, status=current_status, from_date=current_from, to_date=current_to) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
             &lt;
         </a>
         {% else %}
@@ -27,7 +33,7 @@
                 {{ p }}
             </span>
             {% else %}
-            <a href="{{ url_for('supplier_wallet.wallet', page=p, search=request.args.get('search',''), type=request.args.get('type','all')) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
+            <a href="{{ url_for('supplier_wallet.wallet', page=p, search=current_search, type=current_type, status=current_status, from_date=current_from, to_date=current_to) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
                 {{ p }}
             </a>
             {% endif %}
@@ -35,7 +41,7 @@
 
         <!-- التالي -->
         {% if has_next %}
-        <a href="{{ url_for('supplier_wallet.wallet', page=page+1, search=request.args.get('search',''), type=request.args.get('type','all')) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
+        <a href="{{ url_for('supplier_wallet.wallet', page=page+1, search=current_search, type=current_type, status=current_status, from_date=current_from, to_date=current_to) }}" class="px-3.5 py-1.5 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
             &gt;
         </a>
         {% else %}
