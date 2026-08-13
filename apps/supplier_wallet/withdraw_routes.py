@@ -2,6 +2,7 @@
 # 📂 apps/supplier_wallet/withdraw_routes.py
 
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_required
 from apps.extensions import db
@@ -21,29 +22,30 @@ def withdraw():
 
     registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
 
-    avail_bal = 0.00
-    min_withdraw = 50.00
+    avail_bal = Decimal('0.00')
+    min_withdraw = Decimal('50.00')
     curr = 'SAR'
 
     if wallet_obj:
-        avail_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
+        avail_bal = Decimal(str(getattr(wallet_obj, 'balance_sar', '0.00')))
         curr = getattr(wallet_obj, 'default_currency', 'SAR')
 
     summary = {
-        'available_balance': avail_bal,
-        'min_withdraw_amount': min_withdraw,
+        'available_balance': float(avail_bal),
+        'min_withdraw_amount': float(min_withdraw),
         'currency': curr
     }
 
     if request.method == 'POST':
         try:
-            amount = float(request.form.get('amount', 0))
+            raw_amount = request.form.get('amount', '0')
+            amount = Decimal(str(raw_amount))
             method = request.form.get('method', 'bank')
 
             if not wallet_obj:
                 flash("تعذر الوصول إلى حساب المحفظة الخاص بك.", "danger")
             elif amount < min_withdraw:
-                flash(f"الحد الأدنى للسحب هو {min_withdraw:,.2f} {curr}", "danger")
+                flash(f"الحد الأدنى للسحب هو {float(min_withdraw):,.2f} {curr}", "danger")
             elif amount > avail_bal:
                 flash("المبلغ المطلوب يتجاوز الرصيد المتاح حالياً للسحب!", "danger")
             elif not registered_owner:
@@ -62,7 +64,8 @@ def withdraw():
                     currency=curr,
                     description=f"طلب سحب عبر {payout_label} | المالك: {registered_owner}{details_text}",
                     payout_method=payout_label,
-                    account_details=registered_details or 'مسجل بالنظام'
+                    account_details=registered_details or 'مسجل بالنظام',
+                    created_by=supplier_id
                 )
 
                 db.session.add(new_tx)
@@ -70,11 +73,12 @@ def withdraw():
 
                 flash("تم تقديم طلب السحب بنجاح، وهو قيد المراجعة.", "success")
                 return redirect(url_for('supplier_wallet.withdraw'))
-        except ValueError:
+                
+        except (ValueError, InvalidOperation):
             flash("يرجى إدخال مبلغ مالي صحيح.", "danger")
         except Exception as e:
             db.session.rollback()
-            flash(f"حدث خطأ: {str(e)}", "danger")
+            flash(f"حدث خطأ غير متوقع: {str(e)}", "danger")
 
     status_filter = request.args.get('status', 'all')
     page = request.args.get('page', 1, type=int)
@@ -86,8 +90,11 @@ def withdraw():
     if status_filter != 'all':
         query = query.filter(WalletTransaction.status == status_filter)
 
-    # استخدام الـ paginate المعتمد والتأكد من إرجاعه للكائن الصحيح
-    pagination_obj = query.order_by(WalletTransaction.id.desc()).paginate(page=page, per_page=PER_PAGE, error_out=False)
+    # الاستفادة القصوى من الفهرس المركب (created_at, id) للأداء السريع
+    pagination_obj = query.order_by(
+        WalletTransaction.created_at.desc(), 
+        WalletTransaction.id.desc()
+    ).paginate(page=page, per_page=PER_PAGE, error_out=False)
 
     return render_template(
         'supplier_wallet/withdraw.html',
@@ -95,7 +102,7 @@ def withdraw():
         wallet=summary,
         withdrawals=pagination_obj.items,
         active_filter=status_filter,
-        pagination=pagination_obj,  # تمرير الكائن الأصلي هنا بوضوح
+        pagination=pagination_obj,
         registered_owner=registered_owner,
         registered_details=registered_details
     )
