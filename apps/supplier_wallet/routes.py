@@ -3,7 +3,7 @@
 
 """
 Mahjoub Online - Supplier Wallet Routes
-تتضمن كافة المنطق للفلترة ومعالجة حركات الحساب وطلبات السحب المباشرة من قاعدة البيانات
+تتضمن كافة المنطق للفلترة ومعالجة حركات الحساب وطلبات السحب اعتماداً على البيانات المسجلة في القاعدة
 """
 import uuid
 from datetime import datetime
@@ -11,6 +11,11 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from apps.extensions import db
 from apps.models.wallet_db import SupplierWallet, WalletTransaction
+# استيراد نموذج ملف المورد أو البيانات المسجلة إن وجد
+try:
+    from apps.models.supplier_db import SupplierProfile
+except ImportError:
+    SupplierProfile = None
 
 # توحيد اسم الـ Blueprint وتحديد مسار الملفات الثابتة
 wallet_bp = Blueprint(
@@ -22,7 +27,7 @@ wallet_bp = Blueprint(
 )
 
 def get_trx_type_attr():
-    """التحقق الديناميكي من اسم حقل نوع المعاملة وتجنب الخصائص البرمجية (Properties) لضمان عمل استعلامات SQLAlchemy بكفاءة"""
+    """التحقق الديناميكي من اسم حقل نوع المعاملة وتجنب الخصائص البرمجية (Properties)"""
     for col_name in ['transaction_type', 'trx_type', 'trans_type']:
         if hasattr(WalletTransaction, col_name):
             attr = getattr(WalletTransaction, col_name)
@@ -69,6 +74,27 @@ def get_or_create_supplier_wallet(supplier_id):
             wallet = SupplierWallet.query.filter_by(supplier_id=supplier_id).first()
     return wallet
 
+def get_registered_supplier_payout_info(supplier_id):
+    """جلب بيانات الحساب واسم المالك المسجلة مسبقاً في قاعدة بيانات الموردين"""
+    owner_name = ""
+    account_details = ""
+    
+    # 1. محاولة الجلب من جدول SupplierProfile إن وجد
+    if SupplierProfile and supplier_id:
+        profile = SupplierProfile.query.filter_by(supplier_id=supplier_id).first() or SupplierProfile.query.filter_by(id=supplier_id).first()
+        if profile:
+            owner_name = getattr(profile, 'owner_name', None) or getattr(profile, 'name', None) or getattr(profile, 'full_name', '')
+            account_details = getattr(profile, 'bank_details', None) or getattr(profile, 'account_details', None) or getattr(profile, 'payout_info', '')
+
+    # 2. الجلب من بيانات الحساب الحالي (current_user) إذا لم تتوفر في البروفايل
+    if not owner_name and current_user.is_authenticated:
+        owner_name = getattr(current_user, 'full_name', None) or getattr(current_user, 'name', None) or getattr(current_user, 'username', '')
+
+    if not account_details and current_user.is_authenticated:
+        account_details = getattr(current_user, 'bank_details', None) or getattr(current_user, 'account_details', '')
+
+    return owner_name.strip(), account_details.strip()
+
 
 @wallet_bp.route('/', methods=['GET'], strict_slashes=False)
 @wallet_bp.route('/wallet', methods=['GET'], strict_slashes=False)
@@ -82,7 +108,6 @@ def wallet():
     if wallet_obj:
         wallet_id = wallet_obj.id
         
-        # 1. إجمالي الإيداعات / المبيعات المكتملة
         q_completed = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id
         )
@@ -92,7 +117,6 @@ def wallet():
             q_completed = q_completed.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit']))
         completed_credits = q_completed.scalar() or 0.00
 
-        # 2. الإيداعات قيد الانتظار
         q_pending = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id
         )
@@ -102,7 +126,6 @@ def wallet():
             q_pending = q_pending.filter(trx_type_col.in_(['credit', 'sale_revenue', 'deposit', 'adjustment_credit']))
         pending_credits = q_pending.scalar() or 0.00
 
-        # 3. إجمالي السحوبات (يشمل الطلبات المكتملة والمعلقة لحجز الرصيد)
         q_withdrawn = db.session.query(db.func.sum(WalletTransaction.amount)).filter(
             WalletTransaction.wallet_id == wallet_id
         )
@@ -112,7 +135,6 @@ def wallet():
             q_withdrawn = q_withdrawn.filter(trx_type_col.in_(['withdrawal', 'debit']))
         total_withdrawn = q_withdrawn.scalar() or 0.00
 
-        # 4. الرصيد المتاح المتبقي
         avail_bal = getattr(wallet_obj, 'available_balance', None)
         if avail_bal is None:
             avail_bal = float(getattr(wallet_obj, 'balance_sar', 0.00))
@@ -145,17 +167,14 @@ def wallet():
     else:
         query = query.filter_by(id=-1)
 
-    # 1. فلتر نوع الحركة (Type)
     trx_type = request.args.get('type', 'all')
     if trx_type != 'all' and trx_type_col is not None:
         query = query.filter(trx_type_col == trx_type)
 
-    # 2. فلتر الحالة (Status)
     status = request.args.get('status', 'all')
     if status != 'all' and status_col is not None:
         query = query.filter(status_col == status)
 
-    # 3. فلتر البحث المباشر (Search)
     search_query = request.args.get('search', '').strip()
     if search_query:
         search_filters = []
@@ -169,7 +188,6 @@ def wallet():
             from sqlalchemy import or_
             query = query.filter(or_(*search_filters))
 
-    # 4. فلاتر التواريخ
     from_date_str = request.args.get('from_date', '').strip()
     to_date_str = request.args.get('to_date', '').strip()
 
@@ -222,6 +240,9 @@ def withdraw():
     trx_type_col = get_trx_type_attr()
     status_col = get_status_attr()
 
+    # جلب البيانات المسجلة للمورد من قاعدة البيانات تلقائياً
+    registered_owner, registered_details = get_registered_supplier_payout_info(supplier_id)
+
     if wallet_obj:
         wallet_id = wallet_obj.id
 
@@ -256,8 +277,10 @@ def withdraw():
         try:
             amount = float(request.form.get('amount', 0))
             method = request.form.get('method', 'bank')
-            owner_name = request.form.get('owner_name', '').strip()
-            account_details = request.form.get('account_details', '').strip()
+
+            # الاعتماد التام على البيانات المسجلة في قاعدة البيانات بدلاً من طلبها من النموذج
+            owner_name = registered_owner
+            account_details = registered_details
 
             if not wallet_obj:
                 flash("تعذر الوصول إلى حساب المحفظة الخاص بك. يرجى إعادة المحاولة.", "danger")
@@ -266,12 +289,12 @@ def withdraw():
             elif amount > avail_bal:
                 flash("المبلغ المطلوب يتجاوز الرصيد المتاح حالياً للسحب!", "danger")
             elif not owner_name:
-                flash("يرجى إدخال اسم المالك (صاحب الحساب) الأساسي بشكل صحيح.", "danger")
+                flash("اسم المالك غير مسجل في قاعدة البيانات، يرجى تحديث بيانات حسابك أولاً.", "danger")
             else:
                 ref_code = f"WDR-{uuid.uuid4().hex[:6].upper()}"
                 payout_label = "تحويل بنكي" if method == 'bank' else "شركات التحويل والصرافة"
                 
-                details_text = f" - التفاصيل: {account_details}" if account_details else " - (بدون تفاصيل إضافية)"
+                details_text = f" - التفاصيل: {account_details}" if account_details else " - (مسجل بالسجل الأساسي)"
                 
                 tx_kwargs = {
                     'wallet_id': wallet_obj.id,
@@ -287,7 +310,7 @@ def withdraw():
                 if hasattr(WalletTransaction, 'payout_method'):
                     tx_kwargs['payout_method'] = payout_label
                 if hasattr(WalletTransaction, 'account_details'):
-                    tx_kwargs['account_details'] = account_details or 'غير محدد'
+                    tx_kwargs['account_details'] = account_details or 'مسجل بالنظام'
                 if hasattr(WalletTransaction, 'owner_name'):
                     tx_kwargs['owner_name'] = owner_name
                 
@@ -302,7 +325,7 @@ def withdraw():
                 db.session.add(tx)
                 db.session.commit()
 
-                flash("تم تقديم طلب السحب بنجاح، وهو قيد المعالجة والتسوية.", "success")
+                flash("تم تقديم طلب السحب بنجاح بناءً على البيانات المسجلة، وهو قيد المعالجة والتسوية.", "success")
                 return redirect(url_for('supplier_wallet.withdraw'))
         except ValueError:
             flash("يرجى إدخال مبلغ مالي صحيح ومقبول.", "danger")
@@ -349,5 +372,7 @@ def withdraw():
         withdrawals=pagination_obj.items,
         active_filter=status_filter,
         pagination_obj=pagination_obj,
-        pagination=pagination
+        pagination=pagination,
+        registered_owner=registered_owner,
+        registered_details=registered_details
     )
