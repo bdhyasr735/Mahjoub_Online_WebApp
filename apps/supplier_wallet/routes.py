@@ -343,7 +343,7 @@ def withdraw():
                 db.session.add(tx)
                 db.session.commit()
 
-                flash("تم تقديم طلب السحب بنجاح بناءً على القواعد والبيانات المسجلة، وهو قيد المعالجة والتسوية.", "success")
+                flash("تم تقديم طلب السحب بنجاح، وهو الآن قيد المراجعة من قبل الإدارة.", "success")
                 return redirect(url_for('supplier_wallet.withdraw'))
         except ValueError:
             flash("يرجى إدخال مبلغ مالي صحيح ومقبول.", "danger")
